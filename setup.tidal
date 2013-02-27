@@ -1,0 +1,4 @@
+d1 <- dirtstream "d1"
+
+d1 $ slow 8 "[1]" >>= \x -> slow x $ (sound ("[bd [sn [sn sn sn] sn]]")
+                                     )
