@@ -4,7 +4,6 @@ module Pattern where
 
 import Control.Applicative
 import Data.Monoid
---import Control.Monad
 import Data.Fixed
 import Data.List
 import Data.Maybe
@@ -16,72 +15,42 @@ import Data.Function
 import Time
 import Utils
 
-type Event a = (Arc, a)
+data Pattern a = Pattern {arc :: Arc -> [Event a]}
 
-data Sequence a = Sequence {arc :: Arc -> [Event a]}
-
-data Signal a = Signal {at :: Time -> [a]}
-
-instance (Show a) => Show (Sequence a) where
-  show p@(Sequence _) = show $ arc p (0, 1)
-
-instance (Show a) => Show (Signal a) where
-  show p@(Signal _) = "~signal~"
-
---class (Functor p, Applicative p) => Pattern p where
-class (Functor p, Applicative p, Monad p) => Pattern p where
-  pt :: (p a) -> Time -> [a]
-  atom :: a -> p a
-  silence :: p a
-  toSignal :: p a -> Signal a
-  toSignal p = Signal $ \t -> pt p t
-  mapQueryTime :: (Time -> Time) -> p a -> p a
-  mapResultTime :: (Time -> Time) -> p a -> p a
-  squash :: Int -> (Int, p a) -> p a
-  overlay :: p a -> p a -> p a
+instance (Show a) => Show (Pattern a) where
+  show p@(Pattern _) = show $ arc p (0, 1)
   
-{-
-  mapTime = mapOnset
-  mapOnset :: (Time -> Time) -> p a -> p a
-  mapTimeOut :: (Time -> Time) -> p a -> p a
--}  
+instance Functor Pattern where
+  fmap f (Pattern a) = Pattern $ fmap (fmap (mapSnd f)) a
+
+atom :: a -> Pattern a
+atom x = Pattern f
+  where f (s, e) = map 
+                   (\t -> ((t%1, (t+1)%1), x))
+                   [floor s .. ((ceiling e) - 1)]
   
-instance Pattern Signal where
-  pt = at
-  atom x = Signal $ const [x]
-  silence = Signal $ const []
-  toSignal = id
-  mapQueryTime f p = Signal $ \t -> at p (f t)
-  mapResultTime _ p = p
-  squash = squashSignal
-  overlay p p' = Signal $ \t -> (at p t) ++ (at p' t)
+silence :: Pattern a
+silence = Pattern $ const []
 
-instance Functor Sequence where
-  fmap f (Sequence a) = Sequence $ fmap (fmap (mapSnd f)) a
+mapQueryArc :: (Arc -> Arc) -> Pattern a -> Pattern a
+mapQueryArc f p = Pattern $ \a -> arc p (f a)
 
-instance Functor Signal where
-  fmap f (Signal a) = Signal $ fmap (fmap f) a
+mapQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
+mapQueryTime = mapQueryArc . mapArc
 
-instance Pattern Sequence where
-  pt p t = map snd $ arc p (t, t)
-  atom x = Sequence f
-    where f (s, e) = map 
-                     (\t -> ((t%1, (t+1)%1), x))
-                     [floor s .. ((ceiling e) - 1)]
-  silence = Sequence $ const []
-  mapQueryTime f p = Sequence $ \a -> arc p (mapArc f a)
-  mapResultTime f p = Sequence $ \a -> mapFsts (mapArc f) $ arc p a
-  squash = squashSequence
-  overlay p p' = Sequence $ \a -> (arc p a) ++ (arc p' a)
+mapResultArc :: (Arc -> Arc) -> Pattern a -> Pattern a
+mapResultArc f p = Pattern $ \a -> mapFsts f $ arc p a
 
-instance Applicative Signal where
+mapResultTime :: (Time -> Time) -> Pattern a -> Pattern a
+mapResultTime = mapResultArc . mapArc
+
+overlay :: Pattern a -> Pattern a -> Pattern a
+overlay p p' = Pattern $ \a -> (arc p a) ++ (arc p' a)
+
+instance Applicative Pattern where
   pure = atom
-  (Signal fs) <*> (Signal xs) = Signal $ \t -> (fs t) <*> (xs t)
-
-instance Applicative Sequence where
-  pure = atom
-  (Sequence fs) <*> (Sequence xs) = 
-    Sequence $ \a ->
+  (Pattern fs) <*> (Pattern xs) = 
+    Pattern $ \a ->
       concatMap
       (\((s,e),x) -> map 
                      (mapSnd ($ x))
@@ -92,50 +61,30 @@ instance Applicative Sequence where
       )
       (xs a)
 
-eventStart :: Event a -> Time
-eventStart = fst . fst
-
-
-instance Monad Signal where
-  return = pure
-  p >>= f = Signal (\t -> concat $ map (\x -> at (f x) t) (at p t))
-
-instance Monad Sequence where
+instance Monad Pattern where
   return = pure
   p >>= f = 
-    Sequence (\a -> concatMap 
+    Pattern (\a -> concatMap 
                     (\(a', x) -> mapFsts (cutArc a) $ arc (f x) a')
                     (arc p a)
              )
 
-instance Monoid (Signal a) where
+instance Monoid (Pattern a) where
     mempty = silence
-    mappend x y = Signal $ \t -> (at x t) ++ (at y t)
+    mappend x y = Pattern $ \a -> (arc x a) ++ (arc y a)
 
-instance Monoid (Sequence a) where
-    mempty = silence
-    mappend x y = Sequence $ \a -> (arc x a) ++ (arc y a)
-
-cat :: (Pattern p) => [p b] -> p b
+cat :: [Pattern b] -> Pattern b
 cat ps = stack $ map (squash l) (zip [0..] ps)
   where l = length ps
 
-listToPat :: Pattern p => [a] -> p a
-listToPat = cat . map atom
-
-slowcat :: (Pattern p) => [p b] -> p b
+slowcat :: [Pattern b] -> Pattern b
 slowcat ps = slow (fromIntegral $ length ps) $ cat ps
 
-squashSignal :: Int -> (Int, Signal a) -> Signal a
-squashSignal parts (part, p) = Signal f
-  where f t | cyclePos t >= start && cyclePos t < end = at p $ scale t
-            | otherwise = []
-        start = fromIntegral part % fromIntegral parts
-        end = start + (1 % fromIntegral parts)
-        scale t = (sam t) + ((cyclePos t - start) * fromIntegral parts)
+listToPat :: [a] -> Pattern a
+listToPat = cat . map atom
 
-squashSequence :: Int -> (Int, Sequence a) -> Sequence a
-squashSequence parts (part, p) = Sequence f 
+squash :: Int -> (Int, Pattern a) -> Pattern a
+squash parts (part, p) = Pattern f 
   where f a = concat $ catMaybes $ map doCycle (arcCycles a)
         start = fromIntegral part % fromIntegral parts
         end = start + (1 % fromIntegral parts)
@@ -157,87 +106,70 @@ squashSequence parts (part, p) = Sequence f
                 start' = start + cycleStart
                 end' = end + cycleStart
 
-stack :: (Pattern p) => [p a] -> p a
+stack :: [Pattern a] -> Pattern a
 stack ps = foldr overlay silence ps
 
-density :: Pattern p => Time -> p a -> p a
+density :: Time -> Pattern a -> Pattern a
 density 1 p = p
 density r p = mapResultTime (/ r) $ mapQueryTime (* r) p
 
-slow :: Pattern p => Time -> p a -> p a
+slow :: Time -> Pattern a -> Pattern a
 slow t = density (1/t) 
 
-
-(<~) :: Pattern p => Time -> p a -> p a
+(<~) :: Time -> Pattern a -> Pattern a
 (<~) t p = mapResultTime (+ t) $ mapQueryTime (subtract t) p
 
-(~>) :: Pattern p => Time -> p a -> p a
+(~>) :: Time -> Pattern a -> Pattern a
 (~>) = (<~) . (0-)
 
-sig :: (Time -> a) -> Sequence a
-sig f = Sequence f'
+rev :: Pattern a -> Pattern a
+rev p = Pattern $ \a -> concatMap 
+                        (\a' -> mapFsts mirrorArc $ 
+                                (arc p (mirrorArc a')))
+                        (arcCycles a)
+
+sig :: (Time -> a) -> Pattern a
+sig f = Pattern f'
   where f' (s,e) | s > e = []
                  | otherwise = [((s,e), f s)]
 
-sinewave :: Sequence Double
+sinewave :: Pattern Double
 sinewave = sig $ \t -> sin $ pi * 2 * (fromRational t)
 
-sinewave1 :: Sequence Double
+sinewave1 :: Pattern Double
 sinewave1 = fmap ((/ 2) . (+ 1)) sinewave
 
-sinePhase1 :: Double -> Sequence Double
+sinePhase1 :: Double -> Pattern Double
 sinePhase1 offset = (+ offset) <$> sinewave1
 
-triwave1 :: Sequence Double
+triwave1 :: Pattern Double
 triwave1 = sig $ \t -> mod' (fromRational t) 1
 
-triwave :: Sequence Double
+triwave :: Pattern Double
 triwave = ((subtract 1) . (* 2)) <$> triwave1
 
 
-squarewave1 :: Sequence Double
+squarewave1 :: Pattern Double
 squarewave1 = sig $ 
               \t -> fromIntegral $ floor $ (mod' (fromRational t) 1) * 2
 
-squarewave :: Sequence Double
+squarewave :: Pattern Double
 squarewave = ((subtract 1) . (* 2)) <$> squarewave1
 
-infixl 4 <~>
-(<~>) :: Pattern p => Sequence (a -> b) -> p a -> Sequence b
-(Sequence fs) <~> xs = 
-  Sequence $ \r -> concatMap (\((s,e), f) -> 
-                               map 
-                               (\x -> ((s,e), f x))
-                               (at (toSignal xs) s)
-                             ) (fs r)
-                   
-
 -- Filter out events that start before range
-filterOffsets :: Sequence a -> Sequence a
-filterOffsets (Sequence f) = 
-  Sequence $ \(s, e) -> filter ((>= s) . eventStart) $ f (s, e)
+filterOffsets :: Pattern a -> Pattern a
+filterOffsets (Pattern f) = 
+  Pattern $ \(s, e) -> filter ((>= s) . eventStart) $ f (s, e)
 
-seqToRelOnsets :: Arc -> Sequence a -> [(Double, a)]
+seqToRelOnsets :: Arc -> Pattern a -> [(Double, a)]
 seqToRelOnsets (s, e) p = mapFsts (fromRational . (/ (e-s)) . (subtract s) . fst) $ arc (filterOffsets p) (s, e)
 
-sample :: Int -> Signal a -> Sequence a
-sample n p = listToPat (take n $ repeat id) <~> p
+every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+every 0 _ p = p
+every n f p = slow (fromIntegral n %1) $ cat $ (take (n-1) $ repeat p) ++ [f p]
 
 
 {-
--- Normalise range to positive duration
-normaliseRange :: Range -> Range
-normaliseRange r@(_, Nothing) = r
-normaliseRange r@(s, Just d) | d < 0 = (s + d, Just $ 0 - d)
-                             | otherwise = r
-
-normaliseRange' :: (Time, Time) -> (Time, Time)
-normaliseRange' r@(s, d) | d < 0 = (s + d, 0 - d)
-                         | otherwise = r
-
---  (Signal fs) <*> px@(Sequence _) = 
---    Signal $ \t -> concatMap (\(_, x) -> map (\f -> f x) (fs t)) (range px (t,Nothing))
-
 filterEvents :: (Event a -> Bool) -> Sequence a -> Sequence a
 filterEvents f (Sequence a) = Sequence $ \r -> filter f $ a r
 
@@ -258,11 +190,6 @@ revT (s, d) = (s', d)
 
 --revT :: Time -> Time
 --revT = \t -> sam t + ((fromIntegral $ ceiling t) - t)
-
-every :: Pattern p => Int -> (p a -> p a) -> p a -> p a
-every 0 _ p = p
-every n f p = slow (fromIntegral n %1) $ cat $ (take (n-1) $ repeat p) ++ [f p]
-
 
 segment :: Sequence a -> Sequence [a]
 segment p = Sequence $ \r -> groupByTime (segment' (range p r))

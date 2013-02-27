@@ -34,8 +34,7 @@ data OscShape = OscShape {path :: String,
                          }
 type OscMap = Map.Map Param (Maybe Datum)
 
-type OscSequence = Sequence OscMap
-type OscSignal = Signal OscMap
+type OscPattern = Pattern OscMap
 
 defaultDatum :: Param -> Maybe Datum
 defaultDatum (S _ (Just x)) = Just $ String x
@@ -89,7 +88,7 @@ applyShape' :: OscShape -> OscMap -> Maybe OscMap
 applyShape' s m | hasRequired s m = Just $ Map.union m (defaultMap s)
                 | otherwise = Nothing
 
-start :: String -> String -> String -> String -> Int -> OscShape -> IO (MVar (OscSequence))
+start :: String -> String -> String -> String -> Int -> OscShape -> IO (MVar (OscPattern))
 start client server name address port shape
   = do patternM <- newMVar silence
        putStrLn $ "connecting " ++ (show address) ++ ":" ++ (show port)
@@ -99,20 +98,20 @@ start client server name address port shape
        forkIO $ clocked name client server 1 ot
        return patternM
 
-stream :: String -> String -> String -> String -> Int -> OscShape -> IO (OscSequence -> IO ())
+stream :: String -> String -> String -> String -> Int -> OscShape -> IO (OscPattern -> IO ())
 stream client server name address port shape 
   = do patternM <- start client server name address port shape
        return $ \p -> do swapMVar patternM p
                          return ()
 
-streamcallback :: (OscSequence -> IO ()) -> String -> String -> String -> String -> Int -> OscShape -> IO (OscSequence -> IO ())
+streamcallback :: (OscPattern -> IO ()) -> String -> String -> String -> String -> Int -> OscShape -> IO (OscPattern -> IO ())
 streamcallback callback client server name address port shape 
   = do f <- stream client server name address port shape
        let f' p = do callback p
                      f p
        return f'
 
-onTick :: UDP -> OscShape -> MVar (OscSequence) -> BpsChange -> Int -> IO ()
+onTick :: UDP -> OscShape -> MVar (OscPattern) -> BpsChange -> Int -> IO ()
 onTick s shape patternM change ticks
   = do p <- readMVar patternM
        let tpb' = 2 :: Integer
@@ -135,7 +134,7 @@ ticker = do mv <- newMVar 0
                                return ()
         tpb = 32
 
-make :: ParseablePattern p => (a -> Datum) -> OscShape -> String -> p a -> (p OscMap)
+make :: (a -> Datum) -> OscShape -> String -> Pattern a -> OscPattern
 make toOsc s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
   where nParam = param s nm
         defaultV a = Just $ toOsc a
@@ -148,21 +147,14 @@ makeI = make Int
 param :: OscShape -> String -> Param
 param shape n = head $ filter (\x -> name x == n) (params shape)
                 
--- Merge any pattern with a sequence
-merge :: ParseablePattern p => OscSequence -> p OscMap -> OscSequence
-merge x y = Map.union <$> x <~> y
-
-merge' :: ParseablePattern p => OscSequence -> p OscMap -> OscSequence
-merge' x y = Map.union <$> x <~> y
+merge :: OscPattern -> OscPattern -> OscPattern
+merge x y = Map.union <$> x <*> y
 
 infixr 1 ~~
 (~~) = merge
 
 infixr 1 |+|
-(|+|) :: OscSequence -> OscSequence -> OscSequence
+(|+|) :: OscPattern -> OscPattern -> OscPattern
 (|+|) = (~~)
 
-infixr 1 |+~
-(|+~) :: OscSequence -> OscSignal -> OscSequence
-(|+~) = (~~)
 

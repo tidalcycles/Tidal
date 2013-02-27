@@ -13,17 +13,8 @@ import Data.Colour.SRGB
 import GHC.Exts( IsString(..) )
 import Data.Monoid
 
-class (Pattern p) => ParseablePattern p where
-  parsePattern :: Parseable a => String -> p a
-
-instance ParseablePattern Sequence where
-  parsePattern = p
-
-instance ParseablePattern Signal where
-  parsePattern = toSignal . p
-
 class Parseable a where
-  p :: String -> Sequence a
+  p :: String -> Pattern a
 
 instance Parseable Double where
   p = parseRhythm pDouble
@@ -45,8 +36,8 @@ type ColourD = Colour Double
 instance Parseable ColourD where
   p = parseRhythm pColour
 
-instance (ParseablePattern p, Parseable a) => IsString (p a) where
-  fromString = parsePattern
+instance (Parseable a) => IsString (Pattern a) where
+  fromString = p
 
 --instance (Parseable a, Pattern p) => IsString (p a) where
 --  fromString = p :: String -> p a
@@ -82,33 +73,33 @@ intOrFloat =  do s   <- sign
                             Left  x -> Left  (applySign s x)
                         )
 
-r :: Parseable a => String -> Sequence a -> IO (Sequence a)
+r :: Parseable a => String -> Pattern a -> IO (Pattern a)
 r s orig = do catch (return $ p s)
                 (\err -> do putStrLn (show err)
                             return orig
                 )
 
-parseRhythm :: Parser (Sequence a) -> String -> (Sequence a)
+parseRhythm :: Parser (Pattern a) -> String -> (Pattern a)
 parseRhythm f input = either (const silence) id $ parse (pRhythm f') "" input
   where f' = f
              <|> do symbol "~" <?> "rest"
                     return silence
 
-pRhythm :: Parser (Sequence a) -> GenParser Char () (Sequence a)
+pRhythm :: Parser (Pattern a) -> GenParser Char () (Pattern a)
 pRhythm f = do spaces
                pSequence f
 
-pSequence :: Parser (Sequence a) -> GenParser Char () (Sequence a)
+pSequence :: Parser (Pattern a) -> GenParser Char () (Pattern a)
 pSequence f = do d <- pDensity
                  ps <- many $ pPart f
                  return $ density d $ cat ps
 
-pPart :: Parser (Sequence a) -> Parser (Sequence a)
+pPart :: Parser (Pattern a) -> Parser (Pattern a)
 pPart f = do part <- parens (pSequence f) <|> f <|> pPoly f
              spaces
              return part
 
-pPoly :: Parser (Sequence a) -> Parser (Sequence a)
+pPoly :: Parser (Pattern a) -> Parser (Pattern a)
 pPoly f = do ps <- brackets (pRhythm f `sepBy` symbol ",")
              spaces
              m <- pMult
@@ -117,27 +108,27 @@ pPoly f = do ps <- brackets (pRhythm f `sepBy` symbol ",")
 pString :: Parser (String)
 pString = many1 (letter <|> oneOf "0123456789" <|> char '/') <?> "string"
 
-pVocable :: Parser (Sequence String)
+pVocable :: Parser (Pattern String)
 pVocable = do v <- pString
               return $ atom v
 
-pDouble :: Parser (Sequence Double)
+pDouble :: Parser (Pattern Double)
 pDouble = do nf <- intOrFloat <?> "float"
              let f = either fromIntegral id nf
              return $ atom f
 
-pBool :: Parser (Sequence Bool)
+pBool :: Parser (Pattern Bool)
 pBool = do oneOf "t1"
            return $ atom True
         <|>
         do oneOf "f0"
            return $ atom False
 
-pInt :: Parser (Sequence Int)
+pInt :: Parser (Pattern Int)
 pInt = do i <- natural <?> "integer"
           return $ atom (fromIntegral i)
 
-pColour :: Parser (Sequence ColourD)
+pColour :: Parser (Pattern ColourD)
 pColour = do name <- many1 letter <?> "colour name"
              colour <- readColourName name <?> "known colour"
              return $ atom colour
@@ -164,7 +155,7 @@ pRatio = do n <- natural <?> "numerator"
                  return 1
             return $ n % d
 
-pRational :: Parser (Sequence Rational)
+pRational :: Parser (Pattern Rational)
 pRational = do r <- pRatio
                return $ atom r
 

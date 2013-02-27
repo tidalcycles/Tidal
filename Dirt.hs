@@ -43,7 +43,7 @@ dirt = OscShape {path = "/play",
 
 dirtstream name = stream "127.0.0.1" "127.0.0.1" name "127.0.0.1" 7771 dirt
 
-dirtToColour :: OscSequence -> Sequence ColourD
+dirtToColour :: OscPattern -> Pattern ColourD
 dirtToColour p = s
   where s = fmap (\x -> maybe black (maybe black datumToColour) (Map.lookup (param dirt "sound") x)) p
 
@@ -59,7 +59,7 @@ stringToColour s = sRGB (r/256) (g/256) (b/256)
 
 
 {-
-visualcallback :: IO (OscSequence -> IO ())
+visualcallback :: IO (OscPattern -> IO ())
 visualcallback = do t <- ticker
                     mv <- startVis t
                     let f p = do let p' = dirtToColour p
@@ -87,19 +87,19 @@ shape        = makeF dirt "shape"
 pick :: String -> Int -> String
 pick name n = name ++ "/" ++ (show n)
 
-striate :: Int -> OscSequence -> OscSequence
+striate :: Int -> OscPattern -> OscPattern
 striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p ~~ begin (atom (fromIntegral i / fromIntegral n) :: Sequence Double) ~~ end (atom (fromIntegral (i+1) / fromIntegral n) :: Sequence Double)
+  where off i p = p ~~ begin (atom (fromIntegral i / fromIntegral n) :: Pattern Double) ~~ end (atom (fromIntegral (i+1) / fromIntegral n) :: Pattern Double)
         
-striate' :: Int -> Double -> OscSequence -> OscSequence
+striate' :: Int -> Double -> OscPattern -> OscPattern
 striate' n f p = slowcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p ~~ begin (atom (slot * i) :: Sequence Double) ~~ end (atom ((slot * i) + f) :: Sequence Double)
+  where off i p = p ~~ begin (atom (slot * i) :: Pattern Double) ~~ end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
 
-striateO :: OscSequence -> Int -> Double -> OscSequence
+striateO :: OscPattern -> Int -> Double -> OscPattern
 striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p ~~ begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Sequence Double) ~~ end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Sequence Double)
+  where off i p = p ~~ begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) ~~ end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
 
