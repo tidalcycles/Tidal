@@ -23,12 +23,38 @@ instance (Show a) => Show (Pattern a) where
 instance Functor Pattern where
   fmap f (Pattern a) = Pattern $ fmap (fmap (mapSnd f)) a
 
+instance Applicative Pattern where
+  pure = atom
+  (Pattern fs) <*> (Pattern xs) = 
+    Pattern $ \a ->
+      concatMap
+      (\((s,e),x) -> map 
+                     (mapSnd ($ x))
+                     (filter
+                      (isIn (s,e) . eventStart)
+                      (fs a)
+                     )
+      )
+      (xs a)
+
+instance Monoid (Pattern a) where
+    mempty = silence
+    mappend x y = Pattern $ \a -> (arc x a) ++ (arc y a)
+
+instance Monad Pattern where
+  return = pure
+  p >>= f = 
+    Pattern (\a -> concatMap 
+                    (\(a', x) -> mapFsts (fromJust . (subArc a)) $ arc (f x) a')
+                    (arc p a)
+             )
+
 atom :: a -> Pattern a
 atom x = Pattern f
   where f (s, e) = map 
                    (\t -> ((t%1, (t+1)%1), x))
                    [floor s .. ((ceiling e) - 1)]
-  
+
 silence :: Pattern a
 silence = Pattern $ const []
 
@@ -47,67 +73,21 @@ mapResultTime = mapResultArc . mapArc
 overlay :: Pattern a -> Pattern a -> Pattern a
 overlay p p' = Pattern $ \a -> (arc p a) ++ (arc p' a)
 
-instance Applicative Pattern where
-  pure = atom
-  (Pattern fs) <*> (Pattern xs) = 
-    Pattern $ \a ->
-      concatMap
-      (\((s,e),x) -> map 
-                     (mapSnd ($ x))
-                     (filter
-                      (isIn (s,e) . eventStart)
-                      (fs a)
-                     )
-      )
-      (xs a)
-
-instance Monad Pattern where
-  return = pure
-  p >>= f = 
-    Pattern (\a -> concatMap 
-                    (\(a', x) -> mapFsts (fromJust . (subArc a)) $ arc (f x) a')
-                    (arc p a)
-             )
-
-instance Monoid (Pattern a) where
-    mempty = silence
-    mappend x y = Pattern $ \a -> (arc x a) ++ (arc y a)
+stack :: [Pattern a] -> Pattern a
+stack ps = foldr overlay silence ps
 
 cat :: [Pattern b] -> Pattern b
-cat ps = stack $ map (squash l) (zip [0..] ps)
-  where l = length ps
+cat ps = density (fromIntegral $ length ps) $ slowcat ps
 
-slowcat :: [Pattern b] -> Pattern b
-slowcat ps = slow (fromIntegral $ length ps) $ cat ps
+slowcat :: [Pattern a] -> Pattern a
+slowcat [] = silence
+slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
+  where l = length ps
+        f (s,e) = arc p (s,e)
+          where p = ps !! ((floor s) `mod` l)
 
 listToPat :: [a] -> Pattern a
 listToPat = cat . map atom
-
-squash :: Int -> (Int, Pattern a) -> Pattern a
-squash parts (part, p) = Pattern f 
-  where f a = concat $ catMaybes $ map doCycle (arcCycles a)
-        start = fromIntegral part % fromIntegral parts
-        end = start + (1 % fromIntegral parts)
-        doCycle (s,e) | s > end' || e <= start' = Nothing
-                      | otherwise = do (s',e') <- subArc (s,e) 
-                                                  (start', end')
-                                       let es = arc p (scale s', 
-                                                       scale e'
-                                                      )
-                                       return $ mapFsts scaleOutArc es
-          where cycleStart = sam s
-                scale t = 
-                  cycleStart + (((t - cycleStart) - start)
-                                * fromIntegral parts)
-                scaleOut t = 
-                  start' + ((t - cycleStart) 
-                                        / fromIntegral parts)
-                scaleOutArc a = mapArc scaleOut a
-                start' = start + cycleStart
-                end' = end + cycleStart
-
-stack :: [Pattern a] -> Pattern a
-stack ps = foldr overlay silence ps
 
 density :: Time -> Pattern a -> Pattern a
 density 1 p = p
