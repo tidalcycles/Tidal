@@ -83,8 +83,13 @@ slowcat :: [Pattern a] -> Pattern a
 slowcat [] = silence
 slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
   where l = length ps
-        f (s,e) = arc p (s,e)
-          where p = ps !! ((floor s) `mod` l)
+        f (s,e) = mapFsts arcF $ arc p (s', s' + (e - s))
+          where p = ps !! n
+                n = (floor s) `mod` l
+                cyc = (floor s) - n
+                s' = fromIntegral (cyc `div` l) + cyclePos s
+                arcF (s'',e'') = (s''', s''' + (e'' - s''))
+                  where s''' = (fromIntegral $ cyc + n) + (cyclePos s'')
 
 listToPat :: [a] -> Pattern a
 listToPat = cat . map atom

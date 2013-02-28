@@ -36,3 +36,4 @@ mirrorArc (s, e) = (sam s + (nextSam s - e), nextSam s - (s - sam s))
 
 eventStart :: Event a -> Time
 eventStart = fst . fst
+
