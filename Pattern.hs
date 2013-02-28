@@ -65,7 +65,7 @@ instance Monad Pattern where
   return = pure
   p >>= f = 
     Pattern (\a -> concatMap 
-                    (\(a', x) -> mapFsts (cutArc a) $ arc (f x) a')
+                    (\(a', x) -> mapFsts (fromJust . (subArc a)) $ arc (f x) a')
                     (arc p a)
              )
 
