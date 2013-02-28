@@ -13,11 +13,6 @@ nextSam = (1+) . sam
 cyclePos :: Time -> Time
 cyclePos t = t - sam t
 
-cutArc :: (Time, Time) -> (Time, Time) -> (Time, Time)
-cutArc (s, d) (s', d') = (s'', d'')
-  where s'' = max s s'
-        d'' = (min (s+d) (s'+d')) - s''
-
 isIn :: Arc -> Time -> Bool
 isIn (s,e) t = t >= s && t < e
 
