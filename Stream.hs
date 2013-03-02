@@ -150,11 +150,8 @@ param shape n = head $ filter (\x -> name x == n) (params shape)
 merge :: OscPattern -> OscPattern -> OscPattern
 merge x y = Map.union <$> x <*> y
 
-infixr 1 ~~
-(~~) = merge
-
-infixr 1 |+|
+infixl 1 |+|
 (|+|) :: OscPattern -> OscPattern -> OscPattern
-(|+|) = (~~)
+(|+|) = merge
 
 

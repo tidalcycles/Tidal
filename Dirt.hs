@@ -89,17 +89,17 @@ pick name n = name ++ "/" ++ (show n)
 
 striate :: Int -> OscPattern -> OscPattern
 striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p ~~ begin (atom (fromIntegral i / fromIntegral n) :: Pattern Double) ~~ end (atom (fromIntegral (i+1) / fromIntegral n) :: Pattern Double)
+  where off i p = p |+| begin (atom (fromIntegral i / fromIntegral n) :: Pattern Double) |+| end (atom (fromIntegral (i+1) / fromIntegral n) :: Pattern Double)
         
 striate' :: Int -> Double -> OscPattern -> OscPattern
 striate' n f p = slowcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p ~~ begin (atom (slot * i) :: Pattern Double) ~~ end (atom ((slot * i) + f) :: Pattern Double)
+  where off i p = p |+| begin (atom (slot * i) :: Pattern Double) |+| end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
 
 striateO :: OscPattern -> Int -> Double -> OscPattern
 striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p ~~ begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) ~~ end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
+  where off i p = p |+| begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) |+| end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
 
