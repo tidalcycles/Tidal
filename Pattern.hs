@@ -28,14 +28,13 @@ instance Applicative Pattern where
   (Pattern fs) <*> (Pattern xs) = 
     Pattern $ \a ->
       concatMap
-      (\((s,e),x) -> map 
-                     (mapSnd ($ x))
-                     (filter
-                      (isIn (s,e) . eventStart)
-                      (fs a)
-                     )
+      (\((s,e),x) -> map (mapSnd ($ x)) (filter
+                                         (isIn (s,e) . eventStart)
+                                         (fs a)
+                                        )
       )
       (xs a)
+
 
 instance Monoid (Pattern a) where
     mempty = silence
@@ -45,7 +44,12 @@ instance Monad Pattern where
   return = pure
   p >>= f = 
     Pattern (\a -> concatMap 
-                    (\(a', x) -> mapFsts (fromJust . (subArc a)) $ arc (f x) a')
+                    (\(a', x) -> 
+                      mapFsts (fromJust . (subArc a)) $
+                      filter 
+                      (isIn a . eventStart)
+                      (arc (f x) a')
+                    )
                     (arc p a)
              )
 
@@ -95,10 +99,12 @@ listToPat :: [a] -> Pattern a
 listToPat = cat . map atom
 
 density :: Time -> Pattern a -> Pattern a
+density 0 = id
 density 1 p = p
 density r p = mapResultTime (/ r) $ mapQueryTime (* r) p
 
 slow :: Time -> Pattern a -> Pattern a
+slow 0 = id
 slow t = density (1/t) 
 
 (<~) :: Time -> Pattern a -> Pattern a
