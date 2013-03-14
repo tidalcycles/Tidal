@@ -77,6 +77,8 @@ mapResultTime = mapResultArc . mapArc
 overlay :: Pattern a -> Pattern a -> Pattern a
 overlay p p' = Pattern $ \a -> (arc p a) ++ (arc p' a)
 
+(>+<) = overlay
+
 stack :: [Pattern a] -> Pattern a
 stack ps = foldr overlay silence ps
 
@@ -98,8 +100,13 @@ slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
 listToPat :: [a] -> Pattern a
 listToPat = cat . map atom
 
+maybeListToPat :: [Maybe a] -> Pattern a
+maybeListToPat = cat . map f
+  where f Nothing = silence
+        f (Just x) = atom x
+
 density :: Time -> Pattern a -> Pattern a
-density 0 = id
+density 0 p = p
 density 1 p = p
 density r p = mapResultTime (/ r) $ mapQueryTime (* r) p
 
@@ -118,6 +125,9 @@ rev p = Pattern $ \a -> concatMap
                         (\a' -> mapFsts mirrorArc $ 
                                 (arc p (mirrorArc a')))
                         (arcCycles a)
+
+palindrome :: Pattern a -> Pattern a
+palindrome p = slowcat [p, rev p]
 
 sig :: (Time -> a) -> Pattern a
 sig f = Pattern f'

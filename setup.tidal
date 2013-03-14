@@ -1,4 +1,9 @@
 d1 <- dirtstream "d1"
+d2 <- dirtstream "d2"
+d3 <- dirtstream "d3"
+d4 <- dirtstream "d4"
 
-d1 $ slow 8 "[1]" >>= \x -> slow x $ (sound ("[bd [sn [sn sn sn] sn]]")
-                                     )
+(scrumple 0.5 ("a b c" :: Pattern String) ("x y"))
+:reload
+
+arc ("a b c" :: Pattern String) (0.5,0.5)
