@@ -29,19 +29,25 @@ dirt = OscShape {path = "/play",
                             F "cutoff" (Just 0),
                             F "resonance" (Just 0),
                             F "accellerate" (Just 0),
-                            F "shape" (Just 0)
+                            F "shape" (Just 0),
+                            I "kriole" (Just 0)
                           ],
                  timestamp = True
                 }
 
 
---steps = 16
---channels = 4
---x = Map.insert (params dirt !! 0) (Just $ String "chin/0") $ defaultMap dirt
---x' pan = Map.insert (params dirt !! 4) (Just $ Float pan) $ x
---c = Cycle $ map (\i -> (Arc (atom $ x' (channels * (fromIntegral i / fromIntegral steps))) (fromIntegral i / fromIntegral steps) 0)) [0 .. (steps - 1)]
+kriole :: OscShape
+kriole = OscShape {path = "/kriole",
+                 params = [ S "kdur" Nothing,
+                            F "kstart" (Just 0),
+                            F "kstop" (Just 0)
+                          ],
+                 timestamp = True
+                }
+
 
 dirtstream name = stream "127.0.0.1" "127.0.0.1" name "127.0.0.1" 7771 dirt
+kstream name = stream "127.0.0.1" "127.0.0.1" name "127.0.0.1" 7771 kriole
 
 dirtToColour :: OscPattern -> Pattern ColourD
 dirtToColour p = s
@@ -83,6 +89,11 @@ cutoff       = makeF dirt "cutoff"
 resonance    = makeF dirt "resonance"
 accellerate  = makeF dirt "accellerate"
 shape        = makeF dirt "shape"
+
+
+kdur         = makeF kriole "kdur"
+kstart       = makeF kriole "kstart"
+kstop        = makeF kriole "kstop"
 
 pick :: String -> Int -> String
 pick name n = name ++ "/" ++ (show n)
