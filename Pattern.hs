@@ -25,16 +25,12 @@ instance Functor Pattern where
 
 instance Applicative Pattern where
   pure = atom
-  (Pattern fs) <*> (Pattern xs) = 
-    Pattern $ \a ->
-      concatMap
-      (\((s,e),x) -> map (mapSnd ($ x)) (filter
-                                         (isIn (s,e) . eventStart)
-                                         (fs a)
-                                        )
-      )
-      (xs a)
-
+  (Pattern fs) <*> (Pattern xs) = Pattern $ \a -> concatMap applyX (fs a)
+    where applyX ((s,e), f) = 
+            map (\(_, x) -> ((s,e), f x)) (filter 
+                                           (\(a', _) -> isIn a' s)
+                                           (xs (s,e))
+                                          )
 
 instance Monoid (Pattern a) where
     mempty = silence
@@ -42,6 +38,16 @@ instance Monoid (Pattern a) where
 
 instance Monad Pattern where
   return = pure
+  p >>= f = 
+    Pattern (\a -> concatMap
+                   (\((s,e), x) -> mapFsts (const (s,e)) $
+                                   filter
+                                   (\(a', _) -> isIn a' s)
+                                   (arc (f x) (s,e))
+                   )
+                   (arc p a)
+             )
+{-
   p >>= f = 
     Pattern (\a -> concatMap 
                     (\(a', x) -> 
@@ -52,7 +58,7 @@ instance Monad Pattern where
                     )
                     (arc p a)
              )
-
+-}
 atom :: a -> Pattern a
 atom x = Pattern f
   where f (s, e) = map 
@@ -85,6 +91,12 @@ stack ps = foldr overlay silence ps
 cat :: [Pattern b] -> Pattern b
 cat ps = density (fromIntegral $ length ps) $ slowcat ps
 
+slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
+  where l = length ps
+        f (s,e) = arc p (s,e)
+          where p = ps !! n
+                n = (floor s) `mod` l
+{-
 slowcat :: [Pattern a] -> Pattern a
 slowcat [] = silence
 slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
@@ -96,7 +108,7 @@ slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
                 s' = fromIntegral (cyc `div` l) + cyclePos s
                 arcF (s'',e'') = (s''', s''' + (e'' - s''))
                   where s''' = (fromIntegral $ cyc + n) + (cyclePos s'')
-
+-}
 listToPat :: [a] -> Pattern a
 listToPat = cat . map atom
 
@@ -115,7 +127,7 @@ slow 0 = id
 slow t = density (1/t) 
 
 (<~) :: Time -> Pattern a -> Pattern a
-(<~) t p = mapResultTime (+ t) $ mapQueryTime (subtract t) p
+(<~) t p = filterOffsets $ mapResultTime (+ t) $ mapQueryTime (subtract t) p
 
 (~>) :: Time -> Pattern a -> Pattern a
 (~>) = (<~) . (0-)
@@ -170,3 +182,22 @@ every 0 _ p = p
 every n f p = slow (fromIntegral n %1) $ cat $ (take (n-1) $ repeat p) ++ [f p]
 
 
+segment :: Pattern a -> Pattern [a]
+segment p = Pattern $ \r -> groupByTime (segment' (arc p r))
+
+segment' :: [Event a] -> [Event a]
+segment' es = foldr split es pts
+  where pts = nub $ points es
+
+split :: Time -> [Event a] -> [Event a]
+split _ [] = []
+split t ((ev@((s,e), v)):es) | t > s && t < e = ((s,t),v):((t,e),v):(split t es)
+                             | otherwise = ev:split t es
+
+points :: [Event a] -> [Time]
+points [] = []
+points (((s,e), _):es) = s:e:(points es)
+
+groupByTime :: [Event a] -> [Event [a]]
+groupByTime es = map mrg $ groupBy ((==) `on` fst) $ sortBy (compare `on` fst) es
+  where mrg es@((a, _):_) = (a, map snd es)
