@@ -155,3 +155,10 @@ infixl 1 |+|
 (|+|) = merge
 
 
+
+weave :: Rational -> OscPattern -> [OscPattern] -> OscPattern
+weave t p ps | l == 0 = silence
+             | otherwise = slow t $ stack $ map (\(i, p') -> ((density t p') |+| (((fromIntegral i) % l) <~ p))) (zip [0 ..] ps)
+  where l = fromIntegral $ length ps
+
+

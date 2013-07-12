@@ -72,11 +72,12 @@ visualcallback = do t <- ticker
                                  swapMVar mv p'
                                  return ()
                     return f
-
-dirtyvisualstream name = do cb <- visualcallback
-                            streamcallback cb "127.0.0.1" "127.0.0.1" name "127.0.0.1" 7771 dirt
-                            
 -}
+
+--dirtyvisualstream name = do cb <- visualcallback
+--                            streamcallback cb "127.0.0.1" "127.0.0.1" name "127.0.0.1" 7771 dirt
+                            
+
 sound        = makeS dirt "sound"
 offset       = makeF dirt "offset"
 begin        = makeF dirt "begin"
@@ -116,3 +117,5 @@ striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
 
+interlace :: OscPattern -> OscPattern -> OscPattern
+interlace a b = weave 16 (shape sinewave1) [a, b]

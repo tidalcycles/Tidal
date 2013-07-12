@@ -34,10 +34,12 @@ spread' f timepat pat =
 
 scrumple :: Time -> Pattern a -> Pattern a -> Pattern a
 scrumple o p p' = p'' -- overlay p (o ~> p'')
-  where p'' = Pattern $ \t -> concatMap 
+  where p'' = Pattern $ \a -> concatMap 
                               (\((s,d), vs) -> map (\x -> ((s,d),
                                                            snd x
                                                           )
                                                    )
                                                    (arc p' (s,s))
-                              ) (arc p t)
+                              ) (arc p a)
+
+

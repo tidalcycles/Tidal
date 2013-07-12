@@ -1,7 +1,45 @@
+p1 <- pulsestream "p1"
+draw1 <- drawstream "draw1"
+
+p1 $ square "1 2 3 4"
+
 d1 <- dirtstream "d1"
 d2 <- dirtstream "d2"
 d3 <- dirtstream "d3"
 d4 <- dirtstream "d4"
+d5 <- dirtstream "d5"
+d6 <- dirtstream "d6"
+d7 <- dirtstream "d7"
+d8 <- dirtstream "d8"
+d9 <- dirtstream "d9"
+acid <- nekoStream "127.0.0.1" "127.0.0.1" "acid" "./acid.pl"
+
+acid $ note303 "20 40 50"
+  |+| volume303 "0.25"
+  |+| (decay303 "0"
+  |+| envmod303 "0"
+  |+| saw303 "1"
+  |+| accent303 "0 0 1 0"
+  |+| duration303 "0.04"
+  |+| cutoff303 "0.3"
+  |+| resonance303 "0")
+
+
+k1 <- kstream "k1"
+
+
+d1 $ every 4 (0.5 <~) $ sound "bd [sn/2 sn/2] cp/2"
+  |+| shape sinewave1
+  |+| vowel (slow 2 "a e")
+
+(+) <$> "1 2 3" <*> "3 4" :: Pattern Int
+
+k1 silence
+
+k1 $ slow 4 $ kdur "0.9 [0.8 0.4] 0.1 0.25"
+  |+| kstart "2000 100 500"
+  |+| kstop (slow 4 "500 1000 750")
+
 
 (scrumple 0.5 ("a b c" :: Pattern String) ("x y"))
 :reload

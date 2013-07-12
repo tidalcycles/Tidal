@@ -9,8 +9,8 @@ import Parse
 import Pattern
 import Utils
 
-run f pat = 
-  C.withSVGSurface
+v f pat = 
+  C.withPDFSurface
           f 1000 150 $ \surf -> do
             C.renderWith surf $ do  
               C.save 

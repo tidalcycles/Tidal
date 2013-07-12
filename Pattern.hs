@@ -91,6 +91,9 @@ stack ps = foldr overlay silence ps
 cat :: [Pattern b] -> Pattern b
 cat ps = density (fromIntegral $ length ps) $ slowcat ps
 
+append :: Pattern a -> Pattern a -> Pattern a
+append a b = cat [a,b]
+
 slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
   where l = length ps
         f (s,e) = arc p (s,e)
@@ -111,6 +114,8 @@ slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
 -}
 listToPat :: [a] -> Pattern a
 listToPat = cat . map atom
+
+run n = listToPat [0 .. n-1]
 
 maybeListToPat :: [Maybe a] -> Pattern a
 maybeListToPat = cat . map f
@@ -137,6 +142,11 @@ rev p = Pattern $ \a -> concatMap
                         (\a' -> mapFsts mirrorArc $ 
                                 (arc p (mirrorArc a')))
                         (arcCycles a)
+
+when :: (Int -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
+when test f p = Pattern $ \a -> concatMap apply (arcCycles a)
+  where apply a | test (floor $ fst a) = (arc $ f p) a
+                | otherwise = (arc p) a
 
 palindrome :: Pattern a -> Pattern a
 palindrome p = slowcat [p, rev p]
@@ -180,7 +190,6 @@ seqToRelOnsets (s, e) p = mapFsts (fromRational . (/ (e-s)) . (subtract s) . fst
 every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 every 0 _ p = p
 every n f p = slow (fromIntegral n %1) $ cat $ (take (n-1) $ repeat p) ++ [f p]
-
 
 segment :: Pattern a -> Pattern [a]
 segment p = Pattern $ \r -> groupByTime (segment' (arc p r))
