@@ -5,7 +5,7 @@ module Dirt where
 import Stream
 import Pattern
 import Parse
-import Sound.OpenSoundControl
+import Sound.OSC.FD
 import qualified Data.Map as Map
 import Control.Applicative
 import Control.Concurrent.MVar
@@ -15,6 +15,7 @@ import Data.Colour.Names
 import Data.Hashable
 import Data.Bits
 import Data.Maybe
+import System.Process
 
 dirt :: OscShape
 dirt = OscShape {path = "/play",
@@ -46,7 +47,13 @@ kriole = OscShape {path = "/kriole",
                 }
 
 
-dirtstream name = stream "127.0.0.1" "127.0.0.1" name "127.0.0.1" 7771 dirt
+myip = readProcess "./getip.pl" [] []
+clockip = readProcess "./getclockip.pl" [] []
+
+dirtstream name = do localip <- myip
+                     remoteip <- clockip
+                     let uniqname = localip ++ "-" ++ name
+                     stream localip remoteip uniqname "127.0.0.1" 7771 dirt
 kstream name = stream "127.0.0.1" "127.0.0.1" name "127.0.0.1" 7771 kriole
 
 dirtToColour :: OscPattern -> Pattern ColourD
