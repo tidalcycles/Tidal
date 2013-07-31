@@ -12,6 +12,7 @@ import Data.Colour.Names
 import Data.Colour.SRGB
 import GHC.Exts( IsString(..) )
 import Data.Monoid
+import Control.Exception as E
 
 class Parseable a where
   p :: String -> Pattern a
@@ -74,10 +75,11 @@ intOrFloat =  do s   <- sign
                         )
 
 r :: Parseable a => String -> Pattern a -> IO (Pattern a)
-r s orig = do catch (return $ p s)
-                (\err -> do putStrLn (show err)
-                            return orig
+r s orig = do E.handle 
+                (\err -> do putStrLn (show (err :: E.SomeException))
+                            return orig 
                 )
+                (return $ p s)
 
 parseRhythm :: Parser (Pattern a) -> String -> (Pattern a)
 parseRhythm f input = either (const silence) id $ parse (pRhythm f') "" input
