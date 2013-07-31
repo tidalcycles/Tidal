@@ -149,7 +149,7 @@ make toOsc s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
         --defaultV Nothing = defaultDatum nParam
 
 makeS = make String
-makeF = make Float g
+makeF = make Float
 
 makeI = make Int
 
