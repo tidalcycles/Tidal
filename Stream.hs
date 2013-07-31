@@ -6,12 +6,14 @@ import Data.Maybe
 import Sound.OSC.FD
 import Sound.OpenSoundControl
 import Control.Applicative
-import Network.Netclock.Client
+--import Network.Netclock.Client
+import Tempo (Tempo, logicalTime)
+import TempoClient (clocked)
 import Control.Concurrent
 import Control.Concurrent.MVar
 import Pattern
 import Data.Ratio
---import Control.Exception
+import Control.Exception as E
 import Parse
 
 import qualified Data.Map as Map
@@ -66,7 +68,7 @@ isSubset xs ys = all (\x -> elem x ys) xs
 
 tpb = 1
 
-toMessage :: OscShape -> BpsChange -> Int -> (Double, OscMap) -> Maybe Bundle
+toMessage :: OscShape -> Tempo -> Int -> (Double, OscMap) -> Maybe Bundle
 toMessage s change ticks (o, m) =
   do m' <- applyShape' s m
      let beat = fromIntegral ticks / fromIntegral tpb
@@ -74,7 +76,8 @@ toMessage s change ticks (o, m) =
          logicalNow = (logicalTime change beat)
          beat' = (fromIntegral ticks + 1) / fromIntegral tpb
          logicalPeriod = (logicalTime change (beat + 1)) - logicalNow
-         logicalOnset = ntpr_to_ut $ logicalNow + (logicalPeriod * o) + latency
+         --logicalOnset = ntpr_to_ut $ logicalNow + (logicalPeriod * o) + latency
+         logicalOnset = logicalNow + (logicalPeriod * o) + latency
          sec = floor logicalOnset
          usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
          oscdata = catMaybes $ mapMaybe (\x -> Map.lookup x m') (params s)
@@ -94,8 +97,9 @@ start client server name address port shape
        putStrLn $ "connecting " ++ (show address) ++ ":" ++ (show port)
        s <- openUDP address port
        putStrLn $ "connected "
-       let ot = (onTick s shape patternM) :: BpsChange -> Int -> IO ()
-       forkIO $ clocked name client server 1 ot
+       let ot = (onTick s shape patternM) :: Tempo -> Int -> IO ()
+       --forkIO $ clocked name client server 1 ot
+       forkIO $ clocked server ot
        return patternM
 
 stream :: String -> String -> String -> String -> Int -> OscShape -> IO (OscPattern -> IO ())
@@ -111,28 +115,32 @@ streamcallback callback client server name address port shape
                      f p
        return f'
 
-onTick :: UDP -> OscShape -> MVar (OscPattern) -> BpsChange -> Int -> IO ()
-onTick s shape patternM change ticks
+onTick :: UDP -> OscShape -> MVar (OscPattern) -> Tempo -> Int -> IO ()
+onTick s shape patternM change beats
   = do p <- readMVar patternM
-       let tpb' = 2 :: Integer
-           ticks' = (fromIntegral ticks) :: Integer
-           a = ticks' % tpb'
-           b = (ticks' + 1) % tpb'
+       let --tpb' = 2 :: Integer
+           tpb' = 1
+           beats' = (fromIntegral beats) :: Integer
+           a = beats' % tpb'
+           b = (beats' + 1) % tpb'
            messages = mapMaybe 
-                      (toMessage shape change ticks) 
+                      (toMessage shape change beats) 
                       (seqToRelOnsets (a, b) p)
        --putStrLn $ (show a) ++ ", " ++ (show b)
        --putStrLn $ "tick " ++ show ticks ++ " = " ++ show messages
-       catch (mapM_ (sendOSC s) messages) (\msg -> putStrLn $ "oops " ++ show msg)
+       E.catch (mapM_ (sendOSC s) messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
        return ()
 
-ticker :: IO (MVar Rational)
+{-ticker :: IO (MVar Rational)
 ticker = do mv <- newMVar 0
-            forkIO $ clocked "ticker" "127.0.0.1" "127.0.0.1" tpb (f mv)
+            --forkIO $ clocked "ticker" "127.0.0.1" "127.0.0.1" tpb (f mv)
+            forkIO $ clocked (f mv)
             return mv
   where f mv change ticks = do swapMVar mv ((fromIntegral ticks) / (fromIntegral tpb))
-                               return ()
+  where f mv ticks = do swapMVar mv (fromIntegral ticks)
+                        return ()
         tpb = 32
+-}
 
 make :: (a -> Datum) -> OscShape -> String -> Pattern a -> OscPattern
 make toOsc s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
@@ -141,7 +149,8 @@ make toOsc s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
         --defaultV Nothing = defaultDatum nParam
 
 makeS = make String
-makeF = make Float
+makeF = make Float g
+
 makeI = make Int
 
 param :: OscShape -> String -> Param
