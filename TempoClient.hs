@@ -21,6 +21,7 @@ app mt = do
   where
     loop = do
         msg <- WS.receiveData
+        liftIO $ putStrLn $ "message: " ++ (T.unpack msg)
         let tempo = readTempo $ T.unpack msg
         liftIO $ tryTakeMVar mt
         liftIO $ putMVar mt tempo
@@ -46,8 +47,8 @@ clocked clockip callback =
          beatDelta = bps t * delta
          nowBeat = beat t + beatDelta
          nextBeat = ceiling nowBeat
-         -- next4 = nextBeat + (4 - (nextBeat `mod` 4))
-     loop mt nextBeat
+         next4 = nextBeat + (4 - (nextBeat `mod` 4))
+     loop mt next4
   where loop mt b = do t <- readMVar mt
                        now <- getCurrentTime
                        let delta = realToFrac $ diffUTCTime now (at t)
