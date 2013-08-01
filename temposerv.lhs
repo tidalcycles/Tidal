@@ -72,6 +72,7 @@
 > talk tempoState clientState client = flip WS.catchWsError catchDisconnect $ 
 >   forever $ do
 >     msg <- WS.receiveData
+>     liftIO $ putStrLn $ "Got message: " ++ (T.unpack msg)
 >     liftIO $ updateTempo tempoState $ maybeRead $ T.unpack msg
 >     tempo <- liftIO $ readMVar tempoState
 >     liftIO $ readMVar clientState >>= broadcast (T.pack $ show tempo)
@@ -79,7 +80,7 @@
 >     catchDisconnect e = case fromException e of
 >         Just WS.ConnectionClosed -> liftIO $ modifyMVar_ clientState $ \s -> do
 >             let s' = removeClient client s
->             broadcast ("someone disconnected") s'
+>             --broadcast ("someone disconnected") s'
 >             return s'
 >         _ -> return ()
 
