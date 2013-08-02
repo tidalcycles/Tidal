@@ -7,20 +7,79 @@ might help to pick up an introduction. You could try Graham Hutton's
 Great Good" (which has a free online version). Or, you could just try
 learning enough by playing around with Tidal.
 
+## Installation
+
+Tidal is developed under Linux, and although it should be possible to
+run it under a different operating system, this has not yet been
+tried.
+
+### Installing Dirt
+
 Tidal does not include a synthesiser, but instead communicates with an
 external synthesiser using the Open Sound Control protocol. It has
-been developed for use with a particular synthesiser called
-"dirt". You'll need to run it with "jack audio".
+been developed for use with a particular software sampler called
+"dirt". You'll need to run it with "jack audio". Here's an example of
+the commands needed to compile it under a debian-derived linux
+distribution (including ubuntu and mint).
 
-Currently about the only interface to Tidal is the emacs editor. To
-install it you'll need to put two lines into your .emacs file like
-this, change ~/projects/tidal/ to the location of your tidal folder:
+    apt-get install build-essential libsndfile1-dev libsamplerate0-dev liblo-dev libjack-dev jackd git
+    git clone https://github.com/yaxu/Dirt.git
+    cd Dirt
+    make clean; make
+
+Then you'll have to start jack:
+
+    jackd -d alsa &
+
+If that doesn't work, you might well have something called
+"pulseaudio" in control of your sound. In that case, this should work:
+
+    /usr/bin/pasuspender -- jackd -d alsa &
+
+And finally you should be able to start dirt with this:
+
+    ./dirt &
+
+### Tidal
+
+
+Tidal is embedded in the Haskell language, so you'll have to install
+the haskell interpreter and some libraries, including tidal
+itself. Under debian, you'd install haskell like this:
+
+   sudo apt-get install ghc6 cabal-install
+
+Or otherwise you could grab it from http://www.haskell.org/platform/
+
+Once Haskell is installed, you can install tidal like this:
+   cabal install tidal
+
+### Emacs
+
+Currently about the only interface to Tidal is the emacs
+editor. Debian users can install emacs, along with its haskell
+front-end, this way:
+
+    sudo apt-get install emacs24 haskell-mode
+
+To install the emacs interface to tidal, you'll need to edit a
+configuration file in your home folder called `.emacs`. If it doesn't
+exist, create it. Then, add the following, replacing
+`~/projects/tidal` with the location of the `tidal.el` file.
 
   (add-to-list 'load-path "~/projects/tidal")
   (require 'tidal)
 
-Now open a new file in your tidal folder, called something like
+If tidal.el did not come with this document, you can grab it here:
+  https://raw.github.com/yaxu/Tidal/master/tidal.el
+
+### Testing, testing...
+
+Now start emacs, and open a new file called something like
 "helloworld.tidal". To start tidal, you type `Ctrl-C` then `Ctrl-S`.
+
+All being well you should now be able to start making some sounds,
+lets start with some simple sequences.
 
 ## Sequences
 
@@ -300,3 +359,8 @@ d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn/2")
 
 Plus more to be discovered!
 
+# Acknowledgments
+
+Special thanks to l'ull cec (http://lullcec.org) and hangar
+(http://hangar.org) for supporting the documentation and release of
+tidal as part of the ADDICTED2RANDOM project.
