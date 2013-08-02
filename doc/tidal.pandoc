@@ -1,5 +1,7 @@
 # Tidal -- Domain specific language for live coding of pattern 
 
+Homepage and mailing list: <http://yaxu.org/tidal/>
+
 Tidal is a language for live coding pattern, embedded in the Haskell
 language. You don't really have to learn Haskell to use Tidal, but it
 might help to pick up an introduction. You could try Graham Hutton's
@@ -22,7 +24,8 @@ been developed for use with a particular software sampler called
 the commands needed to compile it under a debian-derived linux
 distribution (including ubuntu and mint).
 
-    apt-get install build-essential libsndfile1-dev libsamplerate0-dev liblo-dev libjack-dev jackd git
+    apt-get install build-essential libsndfile1-dev libsamplerate0-dev \
+                    liblo-dev libjack-dev jackd git
     git clone https://github.com/yaxu/Dirt.git
     cd Dirt
     make clean; make
@@ -49,7 +52,7 @@ itself. Under debian, you'd install haskell like this:
 
    sudo apt-get install ghc6 cabal-install
 
-Or otherwise you could grab it from http://www.haskell.org/platform/
+Or otherwise you could grab it from <http://www.haskell.org/platform/>
 
 Once Haskell is installed, you can install tidal like this:
    cabal install tidal
@@ -71,12 +74,13 @@ exist, create it. Then, add the following, replacing
   (require 'tidal)
 
 If tidal.el did not come with this document, you can grab it here:
-  https://raw.github.com/yaxu/Tidal/master/tidal.el
+    <https://raw.github.com/yaxu/Tidal/master/tidal.el>
 
 ### Testing, testing...
 
 Now start emacs, and open a new file called something like
-"helloworld.tidal". To start tidal, you type `Ctrl-C` then `Ctrl-S`.
+"helloworld.tidal". Once the file is opened, you still have to start
+tidal, you do that by typing `Ctrl-C` then `Ctrl-S`.
 
 All being well you should now be able to start making some sounds,
 lets start with some simple sequences.
@@ -356,11 +360,10 @@ Example:
 d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn/2")
 ~~~~
 
-
 Plus more to be discovered!
 
 # Acknowledgments
 
-Special thanks to l'ull cec (http://lullcec.org) and hangar
-(http://hangar.org) for supporting the documentation and release of
+Special thanks to l'ull cec (<http://lullcec.org>) and hangar
+(<http://hangar.org>) for supporting the documentation and release of
 tidal as part of the ADDICTED2RANDOM project.

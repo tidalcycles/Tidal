@@ -27,12 +27,14 @@ code > span.er { color: #ff0000; font-weight: bold; }
 </head>
 <body>
 <h1 id="tidal----domain-specific-language-for-live-coding-of-pattern">Tidal -- Domain specific language for live coding of pattern</h1>
+<p>Homepage and mailing list: <a href="http://yaxu.org/tidal/"><code class="url">http://yaxu.org/tidal/</code></a></p>
 <p>Tidal is a language for live coding pattern, embedded in the Haskell language. You don't really have to learn Haskell to use Tidal, but it might help to pick up an introduction. You could try Graham Hutton's &quot;Programming in Haskell&quot; or Miran Lipovača's &quot;Learn you a Haskell for Great Good&quot; (which has a free online version). Or, you could just try learning enough by playing around with Tidal.</p>
 <h2 id="installation">Installation</h2>
 <p>Tidal is developed under Linux, and although it should be possible to run it under a different operating system, this has not yet been tried.</p>
 <h3 id="installing-dirt">Installing Dirt</h3>
 <p>Tidal does not include a synthesiser, but instead communicates with an external synthesiser using the Open Sound Control protocol. It has been developed for use with a particular software sampler called &quot;dirt&quot;. You'll need to run it with &quot;jack audio&quot;. Here's an example of the commands needed to compile it under a debian-derived linux distribution (including ubuntu and mint).</p>
-<pre><code>apt-get install build-essential libsndfile1-dev libsamplerate0-dev liblo-dev libjack-dev jackd git
+<pre><code>apt-get install build-essential libsndfile1-dev libsamplerate0-dev \
+                liblo-dev libjack-dev jackd git
 git clone https://github.com/yaxu/Dirt.git
 cd Dirt
 make clean; make</code></pre>
@@ -45,16 +47,16 @@ make clean; make</code></pre>
 <h3 id="tidal">Tidal</h3>
 <p>Tidal is embedded in the Haskell language, so you'll have to install the haskell interpreter and some libraries, including tidal itself. Under debian, you'd install haskell like this:</p>
 <p>sudo apt-get install ghc6 cabal-install</p>
-<p>Or otherwise you could grab it from http://www.haskell.org/platform/</p>
+<p>Or otherwise you could grab it from <a href="http://www.haskell.org/platform/"><code class="url">http://www.haskell.org/platform/</code></a></p>
 <p>Once Haskell is installed, you can install tidal like this: cabal install tidal</p>
 <h3 id="emacs">Emacs</h3>
 <p>Currently about the only interface to Tidal is the emacs editor. Debian users can install emacs, along with its haskell front-end, this way:</p>
 <pre><code>sudo apt-get install emacs24 haskell-mode</code></pre>
 <p>To install the emacs interface to tidal, you'll need to edit a configuration file in your home folder called <code>.emacs</code>. If it doesn't exist, create it. Then, add the following, replacing <code>~/projects/tidal</code> with the location of the <code>tidal.el</code> file.</p>
 <p>(add-to-list 'load-path &quot;~/projects/tidal&quot;) (require 'tidal)</p>
-<p>If tidal.el did not come with this document, you can grab it here: https://raw.github.com/yaxu/Tidal/master/tidal.el</p>
+<p>If tidal.el did not come with this document, you can grab it here: <a href="https://raw.github.com/yaxu/Tidal/master/tidal.el"><code class="url">https://raw.github.com/yaxu/Tidal/master/tidal.el</code></a></p>
 <h3 id="testing-testing...">Testing, testing...</h3>
-<p>Now start emacs, and open a new file called something like &quot;helloworld.tidal&quot;. To start tidal, you type <code>Ctrl-C</code> then <code>Ctrl-S</code>.</p>
+<p>Now start emacs, and open a new file called something like &quot;helloworld.tidal&quot;. Once the file is opened, you still have to start tidal, you do that by typing <code>Ctrl-C</code> then <code>Ctrl-S</code>.</p>
 <p>All being well you should now be able to start making some sounds, lets start with some simple sequences.</p>
 <h2 id="sequences">Sequences</h2>
 <p>Tidal starts with nine connections to the dirt synthesiser, named from <code>d1</code> to <code>d9</code>. Here's a minimal example, that plays a bass drum every loop:</p>
@@ -159,6 +161,6 @@ wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt</code></pre>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> interlace (sound  <span class="st">&quot;bd sn kurt&quot;</span>) (every <span class="dv">3</span> rev <span class="fu">$</span> sound  <span class="st">&quot;bd sn/2&quot;</span>)</code></pre>
 <p>Plus more to be discovered!</p>
 <h1 id="acknowledgments">Acknowledgments</h1>
-<p>Special thanks to l'ull cec (http://lullcec.org) and hangar (http://hangar.org) for supporting the documentation and release of tidal as part of the ADDICTED2RANDOM project.</p>
+<p>Special thanks to l'ull cec (<a href="http://lullcec.org"><code class="url">http://lullcec.org</code></a>) and hangar (<a href="http://hangar.org"><code class="url">http://hangar.org</code></a>) for supporting the documentation and release of tidal as part of the ADDICTED2RANDOM project.</p>
 </body>
 </html>
