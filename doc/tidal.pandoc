@@ -24,8 +24,8 @@ been developed for use with a particular software sampler called
 the commands needed to compile it under a debian-derived linux
 distribution (including ubuntu and mint).
 
-    apt-get install build-essential libsndfile1-dev libsamplerate0-dev \
-                    liblo-dev libjack-dev jackd git
+    sudo apt-get install build-essential libsndfile1-dev libsamplerate0-dev \
+                         liblo-dev libjack-jackd2-dev jackd git
     git clone https://github.com/yaxu/Dirt.git
     cd Dirt
     make clean; make
@@ -55,6 +55,7 @@ itself. Under debian, you'd install haskell like this:
 Or otherwise you could grab it from <http://www.haskell.org/platform/>
 
 Once Haskell is installed, you can install tidal like this:
+   cabal update
    cabal install tidal
 
 ### Emacs

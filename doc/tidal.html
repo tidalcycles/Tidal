@@ -33,8 +33,8 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <p>Tidal is developed under Linux, and although it should be possible to run it under a different operating system, this has not yet been tried.</p>
 <h3 id="installing-dirt">Installing Dirt</h3>
 <p>Tidal does not include a synthesiser, but instead communicates with an external synthesiser using the Open Sound Control protocol. It has been developed for use with a particular software sampler called &quot;dirt&quot;. You'll need to run it with &quot;jack audio&quot;. Here's an example of the commands needed to compile it under a debian-derived linux distribution (including ubuntu and mint).</p>
-<pre><code>apt-get install build-essential libsndfile1-dev libsamplerate0-dev \
-                liblo-dev libjack-dev jackd git
+<pre><code>sudo apt-get install build-essential libsndfile1-dev libsamplerate0-dev \
+                     liblo-dev libjack-jackd2-dev jackd git
 git clone https://github.com/yaxu/Dirt.git
 cd Dirt
 make clean; make</code></pre>
@@ -48,7 +48,7 @@ make clean; make</code></pre>
 <p>Tidal is embedded in the Haskell language, so you'll have to install the haskell interpreter and some libraries, including tidal itself. Under debian, you'd install haskell like this:</p>
 <p>sudo apt-get install ghc6 cabal-install</p>
 <p>Or otherwise you could grab it from <a href="http://www.haskell.org/platform/"><code class="url">http://www.haskell.org/platform/</code></a></p>
-<p>Once Haskell is installed, you can install tidal like this: cabal install tidal</p>
+<p>Once Haskell is installed, you can install tidal like this: cabal update cabal install tidal</p>
 <h3 id="emacs">Emacs</h3>
 <p>Currently about the only interface to Tidal is the emacs editor. Debian users can install emacs, along with its haskell front-end, this way:</p>
 <pre><code>sudo apt-get install emacs24 haskell-mode</code></pre>
