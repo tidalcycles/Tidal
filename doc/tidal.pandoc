@@ -43,6 +43,11 @@ And finally you should be able to start dirt with this:
 
     ./dirt &
 
+If you have problems with jack, try enabling realtime audio, and
+adjusting the settings by installing and using the "qjackctl"
+software. Some more info is here: <https://help.ubuntu.com/community/HowToJACKConfiguration>
+
+
 ### Tidal
 
 
@@ -74,8 +79,7 @@ exist, create it. Then, add the following, replacing
   (add-to-list 'load-path "~/projects/tidal")
   (require 'tidal)
 
-If tidal.el did not come with this document, you can grab it here:
-    <https://raw.github.com/yaxu/Tidal/master/tidal.el>
+If tidal.el did not come with this document, you can grab it here: <https://raw.github.com/yaxu/Tidal/master/tidal.el>
 
 ### Testing, testing...
 
