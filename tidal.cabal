@@ -7,7 +7,7 @@ Name:                tidal
 -- The package version. See the Haskell package versioning policy
 -- (http://www.haskell.org/haskellwiki/Package_versioning_policy) for
 -- standards guiding when and how versions should be incremented.
-Version:             0.2.1
+Version:             0.2.2
 
 -- A short (one-line) description of the package.
 Synopsis:            Pattern language for improvised music
@@ -48,13 +48,13 @@ Cabal-version:       >=1.4
 
 Library
   -- Modules exported by the library.
-  Exposed-modules:     Strategies, Dirt, Pattern, Stream 
+  Exposed-modules:     Strategies, Dirt, Pattern, Stream, Parse, Tempo, Time
   
   -- Packages needed in order to build this package.
   Build-depends: base < 5, process, parsec, hosc == 0.13, hashable, colour, containers, time, websockets, text, mtl, transformers
   
   -- Modules not exported by this package.
-  -- Other-modules:       
+  Other-modules: Utils
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
