@@ -12,57 +12,7 @@
 (require 'comint)
 (require 'thingatpt)
 (require 'find-lisp)
-
-(defun tidal-highlight-tail-make-new-overlay (start-point
-                                            end-point
-                                            )
-  "Make new highlight in the current point."
-  (let* ((point-face-bgcolor-hex nil))
-    ;; remove any highlight-tail's overlays at point
-    (let ((overlays-at-start-point (highlight-tail-overlays-at start-point))
-          highlight-tail-overlay)
-      (mapcar '(lambda (overlay)
-                 (when (highlight-tail-overlay-get overlay 'highlight-tail)
-                   (setq highlight-tail-overlay overlay)))
-              overlays-at-start-point)
-      (when highlight-tail-overlay
-        (add-to-list 'highlight-tail-deleted-overlays-list
-                     highlight-tail-overlay)
-        (remhash highlight-tail-overlay highlight-tail-overlays-hash)
-        (highlight-tail-delete-overlay highlight-tail-overlay)))
-    ;; do we need to fade out to default color or any other
-    (setq point-face-bgcolor-hex (highlight-tail-get-bgcolor-hex start-point))
-    ;; add the overlay with good ending color
-    (let (highlight-tail-overlay)
-      (if (> (length highlight-tail-deleted-overlays-list) 0)
-          ;; get overlay from list of deleted overlays
-          (progn
-            (setq highlight-tail-overlay
-                  (highlight-tail-move-overlay
-                   (car highlight-tail-deleted-overlays-list)
-                   start-point end-point
-                   (current-buffer))) ; Xemacs needs it (or will highlight in
-                                        ; other buffer)
-            (setq highlight-tail-deleted-overlays-list
-                  (cdr highlight-tail-deleted-overlays-list)))
-        ;; make new overlay
-        (setq highlight-tail-overlay
-              (highlight-tail-make-overlay start-point end-point))
-        (highlight-tail-overlay-put
-         highlight-tail-overlay 'evaporate t)
-        (highlight-tail-overlay-put
-         highlight-tail-overlay 'highlight-tail t))
-      (puthash highlight-tail-overlay
-               (list point-face-bgcolor-hex
-                     1)             ; first step in fading-out
-               highlight-tail-overlays-hash)
-      (highlight-tail-overlay-put
-       highlight-tail-overlay 'face
-       (intern
-        (concat "highlight-tail-face-"
-                (format "%s" point-face-bgcolor-hex)
-                "-1")))))) ; first step in fading out
-
+(require 'pulse)
 
 (defvar tidal-buffer
   "*tidal*"
@@ -90,6 +40,7 @@
         "import Pattern"
         "import Stream"
         "import Dirt"
+        "import Strategies"
         )
   "*List of modules (possibly qualified) to bring into interpreter context.")
 
@@ -133,8 +84,6 @@
   (tidal-write-default-run-control)
   (tidal-send-string (concat ":l " tidal-run-control))
   (tidal-send-string ":set prompt \"tidal> \"")
-  (tidal-send-string "startServer")
-  (sleep-for 0.5)
   (tidal-send-string "d1 <- dirtstream \"d1\"")
   (tidal-send-string "d2 <- dirtstream \"d2\"")
   (tidal-send-string "d3 <- dirtstream \"d3\"")
@@ -144,7 +93,7 @@
   (tidal-send-string "d7 <- dirtstream \"d7\"")
   (tidal-send-string "d8 <- dirtstream \"d8\"")
   (tidal-send-string "d9 <- dirtstream \"d9\"")
-  (tidal-send-string "let hush = mapM_ ($ silence) [d1,d2,d3,d4,d5,d6,d7]")
+  (tidal-send-string "let hush = mapM_ ($ silence) [d1,d2,d3,d4,d5,d6,d7,d8,d9]")
 )
 
 (defun tidal-see-output ()
@@ -208,7 +157,7 @@
 		 (tidal-unlit s)
 	       s)))
     (tidal-send-string s*))
-  ;(tidal-highlight-tail-make-new-overlay (point-at-bol) (point-at-eol))
+  (pulse-momentary-highlight-one-line (point))
   (next-line)
   )
 
@@ -225,8 +174,8 @@
      (tidal-send-string ":{")
      (tidal-send-string s*)
      (tidal-send-string ":}")
-     ;(mark-paragraph)
-     ;(tidal-highlight-tail-make-new-overlay (mark) (point))
+     (mark-paragraph)
+     (pulse-momentary-highlight-region (mark) (point))
      )
     ;(tidal-send-string (replace-regexp-in-string "\n" " " s*))
    )
