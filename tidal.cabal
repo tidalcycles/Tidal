@@ -40,7 +40,7 @@ Build-type:          Simple
 
 -- Extra files to be distributed with the package, such as examples or
 -- a README.
-Extra-source-files: README.md doc/tidal.pandoc doc/tidal.pdf
+Extra-source-files: README.md tidal.el doc/tidal.pandoc doc/tidal.pdf
 
 -- Constraint on the version of Cabal needed to build this package.
 Cabal-version:       >=1.4
