@@ -6,9 +6,7 @@ import Data.Maybe
 import Sound.OSC.FD
 import Sound.OpenSoundControl
 import Control.Applicative
---import Network.Netclock.Client
-import Tempo (Tempo, logicalTime)
-import TempoClient (clocked)
+import Tempo (Tempo, logicalTime, clocked)
 import Control.Concurrent
 import Control.Concurrent.MVar
 import Pattern
@@ -72,7 +70,7 @@ toMessage :: OscShape -> Tempo -> Int -> (Double, OscMap) -> Maybe Bundle
 toMessage s change ticks (o, m) =
   do m' <- applyShape' s m
      let beat = fromIntegral ticks / fromIntegral tpb
-         latency = 0.019
+         latency = 0.01
          logicalNow = (logicalTime change beat)
          beat' = (fromIntegral ticks + 1) / fromIntegral tpb
          logicalPeriod = (logicalTime change (beat + 1)) - logicalNow
@@ -91,26 +89,25 @@ applyShape' :: OscShape -> OscMap -> Maybe OscMap
 applyShape' s m | hasRequired s m = Just $ Map.union m (defaultMap s)
                 | otherwise = Nothing
 
-start :: String -> String -> String -> String -> Int -> OscShape -> IO (MVar (OscPattern))
-start client server name address port shape
+start :: String -> Int -> OscShape -> IO (MVar (OscPattern))
+start address port shape
   = do patternM <- newMVar silence
        putStrLn $ "connecting " ++ (show address) ++ ":" ++ (show port)
        s <- openUDP address port
        putStrLn $ "connected "
        let ot = (onTick s shape patternM) :: Tempo -> Int -> IO ()
-       --forkIO $ clocked name client server 1 ot
-       forkIO $ clocked server ot
+       forkIO $ clocked ot
        return patternM
 
-stream :: String -> String -> String -> String -> Int -> OscShape -> IO (OscPattern -> IO ())
-stream client server name address port shape 
-  = do patternM <- start client server name address port shape
+stream :: String -> Int -> OscShape -> IO (OscPattern -> IO ())
+stream address port shape 
+  = do patternM <- start address port shape
        return $ \p -> do swapMVar patternM p
                          return ()
 
-streamcallback :: (OscPattern -> IO ()) -> String -> String -> String -> String -> Int -> OscShape -> IO (OscPattern -> IO ())
-streamcallback callback client server name address port shape 
-  = do f <- stream client server name address port shape
+streamcallback :: (OscPattern -> IO ()) -> String -> Int -> OscShape -> IO (OscPattern -> IO ())
+streamcallback callback server port shape 
+  = do f <- stream server port shape
        let f' p = do callback p
                      f p
        return f'

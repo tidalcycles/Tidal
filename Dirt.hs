@@ -47,14 +47,8 @@ kriole = OscShape {path = "/kriole",
                 }
 
 
-myip = readProcess "./getip.pl" [] []
-clockip = readProcess "./getclockip.pl" [] []
-
-dirtstream name = do localip <- myip
-                     remoteip <- clockip
-                     let uniqname = localip ++ "-" ++ name
-                     stream localip remoteip uniqname "127.0.0.1" 7771 dirt
-kstream name = stream "127.0.0.1" "127.0.0.1" name "127.0.0.1" 7771 kriole
+dirtstream name = stream "127.0.0.1" 7771 dirt
+kstream name = stream "127.0.0.1" 7771 kriole
 
 dirtToColour :: OscPattern -> Pattern ColourD
 dirtToColour p = s

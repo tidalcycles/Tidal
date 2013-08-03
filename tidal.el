@@ -133,6 +133,8 @@
   (tidal-write-default-run-control)
   (tidal-send-string (concat ":l " tidal-run-control))
   (tidal-send-string ":set prompt \"tidal> \"")
+  (tidal-send-string "startServer")
+  (sleep-for 0.5)
   (tidal-send-string "d1 <- dirtstream \"d1\"")
   (tidal-send-string "d2 <- dirtstream \"d2\"")
   (tidal-send-string "d3 <- dirtstream \"d3\"")

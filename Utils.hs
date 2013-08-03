@@ -1,5 +1,7 @@
 module Utils where
 
+import Data.Maybe (listToMaybe)
+
 mapFst :: (a -> b) -> (a, c) -> (b, c)
 mapFst f (x,y) = (f x,y)
 
@@ -11,3 +13,12 @@ mapSnd f (x,y) = (x,f y)
 
 mapSnds :: (a -> b) -> [(c, a)] -> [(c, b)]
 mapSnds = fmap . mapSnd
+
+wordsBy :: (a -> Bool) -> [a] -> [[a]]
+wordsBy p s = case dropWhile p s of
+   []      -> []
+   s':rest -> (s':w) : wordsBy p (drop 1 s'')
+          where (w, s'') = break p rest
+
+maybeRead :: String -> Maybe Double
+maybeRead = fmap fst . listToMaybe . reads
