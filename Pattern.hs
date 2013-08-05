@@ -210,3 +210,8 @@ points (((s,e), _):es) = s:e:(points es)
 groupByTime :: [Event a] -> [Event [a]]
 groupByTime es = map mrg $ groupBy ((==) `on` fst) $ sortBy (compare `on` fst) es
   where mrg es@((a, _):_) = (a, map snd es)
+
+ifp :: (Int -> Bool) -> (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+ifp test f1 f2 p = Pattern $ \a -> concatMap apply (arcCycles a)
+  where apply a | test (floor $ fst a) = (arc $ f1 p) a
+                | otherwise = (arc $ f2 p) a

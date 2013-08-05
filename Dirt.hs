@@ -119,4 +119,4 @@ striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
 
 interlace :: OscPattern -> OscPattern -> OscPattern
-interlace a b = weave 16 (shape sinewave1) [a, b]
+interlace a b = weave 16 (shape $ ((* 0.9) <$> sinewave1)) [a, b]
