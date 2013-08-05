@@ -66,11 +66,11 @@ isSubset xs ys = all (\x -> elem x ys) xs
 
 tpb = 1
 
-toMessage :: OscShape -> Tempo -> Int -> (Double, OscMap) -> Maybe Bundle
+toMessage :: OscShape -> Tempo -> Int -> (Double, OscMap) -> Maybe Message
 toMessage s change ticks (o, m) =
   do m' <- applyShape' s m
      let beat = fromIntegral ticks / fromIntegral tpb
-         latency = 0.01
+         latency = 0.02
          logicalNow = (logicalTime change beat)
          beat' = (fromIntegral ticks + 1) / fromIntegral tpb
          logicalPeriod = (logicalTime change (beat + 1)) - logicalNow
@@ -80,8 +80,8 @@ toMessage s change ticks (o, m) =
          usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
          oscdata = catMaybes $ mapMaybe (\x -> Map.lookup x m') (params s)
          oscdata' = ((Int sec):(Int usec):oscdata)
-         osc | timestamp s = Bundle (immediately) [Message (path s) oscdata']
-             | otherwise = Bundle (immediately) [Message (path s) oscdata]
+         osc | timestamp s = Message (path s) oscdata'
+             | otherwise = Message (path s) oscdata
      return osc
 
 
