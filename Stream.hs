@@ -70,7 +70,7 @@ toMessage :: OscShape -> Tempo -> Int -> (Double, OscMap) -> Maybe Message
 toMessage s change ticks (o, m) =
   do m' <- applyShape' s m
      let beat = fromIntegral ticks / fromIntegral tpb
-         latency = 0.02
+         latency = 0.04
          logicalNow = (logicalTime change beat)
          beat' = (fromIntegral ticks + 1) / fromIntegral tpb
          logicalPeriod = (logicalTime change (beat + 1)) - logicalNow

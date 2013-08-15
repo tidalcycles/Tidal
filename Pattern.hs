@@ -47,18 +47,7 @@ instance Monad Pattern where
                    )
                    (arc p a)
              )
-{-
-  p >>= f = 
-    Pattern (\a -> concatMap 
-                    (\(a', x) -> 
-                      mapFsts (fromJust . (subArc a)) $
-                      filter 
-                      (isIn a . eventStart)
-                      (arc (f x) a')
-                    )
-                    (arc p a)
-             )
--}
+
 atom :: a -> Pattern a
 atom x = Pattern f
   where f (s, e) = map 
@@ -94,24 +83,24 @@ cat ps = density (fromIntegral $ length ps) $ slowcat ps
 append :: Pattern a -> Pattern a -> Pattern a
 append a b = cat [a,b]
 
-slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
+slowcat' ps = Pattern $ \a -> concatMap f (arcCycles a)
   where l = length ps
         f (s,e) = arc p (s,e)
           where p = ps !! n
                 n = (floor s) `mod` l
-{-
-slowcat :: [Pattern a] -> Pattern a
-slowcat [] = silence
+
+-- Concatenates so that the first loop of each pattern is played in
+-- turn, second loop of each pattern, and so on..
+
 slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
   where l = length ps
-        f (s,e) = mapFsts arcF $ arc p (s', s' + (e - s))
+        f (s,e) = arc (mapResultTime (+offset) p) (s',e')
           where p = ps !! n
-                n = (floor s) `mod` l
-                cyc = (floor s) - n
-                s' = fromIntegral (cyc `div` l) + cyclePos s
-                arcF (s'',e'') = (s''', s''' + (e'' - s''))
-                  where s''' = (fromIntegral $ cyc + n) + (cyclePos s'')
--}
+                r = (floor s) :: Int
+                n = (r `mod` l) :: Int
+                offset = (fromIntegral $ r - ((r - n) `div` l)) :: Time
+                (s', e') = (s-offset, e-offset)
+
 listToPat :: [a] -> Pattern a
 listToPat = cat . map atom
 
@@ -147,6 +136,10 @@ when :: (Int -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
 when test f p = Pattern $ \a -> concatMap apply (arcCycles a)
   where apply a | test (floor $ fst a) = (arc $ f p) a
                 | otherwise = (arc p) a
+
+every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+every 0 f p = p
+every n f p = when ((== 0) . (`mod` n)) f p
 
 palindrome :: Pattern a -> Pattern a
 palindrome p = slowcat [p, rev p]
@@ -186,10 +179,6 @@ filterOffsets (Pattern f) =
 
 seqToRelOnsets :: Arc -> Pattern a -> [(Double, a)]
 seqToRelOnsets (s, e) p = mapFsts (fromRational . (/ (e-s)) . (subtract s) . fst) $ arc (filterOffsets p) (s, e)
-
-every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-every 0 _ p = p
-every n f p = slow (fromIntegral n %1) $ cat $ (take (n-1) $ repeat p) ++ [f p]
 
 segment :: Pattern a -> Pattern [a]
 segment p = Pattern $ \r -> groupByTime (segment' (arc p r))

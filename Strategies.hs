@@ -25,7 +25,11 @@ brak = every 2 (((1%4) <~) . (\x -> cat [x, silence]))
 samples :: Applicative f => f String -> f Int -> f String
 samples p p' = pick <$> p <*> p'
 
+spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 spread f xs p = cat $ map (\x -> f x p) xs
+
+slowspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
+slowspread f xs p = slow (fromIntegral $ length $ xs) $ spread f xs p
 
 spread' :: (a -> Pattern b -> Pattern c) -> Pattern a -> Pattern b -> Pattern c
 spread' f timepat pat =
