@@ -77,6 +77,10 @@ runClient =
      forkIO $ connectClient clockip mTempo mBps
      return (mTempo, mBps)
 
+bpsSetter :: IO (Double -> IO ())
+bpsSetter = do (_, mBps) <- runClient 
+               return $ (\b -> putMVar mBps b)
+
 clocked :: (Tempo -> Int -> IO ()) -> IO ()
 clocked callback = 
   do (mTempo, mBps) <- runClient
