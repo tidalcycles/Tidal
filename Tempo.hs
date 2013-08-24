@@ -40,6 +40,19 @@ logicalTime t b = changeT + timeDelta
         timeDelta = beatDelta / (bps t)
         changeT = realToFrac $ utcTimeToPOSIXSeconds $ at t
 
+tempoMVar :: IO (MVar (Tempo))
+tempoMVar = do now <- getCurrentTime
+               mv <- newMVar (Tempo now 0 1)
+               forkIO $ clocked $ f mv
+               return mv
+  where f mv change _ = do swapMVar mv change
+                           return ()
+
+beatNow :: Tempo -> IO (Double)
+beatNow t = do now <- getCurrentTime
+               let delta = realToFrac $ diffUTCTime now (at t)
+               let beatDelta = bps t * delta               
+               return $ beat t + beatDelta
 
 clientApp :: MVar Tempo -> MVar Double -> WS.WebSockets WS.Hybi10 ()
 clientApp mTempo mBps = do
@@ -102,7 +115,6 @@ clocked callback =
              threadDelay $ floor (delay * 1000000)
              callback t b
              loop mTempo $ b + 1
-
 
 updateTempo :: MVar Tempo -> Maybe Double -> IO ()
 updateTempo mt Nothing = return ()

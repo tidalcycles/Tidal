@@ -41,6 +41,7 @@
         "import Stream"
         "import Dirt"
         "import Strategies"
+	"import Tempo"
         )
   "*List of modules (possibly qualified) to bring into interpreter context.")
 
@@ -93,6 +94,7 @@
   (tidal-send-string "d7 <- dirtstream \"d7\"")
   (tidal-send-string "d8 <- dirtstream \"d8\"")
   (tidal-send-string "d9 <- dirtstream \"d9\"")
+  (tidal-send-string "bps <- bpsSetter")
   (tidal-send-string "let hush = mapM_ ($ silence) [d1,d2,d3,d4,d5,d6,d7,d8,d9]")
 )
 

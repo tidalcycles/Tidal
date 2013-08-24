@@ -7,7 +7,7 @@ Name:                tidal
 -- The package version. See the Haskell package versioning policy
 -- (http://www.haskell.org/haskellwiki/Package_versioning_policy) for
 -- standards guiding when and how versions should be incremented.
-Version:             0.2.2.4
+Version:             0.2.2.6
 
 -- A short (one-line) description of the package.
 Synopsis:            Pattern language for improvised music

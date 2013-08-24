@@ -46,7 +46,7 @@ kriole = OscShape {path = "/kriole",
                  timestamp = True
                 }
 
-
+dirtstart name = start "127.0.0.1" 7771 dirt
 dirtstream name = stream "127.0.0.1" 7771 dirt
 kstream name = stream "127.0.0.1" 7771 kriole
 
