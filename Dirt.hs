@@ -107,7 +107,7 @@ striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
                   |+| end (atom (fromIntegral (i+1) / fromIntegral n))
 
 striate' :: Int -> Double -> OscPattern -> OscPattern
-striate' n f p = slowcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p |+| begin (atom (slot * i) :: Pattern Double) |+| end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 

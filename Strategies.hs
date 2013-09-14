@@ -15,7 +15,7 @@ double f p = stack [p, f p]
 
 -- every 4 (smash 4 [1, 2, 3]) $ sound "[odx sn/2 [~ odx] sn/3, [~ hh]*4]"
 
-smash n xs p = cat $ map (\n -> slow n p') xs
+smash n xs p = slowcat $ map (\n -> slow n p') xs
   where p' = striate n p
 
 brak = every 2 (((1%4) <~) . (\x -> cat [x, silence]))
@@ -46,4 +46,4 @@ scrumple o p p' = p'' -- overlay p (o ~> p'')
                                                    (arc p' (s,s))
                               ) (arc p a)
 
-
+whenmod a b = Pattern.when ((\t -> (t `mod` a) >= b ))

@@ -6,7 +6,7 @@ import Data.Maybe
 import Sound.OSC.FD
 import Sound.OpenSoundControl
 import Control.Applicative
-import Tempo (Tempo, logicalTime, clocked)
+import Tempo (Tempo, logicalTime, clocked,clockedTick)
 import Control.Concurrent
 import Control.Concurrent.MVar
 import Pattern
@@ -64,7 +64,8 @@ hasRequired s m = isSubset (required s) (Map.keys (Map.filter (\x -> x /= Nothin
 isSubset :: (Eq a) => [a] -> [a] -> Bool
 isSubset xs ys = all (\x -> elem x ys) xs
 
-tpb = 1
+tpb = 4
+bpb = 16
 
 toMessage :: OscShape -> Tempo -> Int -> (Double, OscMap) -> Maybe Message
 toMessage s change ticks (o, m) =
@@ -96,13 +97,13 @@ start address port shape
        s <- openUDP address port
        putStrLn $ "connected "
        let ot = (onTick s shape patternM) :: Tempo -> Int -> IO ()
-       forkIO $ clocked ot
+       forkIO $ clockedTick tpb $ ot
        return patternM
 
 stream :: String -> Int -> OscShape -> IO (OscPattern -> IO ())
 stream address port shape 
   = do patternM <- start address port shape
-       return $ \p -> do swapMVar patternM p
+       return $ \p -> do swapMVar patternM (slow bpb p)
                          return ()
 
 streamcallback :: (OscPattern -> IO ()) -> String -> Int -> OscShape -> IO (OscPattern -> IO ())

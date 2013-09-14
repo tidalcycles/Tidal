@@ -116,6 +116,30 @@ clocked callback =
              callback t b
              loop mTempo $ b + 1
 
+clockedTick :: Int -> (Tempo -> Int -> IO ()) -> IO ()
+clockedTick tpb callback = 
+  do (mTempo, mBps) <- runClient
+     t <- readMVar mTempo
+     now <- getCurrentTime
+     let delta = realToFrac $ diffUTCTime now (at t)
+         beatDelta = bps t * delta
+         nowBeat = beat t + beatDelta
+         nextTick = ceiling (nowBeat * (fromIntegral tpb))
+         -- next4 = nextBeat + (4 - (nextBeat `mod` 4))
+     loop mTempo nextTick
+  where loop mTempo tick = 
+          do t <- readMVar mTempo
+             now <- getCurrentTime
+             let tps = (fromIntegral tpb) * bps t
+                 delta = realToFrac $ diffUTCTime now (at t)
+                 actualTick = ((fromIntegral tpb) * beat t) + (tps * delta)
+                 tickDelta = (fromIntegral tick) - actualTick
+                 delay = tickDelta / tps
+             --putStrLn $ "tick: " ++ (show tick) ++ " actualTick " ++ (show actualTick)
+             threadDelay $ floor (delay * 1000000)
+             callback t tick
+             loop mTempo $ tick + 1
+
 updateTempo :: MVar Tempo -> Maybe Double -> IO ()
 updateTempo mt Nothing = return ()
 updateTempo mt (Just bps') = do t <- takeMVar mt

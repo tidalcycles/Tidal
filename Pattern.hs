@@ -77,11 +77,14 @@ overlay p p' = Pattern $ \a -> (arc p a) ++ (arc p' a)
 stack :: [Pattern a] -> Pattern a
 stack ps = foldr overlay silence ps
 
-cat :: [Pattern b] -> Pattern b
+cat :: [Pattern a] -> Pattern a
 cat ps = density (fromIntegral $ length ps) $ slowcat ps
 
 append :: Pattern a -> Pattern a -> Pattern a
 append a b = cat [a,b]
+
+append' :: Pattern a -> Pattern a -> Pattern a
+append' a b  = slow 2 $ cat [a,b]
 
 slowcat' ps = Pattern $ \a -> concatMap f (arcCycles a)
   where l = length ps
@@ -92,6 +95,8 @@ slowcat' ps = Pattern $ \a -> concatMap f (arcCycles a)
 -- Concatenates so that the first loop of each pattern is played in
 -- turn, second loop of each pattern, and so on..
 
+slowcat :: [Pattern a] -> Pattern a
+slowcat [] = silence
 slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
   where l = length ps
         f (s,e) = arc (mapResultTime (+offset) p) (s',e')
@@ -181,7 +186,7 @@ seqToRelOnsets :: Arc -> Pattern a -> [(Double, a)]
 seqToRelOnsets (s, e) p = mapFsts (fromRational . (/ (e-s)) . (subtract s) . fst) $ arc (filterOffsets p) (s, e)
 
 segment :: Pattern a -> Pattern [a]
-segment p = Pattern $ \r -> groupByTime (segment' (arc p r))
+segment p = Pattern $ \(s,e) -> filter (\((s',e'),_) -> s' < e && e' > s) $ groupByTime (segment' (arc p (s,e)))
 
 segment' :: [Event a] -> [Event a]
 segment' es = foldr split es pts
