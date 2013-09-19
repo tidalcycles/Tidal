@@ -11,6 +11,7 @@ import Control.Applicative
 import Utils
 
 echo n p = stack [p, n ~> p]
+
 double f p = stack [p, f p]
 
 -- every 4 (smash 4 [1, 2, 3]) $ sound "[odx sn/2 [~ odx] sn/3, [~ hh]*4]"

@@ -64,8 +64,8 @@ hasRequired s m = isSubset (required s) (Map.keys (Map.filter (\x -> x /= Nothin
 isSubset :: (Eq a) => [a] -> [a] -> Bool
 isSubset xs ys = all (\x -> elem x ys) xs
 
-tpb = 4
-bpb = 16
+tpb = 1
+bpb = 2
 
 toMessage :: OscShape -> Tempo -> Int -> (Double, OscMap) -> Maybe Message
 toMessage s change ticks (o, m) =
@@ -97,7 +97,7 @@ start address port shape
        s <- openUDP address port
        putStrLn $ "connected "
        let ot = (onTick s shape patternM) :: Tempo -> Int -> IO ()
-       forkIO $ clockedTick tpb $ ot
+       forkIO $ clocked $ ot
        return patternM
 
 stream :: String -> Int -> OscShape -> IO (OscPattern -> IO ())
