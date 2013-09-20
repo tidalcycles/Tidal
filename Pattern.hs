@@ -11,7 +11,7 @@ import Data.Ratio
 import Debug.Trace
 import Data.Typeable
 import Data.Function
-
+import System.Random.Mersenne.Pure64
 import Time
 import Utils
 
@@ -169,7 +169,6 @@ triwave1 = sig $ \t -> mod' (fromRational t) 1
 triwave :: Pattern Double
 triwave = ((subtract 1) . (* 2)) <$> triwave1
 
-
 squarewave1 :: Pattern Double
 squarewave1 = sig $ 
               \t -> fromIntegral $ floor $ (mod' (fromRational t) 1) * 2
@@ -209,3 +208,6 @@ ifp :: (Int -> Bool) -> (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> 
 ifp test f1 f2 p = Pattern $ \a -> concatMap apply (arcCycles a)
   where apply a | test (floor $ fst a) = (arc $ f1 p) a
                 | otherwise = (arc $ f2 p) a
+
+rand :: Pattern Double
+rand = Pattern $ \a -> [(a, fst $ randomDouble $ pureMT $ floor $ (*1000000) $ (midPoint a))]
