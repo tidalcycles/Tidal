@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -XTypeSynonymInstances -XOverlappingInstances -XIncoherentInstances -XOverloadedStrings -XFlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings, TypeSynonymInstances, OverlappingInstances, IncoherentInstances, FlexibleInstances #-}
 
 module Parse where
 
@@ -96,16 +96,19 @@ pSequence f = do d <- pDensity
                  ps <- many $ pPart f
                  return $ density d $ cat ps
 
+pSingle :: Parser (Pattern a) -> Parser (Pattern a)
+pSingle f = do part <- f
+               pMult part
+
 pPart :: Parser (Pattern a) -> Parser (Pattern a)
-pPart f = do part <- parens (pSequence f) <|> f <|> pPoly f
+pPart f = do part <- parens (pSequence f) <|> pSingle f <|> pPoly f
              spaces
              return part
 
 pPoly :: Parser (Pattern a) -> Parser (Pattern a)
 pPoly f = do ps <- brackets (pRhythm f `sepBy` symbol ",")
              spaces
-             m <- pMult
-             return $ density m $ mconcat ps
+             pMult $ mconcat ps
 
 pString :: Parser (String)
 pString = many1 (letter <|> oneOf "0123456789" <|> char '/') <?> "string"
@@ -135,19 +138,18 @@ pColour = do name <- many1 letter <?> "colour name"
              colour <- readColourName name <?> "known colour"
              return $ atom colour
 
-pMult :: Parser (Rational)
-pMult = do char '*'
-           spaces
-           r <- pRatio
-           return r
-        <|>
-        do char '/'
-           spaces
-           r <- pRatio
-           return $ 1 / r
-        <|>
-        return 1
-           
+pMult :: Pattern a -> Parser (Pattern a)
+pMult thing = do char '*'
+                 spaces
+                 r <- pRatio
+                 return $ density r thing
+              <|>
+              do char '/'
+                 spaces
+                 r <- pRatio
+                 return $ slow r thing
+              <|>
+              return thing
 
 pRatio :: Parser (Rational)
 pRatio = do n <- natural <?> "numerator"
