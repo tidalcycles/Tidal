@@ -41,6 +41,7 @@
         "import Stream"
         "import Dirt"
         "import Strategies"
+        "import Data.Ratio"
 	"import Tempo"
         )
   "*List of modules (possibly qualified) to bring into interpreter context.")
