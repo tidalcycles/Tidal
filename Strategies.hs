@@ -7,6 +7,7 @@ import Time
 import Dirt
 import Data.Ratio
 import Control.Applicative
+import Stream
 
 import Utils
 
@@ -16,6 +17,8 @@ echo   = stutter 2
 triple = stutter 3
 quad   = stutter 4
 double = echo
+
+jux f p = stack [p |+| pan (pure 0), f $ p |+| pan (pure 1)]
 
 superimpose f p = stack [p, f p]
 
@@ -69,9 +72,15 @@ trunc t p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
         trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 
+spin :: Int -> OscPattern -> OscPattern
+spin steps p = stack $ map (\n -> (((fromIntegral n)%(fromIntegral steps)) <~ p |+| pan (pure $ (fromIntegral n)/(fromIntegral steps)))) [0 .. steps]
+
+
 {-stripe :: Arc -> Pattern a -> Pattern a
 stripe (stripeS, stripeE) p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
   where f a = mapFsts (stretch . stripe') $ arc p (stripe' a)
         trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 -}
+
+
