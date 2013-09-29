@@ -42,7 +42,7 @@ logicalTime t b = changeT + timeDelta
 
 tempoMVar :: IO (MVar (Tempo))
 tempoMVar = do now <- getCurrentTime
-               mv <- newMVar (Tempo now 0 1)
+               mv <- newMVar (Tempo now 0 (126/60))
                forkIO $ clocked $ f mv
                return mv
   where f mv change _ = do swapMVar mv change
