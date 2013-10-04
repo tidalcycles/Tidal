@@ -2,6 +2,9 @@ module Utils where
 
 import Data.Maybe (listToMaybe)
 
+enumerate :: [a] -> [(Int, a)]
+enumerate = zip [0..]
+
 mapFst :: (a -> b) -> (a, c) -> (b, c)
 mapFst f (x,y) = (f x,y)
 
