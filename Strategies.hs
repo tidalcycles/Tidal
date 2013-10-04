@@ -19,6 +19,7 @@ quad   = stutter 4
 double = echo
 
 jux f p = stack [p |+| pan (pure 0), f $ p |+| pan (pure 1)]
+jux16 f p = stack [p |+| pan (pure 0), f $ p |+| pan (pure 8)]
 
 superimpose f p = stack [p, f p]
 
@@ -84,3 +85,14 @@ stripe (stripeS, stripeE) p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
 -}
 
 
+iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. n]
+
+spin16 step p = stack $ map (\n -> ((toRational n)/16) <~ p |+| pan (pure $ n)) [0,step .. 15]
+
+triwave16 = ((*16) <$> triwave1)
+sinewave16 = ((*16) <$> sinewave1)
+rand16 = ((*16) <$> rand)
+
+stackwith p ps | null ps = silence
+               | otherwise = stack $ map (\(i, p') -> p' |+| (((fromIntegral i) % l) <~ p)) (zip [0 ..] ps)
+  where l = fromIntegral $ length ps
