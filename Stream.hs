@@ -4,7 +4,7 @@ module Stream where
 
 import Data.Maybe
 import Sound.OSC.FD
-import Sound.OpenSoundControl
+import Sound.OSC.Datum
 import Control.Applicative
 import Tempo (Tempo, logicalTime, clocked,clockedTick)
 import Control.Concurrent
@@ -12,7 +12,7 @@ import Control.Concurrent.MVar
 import Pattern
 import Data.Ratio
 import Control.Exception as E
-import Parse
+import qualified Parse as P
 
 import qualified Data.Map as Map
 
@@ -37,9 +37,9 @@ type OscMap = Map.Map Param (Maybe Datum)
 type OscPattern = Pattern OscMap
 
 defaultDatum :: Param -> Maybe Datum
-defaultDatum (S _ (Just x)) = Just $ String x
-defaultDatum (I _ (Just x)) = Just $ Int x
-defaultDatum (F _ (Just x)) = Just $ Float x
+defaultDatum (S _ (Just x)) = Just $ string x
+defaultDatum (I _ (Just x)) = Just $ int32 x
+defaultDatum (F _ (Just x)) = Just $ float x
 defaultDatum _ = Nothing
 
 hasDefault :: Param -> Bool
@@ -80,7 +80,7 @@ toMessage s change ticks (o, m) =
          sec = floor logicalOnset
          usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
          oscdata = catMaybes $ mapMaybe (\x -> Map.lookup x m') (params s)
-         oscdata' = ((Int sec):(Int usec):oscdata)
+         oscdata' = ((int32 sec):(int32 usec):oscdata)
          osc | timestamp s = Message (path s) oscdata'
              | otherwise = Message (path s) oscdata
      return osc
@@ -146,10 +146,10 @@ make toOsc s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
         defaultV a = Just $ toOsc a
         --defaultV Nothing = defaultDatum nParam
 
-makeS = make String
-makeF = make Float
+makeS = make string
+makeF = make float
 
-makeI = make Int
+makeI = make int32
 
 param :: OscShape -> String -> Param
 param shape n = head $ filter (\x -> name x == n) (params shape)
