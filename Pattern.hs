@@ -156,25 +156,33 @@ sig f = Pattern f'
 
 sinewave :: Pattern Double
 sinewave = sig $ \t -> sin $ pi * 2 * (fromRational t)
+sine = sinewave
+ratsine = fmap toRational sine
 
 sinewave1 :: Pattern Double
 sinewave1 = fmap ((/ 2) . (+ 1)) sinewave
+sine1 = sinewave1
+ratsine1 = fmap toRational sine1
 
 sinePhase1 :: Double -> Pattern Double
 sinePhase1 offset = (+ offset) <$> sinewave1
 
 triwave1 :: Pattern Double
 triwave1 = sig $ \t -> mod' (fromRational t) 1
+tri1 = triwave1
 
 triwave :: Pattern Double
 triwave = ((subtract 1) . (* 2)) <$> triwave1
+tri = triwave
 
 squarewave1 :: Pattern Double
 squarewave1 = sig $ 
               \t -> fromIntegral $ floor $ (mod' (fromRational t) 1) * 2
+square1 = squarewave1
 
 squarewave :: Pattern Double
 squarewave = ((subtract 1) . (* 2)) <$> squarewave1
+square = squarewave
 
 -- Filter out events that start before range
 filterOffsets :: Pattern a -> Pattern a
