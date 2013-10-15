@@ -11,10 +11,10 @@ import Utils
 
 v f pat = 
   C.withPDFSurface
-          f 1000 150 $ \surf -> do
+          f 1000 200 $ \surf -> do
             C.renderWith surf $ do  
               C.save 
-              C.scale 1000 150
+              C.scale 1000 200
               C.setOperator C.OperatorOver
               C.setSourceRGB 0 0 0 
               C.rectangle 0 0 1 1
