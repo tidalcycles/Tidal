@@ -1,6 +1,6 @@
 CONFIG=
 HTML_CONFIG=$(CONFIG) --standalone
-PDF_CONFIG=$(CONFIG) --latex-engine=xelatex --variable mainfont="Linux Libertine O" --variable sansfont="Linux Biolinum O" --variable geometry="a4paper"
+PDF_CONFIG=$(CONFIG) --latex-engine=xelatex --include-in-header=preamble.tex --listings --variable mainfont="Linux Libertine O" --variable sansfont="Linux Biolinum O" --variable geometry="a4paper"
 
 all: tidal.pdf tidal.html
 

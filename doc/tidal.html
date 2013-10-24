@@ -4,7 +4,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
-  <title></title>
+  <title>Tidal -- Domain specific language for live coding of pattern</title>
   <style type="text/css">
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
   margin: 0; padding: 0; vertical-align: baseline; border: none; }
@@ -26,40 +26,44 @@ code > span.er { color: #ff0000; font-weight: bold; }
   </style>
 </head>
 <body>
-<h1 id="tidal----domain-specific-language-for-live-coding-of-pattern">Tidal -- Domain specific language for live coding of pattern</h1>
+<div id="header">
+<h1 class="title">Tidal -- Domain specific language for live coding of pattern</h1>
+</div>
 <p>Homepage and mailing list: <a href="http://yaxu.org/tidal/"><code class="url">http://yaxu.org/tidal/</code></a></p>
 <p>Tidal is a language for live coding pattern, embedded in the Haskell language. You don't really have to learn Haskell to use Tidal, but it might help to pick up an introduction. You could try Graham Hutton's &quot;Programming in Haskell&quot; or Miran Lipovača's &quot;Learn you a Haskell for Great Good&quot; (which has a free online version). Or, you could just try learning enough by playing around with Tidal.</p>
-<h2 id="installation">Installation</h2>
-<p>Tidal is developed under Linux, and although it should be possible to run it under a different operating system, this has not yet been tried.</p>
-<h3 id="installing-dirt">Installing Dirt</h3>
-<p>Tidal does not include a synthesiser, but instead communicates with an external synthesiser using the Open Sound Control protocol. It has been developed for use with a particular software sampler called &quot;dirt&quot;. You'll need to run it with &quot;jack audio&quot;. Here's an example of the commands needed to compile it under a debian-derived linux distribution (including ubuntu and mint).</p>
+<h1 id="installation">Installation</h1>
+<p>Tidal is developed under Linux, and although some have got it to work under Macs, the process hasn't been fully documented, and Dirt synthesiser has not yet been ported to Windows. Feel free to ask questions and share problems and success stories on the mailing list.</p>
+<h2 id="installing-dirt">Installing Dirt</h2>
+<p>Tidal does not include a synthesiser, but instead communicates with an external synthesiser using the Open Sound Control protocol. It has been developed for use with a particular software sampler called &quot;dirt&quot;. You'll need to run it with &quot;jack audio&quot;. Here's an example of the commands needed to compile it under a debian-derived linux distribution (including ubuntu and mint):</p>
 <pre><code>sudo apt-get install build-essential libsndfile1-dev libsamplerate0-dev \
-                     liblo-dev libjack-jackd2-dev jackd git
+                     liblo-dev libjack-jackd2-dev qjackctl jackd git
 git clone https://github.com/yaxu/Dirt.git
 cd Dirt
 make clean; make</code></pre>
-<p>Then you'll have to start jack:</p>
+<p>Then you'll have to start jack, using the 'qjackctl' app under Linux, or otherwise from the commandline:</p>
 <pre><code>jackd -d alsa &amp;</code></pre>
+<p>(On MacOS X, you would do this instead: jackd -d coreaudio &amp; )</p>
 <p>If that doesn't work, you might well have something called &quot;pulseaudio&quot; in control of your sound. In that case, this should work:</p>
 <pre><code>/usr/bin/pasuspender -- jackd -d alsa &amp;</code></pre>
 <p>And finally you should be able to start dirt with this:</p>
 <pre><code>./dirt &amp;</code></pre>
 <p>If you have problems with jack, try enabling realtime audio, and adjusting the settings by installing and using the &quot;qjackctl&quot; software. Some more info is here: <a href="https://help.ubuntu.com/community/HowToJACKConfiguration"><code class="url">https://help.ubuntu.com/community/HowToJACKConfiguration</code></a></p>
-<h3 id="tidal">Tidal</h3>
+<h2 id="tidal">Tidal</h2>
 <p>Tidal is embedded in the Haskell language, so you'll have to install the haskell interpreter and some libraries, including tidal itself. Under debian, you'd install haskell like this:</p>
 <p>sudo apt-get install ghc6 cabal-install</p>
 <p>Or otherwise you could grab it from <a href="http://www.haskell.org/platform/"><code class="url">http://www.haskell.org/platform/</code></a></p>
 <p>Once Haskell is installed, you can install tidal like this: cabal update cabal install tidal</p>
-<h3 id="emacs">Emacs</h3>
+<h2 id="emacs">Emacs</h2>
 <p>Currently about the only interface to Tidal is the emacs editor. Debian users can install emacs, along with its haskell front-end, this way:</p>
 <pre><code>sudo apt-get install emacs24 haskell-mode</code></pre>
 <p>To install the emacs interface to tidal, you'll need to edit a configuration file in your home folder called <code>.emacs</code>. If it doesn't exist, create it. Then, add the following, replacing <code>~/projects/tidal</code> with the location of the <code>tidal.el</code> file.</p>
-<p>(add-to-list 'load-path &quot;~/projects/tidal&quot;) (require 'tidal)</p>
+<pre><code>    (add-to-list &#39;load-path &quot;~/projects/tidal&quot;)
+    (require &#39;tidal)</code></pre>
 <p>If tidal.el did not come with this document, you can grab it here: <a href="https://raw.github.com/yaxu/Tidal/master/tidal.el"><code class="url">https://raw.github.com/yaxu/Tidal/master/tidal.el</code></a></p>
-<h3 id="testing-testing...">Testing, testing...</h3>
+<h2 id="testing-testing...">Testing, testing...</h2>
 <p>Now start emacs, and open a new file called something like &quot;helloworld.tidal&quot;. Once the file is opened, you still have to start tidal, you do that by typing <code>Ctrl-C</code> then <code>Ctrl-S</code>.</p>
 <p>All being well you should now be able to start making some sounds, lets start with some simple sequences.</p>
-<h2 id="sequences">Sequences</h2>
+<h1 id="sequences">Sequences</h1>
 <p>Tidal starts with nine connections to the dirt synthesiser, named from <code>d1</code> to <code>d9</code>. Here's a minimal example, that plays a bass drum every loop:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;bd&quot;</span></code></pre>
 <p>In the above, <code>sound</code> tells us we're making a pattern of sounds, and <code>&quot;bd&quot;</code> is a pattern that contains a single sound. <code>bd</code> is a sample of a bass drum. To run the code, use <code>Ctrl-C</code> then <code>Ctrl-C</code>.</p>
@@ -83,48 +87,53 @@ make clean; make</code></pre>
 <p>You can also layer up several loops, by using commas to separate the different parts:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd bd bd, sn cp sn cp]&quot;</span></code></pre>
 <p>This would play the sequence <code>bd bd bd</code> at the same time as <code>sn cp sn cp</code>. Note that the first sequence only has three events, and the second one has four. Because tidal ensures both loops fit inside same duration, you end up with a polyrhythm.</p>
-<h2 id="samples">Samples</h2>
-<p>All the samples can be found in <code>Dropbox/bcn/dirt/samples/</code>. Here's some samples I've collected that you could try:</p>
+<p>You can make parts of patterns repeat by using <code>*</code>, for example the following example produces the same pattern as the previous one:</p>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd*3, [sn cp]*2]&quot;</span></code></pre>
+<p>Conversely, you can slow down patterns by using <code>/</code>, the following pattern plays part of each subpattern each cycle:</p>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd sn sn*3]/2 [bd sn*3 bd*4]/3&quot;</span></code></pre>
+<h1 id="samples">Samples</h1>
+<p>All the samples can be found in the <code>samples</code> subfolder of the Dirt distribution. Here's some you could try:</p>
 <pre><code>flick sid can metal future gabba sn mouth co gretsch mt arp h cp
 cr newnotes bass crow hc tabla bass0 hh bass1 bass2 oc bass3 ho
 odx diphone2 house off ht tink perc bd industrial pluck trump
 printshort jazz voodoo birds3 procshort blip drum jvbass psr
 wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt</code></pre>
 <p>Each one is a folder containing one or more wav files. For example when you put <code>bd/1</code> in a sequence, you're picking up the second wav file in the <code>bd</code> folder. If you ask for the ninth sample and there are only seven in the folder, it'll wrap around and play the second one.</p>
-<h2 id="continuous-patterns">Continuous patterns</h2>
+<p>If you want to add your own samples, just create a new folder in the samples director, and put <code>wav</code> files in it.</p>
+<h1 id="continuous-patterns">Continuous patterns</h1>
 <p>As well as making patterns as sequences, we can also use continuous patterns. This makes particular sense for parameters such as <code>pan</code> (for panning sounds between speakers) and <code>shape</code> (for adding distortion) which are patterns of numbers.</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd bd] [bd [sn [sn sn] sn] sn]&quot;</span>
    <span class="fu">|+|</span> pan sinewave1
    <span class="fu">|+|</span> shape sinewave1</code></pre>
 <p>The above uses the pattern <code>sinewave1</code> to continuously pan between the left and right speaker. You could also try out <code>triwave1</code> and <code>squarewave1</code>. The functions <code>sinewave</code>, <code>triwave</code> and <code>squarewave</code> also exist, but they go between <code>-1</code> and <code>1</code>, which is often not what you want.</p>
-<h2 id="transforming-patterns">Transforming patterns</h2>
+<h1 id="transforming-patterns">Transforming patterns</h1>
 <p>Tidal comes into its own when you start building things up with functions which transform the patterns in various ways.</p>
 <p>For example, <code>rev</code> reverses a pattern:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> rev (sound <span class="st">&quot;[bd bd] [bd [sn [sn sn] sn] sn]&quot;</span>)</code></pre>
 <p>That's not so exciting, but things get more interesting when this is used in combination another function. For example <code>every</code> takes two parameters, a number, a function and a pattern to apply the function to. The number specifies how often the function is applied to the pattern. For example, the following reverses the pattern every fourth repetition:</p>
-<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> every <span class="dv">4</span> (rev) (sound <span class="st">&quot;[bd bd] [bd [sn [sn sn] sn] sn]&quot;</span>)</code></pre>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> every <span class="dv">4</span> (rev) (sound <span class="st">&quot;bd*2 [bd [sn sn*2 sn] sn]&quot;</span>)</code></pre>
 <p>You can also slow down or speed up the playback of a pattern, this makes it a quarter of the speed:</p>
-<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> slow <span class="dv">4</span> <span class="fu">$</span> sound <span class="st">&quot;[bd bd] [bd [sn [sn sn] sn] sn]&quot;</span></code></pre>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> slow <span class="dv">4</span> <span class="fu">$</span> sound <span class="st">&quot;bd*2 [bd [sn sn*2 sn] sn]&quot;</span></code></pre>
 <p>And this four times the speed:</p>
-<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> density <span class="dv">4</span> <span class="fu">$</span> sound <span class="st">&quot;[bd bd] [bd [sn [sn sn] sn] sn]&quot;</span></code></pre>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> density <span class="dv">4</span> <span class="fu">$</span> sound <span class="st">&quot;bd*2 [bd [sn sn*2 sn] sn]&quot;</span></code></pre>
 <p>Note that <code>slow 0.25</code> would do exactly the same as <code>density 4</code>.</p>
 <p>Again, this can be applied selectively:</p>
-<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> every <span class="dv">4</span> (density <span class="dv">4</span>) <span class="fu">$</span> sound <span class="st">&quot;[bd bd] [bd [sn [sn sn] sn] sn]&quot;</span></code></pre>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> every <span class="dv">4</span> (density <span class="dv">4</span>) <span class="fu">$</span> sound <span class="st">&quot;bd*2 [bd [sn sn*2 sn] sn]&quot;</span></code></pre>
 <p>Note the use of parenthesis around <code>(density 4)</code>, this is needed, to group together the function <code>density</code> with its parameter <code>4</code>, before being passed as a parameter to the function <code>every</code>.</p>
 <p>Instead of putting transformations up front, separated by the pattern by the <code>$</code> symbol, you can put them inside the pattern, for example:</p>
-<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound (every <span class="dv">4</span> (density <span class="dv">4</span>) <span class="st">&quot;[bd bd] [bd [sn [sn sn] sn] sn]&quot;</span>)
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound (every <span class="dv">4</span> (density <span class="dv">4</span>) <span class="st">&quot;bd*2 [bd [sn sn*2 sn] sn]&quot;</span>)
    <span class="fu">|+|</span> pan sinewave1</code></pre>
 <p>In the above example the transformation is applied inside the <code>sound</code> parameter to d1, and therefore has no effect on the <code>pan</code> parameter. Again, parenthesis is required to both group together <code>(density 4)</code> before passing as a parameter to <code>every</code>, and also around <code>every</code> and its parameters before passing to its function <code>sound</code>.</p>
-<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound (every <span class="dv">4</span> (density <span class="dv">4</span>) <span class="st">&quot;[bd bd] [bd [sn [sn sn] sn] sn]&quot;</span>)
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound (every <span class="dv">4</span> (density <span class="dv">4</span>) <span class="st">&quot;bd*2 [bd [sn sn*2 sn] sn]&quot;</span>)
    <span class="fu">|+|</span> pan (slow <span class="dv">16</span> sinewave1)</code></pre>
 <p>In the above, the sinewave pan has been slowed down, so that the transition between speakers happens over 16 loops.</p>
-<h2 id="mapping-over-patterns">Mapping over patterns</h2>
+<h1 id="mapping-over-patterns">Mapping over patterns</h1>
 <p>Sometimes you want to transform all the events inside a pattern, and not the time structure of the pattern itself. For example, if you wanted to pass a sinewave to <code>shape</code>, but wanted the sinewave to go from <code>0</code> to <code>0.5</code> rather than from <code>0</code> to <code>1</code>, you could do this:</p>
-<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd bd] [bd [sn [sn sn] sn] sn]&quot;</span>)
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;bd*2 [bd [sn sn*2 sn] sn]&quot;</span>))
    <span class="fu">|+|</span> shape ((<span class="fu">/</span> <span class="dv">2</span>) <span class="fu">&lt;$&gt;</span> sinewave1)</code></pre>
 <p>The above applies the function <code>(/ 2)</code> (which simply means divide by two), to all the values inside the <code>sinewave1</code> pattern.</p>
-<h2 id="parameters">Parameters</h2>
-<p>These are all the synthesis parameters you can use</p>
+<h1 id="parameters">Parameters</h1>
+<p>These are the synthesis parameters you can use</p>
 <ul>
 <li><code>sound</code> - a pattern of strings representing sound sample names (required)</li>
 <li><code>pan</code> - a pattern of numbers between 0 and 1, from left to right (assuming stereo)</li>
@@ -134,33 +143,44 @@ wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt</code></pre>
 <li><code>resonance</code> - a pattern of numbers from 0 to 1</li>
 <li><code>speed</code> - a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch</li>
 </ul>
-<h2 id="pattern-transformers">Pattern transformers</h2>
-<h3 id="brak-pattern"><code>brak &lt;pattern&gt;</code></h3>
+<h1 id="pattern-transformers">Pattern transformers</h1>
+<h2 id="brak">brak</h2>
+<p><code>brak &lt;pattern&gt;</code></p>
 <p>Make a pattern sound a bit like a breakbeat</p>
 <p>Example:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound (brak <span class="st">&quot;bd sn kurt&quot;</span>)</code></pre>
-<h3 id="number-pattern-and-number-pattern"><code>&lt;number&gt; &lt;~ &lt;pattern&gt;</code> and <code>&lt;number&gt; ~&gt; &lt;pattern&gt;</code></h3>
+<h2 id="beat-rotation">Beat rotation</h2>
+<p><code>&lt;number&gt; &lt;~ &lt;pattern&gt;</code></p>
+<p>or</p>
+<p><code>&lt;number&gt; ~&gt; &lt;pattern&gt;</code></p>
 <p>Rotate a loop either to the left or the right.</p>
 <p>Example:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> every <span class="dv">4</span> (<span class="fl">0.25</span> <span class="fu">&lt;~</span>) <span class="fu">$</span> sound (density <span class="dv">2</span> <span class="st">&quot;bd sn kurt&quot;</span>)</code></pre>
-<h3 id="rev-pattern"><code>rev &lt;pattern&gt;</code></h3>
+<h2 id="reversal">Reversal</h2>
+<p><code>rev &lt;pattern&gt;</code></p>
 <p>Reverse a pattern</p>
 <p>Examples:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> every <span class="dv">3</span> (rev) <span class="fu">$</span> sound (density <span class="dv">2</span> <span class="st">&quot;bd sn kurt&quot;</span>)</code></pre>
-<h3 id="density-number-pattern-and-slow-number-pattern"><code>density &lt;number&gt; &lt;pattern&gt;</code> and <code>slow &lt;number&gt; &lt;pattern&gt;</code></h3>
+<h2 id="increasedecrease-density">Increase/decrease density</h2>
+<p><code>density &lt;number&gt; &lt;pattern&gt;</code></p>
+<p>or</p>
+<p><code>slow &lt;number&gt; &lt;pattern&gt;</code></p>
 <p>Speed up or slow down a pattern.</p>
 <p>Example:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound (density <span class="dv">2</span> <span class="st">&quot;bd sn kurt&quot;</span>)
    <span class="fu">|+|</span> slow <span class="dv">3</span> (vowel <span class="st">&quot;a e o&quot;</span>)</code></pre>
-<h3 id="every-number-function-pattern"><code>every &lt;number&gt; &lt;function&gt; &lt;pattern&gt;</code></h3>
+<h2 id="every-nth-repetition-do-this">Every nth repetition, do this</h2>
+<p><code>every &lt;number&gt; &lt;function&gt; &lt;pattern&gt;</code></p>
 <p>Applies <function> to <pattern>, but only every <number> repetitions.</p>
 <p>Example:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound (every <span class="dv">3</span> (density <span class="dv">2</span>) <span class="st">&quot;bd sn kurt&quot;</span>)</code></pre>
-<h3 id="interlace-pattern-pattern"><code>interlace &lt;pattern&gt; &lt;pattern&gt;</code></h3>
+<h1 id="interlace">Interlace</h1>
+<p><code>interlace &lt;pattern&gt; &lt;pattern&gt;</code></p>
 <p>Shifts between two patterns, using distortion.</p>
 <p>Example:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> interlace (sound  <span class="st">&quot;bd sn kurt&quot;</span>) (every <span class="dv">3</span> rev <span class="fu">$</span> sound  <span class="st">&quot;bd sn/2&quot;</span>)</code></pre>
 <p>Plus more to be discovered!</p>
+<p>You can find a stream of minimal cycles written in Tidal in the following twitter feed: <a href="http://twitter.com/tidalcycles/"><code class="url">http://twitter.com/tidalcycles/</code></a></p>
 <h1 id="acknowledgments">Acknowledgments</h1>
 <p>Special thanks to l'ull cec (<a href="http://lullcec.org"><code class="url">http://lullcec.org</code></a>) and hangar (<a href="http://hangar.org"><code class="url">http://hangar.org</code></a>) for supporting the documentation and release of tidal as part of the ADDICTED2RANDOM project.</p>
 </body>
