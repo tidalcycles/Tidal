@@ -27,25 +27,6 @@
         )
   "*Arguments to the haskell interpreter (default=none).")
 
-(defvar tidal-run-control
-  "~/.tidal.hs"
-  "*Run control file (default=~/.tidal.hs)")
-
-(defvar tidal-modules
-  (list "import Control.Concurrent"
-        "import Control.Monad"
-        "import Data.List"
-        "import Control.Applicative"
-        "import Parse"
-        "import Pattern"
-        "import Stream"
-        "import Dirt"
-        "import Strategies"
-        "import Data.Ratio"
-	"import Tempo"
-        )
-  "*List of modules (possibly qualified) to bring into interpreter context.")
-
 (defvar tidal-literate-p
   t
   "*Flag to indicate if we are in literate mode (default=t).")
@@ -61,16 +42,6 @@
       '()
     (cons e (cons (car l) (tidal-intersperse e (cdr l))))))
 
-(defun tidal-write-default-run-control ()
-  "Write default run control file if no file exists."
-  (if (not (file-exists-p tidal-run-control))
-      (with-temp-file
-          tidal-run-control
-        (mapc
-         (lambda (s)
-           (insert (concat s "\n")))
-         tidal-modules))))
-
 (defun tidal-start-haskell ()
   "Start haskell."
   (interactive)
@@ -83,9 +54,8 @@
      nil
      tidal-interpreter-arguments)
     (tidal-see-output))
-  (tidal-write-default-run-control)
-  (tidal-send-string (concat ":l " tidal-run-control))
-  (tidal-send-string ":set prompt \"tidal> \"")
+  (tidal-send-string ":set prompt \"\"")
+  (tidal-send-string ":module Control.Concurrent Control.Monad Data.List Control.Applicative Data.Ratio Sound.Tidal.Parse Sound.Tidal.Pattern Sound.Tidal.Stream Sound.Tidal.Dirt Sound.Tidal.Strategies Sound.Tidal.Tempo")
   (tidal-send-string "d1 <- dirtstream \"d1\"")
   (tidal-send-string "d2 <- dirtstream \"d2\"")
   (tidal-send-string "d3 <- dirtstream \"d3\"")
@@ -97,6 +67,7 @@
   (tidal-send-string "d9 <- dirtstream \"d9\"")
   (tidal-send-string "bps <- bpsSetter")
   (tidal-send-string "let hush = mapM_ ($ silence) [d1,d2,d3,d4,d5,d6,d7,d8,d9]")
+  (tidal-send-string ":set prompt \"tidal> \"")
 )
 
 (defun tidal-see-output ()
@@ -279,6 +250,8 @@
   tidal-mode
   "Literate Haskell Tidal"
   "Major mode for interacting with an inferior haskell process."
+  (set (make-local-variable 'paragraph-start) "\f\\|[ \t]*$")
+  (set (make-local-variable 'paragraph-separate) "[ \t\f]*$")
   (setq tidal-literate-p t)
   (setq haskell-literate 'bird)
   (turn-on-font-lock))
@@ -290,6 +263,8 @@
   haskell-mode
   "Haskell Tidal"
   "Major mode for interacting with an inferior haskell process."
+  (set (make-local-variable 'paragraph-start) "\f\\|[ \t]*$")
+  (set (make-local-variable 'paragraph-separate) "[ \t\f]*$")
   (setq tidal-literate-p nil)
   (turn-on-font-lock))
 
