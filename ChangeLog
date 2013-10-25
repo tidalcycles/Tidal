@@ -1,0 +1,4 @@
+2013-10-25  alex  <alex@slab.org>
+	* tidal.el: treat lines with whitespace as paragraph markers
+	* tidal.el: use Sound.Tidal module path and remove use of ~/.tidal.hs
+
