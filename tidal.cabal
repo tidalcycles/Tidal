@@ -1,5 +1,5 @@
 name:                tidal
-version:             0.2.5
+version:             0.2.6
 synopsis:            Pattern language for improvised music
 -- description:         
 homepage:            http://yaxu.org/tidal/
@@ -7,7 +7,8 @@ license:             GPL-3
 license-file:        LICENSE
 author:              Alex McLean
 maintainer:          alex@slab.org
--- copyright:           
+Stability:           Experimental
+Copyright:           (c) Alex McLean and others, 2013
 category:            Sound
 build-type:          Simple
 cabal-version:       >=1.4
@@ -17,7 +18,14 @@ Extra-source-files: README.md tidal.el doc/tidal.pandoc doc/tidal.pdf
 Description: Tidal is a domain specific language for live coding pattern.
 
 library
-  Exposed-modules:     Strategies, Dirt, Pattern, Stream, Parse, Tempo, Time, V3
-  Other-modules: Utils
+  Exposed-modules:     Sound.Tidal.Strategies
+                       Sound.Tidal.Dirt
+                       Sound.Tidal.Pattern
+                       Sound.Tidal.Stream
+                       Sound.Tidal.Parse
+                       Sound.Tidal.Tempo
+                       Sound.Tidal.Time
 
-  Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets, text, mtl, transformers, mersenne-random-pure64,binary , cairo
+  Other-modules:       Sound.Tidal.Utils
+
+  Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl, transformers, mersenne-random-pure64,binary 
