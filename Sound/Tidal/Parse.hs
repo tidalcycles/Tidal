@@ -83,33 +83,42 @@ r s orig = do E.handle
                 (return $ p s)
 
 parseRhythm :: Parser (Pattern a) -> String -> (Pattern a)
-parseRhythm f input = either (const silence) id $ parse (pRhythm f') "" input
+parseRhythm f input = either (const silence) id $ parse (pSequence f') "" input
   where f' = f
              <|> do symbol "~" <?> "rest"
                     return silence
 
-pRhythm :: Parser (Pattern a) -> GenParser Char () (Pattern a)
-pRhythm f = do spaces
-               pSequence f
-
+pSequenceN :: Parser (Pattern a) -> GenParser Char () (Int, Pattern a)
+pSequenceN f = do spaces
+                  d <- pDensity
+                  ps <- many $ pPart f
+                  return $ (length ps, density d $ cat ps)
+                 
 pSequence :: Parser (Pattern a) -> GenParser Char () (Pattern a)
-pSequence f = do d <- pDensity
-                 ps <- many $ pPart f
-                 return $ density d $ cat ps
+pSequence f = do (_, p) <- pSequenceN f
+                 return p
 
 pSingle :: Parser (Pattern a) -> Parser (Pattern a)
 pSingle f = do part <- f
                pMult part
 
 pPart :: Parser (Pattern a) -> Parser (Pattern a)
-pPart f = do part <- parens (pSequence f) <|> pSingle f <|> pPoly f
+pPart f = do part <- parens (pSequence f) <|> pSingle f <|> pPolyIn f <|> pPolyOut f
              spaces
              return part
 
-pPoly :: Parser (Pattern a) -> Parser (Pattern a)
-pPoly f = do ps <- brackets (pRhythm f `sepBy` symbol ",")
-             spaces
-             pMult $ mconcat ps
+pPolyIn :: Parser (Pattern a) -> Parser (Pattern a)
+pPolyIn f = do ps <- brackets (pSequence f `sepBy` symbol ",")
+               spaces
+               pMult $ mconcat ps
+
+pPolyOut :: Parser (Pattern a) -> Parser (Pattern a)
+pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
+                spaces
+                pMult $ mconcat $ scale ps
+  where scale [] = []
+        scale ((_,p):[]) = [p]
+        scale (ps@((n,_):_)) = map (\(n',p) -> density (fromIntegral n/ fromIntegral n') p) ps
 
 pString :: Parser (String)
 pString = many1 (letter <|> oneOf "0123456789" <|> char '/') <?> "string"

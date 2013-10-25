@@ -1,4 +1,6 @@
 2013-10-25  alex  <alex@slab.org>
+
+ 	* Sound/Tidal/Parse.hs (pPolyOut): Add brace syntax to parser for alternative alignment of polyrythyms
 	* tidal.el: treat lines with whitespace as paragraph markers
 	* tidal.el: use Sound.Tidal module path and remove use of ~/.tidal.hs
 
