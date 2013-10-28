@@ -25,27 +25,35 @@ been developed for use with a particular software sampler called
 the commands needed to compile it under a debian-derived linux
 distribution (including ubuntu and mint):
 
+~~~~
     sudo apt-get install build-essential libsndfile1-dev libsamplerate0-dev \
                          liblo-dev libjack-jackd2-dev qjackctl jackd git
     git clone https://github.com/yaxu/Dirt.git
     cd Dirt
     make clean; make
+~~~~
 
 Then you'll have to start jack, using the 'qjackctl' app under Linux,
 or otherwise from the commandline:
 
+~~~~
     jackd -d alsa &
+~~~~
 
 (On MacOS X, you would do this instead: jackd -d coreaudio & )
 
 If that doesn't work, you might well have something called
 "pulseaudio" in control of your sound. In that case, this should work:
 
+~~~~
     /usr/bin/pasuspender -- jackd -d alsa &
+~~~~
 
 And finally you should be able to start dirt with this:
 
+~~~~
     ./dirt &
+~~~~
 
 If you have problems with jack, try enabling realtime audio, and
 adjusting the settings by installing and using the "qjackctl"
@@ -58,13 +66,18 @@ Tidal is embedded in the Haskell language, so you'll have to install
 the haskell interpreter and some libraries, including tidal
 itself. Under debian, you'd install haskell like this:
 
+~~~~
    sudo apt-get install ghc6 cabal-install
+~~~~
 
 Or otherwise you could grab it from <http://www.haskell.org/platform/>
 
 Once Haskell is installed, you can install tidal like this:
+
+~~~~
    cabal update
    cabal install tidal
+~~~~
 
 ## Emacs
 
@@ -72,7 +85,9 @@ Currently about the only interface to Tidal is the emacs
 editor. Debian users can install emacs, along with its haskell
 front-end, this way:
 
+~~~~
     sudo apt-get install emacs24 haskell-mode
+~~~~
 
 To install the emacs interface to tidal, you'll need to edit a
 configuration file in your home folder called `.emacs`. If it doesn't
@@ -328,7 +343,9 @@ These are the synthesis parameters you can use
 
 ## brak
 
-`brak <pattern>`
+~~~~
+brak <pattern>
+~~~~
 
 Make a pattern sound a bit like a breakbeat
 
@@ -340,11 +357,15 @@ d1 $ sound (brak "bd sn kurt")
 
 ## Beat rotation
 
-`<number> <~ <pattern>`
+~~~~
+<number> <~ <pattern>
+~~~~
 
 or
 
-`<number> ~> <pattern>`
+~~~~
+<number> ~> <pattern>
+~~~~
 
 Rotate a loop either to the left or the right.
 
@@ -356,7 +377,9 @@ d1 $ every 4 (0.25 <~) $ sound (density 2 "bd sn kurt")
 
 ## Reversal
 
-`rev <pattern>`
+~~~~
+rev <pattern>
+~~~~
 
 Reverse a pattern
 
@@ -368,11 +391,15 @@ d1 $ every 3 (rev) $ sound (density 2 "bd sn kurt")
 
 ## Increase/decrease density
 
-`density <number> <pattern>`
+~~~~
+density <number> <pattern>
+~~~~
 
 or
 
-`slow <number> <pattern>`
+~~~~
+slow <number> <pattern>
+~~~~
 
 Speed up or slow down a pattern.
 
@@ -385,7 +412,9 @@ d1 $ sound (density 2 "bd sn kurt")
 
 ## Every nth repetition, do this
 
-`every <number> <function> <pattern>`
+~~~~
+every <number> <function> <pattern>
+~~~~
 
 Applies <function> to <pattern>, but only every <number> repetitions.
 
@@ -397,7 +426,9 @@ d1 $ sound (every 3 (density 2) "bd sn kurt")
 
 # Interlace
 
-`interlace <pattern> <pattern>`
+~~~~
+interlace <pattern> <pattern>
+~~~~
 
 Shifts between two patterns, using distortion.
 
