@@ -204,6 +204,20 @@ pattern plays part of each subpattern each cycle:
 d1 $ sound "[bd sn sn*3]/2 [bd sn*3 bd*4]/3"
 ~~~~
 
+# Beats per second
+
+You can change the beats per second (bps) like this:
+
+~~~~ {#mycode .haskell}
+bps 1
+~~~~
+
+If you prefer to think in beats per minute, simply divide by 60
+
+~~~~ {#mycode .haskell}
+bps (140 / 60)
+~~~~
+
 # Samples
 
 All the samples can be found in the `samples` subfolder of the Dirt
