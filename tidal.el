@@ -55,7 +55,7 @@
      tidal-interpreter-arguments)
     (tidal-see-output))
   (tidal-send-string ":set prompt \"\"")
-  (tidal-send-string ":module Control.Concurrent Control.Monad Data.List Control.Applicative Data.Ratio Sound.Tidal.Parse Sound.Tidal.Pattern Sound.Tidal.Stream Sound.Tidal.Dirt Sound.Tidal.Strategies Sound.Tidal.Tempo")
+  (tidal-send-string ":module Sound.Tidal.Context")
   (tidal-send-string "d1 <- dirtstream \"d1\"")
   (tidal-send-string "d2 <- dirtstream \"d2\"")
   (tidal-send-string "d3 <- dirtstream \"d3\"")
