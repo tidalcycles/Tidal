@@ -1,5 +1,5 @@
 name:                tidal
-version:             0.2.7
+version:             0.2.8
 synopsis:            Pattern language for improvised music
 -- description:         
 homepage:            http://yaxu.org/tidal/
@@ -25,6 +25,7 @@ library
                        Sound.Tidal.Parse
                        Sound.Tidal.Tempo
                        Sound.Tidal.Time
+                       Sound.Tidal.Context
 
   Other-modules:       Sound.Tidal.Utils
 
