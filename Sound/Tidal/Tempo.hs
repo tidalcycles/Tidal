@@ -75,8 +75,7 @@ sendBps conn mBps = forever $ do
 connectClient clockip mTempo mBps = do 
   E.handle
     ((\err -> 
-      do putStrLn "Couldn't connect to tempo clock, starting local clock.."
-         startServer
+      do startServer
          threadDelay 500000
          cx "127.0.0.1"
      ) :: E.SomeException -> IO ())
@@ -137,7 +136,6 @@ clockedTick tpb callback =
                  actualTick = ((fromIntegral tpb) * beat t) + (tps * delta)
                  tickDelta = (fromIntegral tick) - actualTick
                  delay = tickDelta / tps
-             --putStrLn $ "tick: " ++ (show tick) ++ " actualTick " ++ (show actualTick)
              threadDelay $ floor (delay * 1000000)
              callback t tick
              loop mTempo $ tick + 1
@@ -152,21 +150,21 @@ updateTempo mt (Just bps') = do t <- takeMVar mt
 
 addClient :: WS.Connection -> ClientState -> ClientState
 addClient client clients = client : clients
-
+  
 removeClient :: WS.Connection -> ClientState -> ClientState
 removeClient client = filter (/= client)
 
 broadcast :: Text -> ClientState -> IO ()
 broadcast message clients = do
-    T.putStrLn message
-    forM_ clients $ \conn -> WS.sendTextData conn $ message
+  T.putStrLn message
+  forM_ clients $ \conn -> WS.sendTextData conn $ message
 
 startServer :: IO (ThreadId)
 startServer = do
-    start <- getCurrentTime
-    tempoState <- newMVar (Tempo start 0 1)
-    clientState <- newMVar []
-    forkIO $ WS.runServer "0.0.0.0" 9160 $ serverApp tempoState clientState
+  start <- getCurrentTime
+  tempoState <- newMVar (Tempo start 0 1)
+  clientState <- newMVar []
+  forkIO $ WS.runServer "0.0.0.0" 9160 $ serverApp tempoState clientState
 
 serverApp :: MVar Tempo -> MVar ClientState -> WS.ServerApp
 serverApp tempoState clientState pending = do
