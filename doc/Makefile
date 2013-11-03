@@ -4,8 +4,8 @@ PDF_CONFIG=$(CONFIG) --latex-engine=xelatex --include-in-header=preamble.tex --l
 
 all: tidal.pdf tidal.html
 
-tidal.pdf: tidal.pandoc
-	pandoc $(PDF_CONFIG) tidal.pandoc -o tidal.pdf
+tidal.pdf: tidal.md
+	pandoc $(PDF_CONFIG) tidal.md -o tidal.pdf
 
-tidal.html: tidal.pandoc
-	pandoc $(HTML_CONFIG) tidal.pandoc -o tidal.html
+tidal.html: tidal.md
+	pandoc $(HTML_CONFIG) tidal.md -o tidal.html
