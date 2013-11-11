@@ -182,13 +182,28 @@ You can also layer up several loops, by using commas to separate the
 different parts:
 
 ~~~~ {#mycode .haskell}
-d1 $ sound "[bd bd bd, sn cp sn cp]"
+d1 $ sound "[bd ht lt, sn cp]"
 ~~~~
 
 This would play the sequence `bd bd bd` at the same time as `sn cp sn
 cp`. Note that the first sequence only has three events, and the
 second one has four. Because tidal ensures both loops fit inside same
 duration, you end up with a polyrhythm.
+
+Try replacing the square brackets with curly brackets:
+
+~~~~ {#mycode .haskell}
+d1 $ sound "{bd ht lt, sn cp}"
+~~~~
+
+This is a different way of specifying a polyrhythm. Instead of both
+parts taking up the same amount of time, each event within the second
+part takes up the same amount of time as the second part. You can
+embed these different forms inside each other:
+
+~~~~ {#mycode .haskell}
+d1 $ sound "{bd [ht sn, lt mt ht] lt, sn cp}"
+~~~~
 
 You can make parts of patterns repeat by using `*`, for example the
 following example produces the same pattern as the previous one:
