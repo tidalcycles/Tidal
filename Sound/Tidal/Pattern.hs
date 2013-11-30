@@ -25,13 +25,17 @@ instance Functor Pattern where
   fmap f (Pattern a) = Pattern $ fmap (fmap (mapSnd f)) a
 
 instance Applicative Pattern where
-  pure = atom
-  (Pattern fs) <*> (Pattern xs) = Pattern $ \a -> concatMap applyX (fs a)
+  pure x = Pattern $ \(s, e) -> map 
+                                (\t -> ((t%1, (t+1)%1), x)) 
+                                [floor s .. ((ceiling e) - 1)]
+  (Pattern fs) <*> (Pattern xs) = 
+    Pattern $ \a -> concatMap applyX (fs a)
     where applyX ((s,e), f) = 
-            map (\(_, x) -> ((s,e), f x)) (filter 
-                                           (\(a', _) -> isIn a' s)
-                                           (xs (s,e))
-                                          )
+            map (\(_, x) -> ((s,e), f x)) 
+                (filter 
+                 (\(a', _) -> isIn a' s)
+                 (xs (s,e))
+                )
 
 instance Monoid (Pattern a) where
     mempty = silence
@@ -50,10 +54,7 @@ instance Monad Pattern where
              )
 
 atom :: a -> Pattern a
-atom x = Pattern f
-  where f (s, e) = map 
-                   (\t -> ((t%1, (t+1)%1), x))
-                   [floor s .. ((ceiling e) - 1)]
+atom = pure
 
 silence :: Pattern a
 silence = Pattern $ const []
