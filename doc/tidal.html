@@ -50,7 +50,7 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <p>If you have problems with jack, try enabling realtime audio, and adjusting the settings by installing and using the &quot;qjackctl&quot; software. Some more info is here: <a href="https://help.ubuntu.com/community/HowToJACKConfiguration"><code class="url">https://help.ubuntu.com/community/HowToJACKConfiguration</code></a></p>
 <h2 id="tidal">Tidal</h2>
 <p>Tidal is embedded in the Haskell language, so you'll have to install the haskell interpreter and some libraries, including tidal itself. Under debian, you'd install haskell like this:</p>
-<pre><code>   sudo apt-get install ghc6 cabal-install</code></pre>
+<pre><code>   sudo apt-get install ghc6 zlib1g-dev cabal-install</code></pre>
 <p>Or otherwise you could grab it from <a href="http://www.haskell.org/platform/"><code class="url">http://www.haskell.org/platform/</code></a></p>
 <p>Once Haskell is installed, you can install tidal like this:</p>
 <pre><code>   cabal update
