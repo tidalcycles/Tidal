@@ -68,7 +68,7 @@ the haskell interpreter and some libraries, including tidal
 itself. Under debian, you'd install haskell like this:
 
 ~~~~
-   sudo apt-get install ghc6 cabal-install
+   sudo apt-get install ghc6 zlib1g-dev cabal-install
 ~~~~
 
 Or otherwise you could grab it from <http://www.haskell.org/platform/>
