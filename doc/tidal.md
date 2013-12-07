@@ -32,6 +32,7 @@ distribution (including ubuntu and mint):
     cd Dirt
     make clean; make
 ~~~~
+(On MacOS X, you should: `brew install liblo` before attempting to compile)
 
 Then you'll have to start jack, using the 'qjackctl' app under Linux,
 or otherwise from the commandline:
@@ -88,6 +89,10 @@ front-end, this way:
 ~~~~
     sudo apt-get install emacs24 haskell-mode
 ~~~~
+
+To install haskell-mode on Mac OS X, either install a recent version of
+emacs with brew, or install `package.el` manually, and then install 
+haskell-mode via Marmalade. See haskell-mode documentation for details: <https://github.com/haskell/haskell-mode>
 
 To install the emacs interface to tidal, you'll need to edit a
 configuration file in your home folder called `.emacs`. If it doesn't
