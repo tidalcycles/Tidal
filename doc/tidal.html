@@ -35,11 +35,7 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <p>Tidal is developed under Linux, and although some have got it to work under Macs, the process hasn't been fully documented, and Dirt synthesiser has not yet been ported to Windows. Feel free to ask questions and share problems and success stories on the mailing list.</p>
 <h2 id="installing-dirt">Installing Dirt</h2>
 <p>Tidal does not include a synthesiser, but instead communicates with an external synthesiser using the Open Sound Control protocol. It has been developed for use with a particular software sampler called &quot;dirt&quot;. You'll need to run it with &quot;jack audio&quot;. Here's an example of the commands needed to compile it under a debian-derived linux distribution (including ubuntu and mint):</p>
-<pre><code>    sudo apt-get install build-essential libsndfile1-dev libsamplerate0-dev \
-                         liblo-dev libjack-jackd2-dev qjackctl jackd git
-    git clone https://github.com/yaxu/Dirt.git
-    cd Dirt
-    make clean; make</code></pre>
+<p>~~~~ sudo apt-get install build-essential libsndfile1-dev libsamplerate0-dev <br /> liblo-dev libjack-jackd2-dev qjackctl jackd git git clone https://github.com/yaxu/Dirt.git cd Dirt make clean; make ~~~~ (On MacOS X, you should: <code>brew install liblo</code> before attempting to compile)</p>
 <p>Then you'll have to start jack, using the 'qjackctl' app under Linux, or otherwise from the commandline:</p>
 <pre><code>    jackd -d alsa &amp;</code></pre>
 <p>(On MacOS X, you would do this instead: jackd -d coreaudio &amp; )</p>
@@ -58,6 +54,7 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <h2 id="emacs">Emacs</h2>
 <p>Currently about the only interface to Tidal is the emacs editor. Debian users can install emacs, along with its haskell front-end, this way:</p>
 <pre><code>    sudo apt-get install emacs24 haskell-mode</code></pre>
+<p>To install haskell-mode on Mac OS X, either install a recent version of emacs with brew, or install <code>package.el</code> manually, and then install haskell-mode via Marmalade. See haskell-mode documentation for details: <a href="https://github.com/haskell/haskell-mode"><code class="url">https://github.com/haskell/haskell-mode</code></a></p>
 <p>To install the emacs interface to tidal, you'll need to edit a configuration file in your home folder called <code>.emacs</code>. If it doesn't exist, create it. Then, add the following, replacing <code>~/projects/tidal</code> with the location of the <code>tidal.el</code> file.</p>
 <pre><code>    (add-to-list &#39;load-path &quot;~/projects/tidal&quot;)
     (require &#39;tidal)</code></pre>
