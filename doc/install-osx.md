@@ -62,7 +62,7 @@ Then create a file in your home folder called .emacs (unless it exists already),
     '("marmalade" .
       "http://marmalade-repo.org/packages/"))
 (package-initialize)
-(setq load-path (cons "~/emacs-stuff/" load-path))
+(setq load-path (cons "~/tidal/" load-path))
 (require 'tidal)
 ```
 
