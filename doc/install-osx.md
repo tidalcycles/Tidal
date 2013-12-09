@@ -68,7 +68,7 @@ Then create a file in your home folder called .emacs (unless it exists already),
 
 The above ensures that emacs has access to the extensions in the 'marmalade' repository (in particular, haskell-mode), and that the tidal.el file you downloaded earlier is is loaded.
 
-Now start emacs, it should be in your Applications folder (if you start it from the terminal it'll probably load an old version). Once emacs has started, hold down "alt" while pressing "x" and type:
+Now start emacs, it should be in your Applications folder (if you start it from the terminal it'll probably load an old version). Once emacs has started, press `alt-x` (i.e. hold down `alt` while pressing `x`) and type:
 ```
 package-refresh-contents
 ```
