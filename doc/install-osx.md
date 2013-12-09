@@ -64,9 +64,10 @@ Then create a file in your home folder called .emacs (unless it exists already),
 (package-initialize)
 (setq load-path (cons "~/tidal/" load-path))
 (require 'tidal)
+(setq tidal-interpreter "/usr/local/bin/ghci")
 ```
 
-The above ensures that emacs has access to the extensions in the 'marmalade' repository (in particular, haskell-mode), and that the tidal.el file you downloaded earlier is is loaded.
+The above ensures that emacs has access to the extensions in the 'marmalade' repository (in particular, haskell-mode), that the tidal.el file you downloaded earlier is is loaded, and that tidal can find the haskell interpreter.
 
 Now start emacs (or if it's already loaded, restart it to make sure .emacs is read), it should be in your Applications folder (if you start it from the terminal it'll probably load an old version). Once emacs has started, press `alt-x` (i.e. hold down `alt` while pressing `x`) and type:
 ```
