@@ -71,9 +71,13 @@ The above ensures that emacs has access to the extensions in the 'marmalade' rep
 Now start emacs, it should be in your Applications folder (if you start it from the terminal it'll probably load an old version). Once emacs has started, hold down "alt" while pressing "x" and type:
 ```
 package-refresh-contents
-# Then do alt-x again and type:
+```
+Then do `alt-x` again and type:
+```
 package-install
-# and then:
+```
+and then:
+```
 haskell-mode
 ```
 
@@ -88,14 +92,18 @@ Then start dirt:
 
 Then back in emacs, open a file called something ending with .tidal, such as test.tidal
 
-Then you start up tidal, by doing ctrl-c followed by ctrl-s
+Then you start up tidal, by doing `ctrl-c` followed by `ctrl-s`
 
 Then type something like
 ```
 d1 $ sound "bd sn/2"
 ```
 
-And finally do ctrl-c ctrl-c
+And finally do `ctrl-c` `ctrl-c`
 
 Hopefully at this point you will hear a kick drum - snare! Make sure
 your volume is up.
+
+If all is well, join these instructions to continue exploring Tidal:
+
+<https://github.com/yaxu/Tidal/blob/master/doc/tidal.md>
