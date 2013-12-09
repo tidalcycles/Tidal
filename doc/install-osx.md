@@ -21,6 +21,11 @@ Install the liblo library, which the Dirt synth needs to compile:
 brew install liblo
 ```
 
+Install the "jack audio connection kit", Dirt needs it too:
+```
+brew install jack
+```
+
 Get the sourcecode for the Dirt synth:
 ```
 git clone https://github.com/yaxu/Dirt.git
@@ -30,11 +35,6 @@ Compile dirt:
 ```
 cd Dirt
 make clean; make
-```
-
-Install the "jack audio connection kit", Dirt needs it:
-```
-brew install jack
 ```
 
 Install Haskell (this takes a while)
