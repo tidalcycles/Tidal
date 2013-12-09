@@ -48,10 +48,6 @@ cabal update
 cabal install tidal
 ```
 
-If that doesn't work, there is probably a problem between Haskell and
-Mac OS X/Xcode. At the time of writing, Mavericks/Xcode 5 users have
-to run a script linked from here: <http://www.haskell.org/platform/mac.html>
-
 Ok now time to configure emacs.. Do the following:
 ```
 mkdir ~/tidal
