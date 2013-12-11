@@ -280,11 +280,17 @@ These are the synthesis parameters you can use
 
 # Pattern transformers
 
+In the following, functions are shown with their Haskell type and a
+short description of how they work.
+
 ## brak
 
+~~~~ {#mycode .haskell}
+brak :: Pattern a -> Pattern a
 ~~~~
-brak <pattern>
-~~~~
+
+(The above means that `brak` is a function from patterns of any type,
+to a pattern of the same type.)
 
 Make a pattern sound a bit like a breakbeat
 
@@ -294,30 +300,10 @@ Example:
 d1 $ sound (brak "bd sn kurt")
 ~~~~
 
-## Beat rotation
-
-~~~~
-<number> <~ <pattern>
-~~~~
-
-or
-
-~~~~
-<number> ~> <pattern>
-~~~~
-
-Rotate a loop either to the left or the right.
-
-Example:
-
-~~~~ {#mycode .haskell}
-d1 $ every 4 (0.25 <~) $ sound (density 2 "bd sn kurt")
-~~~~
-
 ## Reversal
 
-~~~~
-rev <pattern>
+~~~~ {#mycode .haskell}
+rev :: Pattern a -> Pattern a
 ~~~~
 
 Reverse a pattern
@@ -328,16 +314,40 @@ Examples:
 d1 $ every 3 (rev) $ sound (density 2 "bd sn kurt")
 ~~~~
 
-## Increase/decrease density
+## Beat rotation
 
-~~~~
-density <number> <pattern>
+~~~~ {#mycode .haskell}
+(<~) :: Time -> Pattern a -> Pattern a
 ~~~~
 
 or
 
+~~~~ {#mycode .haskell}
+(~>) :: Time -> Pattern a -> Pattern a
 ~~~~
-slow <number> <pattern>
+
+(The above means that `<~` and `~>` are functions that are given a
+time value and a pattern of any type, and returns a pattern of the
+same type.)
+
+Rotate a loop either to the left or the right.
+
+Example:
+
+~~~~ {#mycode .haskell}
+d1 $ every 4 (0.25 <~) $ sound (density 2 "bd sn kurt")
+~~~~
+
+## Increase or decrease density
+
+~~~~ {#mycode .haskell}
+density :: Time -> Pattern a -> Pattern a
+~~~~
+
+or
+
+~~~~ {#mycode .haskell}
+slow :: Time -> Pattern a -> Pattern a
 ~~~~
 
 Speed up or slow down a pattern.
@@ -351,11 +361,16 @@ d1 $ sound (density 2 "bd sn kurt")
 
 ## Every nth repetition, do this
 
-~~~~
-every <number> <function> <pattern>
+~~~~ {#mycode .haskell}
+every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ~~~~
 
-Applies <function> to <pattern>, but only every <number> repetitions.
+(The above means `every` is a function that is given an integer number, a
+function which transforms a pattern, and an actual pattern, and
+returns a pattern of the same type.)
+
+Transform the given pattern using the given function, but only every
+given number of repetitions.
 
 Example:
 
@@ -363,13 +378,35 @@ Example:
 d1 $ sound (every 3 (density 2) "bd sn kurt")
 ~~~~
 
+~~~~ {#mycode .haskell}
+whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+~~~~
+
+(The above has a similar form to `every`, but requires an additional
+number.)
+
+Similar to `every`, but applies the function to the pattern, when the
+remainder of the current loop number divided by the first parameter,
+is less than the second parameter.
+
+For example the following makes every other block of four loops twice
+as dense:
+
+~~~~ {#mycode .haskell}
+d1 $ whenmod 8 4 (density 2) (sound "bd sn kurt")
+~~~~
+
 # Interlace
 
-~~~~
-interlace <pattern> <pattern>
+~~~~ {#mycode .haskell}
+interlace :: OscPattern -> OscPattern -> OscPattern
 ~~~~
 
-Shifts between two patterns, using distortion.
+(A function that takes two OscPatterns, and blends them together into
+a new OscPattern. An OscPattern is basically a pattern of messages to
+a synthesiser.)
+
+Shifts between the two given patterns, using distortion.
 
 Example:
 
@@ -377,7 +414,120 @@ Example:
 d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn/2")
 ~~~~
 
-Plus more to be discovered!
+# Spread
+
+~~~~ {#mycode .haskell}
+spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
+~~~~
+
+(The above is difficult to describe, if you don't understand Haskell,
+just read the description and examples..)
+
+The `spread` function allows you to take a pattern transformation
+which takes a parameter, such as `slow`, and provide several
+parameters which are switched between. In other words it 'spreads' a
+function across several values.
+
+Taking a simple high hat loop as an example:
+
+~~~~ {#mycode .haskell}
+d1 $ sound "ho ho/2 ho/3 hc"
+~~~~
+
+We can slow it down by different amounts, such as by a half:
+
+~~~~ {#mycode .haskell}
+  d1 $ slow 2 $ sound "ho ho/2 ho/3 hc"
+~~~~
+
+Or by four thirds (i.e. speeding it up by a third; `4%3` means four over
+three):
+
+~~~~ {#mycode .haskell}
+  d1 $ slow (4%3) $ sound "ho ho/2 ho/3 hc"
+~~~~
+
+But if we use `spread`, we can make a pattern which alternates between
+the two speeds:
+
+~~~~ {#mycode .haskell}
+d1 $ spread slow [2,4%3] $ sound "ho ho/2 ho/3 hc"
+~~~~
+
+There's a version of this function, `spread'` (pronounced "spread prime"), which takes a *pattern* of parameters, instead of a list:
+
+~~~~ {#mycode .haskell}
+d1 $ spread' slow "2 4%3" $ sound "ho ho/2 ho/3 hc"
+~~~~
+
+This is quite a messy area of Tidal - due to a slight difference of
+implementation this sounds completely different! One advantage of
+using `spread'` though is that you can provide polyphonic parameters, e.g.:
+
+~~~~ {#mycode .haskell}
+d1 $ spread' slow "[2 4%3, 3]" $ sound "ho ho/2 ho/3 hc"
+~~~~
+
+# Striate
+
+~~~~ {#mycode .haskell}
+striate :: Int -> OscPattern -> OscPattern
+~~~~
+
+Striate is a kind of granulator, for example:
+
+~~~~ {#mycode .haskell}
+d1 $ striate 3 $ sound "ho ho/2 ho/3 hc"
+~~~~
+
+This plays the loop the given number of times, but triggering
+progressive portions of each sample. So in this case it plays the loop
+three times, the first time playing the first third of each sample,
+then the second time playing the second third of each sample, etc..
+With the highhat samples in the above example it sounds a bit like
+reverb, but it isn't really.
+
+You can also use striate with very long samples, to cut it into short
+chunks and pattern those chunks. This is where things get towards
+granular synthesis. The following cuts a sample into 128 parts, plays
+it over 8 cycles and manipulates those parts by reversing and rotating
+the loops.
+
+~~~~ {#mycode .haskell}
+d1 $  slow 8 $ striate 128 $ sound "bev"
+~~~~
+
+# Smash
+
+~~~~ {#mycode .haskell}
+smash :: Int -> [Time] -> OscPattern -> OscPattern
+~~~~
+
+Smash is a combination of `spread` and `striate` - it cuts the samples
+into the given number of bits, and then cuts between playing the loop
+at different speeds according to the values in the list.
+
+So this:
+
+~~~~ {#mycode .haskell}
+  d1 $ smash 3 [2,3,4] $ sound "ho ho/2 ho/3 hc"
+~~~~
+
+Is a bit like this:
+
+~~~~ {#mycode .haskell}
+  d1 $ spread (slow) [2,3,4] $ striate 3 $ sound "ho ho/2 ho/3 hc"
+~~~~
+
+This is quite dancehall:
+
+~~~~ {#mycode .haskell}
+d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
+"sn/2 sid/3 cp sid/4")
+  |+| speed "[1 2 1 1]/2"
+~~~~
+
+# Plus more to be discovered!
 
 You can find a stream of minimal cycles written in Tidal in the
 following twitter feed:
