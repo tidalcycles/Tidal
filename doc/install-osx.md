@@ -16,9 +16,30 @@ brew install emacs --cocoa
 ln -s /usr/local/Cellar/emacs/24.3/Emacs.app /Applications
 ```
 
-Install the Dirt synth/sampler, which Tidal uses to make sounds:
+Install Dirt, a synth (well, more of a sampler) made to work with
+Tidal. A homebrew 'recipe' for dirt does exist, but that doesn't come
+with any sounds to play with, so for now it's probably easiest just
+download it all from github and compile it.
+
+Install the liblo library, which the Dirt synth needs to compile:
 ```
-brew install dirt
+brew install liblo
+```
+
+Install the "jack audio connection kit", Dirt needs it too:
+```
+brew install jack
+```
+
+Get the sourcecode for the Dirt synth:
+```
+git clone https://github.com/yaxu/Dirt.git
+```
+
+Compile dirt:
+```
+cd Dirt
+make clean; make
 ```
 
 Install Haskell (this takes a while)
@@ -72,7 +93,7 @@ jackd -d coreaudio &
 ```
 Then start dirt:
 ```
-dirt &
+./dirt &
 ```
 
 Then back in emacs, open a file called something ending with .tidal, such as test.tidal
