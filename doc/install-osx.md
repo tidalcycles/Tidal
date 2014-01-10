@@ -19,7 +19,7 @@ ln -s /usr/local/Cellar/emacs/24.3/Emacs.app /Applications
 Install Dirt, a synth (well, more of a sampler) made to work with
 Tidal. A homebrew 'recipe' for dirt does exist, but that doesn't come
 with any sounds to play with, so for now it's probably easiest just
-download it all from github and compile it.
+download it all from github and compile it as follows.
 
 Install the liblo library, which the Dirt synth needs to compile:
 ```
