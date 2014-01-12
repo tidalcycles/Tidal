@@ -1,4 +1,6 @@
-% Tidal -- Domain specific language for live coding of pattern 
+![Tidal](https://raw2.github.com/yaxu/Tidal/master/doc/tidal.png)
+
+# Domain specific language for live coding of pattern 
 
 Homepage and mailing list: <http://yaxu.org/tidal/>
 
