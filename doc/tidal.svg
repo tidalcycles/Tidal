@@ -194,7 +194,7 @@
      inkscape:cx="238.16232"
      inkscape:cy="15.323532"
      inkscape:document-units="px"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="g3825"
      showgrid="false"
      inkscape:window-width="1400"
      inkscape:window-height="1000"
@@ -213,7 +213,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -224,7 +224,8 @@
      transform="translate(-221.8934,-452.03745)">
     <g
        id="g3825"
-       clip-path="url(#clipPath3838)">
+       clip-path="url(#clipPath3838)"
+       transform="matrix(-1,0,0,1,846.83792,0)">
       <path
          style="fill:#fdfcfd"
          d="m 408.51912,1169.5588 -321.999999,0 0,-458.00001 0,-458 321.999999,0 322,0 0,458 0,458.00001 -322,0 z"
@@ -281,7 +282,44 @@
            y="548.27582"
            x="485.24817"
            id="tspan4068"
-           sodipodi:role="line">Tidal</tspan></text>
+           sodipodi:role="line" /></text>
+      <text
+         xml:space="preserve"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         x="135.05739"
+         y="189.98511"
+         id="text3032"
+         sodipodi:linespacing="125%"
+         transform="matrix(-1,0,0,1,624.94452,452.03745)"><tspan
+           sodipodi:role="line"
+           id="tspan3034"
+           x="135.05739"
+           y="189.98511" /></text>
+      <text
+         xml:space="preserve"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         x="148.49242"
+         y="78.262238"
+         id="text3036"
+         sodipodi:linespacing="125%"
+         transform="matrix(-1,0,0,1,624.94452,452.03745)"><tspan
+           sodipodi:role="line"
+           id="tspan3038"
+           x="148.49242"
+           y="78.262238" /></text>
+      <text
+         xml:space="preserve"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         x="-613.63086"
+         y="550.09869"
+         id="text3040"
+         sodipodi:linespacing="125%"
+         transform="scale(-1,1)"><tspan
+           sodipodi:role="line"
+           id="tspan3042"
+           x="-613.63086"
+           y="550.09869"
+           style="font-size:63.67900085px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#ffffff;font-family:Linux Biolinum O;-inkscape-font-specification:Linux Biolinum O">Tidal</tspan></text>
     </g>
   </g>
 </svg>

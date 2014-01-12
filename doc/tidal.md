@@ -1,5 +1,5 @@
-<img align="right" src="https://raw2.github.com/yaxu/Tidal/master/doc/tidal.png" />
-<br clear="right" />
+<img src="https://raw2.github.com/yaxu/Tidal/master/doc/tidal.png" />
+
 # Domain specific language for live coding of pattern 
 
 Homepage and mailing list: <http://yaxu.org/tidal/>
