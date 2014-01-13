@@ -4,7 +4,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
-  <title>Tidal -- Domain specific language for live coding of pattern</title>
+  <title></title>
   <style type="text/css">
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
   margin: 0; padding: 0; vertical-align: baseline; border: none; }
@@ -26,9 +26,8 @@ code > span.er { color: #ff0000; font-weight: bold; }
   </style>
 </head>
 <body>
-<div id="header">
-<h1 class="title">Tidal -- Domain specific language for live coding of pattern</h1>
-</div>
+<img src="https://raw2.github.com/yaxu/Tidal/master/doc/tidal.png" />
+<h1 id="tidal-domain-specific-language-for-live-coding-of-pattern">Tidal: Domain specific language for live coding of pattern</h1>
 <p>Homepage and mailing list: <a href="http://yaxu.org/tidal/"><code class="url">http://yaxu.org/tidal/</code></a></p>
 <p>Tidal is a language for live coding pattern, embedded in the Haskell language. You don't really have to learn Haskell to use Tidal, but it might help to pick up an introduction. You could try Graham Hutton's &quot;Programming in Haskell&quot; or Miran Lipovača's &quot;Learn you a Haskell for Great Good&quot; (which has a free online version). Or, you could just try learning enough by playing around with Tidal.</p>
 <h1 id="installation">Installation</h1>
@@ -67,6 +66,11 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd*3, [sn cp]*2]&quot;</span></code></pre>
 <p>Conversely, you can slow down patterns by using <code>/</code>, the following pattern plays part of each subpattern each cycle:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd sn sn*3]/2 [bd sn*3 bd*4]/3&quot;</span></code></pre>
+<h1 id="peace-and-quiet-with-silence-and-hush">Peace and quiet with silence and hush</h1>
+<p>An empty pattern is defined as <code>silence</code>, so if you want to 'switch off' a pattern, you can just set it to that:</p>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 silence</code></pre>
+<p>If you want to set all the connections (from <code>d1</code> to <code>d9</code>) to silence at once, there's a single-word shortcut for that:</p>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">hush</code></pre>
 <h1 id="beats-per-second">Beats per second</h1>
 <p>You can change the beats per second (bps) like this:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">bps <span class="dv">1</span></code></pre>

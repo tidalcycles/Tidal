@@ -1,6 +1,6 @@
 <img src="https://raw2.github.com/yaxu/Tidal/master/doc/tidal.png" />
 
-# Domain specific language for live coding of pattern 
+# Tidal: Domain specific language for live coding of pattern 
 
 Homepage and mailing list: <http://yaxu.org/tidal/>
 
@@ -129,6 +129,22 @@ pattern plays part of each subpattern each cycle:
 
 ~~~~ {#mycode .haskell}
 d1 $ sound "[bd sn sn*3]/2 [bd sn*3 bd*4]/3"
+~~~~
+
+# Peace and quiet with silence and hush
+
+An empty pattern is defined as `silence`, so if you want to 'switch
+off' a pattern, you can just set it to that:
+
+~~~~ {#mycode .haskell}
+d1 silence
+~~~~
+
+If you want to set all the connections (from `d1` to `d9`) to silence
+at once, there's a single-word shortcut for that:
+
+~~~~ {#mycode .haskell}
+hush
 ~~~~
 
 # Beats per second
