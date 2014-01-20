@@ -21,7 +21,6 @@ been developed for use with a particular software sampler called
     cd Dirt
     make clean; make
 ~~~~
-(On MacOS X, you should: `brew install liblo` before attempting to compile)
 
 Then you'll have to start jack, using the 'qjackctl' app under Linux,
 or otherwise from the commandline:
@@ -29,8 +28,6 @@ or otherwise from the commandline:
 ~~~~
     jackd -d alsa &
 ~~~~
-
-(On MacOS X, you would do this instead: jackd -d coreaudio & )
 
 If that doesn't work, you might well have something called
 "pulseaudio" in control of your sound. In that case, this should work:
@@ -79,10 +76,6 @@ front-end, this way:
     sudo apt-get install emacs24 haskell-mode
 ~~~~
 
-To install haskell-mode on Mac OS X, either install a recent version of
-emacs with brew, or install `package.el` manually, and then install 
-haskell-mode via Marmalade. See haskell-mode documentation for details: <https://github.com/haskell/haskell-mode>
-
 To install the emacs interface to tidal, you'll need to edit a
 configuration file in your home folder called `.emacs`. If it doesn't
 exist, create it. Then, add the following, replacing
@@ -90,6 +83,7 @@ exist, create it. Then, add the following, replacing
 
 ~~~~
     (add-to-list 'load-path "~/projects/tidal")
+    (require 'haskell-mode)
     (require 'tidal)
 ~~~~
 
