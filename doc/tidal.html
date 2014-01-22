@@ -208,6 +208,15 @@ wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt</code></pre>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> (spread&#39; slow <span class="st">&quot;1%4 2 1 3&quot;</span> <span class="fu">$</span> spread (striate) [<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">1</span>] <span class="fu">$</span> sound
 <span class="st">&quot;sn/2 sid/3 cp sid/4&quot;</span>)
   <span class="fu">|+|</span> speed <span class="st">&quot;[1 2 1 1]/2&quot;</span></code></pre>
+<h1 id="combining-patterns">Combining patterns</h1>
+<p>Because Tidal patterns are defined as something called an &quot;applicative functor&quot;, it's easy to combine them. For example, if you have two patterns of numbers, you can combine the patterns by, for example, multiplying the numbers inside them together, like this:</p>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> (brak (sound <span class="st">&quot;bd sn/2 bd sn&quot;</span>))
+   <span class="fu">|+|</span> pan ((<span class="fu">*</span>) <span class="fu">&lt;$&gt;</span> sinewave1 <span class="fu">&lt;*&gt;</span> (slow <span class="dv">8</span> <span class="fu">$</span> <span class="st">&quot;0 0.25 0.75&quot;</span>))</code></pre>
+<p>In the above, the <code>sinewave1</code> and the <code>(slow 8 $ &quot;0 0.25 0.75&quot;)</code> pattern are multiplied together. Using the &lt;$&gt; and the &lt;*&gt; in this way turns the <code>*</code> operator, which normally works with two numbers, into a function that instead works on two <em>patterns</em> of numbers.</p>
+<p>Here's another example of this technique:</p>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound (pick <span class="fu">&lt;$&gt;</span> <span class="st">&quot;kurt mouth can*3 sn&quot;</span> <span class="fu">&lt;*&gt;</span> slow <span class="dv">7</span> <span class="st">&quot;0 1 2 3 4&quot;</span>)</code></pre>
+<p>The <code>pick</code> function normally just takes the name of a set of samples (such as <code>kurt</code>), and a number, and returns a sample with that number. Again, using &lt;$&gt; and &lt;*&gt; turns <code>pick</code> into a function that operates on patterns, rather than simple values. In practice, this means you can pattern sample numbers separately from sample sets. Because the sample numbers have been slowed down in the above, an interesting texture results.</p>
+<p>By the way, &quot;0 1 2 3 4&quot; in the above could be replaced with the pattern generator <code>run 5</code>.</p>
 <h1 id="plus-more-to-be-discovered">Plus more to be discovered!</h1>
 <p>You can find a stream of minimal cycles written in Tidal in the following twitter feed: <a href="http://twitter.com/tidalcycles/"><code class="url">http://twitter.com/tidalcycles/</code></a></p>
 <h1 id="acknowledgments">Acknowledgments</h1>
