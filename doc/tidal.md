@@ -515,6 +515,17 @@ the loops.
 d1 $  slow 8 $ striate 128 $ sound "bev"
 ~~~~
 
+The `striate'` function is a variant of `striate` with an extra
+parameter, which specifies the length of each part. The `striate'`
+function still scans across the sample over a single cycle, but if
+each bit is longer, it creates a sort of stuttering effect. For
+example the following will cut the bev sample into 32 parts, but each
+will be 1/16th of a sample long:
+
+~~~~ {#mycode .haskell}
+d1 $ slow 32 $ striate' 32 (1/16) $ sound "bev"
+~~~~
+
 # Smash
 
 ~~~~ {#mycode .haskell}
@@ -578,6 +589,25 @@ an interesting texture results.
 
 By the way, "0 1 2 3 4" in the above could be replaced with the
 pattern generator `run 5`.
+
+# Juxtapositions
+
+The `jux` function creates strange stereo effects, by applying a
+function to a pattern, but only in the right-hand channel. For
+example, the following reverses the pattern on the righthand side:
+
+~~~~ {#mycode .haskell}
+d1 $ slow 32 $ jux (rev) $ striate' 32 (1/16) $ sound "bev"
+~~~~
+
+When passing pattern transforms to functions like `jux` and `every`,
+it's possible to chain multiple transforms together with `.`, for
+example this both reverses and halves the playback speed of the
+pattern in the righthand channel:
+
+~~~~ {#mycode .haskell}
+d1 $ slow 32 $ jux ((|+| speed "0.5") . rev) $ striate' 32 (1/16) $ sound "bev"
+~~~~
 
 # Plus more to be discovered!
 
