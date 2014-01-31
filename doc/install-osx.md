@@ -31,6 +31,11 @@ Install the "jack audio connection kit", Dirt needs it too:
 brew install jack
 ```
 
+---
+* **Note:** If Homebrew's installation of Jack fails with a ``make`` error, you can use the [JackOSX installer](http://www.jackosx.com/download.html) instead. This will, however, add an additional step when installing Dirt (see below).
+
+---
+
 Get the sourcecode for the Dirt synth:
 ```
 git clone https://github.com/yaxu/Dirt.git
@@ -41,6 +46,14 @@ Compile dirt:
 cd Dirt
 make clean; make
 ```
+
+---
+* **Note:** If Dirt fails to compile after using the JackOSX installer as above, you may need to add flags to the Makefile to specify the appropriate paths:
+```
+CFLAGS += -g -I/usr/local/include -Wall -O3 -std=gnu99 -DCHANNELS=2
+LDFLAGS += -lm -L/usr/local/lib -llo -lsndfile -lsamplerate -ljack
+```
+---
 
 Install Haskell (this takes a while)
 ```
@@ -73,6 +86,14 @@ Then create a file in your home folder called .emacs (unless it exists already),
 ```
 
 The above ensures that emacs has access to the extensions in the 'marmalade' repository (in particular, haskell-mode), that the tidal.el file you downloaded earlier is is loaded, and that tidal can find the haskell interpreter.
+
+---
+* **Note:** If you have already installed Haskell using the [Haskell Platform](http://www.haskell.org/platform/) installer, make the following change to the above:
+
+```
+(setq tidal-interpreter "/usr/bin/ghci")
+```
+---
 
 Now start emacs (or if it's already loaded, restart it to make sure .emacs is read), it should be in your Applications folder (if you start it from the terminal it'll probably load an old version). Once emacs has started, press `alt-x` (i.e. hold down `alt` while pressing `x`) and type:
 ```
