@@ -47,7 +47,7 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;bd sn sn&quot;</span>
    <span class="fu">|+|</span> vowel <span class="st">&quot;a o e&quot;</span>
    <span class="fu">|+|</span> pan <span class="st">&quot;0 0.5 1&quot;</span></code></pre>
-<p>NOTE: <code>Ctrl-C Ctrl-C</code> won't work on the above, because it goes over more than one line. Instead, do <code>Ctrl-C Ctrl-E</code> to run the whole block. However, note that there must be empty lines surrounding the block. The lines must be completely empty, including of spaces (this can be annoying as you can't see the spaces).</p>
+<p>NOTE: <code>Ctrl-C Ctrl-C</code> won't work on the above, because it goes over more than one line. Instead, do <code>Ctrl-C Ctrl-E</code> to run the whole block. However, note that there must be blank lines surrounding the block (which also means that patterns cannot contain blank lines).</p>
 <p>Note that for <code>pan</code>, when working in stereo, that <code>0</code> means hard left, <code>1</code> means hard right, and <code>0.5</code> means centre.</p>
 <p>When specifying a sequence you can group together several events to play inside a single event by using square brackets:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd sn sn] sn&quot;</span></code></pre>

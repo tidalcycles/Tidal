@@ -64,9 +64,8 @@ d1 $ sound "bd sn sn"
 
 NOTE: `Ctrl-C Ctrl-C` won't work on the above, because it goes over
 more than one line. Instead, do `Ctrl-C Ctrl-E` to run the whole
-block. However, note that there must be empty lines surrounding the
-block. The lines must be completely empty, including of spaces (this
-can be annoying as you can't see the spaces).
+block. However, note that there must be blank lines surrounding the
+block (which also means that patterns cannot contain blank lines).
 
 Note that for `pan`, when working in stereo, that `0` means hard left,
 `1` means hard right, and `0.5` means centre.
