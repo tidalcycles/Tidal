@@ -101,6 +101,8 @@ resonance    = makeF dirt "resonance"
 accellerate  = makeF dirt "accellerate"
 shape        = makeF dirt "shape"
 gain         = makeF dirt "gain"
+
+cutgroup :: Pattern Int -> OscPattern
 cutgroup     = makeI dirt "cutgroup"
 
 ksymbol      = makeF kriole "ksymbol"

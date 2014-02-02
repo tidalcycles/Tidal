@@ -156,8 +156,7 @@ make toOsc s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
 
 makeS = make string
 makeF = make float
-
-makeI = make (int32 . fromIntegral)
+makeI = make int32
 
 param :: OscShape -> String -> Param
 param shape n = head $ filter (\x -> name x == n) (params shape)
