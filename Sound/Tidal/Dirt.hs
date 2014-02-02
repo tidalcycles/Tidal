@@ -32,7 +32,9 @@ dirt = OscShape {path = "/play",
                             F "resonance" (Just 0),
                             F "accellerate" (Just 0),
                             F "shape" (Just 0),
-                            I "kriole" (Just 0)
+                            I "kriole" (Just 0),
+                            F "gain" (Just 0),
+                            I "cutgroup" (Just 0)
                           ],
                  timestamp = True
                 }
@@ -98,6 +100,8 @@ cutoff       = makeF dirt "cutoff"
 resonance    = makeF dirt "resonance"
 accellerate  = makeF dirt "accellerate"
 shape        = makeF dirt "shape"
+gain         = makeF dirt "gain"
+cutgroup     = makeI dirt "cutgroup"
 
 ksymbol      = makeF kriole "ksymbol"
 kpitch       = makeF kriole "kpitch"
