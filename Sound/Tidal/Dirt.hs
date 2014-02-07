@@ -34,7 +34,7 @@ dirt = OscShape {path = "/play",
                             F "shape" (Just 0),
                             I "kriole" (Just 0),
                             F "gain" (Just 0),
-                            I "cutgroup" (Just 0)
+                            I "cut" (Just (0))
                           ],
                  timestamp = True
                 }
@@ -49,7 +49,11 @@ kriole = OscShape {path = "/trigger",
                 }
 
 dirtstart name = start "127.0.0.1" 7771 dirt
-dirtstream name = stream "127.0.0.1" 7771 dirt
+dirtStream = stream "127.0.0.1" 7771 dirt
+
+-- disused parameter..
+dirtstream _ = dirtStream
+
 kstream name = stream "127.0.0.1" 6040 kriole
 
 doubledirt = do remote <- stream "178.77.72.138" 7777 dirt
@@ -102,8 +106,8 @@ accellerate  = makeF dirt "accellerate"
 shape        = makeF dirt "shape"
 gain         = makeF dirt "gain"
 
-cutgroup :: Pattern Int -> OscPattern
-cutgroup     = makeI dirt "cutgroup"
+cut :: Pattern Int -> OscPattern
+cut = makeI dirt "cut"
 
 ksymbol      = makeF kriole "ksymbol"
 kpitch       = makeF kriole "kpitch"
@@ -122,7 +126,6 @@ striate' :: Int -> Double -> OscPattern -> OscPattern
 striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p |+| begin (atom (slot * i) :: Pattern Double) |+| end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
-
 
 striateO :: OscPattern -> Int -> Double -> OscPattern
 striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
