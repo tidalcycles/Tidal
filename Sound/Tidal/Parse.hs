@@ -51,6 +51,7 @@ parens = P.parens lexer
 angles = P.angles lexer
 symbol  = P.symbol lexer
 natural = P.natural lexer
+integer = P.integer lexer
 float = P.float lexer
 naturalOrFloat = P.naturalOrFloat lexer
 
@@ -121,7 +122,7 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
         scale (ps@((n,_):_)) = map (\(n',p) -> density (fromIntegral n/ fromIntegral n') p) ps
 
 pString :: Parser (String)
-pString = many1 (letter <|> oneOf "0123456789" <|> char '/') <?> "string"
+pString = many1 (letter <|> oneOf "0123456789/:") <?> "string"
 
 pVocable :: Parser (Pattern String)
 pVocable = do v <- pString
@@ -140,8 +141,9 @@ pBool = do oneOf "t1"
            return $ atom False
 
 pInt :: Parser (Pattern Int)
-pInt = do i <- natural <?> "integer"
-          return $ atom (fromIntegral i)
+pInt = do s <- sign
+          i <- integer <?> "integer"
+          return $ atom (applySign s $ fromIntegral i)
 
 pColour :: Parser (Pattern ColourD)
 pColour = do name <- many1 letter <?> "colour name"
