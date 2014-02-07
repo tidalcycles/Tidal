@@ -74,7 +74,7 @@ toMessage :: UDP -> OscShape -> Tempo -> Int -> (Double, OscMap) -> Maybe (IO ()
 toMessage s shape change ticks (o, m) =
   do m' <- applyShape' shape m
      let beat = fromIntegral ticks / fromIntegral tpb
-         latency = 0.5
+         latency = 0.02
          logicalNow = (logicalTime change beat)
          beat' = (fromIntegral ticks + 1) / fromIntegral tpb
          logicalPeriod = (logicalTime change (beat + 1)) - logicalNow
