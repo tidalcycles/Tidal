@@ -9,7 +9,7 @@ language. You don't really have to learn Haskell to use Tidal, but it
 might help to pick up an introduction. You could try Graham Hutton's
 "Programming in Haskell" or Miran Lipovača's "Learn you a Haskell for
 Great Good" (which has a free online version). Or, you could just try
-learning enough by playing around with Tidal.
+learning enough syntax just by playing around with Tidal.
 
 # Installation
 
@@ -35,11 +35,17 @@ In the above, `sound` tells us we're making a pattern of sounds, and
 `"bd"` is a pattern that contains a single sound. `bd` is a sample of
 a bass drum. To run the code, use `Ctrl-C` then `Ctrl-C`.
 
-We can pick variations of a sound by adding a slash then a number, for
-example this picks the fourth bass drum (it starts with 0):
+*In case you're wondering, the `$` character in the above is Haskell
+syntax, which just means "give the result of the right to the function
+on the left". An alternative would have been to do without the `$` by
+wrapping everything on the right in parenthesis: `d1 (sound "bd")`*
+
+We can pick variations of a sound by adding a colon (`:`) then a
+number, for example this picks the fourth bass drum (it counts from
+0, so :3 gives you the fourth sound):
 
 ~~~~ {#mycode .haskell}
-d1 $ sound "bd/3"
+d1 $ sound "bd:3"
 ~~~~
 
 Putting things in quotes actually defines a sequence. For example, the
@@ -172,7 +178,7 @@ distribution.  Here's some you could try:
     wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt
 
 Each one is a folder containing one or more wav files. For example
-when you put `bd/1` in a sequence, you're picking up the second wav
+when you put `bd:1` in a sequence, you're picking up the second wav
 file in the `bd` folder. If you ask for the ninth sample and there are
 only seven in the folder, it'll wrap around and play the second one.
 
@@ -428,7 +434,7 @@ Shifts between the two given patterns, using distortion.
 Example:
 
 ~~~~ {#mycode .haskell}
-d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn/2")
+d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn:2")
 ~~~~
 
 # Spread
@@ -448,33 +454,33 @@ function across several values.
 Taking a simple high hat loop as an example:
 
 ~~~~ {#mycode .haskell}
-d1 $ sound "ho ho/2 ho/3 hc"
+d1 $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 We can slow it down by different amounts, such as by a half:
 
 ~~~~ {#mycode .haskell}
-  d1 $ slow 2 $ sound "ho ho/2 ho/3 hc"
+  d1 $ slow 2 $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 Or by four thirds (i.e. speeding it up by a third; `4%3` means four over
 three):
 
 ~~~~ {#mycode .haskell}
-  d1 $ slow (4%3) $ sound "ho ho/2 ho/3 hc"
+  d1 $ slow (4%3) $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 But if we use `spread`, we can make a pattern which alternates between
 the two speeds:
 
 ~~~~ {#mycode .haskell}
-d1 $ spread slow [2,4%3] $ sound "ho ho/2 ho/3 hc"
+d1 $ spread slow [2,4%3] $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 There's a version of this function, `spread'` (pronounced "spread prime"), which takes a *pattern* of parameters, instead of a list:
 
 ~~~~ {#mycode .haskell}
-d1 $ spread' slow "2 4%3" $ sound "ho ho/2 ho/3 hc"
+d1 $ spread' slow "2 4%3" $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 This is quite a messy area of Tidal - due to a slight difference of
@@ -482,7 +488,7 @@ implementation this sounds completely different! One advantage of
 using `spread'` though is that you can provide polyphonic parameters, e.g.:
 
 ~~~~ {#mycode .haskell}
-d1 $ spread' slow "[2 4%3, 3]" $ sound "ho ho/2 ho/3 hc"
+d1 $ spread' slow "[2 4%3, 3]" $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 # Striate
@@ -494,7 +500,7 @@ striate :: Int -> OscPattern -> OscPattern
 Striate is a kind of granulator, for example:
 
 ~~~~ {#mycode .haskell}
-d1 $ striate 3 $ sound "ho ho/2 ho/3 hc"
+d1 $ striate 3 $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 This plays the loop the given number of times, but triggering
@@ -538,20 +544,20 @@ at different speeds according to the values in the list.
 So this:
 
 ~~~~ {#mycode .haskell}
-  d1 $ smash 3 [2,3,4] $ sound "ho ho/2 ho/3 hc"
+  d1 $ smash 3 [2,3,4] $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 Is a bit like this:
 
 ~~~~ {#mycode .haskell}
-  d1 $ spread (slow) [2,3,4] $ striate 3 $ sound "ho ho/2 ho/3 hc"
+  d1 $ spread (slow) [2,3,4] $ striate 3 $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 This is quite dancehall:
 
 ~~~~ {#mycode .haskell}
 d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
-"sn/2 sid/3 cp sid/4")
+"sn:2 sid:3 cp sid:4")
   |+| speed "[1 2 1 1]/2"
 ~~~~
 
@@ -563,7 +569,7 @@ patterns of numbers, you can combine the patterns by, for example,
 multiplying the numbers inside them together, like this:
 
 ~~~~ {#mycode .haskell}
-d1 $ (brak (sound "bd sn/2 bd sn"))
+d1 $ (brak (sound "bd sn:2 bd sn"))
    |+| pan ((*) <$> sinewave1 <*> (slow 8 $ "0 0.25 0.75"))
 ~~~~
 
