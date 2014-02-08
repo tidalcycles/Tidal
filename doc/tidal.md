@@ -99,7 +99,7 @@ You can also layer up several loops, by using commas to separate the
 different parts:
 
 ~~~~ {#mycode .haskell}
-d1 $ sound "[bd ht lt, sn cp]"
+d1 $ sound "[bd bd bd, sn cp sn cp]"
 ~~~~
 
 This would play the sequence `bd bd bd` at the same time as `sn cp sn
@@ -123,9 +123,11 @@ d1 $ sound "{bd [ht sn, lt mt ht] lt, sn cp}"
 ~~~~
 
 You can make parts of patterns repeat by using `*`, for example the
-following example produces the same pattern as the previous one:
+following expressions produce the same pattern:
 
 ~~~~ {#mycode .haskell}
+d1 $ sound "[bd bd bd, sn cp sn cp]"
+
 d1 $ sound "[bd*3, [sn cp]*2]"
 ~~~~
 
