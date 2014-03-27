@@ -42,7 +42,7 @@ spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 spread f xs p = cat $ map (\x -> f x p) xs
 
 slowspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
-slowspread f xs p = slow (fromIntegral $ length $ xs) $ spread f xs p
+slowspread f xs p = slowcat $ map (\x -> f x p) xs
 
 spread' :: (a -> Pattern b -> Pattern c) -> Pattern a -> Pattern b -> Pattern c
 spread' f timepat pat =
@@ -76,8 +76,8 @@ trunc t p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
         trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 
-seqt :: [t -> Pattern a] -> t -> Pattern a
-seqt ts p = slowcat $ map (\f -> f p) ts
+--spreadf :: [Pattern a -> Pattern b] -> Pattern a -> Pattern b
+spreadf ts p = spread ($)
 
 spin :: Int -> OscPattern -> OscPattern
 spin steps p = stack $ map (\n -> (((fromIntegral n)%(fromIntegral steps)) <~ p |+| pan (pure $ (fromIntegral n)/(fromIntegral steps)))) [0 .. steps]
