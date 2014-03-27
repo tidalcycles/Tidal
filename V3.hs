@@ -5,9 +5,9 @@ import Data.Colour
 import Data.Colour.Names
 import Data.Colour.SRGB
 import Control.Applicative
-import Parse
-import Pattern
-import Utils
+import Sound.Tidal.Parse
+import Sound.Tidal.Pattern
+import Sound.Tidal.Utils
 
 v f pat = 
   C.withPDFSurface
@@ -22,9 +22,9 @@ v f pat =
               mapM_ renderEvent (events pat)
               C.restore 
 
-renderEvent ((s,e), (cs)) = do C.save
-                               drawBlocks cs 0
-                               C.restore
+renderEvent (_, (s,e), (cs)) = do C.save
+                                  drawBlocks cs 0
+                                  C.restore
    where height = 1/(fromIntegral $ length cs)
          drawBlocks [] _ = return ()
          drawBlocks (c:cs) n = do let (RGB r g b) = toSRGB c
@@ -40,7 +40,7 @@ renderEvent ((s,e), (cs)) = do C.save
                  h = height
 
 
-events pat = (map (mapFst (\(s,e) -> ((s - (ticks/2))/speed,(e - (ticks/2))/speed))) $ arc (segment pat) ((ticks/2), (ticks/2)+speed))
+events pat = (map (mapSnd' (\(s,e) -> ((s - (ticks/2))/speed,(e - (ticks/2))/speed))) $ arc (segment pat) ((ticks/2), (ticks/2)+speed))
   where speed = 1
 ticks = 0
 --pat = p "[red blue green,orange purple]" :: Sequence ColourD
