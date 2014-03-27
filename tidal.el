@@ -56,6 +56,9 @@
     (tidal-see-output))
   (tidal-send-string ":set prompt \"\"")
   (tidal-send-string ":module Sound.Tidal.Context")
+;  (tidal-send-string ":module Volca.Beat Volca.Key")
+;  (tidal-send-string "(note, [portamento, expression, voice, octave, detune, vcoegint, cutoff, vcfegint, lforate, lfopitchint, lfocutoffint, attack, decay, sustain, delaytime , delayfeedback], keystop) <- keystart")
+;  (tidal-send-string "(drum, [clapSpeed, clavesSpeed, agogoSpeed, crashSpeed, stutterTime, stutterDepth, tomDecay, clhatDecay, ophatDecay, hatGrain], beatstop) <- startbeat")
   (tidal-send-string "d1 <- dirtStream")
   (tidal-send-string "d2 <- dirtStream")
   (tidal-send-string "d3 <- dirtStream")
@@ -67,6 +70,7 @@
   (tidal-send-string "d9 <- dirtStream")
   (tidal-send-string "bps <- bpsSetter")
   (tidal-send-string "let hush = mapM_ ($ silence) [d1,d2,d3,d4,d5,d6,d7,d8,d9]")
+  (tidal-send-string "let solo = (>>) hush")
   (tidal-send-string ":set prompt \"tidal> \"")
 )
 
