@@ -25,3 +25,29 @@ wordsBy p s = case dropWhile p s of
 
 maybeRead :: String -> Maybe Double
 maybeRead = fmap fst . listToMaybe . reads
+
+fst' (a, _, _) = a
+snd' (_, b, _) = b
+thd' (_, _, c) = c
+
+
+mapFst' :: (a -> x) -> (a, b, c) -> (x, b, c)
+mapFst' f (x,y,z) = (f x,y,z)
+
+mapSnd' :: (b -> x) -> (a, b, c) -> (a, x, c)
+mapSnd' f (x,y,z) = (x,f y,z)
+
+mapThd' :: (c -> x) -> (a, b, c) -> (a, b, x)
+mapThd' f (x,y,z) = (x,y,f z)
+
+mapFsts' :: (a -> x) -> [(a, b, c)] -> [(x, b, c)]
+mapFsts' = fmap . mapFst'
+
+mapSnds' :: (b -> x) -> [(a, b, c)] -> [(a, x, c)]
+mapSnds' = fmap . mapSnd'
+
+mapThds' :: (c -> x) -> [(a, b, c)] -> [(a, b, x)]
+mapThds' = fmap . mapThd'
+
+mapArcs :: (a -> a) -> [(a, a, x)] -> [(a, a, x)] 
+mapArcs f = (mapFsts' f) . (mapSnds' f)

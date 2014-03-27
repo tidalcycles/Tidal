@@ -1,5 +1,7 @@
 module Sound.Tidal.Time where
 
+import Sound.Tidal.Utils
+
 -- | Time is represented by a rational number. Each natural number
 -- represents both the start of the next rhythmic cycle, and the end
 -- of the previous one. Rational numbers are used so that subdivisions
@@ -10,8 +12,14 @@ type Time = Rational
 -- @ { t : s <= t && t < e } @
 type Arc = (Time, Time)
 
--- | An Event is a value that occurs during the given @Arc@
-type Event a = (Arc, a)
+-- | An Event is a value that occurs during the period given by the
+-- first @Arc@. The second one indicates the event's "domain of
+-- influence". These will often be the same, but many temporal
+-- transformations, such as rotation and scaling time, may resuqlt in
+-- arcs being split or truncated. In such cases, the first arc is
+-- preserved, but the second arc reflects the portion of the event
+-- which is relevant.
+type Event a = (Arc, Arc, a)
 
 -- | The starting point of the current cycle. A cycle occurs from each
 -- natural number to the next, so this is equivalent to @floor@.
@@ -57,8 +65,15 @@ mirrorArc (s, e) = (sam s + (nextSam s - e), nextSam s - (s - sam s))
 
 -- | The start time of the given @Event@
 eventStart :: Event a -> Time
-eventStart = fst . fst
+eventStart = fst . snd'
+
+-- | The start time of the given @Event@
+eventOnset :: Event a -> Time
+eventOnset = fst . fst'
 
 -- | The midpoint of an @Arc@
 midPoint :: Arc -> Time
 midPoint (s,e) = s + ((e - s) / 2)
+
+hasOnset :: Event a -> Bool
+hasOnset ((s,_), (s',_), _) = s == s'

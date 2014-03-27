@@ -30,21 +30,25 @@ instance (Show a) => Show (Pattern a) where
   show p@(Pattern _) = show $ arc p (0, 1)
 
 instance Functor Pattern where
-  fmap f (Pattern a) = Pattern $ fmap (fmap (mapSnd f)) a
+  fmap f (Pattern a) = Pattern $ fmap (fmap (mapThd' f)) a
 
 -- | @pure a@ returns a pattern with an event with value @a@, which
 -- has a duration of one cycle, and repeats every cycle.
 instance Applicative Pattern where
   pure x = Pattern $ \(s, e) -> map 
-                                (\t -> ((t%1, (t+1)%1), x)) 
+                                (\t -> ((t%1, (t+1)%1), 
+                                        (t%1, (t+1)%1),
+                                        x
+                                       )
+                                ) 
                                 [floor s .. ((ceiling e) - 1)]
   (Pattern fs) <*> (Pattern xs) = 
     Pattern $ \a -> concatMap applyX (fs a)
-    where applyX ((s,e), f) = 
-            map (\(_, x) -> ((s,e), f x)) 
+    where applyX ((s,e), (s', e'), f) = 
+            map (\(_, _, x) -> ((s,e), (s', e'), f x)) 
                 (filter 
-                 (\(a', _) -> isIn a' s)
-                 (xs (s,e))
+                 (\(_, a', _) -> isIn a' s)
+                 (xs (s',e'))
                 )
 
 -- | @mempty@ is a synonym for @silence@.
@@ -58,10 +62,11 @@ instance Monad Pattern where
   return = pure
   p >>= f = 
     Pattern (\a -> concatMap
-                   (\((s,e), x) -> mapFsts (const (s,e)) $
-                                   filter
-                                   (\(a', _) -> isIn a' s)
-                                   (arc (f x) (s,e))
+                   -- TODO - this is a total guess
+                   (\((s,e), (s',e'), x) -> mapSnds' (const (s',e')) $
+                                            filter
+                                            (\(_, a', _) -> isIn a' s)
+                                            (arc (f x) (s',e'))
                    )
                    (arc p a)
              )
@@ -89,7 +94,7 @@ mapQueryTime = mapQueryArc . mapArc
 -- applied to the @Arc@ values in the events returned from the
 -- original @Pattern@ @p@.
 mapResultArc :: (Arc -> Arc) -> Pattern a -> Pattern a
-mapResultArc f p = Pattern $ \a -> mapFsts f $ arc p a
+mapResultArc f p = Pattern $ \a -> mapArcs f $ arc p a
 
 -- | @mapResultTime f p@ returns a new @Pattern@ with function @f@
 -- applied to the both the start and end @Time@ of the @Arc@ values in
@@ -126,14 +131,11 @@ append' a b  = slow 2 $ cat [a,b]
 cat :: [Pattern a] -> Pattern a
 cat ps = density (fromIntegral $ length ps) $ slowcat ps
 
-{-slowcat' ps = Pattern $ \a -> concatMap f (arcCycles a)
-  where l = length ps
-        f (s,e) = arc p (s,e)
-          where p = ps !! n
-                n = (floor s) `mod` l-}
 
--- Concatenates so that the first loop of each pattern is played in
--- turn, second loop of each pattern, and so on..
+splitAtSam :: Pattern a -> Pattern a
+splitAtSam p = 
+  Pattern $ \a -> concatMap (\(s,e) -> mapSnds' (trimArc (sam s)) $ arc p (s,e)) (arcCycles a)
+  where trimArc s' (s,e) = (max (s') s, min (s'+1) e)
 
 -- | @slowcat@ does the same as @cat@, but maintaining the duration of
 -- the original patterns. It is the equivalent of @append'@, but with
@@ -142,9 +144,10 @@ cat ps = density (fromIntegral $ length ps) $ slowcat ps
 slowcat :: [Pattern a] -> Pattern a
 slowcat [] = silence
 slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
-  where l = length ps
+  where ps' = map splitAtSam ps
+        l = length ps'
         f (s,e) = arc (mapResultTime (+offset) p) (s',e')
-          where p = ps !! n
+          where p = ps' !! n
                 r = (floor s) :: Int
                 n = (r `mod` l) :: Int
                 offset = (fromIntegral $ r - ((r - n) `div` l)) :: Time
@@ -182,12 +185,12 @@ slow 0 = id
 slow t = density (1/t) 
 
 
--- | The @<~@ operator shift (or rotate) a pattern to the left (or
+-- | The @<~@ operator shifts (or rotates) a pattern to the left (or
 -- counter-clockwise) by the given @Time@ value. For example 
 -- @(1%16) <~ p@ will return a pattern with all the events moved 
 -- one 16th of a cycle to the left.
 (<~) :: Time -> Pattern a -> Pattern a
-(<~) t p = filterOffsets $ mapResultTime (+ t) $ mapQueryTime (subtract t) p
+(<~) t p = mapResultTime (+ t) $ mapQueryTime (subtract t) p
 
 -- | The @~>@ operator does the same as @~>@ but shifts events to the
 -- right (or clockwise) rather than to the left.
@@ -198,7 +201,7 @@ slow t = density (1/t)
 -- reversed (or mirrored).
 rev :: Pattern a -> Pattern a
 rev p = Pattern $ \a -> concatMap 
-                        (\a' -> mapFsts mirrorArc $ 
+                        (\a' -> mapArcs mirrorArc $ 
                                 (arc p (mirrorArc a')))
                         (arcCycles a)
 
@@ -225,7 +228,7 @@ every n f p = when ((== 0) . (`mod` n)) f p
 sig :: (Time -> a) -> Pattern a
 sig f = Pattern f'
   where f' (s,e) | s > e = []
-                 | otherwise = [((s,e), f s)]
+                 | otherwise = [((s,e), (s,e), f s)]
 
 -- | @sinewave@ returns a @Pattern@ of continuous @Double@ values following a
 -- sinewave with frequency of one cycle, and amplitude from -1 to 1.
@@ -297,16 +300,23 @@ squarewave :: Pattern Double
 squarewave = ((subtract 1) . (* 2)) <$> squarewave1
 square = squarewave
 
--- Filter out events that start before range
-filterOffsets :: Pattern a -> Pattern a
-filterOffsets (Pattern f) = 
-  Pattern $ \(s, e) -> filter ((>= s) . eventStart) $ f (s, e)
+-- Filter out events that have had their onsets cut off
+filterOnsets :: Pattern a -> Pattern a
+filterOnsets (Pattern f) = 
+  Pattern $ (filter (\e -> eventOnset e >= eventStart e)) . f
+
+-- Filter events which have onsets, which are within the given range
+filterStartInRange :: Pattern a -> Pattern a
+filterStartInRange (Pattern f) = 
+  Pattern $ \(s,e) -> filter ((>= s) . eventOnset) $ f (s,e)
+
+filterOnsetsInRange = filterOnsets . filterStartInRange
 
 seqToRelOnsets :: Arc -> Pattern a -> [(Double, a)]
-seqToRelOnsets (s, e) p = mapFsts (fromRational . (/ (e-s)) . (subtract s) . fst) $ arc (filterOffsets p) (s, e)
+seqToRelOnsets (s, e) p = map (\((s', _), _, x) -> (fromRational $ (s'-s) / (e-s), x)) $ arc (filterOnsetsInRange p) (s, e)
 
 segment :: Pattern a -> Pattern [a]
-segment p = Pattern $ \(s,e) -> filter (\((s',e'),_) -> s' < e && e' > s) $ groupByTime (segment' (arc p (s,e)))
+segment p = Pattern $ \(s,e) -> filter (\(_,(s',e'),_) -> s' < e && e' > s) $ groupByTime (segment' (arc p (s,e)))
 
 segment' :: [Event a] -> [Event a]
 segment' es = foldr split es pts
@@ -314,16 +324,16 @@ segment' es = foldr split es pts
 
 split :: Time -> [Event a] -> [Event a]
 split _ [] = []
-split t ((ev@((s,e), v)):es) | t > s && t < e = ((s,t),v):((t,e),v):(split t es)
-                             | otherwise = ev:split t es
+split t ((ev@(a,(s,e), v)):es) | t > s && t < e = (a,(s,t),v):(a,(t,e),v):(split t es)
+                               | otherwise = ev:split t es
 
 points :: [Event a] -> [Time]
 points [] = []
-points (((s,e), _):es) = s:e:(points es)
+points ((_,(s,e), _):es) = s:e:(points es)
 
 groupByTime :: [Event a] -> [Event [a]]
-groupByTime es = map mrg $ groupBy ((==) `on` fst) $ sortBy (compare `on` fst) es
-  where mrg es@((a, _):_) = (a, map snd es)
+groupByTime es = map mrg $ groupBy ((==) `on` snd') $ sortBy (compare `on` snd') es
+  where mrg es@((a, a', _):_) = (a, a', map thd' es)
 
 ifp :: (Int -> Bool) -> (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ifp test f1 f2 p = Pattern $ \a -> concatMap apply (arcCycles a)
@@ -331,4 +341,4 @@ ifp test f1 f2 p = Pattern $ \a -> concatMap apply (arcCycles a)
                 | otherwise = (arc $ f2 p) a
 
 rand :: Pattern Double
-rand = Pattern $ \a -> [(a, fst $ randomDouble $ pureMT $ floor $ (*1000000) $ (midPoint a))]
+rand = Pattern $ \a -> [(a, a, fst $ randomDouble $ pureMT $ floor $ (*1000000) $ (midPoint a))]

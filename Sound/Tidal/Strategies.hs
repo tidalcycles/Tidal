@@ -19,6 +19,9 @@ quad   = stutter 4
 double = echo
 
 jux f p = stack [p |+| pan (pure 0), f $ p |+| pan (pure 1)]
+juxcut f p = stack [p     |+| pan (pure 0) |+| cut (pure (-1)), 
+                    f $ p |+| pan (pure 1) |+| cut (pure (-2))
+                   ]
 jux4 f p = stack [p |+| pan (pure 0), f $ p |+| pan (pure 2)]
 
 superimpose f p = stack [p, f p]
@@ -43,8 +46,8 @@ slowspread f xs p = slow (fromIntegral $ length $ xs) $ spread f xs p
 
 spread' :: (a -> Pattern b -> Pattern c) -> Pattern a -> Pattern b -> Pattern c
 spread' f timepat pat =
-  Pattern $ \r -> concatMap (\(r', x) -> (arc (f x pat) r')) (rs r)
-  where rs r = arc (filterOffsets timepat) r
+  Pattern $ \r -> concatMap (\(_,r', x) -> (arc (f x pat) r')) (rs r)
+  where rs r = arc (filterOnsetsInRange timepat) r
 
 {-
 scrumple :: Time -> Pattern a -> Pattern a -> Pattern a
@@ -69,13 +72,15 @@ whenmod a b = Sound.Tidal.Pattern.when ((\t -> (t `mod` a) >= b ))
 
 trunc :: Time -> Pattern a -> Pattern a
 trunc t p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
-  where f a = mapFsts (stretch . trunc') $ arc p (trunc' a)
+  where f a = mapArcs (stretch . trunc') $ arc p (trunc' a)
         trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 
+seqt :: [t -> Pattern a] -> t -> Pattern a
+seqt ts p = slowcat $ map (\f -> f p) ts
+
 spin :: Int -> OscPattern -> OscPattern
 spin steps p = stack $ map (\n -> (((fromIntegral n)%(fromIntegral steps)) <~ p |+| pan (pure $ (fromIntegral n)/(fromIntegral steps)))) [0 .. steps]
-
 
 {-stripe :: Arc -> Pattern a -> Pattern a
 stripe (stripeS, stripeE) p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
@@ -84,12 +89,14 @@ stripe (stripeS, stripeE) p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 -}
 
-
+iter :: Int -> Pattern a -> Pattern a
 iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. n]
+
+spin4 step p = stack $ map (\n -> ((toRational n)/4) <~ p |+| pan (pure $ n)) [0,step .. 3]
 
 spin16 step p = stack $ map (\n -> ((toRational n)/16) <~ p |+| pan (pure $ n)) [0,step .. 15]
 
-triwave4 = ((*4) <$> triwave1)
+sawwave4 = ((*4) <$> sawwave1)
 sinewave4 = ((*4) <$> sinewave1)
 rand4 = ((*4) <$> rand)
 
@@ -97,9 +104,12 @@ stackwith p ps | null ps = silence
                | otherwise = stack $ map (\(i, p') -> p' |+| (((fromIntegral i) % l) <~ p)) (zip [0 ..] ps)
   where l = fromIntegral $ length ps
 
+{-
 cross f p p' = Pattern $ \t -> concat [filter flt $ arc p t,
                                        filter (not . flt) $ arc p' t
                                       ]
   where flt = f . cyclePos . fst . fst
+-}
 
 inside n f p = density n $ f (slow n p)
+

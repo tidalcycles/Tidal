@@ -39,6 +39,8 @@ type OscMap = Map.Map Param (Maybe Datum)
 
 type OscPattern = Pattern OscMap
 
+latency = 0.04
+
 defaultDatum :: Param -> Maybe Datum
 defaultDatum (S _ (Just x)) = Just $ string x
 defaultDatum (I _ (Just x)) = Just $ int32 x
@@ -74,7 +76,6 @@ toMessage :: UDP -> OscShape -> Tempo -> Int -> (Double, OscMap) -> Maybe (IO ()
 toMessage s shape change ticks (o, m) =
   do m' <- applyShape' shape m
      let beat = fromIntegral ticks / fromIntegral tpb
-         latency = 0.02
          logicalNow = (logicalTime change beat)
          beat' = (fromIntegral ticks + 1) / fromIntegral tpb
          logicalPeriod = (logicalTime change (beat + 1)) - logicalNow
@@ -155,14 +156,17 @@ make toOsc s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
         --defaultV Nothing = defaultDatum nParam
 
 makeS = make string
+
+makeF :: OscShape -> String -> Pattern Double -> OscPattern
 makeF = make float
+
 makeI = make int32
 
 param :: OscShape -> String -> Param
 param shape n = head $ filter (\x -> name x == n) (params shape)
                 
 merge :: OscPattern -> OscPattern -> OscPattern
-merge x y = Map.union <$> x <*> y
+merge x y = (flip Map.union) <$> x <*> y
 
 infixl 1 |+|
 (|+|) :: OscPattern -> OscPattern -> OscPattern
