@@ -154,6 +154,13 @@ at once, there's a single-word shortcut for that:
 hush
 ~~~~
 
+You can also isolate a single connection and silence all others with
+the `solo` function:
+
+~~~~ {#mycode .haskell}
+solo $ d1 $ sound "bd sn"
+~~~~
+
 # Beats per second
 
 You can change the beats per second (bps) like this:
