@@ -33,7 +33,7 @@ dirt = OscShape {path = "/play",
                             F "accellerate" (Just 0),
                             F "shape" (Just 0),
                             I "kriole" (Just 0),
-                            F "gain" (Just 0),
+                            F "gain" (Just 1),
                             I "cut" (Just (0))
                           ],
                  timestamp = True
