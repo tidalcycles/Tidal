@@ -22,6 +22,11 @@ Mac OS X installation:
 Feel free to ask questions and share problems and success stories on
 the mailing list.
 
+Tidal is currently only usable within the emacs editor, as installed
+via the above instructions. Emacs is a long-lived and rather complex
+beast. If you're new to emacs, you can bring up a tutorial by pressing
+`ctrl-h`, and then `t`.
+
 # Sequences
 
 Tidal starts with nine connections to the dirt synthesiser, named from
