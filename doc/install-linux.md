@@ -7,6 +7,14 @@ to adapt to another distribution.
 Unless otherwise specified, you will need to run the commands below in
 a terminal window.
 
+An installation script now exists, which should mostly work under
+recent debian based distributions. It comes with no warranty,
+though. It's available here, click 'raw' to download it:
+
+  <https://github.com/yaxu/Tidal/blob/master/doc/install-linux.sh>
+
+Alternatively, you can follow the instructions below.
+
 ## Installing Dirt
 
 Tidal does not include a synthesiser, but instead communicates with an
