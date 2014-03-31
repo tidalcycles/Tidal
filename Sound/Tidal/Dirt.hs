@@ -34,7 +34,10 @@ dirt = OscShape {path = "/play",
                             F "shape" (Just 0),
                             I "kriole" (Just 0),
                             F "gain" (Just 1),
-                            I "cut" (Just (0))
+                            I "cut" (Just (0)),
+                            F "delay" (Just (0)),
+                            F "delaytime" (Just (0)),
+                            F "delayfeedback" (Just (0))
                           ],
                  timestamp = True
                 }
@@ -105,6 +108,10 @@ resonance    = makeF dirt "resonance"
 accellerate  = makeF dirt "accellerate"
 shape        = makeF dirt "shape"
 gain         = makeF dirt "gain"
+delay        = makeF dirt "delay"
+delaytime    = makeF dirt "delaytime"
+delayfeedback = makeF dirt "delayfeedback"
+
 
 cut :: Pattern Int -> OscPattern
 cut = makeI dirt "cut"
