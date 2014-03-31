@@ -315,7 +315,9 @@ These are the synthesis parameters you can use
 * `resonance` - a pattern of numbers from 0 to 1
 * `speed` - a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
 * `accelerate` - a pattern of numbers that speed up (or slow down) samples while they play.
-* `end` - a pattern of numbers from 0 to 1. Truncates samples before they finish playing.
+* `begin` - a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to miss off the first quarter from each sample.
+* `end` - the same as `begin`, but cuts the end off samples, shortening them;
+  e.g. `0.75` to miss off the last quarter of each sample.
 * `delay` - a pattern of numbers from 0 to 1. Sets the level of the delay signal.
 * `delayfeedback` - a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
 * `delaytime` - a pattern of numbers from 0 to 1. Sets the length of the delay.
@@ -549,6 +551,10 @@ will be 1/16th of a sample long:
 ~~~~ {#mycode .haskell}
 d1 $ slow 32 $ striate' 32 (1/16) $ sound "bev"
 ~~~~
+
+Note that `striate` uses the `begin` and `end` parameters
+internally. This means that if you're using `striate` (or `striate'`)
+you probably shouldn't also specify `begin` or `end`.
 
 # Smash
 

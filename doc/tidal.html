@@ -135,7 +135,8 @@ wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt</code></pre>
 <li><code>resonance</code> - a pattern of numbers from 0 to 1</li>
 <li><code>speed</code> - a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch</li>
 <li><code>accelerate</code> - a pattern of numbers that speed up (or slow down) samples while they play.</li>
-<li><code>end</code> - a pattern of numbers from 0 to 1. Truncates samples before they finish playing.</li>
+<li><code>begin</code> - a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. <code>0.25</code> to miss off the first quarter from each sample.</li>
+<li><code>end</code> - the same as <code>begin</code>, but cuts the end off samples, shortening them; e.g. <code>0.75</code> to miss off the last quarter of each sample.</li>
 <li><code>delay</code> - a pattern of numbers from 0 to 1. Sets the level of the delay signal.</li>
 <li><code>delayfeedback</code> - a pattern of numbers from 0 to 1. Sets the amount of delay feedback.</li>
 <li><code>delaytime</code> - a pattern of numbers from 0 to 1. Sets the length of the delay.</li>
@@ -211,6 +212,7 @@ wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt</code></pre>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span>  slow <span class="dv">8</span> <span class="fu">$</span> striate <span class="dv">128</span> <span class="fu">$</span> sound <span class="st">&quot;bev&quot;</span></code></pre>
 <p>The <code>striate'</code> function is a variant of <code>striate</code> with an extra parameter, which specifies the length of each part. The <code>striate'</code> function still scans across the sample over a single cycle, but if each bit is longer, it creates a sort of stuttering effect. For example the following will cut the bev sample into 32 parts, but each will be 1/16th of a sample long:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> slow <span class="dv">32</span> <span class="fu">$</span> striate&#39; <span class="dv">32</span> (<span class="dv">1</span><span class="fu">/</span><span class="dv">16</span>) <span class="fu">$</span> sound <span class="st">&quot;bev&quot;</span></code></pre>
+<p>Note that <code>striate</code> uses the <code>begin</code> and <code>end</code> parameters internally. This means that if you're using <code>striate</code> (or <code>striate'</code>) you probably shouldn't also specify <code>begin</code> or <code>end</code>.</p>
 <h1 id="smash">Smash</h1>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell"><span class="ot">smash ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [<span class="dt">Time</span>] <span class="ot">-&gt;</span> <span class="dt">OscPattern</span> <span class="ot">-&gt;</span> <span class="dt">OscPattern</span></code></pre>
 <p>Smash is a combination of <code>spread</code> and <code>striate</code> - it cuts the samples into the given number of bits, and then cuts between playing the loop at different speeds according to the values in the list.</p>
