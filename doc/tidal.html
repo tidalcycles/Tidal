@@ -5,10 +5,11 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
   <style type="text/css">
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
   margin: 0; padding: 0; vertical-align: baseline; border: none; }
-table.sourceCode { width: 100%; }
+table.sourceCode { width: 100%; line-height: 100%; }
 td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
 td.sourceCode { padding-left: 5px; }
 code > span.kw { color: #007020; font-weight: bold; }
@@ -26,14 +27,15 @@ code > span.er { color: #ff0000; font-weight: bold; }
   </style>
 </head>
 <body>
-<img src="https://raw2.github.com/yaxu/Tidal/master/doc/tidal.png" />
+<p><img src="https://raw2.github.com/yaxu/Tidal/master/doc/tidal.png" /></p>
 <h1 id="tidal-domain-specific-language-for-live-coding-of-pattern">Tidal: Domain specific language for live coding of pattern</h1>
-<p>Homepage and mailing list: <a href="http://yaxu.org/tidal/"><code class="url">http://yaxu.org/tidal/</code></a></p>
+<p>Homepage and mailing list: <a href="http://yaxu.org/tidal/">http://yaxu.org/tidal/</a></p>
 <p>Tidal is a language for live coding pattern, embedded in the Haskell language. You don't really have to learn Haskell to use Tidal, but it might help to pick up an introduction. You could try Graham Hutton's &quot;Programming in Haskell&quot; or Miran Lipovača's &quot;Learn you a Haskell for Great Good&quot; (which has a free online version). Or, you could just try learning enough syntax just by playing around with Tidal.</p>
 <h1 id="installation">Installation</h1>
-<p>Linux installation: <a href="https://github.com/yaxu/Tidal/blob/master/doc/install-linux.md"><code class="url">https://github.com/yaxu/Tidal/blob/master/doc/install-linux.md</code></a></p>
-<p>Mac OS X installation: <a href="https://github.com/yaxu/Tidal/blob/master/doc/install-osx.md"><code class="url">https://github.com/yaxu/Tidal/blob/master/doc/install-osx.md</code></a></p>
+<p>Linux installation: <a href="https://github.com/yaxu/Tidal/blob/master/doc/install-linux.md">https://github.com/yaxu/Tidal/blob/master/doc/install-linux.md</a></p>
+<p>Mac OS X installation: <a href="https://github.com/yaxu/Tidal/blob/master/doc/install-osx.md">https://github.com/yaxu/Tidal/blob/master/doc/install-osx.md</a></p>
 <p>Feel free to ask questions and share problems and success stories on the mailing list.</p>
+<p>Tidal is currently only usable within the emacs editor, as installed via the above instructions. Emacs is a long-lived and rather complex beast. If you're new to emacs, you can bring up a tutorial by pressing <code>ctrl-h</code>, and then <code>t</code>.</p>
 <h1 id="sequences">Sequences</h1>
 <p>Tidal starts with nine connections to the dirt synthesiser, named from <code>d1</code> to <code>d9</code>. Here's a minimal example, that plays a bass drum every loop:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;bd&quot;</span></code></pre>
@@ -57,14 +59,16 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <p>And you put events inside events to create any level of detail:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd bd] [bd [sn [sn sn] sn] sn]&quot;</span></code></pre>
 <p>You can also layer up several loops, by using commas to separate the different parts:</p>
-<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd ht lt, sn cp]&quot;</span></code></pre>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd bd bd, sn cp sn cp]&quot;</span></code></pre>
 <p>This would play the sequence <code>bd bd bd</code> at the same time as <code>sn cp sn cp</code>. Note that the first sequence only has three events, and the second one has four. Because tidal ensures both loops fit inside same duration, you end up with a polyrhythm.</p>
 <p>Try replacing the square brackets with curly brackets:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;{bd ht lt, sn cp}&quot;</span></code></pre>
 <p>This is a different way of specifying a polyrhythm. Instead of both parts taking up the same amount of time, each event within the second part takes up the same amount of time as the second part. You can embed these different forms inside each other:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;{bd [ht sn, lt mt ht] lt, sn cp}&quot;</span></code></pre>
-<p>You can make parts of patterns repeat by using <code>*</code>, for example the following example produces the same pattern as the previous one:</p>
-<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd*3, [sn cp]*2]&quot;</span></code></pre>
+<p>You can make parts of patterns repeat by using <code>*</code>, for example the following expressions produce the same pattern:</p>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd bd bd, sn cp sn cp]&quot;</span>
+
+d1 <span class="fu">$</span> sound <span class="st">&quot;[bd*3, [sn cp]*2]&quot;</span></code></pre>
 <p>Conversely, you can slow down patterns by using <code>/</code>, the following pattern plays part of each subpattern each cycle:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> sound <span class="st">&quot;[bd sn sn*3]/2 [bd sn*3 bd*4]/3&quot;</span></code></pre>
 <h1 id="peace-and-quiet-with-silence-and-hush">Peace and quiet with silence and hush</h1>
@@ -72,6 +76,8 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 silence</code></pre>
 <p>If you want to set all the connections (from <code>d1</code> to <code>d9</code>) to silence at once, there's a single-word shortcut for that:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">hush</code></pre>
+<p>You can also isolate a single connection and silence all others with the <code>solo</code> function:</p>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">solo <span class="fu">$</span> d1 <span class="fu">$</span> sound <span class="st">&quot;bd sn&quot;</span></code></pre>
 <h1 id="beats-per-second">Beats per second</h1>
 <p>You can change the beats per second (bps) like this:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">bps <span class="dv">1</span></code></pre>
@@ -128,6 +134,11 @@ wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt</code></pre>
 <li><code>cutoff</code> - a pattern of numbers from 0 to 1</li>
 <li><code>resonance</code> - a pattern of numbers from 0 to 1</li>
 <li><code>speed</code> - a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch</li>
+<li><code>accelerate</code> - a pattern of numbers that speed up (or slow down) samples while they play.</li>
+<li><code>end</code> - a pattern of numbers from 0 to 1. Truncates samples before they finish playing.</li>
+<li><code>delay</code> - a pattern of numbers from 0 to 1. Sets the level of the delay signal.</li>
+<li><code>delayfeedback</code> - a pattern of numbers from 0 to 1. Sets the amount of delay feedback.</li>
+<li><code>delaytime</code> - a pattern of numbers from 0 to 1. Sets the length of the delay.</li>
 </ul>
 <h1 id="pattern-transformers">Pattern transformers</h1>
 <p>In the following, functions are shown with their Haskell type and a short description of how they work.</p>
@@ -149,7 +160,7 @@ wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt</code></pre>
 <p>(The above means that <code>&lt;~</code> and <code>~&gt;</code> are functions that are given a time value and a pattern of any type, and returns a pattern of the same type.)</p>
 <p>Rotate a loop either to the left or the right.</p>
 <p>Example:</p>
-<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> every <span class="dv">4</span> (<span class="fl">0.25</span> <span class="fu">&lt;~</span>) <span class="fu">$</span> sound (density <span class="dv">2</span> <span class="st">&quot;bd sn kurt&quot;</span>)</code></pre>
+<pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> every <span class="dv">4</span> (<span class="dv">0</span><span class="fu">.</span><span class="dv">25</span> <span class="fu">&lt;~</span>) <span class="fu">$</span> sound (density <span class="dv">2</span> <span class="st">&quot;bd sn kurt&quot;</span>)</code></pre>
 <h2 id="increase-or-decrease-density">Increase or decrease density</h2>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell"><span class="ot">density ::</span> <span class="dt">Time</span> <span class="ot">-&gt;</span> <span class="dt">Pattern</span> a <span class="ot">-&gt;</span> <span class="dt">Pattern</span> a</code></pre>
 <p>or</p>
@@ -226,8 +237,8 @@ wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt</code></pre>
 <p>When passing pattern transforms to functions like <code>jux</code> and <code>every</code>, it's possible to chain multiple transforms together with <code>.</code>, for example this both reverses and halves the playback speed of the pattern in the righthand channel:</p>
 <pre class="sourceCode haskell" id="mycode"><code class="sourceCode haskell">d1 <span class="fu">$</span> slow <span class="dv">32</span> <span class="fu">$</span> jux ((<span class="fu">|+|</span> speed <span class="st">&quot;0.5&quot;</span>) <span class="fu">.</span> rev) <span class="fu">$</span> striate&#39; <span class="dv">32</span> (<span class="dv">1</span><span class="fu">/</span><span class="dv">16</span>) <span class="fu">$</span> sound <span class="st">&quot;bev&quot;</span></code></pre>
 <h1 id="plus-more-to-be-discovered">Plus more to be discovered!</h1>
-<p>You can find a stream of minimal cycles written in Tidal in the following twitter feed: <a href="http://twitter.com/tidalcycles/"><code class="url">http://twitter.com/tidalcycles/</code></a></p>
+<p>You can find a stream of minimal cycles written in Tidal in the following twitter feed: <a href="http://twitter.com/tidalcycles/">http://twitter.com/tidalcycles/</a></p>
 <h1 id="acknowledgments">Acknowledgments</h1>
-<p>Special thanks to l'ull cec (<a href="http://lullcec.org"><code class="url">http://lullcec.org</code></a>) and hangar (<a href="http://hangar.org"><code class="url">http://hangar.org</code></a>) for supporting the documentation and release of tidal as part of the ADDICTED2RANDOM project.</p>
+<p>Special thanks to l'ull cec (<a href="http://lullcec.org">http://lullcec.org</a>) and hangar (<a href="http://hangar.org">http://hangar.org</a>) for supporting the documentation and release of tidal as part of the ADDICTED2RANDOM project.</p>
 </body>
 </html>
