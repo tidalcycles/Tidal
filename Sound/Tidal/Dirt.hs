@@ -30,7 +30,7 @@ dirt = OscShape {path = "/play",
                             S "vowel" (Just ""),
                             F "cutoff" (Just 0),
                             F "resonance" (Just 0),
-                            F "accellerate" (Just 0),
+                            F "accelerate" (Just 0),
                             F "shape" (Just 0),
                             I "kriole" (Just 0),
                             F "gain" (Just 1),
@@ -105,7 +105,7 @@ velocity     = makeF dirt "velocity"
 vowel        = makeS dirt "vowel"
 cutoff       = makeF dirt "cutoff"
 resonance    = makeF dirt "resonance"
-accellerate  = makeF dirt "accellerate"
+accelerate   = makeF dirt "accelerate"
 shape        = makeF dirt "shape"
 gain         = makeF dirt "gain"
 delay        = makeF dirt "delay"
