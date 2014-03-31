@@ -314,6 +314,11 @@ These are the synthesis parameters you can use
 * `cutoff` - a pattern of numbers from 0 to 1
 * `resonance` - a pattern of numbers from 0 to 1
 * `speed` - a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
+* `accelerate` - a pattern of numbers that speed up (or slow down) samples while they play.
+* `end` - a pattern of numbers from 0 to 1. Truncates samples before they finish playing.
+* `delay` - a pattern of numbers from 0 to 1. Sets the level of the delay signal.
+* `delayfeedback` - a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
+* `delaytime` - a pattern of numbers from 0 to 1. Sets the length of the delay.
 
 # Pattern transformers
 
