@@ -36,8 +36,8 @@ dirt = OscShape {path = "/play",
                             F "gain" (Just 1),
                             I "cut" (Just (0)),
                             F "delay" (Just (0)),
-                            F "delaytime" (Just (0)),
-                            F "delayfeedback" (Just (0))
+                            F "delaytime" (Just (-1)),
+                            F "delayfeedback" (Just (-1))
                           ],
                  timestamp = True
                 }
