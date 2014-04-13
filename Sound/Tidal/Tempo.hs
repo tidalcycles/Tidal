@@ -84,8 +84,7 @@ connectClient secondTry ip mTempo mBps = do
   WS.runClient ip serverPort "/tempo" (clientApp mTempo mBps) `E.catch` 
     \(_ :: E.SomeException) -> do
       case secondTry of
-        True -> do
-          error errMsg
+        True -> error errMsg
         _ -> do
           res <- E.try (void startServer)
           case res of
