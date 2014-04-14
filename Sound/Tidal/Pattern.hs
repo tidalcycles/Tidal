@@ -342,3 +342,6 @@ ifp test f1 f2 p = Pattern $ \a -> concatMap apply (arcCycles a)
 
 rand :: Pattern Double
 rand = Pattern $ \a -> [(a, a, fst $ randomDouble $ pureMT $ floor $ (*1000000) $ (midPoint a))]
+
+irand :: Double -> Pattern Int
+irand i = (floor . (*i)) <$> rand
