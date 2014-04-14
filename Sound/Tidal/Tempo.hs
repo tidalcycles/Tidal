@@ -29,10 +29,10 @@ instance Show Tempo where
   show x = show (at x) ++ "," ++ show (beat x) ++ "," ++ show (bps x)
 
 getClockIp :: IO String
-getClockIp = getEnvDefault "127.0.0.1" "TEMPO_ADDR"
+getClockIp = getEnvDefault "127.0.0.1" "TIDAL_TEMPO_IP"
 
 getServerPort :: IO Int
-getServerPort = fmap read (getEnvDefault "9160" "TIDAL_SERVER_PORT")
+getServerPort = fmap read (getEnvDefault "9160" "TIDAL_TEMPO_PORT")
 
 readTempo :: String -> Tempo
 readTempo x = Tempo (read a) (read b) (read c)
