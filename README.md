@@ -3,7 +3,7 @@ Tidal
 
 Language for live coding of pattern
 
-(c) Alex McLean 2013
+(c) Alex McLean 2014
 
 Distributed under the terms of the GNU Public license version 3 (or
 later).
