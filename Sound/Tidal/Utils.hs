@@ -1,6 +1,8 @@
 module Sound.Tidal.Utils where
 
+import System.Environment (getEnv)
 import Data.Maybe (listToMaybe)
+import Control.Exception
 
 enumerate :: [a] -> [(Int, a)]
 enumerate = zip [0..]
@@ -51,3 +53,8 @@ mapThds' = fmap . mapThd'
 
 mapArcs :: (a -> a) -> [(a, a, x)] -> [(a, a, x)] 
 mapArcs f = (mapFsts' f) . (mapSnds' f)
+
+getEnvDefault :: String -> String -> IO String
+getEnvDefault defValue var = do
+  res <- try . getEnv $ var
+  return $ either (const defValue) id (res :: Either IOException String)

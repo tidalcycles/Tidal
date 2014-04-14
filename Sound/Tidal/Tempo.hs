@@ -1,8 +1,9 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Sound.Tidal.Tempo where
 
 import Data.Time (getCurrentTime, UTCTime, diffUTCTime)
 import Data.Time.Clock.POSIX
-import Control.Monad (forM_, forever)
+import Control.Monad (forM_, forever, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
@@ -27,9 +28,11 @@ instance Eq WS.Connection
 instance Show Tempo where
   show x = show (at x) ++ "," ++ show (beat x) ++ "," ++ show (bps x)
 
-getClockIp :: IO (String)
-getClockIp = do addr <- E.try (getEnv "TEMPO_ADDR")
-                return $ either (const "127.0.0.1") (id) (addr :: Either E.IOException String)
+getClockIp :: IO String
+getClockIp = getEnvDefault "127.0.0.1" "TIDAL_TEMPO_IP"
+
+getServerPort :: IO Int
+getServerPort = fmap read (getEnvDefault "9160" "TIDAL_TEMPO_PORT")
 
 readTempo :: String -> Tempo
 readTempo x = Tempo (read a) (read b) (read c)
@@ -72,23 +75,30 @@ sendBps conn mBps = forever $ do
     bps <- takeMVar mBps 
     WS.sendTextData conn (T.pack $ show bps)
 
-connectClient clockip mTempo mBps = do 
-  E.handle
-    ((\err -> 
-      do startServer
-         threadDelay 500000
-         cx "127.0.0.1"
-     ) :: E.SomeException -> IO ())
-    (cx clockip)
-  where cx ip = WS.runClient ip 9160 "/tempo" (clientApp mTempo mBps)
-  --where cx ip = WS.connect ip 9160 "/tempo" (clientApp mTempo mBps)
+connectClient :: Bool -> String -> MVar Tempo -> MVar Double -> IO ()
+connectClient secondTry ip mTempo mBps = do 
+  let errMsg = "Failed to connect to tidal server. Try specifying a " ++
+               "different port (default is 9160) setting the " ++
+               "environment variable TIDAL_TEMPO_PORT"
+  serverPort <- getServerPort
+  WS.runClient ip serverPort "/tempo" (clientApp mTempo mBps) `E.catch` 
+    \(_ :: E.SomeException) -> do
+      case secondTry of
+        True -> error errMsg
+        _ -> do
+          res <- E.try (void startServer)
+          case res of
+            Left (_ :: E.SomeException) -> error errMsg
+            Right _ -> do
+              threadDelay 500000
+              connectClient True ip mTempo mBps
 
 runClient :: IO ((MVar Tempo, MVar Double))
 runClient = 
   do clockip <- getClockIp
      mTempo <- newEmptyMVar 
      mBps <- newEmptyMVar 
-     forkIO $ connectClient clockip mTempo mBps
+     forkIO $ connectClient False clockip mTempo mBps
      return (mTempo, mBps)
 
 bpsSetter :: IO (Double -> IO ())
@@ -161,10 +171,11 @@ broadcast message clients = do
 
 startServer :: IO (ThreadId)
 startServer = do
+  serverPort <- getServerPort
   start <- getCurrentTime
   tempoState <- newMVar (Tempo start 0 1)
   clientState <- newMVar []
-  forkIO $ WS.runServer "0.0.0.0" 9160 $ serverApp tempoState clientState
+  forkIO $ WS.runServer "0.0.0.0" serverPort $ serverApp tempoState clientState
 
 serverApp :: MVar Tempo -> MVar ClientState -> WS.ServerApp
 serverApp tempoState clientState pending = do
