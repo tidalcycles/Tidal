@@ -79,7 +79,7 @@ connectClient :: Bool -> String -> MVar Tempo -> MVar Double -> IO ()
 connectClient secondTry ip mTempo mBps = do 
   let errMsg = "Failed to connect to tidal server. Try specifying a " ++
                "different port (default is 9160) setting the " ++
-               "environment variable TIDAL_SERVER_PORT"
+               "environment variable TIDAL_TEMPO_PORT"
   serverPort <- getServerPort
   WS.runClient ip serverPort "/tempo" (clientApp mTempo mBps) `E.catch` 
     \(_ :: E.SomeException) -> do
