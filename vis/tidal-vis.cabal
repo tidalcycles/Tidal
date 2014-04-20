@@ -1,5 +1,5 @@
 name:                tidal-vis
-version:             0.1
+version:             0.1.1
 synopsis:            Visual rendering for Tidal patterns
 -- description:         
 homepage:            http://yaxu.org/tidal/
@@ -15,7 +15,7 @@ cabal-version:       >=1.4
 
 --Extra-source-files: README.md tidal.el doc/tidal.md doc/tidal.pdf
 
-Description: Tidal is a domain specific language for live coding pattern.
+Description: Tidal is a domain specific language for live coding pattern. This package allows colour patterns to be rendered as PDF or SVG files.
 
 library
   Exposed-modules:     Sound.Tidal.Vis
