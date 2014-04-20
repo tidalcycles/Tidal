@@ -1,0 +1,23 @@
+name:                tidal-vis
+version:             0.1
+synopsis:            Visual rendering for Tidal patterns
+-- description:         
+homepage:            http://yaxu.org/tidal/
+license:             GPL-3
+license-file:        LICENSE
+author:              Alex McLean
+maintainer:          alex@slab.org
+Stability:           Experimental
+Copyright:           (c) Alex McLean and others, 2014
+category:            Sound
+build-type:          Simple
+cabal-version:       >=1.4
+
+--Extra-source-files: README.md tidal.el doc/tidal.md doc/tidal.pdf
+
+Description: Tidal is a domain specific language for live coding pattern.
+
+library
+  Exposed-modules:     Sound.Tidal.Vis
+
+  Build-depends: base < 5, tidal, colour, cairo

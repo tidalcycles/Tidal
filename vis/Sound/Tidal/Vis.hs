@@ -1,4 +1,4 @@
-module V3 where
+module Sound.Tidal.Vis where
 
 import qualified Graphics.Rendering.Cairo as C 
 import Data.Colour
@@ -9,18 +9,20 @@ import Sound.Tidal.Parse
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
 
-v f pat = 
-  C.withPDFSurface
-          f 1000 200 $ \surf -> do
-            C.renderWith surf $ do  
-              C.save 
-              C.scale 1000 200
-              C.setOperator C.OperatorOver
-              C.setSourceRGB 0 0 0 
-              C.rectangle 0 0 1 1
-              C.fill
-              mapM_ renderEvent (events pat)
-              C.restore 
+vPDF = v C.withPDFSurface
+vSVG = v C.withSVGSurface
+
+v sf fn pat = 
+  sf fn 1000 200 $ \surf -> do
+    C.renderWith surf $ do  
+      C.save 
+      C.scale 1000 200
+      C.setOperator C.OperatorOver
+      C.setSourceRGB 0 0 0 
+      C.rectangle 0 0 1 1
+      C.fill
+      mapM_ renderEvent (events pat)
+      C.restore 
 
 renderEvent (_, (s,e), (cs)) = do C.save
                                   drawBlocks cs 0
