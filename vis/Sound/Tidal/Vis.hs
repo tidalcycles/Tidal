@@ -12,11 +12,11 @@ import Sound.Tidal.Utils
 vPDF = v C.withPDFSurface
 vSVG = v C.withSVGSurface
 
-v sf fn pat = 
-  sf fn 1000 200 $ \surf -> do
+v sf fn (x,y) pat = 
+  sf fn x y $ \surf -> do
     C.renderWith surf $ do  
       C.save 
-      C.scale 1000 200
+      C.scale x y
       C.setOperator C.OperatorOver
       C.setSourceRGB 0 0 0 
       C.rectangle 0 0 1 1
