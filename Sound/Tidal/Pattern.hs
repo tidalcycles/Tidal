@@ -55,7 +55,7 @@ instance Applicative Pattern where
 -- | @mappend@ is a synonym for @overlay@.
 instance Monoid (Pattern a) where
     mempty = silence
-    mappend x y = Pattern $ \a -> (arc x a) ++ (arc y a)
+    mappend = overlay
 
 
 instance Monad Pattern where
