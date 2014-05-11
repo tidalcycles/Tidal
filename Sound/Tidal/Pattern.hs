@@ -178,6 +178,14 @@ density 0 p = p
 density 1 p = p
 density r p = mapResultTime (/ r) $ mapQueryTime (* r) p
 
+
+-- | @densityGap@ is similar to @density@ but maintains its cyclic
+-- alignment. For example, @densityGap 2 p@ would squash the events in
+-- pattern @p@ into the first half of each cycle (and the second
+-- halves would be empty).
+densityGap :: Time -> Pattern a -> Pattern a
+densityGap r p = mapResultTime (\t -> sam t + ((cyclePos t) / r)) $ Pattern (\a -> concatMap (\a' -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a') (arcCycles a))
+
 -- | @slow@ does the opposite of @density@, i.e. @slow 2 p@ will
 -- return a pattern that is half the speed.
 slow :: Time -> Pattern a -> Pattern a
@@ -345,3 +353,10 @@ rand = Pattern $ \a -> [(a, a, fst $ randomDouble $ pureMT $ floor $ (*1000000) 
 
 irand :: Double -> Pattern Int
 irand i = (floor . (*i)) <$> rand
+
+
+-- | @wedge t p p'@ combines patterns @p@ and @p'@ by squashing the
+-- @p@ into the portion of each cycle given by @t@, and @p'@ into the
+-- remainer of each cycle.
+wedge :: Time -> Pattern a -> Pattern a -> Pattern a
+wedge t p p' = overlay (densityGap (1/t) p) (t <~ densityGap (1/(1-t)) p')
