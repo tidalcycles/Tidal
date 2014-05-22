@@ -31,8 +31,6 @@ superimpose f p = stack [p, f p]
 smash n xs p = slowcat $ map (\n -> slow n p') xs
   where p' = striate n p
 
-brak = every 2 (((1%4) <~) . (\x -> cat [x, silence]))
-
 -- samples "jvbass [~ latibro] [jvbass [latibro jvbass]]" ((1%2) <~ slow 6 "[1 6 8 7 3]")
 
 samples :: Applicative f => f String -> f Int -> f String
@@ -88,9 +86,6 @@ stripe (stripeS, stripeE) p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
         trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 -}
-
-iter :: Int -> Pattern a -> Pattern a
-iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. n]
 
 spin4 step p = stack $ map (\n -> ((toRational n)/4) <~ p |+| pan (pure $ n)) [0,step .. 3]
 
