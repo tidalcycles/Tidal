@@ -198,12 +198,18 @@ slow t = density (1/t)
 -- @(1%16) <~ p@ will return a pattern with all the events moved 
 -- one 16th of a cycle to the left.
 (<~) :: Time -> Pattern a -> Pattern a
-(<~) t p = mapResultTime (+ t) $ mapQueryTime (subtract t) p
+(<~) t p = mapResultTime (subtract t) $ mapQueryTime (+ t) p
 
 -- | The @~>@ operator does the same as @~>@ but shifts events to the
 -- right (or clockwise) rather than to the left.
 (~>) :: Time -> Pattern a -> Pattern a
 (~>) = (<~) . (0-)
+
+brak :: Pattern a -> Pattern a
+brak = every 2 (((1%4) ~>) . (\x -> cat [x, silence]))
+
+iter :: Int -> Pattern a -> Pattern a
+iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. n]
 
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
