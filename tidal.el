@@ -56,9 +56,9 @@
     (tidal-see-output))
   (tidal-send-string ":set prompt \"\"")
   (tidal-send-string ":module Sound.Tidal.Context")
-  (tidal-send-string ":module Volca.Beat Volca.Key")
-  (tidal-send-string "(note, [portamento, expression, voice, octave, detune, vcoegint, cutoff, vcfegint, lforate, lfopitchint, lfocutoffint, attack, decay, sustain, delaytime , delayfeedback], keystop) <- keystart")
-  (tidal-send-string "(drum, [clapSpeed, clavesSpeed, agogoSpeed, crashSpeed, stutterTime, stutterDepth, tomDecay, clhatDecay, ophatDecay, hatGrain], beatstop) <- startbeat")
+  ;(tidal-send-string ":module Volca.Beat Volca.Key")
+  ;(tidal-send-string "(note, [portamento, expression, voice, octave, detune, vcoegint, cutoff, vcfegint, lforate, lfopitchint, lfocutoffint, attack, decay, sustain, delaytime , delayfeedback], keystop) <- keystart")
+  ;(tidal-send-string "(drum, [clapSpeed, clavesSpeed, agogoSpeed, crashSpeed, stutterTime, stutterDepth, tomDecay, clhatDecay, ophatDecay, hatGrain], beatstop) <- startbeat")
   (tidal-send-string "d1 <- dirtStream")
   (tidal-send-string "d2 <- dirtStream")
   (tidal-send-string "d3 <- dirtStream")
@@ -435,8 +435,8 @@
   (turn-on-font-lock))
 
 (add-to-list 'auto-mode-alist '("\\.ltidal$" . literate-tidal-mode))
-(add-to-list 'load-path "/usr/share/emacs/site-lisp/haskell-mode/")
-(require 'haskell-mode)
+;(add-to-list 'load-path "/usr/share/emacs/site-lisp/haskell-mode/") ;required by olig1905 on linux
+;(require 'haskell-mode) ;required by olig1905 on linux
 (define-derived-mode
   tidal-mode
   haskell-mode
