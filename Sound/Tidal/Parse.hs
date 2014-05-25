@@ -93,7 +93,7 @@ pSequenceN :: Parser (Pattern a) -> GenParser Char () (Int, Pattern a)
 pSequenceN f = do spaces
                   d <- pDensity
                   ps <- many $ pPart f
-                  return $ (length ps, density d $ cat ps)
+                  return $ (length ps, density d $ cat $ concat ps)
                  
 pSequence :: Parser (Pattern a) -> GenParser Char () (Pattern a)
 pSequence f = do (_, p) <- pSequenceN f
@@ -103,10 +103,12 @@ pSingle :: Parser (Pattern a) -> Parser (Pattern a)
 pSingle f = do part <- f
                pMult part
 
-pPart :: Parser (Pattern a) -> Parser (Pattern a)
+pPart :: Parser (Pattern a) -> Parser ([Pattern a])
 pPart f = do part <- parens (pSequence f) <|> pSingle f <|> pPolyIn f <|> pPolyOut f
              spaces
-             return part
+             parts <- pReplicate part
+             spaces
+             return $ parts
 
 pPolyIn :: Parser (Pattern a) -> Parser (Pattern a)
 pPolyIn f = do ps <- brackets (pSequence f `sepBy` symbol ",")
@@ -122,7 +124,7 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
         scale (ps@((n,_):_)) = map (\(n',p) -> density (fromIntegral n/ fromIntegral n') p) ps
 
 pString :: Parser (String)
-pString = many1 (letter <|> oneOf "0123456789/:") <?> "string"
+pString = many1 (letter <|> oneOf "0123456789:") <?> "string"
 
 pVocable :: Parser (Pattern String)
 pVocable = do v <- pString
@@ -162,6 +164,14 @@ pMult thing = do char '*'
                  return $ slow r thing
               <|>
               return thing
+
+pReplicate :: Pattern a -> Parser ([Pattern a])
+pReplicate thing = do is <- many1 $ do char '!'
+                                       spaces
+                                       return 1
+                      let i = sum is
+                      return $ replicate (1 + fromIntegral i) thing
+                   <|> return [thing]
 
 pRatio :: Parser (Rational)
 pRatio = do n <- natural <?> "numerator"
