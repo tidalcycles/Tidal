@@ -319,7 +319,7 @@ square = squarewave
 -- useful if you're using something like the retrig function defined
 -- in tidal.el.
 envL :: Pattern Double
-envL = sig $ \t -> min (fromRational t) 1
+envL = sig $ \t -> max 0 $ min (fromRational t) 1
 
 -- Filter out events that have had their onsets cut off
 filterOnsets :: Pattern a -> Pattern a
