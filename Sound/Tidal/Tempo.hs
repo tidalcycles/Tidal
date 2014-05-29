@@ -46,7 +46,7 @@ logicalTime t b = changeT + timeDelta
 
 tempoMVar :: IO (MVar (Tempo))
 tempoMVar = do now <- getCurrentTime
-               mv <- newMVar (Tempo now 0 (126/60))
+               mv <- newMVar (Tempo now 0 0.5)
                forkIO $ clocked $ f mv
                return mv
   where f mv change _ = do swapMVar mv change
@@ -101,9 +101,17 @@ runClient =
      forkIO $ connectClient False clockip mTempo mBps
      return (mTempo, mBps)
 
+bpsUtils :: IO ((Double -> IO (), IO (Rational)))
+bpsUtils = do (mTempo, mBps) <- runClient
+              let bpsSetter b = putMVar mBps b
+                  currentTime = do tempo <- readMVar mTempo
+                                   now <- beatNow tempo
+                                   return $ toRational now
+              return (bpsSetter, currentTime)
+
 bpsSetter :: IO (Double -> IO ())
-bpsSetter = do (_, mBps) <- runClient 
-               return $ (\b -> putMVar mBps b)
+bpsSetter = do (f, _) <- bpsUtils
+               return f
 
 clocked :: (Tempo -> Int -> IO ()) -> IO ()
 clocked callback = 
