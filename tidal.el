@@ -68,7 +68,8 @@
   (tidal-send-string "d7 <- dirtStream")
   (tidal-send-string "d8 <- dirtStream")
   (tidal-send-string "d9 <- dirtStream")
-  (tidal-send-string "bps <- bpsSetter")
+  (tidal-send-string "(cps, getNow) <- bpsUtils")
+  (tidal-send-string "let bps x = cps (x/2)")
   (tidal-send-string "let hush = mapM_ ($ silence) [d1,d2,d3,d4,d5,d6,d7,d8,d9]")
   (tidal-send-string "let solo = (>>) hush")
   (tidal-send-string ":set prompt \"tidal> \"")
@@ -126,9 +127,19 @@
     (insert "main = do\n")
     (insert (if tidal-literate-p (tidal-unlit s) s))))
 
+
+(defun tidal-get-now ()
+  "Store the current cycle position in a variable called 'now'."
+  (interactive)
+  (tidal-send-string "now' <- getNow")
+  (tidal-send-string "let now = nextSam now'")
+  (tidal-send-string "let retrig = (now ~>)")
+  )
+
 (defun tidal-run-line ()
   "Send the current line to the interpreter."
   (interactive)
+  (tidal-get-now)
   (let* ((s (buffer-substring (line-beginning-position)
 			      (line-end-position)))
 	 (s* (if tidal-literate-p
@@ -142,6 +153,7 @@
 (defun tidal-run-multiple-lines ()
   "Send the current region to the interpreter as a single line."
   (interactive)
+  (tidal-get-now)
   (save-excursion
    (mark-paragraph)
    (let* ((s (buffer-substring-no-properties (region-beginning)
