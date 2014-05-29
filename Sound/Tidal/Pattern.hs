@@ -302,7 +302,6 @@ triwave1 = append sawwave1 (rev sawwave1)
 tri1 = triwave1
 trirat1 = fmap toRational tri1
 
-
 -- todo - triangular waves again
 
 squarewave1 :: Pattern Double
@@ -313,6 +312,14 @@ square1 = squarewave1
 squarewave :: Pattern Double
 squarewave = ((subtract 1) . (* 2)) <$> squarewave1
 square = squarewave
+
+-- | @envL@ is a @Pattern@ of continuous @Double@ values, representing
+-- a linear interpolation between 0 and 1 during the first cycle, then
+-- staying constant at 1 for all following cycles. Possibly only
+-- useful if you're using something like the retrig function defined
+-- in tidal.el.
+envL :: Pattern Double
+envL = sig $ \t -> min (fromRational t) 1
 
 -- Filter out events that have had their onsets cut off
 filterOnsets :: Pattern a -> Pattern a
