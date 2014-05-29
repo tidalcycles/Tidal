@@ -69,17 +69,12 @@ hasRequired s m = isSubset (required s) (Map.keys (Map.filter (\x -> x /= Nothin
 isSubset :: (Eq a) => [a] -> [a] -> Bool
 isSubset xs ys = all (\x -> elem x ys) xs
 
-tpb = 1
-bpb = 2
-
 toMessage :: UDP -> OscShape -> Tempo -> Int -> (Double, OscMap) -> Maybe (IO ())
-toMessage s shape change ticks (o, m) =
+toMessage s shape change cycle (o, m) =
   do m' <- applyShape' shape m
-     let beat = fromIntegral ticks / fromIntegral tpb
-         logicalNow = (logicalTime change beat)
-         beat' = (fromIntegral ticks + 1) / fromIntegral tpb
-         logicalPeriod = (logicalTime change (beat + 1)) - logicalNow
-         --logicalOnset = ntpr_to_ut $ logicalNow + (logicalPeriod * o) + latency
+     let cycleD = (fromIntegral cycle) :: Double
+         logicalNow = (logicalTime change cycleD)
+         logicalPeriod = (logicalTime change (cycleD + 1)) - logicalNow
          logicalOnset = logicalNow + (logicalPeriod * o) + latency
          sec = floor logicalOnset
          usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
@@ -112,7 +107,7 @@ start address port shape
 stream :: String -> Int -> OscShape -> IO (OscPattern -> IO ())
 stream address port shape 
   = do patternM <- start address port shape
-       return $ \p -> do swapMVar patternM (slow bpb p)
+       return $ \p -> do swapMVar patternM p
                          return ()
 
 streamcallback :: (OscPattern -> IO ()) -> String -> Int -> OscShape -> IO (OscPattern -> IO ())
@@ -123,31 +118,16 @@ streamcallback callback server port shape
        return f'
 
 onTick :: UDP -> OscShape -> MVar (OscPattern) -> Tempo -> Int -> IO ()
-onTick s shape patternM change beats
+onTick s shape patternM change cycles
   = do p <- readMVar patternM
-       let --tpb' = 2 :: Integer
-           tpb' = 1
-           beats' = (fromIntegral beats) :: Integer
-           a = beats' % tpb'
-           b = (beats' + 1) % tpb'
+       let cycles' = (fromIntegral cycles) :: Integer
+           a = cycles' % 1
+           b = (cycles' + 1) % 1
            messages = mapMaybe 
-                      (toMessage s shape change beats) 
+                      (toMessage s shape change cycles) 
                       (seqToRelOnsets (a, b) p)
-       --putStrLn $ (show a) ++ ", " ++ (show b)
-       --putStrLn $ "tick " ++ show ticks ++ " = " ++ show messages
        E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
        return ()
-
-{-ticker :: IO (MVar Rational)
-ticker = do mv <- newMVar 0
-            --forkIO $ clocked "ticker" "127.0.0.1" "127.0.0.1" tpb (f mv)
-            forkIO $ clocked (f mv)
-            return mv
-  where f mv change ticks = do swapMVar mv ((fromIntegral ticks) / (fromIntegral tpb))
-  where f mv ticks = do swapMVar mv (fromIntegral ticks)
-                        return ()
-        tpb = 32
--}
 
 make :: (a -> Datum) -> OscShape -> String -> Pattern a -> OscPattern
 make toOsc s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
