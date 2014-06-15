@@ -70,7 +70,7 @@ Ok now time to configure emacs.. Do the following:
 ```
 mkdir ~/tidal
 cd ~/tidal
-curl https://raw.github.com/yaxu/Tidal/master/tidal.el > tidal.el
+curl -L https://raw.githubusercontent.com/yaxu/Tidal/master/tidal.el > tidal.el
 ```
 
 Then create a file in your home folder called .emacs (unless it exists already), then open the file in a text editor and insert the following lines:
