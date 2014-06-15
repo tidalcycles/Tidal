@@ -321,6 +321,9 @@ square = squarewave
 envL :: Pattern Double
 envL = sig $ \t -> max 0 $ min (fromRational t) 1
 
+filterValues :: (a -> Bool) -> Pattern a -> Pattern a
+filterValues f (Pattern x) = Pattern $ (filter (f . thd')) . x
+
 -- Filter out events that have had their onsets cut off
 filterOnsets :: Pattern a -> Pattern a
 filterOnsets (Pattern f) = 
@@ -364,9 +367,18 @@ ifp test f1 f2 p = Pattern $ \a -> concatMap apply (arcCycles a)
 rand :: Pattern Double
 rand = Pattern $ \a -> [(a, a, fst $ randomDouble $ pureMT $ floor $ (*1000000) $ (midPoint a))]
 
+
 irand :: Double -> Pattern Int
 irand i = (floor . (*i)) <$> rand
 
+degradeBy :: Double -> Pattern a -> Pattern a
+degradeBy x p = unMaybe $ (\a f -> toMaybe (f > x) a) <$> p <*> rand
+    where toMaybe False _ = Nothing
+          toMaybe True a  = Just a
+          unMaybe = (fromJust <$>) . filterValues isJust
+
+degrade :: Pattern a -> Pattern a
+degrade = degradeBy 0.5
 
 -- | @wedge t p p'@ combines patterns @p@ and @p'@ by squashing the
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the

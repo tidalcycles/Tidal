@@ -12,6 +12,8 @@ import Data.Colour.SRGB
 import GHC.Exts( IsString(..) )
 import Data.Monoid
 import Control.Exception as E
+import Control.Applicative ((<$>), (<*>))
+import Data.Maybe
 
 import Sound.Tidal.Pattern
 
@@ -100,13 +102,13 @@ pSequence f = do (_, p) <- pSequenceN f
                  return p
 
 pSingle :: Parser (Pattern a) -> Parser (Pattern a)
-pSingle f = do part <- f
-               pMult part
+pSingle f = f >>= pRand >>= pMult
 
 pPart :: Parser (Pattern a) -> Parser ([Pattern a])
 pPart f = do part <- parens (pSequence f) <|> pSingle f <|> pPolyIn f <|> pPolyOut f
+             part' <- pRand part
              spaces
-             parts <- pReplicate part
+             parts <- pReplicate part'
              spaces
              return $ parts
 
@@ -165,13 +167,19 @@ pMult thing = do char '*'
               <|>
               return thing
 
+
+
+pRand :: Pattern a -> Parser (Pattern a)
+pRand thing = do char '?'
+                 spaces
+                 return $ degrade thing
+              <|> return thing
+
 pReplicate :: Pattern a -> Parser ([Pattern a])
-pReplicate thing = do is <- many1 $ do char '!'
-                                       spaces
-                                       return 1
-                      let i = sum is
-                      return $ replicate (1 + fromIntegral i) thing
-                   <|> return [thing]
+pReplicate thing = do extras <- many $ do char '!'
+                                          spaces
+                                          pRand thing
+                      return (thing:extras)
 
 pRatio :: Parser (Rational)
 pRatio = do n <- natural <?> "numerator"
