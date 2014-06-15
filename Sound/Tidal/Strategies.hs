@@ -109,6 +109,6 @@ cross f p p' = Pattern $ \t -> concat [filter flt $ arc p t,
 inside n f p = density n $ f (slow n p)
 
 stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
-stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) <~ (p |+| gain (pure $ scale (fromIntegral x))))) [0..(steps-1)])) 
+stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |+| gain (pure $ scale (fromIntegral x))))) [0..(steps-1)])) 
   where scale x 
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
