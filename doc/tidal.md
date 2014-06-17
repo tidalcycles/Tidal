@@ -403,6 +403,43 @@ d1 $ sound (density 2 "bd sn kurt")
    |+| slow 3 (vowel "a e o")
 ~~~~
 
+## Degrade and DegradeBy
+
+~~~~ {#mycode .haskell}
+degrade :: Pattern a -> Pattern a
+degradeBy :: Double -> Pattern a -> Pattern a
+~~~~
+
+`degrade` randomly removes events from a pattern 50% of the time:
+
+~~~~ {#mycode .haskell}
+d1 $ slow 2 $ degrade $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
+   |+| accelerate "-6"
+   |+| speed "2"
+~~~~
+
+The shorthand syntax for `degrade` is a question mark: `?`. Using `?`
+will allow you to randomly remove events from a portion of a pattern:
+
+~~~~ {#mycode .haskell}
+d1 $ slow 2 $ sound "bd ~ sn bd ~ bd? [sn bd?] ~"
+~~~~
+
+You can also use `?` to randomly remove events from entire sub-patterns:
+
+~~~~ {#mycode .haskell}
+d1 $ slow 2 $ sound "[[[feel:5*8,feel*3] feel:3*8]?, feel*4]"
+~~~~
+
+`degradeBy` allows you to control the percentage of events that
+are removed. For example, to remove events 90% of the time:
+
+~~~~ {#mycode .haskell}
+d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
+   |+| accelerate "-6"
+   |+| speed "2"
+~~~~
+
 ## Every nth repetition, do this
 
 ~~~~ {#mycode .haskell}
@@ -440,7 +477,7 @@ as dense:
 d1 $ whenmod 8 4 (density 2) (sound "bd sn kurt")
 ~~~~
 
-# Interlace
+## Interlace
 
 ~~~~ {#mycode .haskell}
 interlace :: OscPattern -> OscPattern -> OscPattern
@@ -458,7 +495,7 @@ Example:
 d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn:2")
 ~~~~
 
-# Spread
+## Spread
 
 ~~~~ {#mycode .haskell}
 spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
@@ -512,7 +549,7 @@ using `spread'` though is that you can provide polyphonic parameters, e.g.:
 d1 $ spread' slow "[2 4%3, 3]" $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
-# Striate
+## Striate
 
 ~~~~ {#mycode .haskell}
 striate :: Int -> OscPattern -> OscPattern
@@ -556,7 +593,28 @@ Note that `striate` uses the `begin` and `end` parameters
 internally. This means that if you're using `striate` (or `striate'`)
 you probably shouldn't also specify `begin` or `end`.
 
-# Smash
+## Stut
+
+~~~~ {#mycode .haskell}
+stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
+~~~~
+
+Stut applies a type of delay to a pattern. It has three parameters, 
+which could be called depth, feedback and time. Depth is an integer
+and the others floating point. This adds a bit of echo:
+
+~~~~ {#mycode .haskell}
+d1 $ stut 4 0.5 0.2 $ sound "bd sn"
+~~~~
+
+The above results in 4 echos, each one 50% quieter than the last, 
+with 1/5th of a cycle between them. It is possible to reverse the echo:
+
+~~~~ {#mycode .haskell}
+d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
+~~~~
+
+## Smash
 
 ~~~~ {#mycode .haskell}
 smash :: Int -> [Time] -> OscPattern -> OscPattern
