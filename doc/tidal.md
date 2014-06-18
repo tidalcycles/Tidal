@@ -448,23 +448,7 @@ Example:
 d1 $ sound (every 3 (density 2) "bd sn kurt")
 ~~~~
 
-~~~~ {.haskell}
-whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-~~~~
-
-(The above has a similar form to `every`, but requires an additional
-number.)
-
-Similar to `every`, but applies the function to the pattern, when the
-remainder of the current loop number divided by the first parameter,
-is less than the second parameter.
-
-For example the following makes every other block of four loops twice
-as dense:
-
-~~~~ {.haskell}
-d1 $ whenmod 8 4 (density 2) (sound "bd sn kurt")
-~~~~
+Also, see `whenmod`.
 
 ## interlace
 
@@ -671,6 +655,23 @@ with 1/5th of a cycle between them. It is possible to reverse the echo:
 d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 ~~~~
 
+## whenmod
+
+~~~~ {.haskell}
+whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+~~~~
+
+`whenmod` has a similar form and behavior to `every`, but requires an 
+additional number. Applies the function to the pattern, when the
+remainder of the current loop number divided by the first parameter,
+is less than the second parameter.
+
+For example the following makes every other block of four loops twice
+as dense:
+
+~~~~ {.haskell}
+d1 $ whenmod 8 4 (density 2) (sound "bd sn kurt")
+~~~~
 
 # Combining patterns
 
