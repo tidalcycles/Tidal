@@ -120,8 +120,8 @@ d1 $ sound "{bd ht lt, sn cp}"
 
 This is a different way of specifying a polyrhythm. Instead of both
 parts taking up the same amount of time, each event within the second
-part takes up the same amount of time as the second part. You can
-embed these different forms inside each other:
+part takes up the same amount of time as one (top-level) event in the
+first part. You can embed these different forms inside each other:
 
 ~~~~ {#mycode .haskell}
 d1 $ sound "{bd [ht sn, lt mt ht] lt, sn cp}"
