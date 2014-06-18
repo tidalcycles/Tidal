@@ -166,7 +166,7 @@ the `solo` function:
 solo $ d1 $ sound "bd sn"
 ~~~~
 
-# Beats per second
+# Tempo
 
 You can change the beats per second (bps) like this:
 
@@ -190,6 +190,7 @@ distribution.  Here's some you could try:
     odx diphone2 house off ht tink perc bd industrial pluck trump
     printshort jazz voodoo birds3 procshort blip drum jvbass psr
     wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt
+    arpy feel
 
 Each one is a folder containing one or more wav files. For example
 when you put `bd:1` in a sequence, you're picking up the second wav
@@ -303,60 +304,34 @@ d1 $ sound "bd*2 [bd [sn sn*2 sn] sn]"))
 The above applies the function `(/ 2)` (which simply means divide by
 two), to all the values inside the `sinewave1` pattern.
 
-# Parameters
+# Synth Parameters
 
-These are the synthesis parameters you can use
+Synth parameters generate or affect sample playback. These are the 
+synthesis parameters you can use:
 
-* `sound` - a pattern of strings representing sound sample names (required)
-* `pan` - a pattern of numbers between 0 and 1, from left to right (assuming stereo)
-* `shape` - wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion
-* `vowel` - formant filter to make things sound like vowels, a pattern of either `a`, `e`, `i`, `o` or `u`. Use a rest (`~`) for no effect.
-* `cutoff` - a pattern of numbers from 0 to 1
-* `resonance` - a pattern of numbers from 0 to 1
-* `speed` - a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
 * `accelerate` - a pattern of numbers that speed up (or slow down) samples while they play.
-* `begin` - a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to miss off the first quarter from each sample.
-* `end` - the same as `begin`, but cuts the end off samples, shortening them;
-  e.g. `0.75` to miss off the last quarter of each sample.
+* `begin` - a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample.
+* `cutoff` - a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter. 
 * `delay` - a pattern of numbers from 0 to 1. Sets the level of the delay signal.
 * `delayfeedback` - a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
 * `delaytime` - a pattern of numbers from 0 to 1. Sets the length of the delay.
+* `end` - the same as `begin`, but cuts the end off samples, shortening them;
+  e.g. `0.75` to cut off the last quarter of each sample.
+* `gain` - a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder.
+* `pan` - a pattern of numbers between 0 and 1, from left to right (assuming stereo)
+* `resonance` - a pattern of numbers from 0 to 1. Applies the resonance of the low-pass filter.
+* `shape` - wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion
+* `sound` - a pattern of strings representing sound sample names (required)
+* `speed` - a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
+* `vowel` - formant filter to make things sound like vowels, a pattern of either `a`, `e`, `i`, `o` or `u`. Use a rest (`~`) for no effect.
 
 # Pattern transformers
 
+Pattern transformers are functions that take a pattern as input and transform
+it into a new pattern.
+
 In the following, functions are shown with their Haskell type and a
 short description of how they work.
-
-## brak
-
-~~~~ {.haskell}
-brak :: Pattern a -> Pattern a
-~~~~
-
-(The above means that `brak` is a function from patterns of any type,
-to a pattern of the same type.)
-
-Make a pattern sound a bit like a breakbeat
-
-Example:
-
-~~~~ {.haskell}
-d1 $ sound (brak "bd sn kurt")
-~~~~
-
-## Reversal
-
-~~~~ {.haskell}
-rev :: Pattern a -> Pattern a
-~~~~
-
-Reverse a pattern
-
-Examples:
-
-~~~~ {.haskell}
-d1 $ every 3 (rev) $ sound (density 2 "bd sn kurt")
-~~~~
 
 ## Beat rotation
 
@@ -382,25 +357,21 @@ Example:
 d1 $ every 4 (0.25 <~) $ sound (density 2 "bd sn kurt")
 ~~~~
 
-## Increase or decrease density
+## brak
 
 ~~~~ {.haskell}
-density :: Time -> Pattern a -> Pattern a
+brak :: Pattern a -> Pattern a
 ~~~~
 
-or
+(The above means that `brak` is a function from patterns of any type,
+to a pattern of the same type.)
 
-~~~~ {.haskell}
-slow :: Time -> Pattern a -> Pattern a
-~~~~
-
-Speed up or slow down a pattern.
+Make a pattern sound a bit like a breakbeat
 
 Example:
 
 ~~~~ {.haskell}
-d1 $ sound (density 2 "bd sn kurt")
-   |+| slow 3 (vowel "a e o")
+d1 $ sound (brak "bd sn kurt")
 ~~~~
 
 ## Degrade and DegradeBy
@@ -438,6 +409,27 @@ are removed. For example, to remove events 90% of the time:
 d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
    |+| accelerate "-6"
    |+| speed "2"
+~~~~
+
+## Density
+
+~~~~ {.haskell}
+density :: Time -> Pattern a -> Pattern a
+~~~~
+
+or
+
+~~~~ {.haskell}
+slow :: Time -> Pattern a -> Pattern a
+~~~~
+
+Speed up or slow down a pattern.
+
+Example:
+
+~~~~ {.haskell}
+d1 $ sound (density 2 "bd sn kurt")
+   |+| slow 3 (vowel "a e o")
 ~~~~
 
 ## Every nth repetition, do this
@@ -493,6 +485,50 @@ Example:
 
 ~~~~ {.haskell}
 d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn:2")
+~~~~
+
+## Reversal
+
+~~~~ {.haskell}
+rev :: Pattern a -> Pattern a
+~~~~
+
+Reverse a pattern
+
+Examples:
+
+~~~~ {.haskell}
+d1 $ every 3 (rev) $ sound (density 2 "bd sn kurt")
+~~~~
+
+## Smash
+
+~~~~ {.haskell}
+smash :: Int -> [Time] -> OscPattern -> OscPattern
+~~~~
+
+Smash is a combination of `spread` and `striate` - it cuts the samples
+into the given number of bits, and then cuts between playing the loop
+at different speeds according to the values in the list.
+
+So this:
+
+~~~~ {.haskell}
+  d1 $ smash 3 [2,3,4] $ sound "ho ho:2 ho:3 hc"
+~~~~
+
+Is a bit like this:
+
+~~~~ {.haskell}
+  d1 $ spread (slow) [2,3,4] $ striate 3 $ sound "ho ho:2 ho:3 hc"
+~~~~
+
+This is quite dancehall:
+
+~~~~ {.haskell}
+d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
+"sn:2 sid:3 cp sid:4")
+  |+| speed "[1 2 1 1]/2"
 ~~~~
 
 ## Spread
@@ -614,35 +650,6 @@ with 1/5th of a cycle between them. It is possible to reverse the echo:
 d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 ~~~~
 
-## Smash
-
-~~~~ {.haskell}
-smash :: Int -> [Time] -> OscPattern -> OscPattern
-~~~~
-
-Smash is a combination of `spread` and `striate` - it cuts the samples
-into the given number of bits, and then cuts between playing the loop
-at different speeds according to the values in the list.
-
-So this:
-
-~~~~ {.haskell}
-  d1 $ smash 3 [2,3,4] $ sound "ho ho:2 ho:3 hc"
-~~~~
-
-Is a bit like this:
-
-~~~~ {.haskell}
-  d1 $ spread (slow) [2,3,4] $ striate 3 $ sound "ho ho:2 ho:3 hc"
-~~~~
-
-This is quite dancehall:
-
-~~~~ {.haskell}
-d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
-"sn:2 sid:3 cp sid:4")
-  |+| speed "[1 2 1 1]/2"
-~~~~
 
 # Combining patterns
 
