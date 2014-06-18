@@ -374,7 +374,7 @@ Example:
 d1 $ sound (brak "bd sn kurt")
 ~~~~
 
-## Degrade and DegradeBy
+## degrade and degradeBy
 
 ~~~~ {.haskell}
 degrade :: Pattern a -> Pattern a
@@ -411,28 +411,25 @@ d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
    |+| speed "2"
 ~~~~
 
-## Density
+## density
 
 ~~~~ {.haskell}
 density :: Time -> Pattern a -> Pattern a
 ~~~~
 
-or
 
-~~~~ {.haskell}
-slow :: Time -> Pattern a -> Pattern a
-~~~~
-
-Speed up or slow down a pattern.
+Speed up a pattern.
 
 Example:
 
 ~~~~ {.haskell}
 d1 $ sound (density 2 "bd sn kurt")
-   |+| slow 3 (vowel "a e o")
+   |+| density 3 (vowel "a e o")
 ~~~~
 
-## Every nth repetition, do this
+Also, see `slow`.
+
+## every nth repetition, do this
 
 ~~~~ {.haskell}
 every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
@@ -469,7 +466,7 @@ as dense:
 d1 $ whenmod 8 4 (density 2) (sound "bd sn kurt")
 ~~~~
 
-## Interlace
+## interlace
 
 ~~~~ {.haskell}
 interlace :: OscPattern -> OscPattern -> OscPattern
@@ -487,7 +484,7 @@ Example:
 d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn:2")
 ~~~~
 
-## Reversal
+## rev
 
 ~~~~ {.haskell}
 rev :: Pattern a -> Pattern a
@@ -501,7 +498,31 @@ Examples:
 d1 $ every 3 (rev) $ sound (density 2 "bd sn kurt")
 ~~~~
 
-## Smash
+## slow
+
+~~~~ {.haskell}
+slow :: Time -> Pattern a -> Pattern a
+~~~~
+
+Slow down a pattern.
+
+Example:
+
+~~~~ {.haskell}
+d1 $ sound (slow 2 "bd sn kurt")
+   |+| slow 3 (vowel "a e o")
+~~~~
+
+Slow also accepts numbers between 0 and 1, which causes the pattern to speed up:
+
+~~~~ {.haskell}
+d1 $ sound (slow 0.5 "bd sn kurt")
+   |+| slow 0.75 (vowel "a e o")
+~~~~
+
+Also, see `density`.
+
+## smash
 
 ~~~~ {.haskell}
 smash :: Int -> [Time] -> OscPattern -> OscPattern
@@ -531,7 +552,7 @@ d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
   |+| speed "[1 2 1 1]/2"
 ~~~~
 
-## Spread
+## spread
 
 ~~~~ {.haskell}
 spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
@@ -585,7 +606,7 @@ using `spread'` though is that you can provide polyphonic parameters, e.g.:
 d1 $ spread' slow "[2 4%3, 3]" $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
-## Striate
+## striate
 
 ~~~~ {.haskell}
 striate :: Int -> OscPattern -> OscPattern
@@ -629,7 +650,7 @@ Note that `striate` uses the `begin` and `end` parameters
 internally. This means that if you're using `striate` (or `striate'`)
 you probably shouldn't also specify `begin` or `end`.
 
-## Stut
+## stut
 
 ~~~~ {.haskell}
 stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
