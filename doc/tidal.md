@@ -32,7 +32,7 @@ beast. If you're new to emacs, you can bring up a tutorial by pressing
 Tidal starts with nine connections to the dirt synthesiser, named from
 `d1` to `d9`. Here's a minimal example, that plays a bass drum every loop:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "bd"
 ~~~~
 
@@ -49,14 +49,14 @@ We can pick variations of a sound by adding a colon (`:`) then a
 number, for example this picks the fourth bass drum (it counts from
 0, so :3 gives you the fourth sound):
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "bd:3"
 ~~~~
 
 Putting things in quotes actually defines a sequence. For example, the
 following gives you a pattern of bass drum then snare:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "bd sn"
 ~~~~
 
@@ -67,7 +67,7 @@ live coding.
 The `sound` function in the above is just one possible parameter that
 we can send to the synth. Below show a couple more, `pan` and `vowel`:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "bd sn sn"
    |+| vowel "a o e"
    |+| pan "0 0.5 1"
@@ -84,26 +84,26 @@ Note that for `pan`, when working in stereo, that `0` means hard left,
 When specifying a sequence you can group together several events to
 play inside a single event by using square brackets:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "[bd sn sn] sn"
 ~~~~
 
 This is good for creating compound time signatures (sn = snare, cp = clap):
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "[bd sn sn] [cp cp]"
 ~~~~
 
 And you put events inside events to create any level of detail:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "[bd bd] [bd [sn [sn sn] sn] sn]"
 ~~~~
 
 You can also layer up several loops, by using commas to separate the
 different parts:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "[bd bd bd, sn cp sn cp]"
 ~~~~
 
@@ -114,7 +114,7 @@ duration, you end up with a polyrhythm.
 
 Try replacing the square brackets with curly brackets:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "{bd ht lt, sn cp}"
 ~~~~
 
@@ -123,14 +123,14 @@ parts taking up the same amount of time, each event within the second
 part takes up the same amount of time as one (top-level) event in the
 first part. You can embed these different forms inside each other:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "{bd [ht sn, lt mt ht] lt, sn cp}"
 ~~~~
 
 You can make parts of patterns repeat by using `*`, for example the
 following expressions produce the same pattern:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "[bd bd bd, sn cp sn cp]"
 
 d1 $ sound "[bd*3, [sn cp]*2]"
@@ -139,7 +139,7 @@ d1 $ sound "[bd*3, [sn cp]*2]"
 Conversely, you can slow down patterns by using `/`, the following
 pattern plays part of each subpattern each cycle:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "[bd sn sn*3]/2 [bd sn*3 bd*4]/3"
 ~~~~
 
@@ -148,21 +148,21 @@ d1 $ sound "[bd sn sn*3]/2 [bd sn*3 bd*4]/3"
 An empty pattern is defined as `silence`, so if you want to 'switch
 off' a pattern, you can just set it to that:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 silence
 ~~~~
 
 If you want to set all the connections (from `d1` to `d9`) to silence
 at once, there's a single-word shortcut for that:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 hush
 ~~~~
 
 You can also isolate a single connection and silence all others with
 the `solo` function:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 solo $ d1 $ sound "bd sn"
 ~~~~
 
@@ -170,13 +170,13 @@ solo $ d1 $ sound "bd sn"
 
 You can change the beats per second (bps) like this:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 bps 1
 ~~~~
 
 If you prefer to think in beats per minute, simply divide by 60
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 bps (140 / 60)
 ~~~~
 
@@ -206,7 +206,7 @@ patterns. This makes particular sense for parameters such as `pan`
 (for panning sounds between speakers) and `shape` (for adding
 distortion) which are patterns of numbers.
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "[bd bd] [bd [sn [sn sn] sn] sn]"
    |+| pan sinewave1
    |+| shape sinewave1
@@ -225,7 +225,7 @@ functions which transform the patterns in various ways.
 
 For example, `rev` reverses a pattern:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ rev (sound "[bd bd] [bd [sn [sn sn] sn] sn]")
 ~~~~
 
@@ -236,20 +236,20 @@ to. The number specifies how often the function is applied to the
 pattern. For example, the following reverses the pattern every fourth
 repetition:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ every 4 (rev) (sound "bd*2 [bd [sn sn*2 sn] sn]")
 ~~~~
 
 You can also slow down or speed up the playback of a pattern, this
 makes it a quarter of the speed:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ slow 4 $ sound "bd*2 [bd [sn sn*2 sn] sn]"
 ~~~~
 
 And this four times the speed:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ density 4 $ sound "bd*2 [bd [sn sn*2 sn] sn]"
 ~~~~
 
@@ -257,7 +257,7 @@ Note that `slow 0.25` would do exactly the same as `density 4`.
 
 Again, this can be applied selectively:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ every 4 (density 4) $ sound "bd*2 [bd [sn sn*2 sn] sn]"
 ~~~~
 
@@ -268,7 +268,7 @@ being passed as a parameter to the function `every`.
 Instead of putting transformations up front, separated by the pattern
 by the `$` symbol, you can put them inside the pattern, for example:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound (every 4 (density 4) "bd*2 [bd [sn sn*2 sn] sn]")
    |+| pan sinewave1
 ~~~~
@@ -280,7 +280,7 @@ parameter. Again, parenthesis is required to both group together
 around `every` and its parameters before passing to its function
 `sound`.
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound (every 4 (density 4) "bd*2 [bd [sn sn*2 sn] sn]")
    |+| pan (slow 16 sinewave1)
 ~~~~
@@ -295,7 +295,7 @@ not the time structure of the pattern itself. For example, if you
 wanted to pass a sinewave to `shape`, but wanted the sinewave to go
 from `0` to `0.5` rather than from `0` to `1`, you could do this:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "bd*2 [bd [sn sn*2 sn] sn]"))
    |+| shape ((/ 2) <$> sinewave1)
 ~~~~
@@ -329,7 +329,7 @@ short description of how they work.
 
 ## brak
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 brak :: Pattern a -> Pattern a
 ~~~~
 
@@ -340,13 +340,13 @@ Make a pattern sound a bit like a breakbeat
 
 Example:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound (brak "bd sn kurt")
 ~~~~
 
 ## Reversal
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 rev :: Pattern a -> Pattern a
 ~~~~
 
@@ -354,19 +354,19 @@ Reverse a pattern
 
 Examples:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ every 3 (rev) $ sound (density 2 "bd sn kurt")
 ~~~~
 
 ## Beat rotation
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 (<~) :: Time -> Pattern a -> Pattern a
 ~~~~
 
 or
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 (~>) :: Time -> Pattern a -> Pattern a
 ~~~~
 
@@ -378,19 +378,19 @@ Rotate a loop either to the left or the right.
 
 Example:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ every 4 (0.25 <~) $ sound (density 2 "bd sn kurt")
 ~~~~
 
 ## Increase or decrease density
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 density :: Time -> Pattern a -> Pattern a
 ~~~~
 
 or
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 slow :: Time -> Pattern a -> Pattern a
 ~~~~
 
@@ -398,21 +398,21 @@ Speed up or slow down a pattern.
 
 Example:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound (density 2 "bd sn kurt")
    |+| slow 3 (vowel "a e o")
 ~~~~
 
 ## Degrade and DegradeBy
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 degrade :: Pattern a -> Pattern a
 degradeBy :: Double -> Pattern a -> Pattern a
 ~~~~
 
 `degrade` randomly removes events from a pattern 50% of the time:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ slow 2 $ degrade $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
    |+| accelerate "-6"
    |+| speed "2"
@@ -421,20 +421,20 @@ d1 $ slow 2 $ degrade $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
 The shorthand syntax for `degrade` is a question mark: `?`. Using `?`
 will allow you to randomly remove events from a portion of a pattern:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ slow 2 $ sound "bd ~ sn bd ~ bd? [sn bd?] ~"
 ~~~~
 
 You can also use `?` to randomly remove events from entire sub-patterns:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ slow 2 $ sound "[[[feel:5*8,feel*3] feel:3*8]?, feel*4]"
 ~~~~
 
 `degradeBy` allows you to control the percentage of events that
 are removed. For example, to remove events 90% of the time:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
    |+| accelerate "-6"
    |+| speed "2"
@@ -442,7 +442,7 @@ d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
 
 ## Every nth repetition, do this
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ~~~~
 
@@ -455,11 +455,11 @@ given number of repetitions.
 
 Example:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound (every 3 (density 2) "bd sn kurt")
 ~~~~
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ~~~~
 
@@ -473,13 +473,13 @@ is less than the second parameter.
 For example the following makes every other block of four loops twice
 as dense:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ whenmod 8 4 (density 2) (sound "bd sn kurt")
 ~~~~
 
 ## Interlace
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 interlace :: OscPattern -> OscPattern -> OscPattern
 ~~~~
 
@@ -491,13 +491,13 @@ Shifts between the two given patterns, using distortion.
 
 Example:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn:2")
 ~~~~
 
 ## Spread
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 ~~~~
 
@@ -511,33 +511,33 @@ function across several values.
 
 Taking a simple high hat loop as an example:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 We can slow it down by different amounts, such as by a half:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
   d1 $ slow 2 $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 Or by four thirds (i.e. speeding it up by a third; `4%3` means four over
 three):
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
   d1 $ slow (4%3) $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 But if we use `spread`, we can make a pattern which alternates between
 the two speeds:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ spread slow [2,4%3] $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 There's a version of this function, `spread'` (pronounced "spread prime"), which takes a *pattern* of parameters, instead of a list:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ spread' slow "2 4%3" $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
@@ -545,19 +545,19 @@ This is quite a messy area of Tidal - due to a slight difference of
 implementation this sounds completely different! One advantage of
 using `spread'` though is that you can provide polyphonic parameters, e.g.:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ spread' slow "[2 4%3, 3]" $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 ## Striate
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 striate :: Int -> OscPattern -> OscPattern
 ~~~~
 
 Striate is a kind of granulator, for example:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ striate 3 $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
@@ -574,7 +574,7 @@ granular synthesis. The following cuts a sample into 128 parts, plays
 it over 8 cycles and manipulates those parts by reversing and rotating
 the loops.
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $  slow 8 $ striate 128 $ sound "bev"
 ~~~~
 
@@ -585,7 +585,7 @@ each bit is longer, it creates a sort of stuttering effect. For
 example the following will cut the bev sample into 32 parts, but each
 will be 1/16th of a sample long:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ slow 32 $ striate' 32 (1/16) $ sound "bev"
 ~~~~
 
@@ -595,7 +595,7 @@ you probably shouldn't also specify `begin` or `end`.
 
 ## Stut
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
 ~~~~
 
@@ -603,20 +603,20 @@ Stut applies a type of delay to a pattern. It has three parameters,
 which could be called depth, feedback and time. Depth is an integer
 and the others floating point. This adds a bit of echo:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ stut 4 0.5 0.2 $ sound "bd sn"
 ~~~~
 
 The above results in 4 echos, each one 50% quieter than the last, 
 with 1/5th of a cycle between them. It is possible to reverse the echo:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 ~~~~
 
 ## Smash
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 smash :: Int -> [Time] -> OscPattern -> OscPattern
 ~~~~
 
@@ -626,19 +626,19 @@ at different speeds according to the values in the list.
 
 So this:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
   d1 $ smash 3 [2,3,4] $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 Is a bit like this:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
   d1 $ spread (slow) [2,3,4] $ striate 3 $ sound "ho ho:2 ho:3 hc"
 ~~~~
 
 This is quite dancehall:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
 "sn:2 sid:3 cp sid:4")
   |+| speed "[1 2 1 1]/2"
@@ -651,7 +651,7 @@ functor", it's easy to combine them. For example, if you have two
 patterns of numbers, you can combine the patterns by, for example,
 multiplying the numbers inside them together, like this:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ (brak (sound "bd sn:2 bd sn"))
    |+| pan ((*) <$> sinewave1 <*> (slow 8 $ "0 0.25 0.75"))
 ~~~~
@@ -663,7 +663,7 @@ function that instead works on two *patterns* of numbers.
 
 Here's another example of this technique:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ sound (pick <$> "kurt mouth can*3 sn" <*> slow 7 "0 1 2 3 4")
 ~~~~
 
@@ -684,7 +684,7 @@ The `jux` function creates strange stereo effects, by applying a
 function to a pattern, but only in the right-hand channel. For
 example, the following reverses the pattern on the righthand side:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ slow 32 $ jux (rev) $ striate' 32 (1/16) $ sound "bev"
 ~~~~
 
@@ -693,7 +693,7 @@ it's possible to chain multiple transforms together with `.`, for
 example this both reverses and halves the playback speed of the
 pattern in the righthand channel:
 
-~~~~ {#mycode .haskell}
+~~~~ {.haskell}
 d1 $ slow 32 $ jux ((|+| speed "0.5") . rev) $ striate' 32 (1/16) $ sound "bev"
 ~~~~
 
