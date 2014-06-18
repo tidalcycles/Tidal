@@ -731,6 +731,9 @@ You can find a stream of minimal cycles written in Tidal in the
 following twitter feed:
   <http://twitter.com/tidalcycles/>
 
+You can look for additional information in the tidal wiki:
+  <https://github.com/yaxu/Tidal/wiki>
+
 # Acknowledgments
 
 Special thanks to l'ull cec (<http://lullcec.org>) and hangar
