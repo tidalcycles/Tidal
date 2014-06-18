@@ -230,7 +230,7 @@ d1 $ rev (sound "[bd bd] [bd [sn [sn sn] sn] sn]")
 ~~~~
 
 That's not so exciting, but things get more interesting when this is
-used in combination another function. For example `every` takes two
+used in combination with another function. For example `every` takes two
 parameters, a number, a function and a pattern to apply the function
 to. The number specifies how often the function is applied to the
 pattern. For example, the following reverses the pattern every fourth
