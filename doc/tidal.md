@@ -681,6 +681,21 @@ with 1/5th of a cycle between them. It is possible to reverse the echo:
 d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 ~~~~
 
+## wedge
+
+~~~~{.haskell}
+wedge :: Time -> Pattern a -> Pattern a -> Pattern a
+~~~~
+
+`wedge` combines two patterns by squashing two patterns into a single pattern cycle.
+It takes a ratio as the first argument. The ratio determines what percentage of the
+pattern cycle is taken up by the first pattern. The second pattern fills in the
+remainder of the pattern cycle.
+
+~~~~{.haskell}
+d1 $ wedge (1/4) "bd*2 arpy*3 cp sn*2" "odx [feel future]*2 hh hh"
+~~~~
+
 ## whenmod
 
 ~~~~ {.haskell}
@@ -732,6 +747,34 @@ an interesting texture results.
 
 By the way, "0 1 2 3 4" in the above could be replaced with the
 pattern generator `run 5`.
+
+# Stacking
+
+~~~~ {.haskell}
+stack :: [Pattern a] -> Pattern a
+~~~~
+
+`stack` takes a list of patterns and combines them into a new pattern by
+playing all of the patterns in the list simultaneously.
+
+~~~~ {.haskell}
+d1 $ stack [ 
+  sound "bd bd*2", 
+  sound "hh*s [sn cp] cp future*4", 
+  sound (samples "arpy*8", (run 16))
+]
+~~~~
+
+This is useful if you want to use a transform or synth parameter on the entire 
+stack:
+
+~~~~ {.haskell}
+d1 $ whenmod 5 3 (striate 3) $ stack [ 
+  sound "bd bd*2", 
+  sound "hh*s [sn cp] cp future*4", 
+  sound (samples "arpy*8", (run 16))
+] |+| speed "[[1 0.8], [1.5 2]*2]/3"
+~~~~
 
 # Juxtapositions
 
