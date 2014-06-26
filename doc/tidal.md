@@ -525,7 +525,7 @@ d1 $ slowspread ($) [density 2, rev, slow 2, striate 3, (|+| speed "0.8")]
 Above, the pattern will have these transforms applied to it, one at a time, per cycle:
 
 * cycle 1: `density 2` - pattern will increase in speed
-* cycle 2: `rev` - pattern will be revsersed
+* cycle 2: `rev` - pattern will be reversed
 * cycle 3: `slow 2` - pattern will decrease in speed
 * cycle 4: `striate 3` - pattern will be granualized
 * cycle 5: `(|+| speed "0.8")` - pattern samples will be played back more slowly
