@@ -13,7 +13,9 @@ though. It's available here, click 'raw' to download it:
 
   <https://github.com/yaxu/Tidal/blob/master/doc/install-linux.sh>
 
-Alternatively, you can follow the instructions below.
+Once you have run that script, log out and then back in again (to ensure you have the right group settings), and if all is well, you should be good to go.
+
+Alternatively, you can follow the step-by-step instructions below.
 
 ## Installing Dirt
 
