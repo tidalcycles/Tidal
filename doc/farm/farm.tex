@@ -1,4 +1,4 @@
-\documentclass[authoryear]{sigplanconf}
+\documentclass[authoryear,preprint]{sigplanconf}
 
 % The following \documentclass options may be useful:
 
@@ -18,10 +18,8 @@
 \setlength{\pdfpageheight}{\paperheight}
 \setlength{\pdfpagewidth}{\paperwidth}
 
-\conferenceinfo{CONF 'yy}{Month d--d, 20yy, City, ST, Country} 
+\conferenceinfo{FARM '14}{September 7, 2014, Goteborg, Sweden} 
 \copyrightyear{2014}
-\copyrightdata{978-1-nnnn-nnnn-n/yy/mm} 
-\doi{nnnnnnn.nnnnnnn}
 
 % Uncomment one of the following two, if you are not going for the 
 % traditional copyright transfer agreement.
@@ -33,8 +31,8 @@
                                   % (paid open-access papers, 
                                   % short abstracts)
 
-\titlebanner{banner above paper title}        % These are ignored unless
-\preprintfooter{short description of paper}   % 'preprint' option specified.
+%\titlebanner{banner above paper title}        % These are ignored unless
+%\preprintfooter{short description of paper}   % 'preprint' option specified.
 
 
 \title{Making programming languages to dance to: Live Coding with Tidal}
@@ -78,12 +76,12 @@ and environments developed as end-user music interfaces
 \citep[e.g.][]{Wang04, Sorensen05, Aaron11, McLean10c}. Live coding of
 music and video is now a vibrant area of research, a core topic in
 major Computer Music conferences, the subject of journal special
-issues, and the focus of international seminars. This research runs
-alongside emerging communities of live coding practitioners, with
-international live coding music festivals held in the UK, Germany and
-Mexico. Speculative, isolated experiments by both researchers and
-practitioners have expanded, developing into active communities of
-practice.
+issues \cite{McLean14}, and the focus of international seminars
+\citep{Blackwell14}. This research runs alongside emerging communities
+of live coding practitioners, with international live coding music
+festivals held in the UK, Germany and Mexico. Speculative, isolated
+experiments by both researchers and practitioners have expanded,
+developing into active communities of practice.
 
 Live coding has predominantly emerged from digital performing arts and
 related research contexts, but connects also with activities in
@@ -109,22 +107,24 @@ takes on changes to its code, without break in the musical output. The
 archetypal situation has the programmer on stage, with their screen
 projected so that the audience may see them work. This might be late
 at night with a dancing nightclub audience \citep[e.g. at an
-  algorave][]{Collins14}, or during the day to a seated concert hall
-audience. The performer may be joined by other live coders, or perhaps
-instrumental musicians, but in any case the programmer will want to
-enter a state of focused, creative flow and work beyond the pressures
-at hand.
+  algorave;][]{Collins14}, or during the day to a seated concert hall
+audience \citep[e.g. performance by laptop ensemble;][]{Ogborn14}, or
+in more collaborative, long form performance \citep[e.g. slow
+  coding;][]{Hall07}. The performer may be joined by other live coders
+or instrumental musicians, or perhaps even choreographers and dancers
+\citep{Sicchio14}, but in any case the programmer will want to enter a
+state of focused, creative flow and work beyond the pressures at hand.
 
 There are different approaches to live coding music, but one common
 approach is based on an improvised Jazz model. The music is not
 composed in advance, instead the music is developed through live
-interaction, with live coders "playing off" each other, or shaping the
+interaction, with live coders `playing off' each other, or shaping the
 music in sympathy with audience response. The improvisers might add
-extra constraints, for example the Mexico City live coding community
-are known to celebrate the challenge of live coding a performance from
-scratch, lasting precious few minutes. ``Slow coding'' is at the other
-end of the scale, exploring a more conversational, meditative ethos
-\citep{Hall07}.
+extra constraints, for example the live coding community in Mexico
+City is known to celebrate the challenge of live coding a performance
+from scratch, each of which lasts precious few minutes. ``Slow
+coding'' is at the other end of the scale, exploring a more
+conversational, meditative ethos \citep{Hall07}.
 
 At this point it should be clear that live coding looks rather
 different from mainstream software engineering. There is no time for
@@ -141,14 +141,14 @@ chorus and verse, where code is branched and merged within short
 time frames, creating cyclic paths of development.
 
 \subsection{Liveness and feedback}
-
+\label{sec:feedback}
 It is worth considering what we mean by the word \emph{live}. In
-practice, the speed of communications is never instantaneous, and so
-in a sense nothing is completely live. Instead, lets consider liveness
-in terms of \emph{live feedback loops}, where two agents (human or
-computational) continually influence one another. We can then identify
-different forms of liveness in terms of different arrangements of
-feedback loops.
+practice, the speed of communication is never instantaneous, and in
+that sense nothing is completely live. Instead, let us consider
+liveness in terms of \emph{live feedback loops}, where two agents
+(human or computational) continually influence one another. We can
+then identify different forms of liveness in terms of different
+arrangements of feedback loops.
 
 In a live coded performance, there are at least three main feedback
 loops. One is between the programmer and their code; making a change,
@@ -163,7 +163,14 @@ software development is shared with that of musical development. The
 third loop is between the programmer and their audience and/or
 co-performers. We can call this feedback loop \emph{social feedback},
 which is foregrounded at algorave events, where the audience is
-dancing.
+dancing. 
+
+% This relates to a yet another loop where peers act as
+% critics, and give verbal feedback, in the case of live coding usually
+% after a performance. \citet{dInvernoTODO} refers to this as
+% \emph{creative feedback}, accentuating the role which social
+% interaction has in what might otherwise be considered individual
+% creativity.
 
 %% This may involve including musical representation of time in the model
 % of computation at play.
@@ -193,8 +200,10 @@ and digital sound processing (DSP) over the past few decades, for
 example ChucK, SuperCollider, Max/MSP, HMSL, Common Music and the
 MusicN languages. As processor frequencies have increased, the promise
 of realtime processing has put new design pressures on languages. Live
-coding has emerged over the past decade, as the promise of realtime as
-an exploratory activity.
+coding has emerged over the past decade, along with the promise of
+realtime programming as an exploratory activity. This has been a
+social development as much as a technological one -- although there
+have been breakthroughs, much of the technology was already in place.
 
 There are a range of programming language paradigms in computer
 music. Perhaps the most dominant paradigm is dataflow programming;
@@ -202,22 +211,22 @@ declarative functions which do not return any values, but take streams
 of data and inputs, and send streams of output to other functions as a
 continual side effect. These languages, such as Max/MSP, PureData and
 VVVV, usually have a graphical ``Patcher'' interface, where words are
-contained within ``boxes'', connected with ``wires'' to form the
-dataflow network. The accessibility of these systems may be attributed
-to their similarity to the analogue synthesisers which preceded and
-inspired them \citep{Puckette88}.
+contained within `boxes', connected with `wires' to form the dataflow
+graph. The accessibility of these systems may be attributed to their
+similarity to the analogue synthesisers which preceded and inspired
+them \citep{Puckette88}.
 
 However the most common paradigm in live coding performance seems to
 be functional programming; many live coding environments such as
 Overtone, Fluxus and Extempore are Lisp dialects, and the pure
-functional Language Haskell is the basis of a number of live music
+functional language Haskell is the basis of a number of live music
 EDSLs (embedded domain specific languages); namely Conductive
 \citep{Bell11}, Live-Sequencer \citep{Thielemann12} and Tidal. The
 Tidal language is introduced in the following section, with emphasis
 on its approach to the representation of time.
 
 \section{Introducing Tidal}
-
+\label{sec:intro}
 % The author states that Tidal represents many years of development,
 % and he has published before about Tidal. Something I miss is that
 % the author does not clearly explain how the current version of Tidal
@@ -228,18 +237,18 @@ on its approach to the representation of time.
 
 Tidal represents many years of development, and the present paper
 supersedes earlier work \citep{McLean10d}, with several major rewrites
-since. At its essence it is a domain specific language for musical
-pattern, of the kind called for by \citet{Spiegel81}, and present
-within many other systems including HMSL, SuperCollider
-\citep{McCartney02} and ixilang \citep{Magnusson11b}. Tidal has been
-developed through use, informed by many dozens of high profile
-performances to diverse audiences, and within diverse
-collaborations. The present author has predominantly used it within
-algorithmic dance music \citep[algorave; ]{Collins14} and improvised
-free Jazz performances \citep{Hession14}, as well as in live art
-\citep{McLean12a} and choreographic \citep{Sicchio14}
+since (\S \ref{tidaldev}). At its essence it is a domain specific
+language for musical pattern, of the kind called for by
+\citet{Spiegel81}, and present within many other systems including
+HMSL, SuperCollider \citep{McCartney02} and ixilang
+\citep{Magnusson11b}. Tidal has been developed through use, informed
+by many dozens of high profile performances to diverse audiences, and
+within diverse collaborations. The present author has predominantly
+used it within algorithmic dance music \citep[algorave; ]{Collins14}
+and improvised free Jazz performances \citep{Hession14}, as well as in
+live art \citep{McLean12a} and choreographic \citep{McLean14}
 collaborations. The software is available under a free/open source
-license, and it now has a growing community of users.
+license, and it now has a growing community of users (\S \ref{sec:community}).
 
 Tidal is embedded in the Haskell language, taking advantage of its
 rich type system. Patterns are represented using the below datatype,
@@ -260,20 +269,20 @@ which we will explain in the following.
 
 In Tidal, time is rational, so that musical subdivisions may be stored
 accurately as simple fractions, avoiding rounding errors associated
-with floating point numbers. Underlying this is the assumption that
-time is structured in terms of rhythmic (or more correctly, metric)
+with floating point. Underlying this is the assumption that time is
+structured in terms of rhythmic (or more correctly, metric)
 \emph{cycles}, a perceptual phenomena that lies at the basis of a
 great many musical traditions including Indian classical
 \citep{Clayton08}, and electronic dance musics. The first beat of each
 cycle, known as the \emph{sam}, is significant both for resolving the
 previous cycle and for starting the next. The number line of whole
-numbers represents successive sam beats. 
+numbers represents successive sam beats.
 
 The Tidal timeline can be conceptualised as a spiral, as figure
-\ref{fig:spiral} illustrates. This raises the point that there is no
-expectation that cycles do not change from one cycle to the
-next. Indeed, polyrhythms are well supported in Tidal, but this simple
-cycle structure acts as the metric anchor point for Tidal's pattern
+\ref{fig:spiral} illustrates. Although this is a cyclic structure,
+cycles will often change from one cycle to the next. Indeed,
+polyrhythms are well supported in Tidal, but this assumed cyclic
+structure acts as the metric anchor point for Tidal's pattern
 operations.
 
 % I do not understand the spiral nature of the timeline. Is it
@@ -290,11 +299,12 @@ In practice, when it comes to turning a pattern into music, how cycles
 relate to physical time depends on how fast the musician wants the
 music to go. This is managed externally by a scheduler, and multiple
 live coders can share a tempo clock over a network connection, so that
-the playback of their patterns is in time.
+their cycles are locked in phase and frequency, and therefore playback
+of their patterns is in time.
 
 In sympathy with the focus on cycles, as opposed to the linear
 progression of time, a time range is called an \lstinline{Arc},
-specified as a start and stop time. When an arc represents the
+specified with start and stop time. When an arc represents the
 occurrence of a musical event, the start and stop are known as the
 event \emph{onset} and \emph{offset}, which are standard terms
 borrowed from music informatics.
@@ -307,9 +317,9 @@ borrowed from music informatics.
 
 An \lstinline{Event} associates a value with two time arcs; the first
 arc gives the onset and offset of the event, and the second gives the
-'active' portion. The need for the second arc will be explained later,
-for now we will just say that if an event is cut into pieces, it is
-important for each piece to store its original arc as context.
+'active' portion. The second arc is used for cases where an event is
+cut into pieces, and it is important for each piece to store its
+original arc as context.
 
 % the author states "The arcs of these events may overlap, in other
 % words supporting musical polyphony". I wondered does this mean that
@@ -319,12 +329,14 @@ important for each piece to store its original arc as context.
 % events. However, if an events can contain harmony this phrase would
 % just be false.
 
-Finally, a \lstinline{Pattern} represents an infinite series of Events
-as a function, from an \lstinline{Arc} to a list of events. To
-retrieve events from the pattern, it is queried with an
-\lstinline{Arc}, and all the events active during the given time are
-returned. The arcs of these events may overlap, in other words
-supporting musical \emph{polyphony}.
+Finally, a \lstinline{Pattern} is represented as a function, from an
+\lstinline{Arc} to a list of events. To retrieve events from the
+pattern, it is queried with an \lstinline{Arc}, and all the events
+active during the given time are returned. The arcs of these events
+may overlap, in other words supporting musical \emph{polyphony}
+without having to deal with events containing multiple values
+(although Tidal events which contain chords rather than atomic events
+are certainly possible).
 
 All Tidal patterns are notionally infinite in length; they cycle
 indefinitely, and can be queried for events at any point. Long-term
@@ -428,7 +440,7 @@ density 4 $ cat [pure blue, pure red, pure orange]
 
 Like \lstinline{cat}, density works by manipulating time both in terms
 of the query and the resulting events. Here is its full definition,
-along with its `antonym' \lstinline{slow}:
+along with its antonym \lstinline{slow}:
 
 \begin{lstlisting}
 density :: Time -> Pattern a -> Pattern a
@@ -511,8 +523,9 @@ The functions we have defined so far for constructing patterns are
 quite verbose, and therefore impractical. Considering that Tidal is
 designed for live musical performance, the less typing the better. So,
 a simple parser \lstinline{p} is provided by Tidal, for turning terse
-strings into patterns. The previous example may be specified like
-this:
+strings into patterns, with syntax in part inspired by the Bol
+Processor \citep{Bel01}. The previous colour pattern example may be
+specified with this syntax as follows:
 
 <example>
 p "[blue, ~ [green yellow], orange]*16"
@@ -537,8 +550,8 @@ already allows us to specify fairly complex patterns with some tersity:
 If curly brackets rather than square brackets are used, subpatterns
 are combined in a different way, timewise. The first subpattern still
 takes up a single cycle, but other subpatterns on that level are
-stretched or shrunk so that each element within them are the same
-length. For example compare the following two patterns:
+stretched or shrunk so that each immediate subelement within them are
+the same length. For example compare the following two patterns:
 
 <example>
 density 6 $ "[red black, blue orange green]"
@@ -557,9 +570,9 @@ and the latter a polyrhythm.
 
 It is useful to be able to operate upon all event values within a
 pattern irrespective of their temporal position and duration. Within
-the functional paradigm, this translates to the requirement to define
-the pattern datatype as a functor. Because Haskell already defines
-functions and lists as functors, defining \lstinline{Pattern} as a
+the functional paradigm, this requires the pattern datatype to be
+defined as a functor. Because Haskell already defines functions and
+lists as functors, defining \lstinline{Pattern} as a
 \lstinline{Functor} instance is straightforward:
 
 \begin{center}
@@ -573,10 +586,9 @@ instance Functor Pattern where
 \end{minipage}
 \end{center}
 
-This already makes certain pattern transformations
-straightforward. For example, musical transposition (increasing or
-decreasing all musical note values) may be defined in terms of
-addition:
+This already makes certain pattern transformations trivial. For
+example, musical transposition (increasing or decreasing all musical
+note values) may be defined in terms of addition:
 
 \begin{center}
 \begin{minipage}{0.5\textwidth}
@@ -609,11 +621,11 @@ have already seen, along with the \lstinline{<*>} operator:
 \end{center}
 
 In combination with \lstinline{<$>} (which is simply \lstinline{fmap}
-but in operator form), this operator allows us to turn a function that
-operates on values, into a combinator which operates on patterns of
-values. For example, we can use the library function \lstinline{blend},
-which operates on two colours, into a combinator which operates on
-two colour patterns:
+but in operator form), the \lstinline{<*>} operator allows us to turn
+a function that operates on values, into a combinator which operates
+on patterns of values. For example, we can use the library function
+\lstinline{blend}, which operates on two colours, as a combinator
+which operates on two colour patterns:
 % The type signature of blend would help to understand the code
 <example>
 blend 0.5 
@@ -656,11 +668,11 @@ implementation details.
 
 \paragraph{Reversal}
 
-Reversal operations, and the resulting symmetries, are fundamental to
-pattern. Because Tidal represents a notionally infinite timeline,
-reversing a whole pattern is not possible. However, the notion of a
-cycle is core to Tidal, and reversing each cycle within a pattern is
-relatively straightforward.
+Symmetry is fundamental to pattern, and so reversal is a key operation
+in pattern manipulation. Because Tidal represents a notionally
+infinite timeline, reversing a whole pattern is not possible. However,
+the notion of a cycle is core to Tidal, and reversing each cycle
+within a pattern is relatively straightforward.
 
 <example>
 rev "blue grey orange"
@@ -696,7 +708,8 @@ opposite, shifting it to the left/clockwise. For example, to shift it
 one third to the left every fourth repetition, we could do this:
 
 <example>
-density 16 $ every 4 ((1/3) <~) "blue grey purple"
+density 16 $ every 4 ((1/3) <~) 
+                     "blue grey purple"
 </example>
 
 % The shifting/turning patterns operator <~ takes as argument a
@@ -716,7 +729,8 @@ parameter. The shift amount is therefore one divided by the given
 number of steps, which in the below example is \textonequarter{}.
 
 <example>
-density 4 $ iter 4 $ "blue green purple orange"
+density 4 $ iter 4 $ 
+    "blue green purple orange"
 </example>
 
 \paragraph{superimpose}
@@ -740,7 +754,8 @@ manipulated until they are needed. Here is a simple example:
 
 <examplegrid>
 whenmod 8 4 (slow 4) $ every 2 ((1/2) <~) $
-  every 3 (density 4) $ iter 4 "grey darkgrey green black"
+  every 3 (density 4) $ iter 4 
+    "grey darkgrey green black"
 </examplegrid>
 
 To visualise some of the repeating structure, the above image shows a
@@ -772,8 +787,97 @@ also to the numerous video examples linked to from the homepage
 % coding. There are also just a few lines on how the logical time of
 % Tidal matches the physical time during the performance.
 
-\section{The Tidal community}
+In use, a live coding performance with Tidal is structured around the
+creation and modification of multidimensional patterns. They are
+multidimensional in that patterns of synthesiser parameters are defined,
+and combined into patterns of synthesiser messages.
 
+% TODO - examples
+
+\section{Developing representation}
+\label{tidaldev}
+
+As stated earlier, Tidal has progressed through a number of rewrites,
+with major changes to the core representation of pattern. By request
+of a peer reviewer, here we look at this development of pattern
+representation over time. Each was motivated by and informally
+evaluated through live performance. 
+
+The first representation was based on a straightforward tree
+structure, where sounds could be sequenced within cycles, and layered
+up as ``polymetries'', co-occuring sequences with potentially
+different meters.
+
+\begin{lstlisting}
+data Event = Sound String
+     | Silence
+data Structure = Atom Event
+     | Cycle [Structure]
+     | Polymetry [Structure]
+\end{lstlisting}
+
+Haskell's default lazy behaviour allowed patterns to be represented of
+infinite length, but not with random access - if one pattern is
+replaced with another, either the event generation would restart from
+the first event, or the whole performance up to the point of change
+would have to be regenerated.
+
+Next, a more functional approach was taken, representing pattern as a
+function from discrete time to events, along with the period of the
+cycle.
+
+\begin{lstlisting}
+data Pattern a =
+  Pattern {at :: Int -> [a], period :: Int}
+\end{lstlisting}
+
+This was the basis of an earlier publication \citep{McLean10d}, and
+worked reasonably well for particular styles of electronic dance
+music, such as forms of acid house born from the step
+sequencer. However, the discrete nature of time made it less suitable for
+other genres, such as free jazz. This was worked around to some extent
+by allowing a pattern of floating point time offsets to be applied,
+but this did not allow for compound meters and other musical
+structures.
+
+Next a tree structure was returned to, but where cycles could contain
+arcs, which had floating point onset and duration, allowing a freer
+approach to time. The functional approach was preserved in the
+\lstinline{Signal} data constructor, but for \emph{continuous}
+patterns which continuously vary, rather than having discrete events
+which begin and end.
+
+\begin{lstlisting}
+data Pattern a = Atom {event :: a}
+               | Arc {pattern :: Pattern a,
+                      onset :: Double,
+                      duration :: Maybe Double
+                     }
+               | Cycle {patterns :: [Pattern a]}
+               | Signal {at :: Double -> Pattern a}
+\end{lstlisting}
+
+Next, a simplification brought by the realisation that discrete
+patterns could also be represented as functions from time ranges to
+events:
+
+\begin{lstlisting}
+data Pattern a = Sequence {arc :: Range -> [Event a]}
+               | Signal {at :: Rational -> [a]}
+type Event a = (Range, a)
+type Range = (Rational, Rational)
+\end{lstlisting}
+
+This worked well, particularly the use of rational numbers to
+represent musical time. However, trying to deal with these quite
+different forms as equivalent caused great complexities in the
+supporting code. The final insight, leading to the present
+representation (shown in \S \ref{sec:intro}), is that both discrete
+sequences and continuous signals could be represented as the same
+type, simply by sampling the midpoint of a range in the latter case.
+
+\section{The Tidal community}
+\label{sec:community}
 % In general, I find user studies that investigate the to the
 % usefulness of a language like Tidal a very valuable additions to
 % these kind of papers. However, the survey presented in 6 has very
@@ -786,13 +890,13 @@ also to the numerous video examples linked to from the homepage
 Over the past year, a community of Tidal users has started to
 grow. This followed a residency in Hangar Barcelona, during which the
 Tidal installation procedure was improved and documented. This
-community was surveyed, by invitation via the Tidal on-line forum,
-encouraged to give honest answers, and fifteen responded. Two
-demographic questions were asked. Given an optional free text question
-``What is your gender?'', 10 identified as male, and the remainder
-chose not to answer. Given an optional question ``What is your age?'',
-7 chose ``17-25'', 4 chose ``26-40'', and the remainder chose not to
-answer.
+community was surveyed, by invitation via the Tidal on-line forum
+(\url{http://lurk.org/groups/tidal}), encouraged to give honest
+answers, and fifteen responded. Two demographic questions were
+asked. Given an optional free text question ``What is your gender?'',
+10 identified as male, and the remainder chose not to answer. Given an
+optional question ``What is your age?'', 7 chose ``17-25'', 4 chose
+``26-40'', and the remainder chose not to answer.
 
 Respondents were asked to estimate the number of hours they had used
 Tidal. Answers ranged from 2 to 300, with a mean of 44.2 and a
@@ -804,9 +908,9 @@ A surprising finding was that respondents generally had little or no
 experience of functional programming languages before trying
 Tidal. When asked the question ``How much experience of functional
 programming languages (e.g. Haskell, Lisp, etc) did you have when you
-started with Tidal?  ``, 6 selected ``No experience at all'', 6
+started with Tidal?'', 6/15 selected ``No experience at all'', 6/15
 selected ``Some understanding, but no real practical experience'' and
-3 selected ``Had written programs using functional programming
+3/15 selected ``Had written programs using functional programming
 techniques''. \emph{No} respondents said that they had ``In depth,
 practical knowledge of functional programming''.
 
@@ -819,7 +923,8 @@ they didn't need theoretical understanding in order to use it for
 music (8/15). These answers were all captured as Likert responses, see
 Figure \ref{fig:likert}. From this we conclude that despite Haskell's
 reputation for difficulty, these users did not seem to have problems
-learning a DSL embedded within it, that uses some advanced features.
+learning a DSL embedded within it, that uses some advanced Haskell
+features.
 
 \begin{figure*}[t]
     \centering
@@ -828,22 +933,101 @@ learning a DSL embedded within it, that uses some advanced features.
     \label{fig:likert}
 \end{figure*}
 
-Perhaps the loudest note of warning that we should ring before leaving
-this section is that this is very much a self-selecting group,
-attracted by what may be seen as a niche, technological way to make
-music.
+This is very much a self-selecting group, attracted by what may be
+seen as a niche, technological way to make music. Assessing
+statistical significance is therefore difficult, but having learnt a
+little about the background of respondents, we can turn to their
+qualitative responses. These were in response to the free text
+question ``In general, what has your experience of using Tidal been
+like so far?'', and were overwhelmingly positive, to the point that
+little critical reflection was offered. An interesting aspect though
+is the extent to which respondents explained their experience of Tidal
+in relation both to music software as well as programming languages.
 
-\section{Conclusion}
+\begin{quotation}
+Respondent 1 (R1). Oddly it's the only time I've tried Haskell and
+seen any point in Haskell over other languages I've played with.  I
+think by starting as a sample player you've immediately brought
+something like the 808 (or rebirth, or hydrogen in the linux world) to
+text files.
+\end{quotation}
+
+\begin{quotation} R8. Tidal is the first music programming or
+algorithmic music thingy I've tried which makes sense to me as a
+musician (they all make sense to me as a coder). It's an instrument
+that motivates me to learn and discover my sound within its
+capabilities, a unique piece of gear.
+\end{quotation}
+
+Others responded in terms of the creative change that using Tidal has
+signalled.
+
+\begin{quotation}R10. Tidal has a therapeutic value for me which stems from its
+immediacy and the fact that I can modify patterns at run-time and hear
+the results instantly. It means I find myself 'in the zone' or in a
+state of 'flow'. It's akin to jamming through programming.
+\end{quotation}
+
+\begin{quotation}
+R12. Tidal has made a vast difference to my creative life - I didn't
+write music for 10 years after Fruityloops became FL Studio with a
+more audio oriented approach (rather than just being a solid pattern
+programmer) and could no longer figure out how to put my more complex
+ideas to disk. Now I've recorded a couple hours' worth of music in
+under six months which, in itself, is amazing to me.
+\end{quotation}
+
+\begin{quotation}
+R15. I'm loving it. It's a great way in to functional programming, and
+the pattern syntax has changed how I think about digital
+representations of music
+\end{quotation}
+
+The Tidal user community remains small -- there are currently 56
+members of the online forum, and 164 'stars' and 24 forks on github,
+and so it is difficult to generalise from these survey
+results. However, it is encouraging that respondents report such
+positive experiences despite lack of background in functional
+programming, and future work is planned to bring out this reflection
+using Interpretative Phenomenological Analysis
+\citep[IPA;][]{Smith04}.
+
+\section{Discussion}
 
 We have given some context to live coding Tidal, described some
 implementation details and a selection of the functionality it
 provides. Much of this functionality comes from Haskell itself, which
-has proved a suitable language for describing pattern. This is borne
-out from a survey of 15 Tidal users, who generally reported positive
-learning experiences despite not being experienced functional
-programmers.
+has proved to be a language well suited for describing pattern. This
+is borne out from a small survey of 15 Tidal users, who generally
+reported positive learning experiences despite not being experienced
+functional programmers.
 
-\newpage
+Programming while people are dancing to your code makes the abstract
+tangible. It is necessary to achieve creative flow in performance,
+particularly in the form of improvised performance common in live
+coding practice. Flow is not a case of `losing yourself', but rather
+optimal, fully engaged experience. To experience creative flow while
+constructing abstract structure is something which perhaps all
+programmers are familiar with and strive for, but to be in this state
+while experiencing those abstract structures as tangible sounds,
+together with a room full of people whose physical responses you are
+both shaping and reacting to through the code, is a rare feeling. It
+is not just about connecting with people, although that is a large
+part of it. It is also the feeling of being \emph{in time}. Everything
+counts, not only what you type, but when. The live coder needs to be
+continually aware of the passing of time, so that the shift that comes
+with the next evaluation fits with (or against) the expectations of
+those listening or dancing to it.
+
+Tidal fits within this process by being highly viscous and requiring
+low cognitive load \citet{Green00}, therefore supporting a high rate
+of change. The generality of the pattern transformations means that
+live coders can apply a set of heuristics for changing code at
+different levels of abstraction, as tacit knowledge built through
+play. Live coding is a relatively young field, and this tacit
+knowledge is still being built, as a creative and social
+process. Perhaps most excitingly for FARM, programming language design
+is part of this process.
 
 \bibliographystyle{abbrvnat}
 
