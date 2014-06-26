@@ -48,12 +48,12 @@
 
 Live coding of music has grown into a vibrant international community
 of research and practice over the past decade, providing a new
-research domain where computer science blends with the arts. In this
-paper the domain of live coding is described, with focus on the
-programming language design challenges involved, and the ways in which
-a functional approach can meet those challenges. This leads to the
-introduction of Tidal 0.4, a Domain Specific Language embedded in
-Haskell. This is a substantial restructuring of Tidal, which now
+research domain where computer science blends with the performing
+arts. In this paper the domain of live coding is described, with focus
+on the programming language design challenges involved, and the ways
+in which a functional approach can meet those challenges. This leads
+to the introduction of Tidal 0.4, a Domain Specific Language embedded
+in Haskell. This is a substantial restructuring of Tidal, which now
 represents musical pattern as functions from time to events, inspired
 by Functional Reactive Programming.
 
@@ -163,7 +163,8 @@ software development is shared with that of musical development. The
 third loop is between the programmer and their audience and/or
 co-performers. We can call this feedback loop \emph{social feedback},
 which is foregrounded at algorave events, where the audience is
-dancing. 
+dancing.  Together these feedback loops connect the programmer with
+the live, passing moment.
 
 % This relates to a yet another loop where peers act as
 % critics, and give verbal feedback, in the case of live coding usually
@@ -195,15 +196,16 @@ dancing.
 %improviser) to define a relationship between time and sound that is
 %particular to the piece \citep{@Collinge84}.
 
-A large number of programming languages have been designed for music
-and digital sound processing (DSP) over the past few decades, for
-example ChucK, SuperCollider, Max/MSP, HMSL, Common Music and the
-MusicN languages. As processor frequencies have increased, the promise
-of realtime processing has put new design pressures on languages. Live
-coding has emerged over the past decade, along with the promise of
-realtime programming as an exploratory activity. This has been a
-social development as much as a technological one -- although there
-have been breakthroughs, much of the technology was already in place.
+A large number of programming languages have been designed for
+algorithmic music composition and digital sound processing (DSP) over
+the past few decades, for example ChucK, SuperCollider, Max/MSP, HMSL,
+Common Music and the MusicN languages. As processor frequencies have
+increased, the promise of realtime processing has put new design
+pressures on languages. Live coding has emerged over the past decade,
+along with the promise of realtime programming as an exploratory
+activity. This has been a social development as much as a
+technological one -- although there have been breakthroughs, much of
+the technology was already in place.
 
 There are a range of programming language paradigms in computer
 music. Perhaps the most dominant paradigm is dataflow programming;
@@ -216,7 +218,7 @@ graph. The accessibility of these systems may be attributed to their
 similarity to the analogue synthesisers which preceded and inspired
 them \citep{Puckette88}.
 
-However the most common paradigm in live coding performance seems to
+The most common paradigm in live coding performance seems to
 be functional programming; many live coding environments such as
 Overtone, Fluxus and Extempore are Lisp dialects, and the pure
 functional language Haskell is the basis of a number of live music
@@ -278,12 +280,12 @@ cycle, known as the \emph{sam}, is significant both for resolving the
 previous cycle and for starting the next. The number line of whole
 numbers represents successive sam beats.
 
-The Tidal timeline can be conceptualised as a spiral, as figure
-\ref{fig:spiral} illustrates. Although this is a cyclic structure,
-cycles will often change from one cycle to the next. Indeed,
-polyrhythms are well supported in Tidal, but this assumed cyclic
-structure acts as the metric anchor point for Tidal's pattern
-operations.
+The Tidal timeline can be conceptualised as a spiral, as Fig.
+\ref{fig:spiral} illustrates; both repeating and progressing. Although
+this is a cyclic structure, cycles will often change from one cycle to
+the next. Indeed, polyrhythms are well supported in Tidal, but this
+assumed cyclic structure acts as the metric anchor point for Tidal's
+pattern operations.
 
 % I do not understand the spiral nature of the timeline. Is it
 % possible that the stop time of an arc is before its start time?
@@ -318,8 +320,8 @@ borrowed from music informatics.
 An \lstinline{Event} associates a value with two time arcs; the first
 arc gives the onset and offset of the event, and the second gives the
 'active' portion. The second arc is used for cases where an event is
-cut into pieces, and it is important for each piece to store its
-original arc as context.
+cut into pieces; it is important for each piece to store its original
+arc as context.
 
 % the author states "The arcs of these events may overlap, in other
 % words supporting musical polyphony". I wondered does this mean that
@@ -763,6 +765,13 @@ ten-by-twenty grid of cycles, scanning across and down.
 
 \section{Working with sound}
 
+% The live coding aspect disappointed me. The introduction discusses
+% live coding but not the rest of the paper. In particular, it does not
+% discuss incremental definitions, and how to stop or modify a program
+% being executed. These points are for me some key aspects of live
+% coding. There are also just a few lines on how the logical time of
+% Tidal matches the physical time during the performance.
+
 The visual examples only work up to a point, and the multidimensional
 nature of timbre is difficult to get across with colour alone. Tidal
 allows many aspects of sound, such formant filters, spatialisation,
@@ -778,19 +787,13 @@ transforms. For details, please refer to the Tidal documentation, and
 also to the numerous video examples linked to from the homepage
 \url{http://yaxu.org/tidal}.
 
-\section{Live coding with Tidal}
-
-% The live coding aspect disappointed me. The introduction discusses
-% live coding but not the rest of the paper. In particular, it does not
-% discuss incremental definitions, and how to stop or modify a program
-% being executed. These points are for me some key aspects of live
-% coding. There are also just a few lines on how the logical time of
-% Tidal matches the physical time during the performance.
-
 In use, a live coding performance with Tidal is structured around the
 creation and modification of multidimensional patterns. They are
-multidimensional in that patterns of synthesiser parameters are defined,
-and combined into patterns of synthesiser messages.
+multidimensional in that patterns of synthesiser parameters are
+defined, and combined into patterns of synthesiser messages. In this
+way different aspects of sound can be patterned into music
+independently, potentially creating polyrhythmic structure that plays
+across different aspects of sound.
 
 % TODO - examples
 
@@ -996,7 +999,7 @@ using Interpretative Phenomenological Analysis
 
 We have given some context to live coding Tidal, described some
 implementation details and a selection of the functionality it
-provides. Much of this functionality comes from Haskell itself, which
+provides. This functionality is strongly supported by Haskell itself, which
 has proved to be a language well suited for describing pattern. This
 is borne out from a small survey of 15 Tidal users, who generally
 reported positive learning experiences despite not being experienced
@@ -1009,7 +1012,7 @@ coding practice. Flow is not a case of `losing yourself', but rather
 optimal, fully engaged experience. To experience creative flow while
 constructing abstract structure is something which perhaps all
 programmers are familiar with and strive for, but to be in this state
-while experiencing those abstract structures as tangible sounds,
+while experiencing those abstract structures as sound,
 together with a room full of people whose physical responses you are
 both shaping and reacting to through the code, is a rare feeling. It
 is not just about connecting with people, although that is a large
@@ -1020,14 +1023,14 @@ with the next evaluation fits with (or against) the expectations of
 those listening or dancing to it.
 
 Tidal fits within this process by being highly viscous and requiring
-low cognitive load \citet{Green00}, therefore supporting a high rate
-of change. The generality of the pattern transformations means that
-live coders can apply a set of heuristics for changing code at
-different levels of abstraction, as tacit knowledge built through
-play. Live coding is a relatively young field, and this tacit
-knowledge is still being built, as a creative and social
-process. Perhaps most excitingly for FARM, programming language design
-is part of this process.
+low cognitive load \citep{Green00}, therefore supporting playful
+engagement and a high rate of change. The generality of the pattern
+transformations means that live coders can apply a set of heuristics
+for changing code at different levels of abstraction, as tacit
+knowledge built through play. Live coding is a relatively young field,
+and this tacit knowledge is still at early stages of development, as a
+creative and social process. Perhaps most excitingly for FARM,
+programming language design is part of this process.
 
 \bibliographystyle{abbrvnat}
 
