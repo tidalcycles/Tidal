@@ -45,7 +45,7 @@ unpakced Liblo and then run:
 In Cygwin:
 
 ~~~~
-git clone -b portaudio http://github.com/yaxu/Dirt.git
+git clone http://github.com/yaxu/Dirt.git
 ~~~~
 
 Then:
