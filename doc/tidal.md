@@ -19,6 +19,9 @@ Linux installation:
 Mac OS X installation:
 <https://github.com/yaxu/Tidal/blob/master/doc/install-osx.md>
 
+Windows installation:
+<https://github.com/yaxu/Tidal/blob/master/doc/install-windows.md>
+
 Feel free to ask questions and share problems and success stories on
 the mailing list.
 
