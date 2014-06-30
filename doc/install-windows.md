@@ -65,12 +65,13 @@ least though.
 
 Download and install the haskell platform from https://www.haskell.org/platform/.
 
-You will then either need to restart Cygwin or reload your Cygwin profile to re-load `cabal` your path.
+You will then either need to restart Cygwin or reload your Cygwin profile to re-load `cabal` on your path.
 
 Then back in Cygwin:
 
 ~~~~
-cabal update; cabal install tidal
+cabal update
+cabal install tidal
 ~~~~
 
 ## Run Tidal
