@@ -15,7 +15,9 @@ gcc
 make
 g++
 libsndfile
+libsndfile-devel
 libsamplerate
+libsamplerate-devel
 ~~~~
 
 There might have been others (sorry)
