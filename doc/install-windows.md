@@ -108,8 +108,19 @@ In `.emacs` add this to enable Tidal:
   (require 'tidal)
 ~~~~
 
-... but replace `c:/projects/tidal` with the path to the folder that contains `tidal.el`. `tidal.el` can be obtained from the Tidal repository, at https://github.com/yaxu/Tidal.
+... but replace `c:/projects/tidal` with the path to the folder that contains `tidal.el`. `tidal.el` can be obtained from the Tidal repository, at https://github.com/yaxu/Tidal. The easiest way to use it is to clone the Tidal repository and modify the `.emacs` file to use the path where you cloned it:
 
+~~~~
+git clone https://github.com/yaxu/Tidal c:\tidal
+~~~~
+
+then:
+
+~~~~
+(add-to-list 'load-path "c:/tidal")
+  (require 'haskell-mode)
+  (require 'tidal)
+~~~~
 
 
 
