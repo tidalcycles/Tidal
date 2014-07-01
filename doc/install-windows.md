@@ -94,6 +94,10 @@ Enable Marmalade by adding this to your `.emacs` file:
 (package-initialize)
 ~~~~
 
+Refresh the package index by `M-x package-refresh-contents`. Then install haskell-mode via `M-x package-install` [RET] `haskell-mode`.
+
+*Note* the `M-x` key combination is `alt-x` in Windows.
+
 ### Enable Tidal
 
 In `.emacs` add this to enable Tidal:
