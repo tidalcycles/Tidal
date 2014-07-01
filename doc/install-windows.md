@@ -79,7 +79,14 @@ run Emacs from `bin\runemacs.exe`.
 
 ### create .emacs
 
-Next you will need to find or create the `.emacs` file located in your home directory. This is the Emacs config file. Your exact location may vary depending on how Emacs is installed/run, and which version of Windows you are using. On Windows 8, this location is probably: `C:\Users\<username>\AppData\Roaming`. If the `.emacs` file is not there, create it.
+Next you will need to find or create the `.emacs` file located in your home directory. This is the Emacs config file. Your exact location may vary depending on how Emacs is installed/run. 
+
+1. If you run `runemacs.exe` by double-clicking on it, then your `.emacs` file will probably be located at `C:\Users\<username>\AppData\Roaming\`. 
+2. If you put the `runemacs.exe` folder on your path and run it from a command prompt, then your `.emacs` file will probably be located at `c:\users\<username>\`
+
+Be aware of how you started `runemacs.exe`, and create the `.emacs` in the appropriate folder if it does not exist already. 
+
+Alternately, you can try to have Emacs create the `.emacs` file for you automatically by changing a config setting from one of the Emacs menus and saving your configuration. 
 
 ### Haskell-Mode
 
