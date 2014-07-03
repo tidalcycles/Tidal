@@ -9,7 +9,44 @@
 
 \usepackage{amsmath}
 
-\input{preamble}
+\usepackage{color}
+\usepackage{MnSymbol}
+\definecolor{light-gray}{gray}{0.94}
+\usepackage{listings}
+\lstloadlanguages{Haskell}
+\lstnewenvironment{code}
+    {\lstset{}%
+      \csname lst@SetFirstLabel\endcsname}
+    {\csname lst@SaveFirstLabel\endcsname}
+    \lstset{
+      basicstyle=\small\ttfamily,
+      flexiblecolumns=false,
+      frame=single,
+      framerule=0.5em,
+      rulecolor=\color{light-gray},
+      %basewidth={0.5em,0.45em},
+      showstringspaces=false,
+      identifierstyle=,
+      %%sensitive=true,
+      breaklines=true,
+      backgroundcolor=\color{light-gray},
+      lineskip={-1.5pt},
+      literate={/}{{$/$}}1 {*}{{$*$}}1
+               {>}{{$>$}}1 {<}{{$<$}}1 {\\}{{$\lambda$}}1
+               {\\\\}{{\char`\\\char`\\}}1
+               {->}{{$\rightarrow$}}2 {>=}{{$\geq$}}2 {<-}{{$\leftarrow$}}2
+               {<=}{{$\leq$}}2 {=>}{{$\Rightarrow$}}2
+               {\ .\ }{{$\circ$}}2
+               {>>}{{>>}}2 {>>=}{{>>=}}2
+               {|}{{$\mid$}}1
+               {~}{{$\sim$}}2
+    }
+% \lstset{prebreak=\raisebox{0ex}[0ex][0ex]
+%        {\ensuremath{\rhookswarrow}}}
+%\lstset{postbreak=\raisebox{0ex}[0ex][0ex]
+%        {\ensuremath{\rcurvearrowse\space}}}
+\lstset{breaklines=true, breakatwhitespace=true}
+
 \usepackage{graphicx}
 \usepackage{url}
 \begin{document}
@@ -18,13 +55,15 @@
 \setlength{\pdfpageheight}{\paperheight}
 \setlength{\pdfpagewidth}{\paperwidth}
 
-\conferenceinfo{FARM '14}{September 7, 2014, Goteborg, Sweden} 
+\conferenceinfo{FARM~'14}{September 6, 2014, Gothenburg, Sweden} 
 \copyrightyear{2014}
+\copyrightdata{978-1-4503-3039-8/14/09} 
+\doi{2633638.2633647}
 
 % Uncomment one of the following two, if you are not going for the 
 % traditional copyright transfer agreement.
 
-%\exclusivelicense                % ACM gets exclusive license to publish, 
+\exclusivelicense                % ACM gets exclusive license to publish, 
                                   % you retain copyright
 
 %\permissiontopublish             % ACM gets nonexclusive license to publish
@@ -64,7 +103,7 @@ by Functional Reactive Programming.
 \category{D.3.2}{Applicative (functional) languages}{}
 
 \keywords
-domain specific languages, live coding, music
+domain specific languages; live coding; music
 
 \section{Introduction - Live programming languages for music}
 
@@ -773,38 +812,36 @@ ten-by-twenty grid of cycles, scanning across and down.
 % Tidal matches the physical time during the performance.
 
 The visual examples only work up to a point, and the multidimensional
-nature of timbre is difficult to get across with colour alone. Tidal
-allows many aspects of sound, such formant filters, spatialisation,
-pitch, onset and offset to be patterned separately, and then composed
-into patterns of synthesiser control messages. Pattern transforms can
-then manipulate multiple aspects of sound at once; for example the
-\lstinline{jux} transform works similarly to \lstinline{superimpose},
-but the original pattern is panned to the left speaker, and the
-transformed pattern to the right. The \lstinline{striate} pattern
-effectively cuts a sample into multiple `sound grains', so that those
-patterns of grains can then be manipulated with further
-transforms. For details, please refer to the Tidal documentation, and
-also to the numerous video examples linked to from the homepage
-\url{http://yaxu.org/tidal}.
+nature of timbre is difficult to get across with colour alone. In the
+case of Tidal, this multidimensional nature is evident in that
+patterns of synthesiser parameters are defined, and combined into
+patterns of synthesiser messages. In this way different aspects of
+sound can be patterned into music independently, potentially creating
+polyrhythmic structure that plays across different aspects of sound.
 
-In use, a live coding performance with Tidal is structured around the
-creation and modification of multidimensional patterns. They are
-multidimensional in that patterns of synthesiser parameters are
-defined, and combined into patterns of synthesiser messages. In this
-way different aspects of sound can be patterned into music
-independently, potentially creating polyrhythmic structure that plays
-across different aspects of sound.
+Tidal allows many aspects of sound, such formant filters,
+spatialisation, pitch, onset and offset to be patterned separately,
+and then composed into patterns of synthesiser control
+messages. Pattern transforms can then manipulate multiple aspects of
+sound at once; for example the \lstinline{jux} transform works
+similarly to \lstinline{superimpose}, but the original pattern is
+panned to the left speaker, and the transformed pattern to the
+right. The \lstinline{striate} pattern effectively cuts a sample into
+multiple `sound grains', so that those patterns of grains can then be
+manipulated with further transforms. For details, please refer to the
+Tidal documentation, and also to the numerous video examples linked to
+from the homepage \url{http://yaxu.org/tidal}.
 
 % TODO - examples
 
 \section{Developing representation}
 \label{tidaldev}
 
-As stated earlier, Tidal has progressed through a number of rewrites,
-with major changes to the core representation of pattern. By request
-of a peer reviewer, here we look at this development of pattern
-representation over time. Each was motivated by and informally
-evaluated through live performance. 
+As stated earlier (\S \ref{sec:intro}), Tidal has progressed through a
+number of rewrites, with major changes to the core representation of
+pattern. By request of a peer reviewer, here we look at this
+development of pattern representation over time. Each was motivated by
+and informally evaluated through live performance.
 
 The first representation was based on a straightforward tree
 structure, where sounds could be sequenced within cycles, and layered
@@ -1031,6 +1068,11 @@ knowledge built through play. Live coding is a relatively young field,
 and this tacit knowledge is still at early stages of development, as a
 creative and social process. Perhaps most excitingly for FARM,
 programming language design is part of this process.
+
+\acks
+
+Thanks and gratitude to the members of the Tidal community for their
+feedback, suggestions and input into the ongoing development of Tidal.
 
 \bibliographystyle{abbrvnat}
 
