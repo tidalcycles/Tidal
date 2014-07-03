@@ -33,19 +33,21 @@ main = do --myk <- openUDP mykip mykport
           as <- getArgs
           let dev = fromMaybe "28:0" $ listToMaybe as
           conn <- Connect.createTo h p =<< Addr.parse h dev
-          clockedTick 2 $ onTick h conn
+          clockedTick 4 $ onTick h conn
 
 wave n = drop i s ++ take i s
-  where s = "¸.·´¯`·.´¯`·.¸¸.·´¯`·.¸<º)))><"
+  where s = "¸.·´¯`·.´¯`·.¸¸.·´¯`·.¸<" ++ eye ++ ")))><"
         i = n `mod` (length s)
+        eye | n `mod` 4 == 0 = "O"
+            | otherwise = "º"
 
 --onTick :: UDP -> Tempo -> Int -> IO ()
 onTick h conn current ticks = 
   do putStr $ "tickmyk " ++ (show ticks) ++ " " ++ (wave ticks) ++ "\r"
      hFlush stdout
      --let m = Message "/sync" [int32 ticks, float ((bps current) * 60)]
-     forkIO $ do threadDelay $ floor $ 0.075 * 1000000
-                 Event.outputDirect h $ noteOn conn (fromIntegral $ ticks `mod` 128) 0
+     forkIO $ do threadDelay $ floor $ 0.179 * 1000000
+                 Event.outputDirect h $ noteOn conn (fromIntegral $ ticks `mod` 128) 127
                  return ()
                  
                  --sendOSC myk m
