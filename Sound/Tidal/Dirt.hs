@@ -70,8 +70,11 @@ dirtToColour :: OscPattern -> Pattern ColourD
 dirtToColour p = s
   where s = fmap (\x -> maybe black (maybe black datumToColour) (Map.lookup (param dirt "sound") x)) p
 
+showToColour :: Show a => a -> ColourD
+showToColour = stringToColour . show
+
 datumToColour :: Datum -> ColourD
-datumToColour = stringToColour . show
+datumToColour = showToColour
 
 stringToColour :: String -> ColourD
 stringToColour s = sRGB (r/256) (g/256) (b/256)
