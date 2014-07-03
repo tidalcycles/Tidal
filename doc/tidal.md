@@ -19,6 +19,9 @@ Linux installation:
 Mac OS X installation:
 <https://github.com/yaxu/Tidal/blob/master/doc/install-osx.md>
 
+Windows installation:
+<https://github.com/yaxu/Tidal/blob/master/doc/install-windows.md>
+
 Feel free to ask questions and share problems and success stories on
 the mailing list.
 
@@ -190,7 +193,7 @@ distribution.  Here's some you could try:
     odx diphone2 house off ht tink perc bd industrial pluck trump
     printshort jazz voodoo birds3 procshort blip drum jvbass psr
     wobble drumtraks koy rave bottle kurt latibro rm sax lighter lt
-    arpy feel
+    arpy feel less stab ul
 
 Each one is a folder containing one or more wav files. For example
 when you put `bd:1` in a sequence, you're picking up the second wav
@@ -506,6 +509,32 @@ d1 $ sound (slow 0.5 "bd sn kurt")
 
 Also, see `density`.
 
+## slowspread
+
+~~~~ {.haskell}
+slowspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
+~~~~
+
+`slowspread` takes a list of pattern transforms and applies them one at a time, per cycle, 
+then repeats.
+
+Example:
+
+~~~~ {.haskell}
+d1 $ slowspread ($) [density 2, rev, slow 2, striate 3, (|+| speed "0.8")] 
+    $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4"
+~~~~
+
+Above, the pattern will have these transforms applied to it, one at a time, per cycle:
+
+* cycle 1: `density 2` - pattern will increase in speed
+* cycle 2: `rev` - pattern will be reversed
+* cycle 3: `slow 2` - pattern will decrease in speed
+* cycle 4: `striate 3` - pattern will be granualized
+* cycle 5: `(|+| speed "0.8")` - pattern samples will be played back more slowly
+
+After `(|+| speed "0.8")`, the transforms will repeat and start at `density 2` again.
+
 ## smash
 
 ~~~~ {.haskell}
@@ -655,6 +684,21 @@ with 1/5th of a cycle between them. It is possible to reverse the echo:
 d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 ~~~~
 
+## wedge
+
+~~~~{.haskell}
+wedge :: Time -> Pattern a -> Pattern a -> Pattern a
+~~~~
+
+`wedge` combines two patterns by squashing two patterns into a single pattern cycle.
+It takes a ratio as the first argument. The ratio determines what percentage of the
+pattern cycle is taken up by the first pattern. The second pattern fills in the
+remainder of the pattern cycle.
+
+~~~~{.haskell}
+d1 $ wedge (1/4) "bd*2 arpy*3 cp sn*2" "odx [feel future]*2 hh hh"
+~~~~
+
 ## whenmod
 
 ~~~~ {.haskell}
@@ -707,6 +751,34 @@ an interesting texture results.
 By the way, "0 1 2 3 4" in the above could be replaced with the
 pattern generator `run 5`.
 
+# Stacking
+
+~~~~ {.haskell}
+stack :: [Pattern a] -> Pattern a
+~~~~
+
+`stack` takes a list of patterns and combines them into a new pattern by
+playing all of the patterns in the list simultaneously.
+
+~~~~ {.haskell}
+d1 $ stack [ 
+  sound "bd bd*2", 
+  sound "hh*s [sn cp] cp future*4", 
+  sound (samples "arpy*8", (run 16))
+]
+~~~~
+
+This is useful if you want to use a transform or synth parameter on the entire 
+stack:
+
+~~~~ {.haskell}
+d1 $ whenmod 5 3 (striate 3) $ stack [ 
+  sound "bd bd*2", 
+  sound "hh*s [sn cp] cp future*4", 
+  sound (samples "arpy*8", (run 16))
+] |+| speed "[[1 0.8], [1.5 2]*2]/3"
+~~~~
+
 # Juxtapositions
 
 The `jux` function creates strange stereo effects, by applying a
@@ -731,6 +803,9 @@ d1 $ slow 32 $ jux ((|+| speed "0.5") . rev) $ striate' 32 (1/16) $ sound "bev"
 You can find a stream of minimal cycles written in Tidal in the
 following twitter feed:
   <http://twitter.com/tidalcycles/>
+
+You can look for additional information in the tidal wiki:
+  <https://github.com/yaxu/Tidal/wiki>
 
 # Acknowledgments
 
