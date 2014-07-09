@@ -17,7 +17,7 @@ cabal update
 cabal install tidal
 
 mkdir ~/tidal/emacs
-wget -O ~/tidal/emacs/tidal.el https://raw.github.com/yaxu/Tidal/master/tidal.el
+wget -O ~/tidal/emacs/tidal.el https://raw.githubusercontent.com/yaxu/Tidal/master/tidal.el
 touch ~/.emacs
 echo "(add-to-list 'load-path \"~/tidal/emacs\")" >> ~/.emacs
 echo "(require 'tidal)" >> ~/.emacs
