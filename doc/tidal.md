@@ -696,7 +696,7 @@ pattern cycle is taken up by the first pattern. The second pattern fills in the
 remainder of the pattern cycle.
 
 ~~~~{.haskell}
-d1 $ wedge (1/4) "bd*2 arpy*3 cp sn*2" "odx [feel future]*2 hh hh"
+d1 $ wedge (1/4) (sound "bd*2 arpy*3 cp sn*2") (sound "odx [feel future]*2 hh hh")
 ~~~~
 
 ## whenmod
