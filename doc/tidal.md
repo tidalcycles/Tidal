@@ -130,6 +130,14 @@ first part. You can embed these different forms inside each other:
 d1 $ sound "{bd [ht sn, lt mt ht] lt, sn cp}"
 ~~~~
 
+By default, the number of steps in the first part (in this case, 3) is taken as the number of events per cycle used for the other parts. To specify a different number of steps per cycle, you can use `%`, like this:
+
+~~~~ {.haskell}
+d1 $ sound "{bd [ht sn, lt mt ht] lt, sn cp}%5"
+~~~~
+
+In the above example, five events will be played from each part, in rotation, every cycle.
+
 You can make parts of patterns repeat by using `*`, for example the
 following expressions produce the same pattern:
 
