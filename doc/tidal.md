@@ -696,7 +696,7 @@ pattern cycle is taken up by the first pattern. The second pattern fills in the
 remainder of the pattern cycle.
 
 ~~~~{.haskell}
-d1 $ wedge (1/4) "bd*2 arpy*3 cp sn*2" "odx [feel future]*2 hh hh"
+d1 $ wedge (1/4) (sound "bd*2 arpy*3 cp sn*2") (sound "odx [feel future]*2 hh hh")
 ~~~~
 
 ## whenmod
@@ -763,7 +763,7 @@ playing all of the patterns in the list simultaneously.
 ~~~~ {.haskell}
 d1 $ stack [ 
   sound "bd bd*2", 
-  sound "hh*s [sn cp] cp future*4", 
+  sound "hh*2 [sn cp] cp future*4", 
   sound (samples "arpy*8", (run 16))
 ]
 ~~~~
@@ -774,7 +774,7 @@ stack:
 ~~~~ {.haskell}
 d1 $ whenmod 5 3 (striate 3) $ stack [ 
   sound "bd bd*2", 
-  sound "hh*s [sn cp] cp future*4", 
+  sound "hh*2 [sn cp] cp future*4", 
   sound (samples "arpy*8", (run 16))
 ] |+| speed "[[1 0.8], [1.5 2]*2]/3"
 ~~~~
