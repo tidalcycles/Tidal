@@ -717,6 +717,19 @@ with 1/5th of a cycle between them. It is possible to reverse the echo:
 d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 ~~~~
 
+## trunc
+
+~~~~ {.haskell}
+trunc :: Time -> Pattern a -> Pattern a
+~~~~
+
+Truncates a pattern so that only a fraction of the pattern is played. 
+The following example plays only the first three quarters of the pattern:
+
+~~~~ {.haskell}
+d1 $ trunc 0.75 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
+~~~~
+
 ## wedge
 
 ~~~~{.haskell}
