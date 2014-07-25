@@ -112,3 +112,6 @@ stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
 stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |+| gain (pure $ scale (fromIntegral x))))) [0..(steps-1)])) 
   where scale x 
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
+
+scale :: (Functor f, Num b) => b -> b -> f b -> f b
+scale from to p = ((+ from) . (* (to-from))) <$> p
