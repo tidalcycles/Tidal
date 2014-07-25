@@ -120,10 +120,14 @@ pPolyIn f = do ps <- brackets (pSequence f `sepBy` symbol ",")
 pPolyOut :: Parser (Pattern a) -> Parser (Pattern a)
 pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
                 spaces
-                pMult $ mconcat $ scale ps
-  where scale [] = []
-        scale ((_,p):[]) = [p]
-        scale (ps@((n,_):_)) = map (\(n',p) -> density (fromIntegral n/ fromIntegral n') p) ps
+                base <- do char '%'
+                           spaces
+                           i <- integer <?> "integer"
+                           return $ Just (fromIntegral i)
+                        <|> return Nothing
+                pMult $ mconcat $ scale base ps
+  where scale _ [] = []
+        scale base (ps@((n,_):_)) = map (\(n',p) -> density (fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
 
 pString :: Parser (String)
 pString = many1 (letter <|> oneOf "0123456789:") <?> "string"
