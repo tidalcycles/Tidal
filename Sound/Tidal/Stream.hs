@@ -76,7 +76,7 @@ toMessage s shape change tick (o, m) =
   do m' <- applyShape' shape m
      let cycleD = ((fromIntegral tick) / (fromIntegral ticksPerCycle)) :: Double
          logicalNow = (logicalTime change cycleD)
-         logicalPeriod = 1 / fromIntegral ticksPerCycle
+         logicalPeriod = (logicalTime change (cycleD + (1/(fromIntegral ticksPerCycle)))) - logicalNow
          logicalOnset = logicalNow + (logicalPeriod * o) + latency
          sec = floor logicalOnset
          usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
