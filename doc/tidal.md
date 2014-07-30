@@ -25,10 +25,7 @@ Windows installation:
 Feel free to ask questions and share problems and success stories on
 the mailing list.
 
-Tidal is currently only usable within the emacs editor, as installed
-via the above instructions. Emacs is a long-lived and rather complex
-beast. If you're new to emacs, you can bring up a tutorial by pressing
-`ctrl-h`, and then `t`.
+The above instructions, and the rest of this document, assumes you're using the emacs editor. Emacs is a long-lived and rather complex beast. If you're new to emacs, you can bring up a tutorial by pressing `ctrl-h`, and then `t`. If you're looking for a VIM plugin, check <a href="http://lurk.org/groups/tidal/messages/topic/5F3bHtJPs6NRmm0b2VyQ8Z/">this forum thread</a>.
 
 # Sequences
 
@@ -129,6 +126,14 @@ first part. You can embed these different forms inside each other:
 ~~~~ {.haskell}
 d1 $ sound "{bd [ht sn, lt mt ht] lt, sn cp}"
 ~~~~
+
+By default, the number of steps in the first part (in this case, 3) is taken as the number of events per cycle used for the other parts. To specify a different number of steps per cycle, you can use `%`, like this:
+
+~~~~ {.haskell}
+d1 $ sound "{bd [ht sn, lt mt ht] lt, sn cp}%5"
+~~~~
+
+In the above example, five events will be played from each part, in rotation, every cycle.
 
 You can make parts of patterns repeat by using `*`, for example the
 following expressions produce the same pattern:
@@ -471,6 +476,31 @@ Example:
 d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn:2")
 ~~~~
 
+## iter
+
+~~~~ {.haskell}
+iter :: Int -> Pattern a -> Pattern a
+~~~~
+
+Divides a pattern into a given number of subdivisions, plays the subdivisions
+in order, but increments the starting subdivision each cycle. The pattern
+wraps to the first subdivision after the last subdivision is played.
+
+Example:
+
+~~~~ {.haskell}
+d1 $ iter 4 $ sound "bd hh sn cp"
+~~~~
+
+This will produce the following over four cycles:
+
+~~~~ {.haskell}
+bd hh sn cp
+hh sn cp bd
+sn cp bd hh
+cp bd hh sn
+~~~~
+
 ## rev
 
 ~~~~ {.haskell}
@@ -682,6 +712,19 @@ with 1/5th of a cycle between them. It is possible to reverse the echo:
 
 ~~~~ {.haskell}
 d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
+~~~~
+
+## trunc
+
+~~~~ {.haskell}
+trunc :: Time -> Pattern a -> Pattern a
+~~~~
+
+Truncates a pattern so that only a fraction of the pattern is played. 
+The following example plays only the first three quarters of the pattern:
+
+~~~~ {.haskell}
+d1 $ trunc 0.75 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
 ~~~~
 
 ## wedge

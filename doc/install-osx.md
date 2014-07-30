@@ -47,6 +47,18 @@ cd Dirt
 make clean; make
 ```
 
+If you get errors for sndfile.h and samplerate.h, install libsndfile and libsamplerate via homebrew.
+
+```
+brew install libsndfile
+```
+
+then,
+
+```
+brew install libsamplerate
+```
+
 ---
 * **Note:** If Dirt fails to compile after using the JackOSX installer as above, you may need to add flags to the Makefile to specify the appropriate paths:
 ```
@@ -55,7 +67,11 @@ LDFLAGS += -lm -L/usr/local/lib -llo -lsndfile -lsamplerate -ljack
 ```
 ---
 
-Install Haskell (this takes a while)
+Install Haskell from the binaries served at:
+
+[https://www.haskell.org/platform/mac.html](https://www.haskell.org/platform/mac.html)
+
+Or you might get it from homebrew (this takes a while)
 ```
 brew install haskell-platform
 ```
