@@ -41,6 +41,8 @@ type OscPattern = Pattern OscMap
 
 latency = 0.04
 
+ticksPerCycle = 8
+
 defaultDatum :: Param -> Maybe Datum
 defaultDatum (S _ (Just x)) = Just $ string x
 defaultDatum (I _ (Just x)) = Just $ int32 x
@@ -70,11 +72,11 @@ isSubset :: (Eq a) => [a] -> [a] -> Bool
 isSubset xs ys = all (\x -> elem x ys) xs
 
 toMessage :: UDP -> OscShape -> Tempo -> Int -> (Double, OscMap) -> Maybe (IO ())
-toMessage s shape change cycle (o, m) =
+toMessage s shape change tick (o, m) =
   do m' <- applyShape' shape m
-     let cycleD = (fromIntegral cycle) :: Double
+     let cycleD = ((fromIntegral tick) / (fromIntegral ticksPerCycle)) :: Double
          logicalNow = (logicalTime change cycleD)
-         logicalPeriod = (logicalTime change (cycleD + 1)) - logicalNow
+         logicalPeriod = 1 / fromIntegral ticksPerCycle
          logicalOnset = logicalNow + (logicalPeriod * o) + latency
          sec = floor logicalOnset
          usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
@@ -97,11 +99,9 @@ applyShape' s m | hasRequired s m = Just $ Map.union m (defaultMap s)
 start :: String -> Int -> OscShape -> IO (MVar (OscPattern))
 start address port shape
   = do patternM <- newMVar silence
-       --putStrLn $ "connecting " ++ (show address) ++ ":" ++ (show port)
        s <- openUDP address port
-       --putStrLn $ "connected "
        let ot = (onTick s shape patternM) :: Tempo -> Int -> IO ()
-       forkIO $ clocked $ ot
+       forkIO $ clockedTick ticksPerCycle ot
        return patternM
 
 stream :: String -> Int -> OscShape -> IO (OscPattern -> IO ())
@@ -118,13 +118,13 @@ streamcallback callback server port shape
        return f'
 
 onTick :: UDP -> OscShape -> MVar (OscPattern) -> Tempo -> Int -> IO ()
-onTick s shape patternM change cycles
+onTick s shape patternM change ticks
   = do p <- readMVar patternM
-       let cycles' = (fromIntegral cycles) :: Integer
-           a = cycles' % 1
-           b = (cycles' + 1) % 1
+       let ticks' = (fromIntegral ticks) :: Integer
+           a = ticks' % ticksPerCycle
+           b = (ticks' + 1) % ticksPerCycle
            messages = mapMaybe 
-                      (toMessage s shape change cycles) 
+                      (toMessage s shape change ticks) 
                       (seqToRelOnsets (a, b) p)
        E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
        return ()
