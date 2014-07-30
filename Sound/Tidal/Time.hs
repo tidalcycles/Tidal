@@ -15,7 +15,7 @@ type Arc = (Time, Time)
 -- | An Event is a value that occurs during the period given by the
 -- first @Arc@. The second one indicates the event's "domain of
 -- influence". These will often be the same, but many temporal
--- transformations, such as rotation and scaling time, may resuqlt in
+-- transformations, such as rotation and scaling time, may result in
 -- arcs being split or truncated. In such cases, the first arc is
 -- preserved, but the second arc reflects the portion of the event
 -- which is relevant.
