@@ -176,16 +176,16 @@ solo $ d1 $ sound "bd sn"
 
 # Tempo
 
-You can change the beats per second (bps) like this:
+You can change the cycles per second (cps) like this:
 
 ~~~~ {.haskell}
-bps 1
+cps 1
 ~~~~
 
 If you prefer to think in beats per minute, simply divide by 60
 
 ~~~~ {.haskell}
-bps (140 / 60)
+cps (140 / 60)
 ~~~~
 
 # Samples
