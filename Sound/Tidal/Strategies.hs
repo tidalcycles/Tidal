@@ -4,12 +4,14 @@ module Sound.Tidal.Strategies where
 
 import Data.Ratio
 import Control.Applicative
+import qualified Data.Map as Map
 
 import Sound.Tidal.Dirt
 import Sound.Tidal.Pattern
 import Sound.Tidal.Stream
 import Sound.Tidal.Time
 import Sound.Tidal.Utils
+import qualified Sound.OSC.FD as OSC.FD
 
 stutter n t p = stack $ map (\i -> (t * (fromIntegral i)) ~> p) [0 .. (n-1)]
 
@@ -115,3 +117,12 @@ stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |+| ga
 
 scale :: (Functor f, Num b) => b -> b -> f b -> f b
 scale from to p = ((+ from) . (* (to-from))) <$> p
+
+chop :: Int -> OscPattern -> OscPattern
+chop n p = Pattern $ \a -> concatMap f $ arcCycles a
+     where f a = concatMap chopEvent (arc p a)
+           chopEvent (a,a',v) = map (newEvent v) $ filter ((isIn a') . fst . snd) (enumerate $ chopArc a n)
+           newEvent :: OscMap -> (Int, Arc) -> Event OscMap
+           newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ OSC.FD.float ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ OSC.FD.float ((fromIntegral i)/(fromIntegral n))) v)
+           chopArc :: Arc -> Int -> [Arc]
+           chopArc (s, e) n = map (\i -> ((s + (e-s)*(fromIntegral i/fromIntegral n)), s + (e-s)*((fromIntegral $ i+1)/fromIntegral n))) [0 .. n-1]
