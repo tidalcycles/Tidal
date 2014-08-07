@@ -136,6 +136,9 @@
   (tidal-send-string "now' <- getNow")
   (tidal-send-string "let now = nextSam now'")
   (tidal-send-string "let retrig = (now ~>)")
+  (tidal-send-string "let fadeOut n = spread' (degradeBy) (retrig $ slow n $ envL)")
+  (tidal-send-string "let fadeIn n = spread' (degradeBy) (retrig $ slow n $ (1-) <$> envL)")
+
   )
 
 (defun tidal-run-line ()
