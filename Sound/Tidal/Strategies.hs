@@ -119,10 +119,11 @@ scale :: (Functor f, Num b) => b -> b -> f b -> f b
 scale from to p = ((+ from) . (* (to-from))) <$> p
 
 chop :: Int -> OscPattern -> OscPattern
-chop n p = Pattern $ \a -> concatMap f $ arcCycles a
-     where f a = concatMap chopEvent (arc p a)
-           chopEvent (a,a',v) = map (newEvent v) $ filter ((isIn a') . fst . snd) (enumerate $ chopArc a n)
+chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
+     where f queryA a = concatMap (chopEvent queryA) (arc p a)
+           chopEvent (queryS, queryE) (a,a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ chopArc a n)
            newEvent :: OscMap -> (Int, Arc) -> Event OscMap
            newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ OSC.FD.float ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ OSC.FD.float ((fromIntegral i)/(fromIntegral n))) v)
-           chopArc :: Arc -> Int -> [Arc]
-           chopArc (s, e) n = map (\i -> ((s + (e-s)*(fromIntegral i/fromIntegral n)), s + (e-s)*((fromIntegral $ i+1)/fromIntegral n))) [0 .. n-1]
+
+chopArc :: Arc -> Int -> [Arc]
+chopArc (s, e) n = map (\i -> ((s + (e-s)*(fromIntegral i/fromIntegral n)), s + (e-s)*((fromIntegral $ i+1)/fromIntegral n))) [0 .. n-1]
