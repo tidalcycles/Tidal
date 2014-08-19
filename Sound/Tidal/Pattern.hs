@@ -385,3 +385,16 @@ degrade = degradeBy 0.5
 -- remainer of each cycle.
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
 wedge t p p' = overlay (densityGap (1/t) p) (t <~ densityGap (1/(1-t)) p')
+
+-- | @cutpat s e p@ returns a pattern containing only the events between
+-- @s@ and @e@ from the start of the cycle
+cutpat :: Time -> Time -> Pattern a -> Pattern a
+cutpat s e p = Pattern $ \a -> 
+   let s' = s + sam (fst a)
+       e' = e + sam (fst a)
+   in arc p (fromMaybe (0,0) $ subArc (s',e') a) 
+
+-- @within@ uses @cutpat@ to apply @f@ to only part of pattern @p@
+-- for example, @within (1%2) (3%4) ((1%8) <~) "bd sn bd cp"@ would shift only
+-- the second @bd@
+within s e f p = stack [cutpat 0 s p, f $ cutpat s e p, cutpat e 1 p]
