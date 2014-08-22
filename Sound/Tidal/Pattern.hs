@@ -397,4 +397,9 @@ cutpat s e p = Pattern $ \a ->
 -- @within@ uses @cutpat@ to apply @f@ to only part of pattern @p@
 -- for example, @within (1%2) (3%4) ((1%8) <~) "bd sn bd cp"@ would shift only
 -- the second @bd@
+within 0 1 f p = f p
+within 0 e f p = stack [f $ cutpat 0 e p, cutpat e 1 p]
+within s 1 f p = stack [cutpat 0 s p, f $ cutpat s 1 p]
 within s e f p = stack [cutpat 0 s p, f $ cutpat s e p, cutpat e 1 p]
+
+rev' s e p = within s e (((1-s-e) <~) . rev) p
