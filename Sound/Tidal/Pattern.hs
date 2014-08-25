@@ -417,6 +417,7 @@ degrade = degradeBy 0.5
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
 wedge t p p' = overlay (densityGap (1/t) p) (t <~ densityGap (1/(1-t)) p')
 
+<<<<<<< HEAD
 whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 whenmod a b = Sound.Tidal.Pattern.when ((\t -> (t `mod` a) >= b ))
 
@@ -448,6 +449,9 @@ sliceArc :: Arc -> Pattern a -> Pattern a
 sliceArc a@(s,e) p | s >= e = silence
                    | otherwise = compress a $ zoom a p
 
+-- @within@ uses @compress@ and @zoom to apply @f@ to only part of pattern @p@
+-- for example, @within (1%2) (3%4) ((1%8) <~) "bd sn bd cp"@ would shift only
+-- the second @bd@
 within :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 within (s,e) f p = stack [sliceArc (0,s) p, 
                           compress (s,e) $ f $ zoom (s,e) p, 
