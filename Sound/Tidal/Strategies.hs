@@ -26,7 +26,7 @@ juxcut f p = stack [p     |+| pan (pure 0) |+| cut (pure (-1)),
                    ]
 jux4 f p = stack [p |+| pan (pure 0), f $ p |+| pan (pure 2)]
 
-superimpose f p = stack [p, f p]
+juxBy n f p = stack [p |+| pan (pure $ 0.5 - (n/2)), f $ p |+| pan (pure $ 0.5 + (n/2))]
 
 -- every 4 (smash 4 [1, 2, 3]) $ sound "[odx sn/2 [~ odx] sn/3, [~ hh]*4]"
 
@@ -37,17 +37,6 @@ smash n xs p = slowcat $ map (\n -> slow n p') xs
 
 samples :: Applicative f => f String -> f Int -> f String
 samples p p' = pick <$> p <*> p'
-
-spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
-spread f xs p = cat $ map (\x -> f x p) xs
-
-slowspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
-slowspread f xs p = slowcat $ map (\x -> f x p) xs
-
-spread' :: (a -> Pattern b -> Pattern c) -> Pattern a -> Pattern b -> Pattern c
-spread' f timepat pat =
-  Pattern $ \r -> concatMap (\(_,r', x) -> (arc (f x pat) r')) (rs r)
-  where rs r = arc (filterOnsetsInRange timepat) r
 
 {-
 scrumple :: Time -> Pattern a -> Pattern a -> Pattern a
@@ -61,20 +50,11 @@ scrumple o p p' = p'' -- overlay p (o ~> p'')
                               ) (arc p a)
 -}
 
-whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-whenmod a b = Sound.Tidal.Pattern.when ((\t -> (t `mod` a) >= b ))
-
 --rev :: Pattern a -> Pattern a
 --rev p = Pattern $ \a -> concatMap 
 --                        (\a' -> mapFsts mirrorArc $ 
 --                                (arc p (mirrorArc a')))
 --                        (arcCycles a)
-
-trunc :: Time -> Pattern a -> Pattern a
-trunc t p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
-  where f a = mapArcs (stretch . trunc') $ arc p (trunc' a)
-        trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
-        stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 
 --spreadf :: [Pattern a -> Pattern b] -> Pattern a -> Pattern b
 spreadf ts p = spread ($)
