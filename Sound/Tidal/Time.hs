@@ -1,6 +1,7 @@
 module Sound.Tidal.Time where
 
 import Sound.Tidal.Utils
+import Data.Ratio
 
 -- | Time is represented by a rational number. Each natural number
 -- represents both the start of the next rhythmic cycle, and the end
@@ -58,6 +59,12 @@ subArc (s, e) (s',e') | s'' < e'' = Just (s'', e'')
 -- of the given @Arc@.
 mapArc :: (Time -> Time) -> Arc -> Arc
 mapArc f (s,e) = (f s, f e)
+
+-- | Similar to @mapArc@ but time is relative to the cycle (i.e. the
+-- sam of the start of the arc)
+mapCycle :: (Time -> Time) -> Arc -> Arc
+mapCycle f (s,e) = (sam' + (f $ s - sam'), sam' + (f $ e - sam'))
+         where sam' = sam s
 
 -- | Returns the `mirror image' of an @Arc@, used by @Sound.Tidal.Pattern.rev@.
 mirrorArc :: Arc -> Arc
