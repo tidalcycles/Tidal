@@ -417,7 +417,6 @@ degrade = degradeBy 0.5
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
 wedge t p p' = overlay (densityGap (1/t) p) (t <~ densityGap (1/(1-t)) p')
 
-<<<<<<< HEAD
 whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 whenmod a b = Sound.Tidal.Pattern.when ((\t -> (t `mod` a) >= b ))
 
