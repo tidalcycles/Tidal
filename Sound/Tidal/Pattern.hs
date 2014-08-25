@@ -451,9 +451,13 @@ sliceArc a@(s,e) p | s >= e = silence
 -- @within@ uses @compress@ and @zoom to apply @f@ to only part of pattern @p@
 -- for example, @within (1%2) (3%4) ((1%8) <~) "bd sn bd cp"@ would shift only
 -- the second @bd@
-within :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-within (s,e) f p = stack [sliceArc (0,s) p, 
-                          compress (s,e) $ f $ zoom (s,e) p, 
-                          sliceArc (e,1) p
-                         ]
+withArc :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+withArc (s,e) f p = stack [sliceArc (0,s) p, 
+                           compress (s,e) $ f $ zoom (s,e) p, 
+                           sliceArc (e,1) p
+                          ]
+
+within = withArc
+
+revArc a = withArc a rev
 
