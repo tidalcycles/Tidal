@@ -134,7 +134,7 @@ cat ps = density (fromIntegral $ length ps) $ slowcat ps
 
 splitAtSam :: Pattern a -> Pattern a
 splitAtSam p = 
-  Pattern $ \a -> concatMap (\(s,e) -> mapSnds' (trimArc (sam s)) $ arc p (s,e)) (arcCycles a)
+  splitQueries $ Pattern $ \(s,e) -> mapSnds' (trimArc (sam s)) $ arc p (s,e)
   where trimArc s' (s,e) = (max (s') s, min (s'+1) e)
 
 -- | @slowcat@ does the same as @cat@, but maintaining the duration of
@@ -143,7 +143,7 @@ splitAtSam p =
 
 slowcat :: [Pattern a] -> Pattern a
 slowcat [] = silence
-slowcat ps = Pattern $ \a -> concatMap f (arcCycles a)
+slowcat ps = splitQueries $ Pattern f
   where ps' = map splitAtSam ps
         l = length ps'
         f (s,e) = arc (mapResultTime (+offset) p) (s',e')
@@ -169,12 +169,14 @@ maybeListToPat = cat . map f
 -- | @run@ @n@ returns a pattern representing a cycle of numbers from @0@ to @n-1@.
 run n = listToPat [0 .. n-1]
 
+scan n = cat $ map run [1 .. n]
+
 -- | @density@ returns the given pattern with density increased by the
 -- given @Time@ factor. Therefore @density 2 p@ will return a pattern
 -- that is twice as fast, and @density (1%3) p@ will return one three
 -- times as slow.
 density :: Time -> Pattern a -> Pattern a
-density 0 p = p
+density 0 p = silence
 density 1 p = p
 density r p = mapResultTime (/ r) $ mapQueryTime (* r) p
 
@@ -184,7 +186,8 @@ density r p = mapResultTime (/ r) $ mapQueryTime (* r) p
 -- pattern @p@ into the first half of each cycle (and the second
 -- halves would be empty).
 densityGap :: Time -> Pattern a -> Pattern a
-densityGap r p = mapResultTime (\t -> sam t + ((cyclePos t) / r)) $ Pattern (\a -> concatMap (\a' -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a') (arcCycles a))
+densityGap 0 p = silence
+densityGap r p = mapResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ splitQueries $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
 
 -- | @slow@ does the opposite of @density@, i.e. @slow 2 p@ will
 -- return a pattern that is half the speed.
@@ -214,10 +217,7 @@ iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. 
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
 rev :: Pattern a -> Pattern a
-rev p = Pattern $ \a -> concatMap 
-                        (\a' -> mapArcs mirrorArc $ 
-                                (arc p (mirrorArc a')))
-                        (arcCycles a)
+rev p = splitQueries $ Pattern $ \a -> mapArcs mirrorArc (arc p (mirrorArc a))
 
 -- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
 -- the pattern alternates between forwards and backwards.
@@ -227,9 +227,23 @@ palindrome p = append' p (rev p)
 -- which only affects cycles where the @test@ function applied to the
 -- cycle number returns @True@.
 when :: (Int -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
-when test f p = Pattern $ \a -> concatMap apply (arcCycles a)
+when test f p = splitQueries $ Pattern apply
   where apply a | test (floor $ fst a) = (arc $ f p) a
                 | otherwise = (arc p) a
+
+whenT :: (Time -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
+whenT test f p = splitQueries $ Pattern apply
+  where apply a | test (fst a) = (arc $ f p) a
+                | otherwise = (arc p) a
+
+playWhen :: (Time -> Bool) -> Pattern a -> Pattern a
+playWhen test (Pattern f) = Pattern $ (filter (\e -> test (eventOnset e))) . f
+
+playFor :: Time -> Time -> Pattern a -> Pattern a
+playFor s e = playWhen (\t -> and [t >= s, t < e])
+
+seqP :: [(Time, Time, Pattern a)] -> Pattern a
+seqP = stack . (map (\(s, e, p) -> playFor s e ((sam s) ~> p)))
 
 -- | @every n f p@ applies the function @f@ to @p@, but only affects
 -- every @n@ cycles.
@@ -321,6 +335,23 @@ square = squarewave
 envL :: Pattern Double
 envL = sig $ \t -> max 0 $ min (fromRational t) 1
 
+fadeOut :: Time -> Pattern a -> Pattern a
+fadeOut n = spread' (degradeBy) (slow n $ envL)
+
+fadeIn :: Time -> Pattern a -> Pattern a
+fadeIn n = spread' (degradeBy) (slow n $ (1-) <$> envL)
+
+spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
+spread f xs p = cat $ map (\x -> f x p) xs
+
+slowspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
+slowspread f xs p = slowcat $ map (\x -> f x p) xs
+
+spread' :: (a -> Pattern b -> Pattern c) -> Pattern a -> Pattern b -> Pattern c
+spread' f timepat pat =
+  Pattern $ \r -> concatMap (\(_,r', x) -> (arc (f x pat) r')) (rs r)
+  where rs r = arc (filterOnsetsInRange timepat) r
+
 filterValues :: (a -> Bool) -> Pattern a -> Pattern a
 filterValues f (Pattern x) = Pattern $ (filter (f . thd')) . x
 
@@ -360,7 +391,7 @@ groupByTime es = map mrg $ groupBy ((==) `on` snd') $ sortBy (compare `on` snd')
   where mrg es@((a, a', _):_) = (a, a', map thd' es)
 
 ifp :: (Int -> Bool) -> (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-ifp test f1 f2 p = Pattern $ \a -> concatMap apply (arcCycles a)
+ifp test f1 f2 p = splitQueries $ Pattern apply
   where apply a | test (floor $ fst a) = (arc $ f1 p) a
                 | otherwise = (arc $ f2 p) a
 
@@ -385,3 +416,41 @@ degrade = degradeBy 0.5
 -- remainer of each cycle.
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
 wedge t p p' = overlay (densityGap (1/t) p) (t <~ densityGap (1/(1-t)) p')
+
+whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+whenmod a b = Sound.Tidal.Pattern.when ((\t -> (t `mod` a) >= b ))
+
+superimpose f p = stack [p, f p]
+
+-- | @splitQueries p@ wraps `p` to ensure that it does not get
+-- queries that | span arcs. For example `arc p (0.5, 1.5)` would be
+-- turned into two queries, `(0.5,1)` and `(1,1.5)`, and the results
+-- combined. Being able to assume queries don't span cycles often
+-- makes transformations easier to specify.
+splitQueries :: Pattern a -> Pattern a
+splitQueries p = Pattern $ \a -> concatMap (arc p) $ arcCycles a
+
+trunc :: Time -> Pattern a -> Pattern a
+trunc t p = slow t $ splitQueries $ p'
+  where p' = Pattern $ \a -> mapArcs (stretch . trunc') $ arc p (trunc' a)
+        trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
+        stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
+
+zoom :: Arc -> Pattern a -> Pattern a
+zoom a@(s,e) p = mapResultArc (mapCycle ((/d) . (subtract s))) $ mapQueryArc (mapCycle ((+s) . (*d))) p
+     where d = e-s
+
+compress :: Arc -> Pattern a -> Pattern a
+compress a@(s,e) p | s >= e = silence
+                   | otherwise = s ~> densityGap (1/(e-s)) p
+
+sliceArc :: Arc -> Pattern a -> Pattern a
+sliceArc a@(s,e) p | s >= e = silence
+                   | otherwise = compress a $ zoom a p
+
+within :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+within (s,e) f p = stack [sliceArc (0,s) p, 
+                          compress (s,e) $ f $ zoom (s,e) p, 
+                          sliceArc (e,1) p
+                         ]
+
