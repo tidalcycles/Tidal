@@ -187,7 +187,7 @@ density r p = mapResultTime (/ r) $ mapQueryTime (* r) p
 -- halves would be empty).
 densityGap :: Time -> Pattern a -> Pattern a
 densityGap 0 p = silence
-densityGap r p = mapResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ splitQueries $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
+densityGap r p = splitQueries $ mapResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
 
 -- | @slow@ does the opposite of @density@, i.e. @slow 2 p@ will
 -- return a pattern that is half the speed.
@@ -437,7 +437,7 @@ trunc t p = slow t $ splitQueries $ p'
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 
 zoom :: Arc -> Pattern a -> Pattern a
-zoom a@(s,e) p = mapResultArc (mapCycle ((/d) . (subtract s))) $ mapQueryArc (mapCycle ((+s) . (*d))) p
+zoom a@(s,e) p = splitQueries $ mapResultArc (mapCycle ((/d) . (subtract s))) $ mapQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 
 compress :: Arc -> Pattern a -> Pattern a
