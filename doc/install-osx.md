@@ -13,7 +13,7 @@ brew doctor
 Install emacs, and make it appear in your applications folder:
 ```
 brew install emacs --cocoa
-ln -s /usr/local/Cellar/emacs/24.3/Emacs.app /Applications
+brew linkapps
 ```
 
 Install Dirt, a synth (well, more of a sampler) made to work with
