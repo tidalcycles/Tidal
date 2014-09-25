@@ -47,6 +47,12 @@ arcCycles (s,e) | s >= e = []
                 | sam s == sam e = [(s,e)]
                 | otherwise = (s, nextSam s) : (arcCycles (nextSam s, e))
 
+-- | Splits the given @Arc@ into a list of @Arc@s, at cycle boundaries, but wrapping the arcs within the same cycle.
+arcCycles' :: Arc -> [Arc]
+arcCycles' (s,e) | s >= e = []
+                 | sam s == sam e = [(s,e)]
+                 | otherwise = (s, nextSam s) : (arcCycles' ((nextSam s) - 1, e - 1))
+
 
 -- | @subArc i j@ is the arc that is the intersection of @i@ and @j@.
 subArc :: Arc -> Arc -> Maybe Arc
@@ -74,9 +80,17 @@ mirrorArc (s, e) = (sam s + (nextSam s - e), nextSam s - (s - sam s))
 eventStart :: Event a -> Time
 eventStart = fst . snd'
 
--- | The start time of the given @Event@
+-- | The original onset of the given @Event@
 eventOnset :: Event a -> Time
 eventOnset = fst . fst'
+
+-- | The original offset of the given @Event@
+eventOffset :: Event a -> Time
+eventOffset = snd . fst'
+
+-- | The arc of the given @Event@
+eventArc :: Event a -> Arc
+eventArc = snd'
 
 -- | The midpoint of an @Arc@
 midPoint :: Arc -> Time
@@ -84,3 +98,12 @@ midPoint (s,e) = s + ((e - s) / 2)
 
 hasOnset :: Event a -> Bool
 hasOnset ((s,_), (s',_), _) = s == s'
+
+hasOffset :: Event a -> Bool
+hasOffset ((_,e), (_,e'), _) = e == e'
+
+onsetIn :: Arc -> Event a -> Bool
+onsetIn a e = isIn a (eventOnset e)
+
+offsetIn :: Arc -> Event a -> Bool
+offsetIn a e = isIn a (eventOffset e)
