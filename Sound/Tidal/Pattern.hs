@@ -20,12 +20,10 @@ import Sound.Tidal.Utils
 -- values. For discrete patterns, this returns the events which are
 -- active during that time. For continuous patterns, events with
 -- values for the midpoint of the given @Arc@ is returned.
-
 data Pattern a = Pattern {arc :: Arc -> [Event a]}
 
 -- | @show (p :: Pattern)@ returns a text string representing the
 -- event values active during the first cycle of the given pattern.
-
 instance (Show a) => Show (Pattern a) where
   show p@(Pattern _) = show $ arc p (0, 1)
 
@@ -79,28 +77,28 @@ atom = pure
 silence :: Pattern a
 silence = Pattern $ const []
 
--- | @mapQueryArc f p@ returns a new @Pattern@ with function @f@
+-- | @withQueryArc f p@ returns a new @Pattern@ with function @f@
 -- applied to the @Arc@ values passed to the original @Pattern@ @p@.
-mapQueryArc :: (Arc -> Arc) -> Pattern a -> Pattern a
-mapQueryArc f p = Pattern $ \a -> arc p (f a)
+withQueryArc :: (Arc -> Arc) -> Pattern a -> Pattern a
+withQueryArc f p = Pattern $ \a -> arc p (f a)
 
--- | @mapQueryTime f p@ returns a new @Pattern@ with function @f@
+-- | @withQueryTime f p@ returns a new @Pattern@ with function @f@
 -- applied to the both the start and end @Time@ of the @Arc@ passed to
 -- @Pattern@ @p@.
-mapQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
-mapQueryTime = mapQueryArc . mapArc
+withQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
+withQueryTime = withQueryArc . mapArc
 
--- | @mapResultArc f p@ returns a new @Pattern@ with function @f@
+-- | @withResultArc f p@ returns a new @Pattern@ with function @f@
 -- applied to the @Arc@ values in the events returned from the
 -- original @Pattern@ @p@.
-mapResultArc :: (Arc -> Arc) -> Pattern a -> Pattern a
-mapResultArc f p = Pattern $ \a -> mapArcs f $ arc p a
+withResultArc :: (Arc -> Arc) -> Pattern a -> Pattern a
+withResultArc f p = Pattern $ \a -> mapArcs f $ arc p a
 
--- | @mapResultTime f p@ returns a new @Pattern@ with function @f@
+-- | @withResultTime f p@ returns a new @Pattern@ with function @f@
 -- applied to the both the start and end @Time@ of the @Arc@ values in
 -- the events returned from the original @Pattern@ @p@.
-mapResultTime :: (Time -> Time) -> Pattern a -> Pattern a
-mapResultTime = mapResultArc . mapArc
+withResultTime :: (Time -> Time) -> Pattern a -> Pattern a
+withResultTime = withResultArc . mapArc
 
 -- | @overlay@ combines two @Pattern@s into a new pattern, so that
 -- their events are combined over time.
@@ -146,7 +144,7 @@ slowcat [] = silence
 slowcat ps = splitQueries $ Pattern f
   where ps' = map splitAtSam ps
         l = length ps'
-        f (s,e) = arc (mapResultTime (+offset) p) (s',e')
+        f (s,e) = arc (withResultTime (+offset) p) (s',e')
           where p = ps' !! n
                 r = (floor s) :: Int
                 n = (r `mod` l) :: Int
@@ -168,7 +166,6 @@ maybeListToPat = cat . map f
 
 -- | @run@ @n@ returns a pattern representing a cycle of numbers from @0@ to @n-1@.
 run n = listToPat [0 .. n-1]
-
 scan n = cat $ map run [1 .. n]
 
 -- | @density@ returns the given pattern with density increased by the
@@ -178,7 +175,7 @@ scan n = cat $ map run [1 .. n]
 density :: Time -> Pattern a -> Pattern a
 density 0 p = silence
 density 1 p = p
-density r p = mapResultTime (/ r) $ mapQueryTime (* r) p
+density r p = withResultTime (/ r) $ withQueryTime (* r) p
 
 
 -- | @densityGap@ is similar to @density@ but maintains its cyclic
@@ -187,7 +184,7 @@ density r p = mapResultTime (/ r) $ mapQueryTime (* r) p
 -- halves would be empty).
 densityGap :: Time -> Pattern a -> Pattern a
 densityGap 0 p = silence
-densityGap r p = splitQueries $ mapResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
+densityGap r p = splitQueries $ withResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
 
 -- | @slow@ does the opposite of @density@, i.e. @slow 2 p@ will
 -- return a pattern that is half the speed.
@@ -195,13 +192,12 @@ slow :: Time -> Pattern a -> Pattern a
 slow 0 = id
 slow t = density (1/t) 
 
-
 -- | The @<~@ operator shifts (or rotates) a pattern to the left (or
 -- counter-clockwise) by the given @Time@ value. For example 
 -- @(1%16) <~ p@ will return a pattern with all the events moved 
 -- one 16th of a cycle to the left.
 (<~) :: Time -> Pattern a -> Pattern a
-(<~) t p = mapResultTime (subtract t) $ mapQueryTime (+ t) p
+(<~) t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 
 -- | The @~>@ operator does the same as @~>@ but shifts events to the
 -- right (or clockwise) rather than to the left.
@@ -408,6 +404,15 @@ degradeBy x p = unMaybe $ (\a f -> toMaybe (f > x) a) <$> p <*> rand
           toMaybe True a  = Just a
           unMaybe = (fromJust <$>) . filterValues isJust
 
+unDegradeBy :: Double -> Pattern a -> Pattern a
+unDegradeBy x p = unMaybe $ (\a f -> toMaybe (f <= x) a) <$> p <*> rand
+    where toMaybe False _ = Nothing
+          toMaybe True a  = Just a
+          unMaybe = (fromJust <$>) . filterValues isJust
+
+sometimesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+sometimesBy x f p = overlay (f (degradeBy x p)) (unDegradeBy x p)
+
 degrade :: Pattern a -> Pattern a
 degrade = degradeBy 0.5
 
@@ -437,7 +442,7 @@ trunc t p = slow t $ splitQueries $ p'
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 
 zoom :: Arc -> Pattern a -> Pattern a
-zoom a@(s,e) p = splitQueries $ mapResultArc (mapCycle ((/d) . (subtract s))) $ mapQueryArc (mapCycle ((+s) . (*d))) p
+zoom a@(s,e) p = splitQueries $ withResultArc (mapCycle ((/d) . (subtract s))) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 
 compress :: Arc -> Pattern a -> Pattern a
@@ -451,13 +456,11 @@ sliceArc a@(s,e) p | s >= e = silence
 -- @within@ uses @compress@ and @zoom to apply @f@ to only part of pattern @p@
 -- for example, @within (1%2) (3%4) ((1%8) <~) "bd sn bd cp"@ would shift only
 -- the second @bd@
-withArc :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-withArc (s,e) f p = stack [sliceArc (0,s) p, 
+within :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+within (s,e) f p = stack [sliceArc (0,s) p, 
                            compress (s,e) $ f $ zoom (s,e) p, 
                            sliceArc (e,1) p
                           ]
 
-within = withArc
-
-revArc a = withArc a rev
+revArc a = within a rev
 
