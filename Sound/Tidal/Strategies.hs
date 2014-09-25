@@ -6,6 +6,7 @@ import Data.Ratio
 import Control.Applicative
 import qualified Data.Map as Map
 
+import Data.Maybe
 import Sound.Tidal.Dirt
 import Sound.Tidal.Pattern
 import Sound.Tidal.Stream
@@ -107,3 +108,22 @@ chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
 
 chopArc :: Arc -> Int -> [Arc]
 chopArc (s, e) n = map (\i -> ((s + (e-s)*(fromIntegral i/fromIntegral n)), s + (e-s)*((fromIntegral $ i+1)/fromIntegral n))) [0 .. n-1]
+{-
+normEv :: Event a -> Event a -> Event a
+normEv ev@(_, (s,e), _) ev'@(_, (s',e'), _) 
+       | not on && not off = [] -- shouldn't happen
+       | on && off = splitEv ev'
+       | not on && s' > sam s = []
+       | not off && e' < nextSam s = [(fst' ev, mapSnd' (mapSnd (min $ nextSam s)) ev, thd' ev)]
+  where on = onsetIn (sam s, nextSam s) ev
+        off = offsetIn (sam s, nextSam s) ev
+        eplitEv
+-}
+--mapCycleEvents :: Pattern a -> ([Event a] -> [Event a]) -> Pattern a
+--mapCycleEvents p f = splitQueries $ Pattern $ \(s,e) -> filter (\ev -> isJust $ subArc (s,e) (eventArc ev)) $ f $ arc p (sam s, nextSam s)
+
+--off :: Time -> Pattern a -> Pattern a
+--off t p = mapCycleEvents p (mapArcs (mapSnd wrappedPlus . mapFst wrappedPlus))
+--               where wrapAtCycle f t' = sam t' + cyclePos (f t')
+--                     wrappedPlus = wrapAtCycle (+t)
+
