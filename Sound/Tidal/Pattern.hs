@@ -411,7 +411,13 @@ unDegradeBy x p = unMaybe $ (\a f -> toMaybe (f <= x) a) <$> p <*> rand
           unMaybe = (fromJust <$>) . filterValues isJust
 
 sometimesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-sometimesBy x f p = overlay (f (degradeBy x p)) (unDegradeBy x p)
+sometimesBy x f p = overlay (degradeBy x p) (f $ unDegradeBy x p)
+
+sometimes = sometimesBy 0.5
+often = sometimesBy 0.75
+rarely = sometimesBy 0.25
+almostNever = sometimesBy 0.1
+almostAlways = sometimesBy 0.9
 
 degrade :: Pattern a -> Pattern a
 degrade = degradeBy 0.5
