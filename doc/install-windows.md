@@ -67,8 +67,10 @@ Download and install the haskell platform from https://www.haskell.org/platform/
 
 Then back in Cygwin:
 
+in order to install tidal before you need to install websockets-0.8.2.6 because the version 0.9.0.1 causes an error installing tidal.
 ~~~~
 cabal update
+cabal install websockets-0.8.2.6
 cabal install tidal
 ~~~~
 
