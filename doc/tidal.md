@@ -384,6 +384,29 @@ Example:
 d1 $ sound (brak "bd sn kurt")
 ~~~~
 
+
+## chop
+
+~~~~ {.haskell}
+chop :: Int -> OscPattern -> OscPattern
+~~~~
+
+`chop` granualizes every sample in place as it is played. Use an integer
+value to specify how manu granules each sample is chopped into:
+
+~~~~ {.haskell}
+d1 $ chop 16 $ sound "arpy arp feel*4 arpy*4"
+~~~~
+
+Different values of `chop` can yield very different results, depending
+on the samples used:
+
+~~~~ {.haskell}
+d1 $ chop 16 $ sound (samples "arpy*8" (run 16))
+d1 $ chop 32 $ sound (samples "arpy*8" (run 16))
+d1 $ chop 256 $ sound "bd*4 [sn cp] [hh future]*2 [cp feel]"
+~~~~
+
 ## degrade and degradeBy
 
 ~~~~ {.haskell}
@@ -596,6 +619,32 @@ d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
 "sn:2 sid:3 cp sid:4")
   |+| speed "[1 2 1 1]/2"
 ~~~~
+
+## sometimesBy
+
+~~~~ {.haskell}
+sometimesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+~~~~
+
+Use `sometimesBy` to apply a given function "sometimes". For example, the 
+following code results in `density 2` being applied about 25% of the time:
+
+~~~~ {.haskell}
+d1 $ sometimesBy 0.25 (density 2) $ sound "bd*8"
+~~~~
+
+There are some aliases as well:
+
+~~~~ {.haskell}
+sometimes = sometimesBy 0.5
+often = sometimesBy 0.75
+rarely = sometimesBy 0.25
+almostNever = sometimesBy 0.1
+almostAlways = sometimesBy 0.9
+~~~~
+
+
+
 
 ## spread
 
@@ -823,6 +872,22 @@ d1 $ whenmod 5 3 (striate 3) $ stack [
   sound (samples "arpy*8", (run 16))
 ] |+| speed "[[1 0.8], [1.5 2]*2]/3"
 ~~~~
+
+There is a similar function named `seqP` which allows you to define when
+a sound within a list starts and ends. The code below contains three
+separate patterns in a "stack", but each has different start times 
+(zero cycles, eight cycles, and sixteen cycles, respectively). All
+patterns stop after 128 cycles:
+
+~~~~ {.haskell}
+d1 $ seqP [ 
+  (0, 128, sound "bd bd*2"), 
+  (8, 128, sound "hh*2 [sn cp] cp future*4"), 
+  (16, 128, sound (samples "arpy*8", (run 16)))
+]
+~~~~
+
+
 
 # Juxtapositions
 
