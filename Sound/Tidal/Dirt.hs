@@ -37,7 +37,13 @@ dirt = OscShape {path = "/play",
                             I "cut" (Just (0)),
                             F "delay" (Just (0)),
                             F "delaytime" (Just (-1)),
-                            F "delayfeedback" (Just (-1))
+                            F "delayfeedback" (Just (-1)),
+                            F "crush" (Just 0),
+                            I "coarse" (Just 0),
+                            F "hcutoff" (Just 0),
+                            F "hresonance" (Just 0),
+                            F "bandf" (Just 0),
+                            F "bandq" (Just 0)
                           ],
                  timestamp = True
                 }
@@ -114,6 +120,14 @@ gain         = makeF dirt "gain"
 delay        = makeF dirt "delay"
 delaytime    = makeF dirt "delaytime"
 delayfeedback = makeF dirt "delayfeedback"
+crush        = makeF dirt "crush"
+
+coarse :: Pattern Int -> OscPattern
+coarse       = makeI dirt "coarse"
+hcutoff      = makeF dirt "hcutoff"
+hresonance   = makeF dirt "hresonance"
+bandf        = makeF dirt "bandf"
+bandq        = makeF dirt "bandq"
 
 
 cut :: Pattern Int -> OscPattern
