@@ -330,6 +330,8 @@ synthesis parameters you can use:
 * `end` - the same as `begin`, but cuts the end off samples, shortening them;
   e.g. `0.75` to cut off the last quarter of each sample.
 * `gain` - a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder.
+* `hcutoff` - a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter. 
+* `hresonance` - a pattern of numbers from 0 to 1. Applies the resonance of the high-pass filter.
 * `pan` - a pattern of numbers between 0 and 1, from left to right (assuming stereo)
 * `resonance` - a pattern of numbers from 0 to 1. Applies the resonance of the low-pass filter.
 * `shape` - wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion
