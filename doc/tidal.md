@@ -320,6 +320,8 @@ Synth parameters generate or affect sample playback. These are the
 synthesis parameters you can use:
 
 * `accelerate` - a pattern of numbers that speed up (or slow down) samples while they play.
+* `bandf` - a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
+* `bandq` - a pattern of numbers from 0 to 1. Sets the q-factor of the band-pass filter.
 * `begin` - a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample.
 * `cutoff` - a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter. 
 * `delay` - a pattern of numbers from 0 to 1. Sets the level of the delay signal.
