@@ -323,6 +323,8 @@ synthesis parameters you can use:
 * `bandf` - a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
 * `bandq` - a pattern of numbers from 0 to 1. Sets the q-factor of the band-pass filter.
 * `begin` - a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample.
+* `crush` - bit crushing, a pattern of numbers from 1 for drastic reduction in bit-depth to 16 for barely no reduction.
+* `coarse` - fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
 * `cutoff` - a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter. 
 * `delay` - a pattern of numbers from 0 to 1. Sets the level of the delay signal.
 * `delayfeedback` - a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
