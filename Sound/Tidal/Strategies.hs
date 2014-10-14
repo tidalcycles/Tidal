@@ -34,6 +34,9 @@ juxBy n f p = stack [p |+| pan (pure $ 0.5 - (n/2)), f $ p |+| pan (pure $ 0.5 +
 smash n xs p = slowcat $ map (\n -> slow n p') xs
   where p' = striate n p
 
+smash' n xs p = slowcat $ map (\n -> slow n p') xs
+  where p' = chop n p
+
 -- samples "jvbass [~ latibro] [jvbass [latibro jvbass]]" ((1%2) <~ slow 6 "[1 6 8 7 3]")
 
 samples :: Applicative f => f String -> f Int -> f String
