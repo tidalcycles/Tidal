@@ -13,6 +13,8 @@ import Data.Typeable
 import Data.Function
 import System.Random.Mersenne.Pure64
 
+import Music.Theory.Bjorklund
+
 import Sound.Tidal.Time
 import Sound.Tidal.Utils
 
@@ -54,7 +56,6 @@ instance Applicative Pattern where
 instance Monoid (Pattern a) where
     mempty = silence
     mappend = overlay
-
 
 instance Monad Pattern where
   return = pure
@@ -470,3 +471,5 @@ within (s,e) f p = stack [sliceArc (0,s) p,
 
 revArc a = within a rev
 
+e :: Int -> Int -> Pattern b -> Pattern b
+e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)) <*> p
