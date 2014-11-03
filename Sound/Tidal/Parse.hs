@@ -105,10 +105,12 @@ pSingle :: Parser (Pattern a) -> Parser (Pattern a)
 pSingle f = f >>= pRand >>= pMult
 
 pPart :: Parser (Pattern a) -> Parser ([Pattern a])
-pPart f = do part <- parens (pSequence f) <|> pSingle f <|> pPolyIn f <|> pPolyOut f
-             part' <- pRand part
+pPart f = do -- part <- parens (pSequence f) <|> pSingle f <|> pPolyIn f <|> pPolyOut f
+             part <- pSingle f <|> pPolyIn f <|> pPolyOut f
+             part <- pE part
+             part <- pRand part
              spaces
-             parts <- pReplicate part'
+             parts <- pReplicate part
              spaces
              return $ parts
 
@@ -178,6 +180,18 @@ pRand thing = do char '?'
                  spaces
                  return $ degrade thing
               <|> return thing
+
+pE :: Pattern a -> Parser (Pattern a)
+pE thing = do (n,k) <- parens (pair)
+              return $ e n k thing
+            <|> return thing
+   where pair = do a <- integer
+                   spaces
+                   symbol ","
+                   spaces
+                   b <- integer
+                   return (fromIntegral a, fromIntegral b)
+                   
 
 pReplicate :: Pattern a -> Parser ([Pattern a])
 pReplicate thing = do extras <- many $ do char '!'
