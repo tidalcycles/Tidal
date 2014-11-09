@@ -473,3 +473,6 @@ revArc a = within a rev
 
 e :: Int -> Int -> Pattern b -> Pattern b
 e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)) <*> p
+
+e' :: Int -> Int -> Pattern b -> Pattern b
+e' n k p = cat $ map (\x -> if x then p else silence) (bjorklund (n,k))
