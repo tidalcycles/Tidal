@@ -73,7 +73,7 @@ Install Haskell from the binaries served at:
 
 Or you might get it from homebrew (this takes a while)
 ```
-brew install haskell-platform
+brew install ghc cabal-install
 ```
 
 Install Tidal (yeah!)
