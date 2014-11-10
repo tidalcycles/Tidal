@@ -2,7 +2,7 @@ Unless otherwise specified, the below commands should be typed or pasted into a 
 
 Install homebrew:
 ```
-ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go/install)"
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 ```
 
 Initialise homebrew:
