@@ -10,9 +10,9 @@ following packages are installed:
 
 ~~~~
 git
-gcc
+gcc-core
+gcc-g++
 make
-g++
 libsndfile
 libsndfile-devel
 libsamplerate
