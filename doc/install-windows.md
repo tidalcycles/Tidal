@@ -9,7 +9,6 @@ First, install Cygwin from https://www.cygwin.com. In Cygwin, make sure the
 following packages are installed:
 
 ~~~~
-emacs
 git
 gcc
 make
