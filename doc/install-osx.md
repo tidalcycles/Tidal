@@ -134,7 +134,7 @@ cd ~/Dirt
 ./dirt &
 ```
 
-Then back in emacs, open a file called something ending with .tidal, such as test.tidal
+Then back in emacs, open a new file called something ending with .tidal, such as test.tidal
 
 Then you start up tidal, by doing `ctrl-c` followed by `ctrl-s`
 
