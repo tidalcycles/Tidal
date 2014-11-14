@@ -130,6 +130,7 @@ jackd -d coreaudio &
 ```
 Then start dirt:
 ```
+cd ~/Dirt
 ./dirt &
 ```
 
