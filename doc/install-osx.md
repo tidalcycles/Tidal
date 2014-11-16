@@ -82,14 +82,19 @@ cabal update
 cabal install tidal
 ```
 
-Ok now time to configure emacs.. Do the following:
+Ok now time to configure emacs.. Run the following commands in a terminal window:
 ```
 mkdir ~/tidal
 cd ~/tidal
 curl -L https://raw.githubusercontent.com/yaxu/Tidal/master/tidal.el > tidal.el
 ```
 
-Then create a file in your home folder called .emacs (unless it exists already), then open the file in a text editor and insert the following lines:
+If you haven't configured emacs before, or don't mind losing your settings, then do the following:
+```
+curl -L https://raw.githubusercontent.com/yaxu/Tidal/master/doc/dotemacs > ~/.emacs
+```
+
+If you *have* configured emacs before and don't want to lose your settings, open the `.emacs` file in your home folder a text editor, and insert the following lines:
 ```
 (require 'package)
 (add-to-list 'package-archives 
