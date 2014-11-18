@@ -45,7 +45,7 @@ dirt = OscShape {path = "/play",
                             F "bandf" (Just 0),
                             F "bandq" (Just 0)
                           ],
-                 timestamp = True
+                 timestamp = MessageStamp
                 }
 
 
@@ -54,7 +54,7 @@ kriole = OscShape {path = "/trigger",
                  params = [ I "ksymbol" Nothing,
                             F "kpitch" (Just 1)
                           ],
-                 timestamp = True
+                 timestamp = MessageStamp
                 }
 
 dirtstart name = start "127.0.0.1" 7771 dirt
