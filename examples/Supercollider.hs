@@ -18,15 +18,15 @@ import Sound.Tidal.Parse
 
 sctest :: OscShape
 sctest = OscShape {path = "/sctest",
-                 params = [ S "thing" Nothing,
-                            F "wobble" (Just 0),
-                            I "pings" (Just 0)
-                          ],
-                 timestamp = BundleStamp
-                }
+                   params = [ S "thing" Nothing,
+                              F "wobble" (Just 0),
+                              I "pings" (Just 0)
+                            ],
+                   timestamp = BundleStamp,
+                   latency = 0.02
+                  }
 
-
-sctestStrream = stream "127.0.0.1" 57120 sctest
+sctestStream = stream "127.0.0.1" 57120 sctest
 
 -- could be better with lenses
 thing        = makeS sctest "thing"

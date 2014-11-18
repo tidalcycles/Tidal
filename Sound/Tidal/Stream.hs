@@ -36,13 +36,12 @@ data TimeStamp = BundleStamp | MessageStamp | NoStamp
 
 data OscShape = OscShape {path :: String,
                           params :: [Param],
-                          timestamp :: TimeStamp
+                          timestamp :: TimeStamp,
+                          latency :: Double
                          }
 type OscMap = Map.Map Param (Maybe Datum)
 
 type OscPattern = Pattern OscMap
-
-latency = 0.04
 
 ticksPerCycle = 8
 
@@ -80,7 +79,7 @@ toMessage s shape change tick (o, m) =
      let cycleD = ((fromIntegral tick) / (fromIntegral ticksPerCycle)) :: Double
          logicalNow = (logicalTime change cycleD)
          logicalPeriod = (logicalTime change (cycleD + (1/(fromIntegral ticksPerCycle)))) - logicalNow
-         logicalOnset = logicalNow + (logicalPeriod * o) + latency
+         logicalOnset = logicalNow + (logicalPeriod * o) + (latency shape)
          sec = floor logicalOnset
          usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
          oscdata = catMaybes $ mapMaybe (\x -> Map.lookup x m') (params shape)
