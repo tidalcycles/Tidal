@@ -9,11 +9,10 @@ First, install Cygwin from https://www.cygwin.com. In Cygwin, make sure the
 following packages are installed:
 
 ~~~~
-emacs
 git
-gcc
+gcc-core
+gcc-g++
 make
-g++
 libsndfile
 libsndfile-devel
 libsamplerate
