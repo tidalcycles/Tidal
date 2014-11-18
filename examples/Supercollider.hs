@@ -2,16 +2,6 @@
   
 module SuperCollider where
 
--- import Sound.OSC.FD
--- import qualified Data.Map as Map
--- import Control.Applicative
--- import Control.Concurrent.MVar
--- import Visual
--- import Data.Hashable
--- import Data.Bits
--- import Data.Maybe
--- import System.Process
-
 import Sound.Tidal.Stream
 import Sound.Tidal.Pattern
 import Sound.Tidal.Parse
