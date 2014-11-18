@@ -31,9 +31,12 @@ instance Ord Param where
 instance Show Param where
   show p = name p
 
+data TimeStamp = BundleStamp | MessageStamp | NoStamp
+ deriving Eq
+
 data OscShape = OscShape {path :: String,
                           params :: [Param],
-                          timestamp :: Bool
+                          timestamp :: TimeStamp
                          }
 type OscMap = Map.Map Param (Maybe Datum)
 
@@ -82,7 +85,8 @@ toMessage s shape change tick (o, m) =
          usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
          oscdata = catMaybes $ mapMaybe (\x -> Map.lookup x m') (params shape)
          oscdata' = ((int32 sec):(int32 usec):oscdata)
-         osc | timestamp shape = sendOSC s $ Message (path shape) oscdata'
+         osc | timestamp shape == BundleStamp = sendOSC s $ Bundle (ut_to_ntpr logicalOnset) [Message (path shape) oscdata]
+             | timestamp shape == MessageStamp = sendOSC s $ Message (path shape) oscdata'
              | otherwise = doAt logicalOnset $ sendOSC s $ Message (path shape) oscdata
      return osc
 
@@ -140,6 +144,7 @@ makeS = make string
 makeF :: OscShape -> String -> Pattern Double -> OscPattern
 makeF = make float
 
+makeI :: OscShape -> String -> Pattern Int -> OscPattern
 makeI = make int32
 
 param :: OscShape -> String -> Param
