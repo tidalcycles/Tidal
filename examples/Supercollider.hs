@@ -9,15 +9,19 @@ import Sound.Tidal.Parse
 sctest :: OscShape
 sctest = OscShape { 
                    -- The OSC path
-                   path = "/sctest",
+                   path = "/player",
                    -- The OSC parameters, for each give the type (S =
                    -- string, F = floating point, I = integer), a
                    -- name, and it's default value.  The default value
                    -- is either specified as Just then the value, or
                    -- Nothing if there is no default.
-                   params = [ S "thing" Nothing,
-                              F "wobble" (Just 0),
-                              I "pings" (Just 0)
+                   params = [ S "sample" Nothing,
+                              F "pan" (Just 0),
+                              F "crackle" (Just 0),
+                              F "noise" (Just 0),
+                              F "ts" (Just 1),
+                              F "browndel" (Just 0),
+                              F "rate" (Just 1)
                             ],
                    -- How to timestamp the message - either
                    -- BundleStamp if messages should be wrapped in a
@@ -30,7 +34,7 @@ sctest = OscShape {
                    timestamp = BundleStamp,
                    -- Amount of latency to build in, i.e. messages
                    -- will be sent ahead of time by this number of seconds
-                   latency = 0.02
+                   latency = 0.2
                   }
 
 -- This gives the IP address and port number
@@ -38,8 +42,11 @@ sctestStream = stream "127.0.0.1" 57120 sctest
 
 -- You have to make one of these for each parameter, getting the type
 -- right. This could be better with lenses..
-thing        = makeS sctest "thing"
-wobble       = makeF sctest "wobble"
-pings        = makeI sctest "pings"
-
+sample   = makeS sctest "sample"
+pan      = makeF sctest "pan"
+crackle  = makeF sctest "crackle"
+noise    = makeF sctest "noise"
+ts       = makeF sctest "ts"
+browndel = makeF sctest "browndel"
+rate     = makeF sctest "rate"
 
