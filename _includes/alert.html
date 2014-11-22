@@ -1,0 +1,3 @@
+<div class="alert alert-{% if include.type == null %}info{% else %}{{include.type}}{% endif %}">
+  {{ include.content | markdownify }}
+</div>

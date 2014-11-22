@@ -1,0 +1,41 @@
+- name: getting_started
+  title: Getting started
+  sections:
+    - name: installation
+      title: Installation 
+    - name: integration
+      title: Editor integration 
+- name: patterns
+  title: Patterns
+  sections:
+    - name: sequences
+      title: Sequences
+    - name: continuous
+      title: Continuous Patterns
+- name: functions
+  title: Reference
+  sections:
+    - name: pattern_transformers
+      title: Pattern Transformers
+    - name: sample
+      title: Sample Transformers
+    - name: conditional
+      title: Conditional Transformers
+    - name: compositions
+      title: Compositions
+- name: howtos
+  title: HowTos
+  sections:
+    - name: multi_channel
+      title: "Multi-channel"
+    - name: multi_laptop
+      title: "Multi-laptop"
+    - name: live
+      title: Playing live
+- name: publications
+  title: Publications
+  sections:
+    - name: recent
+      title: Recent
+    - name: historic
+      title: Archive

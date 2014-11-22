@@ -1,0 +1,48 @@
+name: Tidal
+permalink: /:categories/:title.html
+baseurl: "/Tidal"
+markdown: redcarpet
+redcarpet:
+  smart: true
+collections:
+  getting_started:
+  patterns:
+  functions:
+  howtos:
+  publications:
+
+defaults:
+  -
+    scope:
+      path: "getting_started"
+    values:
+      layout: default
+  -
+    scope:
+      path: "patterns"
+    values:
+      layout: default
+  -
+    scope:
+      path: "functions"
+    values:
+      layout: default
+  -
+    scope:
+      path: "compositions"
+    values:
+      layout: default
+  -
+    scope:
+      path: "concepts"
+    values:
+      layout: default
+  -
+    scope:
+      path: "publications"
+    values:
+      layout: default
+      theme: bibliography
+
+
+

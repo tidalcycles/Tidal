@@ -1,0 +1,246 @@
+---
+---
+
+@font-face {
+    font-family: 'Linux Biolinum';
+
+    src: url('../fonts/LinBiolinum_R.woff') format('woff');
+}
+
+@font-face {
+    font-family: 'Linux Biolinum';
+    font-style: italic;
+
+    src: url('../fonts/LinBiolinum_RI.woff') format('woff');
+}
+
+@font-face {
+    font-family: 'Linux Biolinum';
+    font-weight: bold;
+
+    src: url('../fonts/LinBiolinum_RB.woff') format('woff');
+}
+
+@font-face {
+    font-family: 'Linux Biolinum Keyboard';
+
+    src: url('../fonts/LinBiolinum_K.woff') format('woff');
+}
+
+// Core variables and mixins
+
+@import "tidal/variables";
+@import "lumen/variables";
+@import "bootstrap/variables";
+@import "bootstrap/mixins";
+
+// Reset and dependencies
+@import "bootstrap/normalize";
+@import "bootstrap/print";
+@import "bootstrap/glyphicons";
+
+// Core CSS
+@import "bootstrap/scaffolding";
+@import "bootstrap/type";
+@import "bootstrap/code";
+@import "bootstrap/grid";
+@import "bootstrap/tables";
+@import "bootstrap/forms";
+@import "bootstrap/buttons";
+
+// Components
+@import "bootstrap/component-animations";
+@import "bootstrap/dropdowns";
+@import "bootstrap/button-groups";
+@import "bootstrap/input-groups";
+@import "bootstrap/navs";
+@import "bootstrap/navbar";
+@import "bootstrap/breadcrumbs";
+@import "bootstrap/pagination";
+@import "bootstrap/pager";
+@import "bootstrap/labels";
+@import "bootstrap/badges";
+@import "bootstrap/jumbotron";
+@import "bootstrap/thumbnails";
+@import "bootstrap/alerts";
+@import "bootstrap/progress-bars";
+@import "bootstrap/media";
+@import "bootstrap/list-group";
+@import "bootstrap/panels";
+@import "bootstrap/responsive-embed";
+@import "bootstrap/wells";
+@import "bootstrap/close";
+
+// Components w/ JavaScript
+@import "bootstrap/modals";
+@import "bootstrap/tooltip";
+@import "bootstrap/popovers";
+@import "bootstrap/carousel";
+
+// Utility classes
+@import "bootstrap/utilities";
+@import "bootstrap/responsive-utilities";
+
+@import "lumen/bootswatch";
+
+@import "pygments/solarized-light.css";
+
+
+body {
+    position: relative;
+
+    padding-top: 44px;
+}
+
+section {
+    header {
+        position: relative;
+        &::before {
+            content: "»";
+            display: block;
+            position: absolute;
+            left: -1em;
+            color: $navbar-default-link-color;
+            bottom: 0.25em;
+            font-size:  $font-size-h3;
+        }
+    }
+
+    h1, h2 {
+        color: $navbar-default-link-color;
+
+    }
+
+    article {
+        h1 { 
+            font-size: $font-size-h2;
+            color: $text-color;
+        }
+    }
+}
+
+.navbar-brand {
+    font-family: $headings-font-family;
+}
+
+
+.tidal-hero {
+    border: none;
+    background-color: #fdfcfd;
+    background-image: url(../img/tidal-bg.png);
+    background-repeat: no-repeat;
+    background-position: 50% 0;
+    background-size: cover;
+    box-shadow: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+
+    h1 {
+        font-size: 38px;
+        color: #fff;
+    }
+}
+
+.tidal-teaser {
+    border: none;
+    background-color: $body-bg;
+    box-shadow: none;
+}
+
+.tidal-sidebar {
+    margin-top: 20px;
+    margin-bottom: 20px;
+
+    a {
+        color: $navbar-default-link-color;
+
+        &:hover, &:active, &:focus {
+            color: $navbar-default-link-hover-color;
+        }
+    }
+
+    h4 {
+        line-height: $line-height-base;
+        margin: 0;
+    }
+
+    ul ul {
+        display: none;
+
+        > li {
+            margin-left: 10px;
+        }
+    }
+
+    li.active {
+        > a {
+            color: $navbar-default-link-hover-color;
+            position: relative;
+
+            &::before {
+                position: absolute;
+                font-size: 1em;
+                line-height: 1.7em;
+                left: 0;
+                content: "»";
+            }
+        }
+
+        ul {
+            display: block;
+        }
+    }
+
+    li li.active > a::before {
+        font-size: 1em;
+        line-height: 1em;
+
+        position: relative;
+        left: -0.5em;
+        display: inline-block;
+        margin-left: -0.5em;
+        width: 0.5em;
+
+        content: '»';
+    }
+}
+
+.tidal-toc-heading:before {
+    position: relative;
+
+    display: block;
+    visibility: hidden;
+
+    height: 73px;
+    margin-top: -73px;
+
+    content: '';
+
+    width: 0;
+}
+
+@media (min-width: 768px) {
+    .tidal-hero h1 {
+        font-size: 80px;
+
+        padding-top: .3em;
+    }
+}
+
+@media (min-width: 992px) {
+    .tidal-hero h1 {
+        font-size: 100px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .tidal-hero h1 {
+        font-size: 120px;
+    }
+}
+
+.alert {
+    pre, code {
+        background-color: fade-out($code-bg, 0.65);
+    }
+}

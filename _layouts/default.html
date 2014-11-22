@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{ page.title }}</title>
+    <link rel="stylesheet" href="{{ site.baseurl }}/css/tidal.css">
+</head>
+
+<body data-spy="scroll" data-target=".tidal-sidebar">
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#tidal-navbar-collapse-1">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+
+                <a class="navbar-brand" href="{{site.baseurl}}/">
+          Tidal
+        </a>
+            </div>
+            <div class="navbar-collapse collapse" id="tidal-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    {% for chapter in site.data.chapters %}
+                    <li {% if page.category == chapter.name %}class="active" {% endif %}>
+                        <a href="{{site.baseurl}}/{{chapter.name}}.html">{{ chapter.title }}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% assign grps = site[page.category] | group_by: "category" %} {% assign chapter = site.data.chapters | where: "name", page.category | first %} {% assign sections = chapter.sections %} {% if page.category == "homepage" %}
+    <div class="jumbotron main-content tidal-hero">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-7 col-md-6 col-sm-8 col-xs-10">
+                    <h1>Tidal</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="jumbotron tidal-teaser">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-7 col-md-6 col-sm-8 col-xs-10">
+                    {{ content }}
+
+                    <p>
+                        <a class="btn btn-lg btn-primary" href="{{ site.baseurl }}/getting_started.html">Get started!</a>
+                        &nbsp;or&nbsp;
+                        <a class="btn btn-lg btn-default" href="#demo">See it in action</a> 
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-7 col-md-6 col-sm-8 col-xs-10">
+                <h2>Polyrythms explained</h2>
+                <div class="demo well" id="demo">
+                    <iframe src="http://player.vimeo.com/video/60914002" width="100%" height="120" frameborder="0"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- homepage end -->
+    {% else %}
+    <div class="container main-content">
+        <div class="row">
+            <div class="col-md-9">
+                <div class="page-header">
+                    <h1>{{ page.title }}</h1>
+                </div>
+
+                {{ content }} {% for section_meta in sections %} {% assign section = grps | where: "name", section_meta.name | first %} {% assign docs = section.items | sort: "weight", "last" %}
+                <section>
+                    <header>
+                        <h1 id="{{section_meta.name}}" class="tidal-toc-heading">{{section_meta.title}}</h1>
+                    </header>
+
+                    {% for doc in docs %} {% capture cat_prefix %}_{{page.category}}{% endcapture %}
+                    {% if doc.theme and doc.title %}
+                    {% include {{doc.theme}}.html doc=doc %}
+                    {% else %}
+                    <article>
+                        {% if doc.title != null %}
+                        <h1 id="{{ doc.title | slugify }}" class="tidal-toc-heading">{{ doc.title }}</h1>
+                        {% endif %} {{doc.content}}
+                    </article>
+                    {% endif %}
+                    {% endfor %}
+                </section>
+                {% endfor %}
+                <!-- content end -->
+            </div>
+            <div class="col-md-3">
+                <div class="tidal-sidebar">
+                    <ul class="nav affix">
+                        {% for section_meta in sections %} {% assign section = grps | where: "name", section_meta.name | first %} {% assign docs = section.items | sort: "weight", "last" %}
+                        <li>
+                            <a href="#{{section_meta.name}}">
+                                <h4>{{section_meta.title}}</h4>
+                            </a>
+                            <ul class="nav">
+                                {% for doc in docs%} {% capture cat_prefix %}_{{page.category}}{% endcapture %} {% if doc.title != null %}
+                                <li>
+                                    <a href="#{{ doc.title | slugify }}">{{ doc.title }}</a>
+                                </li>
+                                {% endif %} {% endfor %}
+                            </ul>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <!-- sidebar end -->
+            </div>
+        </div>
+    </div>
+    <!-- main end -->
+    {% endif %}
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+</body>
+
+</html>
