@@ -3,14 +3,11 @@ Tidal
 
 Language for live coding of pattern
 
-(c) Alex McLean 2014
+For documentation, mailing list and more info see here:
+  http://tidal.lurk.org/
+
+(c) Alex McLean and contributors, 2014
 
 Distributed under the terms of the GNU Public license version 3 (or
 later).
 
-See in doc/ for some documentation.
-
-For mailing list and more info see here:
-  http://yaxu.org/tidal/
-
-alex@slab.org

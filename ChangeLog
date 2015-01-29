@@ -1,9 +1,0 @@
-2013-11-01  alex  <alex@slab.org>
-	* Sound/Tidal/Context.hs: Added to provide modules needed to run Tidal in emacs (so the multiline prompt isn't spammed with multiple modules)
-
-
-2013-10-25  alex  <alex@slab.org>
- 	* Sound/Tidal/Parse.hs (pPolyOut): Add brace syntax to parser for alternative alignment of polyrythyms
-	* tidal.el: treat lines with whitespace as paragraph markers
-	* tidal.el: use Sound.Tidal module path and remove use of ~/.tidal.hs
-
