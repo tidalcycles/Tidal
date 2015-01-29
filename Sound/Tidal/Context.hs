@@ -11,3 +11,4 @@ import Sound.Tidal.Dirt as C
 import Sound.Tidal.Strategies as C
 import Sound.Tidal.Tempo as C
 import Sound.Tidal.Time as C
+import Sound.Tidal.SuperCollider as C

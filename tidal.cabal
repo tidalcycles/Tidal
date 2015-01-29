@@ -1,5 +1,5 @@
 name:                tidal
-version:             0.4.24
+version:             0.4.25
 synopsis:            Pattern language for improvised music
 -- description:         
 homepage:            http://yaxu.org/tidal/
@@ -27,5 +27,6 @@ library
                        Sound.Tidal.Time
                        Sound.Tidal.Context
                        Sound.Tidal.Utils
+                       Sound.Tidal.SuperCollider
 
   Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl >=2.1, transformers, mersenne-random-pure64,binary, bytestring, hmt
