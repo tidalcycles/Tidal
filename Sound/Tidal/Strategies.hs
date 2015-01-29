@@ -42,6 +42,7 @@ smash' n xs p = slowcat $ map (\n -> slow n p') xs
 samples :: Applicative f => f String -> f Int -> f String
 samples p p' = pick <$> p <*> p'
 
+
 {-
 scrumple :: Time -> Pattern a -> Pattern a -> Pattern a
 scrumple o p p' = p'' -- overlay p (o ~> p'')
@@ -108,6 +109,15 @@ chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
            newEvent :: OscMap -> (Int, Arc) -> Event OscMap
            newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ OSC.FD.float ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ OSC.FD.float ((fromIntegral i)/(fromIntegral n))) v)
 
+gap :: Int -> OscPattern -> OscPattern
+gap n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
+     where f queryA a = concatMap (chopEvent queryA) (arc p a)
+           chopEvent (queryS, queryE) (a,a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ everyOther $ chopArc a n)
+           newEvent :: OscMap -> (Int, Arc) -> Event OscMap
+           newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ OSC.FD.float ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ OSC.FD.float ((fromIntegral i)/(fromIntegral n))) v)
+           everyOther (x:(y:xs)) = x:(everyOther xs)
+           everyOther xs = xs
+
 chopArc :: Arc -> Int -> [Arc]
 chopArc (s, e) n = map (\i -> ((s + (e-s)*(fromIntegral i/fromIntegral n)), s + (e-s)*((fromIntegral $ i+1)/fromIntegral n))) [0 .. n-1]
 {-
@@ -129,3 +139,17 @@ normEv ev@(_, (s,e), _) ev'@(_, (s',e'), _)
 --               where wrapAtCycle f t' = sam t' + cyclePos (f t')
 --                     wrappedPlus = wrapAtCycle (+t)
 
+
+en :: [(Int, Int)] -> Pattern String -> Pattern String
+en ns p = stack $ map (\(i, (k, n)) -> e k n (samples p (pure i))) $ enumerate ns
+
+weave :: Rational -> OscPattern -> [OscPattern] -> OscPattern
+weave t p ps = weave' t p (map const ps)
+
+weave' :: Rational -> OscPattern -> [OscPattern -> OscPattern] -> OscPattern
+weave' t p fs | l == 0 = silence
+             | otherwise = slow t $ stack $ map (\(i, f) -> ((density t (f p)) |+| (((fromIntegral i) % l) <~ p))) (zip [0 ..] fs)
+  where l = fromIntegral $ length fs
+
+interlace :: OscPattern -> OscPattern -> OscPattern
+interlace a b = weave 16 (shape $ ((* 0.9) <$> sinewave1)) [a, b]
