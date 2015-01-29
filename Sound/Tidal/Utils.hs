@@ -58,3 +58,8 @@ getEnvDefault :: String -> String -> IO String
 getEnvDefault defValue var = do
   res <- try . getEnv $ var
   return $ either (const defValue) id (res :: Either IOException String)
+
+mergelists :: [a] -> [a] -> [a]
+mergelists xs     []     = xs
+mergelists []     ys     = ys
+mergelists (x:xs) (y:ys) = x : y : mergelists xs ys

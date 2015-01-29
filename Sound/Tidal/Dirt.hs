@@ -46,7 +46,9 @@ dirt = OscShape {path = "/play",
                             F "bandq" (Just 0)
                           ],
                  timestamp = MessageStamp,
-                 latency = 0.04
+                 latency = 0.04,
+                 namedParams = False,
+                 preamble = []
                 }
 
 kriole :: OscShape
@@ -55,7 +57,9 @@ kriole = OscShape {path = "/trigger",
                             F "kpitch" (Just 1)
                           ],
                  timestamp = MessageStamp,
-                 latency = 0.04
+                 latency = 0.04,
+                 namedParams = False,
+                 preamble = []
                 }
 
 dirtstart name = start "127.0.0.1" 7771 dirt
@@ -157,6 +161,3 @@ striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p |+| begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) |+| end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
-
-interlace :: OscPattern -> OscPattern -> OscPattern
-interlace a b = weave 16 (shape $ ((* 0.9) <$> sinewave1)) [a, b]

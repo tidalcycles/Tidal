@@ -16,6 +16,7 @@ import Data.Ratio
 import Sound.Tidal.Pattern
 import qualified Sound.Tidal.Parse as P
 import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick)
+import Sound.Tidal.Utils
 
 import qualified Data.Map as Map
 
@@ -37,7 +38,9 @@ data TimeStamp = BundleStamp | MessageStamp | NoStamp
 data OscShape = OscShape {path :: String,
                           params :: [Param],
                           timestamp :: TimeStamp,
-                          latency :: Double
+                          latency :: Double,
+                          namedParams :: Bool,
+                          preamble :: [Datum]
                          }
 type OscMap = Map.Map Param (Maybe Datum)
 
@@ -82,12 +85,17 @@ toMessage s shape change tick (o, m) =
          logicalOnset = logicalNow + (logicalPeriod * o) + (latency shape)
          sec = floor logicalOnset
          usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
-         oscdata = catMaybes $ mapMaybe (\x -> Map.lookup x m') (params shape)
+         oscdata = preamble shape ++ (parameterise $ catMaybes $ mapMaybe (\x -> Map.lookup x m') (params shape))
          oscdata' = ((int32 sec):(int32 usec):oscdata)
          osc | timestamp shape == BundleStamp = sendOSC s $ Bundle (ut_to_ntpr logicalOnset) [Message (path shape) oscdata]
              | timestamp shape == MessageStamp = sendOSC s $ Message (path shape) oscdata'
              | otherwise = doAt logicalOnset $ sendOSC s $ Message (path shape) oscdata
      return osc
+     where
+       parameterise :: [Datum] -> [Datum]
+       parameterise ds | namedParams shape =
+                               mergelists (map (string . name) (params shape)) ds
+                       | otherwise = ds
 
 doAt t action = do forkIO $ do now <- getCurrentTime
                                let nowf = realToFrac $ utcTimeToPOSIXSeconds now
@@ -158,9 +166,5 @@ infixl 1 |+|
 
 
 
-weave :: Rational -> OscPattern -> [OscPattern] -> OscPattern
-weave t p ps | l == 0 = silence
-             | otherwise = slow t $ stack $ map (\(i, p') -> ((density t p') |+| (((fromIntegral i) % l) <~ p))) (zip [0 ..] ps)
-  where l = fromIntegral $ length ps
 
 
