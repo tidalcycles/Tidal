@@ -1,0 +1,49 @@
+{-
+Say you had this synth running in supercollider:
+
+(
+SynthDef(\hn1, {|vol=1.2, freq=3000, atk=0.01, rel=0.2, pos=0|
+        var  sig, rev, filt, env, pan, out;
+        sig=WhiteNoise.ar(0.5);
+        filt=RHPF.ar(sig, freq, LFDNoise3.kr(0.5).range(0.001, 2) );
+        rev=FreeVerb.ar(filt, 0.7, 1);
+        pan=Pan2.ar(rev, pos, vol);
+        env=EnvGen.ar(Env.perc(atk, rel), doneAction:2);
+        out=pan*env;
+        Out.ar(0, out);
+}).add
+);
+
+-}
+
+-- Then you could evaluate the following (with ctrl-enter, or ctrl-c
+-- ctrl-e) to control it with tidal:
+
+-- Define the name of the synth (hn1), the parameters with default
+-- values, and the latency (here set to 0, i.e. no extra latency):
+(sc, shape) <- scStream "hn1" [ F "vol" (Just 1.2),
+                                F "freq" (Just 3000),
+                                F "atk" (Just 0.01),
+                                F "rel" (Just 0.2),
+                                I "pos" (Just 0)
+                              ] 0
+
+-- Make the parameter functions (not sure how to get rid of the
+-- redundancy here, maybe some lenses?)
+let vol   = makeF shape "vol"
+    freq  = makeF shape "freq"
+    atk   = makeF shape "atk"
+    rel   = makeF shape "rel"
+    pos   = makeI shape "pos"
+
+-- Then you can pattern the parameters like so
+sc $ freq "400 8000"
+
+-- more complex:
+sc $ superimpose (density 1.5) $ every 4 (density 1.5) $ freq (every 3 ((/2) <$>) "3000 20 8000 1600")
+  |+| vol "0.6"
+  |+| rel (scale 0 0.5 $ slow 2 sine1)
+  
+-- some dirt-specific functions, like jux, won't work unless your
+-- oscshape looks similar to dirt, i.e. in the case of jux it needs a
+-- 'pan' function that goes from 0 to 1.
