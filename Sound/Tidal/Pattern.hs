@@ -59,7 +59,7 @@ instance Monoid (Pattern a) where
 
 instance Monad Pattern where
   return = pure
-  p >>= f = 
+  p >>= f = -- unwrap (f <$> p)
     Pattern (\a -> concatMap
                    -- TODO - this is a total guess
                    (\((s,e), (s',e'), x) -> mapSnds' (const (s',e')) $
@@ -69,6 +69,18 @@ instance Monad Pattern where
                    )
                    (arc p a)
              )
+
+-- join x = x >>= id
+
+
+-- Take a pattern, and function from elements in the pattern to another pattern,
+-- and then return that pattern
+--bind :: Pattern a -> (a -> Pattern b) -> Pattern b
+--bind p f = 
+
+-- this is actually join
+unwrap :: Pattern (Pattern a) -> Pattern a
+unwrap p = Pattern $ \a -> concatMap ((\p' -> arc p' a) . thd') (arc p a)
 
 -- | @atom@ is a synonym for @pure@.
 atom :: a -> Pattern a
@@ -471,8 +483,8 @@ within (s,e) f p = stack [sliceArc (0,s) p,
 
 revArc a = within a rev
 
-e :: Int -> Int -> Pattern b -> Pattern b
+e :: Int -> Int -> Pattern a -> Pattern a
 e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)) <*> p
 
-e' :: Int -> Int -> Pattern b -> Pattern b
+e' :: Int -> Int -> Pattern a -> Pattern a
 e' n k p = cat $ map (\x -> if x then p else silence) (bjorklund (n,k))
