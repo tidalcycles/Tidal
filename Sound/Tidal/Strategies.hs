@@ -64,8 +64,13 @@ scrumple o p p' = p'' -- overlay p (o ~> p'')
 --spreadf :: [Pattern a -> Pattern b] -> Pattern a -> Pattern b
 spreadf ts p = spread ($)
 
-spin copies p = stack $ map (\n -> (toRational n) <~ p |+| pan (pure n)) [0,step .. 1]
-  where step = (1/copies)
+spin :: Int -> OscPattern -> OscPattern
+spin copies p =
+  stack $ map (\n -> let offset = toInteger n % toInteger copies in
+                     offset <~ p
+                     |+| pan (pure $ fromRational offset)
+              )
+          [0 .. (copies - 1)]
 
 {-stripe :: Arc -> Pattern a -> Pattern a
 stripe (stripeS, stripeE) p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
