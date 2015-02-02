@@ -64,7 +64,8 @@ scrumple o p p' = p'' -- overlay p (o ~> p'')
 --spreadf :: [Pattern a -> Pattern b] -> Pattern a -> Pattern b
 spreadf ts p = spread ($)
 
-spin step p = stack $ map (\n -> (toRational n) <~ p |+| pan (pure n)) [0,step .. 1]
+spin copies p = stack $ map (\n -> (toRational n) <~ p |+| pan (pure n)) [0,step .. 1]
+  where step = (1/copies)
 
 {-stripe :: Arc -> Pattern a -> Pattern a
 stripe (stripeS, stripeE) p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
@@ -72,10 +73,6 @@ stripe (stripeS, stripeE) p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
         trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 -}
-
-spin4 step p = stack $ map (\n -> ((toRational n)/4) <~ p |+| pan (pure $ n)) [0,step .. 3]
-
-spin16 step p = stack $ map (\n -> ((toRational n)/16) <~ p |+| pan (pure $ n)) [0,step .. 15]
 
 sawwave4 = ((*4) <$> sawwave1)
 sinewave4 = ((*4) <$> sinewave1)
