@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="400pt" height="40pt" viewBox="0 0 400 40" version="1.1" shape-rendering="crispEdges">
-<g id="surface1">
-<rect x="0" y="0" width="400" height="40" style="fill:rgb(0%,0%,0%);fill-opacity:1;stroke:none;"/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,100%);fill-opacity:1;" d="M 0 0 L 133.332031 0 L 133.332031 40 L 0 40 Z M 0 0 "/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(100%,0%,0%);fill-opacity:1;" d="M 133.332031 0 L 266.664062 0 L 266.664062 40 L 133.332031 40 Z M 133.332031 0 "/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(100%,64.705882%,0%);fill-opacity:1;" d="M 266.667969 0 L 400 0 L 400 40 L 266.667969 40 Z M 266.667969 0 "/>
-</g>
-</svg>
