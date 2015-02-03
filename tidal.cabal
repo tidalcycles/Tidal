@@ -6,9 +6,9 @@ homepage:            http://yaxu.org/tidal/
 license:             GPL-3
 license-file:        LICENSE
 author:              Alex McLean
-maintainer:          Alex McLean <alex@slab.org>, Mike Hodnick <mike.hdonick@gmail.com>
+maintainer:          Alex McLean <alex@slab.org>, Mike Hodnick <mike.hodnick@gmail.com>
 Stability:           Experimental
-Copyright:           (c) Alex McLean and others, 2013
+Copyright:           (c) Alex McLean and other contributors, 2015
 category:            Sound
 build-type:          Simple
 cabal-version:       >=1.4
