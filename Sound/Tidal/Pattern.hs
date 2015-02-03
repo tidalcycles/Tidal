@@ -260,12 +260,10 @@ every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 every 0 f p = p
 every n f p = when ((== 0) . (`mod` n)) f p
 
--- | @every' ns f p@ applies the function @f@ to @p@, and is applied for
+-- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
 -- each cycle in @ns@.
-every' :: [Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-every' ns f p = foldr ($) p (map (\x -> every x f) ns)
-
-
+foldEvery :: [Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+foldEvery ns f p = foldr ($) p (map (\x -> every x f) ns)
 
 -- | @sig f@ takes a function from time to values, and turns it into a
 -- @Pattern@.
