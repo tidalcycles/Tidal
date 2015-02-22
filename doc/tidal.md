@@ -307,7 +307,7 @@ wanted to pass a sinewave to `shape`, but wanted the sinewave to go
 from `0` to `0.5` rather than from `0` to `1`, you could do this:
 
 ~~~~ {.haskell}
-d1 $ sound "bd*2 [bd [sn sn*2 sn] sn]"))
+d1 $ sound "bd*2 [bd [sn sn*2 sn] sn]"
    |+| shape ((/ 2) <$> sinewave1)
 ~~~~
 
