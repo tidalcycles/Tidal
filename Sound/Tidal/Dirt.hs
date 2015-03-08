@@ -43,7 +43,9 @@ dirt = OscShape {path = "/play",
                             F "hcutoff" (Just 0),
                             F "hresonance" (Just 0),
                             F "bandf" (Just 0),
-                            F "bandq" (Just 0)
+                            F "bandq" (Just 0),
+                            F "stretchTo" (Just 0),
+                            F "matchcps" (Just 0)
                           ],
                  timestamp = MessageStamp,
                  latency = 0.04,
@@ -134,6 +136,8 @@ hresonance   = makeF dirt "hresonance"
 bandf        = makeF dirt "bandf"
 bandq        = makeF dirt "bandq"
 
+stretchTo    = makeF dirt "stretchTo"
+matchcps     = makeF dirt "matchcps"
 
 cut :: Pattern Int -> OscPattern
 cut = makeI dirt "cut"
@@ -161,3 +165,9 @@ striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p |+| begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) |+| end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
+
+pitch = speed . ((step **) <$> )
+  where step = (2.0 ** (1.0/12.0))
+
+combp x = delay "1" |+| delayfeedback "0" |+| delaytime (fmap recip x)
+combm x = delay "-1" |+| delayfeedback "0" |+| delaytime (fmap recip x)
