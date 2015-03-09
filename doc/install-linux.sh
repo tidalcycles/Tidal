@@ -14,6 +14,7 @@ cd Dirt
 make clean; make
 
 cabal update
+cabal install cabal
 cabal install tidal
 
 mkdir ~/tidal/emacs
