@@ -49,6 +49,7 @@ keys = OscShape {path = "/note",
                             F "dtime" (Just (-1)),
                             F "dfeedback" (Just (-1))
                           ],
+                 cpsStamp = False,
                  timestamp = NoStamp,
                  latency = 0,
                  namedParams = False,
