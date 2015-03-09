@@ -218,7 +218,7 @@ slow t = density (1/t)
 (~>) = (<~) . (0-)
 
 brak :: Pattern a -> Pattern a
-brak = every 2 (((1%4) ~>) . (\x -> cat [x, silence]))
+brak = when ((== 1) . (`mod` 2)) (((1%4) ~>) . (\x -> cat [x, silence]))
 
 iter :: Int -> Pattern a -> Pattern a
 iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. n]
