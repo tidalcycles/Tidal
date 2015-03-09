@@ -15,7 +15,7 @@ import Data.Ratio
 
 import Sound.Tidal.Pattern
 import qualified Sound.Tidal.Parse as P
-import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick)
+import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
 import Sound.Tidal.Utils
 
 import qualified Data.Map as Map
@@ -37,6 +37,7 @@ data TimeStamp = BundleStamp | MessageStamp | NoStamp
 
 data OscShape = OscShape {path :: String,
                           params :: [Param],
+                          cpsStamp :: Bool,
                           timestamp :: TimeStamp,
                           latency :: Double,
                           namedParams :: Bool,
@@ -85,7 +86,7 @@ toMessage s shape change tick (o, m) =
          logicalOnset = logicalNow + (logicalPeriod * o) + (latency shape)
          sec = floor logicalOnset
          usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
-         oscdata = preamble shape ++ (parameterise $ catMaybes $ mapMaybe (\x -> Map.lookup x m') (params shape))
+         oscdata = cpsPrefix ++ preamble shape ++ (parameterise $ catMaybes $ mapMaybe (\x -> Map.lookup x m') (params shape))
          oscdata' = ((int32 sec):(int32 usec):oscdata)
          osc | timestamp shape == BundleStamp = sendOSC s $ Bundle (ut_to_ntpr logicalOnset) [Message (path shape) oscdata]
              | timestamp shape == MessageStamp = sendOSC s $ Message (path shape) oscdata'
@@ -96,6 +97,8 @@ toMessage s shape change tick (o, m) =
        parameterise ds | namedParams shape =
                                mergelists (map (string . name) (params shape)) ds
                        | otherwise = ds
+       cpsPrefix | cpsStamp shape = [float (cps change)]
+                 | otherwise = []
 
 doAt t action = do forkIO $ do now <- getCurrentTime
                                let nowf = realToFrac $ utcTimeToPOSIXSeconds now
