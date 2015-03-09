@@ -1,8 +1,8 @@
 name:                tidal
-version:         0.4.29
+version:         0.4.29.1
 synopsis:            Pattern language for improvised music
 -- description:         
-homepage:            http://yaxu.org/tidal/
+homepage:            http://tidal.lurk.org/
 license:             GPL-3
 license-file:        LICENSE
 author:              Alex McLean
