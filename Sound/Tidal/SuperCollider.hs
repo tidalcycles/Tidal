@@ -14,6 +14,7 @@ supercollider n ps l = OscShape {
 preamble = [string n, int32 (-1), int32 1, int32 1],
   namedParams = True,
   params = ps,
+  cpsStamp = False,
   timestamp = BundleStamp,
   latency = l
   }
