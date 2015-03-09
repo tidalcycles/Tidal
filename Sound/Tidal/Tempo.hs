@@ -19,14 +19,14 @@ import System.Environment (getEnv)
 
 import Sound.Tidal.Utils
 
-data Tempo = Tempo {at :: UTCTime, beat :: Double, bps :: Double}
+data Tempo = Tempo {at :: UTCTime, beat :: Double, cps :: Double}
 
 type ClientState = [WS.Connection]
 
 instance Eq WS.Connection
 
 instance Show Tempo where
-  show x = show (at x) ++ "," ++ show (beat x) ++ "," ++ show (bps x)
+  show x = show (at x) ++ "," ++ show (beat x) ++ "," ++ show (cps x)
 
 getClockIp :: IO String
 getClockIp = getEnvDefault "127.0.0.1" "TIDAL_TEMPO_IP"
@@ -41,7 +41,7 @@ readTempo x = Tempo (read a) (read b) (read c)
 logicalTime :: Tempo -> Double -> Double
 logicalTime t b = changeT + timeDelta
   where beatDelta = b - (beat t)
-        timeDelta = beatDelta / (bps t)
+        timeDelta = beatDelta / (cps t)
         changeT = realToFrac $ utcTimeToPOSIXSeconds $ at t
 
 tempoMVar :: IO (MVar (Tempo))
@@ -55,13 +55,13 @@ tempoMVar = do now <- getCurrentTime
 beatNow :: Tempo -> IO (Double)
 beatNow t = do now <- getCurrentTime
                let delta = realToFrac $ diffUTCTime now (at t)
-               let beatDelta = bps t * delta               
+               let beatDelta = cps t * delta               
                return $ beat t + beatDelta
 
 clientApp :: MVar Tempo -> MVar Double -> WS.ClientApp ()
-clientApp mTempo mBps conn = do
+clientApp mTempo mCps conn = do
   --sink <- WS.getSink
-    liftIO $ forkIO $ sendBps conn mBps
+    liftIO $ forkIO $ sendCps conn mCps
     forever loop
   where
     loop = do
@@ -70,18 +70,18 @@ clientApp mTempo mBps conn = do
         liftIO $ tryTakeMVar mTempo
         liftIO $ putMVar mTempo tempo
 
-sendBps :: WS.Connection -> MVar Double -> IO ()
-sendBps conn mBps = forever $ do
-    bps <- takeMVar mBps 
-    WS.sendTextData conn (T.pack $ show bps)
+sendCps :: WS.Connection -> MVar Double -> IO ()
+sendCps conn mCps = forever $ do
+    cps <- takeMVar mCps 
+    WS.sendTextData conn (T.pack $ show cps)
 
 connectClient :: Bool -> String -> MVar Tempo -> MVar Double -> IO ()
-connectClient secondTry ip mTempo mBps = do 
+connectClient secondTry ip mTempo mCps = do 
   let errMsg = "Failed to connect to tidal server. Try specifying a " ++
                "different port (default is 9160) setting the " ++
                "environment variable TIDAL_TEMPO_PORT"
   serverPort <- getServerPort
-  WS.runClient ip serverPort "/tempo" (clientApp mTempo mBps) `E.catch` 
+  WS.runClient ip serverPort "/tempo" (clientApp mTempo mCps) `E.catch` 
     \(_ :: E.SomeException) -> do
       case secondTry of
         True -> error errMsg
@@ -91,35 +91,39 @@ connectClient secondTry ip mTempo mBps = do
             Left (_ :: E.SomeException) -> error errMsg
             Right _ -> do
               threadDelay 500000
-              connectClient True ip mTempo mBps
+              connectClient True ip mTempo mCps
 
 runClient :: IO ((MVar Tempo, MVar Double))
 runClient = 
   do clockip <- getClockIp
      mTempo <- newEmptyMVar 
-     mBps <- newEmptyMVar 
-     forkIO $ connectClient False clockip mTempo mBps
-     return (mTempo, mBps)
+     mCps <- newEmptyMVar 
+     forkIO $ connectClient False clockip mTempo mCps
+     return (mTempo, mCps)
 
-bpsUtils :: IO ((Double -> IO (), IO (Rational)))
-bpsUtils = do (mTempo, mBps) <- runClient
-              let bpsSetter b = putMVar mBps b
+cpsUtils :: IO ((Double -> IO (), IO (Rational)))
+cpsUtils = do (mTempo, mCps) <- runClient
+              let cpsSetter b = putMVar mCps b
                   currentTime = do tempo <- readMVar mTempo
                                    now <- beatNow tempo
                                    return $ toRational now
-              return (bpsSetter, currentTime)
+              return (cpsSetter, currentTime)
 
-bpsSetter :: IO (Double -> IO ())
-bpsSetter = do (f, _) <- bpsUtils
+-- Backwards compatibility
+bpsUtils :: IO ((Double -> IO (), IO (Rational)))
+bpsUtils = cpsUtils
+
+cpsSetter :: IO (Double -> IO ())
+cpsSetter = do (f, _) <- cpsUtils
                return f
 
 clocked :: (Tempo -> Int -> IO ()) -> IO ()
 clocked callback = 
-  do (mTempo, mBps) <- runClient
+  do (mTempo, mCps) <- runClient
      t <- readMVar mTempo
      now <- getCurrentTime
      let delta = realToFrac $ diffUTCTime now (at t)
-         beatDelta = bps t * delta
+         beatDelta = cps t * delta
          nowBeat = beat t + beatDelta
          nextBeat = ceiling nowBeat
          -- next4 = nextBeat + (4 - (nextBeat `mod` 4))
@@ -128,20 +132,20 @@ clocked callback =
           do t <- readMVar mTempo
              now <- getCurrentTime
              let delta = realToFrac $ diffUTCTime now (at t)
-                 actualBeat = (beat t) + ((bps t) * delta)
+                 actualBeat = (beat t) + ((cps t) * delta)
                  beatDelta = (fromIntegral b) - actualBeat
-                 delay = beatDelta / (bps t)
+                 delay = beatDelta / (cps t)
              threadDelay $ floor (delay * 1000000)
              callback t b
              loop mTempo $ b + 1
 
 clockedTick :: Int -> (Tempo -> Int -> IO ()) -> IO ()
 clockedTick tpb callback = 
-  do (mTempo, mBps) <- runClient
+  do (mTempo, mCps) <- runClient
      t <- readMVar mTempo
      now <- getCurrentTime
      let delta = realToFrac $ diffUTCTime now (at t)
-         beatDelta = bps t * delta
+         beatDelta = cps t * delta
          nowBeat = beat t + beatDelta
          nextTick = ceiling (nowBeat * (fromIntegral tpb))
          -- next4 = nextBeat + (4 - (nextBeat `mod` 4))
@@ -149,7 +153,7 @@ clockedTick tpb callback =
   where loop mTempo tick = 
           do t <- readMVar mTempo
              now <- getCurrentTime
-             let tps = (fromIntegral tpb) * bps t
+             let tps = (fromIntegral tpb) * cps t
                  delta = realToFrac $ diffUTCTime now (at t)
                  actualTick = ((fromIntegral tpb) * beat t) + (tps * delta)
                  tickDelta = (fromIntegral tick) - actualTick
@@ -160,11 +164,11 @@ clockedTick tpb callback =
 
 updateTempo :: MVar Tempo -> Maybe Double -> IO ()
 updateTempo mt Nothing = return ()
-updateTempo mt (Just bps') = do t <- takeMVar mt
+updateTempo mt (Just cps') = do t <- takeMVar mt
                                 now <- getCurrentTime
                                 let delta = realToFrac $ diffUTCTime now (at t)
-                                    beat' = (beat t) + ((bps t) * delta)
-                                putMVar mt $ Tempo now beat' bps'
+                                    beat' = (beat t) + ((cps t) * delta)
+                                putMVar mt $ Tempo now beat' cps'
 
 addClient :: WS.Connection -> ClientState -> ClientState
 addClient client clients = client : clients
