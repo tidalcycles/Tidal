@@ -493,3 +493,8 @@ e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)
 
 e' :: Int -> Int -> Pattern a -> Pattern a
 e' n k p = cat $ map (\x -> if x then p else silence) (bjorklund (n,k))
+
+
+index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
+index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
+  where zoom' sz start = zoom (start, start+sz)
