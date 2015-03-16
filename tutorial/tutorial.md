@@ -367,7 +367,7 @@ with silence (so everything is silent).
 
 It's important to notice here that the Tidal code you type in and run with `ctrl-enter` is changing patterns which are running in the background. The running patterns don't change while you are editing the code, until you hit `ctrl-enter` again. There is a disconnect between code and process that might take a little getting used to.
 
-## The dollar
+## The dollar `$`
 
 You might wonder what that dollar symbol `$` is doing. If you are not wondering this, you are safe to skip this explanation.
 
@@ -394,7 +394,39 @@ d1 $ sound "bd sn"
 
 Anyway, lets escape this syntactical diversion.
 
-## Slowing down and speeding up patterns
+## Layering up patterns with `stack`
+
+You can play several patterns at once with the `stack` function, giving a list of patterns by wrapping
+them in square brackets and separating with commas. This is rather similar to the sequencing syntax we 
+saw earlier, but takes place in the outside world of functions.
+
+```haskell
+d1 $ stack [sound "bd sn:2" |+| vowel "[a e o]/2",
+            sound "casio casio:1 casio:2*2"
+           ]
+```
+
+## Sticking patterns end-to-end with `cat` and `slowcat`
+
+If you replace `stack` with `cat`, the patterns will be stuck one after another instead of on top of
+one another:
+
+```haskell
+d1 $ cat [sound "bd sn:2" |+| vowel "[a o]/2",
+          sound "casio casio:1 casio:2*2"
+         ]
+```
+
+The `cat` function squeezes all the patterns into the space of one, but `slowcat` will maintain 
+the speed of playback:
+
+```haskell
+d1 $ slowcat [sound "bd sn:2" |+| vowel "[a o]/2",
+              sound "casio casio:1 casio:2*2"
+             ]
+```
+
+## Slowing down and speeding up patterns with `slow` and `density`
 
 Simply slowing patterns down substantially changes their character, sometimes in quite suprising ways. Use
 `slow` to slow down a pattern:
@@ -411,7 +443,7 @@ d1 $ density 2 $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
 
 Play around with the numbers, and note that `density 0.5` is actually the same as `slow 2`.
 
-## Reversal
+## Reversal with `rev`
 
 The `rev` function reverses every cycle in a pattern:
 
@@ -419,7 +451,7 @@ The `rev` function reverses every cycle in a pattern:
 d1 $ rev $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
 ```
 
-## Chop
+## `chop`
 
 The `chop` function chops each sample into the given number of bits:
 
@@ -445,7 +477,7 @@ That's because it's doing the reverse first, then chopping the samples up after,
 
 There are more functions than the above, but before looking at more lets jump up a level to look at some meta-functions.
 
-## every
+## `every`
 
 By meta-functions I mean functions which take other functions as input. For example, what if we didn't want to reverse a pattern every time, but only every other time?
 
@@ -463,7 +495,7 @@ d1 $ every 4 (density 2) $ sound "bd can sn can:4"
 
 Note that we have to wrap `density 2` in parenthesis, to package it up to pass to `every` as a function that can be selectively applied to `"bd can sn can:4"`. If this doesn't make sense, get a feel for it by playing around with it, and content yourself with the fact that this technique involves something called *currying*, so cna't be all bad.
 
-## sometimes
+## `sometimes`
 
 The `sometimes` function works a bit like `every`, except it sometimes applies the given function, and sometimes doesn't, in an unpredictable manner. 
 
@@ -481,7 +513,7 @@ d1 $ sometimes (density 2) $ every 4 (rev) $ sound "bd can sn can:4"
 
 In general, Tidal gets most interesting when you take simple parts and combine them in this way.
 
-## jux
+## `jux`
 
 The `jux` metafunction applies the given function in just the one channel or speaker. For example, in the following the given pattern is reversed in one of the speakers, and played normally in the other:
 
@@ -495,7 +527,7 @@ In this one the pattern is played 25% faster in one speaker than the other:
 d1 $ jux (density 1.25) $ sound "arpy:2 arpy:4 arpy:1 [~ arpy]"
 ```
 
-## weave
+## `weave`
 
 Weave is a strange one, which takes different synth parameters and overlays them, offset against each other, on top of a base pattern. Ok, this needs an example:
 
@@ -517,7 +549,7 @@ d1 $ weave 16 (sound "arpy arpy:7 arpy:3")
 
 Now we've seen how meta-functions can make use of functions, lets have a look at more of the latter.
 
-## Rotation with ~> and <~
+## Rotation with `~>` and `<~`
 
 The `~>` operator 'rotates' a pattern by the given amount in cycles, for example this shifts the pattern forward in time by a quarter of a cycle:
 
@@ -545,3 +577,4 @@ d1 $ jux ((1/8) ~>) $ every 4 (0.25 <~) $ sound "arpy*3 arpy:1*2 arpy:4 [~ arpy:
 ```
 
 ## Compound rotation with `iter`
+
