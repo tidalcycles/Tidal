@@ -480,5 +480,47 @@ d1 $ weave 16 (sound "arpy arpy:7 arpy:3")
   [vowel "a e i", vowel "o i", vowel "a i e o", speed "2 4 ~ 2 1"]
 ```
 
+## Jux
+
+The `jux` metafunction applies the given function in just the one channel or speaker. For example, in the following the given pattern is reversed in one of the speakers, and played normally in the other:
+
+```haskell
+d1 $ jux rev $ sound "bd sn*2 can [~ arpy]"
+```
+
+In this one the pattern is played 25% faster in one speaker than the other:
+
+```haskell
+d1 $ jux (density 1.25) $ sound "arpy:2 arpy:4 arpy:1 [~ arpy]"
+```
+
 # Functions part 2
 
+Now we've seen how meta-functions can make use of functions, lets have a look at more of the latter.
+
+## Rotation with ~> and <~
+
+The `~>` operator 'rotates' a pattern by the given amount in cycles, for example this shifts the pattern forward in time by a quarter of a cycle:
+
+```haskell
+d1 $ 0.25 ~> sound "arpy arpy:1 arpy:2 arpy:3"
+```
+
+Predictably the `<~` operator does the same, but in the other direction:
+
+```haskell
+d1 $ 0.25 <~ sound "arpy arpy:1 arpy:2 arpy:3"
+```
+
+Unless another pattern is playing at the same time, you can only hear the difference when you 
+change the number, which you perceive as a skipping back and forth. This is again where those metafunctions come in:
+
+```haskell
+d1 $ every 4 (0.25 <~) $ sound "arpy arpy:1 arpy:2 arpy:3"
+```
+
+Again, because the output of all these functions is a pattern, they can be used as input to another function:
+
+```haskell
+d1 $ jux ((1/8) ~>) $ every 4 (0.25 <~) $ sound "arpy*3 arpy:1*2 arpy:4 [~ arpy:3]"
+```
