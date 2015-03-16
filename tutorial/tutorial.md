@@ -96,6 +96,7 @@ resonance     | a pattern of numbers from 0 to 1. Applies the resonance of the l
 shape         | wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion (watch your speakers!)
 sound         | a pattern of strings representing sound sample names (required)
 speed         | a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
+unit          | a pattern of words specifying the unit that the `speed` parameter is expressed in. Can either be 'rate' (the default, percentage playback rate), 'cycle' (cycle/n), or 'secs' (n seconds)
 vowel         | formant filter to make things sound like vowels, a pattern of either a, e, i, o or u. Use a rest (~) for no effect.
 
 # Continuous patterns
@@ -268,7 +269,7 @@ If you only want something to happen sometimes, you can put a question mark afte
 d1 $ sound "bd can? bd sn"
 ```
 
-In the above, the can sample will only play on average 50% of the time. If you add a question
+In the above, the `can` sample will only play on average 50% of the time. If you add a question
 mark to a subpattern, it applies separately to each element of the subpattern. For example in 
 the following sometimes you get no can sounds, sometimes just the first or second, and sometimes
 both:
@@ -524,3 +525,4 @@ Again, because the output of all these functions is a pattern, they can be used 
 ```haskell
 d1 $ jux ((1/8) ~>) $ every 4 (0.25 <~) $ sound "arpy*3 arpy:1*2 arpy:4 [~ arpy:3]"
 ```
+
