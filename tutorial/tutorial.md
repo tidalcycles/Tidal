@@ -131,6 +131,8 @@ You can play around with some more off-kilter patterns, for example this one whi
 d1 $ sound "drum ~ can ~ ~ drum:1 ~"
 ```
 
+## Subdividing sequences
+
 You can take one step in a pattern and subdivide it into substeps, for example in the following the 
 three `can` samples are played inside the same amount of time that each `drum` sample does:
 
@@ -145,7 +147,9 @@ and subdivide a step within a subdivision:
 d1 $ sound "drum drum [can [can:4 can:6 can:3] can:5] drum"
 ```
 
-Square brackets allow you to specify more than one pattern in a subdivision by separating them with 
+## Layering up patterns
+
+Square brackets also allow you to specify more than one subpattern, by separating them with 
 a comma:
 
 ```haskell
@@ -161,12 +165,97 @@ d1 $ sound "[can cp, can bd can:5]"
 ```
 
 If you use curly brackets rather than square brackets the subpatterns are layered up in a different way, 
-so that the sounds inside align:
+so that the sounds inside align, and the different lengths of patterns seem to roll over one another:
 
 ```haskell
 d1 $ sound "{can can:2, can bd can:5}"
 ```
 
+Again, you can layer up more than one of these subpatterns:
+
+```haskell
+d1 $ sound "[can cp, can bd can:5, arpy arpy:2 ~ arpy:4 arpy:5]"
+```
+
+And subdivide further:
+
+```haskell
+d1 $ sound "{[can can] cp, can bd can:5, arpy arpy:2 ~ [arpy:4 arpy:5] arpy:5}"
+```
+
+This can already start getting very complex, and we haven't even got on to functions yet!
+
+## Sequencing niceties and tricks
+
+Staying with sequences for a bit longer, there are a couple of other things you can do.
+
+### Repetition and division
+
+If you want to repeat the same sample several times, you can use `*` to specify how many times. For 
+example this:
+
+```haskell
+d1 $ sound "bd [can can can]"
+```
+
+Can be written like this:
+
+```haskell
+d1 $ sound "bd can*3"
+```
+
+When live coding saving a little bit of typing helps a lot. You can 
+experiment with high numbers to make some strange sounds:
+
+```haskell
+d1 $ sound "bd can*32 bd can*16"
+```
+
+The above pattern plays the samples so quickly that your ears can't hear the individual sounds any
+more, and instead you hear it as an audio frequency, i.e. a musical note.
+
+If you have a pattern that has a repeat that isn't a subpattern, like this:
+
+```haskell
+d1 $ sound "bd can can can"
+```
+
+You can repeat successive events with `!`:
+
+```haskell
+d1 $ sound "bd can ! !"
+```
+
+You can also 'slow down' a subpattern, for example this plays the `[bd arpy sn:2 arpy:2]` 
+at half the speed:
+
+```haskell
+d1 $ sound "bd [bd arpy sn:2 arpy:2]/2"
+```
+
+That is, the first cycle you get `bd [bd arpy]` and the second time around 
+you get `bd [sn:2 arpy:2]`. This is a little bit difficult to understand, but 
+basically if you don't get through a whole subpattern during one cycle, it carries 
+on where it left off the next one.
+
+You can get some strange things going on by for example repeating four thirds of a
+subpattern per cycle:
+
+```haskell
+d1 $ sound "bd [bd arpy sn:2 arpy:2]*4/3"
+```
+
+If you like strange time signatures, hopefully you will be having fun with this already.
+
+### Random drops
+
+If you only want something to happen sometimes, you can put a question mark after it:
+
+```haskell
+d1 $ sound "bd can? bd sn"
+```
+
+In the above, the can sample will only play on average 50% of the time.
 
 # Functions
 
