@@ -98,6 +98,19 @@ sound         | a pattern of strings representing sound sample names (required)
 speed         | a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
 vowel         | formant filter to make things sound like vowels, a pattern of either a, e, i, o or u. Use a rest (~) for no effect.
 
+# Continuous patterns
+
+There are some 'continuous' patterns built in, which allow you to apply things like sinewaves to parameters 
+which take patterns of numbers.
+
+For example, to apply a sinewave to the `pan` parameter:
+
+```haskell
+d1 $ sound "bd*16" |+| pan sine1
+```
+
+`sine1` is a sinewave pattern which travels from 0 to 1 and back again over a cycle. There is also `tri1`, `saw1` and `square1` for triangular, sawtooth and square waves respectively. If you miss off the '1' from the end of these you get a pattern from -1 to 1 instead, which can sometimes be useful. We'll see how to manipulate these patterns to go to any range later on.
+
 # Sequences
 
 You're probably bored of hearing the same sample over and over by now, let's quickly move on to 
@@ -410,4 +423,62 @@ d1 $ chop 16 $ rev $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
 That's because it's doing the reverse first, then chopping the samples up after, so the bits don't end up reversed. (I hope that makes sense).
 
 # Meta-functions
+
+There are more functions than the above, but before looking at more lets jump up a level to look at some meta-functions.
+
+## every
+
+By meta-functions I mean functions which take other functions as input. For example, what if we didn't want to reverse a pattern every time, but only every other time?
+
+```haskell
+d1 $ every 2 rev $ sound "bd can sn can:4"
+```
+
+Instead of applying `rev` directly to `sound "bd can sn can:4"`, the above passes `rev` to `every`, telling it to apply it every `2` repetitions. Try changing `2` to `4` for a very different feel.
+
+This works with other functions that work on patterns. Here's how you make a pattern twice as dense every four repetitions:
+
+```haskell
+d1 $ every 4 (density 2) $ sound "bd can sn can:4"
+```
+
+Note that we have to wrap `density 2` in parenthesis, to package it up to pass to `every` as a function that can be selectively applied to `"bd can sn can:4"`. If this doesn't make sense, get a feel for it by playing around with it, and content yourself with the fact that this technique involves something called *currying*, so cna't be all bad.
+
+## sometimes
+
+The `sometimes` function works a bit like `every`, except it sometimes applies the given function, and sometimes doesn't, in an unpredictable manner. 
+
+```haskell
+d1 $ sometimes (density 2) $ sound "bd can*2 sn can:4"
+```
+
+There are similar functions `often` and `almostAlways` which apply the function more often than not, and `rarely` and `almostNever`, which apply the function less often.
+
+You can always stack functions up, for example this works:
+
+```haskell
+d1 $ sometimes (density 2) $ every 4 (rev) $ sound "bd can sn can:4"
+```
+
+In general, Tidal gets most interesting when you take simple parts and combine them in this way.
+
+## weave
+
+Weave is a strange one, which takes different synth parameters and overlays them, offset against each other, on top of a base pattern. Ok, this needs an example:
+
+```haskell
+d1 $ weave 16 (pan sine1)
+  [sound "bd sn", sound "arpy ~ arpy:3", sound "can ~ ~ can:4"]
+```
+
+In the above all three patterns have the `pan sine1` parameter applied, but are spaced out around the cycle of the `pan`, which is also stretched out over `16` cycles. As a result, the three patterns move around each other, following each other around the speakers. This is especially nice if you're running Dirt in multichannel mode, i.e. with more than two speakers.
+
+You can flip things round so that the base is the `sound` pattern, and the patterns you're applying to different moving parts of it are effects:
+
+```haskell
+d1 $ weave 16 (sound "arpy arpy:7 arpy:3")
+  [vowel "a e i", vowel "o i", vowel "a i e o", speed "2 4 ~ 2 1"]
+```
+
+# Functions part 2
 
