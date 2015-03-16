@@ -308,5 +308,57 @@ Pattern | Description
 
 # Functions
 
+Up until now we have mostly only been working with building sequences, although this has included polyrhythm, and some simple algorithmic manipulation that is built into Tidal's pattern syntax. Now though it is
+time to start climbing up the layers of abstraction to see what we can find on the way.
+
+First, lets have a closer look at the functions we have been using so far.
+
+## Sending patterns to Dirt
+
+`d1` is a function that takes a pattern as input, and sends it to dirt. By default there are ten of them defined, from `d1` to `d10`, which allows you to start and stop multiple patterns at once.
+
+For example, try running each of the following four lines in turn:
+
+```haskell
+d1 $ sound "bd sn"
+
+d2 $ sound "arpy arpy:2 arpy"
+
+d1 $ silence
+
+d2 $ silence
+```
+
+The first line will start a bass drum - snare pattern, the second start a slightly tuneful pattern, 
+then the third swaps the first pattern with silence (so it stops), and the four swaps the second 
+with silence (so everything is silent).
+
+It's important to notice here that the Tidal code you type in and run with `ctrl-enter` is changing patterns which are running in the background. The running patterns don't change while you are editing the code, until you hit `ctrl-enter` again. There is a disconnect between code and process that might take a little getting used to.
+
+## The dollar
+
+You might wonder what that dollar symbol `$` is doing. If you are not wondering this, you are safe to skip this explanation.
+
+The dollar actually does almost nothing; it simply takes everything on its right hand side, and gives it to the function on the left. If we take it away in the following example, we get an error:
+
+```haskell
+d1 sound "bd sn"
+```
+
+That's because Tidal^[well, Tidal's underlying language, Haskell] reads from left to right, and so gives the `sound` to `d1`, before `sound` has taken `"bd sn"` as input, which results in confusion. We could
+get the right behaviour a different way, using parenthesis:
+
+```haskell
+d1 (sound "bd sn")
+```
+
+This makes sure `sound` gets its pattern before it is passed on to d1. The dollar is convenient though
+because you don't have to match the closing bracket, which can get fiddly when you have lots of patterns
+embedded in each other.
+
+```haskell
+d1 $ sound "bd sn"
+```
+
 # Meta-functions
 
