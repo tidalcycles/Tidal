@@ -255,7 +255,14 @@ If you only want something to happen sometimes, you can put a question mark afte
 d1 $ sound "bd can? bd sn"
 ```
 
-In the above, the can sample will only play on average 50% of the time.
+In the above, the can sample will only play on average 50% of the time. If you add a question
+mark to a subpattern, it applies separately to each element of the subpattern. For example in 
+the following sometimes you get no can sounds, sometimes just the first or second, and sometimes
+both:
+
+```haskell
+d1 $ sound "bd [can can:4]? bd sn"
+```
 
 # Functions
 
