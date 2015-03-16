@@ -100,7 +100,73 @@ vowel         | formant filter to make things sound like vowels, a pattern of ei
 
 # Sequences
 
-You can get a long way with working with
+You're probably bored of hearing the same sample over and over by now, let's quickly move on to 
+sequences. Tidal sequences allow you to string samples together, stretch the sequences out and 
+stack them up in a variety of interesting ways, as well as start mixing in randomisation.
+
+You can make a tidal cycle with more than one sample just like this:
+
+```haskell
+d1 $ sound "drum drum:1"
+```
+
+Kick and snare forever!
+
+You'll notice that however many things you put into a Tidal pattern, it still takes up the same 
+amount of time. For example the following fits three sounds into the same cycle duration:
+
+```haskell
+d1 $ sound "drum drum:1 can"
+```
+
+The `~` symbol represents a rest, or pause, e.g.:
+
+```haskell
+d1 $ sound "drum drum:1 ~"
+```
+
+You can play around with some more off-kilter patterns, for example this one which has seven steps in it:
+
+```haskell
+d1 $ sound "drum ~ can ~ ~ drum:1 ~"
+```
+
+You can take one step in a pattern and subdivide it into substeps, for example in the following the 
+three `can` samples are played inside the same amount of time that each `drum` sample does:
+
+```haskell
+d1 $ sound "drum drum [can can:4 can:5] drum"
+```
+
+As you can see the square brackets give the start and end of a subdivision. Actually you can keep going, 
+and subdivide a step within a subdivision:
+
+```haskell
+d1 $ sound "drum drum [can [can:4 can:6 can:3] can:5] drum"
+```
+
+Square brackets allow you to specify more than one pattern in a subdivision by separating them with 
+a comma:
+
+```haskell
+d1 $ sound "drum [can cp, can bd can:5]"
+```
+
+As you can hear, the two patterns are layered up. Because they are different lengths (one with two 
+sounds, the other with three), you can get an interesting polyrhythmic effect. You can hear this better
+if you just have a single subdivision like this:
+
+```haskell
+d1 $ sound "[can cp, can bd can:5]"
+```
+
+If you use curly brackets rather than square brackets the subpatterns are layered up in a different way, 
+so that the sounds inside align:
+
+```haskell
+d1 $ sound "{can can:2, can bd can:5}"
+```
+
 
 # Functions
 
