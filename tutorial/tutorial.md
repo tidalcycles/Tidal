@@ -38,6 +38,24 @@ them:
 
 Replace `can` with one of these to explore.
 
+## Silence
+
+At this point you are probably reaching for a way to make a pattern stop. You can do
+this by setting the pattern to be silent like this:
+
+```haskell
+d1 $ silence
+```
+
+Quicker still, you can just make everything silent by evaluating (again, with ctrl-enter) the word `hush`:
+
+```haskell
+hush
+```
+
+This will become more useful later when we learn how to play more than one sound at once -
+`hush` will silence them all.
+
 ## Effects
 
 You can also apply a range of effects to change what your sound, er,
@@ -280,21 +298,21 @@ d1 $ sound "bd [can can:4]? bd sn"
 
 ### Enter Bjorklund (and Euclid)
 
-The If you give two numbers in parenthesis after an element in a pattern, then Tidal will
+If you give two numbers in parenthesis after an element in a pattern, then Tidal will
 distribute the first number of sounds equally across the second number of steps:
 
 ```haskell
 d1 $ sound "can(5,8)"
 ```
 
-Now it isn't possible to distrute three elements equally across eight discrete steps, but the
+But then, it isn't possible to distrute three elements equally across eight discrete steps, but the
 algorithm does the best it can. The result is a slightly funky bell pattern. Try this one:
 
 ```haskell
 d1 $ sound "can(5,8)"
 ```
 
-Bjorklund's algorithm wasn't made for music but for an application in nuclear physics, which is exciting. More exciting still is that it is similar to the one of the first known algorithms written in Euclid's book of elements in 300 BC. You can read more about this in the paper [The Euclidean Algorithm Generates Traditional Musical Rhythms](http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf) by Toussaint. Examples from this paper are included below, although some require rotation to start on a particular beat - see the paper for full details and references.
+This uses "Bjorklund's algorithm", which wasn't made for music but for an application in nuclear physics, which is exciting. More exciting still is that it is very similar in structure to the one of the first known algorithms written in Euclid's book of elements in 300 BC. You can read more about this in the paper [The Euclidean Algorithm Generates Traditional Musical Rhythms](http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf) by Toussaint. Examples from this paper are included below, although some require rotation to start on a particular beat - see the paper for full details and references.
 
 Pattern | Description
 ------- | -----------
@@ -463,7 +481,7 @@ d1 $ sometimes (density 2) $ every 4 (rev) $ sound "bd can sn can:4"
 
 In general, Tidal gets most interesting when you take simple parts and combine them in this way.
 
-## Jux
+## jux
 
 The `jux` metafunction applies the given function in just the one channel or speaker. For example, in the following the given pattern is reversed in one of the speakers, and played normally in the other:
 
@@ -526,3 +544,4 @@ Again, because the output of all these functions is a pattern, they can be used 
 d1 $ jux ((1/8) ~>) $ every 4 (0.25 <~) $ sound "arpy*3 arpy:1*2 arpy:4 [~ arpy:3]"
 ```
 
+## Compound rotation with `iter`
