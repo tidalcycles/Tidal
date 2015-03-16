@@ -280,7 +280,7 @@ algorithm does the best it can. The result is a slightly funky bell pattern. Try
 d1 $ sound "can(5,8)"
 ```
 
-Bjorklund's algorithm wasn't made for music but for an application in nuclear physics, which is exciting. More exciting still is that it is similar to the one of the first known algorithms written in Euclid's book of elements in 300 BC. You can read more about this in the paper [The Euclidean Algorithm Generates Traditional Musical Rhythms])http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf) by Toussaint. Some examples of this paper are included below, although some require rotation to start on a particular beat (see the paper).
+Bjorklund's algorithm wasn't made for music but for an application in nuclear physics, which is exciting. More exciting still is that it is similar to the one of the first known algorithms written in Euclid's book of elements in 300 BC. You can read more about this in the paper [The Euclidean Algorithm Generates Traditional Musical Rhythms](http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf) by Toussaint. Examples from this paper are included below, although some require rotation to start on a particular beat - see the paper for full details and references.
 
 Pattern | Description
 ------- | -----------
