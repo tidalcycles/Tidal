@@ -462,6 +462,20 @@ d1 $ sometimes (density 2) $ every 4 (rev) $ sound "bd can sn can:4"
 
 In general, Tidal gets most interesting when you take simple parts and combine them in this way.
 
+## Jux
+
+The `jux` metafunction applies the given function in just the one channel or speaker. For example, in the following the given pattern is reversed in one of the speakers, and played normally in the other:
+
+```haskell
+d1 $ jux rev $ sound "bd sn*2 can [~ arpy]"
+```
+
+In this one the pattern is played 25% faster in one speaker than the other:
+
+```haskell
+d1 $ jux (density 1.25) $ sound "arpy:2 arpy:4 arpy:1 [~ arpy]"
+```
+
 ## weave
 
 Weave is a strange one, which takes different synth parameters and overlays them, offset against each other, on top of a base pattern. Ok, this needs an example:
@@ -478,20 +492,6 @@ You can flip things round so that the base is the `sound` pattern, and the patte
 ```haskell
 d1 $ weave 16 (sound "arpy arpy:7 arpy:3")
   [vowel "a e i", vowel "o i", vowel "a i e o", speed "2 4 ~ 2 1"]
-```
-
-## Jux
-
-The `jux` metafunction applies the given function in just the one channel or speaker. For example, in the following the given pattern is reversed in one of the speakers, and played normally in the other:
-
-```haskell
-d1 $ jux rev $ sound "bd sn*2 can [~ arpy]"
-```
-
-In this one the pattern is played 25% faster in one speaker than the other:
-
-```haskell
-d1 $ jux (density 1.25) $ sound "arpy:2 arpy:4 arpy:1 [~ arpy]"
 ```
 
 # Functions part 2
