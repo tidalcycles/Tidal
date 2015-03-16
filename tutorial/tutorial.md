@@ -8,7 +8,7 @@ With a bit of fiddling, Tidal can be used to pattern the input to any
 device which takes MIDI or Open Sound Control input, but the default is the Dirt software sampler.
 
 ```haskell
-
+d1 $ sound "bd"
 ```
 
 # Sequences
