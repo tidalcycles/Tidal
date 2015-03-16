@@ -360,5 +360,54 @@ embedded in each other.
 d1 $ sound "bd sn"
 ```
 
+Anyway, lets escape this syntactical diversion.
+
+## Slowing down and speeding up patterns
+
+Simply slowing patterns down substantially changes their character, sometimes in quite suprising ways. Use
+`slow` to slow down a pattern:
+
+```haskell
+d1 $ slow 2 $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
+```
+
+And `density` to speed it up again.
+
+```haskell
+d1 $ density 2 $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
+```
+
+Play around with the numbers, and note that `density 0.5` is actually the same as `slow 2`.
+
+## Reversal
+
+The `rev` function reverses every cycle in a pattern:
+
+```haskell
+d1 $ rev $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
+```
+
+## Chop
+
+The `chop` function chops each sample into the given number of bits:
+
+```haskell
+d1 $ chop 16 $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
+```
+
+This makes it sounds really granulated. It sounds stranger if you reverse it after the chop:
+
+```haskell
+d1 $ rev $ chop 16 $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
+```
+
+Note how this is working from right to left; first it makes the sequence, then it passes the sequence to `chop`, then passes that to `rev`, and finally out to the Dirt synth using `d1`. If we swap the order of the chop and the rev, it sounds different:
+
+```haskell
+d1 $ chop 16 $ rev $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
+```
+
+That's because it's doing the reverse first, then chopping the samples up after, so the bits don't end up reversed. (I hope that makes sense).
+
 # Meta-functions
 
