@@ -1,4 +1,12 @@
-% Tidal tutorial
+---
+title: Tidal tutorial
+fontsize: 11pt
+geometry: margin=2cm
+fontfamily: libertine
+fontfamily: inconsolata
+mainfont: Linux Libertine O
+monofont: Inconsolata
+...
 
 Welcome to the Tidal tutorial. Tidal is a mini-language for exploring pattern, designed for use in live coding performance. In this tutorial we'll step through different levels of abstraction, starting with sounds and filters, then sequences of sounds and filters, and moving up to functions for manipulating those sequences, and ending up looking at functions which manipulate other functions. Fun stuff!
 
@@ -93,29 +101,52 @@ d1 $ sound "can:1" |+| vowel "a" |+| speed "-1"
 
 Here is the full list of effects you can play with.
 
-Name          | Description
-------------- | -----------
-accelerate    | a pattern of numbers that speed up (or slow down) samples while they play.
-bandf         | a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
-bandq         | a pattern of numbers from 0 to 1. Sets the q-factor of the band-pass filter.
-begin         | a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. 0.25 to cut off the first quarter from each sample.
-coarse        | fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
-crush         | bit crushing, a pattern of numbers from 1 for drastic reduction in bit-depth to 16 for barely no reduction.
-cutoff        | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter.
-delay         | a pattern of numbers from 0 to 1. Sets the level of the delay signal.
-delayfeedback | a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
-delaytime     | a pattern of numbers from 0 to 1. Sets the length of the delay.
-end           | the same as begin, but cuts the end off samples, shortening them; e.g. 0.75 to cut off the last quarter of each sample.
-gain          | a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder.
-hcutoff       | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter.
-hresonance    | a pattern of numbers from 0 to 1. Applies the resonance of the high-pass filter.
-pan           | a pattern of numbers between 0 and 1, from left to right (assuming stereo)
-resonance     | a pattern of numbers from 0 to 1. Applies the resonance of the low-pass filter.
-shape         | wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion (watch your speakers!)
-sound         | a pattern of strings representing sound sample names (required)
-speed         | a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
-unit          | a pattern of words specifying the unit that the `speed` parameter is expressed in. Can either be 'rate' (the default, percentage playback rate), 'cycle' (cycle/n), or 'secs' (n seconds)
-vowel         | formant filter to make things sound like vowels, a pattern of either a, e, i, o or u. Use a rest (~) for no effect.
+--------------------------------------------------------------------------------
+Name           Description
+-------------  -----------------------------------------------------------------
+accelerate     a pattern of numbers that speed up (or slow down) samples while they play.
+
+bandf          a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
+
+bandq          a pattern of numbers from 0 to 1. Sets the q-factor of the band-pass filter.
+
+begin          a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. 0.25 to cut off the first quarter from each sample.
+
+coarse         fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
+
+crush          bit crushing, a pattern of numbers from 1 for drastic reduction in bit-depth to 16 for barely no reduction.
+
+cutoff         a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter.
+
+delay          a pattern of numbers from 0 to 1. Sets the level of the delay signal.
+
+delayfeedback  a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
+
+delaytime      a pattern of numbers from 0 to 1. Sets the length of the delay.
+
+end            the same as begin, but cuts the end off samples, shortening them; e.g. 0.75 to cut off the last quarter of each sample.
+
+gain           a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder.
+
+hcutoff        a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter.
+
+hresonance     a pattern of numbers from 0 to 1. Applies the resonance of the high-pass filter.
+
+pan            a pattern of numbers between 0 and 1, from left to right (assuming stereo)
+
+resonance      a pattern of numbers from 0 to 1. Applies the resonance of the low-pass filter.
+
+shape          wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion (watch your speakers!)
+
+sound          a pattern of strings representing sound sample names (required)
+
+speed          a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
+
+unit           a pattern of words specifying the unit that the `speed` parameter is expressed in. Can either be 'rate' (the default, percentage playback rate), 'cycle' (cycle/n), or 'secs' (n seconds)
+
+vowel          formant filter to make things sound like vowels, a pattern of either a, e, i, o or u. Use a rest (~) for no effect.
+
+-------------------
 
 # Continuous patterns
 
@@ -314,29 +345,52 @@ d1 $ sound "can(5,8)"
 
 This uses "Bjorklund's algorithm", which wasn't made for music but for an application in nuclear physics, which is exciting. More exciting still is that it is very similar in structure to the one of the first known algorithms written in Euclid's book of elements in 300 BC. You can read more about this in the paper [The Euclidean Algorithm Generates Traditional Musical Rhythms](http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf) by Toussaint. Examples from this paper are included below, although some require rotation to start on a particular beat - see the paper for full details and references.
 
-Pattern | Description
-------- | -----------
-(2,5)   | A thirteenth century Persian rhythm called Khafif-e-ramal. 
-(3,4)   | The archetypal pattern of the Cumbia from Colombia, as well as a Calypso rhythm from Trinidad. 
-(3,5)   | When started on the second onset, is another thirteenth century Persian rhythm by the name of Khafif-e-ramal, as well as a Rumanian folk-dance rhythm.
-(3,7)   | A Ruchenitza rhythm used in a Bulgarian folk-dance. 
-(3,8)   | The Cuban tresillo pattern discussed in the preceding.
-(4,7)   | Another Ruchenitza Bulgarian folk-dance rhythm.
-(4,9)   | The Aksak rhythm of Turkey. 
-(4,11)  | The metric pattern used by Frank Zappa in his piece titled Outside Now.
-(5,6)   | Yields the York-Samai pattern, a popular Arab rhythm, when started on the second onset.
-(5,7)   | The Nawakhat pattern, another popular Arab rhythm.
-(5,8)   | The Cuban cinquillo pattern.
-(5,9)   | A popular Arab rhythm called Agsag-Samai. 
-(5,11)  | The metric pattern used by Moussorgsky in Pictures at an Exhibition.
-(5,12)  | The Venda clapping pattern of a South African children’s song.
-(5,16)  | The Bossa-Nova rhythm necklace of Brazil.
-(7,8)   | A typical rhythm played on the Bendir (frame drum).
-(7,12)  | A common West African bell pattern. 
-(7,16)  | A Samba rhythm necklace from Brazil. 
-(9,16)  | A rhythm necklace used in the Central African Republic. 
-(11,24) | A rhythm necklace of the Aka Pygmies of Central Africa.
-(13,24) | Another rhythm necklace of the Aka Pygmies of the upper Sangha.
+-----------------------------------------------------------------------------------
+Pattern  Description
+-------  --------------------------------------------------------------------------
+(2,5)    A thirteenth century Persian rhythm called Khafif-e-ramal. 
+
+(3,4)    The archetypal pattern of the Cumbia from Colombia, as well as a Calypso rhythm from Trinidad. 
+
+(3,5)    When started on the second onset, is another thirteenth century Persian rhythm by the name of Khafif-e-ramal, as well as a Rumanian folk-dance rhythm.
+
+(3,7)    A Ruchenitza rhythm used in a Bulgarian folk-dance. 
+
+(3,8)    The Cuban tresillo pattern.
+
+(4,7)    Another Ruchenitza Bulgarian folk-dance rhythm.
+
+(4,9)    The Aksak rhythm of Turkey. 
+
+(4,11)   The metric pattern used by Frank Zappa in his piece titled Outside Now.
+
+(5,6)    Yields the York-Samai pattern, a popular Arab rhythm, when started on the second onset.
+
+(5,7)    The Nawakhat pattern, another popular Arab rhythm.
+
+(5,8)    The Cuban cinquillo pattern.
+
+(5,9)    A popular Arab rhythm called Agsag-Samai. 
+
+(5,11)   The metric pattern used by Moussorgsky in Pictures at an Exhibition.
+
+(5,12)   The Venda clapping pattern of a South African children’s song.
+
+(5,16)   The Bossa-Nova rhythm necklace of Brazil.
+
+(7,8)    A typical rhythm played on the Bendir (frame drum).
+
+(7,12)   A common West African bell pattern. 
+
+(7,16)   A Samba rhythm necklace from Brazil. 
+
+(9,16)   A rhythm necklace used in the Central African Republic. 
+
+(11,24)  A rhythm necklace of the Aka Pygmies of Central Africa.
+
+(13,24)  Another rhythm necklace of the Aka Pygmies of the upper Sangha.
+
+-----------------------------------------
 
 # Functions
 
@@ -473,9 +527,17 @@ d1 $ chop 16 $ rev $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
 
 That's because it's doing the reverse first, then chopping the samples up after, so the bits don't end up reversed. (I hope that makes sense).
 
+Chop works particularly well for longer samples:
+
+```haskell
+d1 $ rev $ slow 4 $ chop 16 $ sound "breaks125"
+```
+
+This gets a lot more fun with meta functions.
+
 # Meta-functions
 
-There are more functions than the above, but before looking at more lets jump up a level to look at some meta-functions.
+There are a lot more functions than the above, but before looking at some more of them lets jump up a level to look at some meta-functions.
 
 ## `every`
 
@@ -494,6 +556,12 @@ d1 $ every 4 (density 2) $ sound "bd can sn can:4"
 ```
 
 Note that we have to wrap `density 2` in parenthesis, to package it up to pass to `every` as a function that can be selectively applied to `"bd can sn can:4"`. If this doesn't make sense, get a feel for it by playing around with it, and content yourself with the fact that this technique involves something called *currying*, so cna't be all bad.
+
+Lets try this with some longer samples:
+
+```haskell
+d1 $ every 2 (density 1.5) $ every 3 (rev) $ slow 4 $ chop 16 $ sound "breaks125"
+```
 
 ## `sometimes`
 
@@ -578,3 +646,58 @@ d1 $ jux ((1/8) ~>) $ every 4 (0.25 <~) $ sound "arpy*3 arpy:1*2 arpy:4 [~ arpy:
 
 ## Compound rotation with `iter`
 
+For a given `n`, the `iter` function shifts a pattern to the left by `1/n` steps every cycle. An example
+speaks wonders:
+
+
+```haskell
+d1 $ iter 4 $ sound "arpy:1 arpy:2 arpy:3 arpy:4"
+```
+
+This works well with `jux`:
+
+```haskell
+d1 $ jux (iter 8) $ sound "arpy:1 arpy:2 arpy:3 arpy:4"
+```
+
+## Scaling number patterns
+
+The `scale` function is handy for taking a pattern like `sine1` which goes from `0` to `1`, and
+making it go to a different range, in the below example from `1` to `1.5`. 
+
+```haskell
+d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
+  |+| speed (slow 4 $ scale 1 1.5 sine1)
+```
+
+Using scale is particularly important for the `shape` parameter, because if you give that
+numbers which are too high (i.e. close to 1) it gets very loud. In the below we cap it
+at 0.8.
+
+```haskell
+d1 $ jux (iter 4) $ sound "drum drum:1*2"
+  |+| shape (slow 4 $ scale 0 0.8 sine1)
+```
+
+## Picking samples
+
+You can have one pattern for sample names, and another of sample numbers, and combine them to pick which
+sample you want.
+
+```haskell
+d1 $ sound (samples "drum arpy newnotes" "0 1 2")
+```
+
+This isn't very exciting until you start manipulating the patterns before combining them, and
+as in the below adding a bit more pattern manipulation on top:
+
+```haskell
+d1 $ jux (density 2) $ sound (samples "drum can can" (slow 2.5 "0 1 2 4 5 6"))
+```
+
+# That's it for now
+
+There is more, which you can dig out by exploring the [Tidal website](http://tidal.lurk.org/), 
+Tidal screencasts (e.g. on youtube and vimeo) and the Tidal patterns that people have shared.
+You can also sign up to the Tidal forum at [http://lurk.org/groups/tidal](http://lurk.org/groups/tidal)
+and join the community discussion there. Have fun!
