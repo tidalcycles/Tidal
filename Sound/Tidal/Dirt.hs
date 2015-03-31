@@ -44,7 +44,8 @@ dirt = OscShape {path = "/play",
                             F "hresonance" (Just 0),
                             F "bandf" (Just 0),
                             F "bandq" (Just 0),
-                            S "unit" (Just "rate")
+                            S "unit" (Just "rate"),
+                            I "loop" (Just 0)
                           ],
                  cpsStamp = True,
                  timestamp = MessageStamp,
@@ -137,6 +138,7 @@ hresonance   = makeF dirt "hresonance"
 bandf        = makeF dirt "bandf"
 bandq        = makeF dirt "bandq"
 unit         = makeS dirt "unit"
+loop         = makeI dirt "loop"
 
 cut :: Pattern Int -> OscPattern
 cut = makeI dirt "cut"
