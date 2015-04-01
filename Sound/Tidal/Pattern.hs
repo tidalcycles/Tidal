@@ -543,7 +543,7 @@ preplace = prr 0 (1, 1)
 
 -- | @protate len rot p@ rotates pattern @p@ by @rot@ beats to the left.
 -- @len@: length of the pattern, in cycles.
--- Example: @d1 $ every 4 (protate 2 -1) $ slow 2 $ sound "bd hh hh hh"@
+-- Example: @d1 $ every 4 (protate 2 (-1)) $ slow 2 $ sound "bd hh hh hh"@
 protate :: Time -> Int -> Pattern a -> Pattern a
 protate len rot p = prr rot (len, len) p p
 
