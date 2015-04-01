@@ -499,9 +499,9 @@ index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
   where zoom' sz start = zoom (start, start+sz)
 
-
-preplace' :: (Time, Time) -> Pattern a -> Pattern a -> Pattern a
-preplace' (blen, vlen) beatPattern valuePattern =
+-- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
+prr :: Int -> (Time, Time) -> Pattern t -> Pattern a -> Pattern a
+prr rot (blen, vlen) beatPattern valuePattern =
   let beats  = arc beatPattern (0, blen)
       values = thd' <$> arc valuePattern (0, vlen)
       cycles = blen * (fromIntegral $ lcm (length beats) (length values) `div` (length beats))
@@ -509,7 +509,8 @@ preplace' (blen, vlen) beatPattern valuePattern =
     slow cycles $ stack $ zipWith
     (\( _, (start, end), _) v -> (start ~>) $ densityGap (1 / (end - start)) $ pure v)
     (arc (density cycles $ beatPattern) (0, blen))
-    (cycle values)
+    (drop (rot `mod` length values) $ cycle values)
+
 
 {-|
 @preplace beats values@ combines the timing of @beats@ with the values
@@ -527,16 +528,38 @@ d1 $ sound "[jvbass jvbass:5]*3" |+| (shape $ "1 1 1 1 1" <~> "0.2 0.9")
 
 It is assumed the pattern fits into a single cycle. This works well with
 pattern literals, but not always with patterns defined elsewhere. In those cases
-use @preplace'@ and provide desired pattern lengths:
+use @prr@ and provide desired pattern lengths:
 @
 let p = slow 2 $ "x x x"
 
-d1 $ sound $ preplace' (2,1) p "bd sn"
+d1 $ sound $ prr 0 (2,1) p "bd sn"
 @
 -}
 preplace :: Pattern a -> Pattern a -> Pattern a
-preplace = preplace' (1, 1)
+preplace = prr 0 (1, 1)
 
 (<~>) :: Pattern a -> Pattern a -> Pattern a
 (<~>) = preplace
+
+-- | @protate len rot p@ rotates pattern @p@ by @rot@ beats to the left.
+-- @len@: length of the pattern, in cycles.
+-- Example: @d1 $ every 4 (protate 2 -1) $ slow 2 $ sound "bd hh hh hh"@
+protate :: Time -> Int -> Pattern a -> Pattern a
+protate len rot p = prr rot (len, len) p p
+
+
+{-| The @<<~@ operator rotates a unit pattern to the left, similar to @<~@,
+but by events rather than linear time. The timing of the pattern remains constant:
+
+@
+d1 $ (1 <<~) $ sound "bd ~ sn hh"
+-- will become
+d1 $ sound "sn ~ hh bd"
+@ -}
+
+(<<~) :: Int -> Pattern a -> Pattern a
+rot <<~ p = protate 1 rot p
+
+(~>>) :: Int -> Pattern a -> Pattern a
+(~>>) = (<<~) . (0-)
 
