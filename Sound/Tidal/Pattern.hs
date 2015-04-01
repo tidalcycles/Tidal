@@ -531,7 +531,7 @@ use @preplace'@ and provide desired pattern lengths:
 @
 let p = slow 2 $ "x x x"
 
-d1 $ sound $ preplace' (2,1) "bd sn"
+d1 $ sound $ preplace' (2,1) p "bd sn"
 @
 -}
 preplace :: Pattern a -> Pattern a -> Pattern a
