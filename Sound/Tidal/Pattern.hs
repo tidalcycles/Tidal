@@ -498,3 +498,45 @@ e' n k p = cat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
   where zoom' sz start = zoom (start, start+sz)
+
+
+preplace' :: (Time, Time) -> Pattern a -> Pattern a -> Pattern a
+preplace' (blen, vlen) beatPattern valuePattern =
+  let beats  = arc beatPattern (0, blen)
+      values = thd' <$> arc valuePattern (0, vlen)
+      cycles = blen * (fromIntegral $ lcm (length beats) (length values) `div` (length beats))
+  in
+    slow cycles $ stack $ zipWith
+    (\( _, (start, end), _) v -> (start ~>) $ densityGap (1 / (end - start)) $ pure v)
+    (arc (density cycles $ beatPattern) (0, blen))
+    (cycle values)
+
+{-|
+@preplace beats values@ combines the timing of @beats@ with the values
+of @values@. Other ways of saying this are:
+* sequential convolution
+* @values@ quantized to @beats@.
+
+Examples:
+@
+d1 $ sound $ preplace "x [~ x] x x" "bd sn"
+d1 $ sound $ preplace "x(3,8)" "bd sn"
+d1 $ sound $ "x(3,8)" <~> "bd sn"
+d1 $ sound "[jvbass jvbass:5]*3" |+| (shape $ "1 1 1 1 1" <~> "0.2 0.9")
+@
+
+It is assumed the pattern fits into a single cycle. This works well with
+pattern literals, but not always with patterns defined elsewhere. In those cases
+use @preplace'@ and provide desired pattern lengths:
+@
+let p = slow 2 $ "x x x"
+
+d1 $ sound $ preplace' (2,1) "bd sn"
+@
+-}
+preplace :: Pattern a -> Pattern a -> Pattern a
+preplace = preplace' (1, 1)
+
+(<~>) :: Pattern a -> Pattern a -> Pattern a
+(<~>) = preplace
+
