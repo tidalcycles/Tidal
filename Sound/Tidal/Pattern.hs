@@ -513,15 +513,15 @@ prr rot (blen, vlen) beatPattern valuePattern =
 
 
 {-|
-@preplace beats values@ combines the timing of @beats@ with the values
+@preplace (blen, plen) beats values@ combines the timing of @beats@ with the values
 of @values@. Other ways of saying this are:
 * sequential convolution
 * @values@ quantized to @beats@.
 
 Examples:
 @
-d1 $ sound $ preplace "x [~ x] x x" "bd sn"
-d1 $ sound $ preplace "x(3,8)" "bd sn"
+d1 $ sound $ preplace (1,1) "x [~ x] x x" "bd sn"
+d1 $ sound $ preplace (1,1) "x(3,8)" "bd sn"
 d1 $ sound $ "x(3,8)" <~> "bd sn"
 d1 $ sound "[jvbass jvbass:5]*3" |+| (shape $ "1 1 1 1 1" <~> "0.2 0.9")
 @
@@ -535,11 +535,11 @@ let p = slow 2 $ "x x x"
 d1 $ sound $ prr 0 (2,1) p "bd sn"
 @
 -}
-preplace :: Pattern a -> Pattern a -> Pattern a
-preplace = prr 0 (1, 1)
+preplace :: (Time, Time) -> Pattern a -> Pattern a -> Pattern a
+preplace (blen, plen) = prr 0 (blen, plen)
 
 (<~>) :: Pattern a -> Pattern a -> Pattern a
-(<~>) = preplace
+(<~>) = preplace (1, 1)
 
 -- | @protate len rot p@ rotates pattern @p@ by @rot@ beats to the left.
 -- @len@: length of the pattern, in cycles.
@@ -563,3 +563,6 @@ rot <<~ p = protate 1 rot p
 (~>>) :: Int -> Pattern a -> Pattern a
 (~>>) = (<<~) . (0-)
 
+-- | @pequal cycles p1 p2@: quickly test if @p1@ and @p2@ are the same.
+pequal :: Ord a => Time -> Pattern a -> Pattern a -> Bool
+pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
