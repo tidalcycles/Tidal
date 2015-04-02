@@ -511,11 +511,9 @@ prrw f rot (blen, vlen) beatPattern valuePattern =
     (arc (density cycles $ beatPattern) (0, blen))
     (drop (rot `mod` length values) $ cycle values)
 
-
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
 prr :: Int -> (Time, Time) -> Pattern a -> Pattern a -> Pattern a
 prr = prrw const
-
 
 {-|
 @preplace (blen, plen) beats values@ combines the timing of @beats@ with the values
@@ -543,8 +541,20 @@ d1 $ sound $ prr 0 (2,1) p "bd sn"
 preplace :: (Time, Time) -> Pattern a -> Pattern a -> Pattern a
 preplace = preplaceWith const
 
+prep = preplace
+
+preplace1 :: Pattern a -> Pattern a -> Pattern a
+preplace1 = prrw const 0 (1, 1)
+
 preplaceWith :: (a -> a -> a) -> (Time, Time) -> Pattern a -> Pattern a -> Pattern a
 preplaceWith f (blen, plen) = prrw f 0 (blen, plen)
+
+prw = preplaceWith
+
+preplaceWith1 :: (b -> a -> a) -> Pattern b -> Pattern a -> Pattern a
+preplaceWith1 f = prrw f 0 (1, 1)
+
+prw1 = preplaceWith1
 
 (<~>) :: Pattern a -> Pattern a -> Pattern a
 (<~>) = preplace (1, 1)
@@ -554,6 +564,8 @@ preplaceWith f (blen, plen) = prrw f 0 (blen, plen)
 -- Example: @d1 $ every 4 (protate 2 (-1)) $ slow 2 $ sound "bd hh hh hh"@
 protate :: Time -> Int -> Pattern a -> Pattern a
 protate len rot p = prr rot (len, len) p p
+
+prot = protate
 
 {-| The @<<~@ operator rotates a unit pattern to the left, similar to @<~@,
 but by events rather than linear time. The timing of the pattern remains constant:
