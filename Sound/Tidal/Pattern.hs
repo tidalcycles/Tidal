@@ -500,20 +500,22 @@ index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) 
   where zoom' sz start = zoom (start, start+sz)
 
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
-prrw :: (b -> a -> a) -> Int -> (Time, Time) -> Pattern b -> Pattern a -> Pattern a
+prrw :: (a -> b -> c) -> Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
 prrw f rot (blen, vlen) beatPattern valuePattern =
-  let beats  = arc beatPattern (0, blen)
-      values = thd' <$> arc valuePattern (0, vlen)
-      cycles = blen * (fromIntegral $ lcm (length beats) (length values) `div` (length beats))
+  let
+    ecompare (_,e1,_) (_,e2,_) = compare (fst e1) (fst e2)
+    beats  = sortBy ecompare $ arc beatPattern (0, blen)
+    values = fmap thd' . sortBy ecompare $ arc valuePattern (0, vlen)
+    cycles = blen * (fromIntegral $ lcm (length beats) (length values) `div` (length beats))
   in
     slow cycles $ stack $ zipWith
     (\( _, (start, end), v') v -> (start ~>) $ densityGap (1 / (end - start)) $ pure (f v' v))
-    (arc (density cycles $ beatPattern) (0, blen))
+    (sortBy ecompare $ arc (density cycles $ beatPattern) (0, blen))
     (drop (rot `mod` length values) $ cycle values)
 
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
 prr :: Int -> (Time, Time) -> Pattern a -> Pattern a -> Pattern a
-prr = prrw const
+prr = prrw $ flip const
 
 {-|
 @preplace (blen, plen) beats values@ combines the timing of @beats@ with the values
@@ -539,19 +541,19 @@ d1 $ sound $ prr 0 (2,1) p "bd sn"
 @
 -}
 preplace :: (Time, Time) -> Pattern a -> Pattern a -> Pattern a
-preplace = preplaceWith const
+preplace = preplaceWith $ flip const
 
 prep = preplace
 
 preplace1 :: Pattern a -> Pattern a -> Pattern a
-preplace1 = prrw const 0 (1, 1)
+preplace1 = prr 0 (1, 1)
 
-preplaceWith :: (a -> a -> a) -> (Time, Time) -> Pattern a -> Pattern a -> Pattern a
+preplaceWith :: (a -> b -> c) -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
 preplaceWith f (blen, plen) = prrw f 0 (blen, plen)
 
 prw = preplaceWith
 
-preplaceWith1 :: (b -> a -> a) -> Pattern b -> Pattern a -> Pattern a
+preplaceWith1 :: (a -> b -> c) -> Pattern a -> Pattern b -> Pattern c
 preplaceWith1 f = prrw f 0 (1, 1)
 
 prw1 = preplaceWith1
@@ -566,6 +568,7 @@ protate :: Time -> Int -> Pattern a -> Pattern a
 protate len rot p = prr rot (len, len) p p
 
 prot = protate
+prot1 = protate 1
 
 {-| The @<<~@ operator rotates a unit pattern to the left, similar to @<~@,
 but by events rather than linear time. The timing of the pattern remains constant:
@@ -577,7 +580,7 @@ d1 $ sound "sn ~ hh bd"
 @ -}
 
 (<<~) :: Int -> Pattern a -> Pattern a
-rot <<~ p = protate 1 rot p
+(<<~) = protate 1
 
 (~>>) :: Int -> Pattern a -> Pattern a
 (~>>) = (<<~) . (0-)
