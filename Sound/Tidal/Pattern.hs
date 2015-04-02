@@ -35,18 +35,18 @@ instance Functor Pattern where
 -- | @pure a@ returns a pattern with an event with value @a@, which
 -- has a duration of one cycle, and repeats every cycle.
 instance Applicative Pattern where
-  pure x = Pattern $ \(s, e) -> map 
-                                (\t -> ((t%1, (t+1)%1), 
+  pure x = Pattern $ \(s, e) -> map
+                                (\t -> ((t%1, (t+1)%1),
                                         (t%1, (t+1)%1),
                                         x
                                        )
-                                ) 
+                                )
                                 [floor s .. ((ceiling e) - 1)]
-  (Pattern fs) <*> (Pattern xs) = 
+  (Pattern fs) <*> (Pattern xs) =
     Pattern $ \a -> concatMap applyX (fs a)
-    where applyX ((s,e), (s', e'), f) = 
-            map (\(_, _, x) -> ((s,e), (s', e'), f x)) 
-                (filter 
+    where applyX ((s,e), (s', e'), f) =
+            map (\(_, _, x) -> ((s,e), (s', e'), f x))
+                (filter
                  (\(_, a', _) -> isIn a' s)
                  (xs (s',e'))
                 )
@@ -76,7 +76,7 @@ instance Monad Pattern where
 -- Take a pattern, and function from elements in the pattern to another pattern,
 -- and then return that pattern
 --bind :: Pattern a -> (a -> Pattern b) -> Pattern b
---bind p f = 
+--bind p f =
 
 -- this is actually join
 unwrap :: Pattern (Pattern a) -> Pattern a
@@ -144,7 +144,7 @@ cat ps = density (fromIntegral $ length ps) $ slowcat ps
 
 
 splitAtSam :: Pattern a -> Pattern a
-splitAtSam p = 
+splitAtSam p =
   splitQueries $ Pattern $ \(s,e) -> mapSnds' (trimArc (sam s)) $ arc p (s,e)
   where trimArc s' (s,e) = (max (s') s, min (s'+1) e)
 
@@ -203,11 +203,11 @@ densityGap r p = splitQueries $ withResultArc (\(s,e) -> (sam s + ((s - sam s)/r
 -- return a pattern that is half the speed.
 slow :: Time -> Pattern a -> Pattern a
 slow 0 = id
-slow t = density (1/t) 
+slow t = density (1/t)
 
 -- | The @<~@ operator shifts (or rotates) a pattern to the left (or
--- counter-clockwise) by the given @Time@ value. For example 
--- @(1%16) <~ p@ will return a pattern with all the events moved 
+-- counter-clockwise) by the given @Time@ value. For example
+-- @(1%16) <~ p@ will return a pattern with all the events moved
 -- one 16th of a cycle to the left.
 (<~) :: Time -> Pattern a -> Pattern a
 (<~) t p = withResultTime (subtract t) $ withQueryTime (+ t) p
@@ -333,7 +333,7 @@ trirat1 = fmap toRational tri1
 -- todo - triangular waves again
 
 squarewave1 :: Pattern Double
-squarewave1 = sig $ 
+squarewave1 = sig $
               \t -> fromIntegral $ floor $ (mod' (fromRational t) 1) * 2
 square1 = squarewave1
 
@@ -371,12 +371,12 @@ filterValues f (Pattern x) = Pattern $ (filter (f . thd')) . x
 
 -- Filter out events that have had their onsets cut off
 filterOnsets :: Pattern a -> Pattern a
-filterOnsets (Pattern f) = 
+filterOnsets (Pattern f) =
   Pattern $ (filter (\e -> eventOnset e >= eventStart e)) . f
 
 -- Filter events which have onsets, which are within the given range
 filterStartInRange :: Pattern a -> Pattern a
-filterStartInRange (Pattern f) = 
+filterStartInRange (Pattern f) =
   Pattern $ \(s,e) -> filter ((>= s) . eventOnset) $ f (s,e)
 
 filterOnsetsInRange = filterOnsets . filterStartInRange
@@ -481,8 +481,8 @@ sliceArc a@(s,e) p | s >= e = silence
 -- for example, @within (1%2) (3%4) ((1%8) <~) "bd sn bd cp"@ would shift only
 -- the second @bd@
 within :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-within (s,e) f p = stack [sliceArc (0,s) p, 
-                           compress (s,e) $ f $ zoom (s,e) p, 
+within (s,e) f p = stack [sliceArc (0,s) p,
+                           compress (s,e) $ f $ zoom (s,e) p,
                            sliceArc (e,1) p
                           ]
 
@@ -500,16 +500,21 @@ index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) 
   where zoom' sz start = zoom (start, start+sz)
 
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
-prr :: Int -> (Time, Time) -> Pattern t -> Pattern a -> Pattern a
-prr rot (blen, vlen) beatPattern valuePattern =
+prrw :: (b -> a -> a) -> Int -> (Time, Time) -> Pattern b -> Pattern a -> Pattern a
+prrw f rot (blen, vlen) beatPattern valuePattern =
   let beats  = arc beatPattern (0, blen)
       values = thd' <$> arc valuePattern (0, vlen)
       cycles = blen * (fromIntegral $ lcm (length beats) (length values) `div` (length beats))
   in
     slow cycles $ stack $ zipWith
-    (\( _, (start, end), _) v -> (start ~>) $ densityGap (1 / (end - start)) $ pure v)
+    (\( _, (start, end), v') v -> (start ~>) $ densityGap (1 / (end - start)) $ pure (f v' v))
     (arc (density cycles $ beatPattern) (0, blen))
     (drop (rot `mod` length values) $ cycle values)
+
+
+-- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
+prr :: Int -> (Time, Time) -> Pattern a -> Pattern a -> Pattern a
+prr = prrw const
 
 
 {-|
@@ -536,7 +541,10 @@ d1 $ sound $ prr 0 (2,1) p "bd sn"
 @
 -}
 preplace :: (Time, Time) -> Pattern a -> Pattern a -> Pattern a
-preplace (blen, plen) = prr 0 (blen, plen)
+preplace = preplaceWith const
+
+preplaceWith :: (a -> a -> a) -> (Time, Time) -> Pattern a -> Pattern a -> Pattern a
+preplaceWith f (blen, plen) = prrw f 0 (blen, plen)
 
 (<~>) :: Pattern a -> Pattern a -> Pattern a
 (<~>) = preplace (1, 1)
@@ -546,7 +554,6 @@ preplace (blen, plen) = prr 0 (blen, plen)
 -- Example: @d1 $ every 4 (protate 2 (-1)) $ slow 2 $ sound "bd hh hh hh"@
 protate :: Time -> Int -> Pattern a -> Pattern a
 protate len rot p = prr rot (len, len) p p
-
 
 {-| The @<<~@ operator rotates a unit pattern to the left, similar to @<~@,
 but by events rather than linear time. The timing of the pattern remains constant:
