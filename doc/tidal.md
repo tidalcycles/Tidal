@@ -907,9 +907,9 @@ separate patterns in a "stack", but each has different start times
 patterns stop after 128 cycles:
 
 ~~~~ {.haskell}
-d1 $ seqP [ 
-  (0, 128, sound "bd bd*2"), 
-  (8, 128, sound "hh*2 [sn cp] cp future*4"), 
+d1 $ seqP [
+  (0, 128, sound "bd bd*2"),
+  (8, 128, sound "hh*2 [sn cp] cp future*4"),
   (16, 128, sound (samples "arpy*8" (run 16)))
 ]
 ~~~~
@@ -1027,7 +1027,7 @@ and shifts the events `rot` times to the left without disturbing the time signat
 
 ~~~~ {.haskell}
 prot 1 "1 2 ~ 3"                => "2 3 ~ 1"
-1 <<~ "1 2 ~ 3"                 => "2 3 ~ "
+1 <<~ "1 2 ~ 3"                 => "2 3 ~ 1"
 1 ~>> "1 2 ~ 3"                 => "3 1 ~ 2"
 2 ~>> "[bd bd] sn ~ hh [~ can]" => "[hh can] bd ~ bd [~ sn]"
 ~~~~
