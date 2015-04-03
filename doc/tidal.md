@@ -935,6 +935,7 @@ pattern in the righthand channel:
 d1 $ slow 32 $ jux ((|+| speed "0.5") . rev) $ striate' 32 (1/16) $ sound "bev"
 ~~~~
 
+
 # Quantization, event shifting, and patterns as sequences
 
 Patterns are not _really_ sequences, but sometimes you may wish they
@@ -954,11 +955,12 @@ one cycle pattern).
 preplace :: (Time, Time) -> Pattern a -> Pattern a -> Pattern a
 ~~~~
 
-The `preplace`/`prep` function combines the timing of one pattern (the trigger
-pattern) with event values of another (the sequence pattern). It does so by
-replacing the trigger pattern event values with values, repeating the latter
-until it has enough. Note that it does not matter what the values of the
-trigger pattern are, but the patterns must be of the same _type_.
+The `preplace` (shorthand `prep`) function combines the timing of one
+pattern (the trigger pattern) with event values of another (the sequence
+pattern). It does so by replacing the trigger pattern event values with
+values, repeating the latter until it has enough. Note that it does not
+matter what the values of the trigger pattern are, but the patterns must be
+of the same _type_.
 
 Additionally, `preplace` takes a `(Time, Time)` tuple of pattern
 lengths (doesn't have to be correct). If you are fine with constraining this
@@ -976,8 +978,10 @@ Example replacements (`=>` means "becomes"):
 "x x ~ x" <~> "bd sn"   => "bd sn ~ bd sn bd ~ sn"
 "x(3,8)" <~> "bd"       => "bd ~ ~ bd ~ ~ b ~"
 "x(3,8)" <~> "bd bd sn" => "bd ~ ~ bd ~ ~ sn ~"
+
 preplace (1,1) "x [~ x] x x" "bd sn"
   => "bd {~ sn] bd sn"
+
 preplace (1,3) "x x x ~" $ samples "bd sn" $ slow 3 $ run 3
   => "bd:0 sn:0 bd:1 ~ sn:1  bd:2 sn:2 ~ bd:3  ..."
 ~~~~
@@ -1002,9 +1006,9 @@ prw1 = preplaceWith1
 ~~~~
 
 `preplaceWith1` assumes both patterns are of length 1. Also note that
-patterns do nott have to be of the same type anymore.
+patterns don't have to be of the same type anymore.
 
-This can be very powerful:
+This can be quite powerful:
 
 ~~~~ {.haskell}
 prw1 (+) "1 2 3" "2"    => "3 4 5"
@@ -1021,7 +1025,26 @@ protate len rot p = ...
 The `protate` (shorthand `prot`) function takes a pattern of length `len`
 and shifts the events `rot` times to the left without disturbing the time signature.
 
+~~~~ {.haskell}
+prot 1 "1 2 ~ 3"                => "2 3 ~ 1"
+1 <<~ "1 2 ~ 3"                 => "2 3 ~ "
+1 ~>> "1 2 ~ 3"                 => "3 1 ~ 2"
+2 ~>> "[bd bd] sn ~ hh [~ can]" => "[hh can] bd ~ bd [~ sn]"
+~~~~
+
 ## prr and prrw
+
+All the above functions rely on `prrw` (pattern replate rotate with) and its
+alias `prr`. If you find yourself having to do combinations of the above,
+you can use these directly.
+
+~~~~ {.haskell}
+-- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
+prrw :: (a -> b -> c) -> Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
+prrw f rot (blen, vlen) beatPattern valuePattern = ...
+
+prr :: Int -> (Time, Time) -> Pattern a -> Pattern a -> Pattern a
+~~~~
 
 # Plus more to be discovered!
 
