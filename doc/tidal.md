@@ -910,7 +910,7 @@ patterns stop after 128 cycles:
 d1 $ seqP [ 
   (0, 128, sound "bd bd*2"), 
   (8, 128, sound "hh*2 [sn cp] cp future*4"), 
-  (16, 128, sound (samples "arpy*8", (run 16)))
+  (16, 128, sound (samples "arpy*8" (run 16)))
 ]
 ~~~~
 
