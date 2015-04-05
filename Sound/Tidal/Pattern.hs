@@ -59,13 +59,15 @@ instance Monoid (Pattern a) where
 
 instance Monad Pattern where
   return = pure
+  -- Pattern a -> (a -> Pattern b) -> Pattern b
+  -- Pattern Char -> (Char -> Pattern String) -> Pattern String
+  
   p >>= f = -- unwrap (f <$> p)
     Pattern (\a -> concatMap
-                   -- TODO - this is a total guess
-                   (\((s,e), (s',e'), x) -> mapSnds' (const (s',e')) $
+                   (\((s,e), (s',e'), x) -> map (\ev -> ((s,e), (s',e'), thd' ev)) $
                                             filter
-                                            (\(_, a', _) -> isIn a' s)
-                                            (arc (f x) (s',e'))
+                                            (\(a', _, _) -> isIn a' s)
+                                            (arc (f x) (s,e))
                    )
                    (arc p a)
              )
@@ -452,7 +454,7 @@ whenmod a b = Sound.Tidal.Pattern.when ((\t -> (t `mod` a) >= b ))
 superimpose f p = stack [p, f p]
 
 -- | @splitQueries p@ wraps `p` to ensure that it does not get
--- queries that | span arcs. For example `arc p (0.5, 1.5)` would be
+-- queries that span arcs. For example `arc p (0.5, 1.5)` would be
 -- turned into two queries, `(0.5,1)` and `(1,1.5)`, and the results
 -- combined. Being able to assume queries don't span cycles often
 -- makes transformations easier to specify.
