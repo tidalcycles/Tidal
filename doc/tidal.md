@@ -1,6 +1,6 @@
 <img src="https://raw2.github.com/yaxu/Tidal/master/doc/tidal.png" />
 
-# Tidal: Domain specific language for live coding of pattern 
+# Tidal: Domain specific language for live coding of pattern
 
 Homepage and mailing list: <http://yaxu.org/tidal/>
 
@@ -274,7 +274,7 @@ d1 $ every 4 (density 4) $ sound "bd*2 [bd [sn sn*2 sn] sn]"
 
 Note the use of parenthesis around `(density 4)`, this is needed, to
 group together the function `density` with its parameter `4`, before
-being passed as a parameter to the function `every`. 
+being passed as a parameter to the function `every`.
 
 Instead of putting transformations up front, separated by the pattern
 by the `$` symbol, you can put them inside the pattern, for example:
@@ -316,7 +316,7 @@ two), to all the values inside the `sinewave1` pattern.
 
 # Synth Parameters
 
-Synth parameters generate or affect sample playback. These are the 
+Synth parameters generate or affect sample playback. These are the
 synthesis parameters you can use:
 
 * `accelerate` - a pattern of numbers that speed up (or slow down) samples while they play.
@@ -325,14 +325,14 @@ synthesis parameters you can use:
 * `begin` - a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample.
 * `crush` - bit crushing, a pattern of numbers from 1 for drastic reduction in bit-depth to 16 for barely no reduction.
 * `coarse` - fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
-* `cutoff` - a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter. 
+* `cutoff` - a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter.
 * `delay` - a pattern of numbers from 0 to 1. Sets the level of the delay signal.
 * `delayfeedback` - a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
 * `delaytime` - a pattern of numbers from 0 to 1. Sets the length of the delay.
 * `end` - the same as `begin`, but cuts the end off samples, shortening them;
   e.g. `0.75` to cut off the last quarter of each sample.
 * `gain` - a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder.
-* `hcutoff` - a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter. 
+* `hcutoff` - a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter.
 * `hresonance` - a pattern of numbers from 0 to 1. Applies the resonance of the high-pass filter.
 * `pan` - a pattern of numbers between 0 and 1, from left to right (assuming stereo)
 * `resonance` - a pattern of numbers from 0 to 1. Applies the resonance of the low-pass filter.
@@ -576,13 +576,13 @@ Also, see `density`.
 slowspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 ~~~~
 
-`slowspread` takes a list of pattern transforms and applies them one at a time, per cycle, 
+`slowspread` takes a list of pattern transforms and applies them one at a time, per cycle,
 then repeats.
 
 Example:
 
 ~~~~ {.haskell}
-d1 $ slowspread ($) [density 2, rev, slow 2, striate 3, (|+| speed "0.8")] 
+d1 $ slowspread ($) [density 2, rev, slow 2, striate 3, (|+| speed "0.8")]
     $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4"
 ~~~~
 
@@ -632,7 +632,7 @@ d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
 sometimesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ~~~~
 
-Use `sometimesBy` to apply a given function "sometimes". For example, the 
+Use `sometimesBy` to apply a given function "sometimes". For example, the
 following code results in `density 2` being applied about 25% of the time:
 
 ~~~~ {.haskell}
@@ -756,7 +756,7 @@ you probably shouldn't also specify `begin` or `end`.
 stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
 ~~~~
 
-Stut applies a type of delay to a pattern. It has three parameters, 
+Stut applies a type of delay to a pattern. It has three parameters,
 which could be called depth, feedback and time. Depth is an integer
 and the others floating point. This adds a bit of echo:
 
@@ -764,7 +764,7 @@ and the others floating point. This adds a bit of echo:
 d1 $ stut 4 0.5 0.2 $ sound "bd sn"
 ~~~~
 
-The above results in 4 echos, each one 50% quieter than the last, 
+The above results in 4 echos, each one 50% quieter than the last,
 with 1/5th of a cycle between them. It is possible to reverse the echo:
 
 ~~~~ {.haskell}
@@ -777,7 +777,7 @@ d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 trunc :: Time -> Pattern a -> Pattern a
 ~~~~
 
-Truncates a pattern so that only a fraction of the pattern is played. 
+Truncates a pattern so that only a fraction of the pattern is played.
 The following example plays only the first three quarters of the pattern:
 
 ~~~~ {.haskell}
@@ -805,7 +805,7 @@ d1 $ wedge (1/4) (sound "bd*2 arpy*3 cp sn*2") (sound "odx [feel future]*2 hh hh
 whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ~~~~
 
-`whenmod` has a similar form and behavior to `every`, but requires an 
+`whenmod` has a similar form and behavior to `every`, but requires an
 additional number. Applies the function to the pattern, when the
 remainder of the current loop number divided by the first parameter,
 is less than the second parameter.
@@ -882,34 +882,34 @@ stack :: [Pattern a] -> Pattern a
 playing all of the patterns in the list simultaneously.
 
 ~~~~ {.haskell}
-d1 $ stack [ 
-  sound "bd bd*2", 
-  sound "hh*2 [sn cp] cp future*4", 
+d1 $ stack [
+  sound "bd bd*2",
+  sound "hh*2 [sn cp] cp future*4",
   sound (samples "arpy*8", (run 16))
 ]
 ~~~~
 
-This is useful if you want to use a transform or synth parameter on the entire 
+This is useful if you want to use a transform or synth parameter on the entire
 stack:
 
 ~~~~ {.haskell}
-d1 $ whenmod 5 3 (striate 3) $ stack [ 
-  sound "bd bd*2", 
-  sound "hh*2 [sn cp] cp future*4", 
+d1 $ whenmod 5 3 (striate 3) $ stack [
+  sound "bd bd*2",
+  sound "hh*2 [sn cp] cp future*4",
   sound (samples "arpy*8", (run 16))
 ] |+| speed "[[1 0.8], [1.5 2]*2]/3"
 ~~~~
 
 There is a similar function named `seqP` which allows you to define when
 a sound within a list starts and ends. The code below contains three
-separate patterns in a "stack", but each has different start times 
+separate patterns in a "stack", but each has different start times
 (zero cycles, eight cycles, and sixteen cycles, respectively). All
 patterns stop after 128 cycles:
 
 ~~~~ {.haskell}
-d1 $ seqP [ 
-  (0, 128, sound "bd bd*2"), 
-  (8, 128, sound "hh*2 [sn cp] cp future*4"), 
+d1 $ seqP [
+  (0, 128, sound "bd bd*2"),
+  (8, 128, sound "hh*2 [sn cp] cp future*4"),
   (16, 128, sound (samples "arpy*8" (run 16)))
 ]
 ~~~~
@@ -933,6 +933,117 @@ pattern in the righthand channel:
 
 ~~~~ {.haskell}
 d1 $ slow 32 $ jux ((|+| speed "0.5") . rev) $ striate' 32 (1/16) $ sound "bev"
+~~~~
+
+
+# Quantization, event shifting, and patterns as sequences
+
+Patterns are not _really_ sequences, but sometimes you may wish they
+were. The functions `preplace` and `protate` let you treat them as
+sequences.
+
+Tidal patterns are formally infinite, but usually they repeat after some
+time (which is often some integer multiple of cycles). Since a pattern does not
+know how long it is, you'll have to specify. Each function comes with a
+companion operator which assumes your pattern repeats after one cycle. This
+is the case with pattern literals (i.e., `sound "bd bd"` is always a
+one cycle pattern).
+
+## preplace and `<~>`
+
+~~~~ {.haskell}
+preplace :: (Time, Time) -> Pattern a -> Pattern a -> Pattern a
+~~~~
+
+The `preplace` (shorthand `prep`) function combines the timing of one
+pattern (the trigger pattern) with event values of another (the sequence
+pattern). It does so by replacing the trigger pattern event values with
+values, repeating the latter until it has enough. Note that it does not
+matter what the values of the trigger pattern are, but the patterns must be
+of the same _type_.
+
+Additionally, `preplace` takes a `(Time, Time)` tuple of pattern
+lengths (doesn't have to be correct). If you are fine with constraining this
+effect to a single cycle you can use `<~>`:
+
+~~~~ {.haskell}
+(<~>) :: Pattern a -> Pattern a -> Pattern a
+~~~~
+
+Example replacements (`=>` means "becomes"):
+
+~~~~ {.haskell}
+"x x" <~> "bd"          => "bd bd"
+"x" <~> "bd sn"         => "bd"
+"x x ~ x" <~> "bd sn"   => "bd sn ~ bd sn bd ~ sn"
+"x(3,8)" <~> "bd"       => "bd ~ ~ bd ~ ~ b ~"
+"x(3,8)" <~> "bd bd sn" => "bd ~ ~ bd ~ ~ sn ~"
+
+preplace (1,1) "x [~ x] x x" "bd sn"
+  => "bd {~ sn] bd sn"
+
+preplace (1,3) "x x x ~" $ samples "bd sn" $ slow 3 $ run 3
+  => "bd:0 sn:0 bd:1 ~ sn:1  bd:2 sn:2 ~ bd:3  ..."
+~~~~
+
+Any pattern will do:
+
+~~~~ {.haskell}
+d1 $ sound "[jvbass jvbass:5]*3" |+| (shape $ "1 1 1 1 1" <~> "0.2 0.9")
+~~~~
+
+## preplaceWith (prw)
+
+`preplaceWith` (shorthand `prw`) is similar to `replace` but takes an
+additional combinator function:
+
+~~~~ {.haskell}
+preplaceWith :: (a -> b -> c) -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
+preplaceWith1 :: (a -> b -> c) -> Pattern a -> Pattern b -> Pattern c
+
+prw = preplaceWith
+prw1 = preplaceWith1
+~~~~
+
+`preplaceWith1` assumes both patterns are of length 1. Also note that
+patterns don't have to be of the same type anymore.
+
+This can be quite powerful:
+
+~~~~ {.haskell}
+prw1 (+) "1 2 3" "2"    => "3 4 5"
+prw1 (+) "1 2 3" "1 -1" => "2 1 4 0 3 2"
+~~~~
+
+## protate and `<<~`/`~>>`
+
+~~~~ {.haskell}
+protate :: Time -> Int -> Pattern a -> Pattern a
+protate len rot p = ...
+~~~~
+
+The `protate` (shorthand `prot`) function takes a pattern of length `len`
+and shifts the events `rot` times to the left without disturbing the time signature.
+
+~~~~ {.haskell}
+prot 1 "1 2 ~ 3"                => "2 3 ~ 1"
+1 <<~ "1 2 ~ 3"                 => "2 3 ~ 1"
+1 ~>> "1 2 ~ 3"                 => "3 1 ~ 2"
+2 ~>> "[bd bd] sn ~ hh [~ can]" => "[hh can] bd ~ bd [~ sn]"
+~~~~
+
+## prr and prrw
+
+All the above functions rely on `prrw` (pattern replate rotate with) and its
+alias `prr`. If you find yourself having to do combinations of the above,
+you can use these directly.
+
+~~~~ {.haskell}
+-- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
+prrw :: (a -> b -> c) -> Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
+prrw f rot (blen, vlen) beatPattern valuePattern = ...
+
+prr :: Int -> (Time, Time) -> Pattern a -> Pattern a -> Pattern a
 ~~~~
 
 # Plus more to be discovered!
