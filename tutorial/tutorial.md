@@ -7,7 +7,7 @@ fontfamily: inconsolata
 mainfont: Linux Libertine O
 monofont: Inconsolata
 ...
-
+ 
 Welcome to the Tidal tutorial. Tidal is a mini-language for exploring pattern, designed for use in live coding performance. In this tutorial we'll step through different levels of abstraction, starting with sounds and filters, then sequences of sounds and filters, and moving up to functions for manipulating those sequences, and ending up looking at functions which manipulate other functions. Fun stuff!
 
 # Sounds and effects
@@ -182,6 +182,16 @@ amount of time. For example the following fits three sounds into the same cycle 
 d1 $ sound "drum drum:1 can"
 ```
 
+By the way, from time to time I will illustrate concepts with
+patterns of colour, for example:
+
+<example>
+"blue orange green"
+</example>
+
+You can understand the above in terms of a sound pattern that reads
+from left to right, i.e. the horizontal axis is time.
+
 The `~` symbol represents a rest, or pause, e.g.:
 
 ```haskell
@@ -203,12 +213,33 @@ three `can` samples are played inside the same amount of time that each `drum` s
 d1 $ sound "drum drum [can can:4 can:5] drum"
 ```
 
-As you can see the square brackets give the start and end of a subdivision. Actually you can keep going, 
-and subdivide a step within a subdivision:
+Again, here's the visual equivalent, which makes clear that an event
+is broken down into three 'subevents':
+
+<example>
+"blue green [purple grey black] orange"
+</example>
+
+As you can see the square brackets give the start and end of a
+subdivision. Here's another example, which has two events, which are
+broken down into different numbers of sub events:
+
+<example>
+"[blue green] [purple grey black]"
+</example>
+
+Actually you can keep going, and subdivide a step within a
+subdivision:
 
 ```haskell
 d1 $ sound "drum drum [can [can:4 can:6 can:3] can:5] drum"
 ```
+
+Again, the visual equivalent:
+
+<example>
+"orange purple [red [green grey brown] yellow] pink"
+</example>
 
 ## Layering up patterns
 
@@ -219,20 +250,44 @@ a comma:
 d1 $ sound "drum [can cp, can bd can:5]"
 ```
 
-As you can hear, the two patterns are layered up. Because they are different lengths (one with two 
-sounds, the other with three), you can get an interesting polyrhythmic effect. You can hear this better
-if you just have a single subdivision like this:
+As you can hear, the two patterns are layered up. Because they are
+different lengths (one with two sounds, the other with three), you can
+get an interesting polyrhythmic effect. You can hear this better if
+you just have a single subdivision like this:
 
 ```haskell
 d1 $ sound "[can cp, can bd can:5]"
 ```
 
-If you use curly brackets rather than square brackets the subpatterns are layered up in a different way, 
-so that the sounds inside align, and the different lengths of patterns seem to roll over one another:
+We can visualise this by stacking up the different part of the
+patterns, which makes clear how they co-occur:
+
+<example>
+"[orange purple, red green pink]"
+</example>
+
+If you use curly brackets rather than square brackets the subpatterns
+are layered up in a different way, so that the sounds inside align,
+and the different lengths of patterns seem to roll over one another:
 
 ```haskell
 d1 $ sound "{can can:2, can bd can:5}"
 ```
+
+Here's what that looks like:
+
+<example>
+"{orange purple, red green pink}"
+</example>
+
+The problem with the above is that the pattern is structured over
+several 'cycles' (in this case, three), and we can only see the first
+cycle. Lets jump a bit ahead and use the `density` function to pack
+more cycles in:
+
+<example>
+density 3 "{orange purple, red green pink}"
+</example>
 
 Again, you can layer up more than one of these subpatterns:
 
@@ -296,10 +351,18 @@ at half the speed:
 d1 $ sound "bd [bd arpy sn:2 arpy:2]/2"
 ```
 
-That is, the first cycle you get `bd [bd arpy]` and the second time around 
-you get `bd [sn:2 arpy:2]`. This is a little bit difficult to understand, but 
-basically if you don't get through a whole subpattern during one cycle, it carries 
-on where it left off the next one.
+That is, the first cycle you get `bd [bd arpy]` and the second time
+around you get `bd [sn:2 arpy:2]`. This is a little bit difficult to
+understand, but basically if you don't get through a whole subpattern
+during one cycle, it carries on where it left off the next one. This
+is worth looking at a colour pattern:
+
+<example>
+density 4 "red [blue orange purple green]/2"
+</example>
+
+Again we have used `density` to pack in more cycles (in this case 4)
+so you can see the changes from one cycle to the next.
 
 You can get some strange things going on by for example repeating four thirds of a
 subpattern per cycle:
@@ -489,7 +552,7 @@ Simply slowing patterns down substantially changes their character, sometimes in
 d1 $ slow 2 $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
 ```
 
-And `density` to speed it up again.
+And our friend `density` to speed it up again.
 
 ```haskell
 d1 $ density 2 $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
@@ -519,7 +582,10 @@ This makes it sounds really granulated. It sounds stranger if you reverse it aft
 d1 $ rev $ chop 16 $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
 ```
 
-Note how this is working from right to left; first it makes the sequence, then it passes the sequence to `chop`, then passes that to `rev`, and finally out to the Dirt synth using `d1`. If we swap the order of the chop and the rev, it sounds different:
+Due to the use of `$`, this is working from right to left; first it
+makes the sequence, then it passes the sequence to `chop 16`, then
+passes that to `rev`, and finally out to the Dirt synth using `d1`. If
+we swap the order of the chop and the rev, it sounds different:
 
 ```haskell
 d1 $ chop 16 $ rev $ sound "bd ~ sn bd ~ [~ bd]/2 [sn [~ bd]/2] ~"
@@ -549,11 +615,23 @@ d1 $ every 2 rev $ sound "bd can sn can:4"
 
 Instead of applying `rev` directly to `sound "bd can sn can:4"`, the above passes `rev` to `every`, telling it to apply it every `2` repetitions. Try changing `2` to `4` for a very different feel.
 
+Lets have a look at a visual example:
+
+<example>
+density 8 $ every 4 rev "black darkblue blue lightblue white"
+</example>
+
 This works with other functions that work on patterns. Here's how you make a pattern twice as dense every four repetitions:
 
 ```haskell
 d1 $ every 4 (density 2) $ sound "bd can sn can:4"
 ```
+
+... and visually:
+
+<example>
+density 8 $ every 4 (density 3) "orange red pink purple"
+</example>
 
 Note that we have to wrap `density 2` in parenthesis, to package it up to pass to `every` as a function that can be selectively applied to `"bd can sn can:4"`. If this doesn't make sense, get a feel for it by playing around with it, and content yourself with the fact that this technique involves something called *currying*, so cna't be all bad.
 
@@ -631,14 +709,18 @@ Predictably the `<~` operator does the same, but in the other direction:
 d1 $ 0.25 <~ sound "arpy arpy:1 arpy:2 arpy:3"
 ```
 
-Unless another pattern is playing at the same time, you can only hear the difference when you 
-change the number, which you perceive as a skipping back and forth. This is again where those metafunctions come in:
+Unless another pattern is playing at the same time, you can only hear
+the difference when you change the number, which you perceive as a
+skipping back and forth. This is again where those metafunctions come
+in:
 
 ```haskell
 d1 $ every 4 (0.25 <~) $ sound "arpy arpy:1 arpy:2 arpy:3"
 ```
 
-Again, because the output of all these functions is a pattern, they can be used as input to another function:
+In the above, the pattern skips every 4th cycle. Again, because the
+output of all these functions is a pattern, they can be used as input
+to another function:
 
 ```haskell
 d1 $ jux ((1/8) ~>) $ every 4 (0.25 <~) $ sound "arpy*3 arpy:1*2 arpy:4 [~ arpy:3]"
@@ -649,10 +731,15 @@ d1 $ jux ((1/8) ~>) $ every 4 (0.25 <~) $ sound "arpy*3 arpy:1*2 arpy:4 [~ arpy:
 For a given `n`, the `iter` function shifts a pattern to the left by `1/n` steps every cycle. An example
 speaks wonders:
 
-
 ```haskell
 d1 $ iter 4 $ sound "arpy:1 arpy:2 arpy:3 arpy:4"
 ```
+
+Here's the visual equivalent:
+
+<example>
+density 4 $ iter 4 $ "blue green purple orange"
+</example>
 
 This works well with `jux`:
 
@@ -697,7 +784,9 @@ d1 $ jux (density 2) $ sound (samples "drum can can" (slow 2.5 "0 1 2 4 5 6"))
 
 # That's it for now
 
-There is more, which you can dig out by exploring the [Tidal website](http://tidal.lurk.org/), 
-Tidal screencasts (e.g. on youtube and vimeo) and the Tidal patterns that people have shared.
-You can also sign up to the Tidal forum at [http://lurk.org/groups/tidal](http://lurk.org/groups/tidal)
-and join the community discussion there. Have fun!
+There is more, which you can dig out by exploring the
+[Tidal website](http://tidal.lurk.org/), Tidal screencasts (e.g. on
+youtube and vimeo) and the Tidal patterns that people have shared.
+You can also sign up to the Tidal forum at
+[http://lurk.org/groups/tidal](http://lurk.org/groups/tidal) and join
+the community discussion there. Have fun!
