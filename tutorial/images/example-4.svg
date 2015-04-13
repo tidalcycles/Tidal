@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="600pt" height="40pt" viewBox="0 0 600 40" version="1.1" shape-rendering="crispEdges">
+<g id="surface1">
+<rect x="0" y="0" width="600" height="40" style="fill:rgb(0%,0%,0%);fill-opacity:1;stroke:none;"/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(100%,64.705882%,0%);fill-opacity:1;" d="M 0 0 L 200 0 L 200 20 L 0 20 Z M 0 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(100%,0%,0%);fill-opacity:1;" d="M 0 20 L 200 20 L 200 40 L 0 40 Z M 0 20 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(100%,64.705882%,0%);fill-opacity:1;" d="M 200 0 L 300 0 L 300 20 L 200 20 Z M 200 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,50.196078%,0%);fill-opacity:1;" d="M 200 20 L 300 20 L 300 40 L 200 40 Z M 200 20 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(50.196078%,0%,50.196078%);fill-opacity:1;" d="M 300 0 L 400 0 L 400 20 L 300 20 Z M 300 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,50.196078%,0%);fill-opacity:1;" d="M 300 20 L 400 20 L 400 40 L 300 40 Z M 300 20 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(50.196078%,0%,50.196078%);fill-opacity:1;" d="M 400 0 L 600 0 L 600 20 L 400 20 Z M 400 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(100%,75.294118%,79.607843%);fill-opacity:1;" d="M 400 20 L 600 20 L 600 40 L 400 40 Z M 400 20 "/>
+</g>
+</svg>
