@@ -27,7 +27,18 @@ data Pattern a = Pattern {arc :: Arc -> [Event a]}
 -- | @show (p :: Pattern)@ returns a text string representing the
 -- event values active during the first cycle of the given pattern.
 instance (Show a) => Show (Pattern a) where
-  show p@(Pattern _) = show $ arc p (0, 1)
+  show p@(Pattern _) = intercalate " " $ map showEvent $ arc p (0, 1)
+
+showTime t | denominator t == 1 = show (numerator t)
+           | otherwise = show (numerator t) ++ ('/':show (denominator t))
+
+showArc a = concat[showTime $ fst a, (' ':showTime (snd a))]
+
+showEvent (a, b, v) | a == b = concat["(",show v,
+                                      (' ':showArc a),
+                                      ")"
+                                     ]
+                    | otherwise = show v
 
 instance Functor Pattern where
   fmap f (Pattern a) = Pattern $ fmap (fmap (mapThd' f)) a
