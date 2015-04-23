@@ -45,7 +45,7 @@ dirt = OscShape {path = "/play",
                             F "bandf" (Just 0),
                             F "bandq" (Just 0),
                             S "unit" (Just "rate"),
-                            I "loop" (Just 0)
+                            I "loop" (Just 1)
                           ],
                  cpsStamp = True,
                  timestamp = MessageStamp,
