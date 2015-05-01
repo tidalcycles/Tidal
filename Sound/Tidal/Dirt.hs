@@ -167,9 +167,11 @@ striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p |+| begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) |+| end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
 
 striateL :: Int -> Int -> OscPattern -> OscPattern
-striateL n l p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p
-                  |+| begin (atom (fromIntegral i / fromIntegral n))
-                  |+| end (atom $ mod' ((fromIntegral (i+1) / fromIntegral n)) 1.0 + fromIntegral l )
+--striateL n l p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+--  where off i p = p
+--                  |+| begin (atom (fromIntegral i / fromIntegral n))
+--                  |+| end (atom $ mod' ((fromIntegral (i+1) / fromIntegral n)) 1.0 + fromIntegral l )
+striateL n l p = striate n p |+| loop (atom $ fromIntegral l)
+striateL' n f l p = striate' n f p |+| loop (atom $ fromIntegral l)
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
