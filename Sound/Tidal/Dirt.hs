@@ -12,6 +12,7 @@ import Data.Colour.Names
 import Data.Hashable
 import Data.Bits
 import Data.Maybe
+import Data.Fixed
 import System.Process
 
 import Sound.Tidal.Stream
@@ -44,7 +45,8 @@ dirt = OscShape {path = "/play",
                             F "hresonance" (Just 0),
                             F "bandf" (Just 0),
                             F "bandq" (Just 0),
-                            S "unit" (Just "rate")
+                            S "unit" (Just "rate"),
+                            I "loop" (Just 1)
                           ],
                  cpsStamp = True,
                  timestamp = MessageStamp,
@@ -137,6 +139,7 @@ hresonance   = makeF dirt "hresonance"
 bandf        = makeF dirt "bandf"
 bandq        = makeF dirt "bandq"
 unit         = makeS dirt "unit"
+loop         = makeI dirt "loop"
 
 cut :: Pattern Int -> OscPattern
 cut = makeI dirt "cut"
@@ -162,5 +165,9 @@ striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
 striateO :: OscPattern -> Int -> Double -> OscPattern
 striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p |+| begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) |+| end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
+
+striateL :: Int -> Int -> OscPattern -> OscPattern
+striateL n l p = striate n p |+| loop (atom $ fromIntegral l)
+striateL' n f l p = striate' n f p |+| loop (atom $ fromIntegral l)
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
