@@ -12,7 +12,7 @@ import Control.Exception as E
 import Data.Time (getCurrentTime)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Data.Ratio
-
+import GHC.Float (float2Double, double2Float)
 import Sound.Tidal.Pattern
 import qualified Sound.Tidal.Parse as P
 import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
@@ -83,7 +83,7 @@ toMessage s shape change tick (o, m) =
      let cycleD = ((fromIntegral tick) / (fromIntegral ticksPerCycle)) :: Double
          logicalNow = (logicalTime change cycleD)
          logicalPeriod = (logicalTime change (cycleD + (1/(fromIntegral ticksPerCycle)))) - logicalNow
-         logicalOnset = logicalNow + (logicalPeriod * o) + (latency shape)
+         logicalOnset = logicalNow + (logicalPeriod * o) + (latency shape) + offset
          sec = floor logicalOnset
          usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
          oscdata = cpsPrefix ++ preamble shape ++ (parameterise $ catMaybes $ mapMaybe (\x -> Map.lookup x m') (params shape))
@@ -99,6 +99,9 @@ toMessage s shape change tick (o, m) =
                        | otherwise = ds
        cpsPrefix | cpsStamp shape = [float (cps change)]
                  | otherwise = []
+       offset = maybe 0 (toF) (Map.lookup (F "offset" (Just 0)) m)
+       toF (Just (Float f)) = float2Double f
+       toF _ = 0
 
 doAt t action = do forkIO $ do now <- getCurrentTime
                                let nowf = realToFrac $ utcTimeToPOSIXSeconds now
