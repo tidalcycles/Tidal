@@ -1,0 +1,11 @@
+flags: {}
+packages:
+- '.'
+extra-deps:
+- binary-0.7.5.0
+- data-ordlist-0.4.7.0
+- hmt-0.15
+- hosc-0.15
+- multiset-comb-0.2.4
+- permutation-0.5.0.5
+resolver: lts-2.14
