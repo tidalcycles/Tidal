@@ -194,3 +194,11 @@ xfadeIn t now (p:p':_) = overlay (p |+| gain (now ~> (slow t envEqR))) (p' |+| g
 xfade :: Time -> [OscPattern] -> OscPattern
 xfade = xfadeIn 2
 
+anticipateIn :: Time -> Time -> [OscPattern] -> OscPattern
+anticipateIn _ _ [] = silence
+anticipateIn _ _ (p:[]) = p
+anticipateIn t now (p:p':_) = overlay (playWhen (< (now + t)) $ spread' (stut 8 0.2) (now ~> (slow t $ toRational <$> envL)) p') (playWhen (>= (now + t)) p)
+
+anticipate :: Time -> [OscPattern] -> OscPattern
+anticipate = anticipateIn 4
+
