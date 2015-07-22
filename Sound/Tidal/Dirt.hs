@@ -2,7 +2,7 @@
   
 module Sound.Tidal.Dirt where
 
-import Sound.OSC.FD
+import Sound.OSC.FD (Datum)
 import qualified Data.Map as Map
 import Control.Applicative
 import Control.Concurrent.MVar
@@ -18,6 +18,7 @@ import System.Process
 import Sound.Tidal.Stream
 import Sound.Tidal.Pattern
 import Sound.Tidal.Parse
+import Sound.Tidal.Time
 
 dirt :: OscShape
 dirt = OscShape {path = "/play",
@@ -69,6 +70,7 @@ kriole = OscShape {path = "/trigger",
 
 dirtstart name = start "127.0.0.1" 7771 dirt
 dirtStream = stream "127.0.0.1" 7771 dirt
+dirtState = Sound.Tidal.Stream.state "127.0.0.1" 7771 dirt
 
 -- disused parameter..
 dirtstream _ = dirtStream
@@ -149,7 +151,7 @@ kpitch       = makeF kriole "kpitch"
 
 
 pick :: String -> Int -> String
-pick name n = name ++ "/" ++ (show n)
+pick name n = name ++ ":" ++ (show n)
 
 striate :: Int -> OscPattern -> OscPattern
 striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
@@ -171,3 +173,24 @@ striateL n l p = striate n p |+| loop (atom $ fromIntegral l)
 striateL' n f l p = striate' n f p |+| loop (atom $ fromIntegral l)
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
+
+dirtSetters :: IO Time -> IO (OscPattern -> IO (), (Time -> [OscPattern] -> OscPattern) -> OscPattern -> IO ())
+dirtSetters getNow = do ds <- dirtState
+                        return (setter ds, transition getNow ds)
+
+clutchIn :: Time -> Time -> [Pattern a] -> Pattern a
+clutchIn _ _ [] = silence
+clutchIn _ _ (p:[]) = p
+clutchIn t now (p:p':_) = overlay (fadeOut' now t p') (fadeIn' now t p)
+
+clutch :: Time -> [Pattern a] -> Pattern a
+clutch = clutchIn 2
+
+xfadeIn :: Time -> Time -> [OscPattern] -> OscPattern
+xfadeIn _ _ [] = silence
+xfadeIn _ _ (p:[]) = p
+xfadeIn t now (p:p':_) = overlay (p |+| gain (now ~> (slow t envEqR))) (p' |+| gain (now ~> (slow t (envEq))))
+
+xfade :: Time -> [OscPattern] -> OscPattern
+xfade = xfadeIn 2
+
