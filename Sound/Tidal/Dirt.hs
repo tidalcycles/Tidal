@@ -13,6 +13,7 @@ import Data.Hashable
 import Data.Bits
 import Data.Maybe
 import Data.Fixed
+import Data.Ratio
 import System.Process
 
 import Sound.Tidal.Stream
@@ -193,6 +194,11 @@ xfadeIn t now (p:p':_) = overlay (p |+| gain (now ~> (slow t envEqR))) (p' |+| g
 
 xfade :: Time -> [OscPattern] -> OscPattern
 xfade = xfadeIn 2
+
+stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
+stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |+| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)])) 
+  where scale x 
+          = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
 
 anticipateIn :: Time -> Time -> [OscPattern] -> OscPattern
 anticipateIn _ _ [] = silence
