@@ -362,8 +362,26 @@ square = squarewave
 envL :: Pattern Double
 envL = sig $ \t -> max 0 $ min (fromRational t) 1
 
+-- like envL but reversed.
+envLR :: Pattern Double
+envLR = (1-) <$> envL
+
+-- 'Equal power' for gain-based transitions
+envEq :: Pattern Double
+envEq = sig $ \t -> sin (pi/2 * (max 0 $ min (fromRational (1-t)) 1))
+-- Equal power reversed
+envEqR = sig $ \t -> cos (pi/2 * (max 0 $ min (fromRational (1-t)) 1))
+
 fadeOut :: Time -> Pattern a -> Pattern a
 fadeOut n = spread' (degradeBy) (slow n $ envL)
+
+-- Alternate versions where you can provide the time from which the fade starts
+fadeOut' :: Time -> Time -> Pattern a -> Pattern a
+fadeOut' from dur p = spread' (degradeBy) (from ~> slow dur envL) p
+
+-- The 1 <~ is so fade ins and outs have different degredations
+fadeIn' :: Time -> Time -> Pattern a -> Pattern a
+fadeIn' from dur p = spread' (\n p -> 1 <~ degradeBy n p) (from ~> slow dur ((1-) <$> envL)) p
 
 fadeIn :: Time -> Pattern a -> Pattern a
 fadeIn n = spread' (degradeBy) (slow n $ (1-) <$> envL)
@@ -423,8 +441,9 @@ ifp test f1 f2 p = splitQueries $ Pattern apply
                 | otherwise = (arc $ f2 p) a
 
 rand :: Pattern Double
-rand = Pattern $ \a -> [(a, a, fst $ randomDouble $ pureMT $ floor $ (*1000000) $ (midPoint a))]
+rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
+timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
 
 irand :: Double -> Pattern Int
 irand i = (floor . (*i)) <$> rand
@@ -601,3 +620,14 @@ d1 $ sound "sn ~ hh bd"
 -- | @pequal cycles p1 p2@: quickly test if @p1@ and @p2@ are the same.
 pequal :: Ord a => Time -> Pattern a -> Pattern a -> Bool
 pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
+
+-- | @discretise n p@: 'samples' the pattern @p@ at a rate of @n@
+-- events per cycle. Useful for turning a continuous pattern into a
+-- discrete one.
+discretise :: Time -> Pattern a -> Pattern a
+discretise n p = density n $ (atom (id)) <*> p
+
+-- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
+-- randomises the order in which they are played.
+randcat :: [Pattern a] -> Pattern a
+randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (fromIntegral $ length ps)) (slowcat ps)
