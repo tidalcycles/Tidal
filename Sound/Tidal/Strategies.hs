@@ -91,15 +91,10 @@ stackwith p ps | null ps = silence
 cross f p p' = Pattern $ \t -> concat [filter flt $ arc p t,
                                        filter (not . flt) $ arc p' t
                                       ]
-  where flt = f . cyclePos . fst . fst
+]  where flt = f . cyclePos . fst . fst
 -}
 
 inside n f p = density n $ f (slow n p)
-
-stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
-stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |+| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)])) 
-  where scale x 
-          = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
 
 scale :: (Functor f, Num b) => b -> b -> f b -> f b
 scale from to p = ((+ from) . (* (to-from))) <$> p
@@ -146,12 +141,22 @@ en :: [(Int, Int)] -> Pattern String -> Pattern String
 en ns p = stack $ map (\(i, (k, n)) -> e k n (samples p (pure i))) $ enumerate ns
 
 weave :: Rational -> OscPattern -> [OscPattern] -> OscPattern
-weave t p ps = weave' t p (map const ps)
+weave t p ps = weave' t p (map (\x -> (x |+|)) ps)
 
-weave' :: Rational -> OscPattern -> [OscPattern -> OscPattern] -> OscPattern
+weave' :: Rational -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
 weave' t p fs | l == 0 = silence
-             | otherwise = slow t $ stack $ map (\(i, f) -> ((density t (f p)) |+| (((fromIntegral i) % l) <~ p))) (zip [0 ..] fs)
+              | otherwise = slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) <~ (density t $ f (slow t p))) (zip [0 ..] fs)
   where l = fromIntegral $ length fs
 
 interlace :: OscPattern -> OscPattern -> OscPattern
 interlace a b = weave 16 (shape $ ((* 0.9) <$> sinewave1)) [a, b]
+
+-- Step sequencing
+step :: String -> String -> Pattern String
+step s steps = cat $ map f steps
+    where f c | c == 'x' = atom s
+              | c >= '0' && c <= '9' = atom $ s ++ ":" ++ [c]
+              | otherwise = silence
+
+steps :: [(String, String)] -> Pattern String
+steps = stack . map (\(a,b) -> step a b)
