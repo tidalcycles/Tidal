@@ -17,6 +17,7 @@ import Sound.Tidal.Pattern
 import qualified Sound.Tidal.Parse as P
 import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
 import Sound.Tidal.Utils
+import qualified Sound.Tidal.Time as T
 
 import qualified Data.Map as Map
 
@@ -121,6 +122,15 @@ start address port shape
        forkIO $ clockedTick ticksPerCycle ot
        return patternM
 
+-- variant of start where history of patterns is available
+state :: String -> Int -> OscShape -> IO (MVar (OscPattern, [OscPattern]))
+state address port shape
+  = do patternsM <- newMVar (silence, [])
+       s <- openUDP address port
+       let ot = (onTick' s shape patternsM) :: Tempo -> Int -> IO ()
+       forkIO $ clockedTick ticksPerCycle ot
+       return patternsM
+
 stream :: String -> Int -> OscShape -> IO (OscPattern -> IO ())
 stream address port shape 
   = do patternM <- start address port shape
@@ -146,6 +156,19 @@ onTick s shape patternM change ticks
        E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
        return ()
 
+-- Variant where mutable variable contains list as history of the patterns
+onTick' :: UDP -> OscShape -> MVar (OscPattern, [OscPattern]) -> Tempo -> Int -> IO ()
+onTick' s shape patternsM change ticks
+  = do ps <- readMVar patternsM
+       let ticks' = (fromIntegral ticks) :: Integer
+           a = ticks' % ticksPerCycle
+           b = (ticks' + 1) % ticksPerCycle
+           messages = mapMaybe 
+                      (toMessage s shape change ticks) 
+                      (seqToRelOnsets (a, b) $ fst ps)
+       E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
+       return ()
+
 make :: (a -> Datum) -> OscShape -> String -> Pattern a -> OscPattern
 make toOsc s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
   where nParam = param s nm
@@ -165,7 +188,7 @@ makeI = make int32
 
 param :: OscShape -> String -> Param
 param shape n = head $ filter (\x -> name x == n) (params shape)
-                
+
 merge :: OscPattern -> OscPattern -> OscPattern
 merge x y = (flip Map.union) <$> x <*> y
 
@@ -173,7 +196,18 @@ infixl 1 |+|
 (|+|) :: OscPattern -> OscPattern -> OscPattern
 (|+|) = merge
 
+transition :: (IO T.Time) -> MVar (OscPattern, [OscPattern]) -> (T.Time -> [OscPattern] -> OscPattern) -> OscPattern -> IO ()
+transition getNow mv f p =
+  do now <- getNow
+     ps <- takeMVar mv
+     let p' = f now (p:snd ps)
+     -- don't put the transition in history, only
+     -- the target pattern, or things get overcomplex
+     -- (transitions of transitions)
+     putMVar mv (p', (p:snd ps))
+     return ()
 
-
-
-
+setter :: MVar (a, [a]) -> a -> IO ()
+setter ds p = do ps <- takeMVar ds
+                 putMVar ds $ (p, p:snd ps)
+                 return ()
