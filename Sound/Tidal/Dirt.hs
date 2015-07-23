@@ -20,6 +20,7 @@ import Sound.Tidal.Stream
 import Sound.Tidal.Pattern
 import Sound.Tidal.Parse
 import Sound.Tidal.Time
+import Sound.Tidal.Utils (enumerate)
 
 dirt :: OscShape
 dirt = OscShape {path = "/play",
