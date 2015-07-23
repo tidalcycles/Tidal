@@ -208,3 +208,9 @@ anticipateIn t now (p:p':_) = overlay (playWhen (< (now + t)) $ spread' (stut 8 
 anticipate :: Time -> [OscPattern] -> OscPattern
 anticipate = anticipateIn 4
 
+histpan :: Int -> Time -> [OscPattern] -> OscPattern
+histpan _ _ [] = silence
+histpan 0 _ _ = silence
+histpan n _ ps = stack $ map (\(i,p) -> p |+| pan (atom $ (fromIntegral i) / (fromIntegral n'))) (enumerate ps')
+  where ps' = take n ps
+        n' = length ps' -- in case there's fewer patterns than requested
