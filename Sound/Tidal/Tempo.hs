@@ -169,7 +169,8 @@ clockedTick tpb callback =
         doTick tempo tick | paused tempo =
           do let pause = 0.01
              threadDelay $ floor (pause * 1000000)
-             return tick
+             -- reset tick to 0 if cps is negative
+             return $ if cps tempo < 0 then 0 else tick
                           | otherwise =
           do now <- getCurrentTime
              let tps = (fromIntegral tpb) * cps tempo
@@ -192,20 +193,16 @@ clockedTick tpb callback =
 
 
 updateTempo :: Tempo -> Double -> IO (Tempo)
-updateTempo t cps' | paused t == True =
-  do now <- getCurrentTime
-     return $ Tempo {at = now, beat = beat t, cps = cps', paused = False}
-                   | cps' == 0 =
-  do now <- getCurrentTime
-     let delta = realToFrac $ diffUTCTime now (at t)
-         beat' = (beat t) + ((cps t) * delta)
-     return $ Tempo {at = now, beat = beat', cps = cps', paused = True}
-                   | otherwise = 
-  do now <- getCurrentTime
-     let delta = realToFrac $ diffUTCTime now (at t)
-         beat' = (beat t) + ((cps t) * delta)
-     return $ Tempo {at = now, beat = beat', cps = cps', paused = False}
-
+updateTempo t cps'
+  | paused t == True =
+    do now <- getCurrentTime
+       return $ Tempo {at = now, beat = beat t, cps = cps', paused = False}
+  | otherwise = 
+    do now <- getCurrentTime
+       let delta = realToFrac $ diffUTCTime now (at t)
+           beat' = (beat t) + ((cps t) * delta)
+           beat'' = if cps' < 0 then 0 else beat'
+       return $ Tempo {at = now, beat = beat'', cps = cps', paused = (cps' <= 0)}
 
 addClient client clients = client : clients
   
