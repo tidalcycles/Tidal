@@ -200,7 +200,8 @@ clockedTick tpb callback =
 
 updateTempo :: Tempo -> Double -> IO (Tempo)
 updateTempo t cps'
-  | paused t == True =
+  | paused t == True && cps' > 0 =
+    -- unpause
     do now <- getCurrentTime
        return $ t {at = addUTCTime (realToFrac $ clockLatency t) now, cps = cps', paused = False}
   | otherwise = 
