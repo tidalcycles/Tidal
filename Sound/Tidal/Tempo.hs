@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Sound.Tidal.Tempo where
 
-import Data.Time (getCurrentTime, UTCTime, diffUTCTime)
+import Data.Time (getCurrentTime, UTCTime, NominalDiffTime, diffUTCTime, addUTCTime)
 import Data.Time.Clock.POSIX
 import Control.Monad (forM_, forever, void)
 import Control.Monad.IO.Class (liftIO)
@@ -19,14 +19,17 @@ import System.Environment (getEnv)
 
 import Sound.Tidal.Utils
 
-data Tempo = Tempo {at :: UTCTime, beat :: Double, cps :: Double, paused :: Bool}
+data Tempo = Tempo {at :: UTCTime, beat :: Double, cps :: Double, paused :: Bool, clockLatency :: Double}
 
 type ClientState = [WS.Connection]
 
 instance Eq WS.Connection
 
 instance Show Tempo where
-  show x = show (at x) ++ "," ++ show (beat x) ++ "," ++ show (cps x) ++ "," ++ show (paused x)
+  show x = show (at x) ++ "," ++ show (beat x) ++ "," ++ show (cps x) ++ "," ++ show (paused x) ++ "," ++ (show $ clockLatency x)
+
+getLatency :: IO Double
+getLatency = fmap (read) (getEnvDefault "0.04" "TIDAL_CLOCK_LATENCY")
 
 getClockIp :: IO String
 getClockIp = getEnvDefault "127.0.0.1" "TIDAL_TEMPO_IP"
@@ -35,8 +38,8 @@ getServerPort :: IO Int
 getServerPort = fmap read (getEnvDefault "9160" "TIDAL_TEMPO_PORT")
 
 readTempo :: String -> Tempo
-readTempo x = Tempo (read a) (read b) (read c) (read d)
-  where (a:b:c:d:_) = wordsBy (== ',') x
+readTempo x = Tempo (read a) (read b) (read c) (read d) (read e)
+  where (a:b:c:d:e:_) = wordsBy (== ',') x
 
 logicalTime :: Tempo -> Double -> Double
 logicalTime t b = changeT + timeDelta
@@ -46,7 +49,8 @@ logicalTime t b = changeT + timeDelta
 
 tempoMVar :: IO (MVar (Tempo))
 tempoMVar = do now <- getCurrentTime
-               mv <- newMVar (Tempo now 0 0.5 False)
+               l <- getLatency
+               mv <- newMVar (Tempo now 0 0.5 False l)
                forkIO $ clocked $ f mv
                return mv
   where f mv change _ = do swapMVar mv change
@@ -168,6 +172,8 @@ clockedTick tpb callback =
              loop mTempo tick'
         doTick tempo tick | paused tempo =
           do let pause = 0.01
+             -- TODO - do this via blocking read on the mvar somehow
+             -- rather than polling
              threadDelay $ floor (pause * 1000000)
              -- reset tick to 0 if cps is negative
              return $ if cps tempo < 0 then 0 else tick
@@ -196,13 +202,13 @@ updateTempo :: Tempo -> Double -> IO (Tempo)
 updateTempo t cps'
   | paused t == True =
     do now <- getCurrentTime
-       return $ Tempo {at = now, beat = beat t, cps = cps', paused = False}
+       return $ t {at = addUTCTime (realToFrac $ clockLatency t) now, cps = cps', paused = False}
   | otherwise = 
     do now <- getCurrentTime
        let delta = realToFrac $ diffUTCTime now (at t)
            beat' = (beat t) + ((cps t) * delta)
            beat'' = if cps' < 0 then 0 else beat'
-       return $ Tempo {at = now, beat = beat'', cps = cps', paused = (cps' <= 0)}
+       return $ t {at = now, beat = beat'', cps = cps', paused = (cps' <= 0)}
 
 addClient client clients = client : clients
   
@@ -218,7 +224,8 @@ startServer :: IO (ThreadId)
 startServer = do
   serverPort <- getServerPort
   start <- getCurrentTime
-  tempoState <- newMVar (Tempo start 0 1 False)
+  l <- getLatency
+  tempoState <- newMVar (Tempo start 0 1 False l)
   clientState <- newMVar []
   forkIO $ WS.runServer "0.0.0.0" serverPort $ serverApp tempoState clientState
 
