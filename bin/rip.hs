@@ -11,6 +11,7 @@ import GHC.Int
 
 import System.Cmd
 import Control.Concurrent
+import Text.Printf
 
 channel = Event.Channel 0
 notes = [30 .. 100]
@@ -29,7 +30,7 @@ main =
       return ()
 
 play h conn n =
-  do forkIO $ do rawSystem "ecasound" ["-t:" ++ (show time), "-i", "jack,system", "-o", "note-" ++ (show n) ++ ".wav"]
+  do forkIO $ do rawSystem "ecasound" ["-t:" ++ (show time), "-i", "jack,system", "-o", printf "note-%03d.wav" n]
                  return ()
      threadDelay 500000
      Event.outputDirect h $ noteOn conn n 80
