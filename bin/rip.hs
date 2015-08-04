@@ -14,7 +14,7 @@ import Control.Concurrent
 import Text.Printf
 
 channel = Event.Channel 0
-notes = [30 .. 100]
+notes = [12 .. 100]
 time = 3
 
 midiport = "24:0"
@@ -30,7 +30,9 @@ main =
       return ()
 
 play h conn n =
-  do forkIO $ do rawSystem "ecasound" ["-t:" ++ (show time), "-i", "jack,system", "-o", printf "note-%03d.wav" n]
+  do let tmpfn = printf "tmp-%03d.wav" n
+         fn = printf "note-%03d.wav" n
+     forkIO $ do rawSystem "ecasound" ["-t:" ++ (show time), "-i", "jack,system", "-o", tmpfn]
                  return ()
      threadDelay 500000
      Event.outputDirect h $ noteOn conn n 80
@@ -38,6 +40,9 @@ play h conn n =
                  Event.outputDirect h $ noteOff conn n
                  return ()
      threadDelay $ 1000000 * time
+     forkIO $ do rawSystem "sox" [tmpfn, fn, "silence", "1", "0", "-55d", "reverse", "silence", "1", "0", "-55d", "reverse"]
+                 rawSystem "rm" [tmpfn]
+                 return ()
      return ()
      
      
