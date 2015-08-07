@@ -16,8 +16,17 @@ sudo apt-get -y install build-essential libsndfile1-dev libsamplerate0-dev \
     ghc zlib1g-dev cabal-install \
     emacs24 haskell-mode
 
-git clone https://github.com/yaxu/Dirt.git
-cd Dirt
+if [ -d "Dirt" ]; then
+	cd Dirt
+	if [ ! -d ".git" ]; then
+		>&2 echo "no git repository for 'Dirt' ... don't know what to do"
+		exit 1
+	fi
+	git pull
+else
+	git clone https://github.com/yaxu/Dirt.git
+	cd Dirt
+fi
 make clean; make
 
 cabal update
