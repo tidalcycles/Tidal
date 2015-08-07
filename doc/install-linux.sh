@@ -9,7 +9,7 @@ set -e
 # This script has been tested with Ubuntu 13.10
 # and Debian.
 
-mkdir ~/tidal
+mkdir -p ~/tidal
 cd ~/tidal
 sudo apt-get -y install build-essential libsndfile1-dev libsamplerate0-dev \
     liblo-dev libjack-jackd2-dev qjackctl jackd git \
