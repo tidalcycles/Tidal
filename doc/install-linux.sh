@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
-# Tested with Ubuntu 13.10
+# This script installs tidal.
+# It will get all its dependencies and put
+# files into ~/tidal and a start script on the
+# Desktop.
+#
+# This script has been tested with Ubuntu 13.10
+# and Debian.
 
 mkdir ~/tidal
 cd ~/tidal
