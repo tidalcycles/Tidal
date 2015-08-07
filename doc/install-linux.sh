@@ -51,5 +51,6 @@ sudo adduser $USER audio
 
 # put starter on th desktop
 cd ~/Desktop
+rm -f start-tidal
 wget http://yaxu.org/tmp/start-tidal
 chmod u+x start-tidal
