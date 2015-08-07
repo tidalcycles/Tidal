@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 # Tested with Ubuntu 13.10
 
