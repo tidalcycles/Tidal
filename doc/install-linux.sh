@@ -41,8 +41,12 @@ mkdir -p ~/tidal/emacs
 rm -f ~/tidal/emacs/tidal.el
 wget -O ~/tidal/emacs/tidal.el https://raw.githubusercontent.com/yaxu/Tidal/master/tidal.el
 touch ~/.emacs
-echo "(add-to-list 'load-path \"~/tidal/emacs\")" >> ~/.emacs
-echo "(require 'tidal)" >> ~/.emacs
+if [ `grep "(add-to-list 'load-path \"~/tidal/emacs\")" ~/.emacs | wc -l` -ne 1 ]; then
+	echo "(add-to-list 'load-path \"~/tidal/emacs\")" >> ~/.emacs
+fi
+if [ `grep "(require 'tidal)" ~/.emacs | wc -l` -ne 1 ]; then
+	echo "(require 'tidal)" >> ~/.emacs
+fi
 sudo adduser $USER audio
 
 # put starter on th desktop
