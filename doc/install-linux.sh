@@ -37,7 +37,8 @@ cabal install cabal
 cabal install tidal
 
 # configure Emacs
-mkdir ~/tidal/emacs
+mkdir -p ~/tidal/emacs
+rm -f ~/tidal/emacs/tidal.el
 wget -O ~/tidal/emacs/tidal.el https://raw.githubusercontent.com/yaxu/Tidal/master/tidal.el
 touch ~/.emacs
 echo "(add-to-list 'load-path \"~/tidal/emacs\")" >> ~/.emacs
