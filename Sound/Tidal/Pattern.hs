@@ -645,6 +645,8 @@ toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
     notes = ["c","cs","d","ds","e","f","fs","g","gs","a","as","b"]
     octaves = [0 .. 10]
 
+tom = toMIDI
+
 fit :: Int -> [a] -> Pattern Int -> Pattern a
 fit perCycle xs p = (xs !!!) <$> (Pattern $ \a -> map ((\e -> (mapThd' (+ (cyclePos perCycle e)) e))) (arc p a))
   where cyclePos perCycle e = perCycle * (floor $ eventStart e)
