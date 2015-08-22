@@ -63,3 +63,6 @@ mergelists :: [a] -> [a] -> [a]
 mergelists xs     []     = xs
 mergelists []     ys     = ys
 mergelists (x:xs) (y:ys) = x : y : mergelists xs ys
+
+(!!!) :: [a] -> Int -> a
+(!!!) xs n = xs !! (n `mod` length xs)

@@ -368,9 +368,9 @@ envLR = (1-) <$> envL
 
 -- 'Equal power' for gain-based transitions
 envEq :: Pattern Double
-envEq = sig $ \t -> sin (pi/2 * (max 0 $ min (fromRational (1-t)) 1))
+envEq = sig $ \t -> sqrt (sin (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
 -- Equal power reversed
-envEqR = sig $ \t -> cos (pi/2 * (max 0 $ min (fromRational (1-t)) 1))
+envEqR = sig $ \t -> sqrt (cos (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
 
 fadeOut :: Time -> Pattern a -> Pattern a
 fadeOut n = spread' (degradeBy) (slow n $ envL)
@@ -644,3 +644,9 @@ toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
                      ]
     notes = ["c","cs","d","ds","e","f","fs","g","gs","a","as","b"]
     octaves = [0 .. 10]
+
+tom = toMIDI
+
+fit :: Int -> [a] -> Pattern Int -> Pattern a
+fit perCycle xs p = (xs !!!) <$> (Pattern $ \a -> map ((\e -> (mapThd' (+ (cyclePos perCycle e)) e))) (arc p a))
+  where cyclePos perCycle e = perCycle * (floor $ eventStart e)
