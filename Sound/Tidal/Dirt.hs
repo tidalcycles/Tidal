@@ -191,7 +191,7 @@ clutch = clutchIn 2
 xfadeIn :: Time -> Time -> [OscPattern] -> OscPattern
 xfadeIn _ _ [] = silence
 xfadeIn _ _ (p:[]) = p
-xfadeIn t now (p:p':_) = overlay (p |+| gain (now ~> (slow t envEqR))) (p' |+| gain (now ~> (slow t (envEq))))
+xfadeIn t now (p:p':_) = overlay (p |*| gain (now ~> (slow t envEqR))) (p' |*| gain (now ~> (slow t (envEq))))
 
 xfade :: Time -> [OscPattern] -> OscPattern
 xfade = xfadeIn 2
@@ -201,17 +201,21 @@ stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |+| ga
   where scale x 
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
 
-anticipateIn :: Time -> Time -> [OscPattern] -> OscPattern
-anticipateIn _ _ [] = silence
-anticipateIn _ _ (p:[]) = p
-anticipateIn t now (p:p':_) = overlay (playWhen (< (now + t)) $ spread' (stut 8 0.2) (now ~> (slow t $ toRational <$> envL)) p') (playWhen (>= (now + t)) p)
-
-anticipate :: Time -> [OscPattern] -> OscPattern
-anticipate = anticipateIn 4
-
 histpan :: Int -> Time -> [OscPattern] -> OscPattern
 histpan _ _ [] = silence
 histpan 0 _ _ = silence
 histpan n _ ps = stack $ map (\(i,p) -> p |+| pan (atom $ (fromIntegral i) / (fromIntegral n'))) (enumerate ps')
   where ps' = take n ps
         n' = length ps' -- in case there's fewer patterns than requested
+
+wash :: (Pattern a -> Pattern a) -> Time -> Time -> [Pattern a] -> Pattern a
+wash _ _ _ [] = silence
+wash _ _ _ (p:[]) = p
+wash f t now (p:p':_) = overlay (playWhen (< (now + t)) $ f p') (playWhen (>= (now + t)) p)
+
+anticipateIn :: Time -> Time -> [OscPattern] -> OscPattern
+anticipateIn t now = wash (spread' (stut 8 0.2) (now ~> (slow t $ (toRational . (1-)) <$> envL))) t now
+
+anticipate :: Time -> [OscPattern] -> OscPattern
+anticipate = anticipateIn 8
+
