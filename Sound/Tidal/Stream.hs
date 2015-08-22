@@ -196,6 +196,16 @@ infixl 1 |+|
 (|+|) :: OscPattern -> OscPattern -> OscPattern
 (|+|) = merge
 
+merge' x y = (Map.unionWithKey f) <$> x <*> y
+  where f (F _ _) (Just a) (Just b) = do a' <- datum_float a
+                                         b' <- datum_float b
+                                         return $ float (a' * b')
+        f _ a b = b
+
+infixl 1 |*|
+(|*|) :: OscPattern -> OscPattern -> OscPattern
+(|*|) = merge'
+
 transition :: (IO T.Time) -> MVar (OscPattern, [OscPattern]) -> (T.Time -> [OscPattern] -> OscPattern) -> OscPattern -> IO ()
 transition getNow mv f p =
   do now <- getNow
