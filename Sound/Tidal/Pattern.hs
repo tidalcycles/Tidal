@@ -476,7 +476,7 @@ degrade = degradeBy 0.5
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the
 -- remainer of each cycle.
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
-wedge t p p' = overlay (densityGap (1/t) p) (t <~ densityGap (1/(1-t)) p')
+wedge t p p' = overlay (densityGap (1/t) p) (t ~> densityGap (1/(1-t)) p')
 
 whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 whenmod a b = Sound.Tidal.Pattern.when ((\t -> (t `mod` a) >= b ))
