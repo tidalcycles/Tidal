@@ -42,6 +42,8 @@ smash' n xs p = slowcat $ map (\n -> slow n p') xs
 samples :: Applicative f => f String -> f Int -> f String
 samples p p' = pick <$> p <*> p'
 
+samples' :: Applicative f => f String -> f Int -> f String
+samples' p p' = (flip pick) <$> p' <*> p
 
 {-
 scrumple :: Time -> Pattern a -> Pattern a -> Pattern a
