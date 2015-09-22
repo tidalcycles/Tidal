@@ -72,7 +72,7 @@ instance Monad Pattern where
   return = pure
   -- Pattern a -> (a -> Pattern b) -> Pattern b
   -- Pattern Char -> (Char -> Pattern String) -> Pattern String
-  
+
   p >>= f = -- unwrap (f <$> p)
     Pattern (\a -> concatMap
                    (\((s,e), (s',e'), x) -> map (\ev -> ((s,e), (s',e'), thd' ev)) $
@@ -560,7 +560,7 @@ Examples:
 d1 $ sound $ preplace (1,1) "x [~ x] x x" "bd sn"
 d1 $ sound $ preplace (1,1) "x(3,8)" "bd sn"
 d1 $ sound $ "x(3,8)" <~> "bd sn"
-d1 $ sound "[jvbass jvbass:5]*3" |+| (shape $ "1 1 1 1 1" <~> "0.2 0.9")
+d1 $ sound "[jvbass jvbass:5]*3" |*| (shape $ "1 1 1 1 1" <~> "0.2 0.9")
 @
 
 It is assumed the pattern fits into a single cycle. This works well with

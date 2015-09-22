@@ -21,13 +21,13 @@ triple = stutter 3
 quad   = stutter 4
 double = echo
 
-jux f p = stack [p |+| pan (pure 0), f $ p |+| pan (pure 1)]
-juxcut f p = stack [p     |+| pan (pure 0) |+| cut (pure (-1)), 
-                    f $ p |+| pan (pure 1) |+| cut (pure (-2))
+jux f p = stack [p |*| pan (pure 0), f $ p |*| pan (pure 1)]
+juxcut f p = stack [p     |*| pan (pure 0) |*| cut (pure (-1)),
+                    f $ p |*| pan (pure 1) |*| cut (pure (-2))
                    ]
-jux4 f p = stack [p |+| pan (pure 0), f $ p |+| pan (pure 2)]
+jux4 f p = stack [p |*| pan (pure 0), f $ p |*| pan (pure 2)]
 
-juxBy n f p = stack [p |+| pan (pure $ 0.5 - (n/2)), f $ p |+| pan (pure $ 0.5 + (n/2))]
+juxBy n f p = stack [p |*| pan (pure $ 0.5 - (n/2)), f $ p |*| pan (pure $ 0.5 + (n/2))]
 
 -- every 4 (smash 4 [1, 2, 3]) $ sound "[odx sn/2 [~ odx] sn/3, [~ hh]*4]"
 
@@ -48,7 +48,7 @@ samples' p p' = (flip pick) <$> p' <*> p
 {-
 scrumple :: Time -> Pattern a -> Pattern a -> Pattern a
 scrumple o p p' = p'' -- overlay p (o ~> p'')
-  where p'' = Pattern $ \a -> concatMap 
+  where p'' = Pattern $ \a -> concatMap
                               (\((s,d), vs) -> map (\x -> ((s,d),
                                                            snd x
                                                           )
@@ -58,8 +58,8 @@ scrumple o p p' = p'' -- overlay p (o ~> p'')
 -}
 
 --rev :: Pattern a -> Pattern a
---rev p = Pattern $ \a -> concatMap 
---                        (\a' -> mapFsts mirrorArc $ 
+--rev p = Pattern $ \a -> concatMap
+--                        (\a' -> mapFsts mirrorArc $
 --                                (arc p (mirrorArc a')))
 --                        (arcCycles a)
 
@@ -70,7 +70,7 @@ spin :: Int -> OscPattern -> OscPattern
 spin copies p =
   stack $ map (\n -> let offset = toInteger n % toInteger copies in
                      offset <~ p
-                     |+| pan (pure $ fromRational offset)
+                     |*| pan (pure $ fromRational offset)
               )
           [0 .. (copies - 1)]
 
@@ -86,7 +86,7 @@ sinewave4 = ((*4) <$> sinewave1)
 rand4 = ((*4) <$> rand)
 
 stackwith p ps | null ps = silence
-               | otherwise = stack $ map (\(i, p') -> p' |+| (((fromIntegral i) % l) <~ p)) (zip [0 ..] ps)
+               | otherwise = stack $ map (\(i, p') -> p' |*| (((fromIntegral i) % l) <~ p)) (zip [0 ..] ps)
   where l = fromIntegral $ length ps
 
 {-
@@ -121,7 +121,7 @@ chopArc :: Arc -> Int -> [Arc]
 chopArc (s, e) n = map (\i -> ((s + (e-s)*(fromIntegral i/fromIntegral n)), s + (e-s)*((fromIntegral $ i+1)/fromIntegral n))) [0 .. n-1]
 {-
 normEv :: Event a -> Event a -> Event a
-normEv ev@(_, (s,e), _) ev'@(_, (s',e'), _) 
+normEv ev@(_, (s,e), _) ev'@(_, (s',e'), _)
        | not on && not off = [] -- shouldn't happen
        | on && off = splitEv ev'
        | not on && s' > sam s = []
@@ -143,7 +143,7 @@ en :: [(Int, Int)] -> Pattern String -> Pattern String
 en ns p = stack $ map (\(i, (k, n)) -> e k n (samples p (pure i))) $ enumerate ns
 
 weave :: Rational -> OscPattern -> [OscPattern] -> OscPattern
-weave t p ps = weave' t p (map (\x -> (x |+|)) ps)
+weave t p ps = weave' t p (map (\x -> (x |*|)) ps)
 
 weave' :: Rational -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
 weave' t p fs | l == 0 = silence
