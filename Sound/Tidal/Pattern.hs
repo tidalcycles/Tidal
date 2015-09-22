@@ -127,10 +127,10 @@ withResultTime :: (Time -> Time) -> Pattern a -> Pattern a
 withResultTime = withResultArc . mapArc
 
 -- | @overlay@ combines two @Pattern@s into a new pattern, so that
--- their events are combined over time.
+-- their events are combined over time. This is the same as the infix
+-- operator `<>`.
 overlay :: Pattern a -> Pattern a -> Pattern a
 overlay p p' = Pattern $ \a -> (arc p a) ++ (arc p' a)
-(>+<) = overlay
 
 -- | @stack@ combines a list of @Pattern@s into a new pattern, so that
 -- their events are combined over time.

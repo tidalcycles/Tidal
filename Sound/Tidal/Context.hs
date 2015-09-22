@@ -4,6 +4,7 @@ import Control.Concurrent as C
 import Data.List as C
 import Control.Applicative as C
 import Data.Ratio as C
+import Data.Monoid as C
 import Sound.Tidal.Parse as C
 import Sound.Tidal.Pattern as C
 import Sound.Tidal.Stream as C
