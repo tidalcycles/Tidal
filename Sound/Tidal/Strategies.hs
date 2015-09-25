@@ -12,6 +12,7 @@ import Sound.Tidal.Pattern
 import Sound.Tidal.Stream
 import Sound.Tidal.Time
 import Sound.Tidal.Utils
+import Sound.Tidal.Params
 import qualified Sound.OSC.FD as OSC.FD
 
 stutter n t p = stack $ map (\i -> (t * (fromIntegral i)) ~> p) [0 .. (n-1)]
