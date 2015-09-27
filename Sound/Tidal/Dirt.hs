@@ -129,10 +129,6 @@ striateL' n f l p = striate' n f p |+| loop (atom $ fromIntegral l)
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
 
-dirtSetters :: IO Time -> IO (OscPattern -> IO (), (Time -> [OscPattern] -> OscPattern) -> OscPattern -> IO ())
-dirtSetters getNow = do ds <- dirtState
-                        return (setter ds, transition getNow ds)
-
 clutchIn :: Time -> Time -> [Pattern a] -> Pattern a
 clutchIn _ _ [] = silence
 clutchIn _ _ (p:[]) = p
@@ -153,27 +149,3 @@ stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
 stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |+| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)])) 
   where scale x 
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
-
-histpan :: Int -> Time -> [OscPattern] -> OscPattern
-histpan _ _ [] = silence
-histpan 0 _ _ = silence
-histpan n _ ps = stack $ map (\(i,p) -> p |+| pan (atom $ (fromIntegral i) / (fromIntegral n'))) (enumerate ps')
-  where ps' = take n ps
-        n' = length ps' -- in case there's fewer patterns than requested
-
-wash :: (Pattern a -> Pattern a) -> Time -> Time -> [Pattern a] -> Pattern a
-wash _ _ _ [] = silence
-wash _ _ _ (p:[]) = p
-wash f t now (p:p':_) = overlay (playWhen (< (now + t)) $ f p') (playWhen (>= (now + t)) p)
-
-anticipateIn :: Time -> Time -> [OscPattern] -> OscPattern
-anticipateIn t now = wash (spread' (stut 8 0.2) (now ~> (slow t $ (toRational . (1-)) <$> envL))) t now
-
-anticipate :: Time -> [OscPattern] -> OscPattern
-anticipate = anticipateIn 8
-
-
-wait :: Time -> Time -> [OscPattern] -> OscPattern
-wait t _ [] = silence
-wait t now (p:_) = playWhen (>= (nextSam (now+t-1))) p
-
