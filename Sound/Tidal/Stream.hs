@@ -206,17 +206,6 @@ infixl 1 |*|
 (|*|) :: OscPattern -> OscPattern -> OscPattern
 (|*|) = mergeWith (*)
 
-transition :: (IO T.Time) -> MVar (OscPattern, [OscPattern]) -> (T.Time -> [OscPattern] -> OscPattern) -> OscPattern -> IO ()
-transition getNow mv f p =
-  do now <- getNow
-     ps <- takeMVar mv
-     let p' = f now (p:snd ps)
-     -- don't put the transition in history, only
-     -- the target pattern, or things get overcomplex
-     -- (transitions of transitions)
-     putMVar mv (p', (p:snd ps))
-     return ()
-
 setter :: MVar (a, [a]) -> a -> IO ()
 setter ds p = do ps <- takeMVar ds
                  putMVar ds $ (p, p:snd ps)
