@@ -163,3 +163,9 @@ step s steps = cat $ map f steps
 
 steps :: [(String, String)] -> Pattern String
 steps = stack . map (\(a,b) -> step a b)
+
+off :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+off t f p = superimpose (f . (t ~>)) p
+
+offadd :: Num a => Time -> a -> Pattern a -> Pattern a
+offadd t n p = off t ((+n) <$>) p
