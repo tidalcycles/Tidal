@@ -20,7 +20,7 @@ import Sound.Tidal.Stream
 import Sound.Tidal.Pattern
 import Sound.Tidal.Parse
 import Sound.Tidal.Time
-import Sound.Tidal.Utils (enumerate)
+import Sound.Tidal.Utils (enumerate, getEnvDefault)
 
 dirt :: OscShape
 dirt = OscShape {path = "/play",
@@ -70,9 +70,23 @@ kriole = OscShape {path = "/trigger",
                  preamble = []
                 }
 
-dirtstart name = start "127.0.0.1" 7771 dirt
-dirtStream = stream "127.0.0.1" 7771 dirt
-dirtState = Sound.Tidal.Stream.state "127.0.0.1" 7771 dirt
+getDirtHost :: IO String
+getDirtHost = getEnvDefault "127.0.0.1" "DIRT_HOST"
+
+getDirtPort :: IO Int
+getDirtPort = fmap read (getEnvDefault "7771" "DIRT_PORT")
+
+dirtstart name = do host <- getDirtHost
+                    port <- getDirtPort
+                    start host port dirt
+
+dirtStream = do host <- getDirtHost
+                port <- getDirtPort
+                stream host port dirt
+
+dirtState = do host <- getDirtHost
+               port <- getDirtPort
+               Sound.Tidal.Stream.state host port dirt
 
 -- disused parameter..
 dirtstream _ = dirtStream
