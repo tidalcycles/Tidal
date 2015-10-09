@@ -149,3 +149,7 @@ stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
 stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |+| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)])) 
   where scale x 
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
+
+stut' :: Integer -> Time -> (OscPattern -> OscPattern) -> OscPattern -> OscPattern
+stut' steps steptime f p | steps <= 0 = p
+                         | otherwise = overlay (f (steptime ~> stut' (steps-1) steptime f p)) p
