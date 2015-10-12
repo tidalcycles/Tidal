@@ -192,9 +192,11 @@ param shape n = head $ filter (\x -> name x == n) (params shape)
 merge :: OscPattern -> OscPattern -> OscPattern
 merge x y = (flip Map.union) <$> x <*> y
 
-infixl 1 |~|
-(|~|) :: OscPattern -> OscPattern -> OscPattern
-(|~|) = merge
+infixl 1 |=|
+(|=|) :: OscPattern -> OscPattern -> OscPattern
+(|=|) = merge
+
+(#) = (|=|)
 
 mergeWith op x y = (Map.unionWithKey f) <$> x <*> y
   where f (F _ _) (Just a) (Just b) = do a' <- datum_float a

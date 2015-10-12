@@ -111,21 +111,21 @@ pick name n = name ++ ":" ++ (show n)
 striate :: Int -> OscPattern -> OscPattern
 striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p 
-                  |+| begin (atom (fromIntegral i / fromIntegral n)) 
-                  |+| end (atom (fromIntegral (i+1) / fromIntegral n))
+                  # begin (atom (fromIntegral i / fromIntegral n)) 
+                  # end (atom (fromIntegral (i+1) / fromIntegral n))
 
 striate' :: Int -> Double -> OscPattern -> OscPattern
 striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p |+| begin (atom (slot * i) :: Pattern Double) |+| end (atom ((slot * i) + f) :: Pattern Double)
+  where off i p = p # begin (atom (slot * i) :: Pattern Double) # end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
 striateO :: OscPattern -> Int -> Double -> OscPattern
 striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p |+| begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) |+| end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
+  where off i p = p # begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) # end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
 
 striateL :: Int -> Int -> OscPattern -> OscPattern
-striateL n l p = striate n p |+| loop (atom $ fromIntegral l)
-striateL' n f l p = striate' n f p |+| loop (atom $ fromIntegral l)
+striateL n l p = striate n p # loop (atom $ fromIntegral l)
+striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
 
@@ -146,7 +146,7 @@ xfade :: Time -> [OscPattern] -> OscPattern
 xfade = xfadeIn 2
 
 stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
-stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |+| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)])) 
+stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)])) 
   where scale x 
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
 
