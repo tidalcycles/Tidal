@@ -22,13 +22,13 @@ triple = stutter 3
 quad   = stutter 4
 double = echo
 
-jux f p = stack [p |+| pan (pure 0), f $ p |+| pan (pure 1)]
-juxcut f p = stack [p     |+| pan (pure 0) |+| cut (pure (-1)), 
-                    f $ p |+| pan (pure 1) |+| cut (pure (-2))
+jux f p = stack [p # pan (pure 0), f $ p # pan (pure 1)]
+juxcut f p = stack [p     # pan (pure 0) # cut (pure (-1)), 
+                    f $ p # pan (pure 1) # cut (pure (-2))
                    ]
-jux4 f p = stack [p |+| pan (pure 0), f $ p |+| pan (pure 2)]
+jux4 f p = stack [p # pan (pure 0), f $ p # pan (pure 2)]
 
-juxBy n f p = stack [p |+| pan (pure $ 0.5 - (n/2)), f $ p |+| pan (pure $ 0.5 + (n/2))]
+juxBy n f p = stack [p # pan (pure $ 0.5 - (n/2)), f $ p # pan (pure $ 0.5 + (n/2))]
 
 -- every 4 (smash 4 [1, 2, 3]) $ sound "[odx sn/2 [~ odx] sn/3, [~ hh]*4]"
 
@@ -71,7 +71,7 @@ spin :: Int -> OscPattern -> OscPattern
 spin copies p =
   stack $ map (\n -> let offset = toInteger n % toInteger copies in
                      offset <~ p
-                     |+| pan (pure $ fromRational offset)
+                     # pan (pure $ fromRational offset)
               )
           [0 .. (copies - 1)]
 
@@ -87,7 +87,7 @@ sinewave4 = ((*4) <$> sinewave1)
 rand4 = ((*4) <$> rand)
 
 stackwith p ps | null ps = silence
-               | otherwise = stack $ map (\(i, p') -> p' |+| (((fromIntegral i) % l) <~ p)) (zip [0 ..] ps)
+               | otherwise = stack $ map (\(i, p') -> p' # (((fromIntegral i) % l) <~ p)) (zip [0 ..] ps)
   where l = fromIntegral $ length ps
 
 {-
@@ -144,7 +144,7 @@ en :: [(Int, Int)] -> Pattern String -> Pattern String
 en ns p = stack $ map (\(i, (k, n)) -> e k n (samples p (pure i))) $ enumerate ns
 
 weave :: Rational -> OscPattern -> [OscPattern] -> OscPattern
-weave t p ps = weave' t p (map (\x -> (x |+|)) ps)
+weave t p ps = weave' t p (map (\x -> (x #)) ps)
 
 weave' :: Rational -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
 weave' t p fs | l == 0 = silence
@@ -163,3 +163,12 @@ step s steps = cat $ map f steps
 
 steps :: [(String, String)] -> Pattern String
 steps = stack . map (\(a,b) -> step a b)
+
+off :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+off t f p = superimpose (f . (t ~>)) p
+
+offadd :: Num a => Time -> a -> Pattern a -> Pattern a
+offadd t n p = off t ((+n) <$>) p
+
+up :: Pattern Double -> OscPattern
+up = speed . ((1.059466**) <$>)

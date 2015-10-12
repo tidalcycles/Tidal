@@ -650,3 +650,4 @@ tom = toMIDI
 fit :: Int -> [a] -> Pattern Int -> Pattern a
 fit perCycle xs p = (xs !!!) <$> (Pattern $ \a -> map ((\e -> (mapThd' (+ (cyclePos perCycle e)) e))) (arc p a))
   where cyclePos perCycle e = perCycle * (floor $ eventStart e)
+
