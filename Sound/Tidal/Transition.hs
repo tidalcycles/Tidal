@@ -10,6 +10,8 @@ import Sound.Tidal.Utils
 import Control.Concurrent.MVar
 import Control.Applicative
 
+import Data.Monoid
+
 transition :: (IO Time) -> MVar (OscPattern, [OscPattern]) -> (Time -> [OscPattern] -> OscPattern) -> OscPattern -> IO ()
 transition getNow mv f p =
   do now <- getNow
@@ -29,6 +31,18 @@ histpan n _ ps = stack $ map (\(i,p) -> p |+| pan (atom $ (fromIntegral i) / (fr
   where ps' = take n ps
         n' = length ps' -- in case there's fewer patterns than requested
 
+-- generalizing wash to use pattern transformers on fadeout, fadein, and delay
+-- to start of transition
+superwash :: (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Time -> Time -> Time -> [Pattern a] -> Pattern a
+superwash _ _ _ _ _ [] = silence
+superwash _ _ _ _ _ (p:[]) = p
+superwash fout fin delay dur now (p:p':_) = 
+   (playWhen (< (now + delay)) p') <>
+   (playWhen (between (now + delay) (now + delay + dur)) $ fout p') <>
+   (playWhen (>= (now + delay + dur)) $ fin p)
+ where
+   between lo hi x = (x >= lo) && (x < hi)
+
 wash :: (Pattern a -> Pattern a) -> Time -> Time -> [Pattern a] -> Pattern a
 wash _ _ _ [] = silence
 wash _ _ _ (p:[]) = p
@@ -45,6 +59,21 @@ anticipate = anticipateIn 8
 wait :: Time -> Time -> [OscPattern] -> OscPattern
 wait t _ [] = silence
 wait t now (p:_) = playWhen (>= (nextSam (now+t-1))) p
+
+-- transition at cycle boundary after n cycles
+jumpIn' :: Int -> Time -> [OscPattern] -> OscPattern
+jumpIn' n = superwash id id ((nextSam now) - now + (fromIntegral n)) 0
+
+-- sharp transition a certain number of cycles in the future
+jumpIn :: Int -> Time -> [OscPattern] -> OscPattern
+jumpIn n = superwash id id (fromIntegral n) 0
+
+jump :: Time -> [OscPattern] -> OscPattern
+jump = jumpIn 0
+
+-- transition at next cycle boundary where cycle mod n == 0
+jumpMod :: Int -> Time -> [OscPattern] -> OscPattern
+jumpMod n = jumpIn ((n-1) - ((floor now) `mod` n))
 
 -- Degrade the new pattern over time until it goes to nothing
 mortal :: Time -> Time -> Time -> [OscPattern] -> OscPattern
