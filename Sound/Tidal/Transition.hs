@@ -62,7 +62,7 @@ wait t now (p:_) = playWhen (>= (nextSam (now+t-1))) p
 
 -- transition at cycle boundary after n cycles
 jumpIn' :: Int -> Time -> [OscPattern] -> OscPattern
-jumpIn' n = superwash id id ((nextSam now) - now + (fromIntegral n)) 0
+jumpIn' n now = superwash id id ((nextSam now) - now + (fromIntegral n)) 0 now
 
 -- sharp transition a certain number of cycles in the future
 jumpIn :: Int -> Time -> [OscPattern] -> OscPattern
@@ -73,7 +73,7 @@ jump = jumpIn 0
 
 -- transition at next cycle boundary where cycle mod n == 0
 jumpMod :: Int -> Time -> [OscPattern] -> OscPattern
-jumpMod n = jumpIn ((n-1) - ((floor now) `mod` n))
+jumpMod n now = jumpIn ((n-1) - ((floor now) `mod` n)) now
 
 -- Degrade the new pattern over time until it goes to nothing
 mortal :: Time -> Time -> Time -> [OscPattern] -> OscPattern
