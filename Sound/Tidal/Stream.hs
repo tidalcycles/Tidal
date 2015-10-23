@@ -192,20 +192,33 @@ param shape n = head $ filter (\x -> name x == n) (params shape)
 merge :: OscPattern -> OscPattern -> OscPattern
 merge x y = (flip Map.union) <$> x <*> y
 
+infixl 1 |=|
+(|=|) :: OscPattern -> OscPattern -> OscPattern
+(|=|) = merge
+
+(#) = (|=|)
+
+mergeWith op x y = (Map.unionWithKey f) <$> x <*> y
+  where f (F _ _) (Just a) (Just b) = do a' <- datum_float a
+                                         b' <- datum_float b
+                                         return $ float (op a' b')
+        f _ a b = b
+
+infixl 1 |*|
+(|*|) :: OscPattern -> OscPattern -> OscPattern
+(|*|) = mergeWith (*)
+
 infixl 1 |+|
 (|+|) :: OscPattern -> OscPattern -> OscPattern
-(|+|) = merge
+(|+|) = mergeWith (+)
 
-transition :: (IO T.Time) -> MVar (OscPattern, [OscPattern]) -> (T.Time -> [OscPattern] -> OscPattern) -> OscPattern -> IO ()
-transition getNow mv f p =
-  do now <- getNow
-     ps <- takeMVar mv
-     let p' = f now (p:snd ps)
-     -- don't put the transition in history, only
-     -- the target pattern, or things get overcomplex
-     -- (transitions of transitions)
-     putMVar mv (p', (p:snd ps))
-     return ()
+infixl 1 |-|
+(|-|) :: OscPattern -> OscPattern -> OscPattern
+(|-|) = mergeWith (-)
+
+infixl 1 |/|
+(|/|) :: OscPattern -> OscPattern -> OscPattern
+(|/|) = mergeWith (/)
 
 setter :: MVar (a, [a]) -> a -> IO ()
 setter ds p = do ps <- takeMVar ds

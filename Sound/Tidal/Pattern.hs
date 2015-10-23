@@ -127,10 +127,10 @@ withResultTime :: (Time -> Time) -> Pattern a -> Pattern a
 withResultTime = withResultArc . mapArc
 
 -- | @overlay@ combines two @Pattern@s into a new pattern, so that
--- their events are combined over time.
+-- their events are combined over time. This is the same as the infix
+-- operator `<>`.
 overlay :: Pattern a -> Pattern a -> Pattern a
 overlay p p' = Pattern $ \a -> (arc p a) ++ (arc p' a)
-(>+<) = overlay
 
 -- | @stack@ combines a list of @Pattern@s into a new pattern, so that
 -- their events are combined over time.
@@ -476,7 +476,7 @@ degrade = degradeBy 0.5
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the
 -- remainer of each cycle.
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
-wedge t p p' = overlay (densityGap (1/t) p) (t <~ densityGap (1/(1-t)) p')
+wedge t p p' = overlay (densityGap (1/t) p) (t ~> densityGap (1/(1-t)) p')
 
 whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 whenmod a b = Sound.Tidal.Pattern.when ((\t -> (t `mod` a) >= b ))
@@ -645,6 +645,9 @@ toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
     notes = ["c","cs","d","ds","e","f","fs","g","gs","a","as","b"]
     octaves = [0 .. 10]
 
+tom = toMIDI
+
 fit :: Int -> [a] -> Pattern Int -> Pattern a
 fit perCycle xs p = (xs !!!) <$> (Pattern $ \a -> map ((\e -> (mapThd' (+ (cyclePos perCycle e)) e))) (arc p a))
   where cyclePos perCycle e = perCycle * (floor $ eventStart e)
+

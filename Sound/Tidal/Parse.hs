@@ -182,15 +182,20 @@ pRand thing = do char '?'
               <|> return thing
 
 pE :: Pattern a -> Parser (Pattern a)
-pE thing = do (n,k) <- parens (pair)
-              return $ e n k thing
+pE thing = do (n,k,s) <- parens (pair)
+              return $ unwrap $ eoff <$> n <*> k <*> s <*> atom thing
             <|> return thing
-   where pair = do a <- integer
+   where pair = do a <- pSequence pInt
                    spaces
                    symbol ","
                    spaces
-                   b <- integer
-                   return (fromIntegral a, fromIntegral b)
+                   b <- pSequence pInt
+                   c <- do symbol ","
+                           spaces
+                           pSequence pInt
+                        <|> return (atom 0)
+                   return (fromIntegral <$> a, fromIntegral <$> b, fromIntegral <$> c)
+         eoff n k s p = ((s%(fromIntegral k)) <~) (e n k p)
                    
 
 pReplicate :: Pattern a -> Parser ([Pattern a])
