@@ -22,7 +22,7 @@ libsamplerate-devel
 ## Portaudio
 
 Download Portaudio from http://www.portaudio.com. In Cygwin, Unpack
-the download with `tar fxvz`. After unpacking, from Cygwin, go to the directory
+the download with `tar -xvzf <filename>`. After unpacking, from Cygwin, go to the directory
 where you unpacked Portaudio and then run:
 
 ~~~~
@@ -32,7 +32,7 @@ where you unpacked Portaudio and then run:
 ## Liblo
 
 Download Liblo from http://liblo.sourceforge.net.
-In Cygwin, unpack Liblo with `tar fxvz`, then in Cygwin go to the directory where you
+In Cygwin, unpack Liblo with `tar -xvzf <filename>`, then in Cygwin go to the directory where you
 unpakced Liblo and then run:
 
 ~~~~
