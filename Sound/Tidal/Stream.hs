@@ -18,6 +18,7 @@ import qualified Sound.Tidal.Parse as P
 import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
 import Sound.Tidal.Utils
 import qualified Sound.Tidal.Time as T
+import qualified Data.ByteString as BS
 
 import qualified Data.Map as Map
 
@@ -198,27 +199,40 @@ infixl 1 |=|
 
 (#) = (|=|)
 
-mergeWith op x y = (Map.unionWithKey f) <$> x <*> y
-  where f (F _ _) (Just a) (Just b) = do a' <- datum_float a
-                                         b' <- datum_float b
-                                         return $ float (op a' b')
-        f _ a b = b
+mergeWith op x y = (Map.unionWithKey op) <$> x <*> y
+
+mergeWith
+  :: (Ord k, Applicative f) =>
+     (k -> a -> a -> a)
+     -> f (Map.Map k a) -> f (Map.Map k a) -> f (Map.Map k a)
+
+mergeNumWith intOp floatOp = mergeWith f
+  where f (F _ _) (Just (Float a)) (Just (Float b)) = Just (Float $ floatOp a b)
+        f (I _ _) (Just (Int32 a)) (Just (Int32 b)) = Just (Int32 $ intOp a b)
+        f _ _ b = b
+
+mergePlus = mergeWith f
+  where f (F _ _) (Just (Float a)) (Just (Float b)) = Just (Float $ a + b)
+        f (I _ _) (Just (Int32 a)) (Just (Int32 b)) = Just (Int32 $ a + b)
+        f (S _ _) (Just (ASCII_String a)) (Just (ASCII_String b)) = Just (ASCII_String $ BS.append a b)
+        f _ _ b = b
+
 
 infixl 1 |*|
 (|*|) :: OscPattern -> OscPattern -> OscPattern
-(|*|) = mergeWith (*)
+(|*|) = mergeNumWith (*) (*)
 
 infixl 1 |+|
 (|+|) :: OscPattern -> OscPattern -> OscPattern
-(|+|) = mergeWith (+)
+(|+|) = mergePlus
 
 infixl 1 |-|
 (|-|) :: OscPattern -> OscPattern -> OscPattern
-(|-|) = mergeWith (-)
+(|-|) = mergeNumWith (-) (-)
 
 infixl 1 |/|
 (|/|) :: OscPattern -> OscPattern -> OscPattern
-(|/|) = mergeWith (/)
+(|/|) = mergeNumWith (div) (/)
 
 setter :: MVar (a, [a]) -> a -> IO ()
 setter ds p = do ps <- takeMVar ds
