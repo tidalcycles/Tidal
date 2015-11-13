@@ -566,7 +566,7 @@ d1 $ sometimes (density 2) $ every 4 (rev) $ sound "bd can sn can:4"
 ```
 En general, Tidal se pone mas interesante cuando toma partes simples y se combinan de esta manera.
 
-# `jux`
+## `jux`
 
 La meta-función `jux` se aplica a un solo canal del estéreo. Por ejemplo, el siguiente patrón suena en reversa por uno de los altavoces y normal por el otro.
 
