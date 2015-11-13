@@ -677,8 +677,8 @@ d1 $ jux (density 2) $ sound (samples "drum can can" (slow 2.5 "0 1 2 4 5 6"))
 
 # Eso es todo por ahora
 
-Hay mas, pero debe ser excavado desde [Tidal website](http://tidal.lurk.org/), los videos  (e.g. on
-youtube and vimeo) y los patrones de Tidal que comparte la gente.
+Hay mas, pero debe ser excavado desde [Tidal website](http://tidal.lurk.org/), los videos  (e.g. en
+youtube y vimeo) y los patrones de Tidal que comparte la gente.
 También  puede ingresar al foro de Tidal
 [http://lurk.org/groups/tidal](http://lurk.org/groups/tidal) y unirse a la comunidad de discusión.¡Diviértete!
 
