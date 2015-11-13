@@ -67,7 +67,7 @@ hush
 Esto será muy útil cuando sea posible ejecutar mas de un sonido a la vez, y se quiera 
 silenciarlos, `hush` los silenciará todos al instante.
 
-## Effects
+## Efectos
 
 También se pueden aplicar efectos para cambiar el sonido, o el cómo suena, por ejemplo los
 filtros formantes tipo vocales:
