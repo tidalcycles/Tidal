@@ -138,11 +138,11 @@ Hay patrones continuos incorporados, lo que permite aplicar cosas como ondas sin
 
 Por ejemplo, para usar una onda sinusoidal como parámetro de `pan`:
 
-``haskell
+```haskell
 d1 $ sound "can:1" |+| vowel "a" |+| speed "-1"
 ```
 
-`sine1`es un patrón tipo onda sinusoidal que viaja desde 0 hasta 1 y de vuelta a 0 cada ciclo. También está `tri1`,`saw1` y `square1`, para ondas triangulares, diente de sierra y onda cuadrada respectivamente. Si no escribe el '1' al final de los nombres, el patrón oscilará entre -1 y 1. lo que a veces puede ser útil, mas adelante veremos como manipular estos patrones para que recorran cualquier rango.
+`sine1` es un patrón tipo onda sinusoidal que viaja desde 0 hasta 1 y de vuelta a 0 cada ciclo. También está `tri1`,`saw1` y `square1`, para ondas triangulares, diente de sierra y onda cuadrada respectivamente. Si no escribe el '1' al final de los nombres, el patrón oscilará entre -1 y 1. lo que a veces puede ser útil, mas adelante veremos como manipular estos patrones para que recorran cualquier rango.
 
 # Secuencias
 
