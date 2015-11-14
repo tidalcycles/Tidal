@@ -651,3 +651,14 @@ fit :: Int -> [a] -> Pattern Int -> Pattern a
 fit perCycle xs p = (xs !!!) <$> (Pattern $ \a -> map ((\e -> (mapThd' (+ (cyclePos perCycle e)) e))) (arc p a))
   where cyclePos perCycle e = perCycle * (floor $ eventStart e)
 
+-- flattens a pattern of patterns into a pattern, using the structure
+-- of the outside pattern
+unwrap' :: Time -> Pattern (Pattern a) -> Pattern a
+unwrap' t pp = slow t $ 
+  stack [compress (s/t,e/t) pat | ((s,e),_,pat) <- arc pp (0,t)]
+
+-- like fit, but turns a pattern into a list first
+fit' :: (Time, Time) -> Int -> Pattern Int -> Pattern a -> Pattern a
+fit' (intCyc, pCyc) n pi p = slow pCyc $ unwrap' intCyc $ 
+  fit n [zoom (i%n',(i+1)%n') (density pCyc $ p) | i <- [0..n'-1]] pi
+    where n' = fromIntegral n
