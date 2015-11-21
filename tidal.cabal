@@ -1,7 +1,7 @@
 name:                tidal
 version:             0.7
 synopsis:            Pattern language for improvised music
--- description:         
+-- description:
 homepage:            http://tidal.lurk.org/
 license:             GPL-3
 license-file:        LICENSE
@@ -18,10 +18,12 @@ Extra-source-files: README.md tidal.el doc/tidal.md
 Description: Tidal is a domain specific language for live coding pattern.
 
 library
-  Exposed-modules:     Sound.Tidal.Strategies
+  Exposed-modules:
+                       Sound.Tidal.Strategies
                        Sound.Tidal.Dirt
                        Sound.Tidal.Pattern
                        Sound.Tidal.Stream
+                       Sound.Tidal.OscStream
                        Sound.Tidal.Parse
                        Sound.Tidal.Tempo
                        Sound.Tidal.Time
