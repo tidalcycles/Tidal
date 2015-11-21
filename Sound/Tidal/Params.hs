@@ -2,8 +2,6 @@ module Sound.Tidal.Params where
 
 import Sound.Tidal.Stream
 import Sound.Tidal.Pattern
--- import Sound.OSC.FD
--- import Sound.OSC.Datum
 import Data.Map as Map
 
 make' :: (a -> Value) -> Param -> Pattern a -> ParamPattern

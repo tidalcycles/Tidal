@@ -1,5 +1,4 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-
 module Sound.Tidal.Dirt where
 
 import Sound.OSC.FD (Datum)
@@ -118,7 +117,6 @@ visualcallback = do t <- ticker
 
 --dirtyvisualstream name = do cb <- visualcallback
 --                            streamcallback cb "127.0.0.1" "127.0.0.1" name "127.0.0.1" 7771 dirt
-
 
 pick :: String -> Int -> String
 pick name n = name ++ ":" ++ (show n)

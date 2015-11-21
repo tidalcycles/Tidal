@@ -9,10 +9,8 @@ import GHC.Float (float2Double, double2Float)
 import Sound.OSC.FD
 import Sound.OSC.Datum
 
-
 data TimeStamp = BundleStamp | MessageStamp | NoStamp
  deriving Eq
-
 
 data OscSlang = OscSlang {path :: String,
                           timestamp :: TimeStamp,
