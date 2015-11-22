@@ -5,7 +5,7 @@ import qualified Sound.Tidal.Stream as S
 import Sound.Tidal.Params
 import Sound.Tidal.MIDI.Params
 
-type RangeMapFunc = (Int, Int) -> Float -> Int
+type RangeMapFunc = (Int, Int) -> Double -> Int
 
 data ControlChange = CC { param :: S.Param, midi :: Int, range :: (Int, Int), vdefault :: Double, scalef :: RangeMapFunc }
            | NRPN { param :: S.Param, midi :: Int, range :: (Int, Int), vdefault :: Double, scalef :: RangeMapFunc }
@@ -19,17 +19,17 @@ data ControllerShape = ControllerShape {
 
 toOscShape :: ControllerShape -> S.Shape
 toOscShape cs =
-  let oscparams = [note_p, dur_p, velocity_p] ++ oscparams'
+  let oscparams = [dur_p, note_p, velocity_p] ++ oscparams'
       oscparams' = [param p | p <- (controls cs)]
   in S.Shape {   S.params = oscparams,
                  S.cpsStamp = False,
                  S.latency = latency cs
              }
 
-passThru :: (Int, Int) -> Float -> Int
+passThru :: (Int, Int) -> Double -> Int
 passThru (_, _) = floor -- no sanitizing of range…
 
-mapRange :: (Int, Int) -> Float -> Int
+mapRange :: (Int, Int) -> Double -> Int
 mapRange (low, high) = floor . (+ (fromIntegral low)) . (* ratio)
   where ratio = fromIntegral $ high - low
 
@@ -45,14 +45,15 @@ mrNRPN p m r d = NRPN {param=p, midi=m, range=r, vdefault=d, scalef=mapRange }
 toParams :: ControllerShape -> [S.Param]
 toParams shape = map param (controls shape)
 
-ctrlN :: Num b => ControllerShape -> S.Param -> b
-ctrlN shape x = fromIntegral $ midi $ paramN shape x
+ctrlN :: Num b => ControllerShape -> S.Param -> Maybe b
+ctrlN shape x = fmap fromIntegral $ fmap midi (paramN shape x)
 
-paramN :: ControllerShape -> S.Param -> ControlChange
+paramN :: ControllerShape -> S.Param -> Maybe ControlChange
 paramN shape x
-  | x `elem` names = paramX x
-  | otherwise = error $ "No such Controller param: " ++ show x
+  | x `elem` names = paramX $ matching p
+  | otherwise = Nothing -- error $ "No such Controller param: " ++ show x
   where names = toParams shape
-        paramX x = head paramX'
-        paramX' = filter ((== x) . param) p
+        paramX [] = Nothing
+        paramX (h:_) = Just h
+        matching = filter ((== x) . param)
         p = controls shape

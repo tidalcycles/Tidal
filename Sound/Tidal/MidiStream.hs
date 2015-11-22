@@ -33,56 +33,69 @@ data Output = Output {
 
 type MidiMap = Map.Map S.Param (Maybe Int)
 
-toMidiEvent :: Value -> Maybe Int
-toMidiEvent (VF x) = Just $ floor (x * 127) -- converts floats to Midi Int
-toMidiEvent (VI x) = Just x
-toMidiEvent (VS x) = Nothing -- ignore strings for now, we might 'read' them later
-
-toMidiMap :: S.ParamMap -> MidiMap
-toMidiMap m = Map.map (toMidiEvent) (Map.mapMaybe (id) m)
-
-
-
-send s ch cshape shape change tick (o, m) = midi
+toMidiEvent :: ControllerShape -> S.Param -> Value -> Maybe Int
+toMidiEvent s p (VF x) = ($) <$> mscale <*> mrange <*> pure x
     where
-      midi = sendmidi s cshape (fromIntegral ch) (fromIntegral note, fromIntegral vel, fromIntegral dur) (diff) m'
-      m' = Map.filterWithKey (\k _ -> (k /= F "dur" (Just 0.05)) && (k /= I "note" (Just (-1))) && (k /= F "velocity" (Just 0))) m
-      diff = floor $ (*1000) $ (logicalOnset - (offset s)) -- timeDiff (sec, usec) (offset stream)
-      note = maybe 0 (toI) (Map.lookup (I "note" (Just (-1))) m)
-      dur = maybe 0 (toI) (Map.lookup (F "dur" (Just 0.05)) m)
-      vel = maybe 0 (toI) (Map.lookup (F "velocity" (Just 0)) m)
-      toI (Just i) = i
-      toI _ = -1
-      logicalOnset = logicalOnset' change tick o (0) -- missing nudge
+      mrange = fmap range mcc
+      mscale = fmap scalef mcc
+      mcc = paramN s p
+toMidiEvent s p (VI x) = Just x
+toMidiEvent s p (VS x) = Nothing -- ignore strings for now, we might 'read' them later
 
-makeConnection :: Int -> String -> Int -> ControllerShape -> IO (S.ToMessageFunc)
-makeConnection latency deviceName channel cshape = do
+toMidiMap :: ControllerShape -> S.ParamMap -> MidiMap
+toMidiMap s m = Map.mapWithKey (toMidiEvent s) (Map.mapMaybe (id) m)
+
+
+send s ch cshape shape change tick o ctrls (tdur:tnote:trest) = midi
+    where
+      midi = sendmidi s cshape ch' (note, vel, dur) (diff) ctrls
+      diff = floor $ (*1000) $ (logicalOnset - (offset s))
+      note = fromIntegral $ ivalue $ snd tnote
+      dur = realToFrac $ fvalue $ snd tdur
+      (vel, nudge) = case length trest of
+        2 -> (mkMidi $ trest !! 1, fvalue $ snd $ trest !! 0)
+        1 -> (mkMidi $ trest !! 0, 0)
+      ch' = fromIntegral ch
+      mkMidi = fromIntegral . floor . (*127) . fvalue . snd
+      logicalOnset = logicalOnset' change tick o nudge
+
+makeConnection :: String -> Int -> ControllerShape -> IO (S.ToMessageFunc)
+makeConnection deviceName channel cshape = do
   mid <- getIDForDeviceName deviceName
   case mid of
     Nothing -> do putStrLn "List of Available Device Names"
                   putStrLn =<< displayOutputDevices
                   error ("Device '" ++ show deviceName ++ "' not found")
-    Just id -> do econn <- outputDevice id latency
+    Just di -> do econn <- outputDevice di (floor $ (*100) $ Sound.Tidal.MIDI.Control.latency cshape)
                   case econn of
-                    Right err -> error ("Failed opening MIDI Output on Device ID: " ++ show id ++ " - " ++ show err)
+                    Right err -> error ("Failed opening MIDI Output on Device ID: " ++ show di ++ " - " ++ show err)
                     Left s -> do
                       putStrLn ("Successfully initialized Device '" ++ deviceName ++ "'")
                       sendevents s
                       return $ (\ shape change tick (o,m) -> do
-                                 m' <- fmap (toMidiMap) (S.applyShape' shape m)
-                                 return $ send s channel cshape shape change tick (o, m')
-                                 )
+                                   let defaulted = (S.applyShape' shape m)
+                                       -- split ParamMap into Properties and Controls
+                                       mpartition = fmap (Map.partitionWithKey (\k _ -> (name k) `elem` ["dur", "note", "velocity", "nudge"])) defaulted
+                                       props = fmap fst mpartition
+                                       ctrls = fmap snd mpartition
+                                       props' = fmap (Map.toAscList) $ fmap (Map.mapMaybe (id)) props
+                                       -- only send explicitly set Control values
+                                       ctrls' = fmap (Map.filterWithKey (\k v -> v /= (defaultValue k))) ctrls
+                                       ctrls'' = fmap (toMidiMap cshape) ctrls'
+                                       send' = fmap (send s channel cshape shape change tick o) ctrls''
+                                   ($) <$> send' <*> props'
+                               )
 
-midiBackend l n c cs = do
-  s <- makeConnection l n c cs
+midiBackend n c cs = do
+  s <- makeConnection n c cs
   return $ Backend s
 
-midiStream l n c s = do
-  backend <- midiBackend l n c s
+midiStream n c s = do
+  backend <- midiBackend n c s
   stream backend (toOscShape s)
 
-midiState l n c s = do
-  backend <- midiBackend l n c s
+midiState n c s = do
+  backend <- midiBackend n c s
   S.state backend (toOscShape s)
 
 -- actual midi interaction
@@ -119,8 +132,8 @@ sendevents stream = do
 
 sendctrls  :: Output -> ControllerShape -> CLong -> CULong -> MidiMap -> IO ()
 sendctrls stream shape ch t ctrls = do
-  let ctrls' = filter ((>=0) . snd) $ Map.toList $ Map.mapMaybe (id) ctrls -- (zip (toKeynames shape) ctrls)
-  sequence_ $ map (\(param, ctrl) -> makeCtrl stream ch (paramN shape param) ctrl t) ctrls'
+  let ctrls' = filter ((>=0) . snd) $ Map.toList $ Map.mapMaybe (id) ctrls
+  sequence_ $ map (\(param, ctrl) -> makeCtrl stream ch (fromJust $ paramN shape param) ctrl t) ctrls' -- FIXME: we should be sure param has ControlChange
   return ()
 
 sendnote :: RealFrac s => Output -> t -> CLong -> (CLong, CLong, s) -> CULong -> IO ThreadId
@@ -156,10 +169,8 @@ noteOff o ch val t = do
   sendEvent o evt
 
 makeCtrl :: Output -> CLong -> ControlChange -> Int -> CULong -> IO (Maybe a)
-makeCtrl o ch (CC {midi=midi, range=range, scalef=f}) n t = makeCC o ch (fromIntegral midi) scaledN t
-  where scaledN = fromIntegral n -- fromIntegral (f range (n))
-makeCtrl o ch (NRPN {midi=midi, range=range, scalef=f}) n t = makeNRPN o ch (fromIntegral midi) scaledN t
-  where scaledN = fromIntegral n -- fromIntegral $ (f range (n))
+makeCtrl o ch (CC {midi=midi, range=range}) n t = makeCC o ch (fromIntegral midi) n t
+makeCtrl o ch (NRPN {midi=midi, range=range}) n t = makeNRPN o ch (fromIntegral midi) n t
 -- makeCtrl o ch (C.SysEx {C.midi=midi, C.range=range, C.scalef=f}) n t = makeSysEx o ch (fromIntegral midi) scaledN t
 --   where scaledN = fromIntegral $ (f range (n))
 
@@ -202,8 +213,6 @@ outputDevice deviceID latency = do
 
         let posixNow = realToFrac $ utcTimeToPOSIXSeconds now
             syncedNow = posixNow - ((0.001*) $ fromIntegral midiOffset)
-            -- sec = floor syncedNow
-            -- usec = floor $ 1000000 * (syncedNow - (realToFrac sec))
         return (Left Output { conn=dev, lock=sem, offset=syncedNow, buffer=buffer })
     Right err -> return (Right err)
 

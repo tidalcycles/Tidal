@@ -4,11 +4,6 @@ import Sound.Tidal.Params
 import Sound.Tidal.MIDI.Control
 import Sound.Tidal.MIDI.Params
 
-                          -- mCC "modwheel" 1,
-                          -- mCC "balance" 10,
-                          -- mCC "expression" 11,
-                          -- mCC "sustainpedal" 64
-
 synthController :: ControllerShape
 synthController = ControllerShape {
   controls = [
@@ -21,10 +16,3 @@ synthController = ControllerShape {
   }
 
 synth = toOscShape synthController
-
--- oscKeys = toOscShape keys
-
--- modwheel     = makeF oscKeys "modwheel"
--- balance          = makeF oscKeys "balance"
--- expression   = makeF oscKeys "expression"
--- sustainpedal = makeF oscKeys "sustainpedal"
