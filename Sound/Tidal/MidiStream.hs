@@ -133,7 +133,7 @@ sendevents stream = do
 sendctrls  :: Output -> ControllerShape -> CLong -> CULong -> MidiMap -> IO ()
 sendctrls stream shape ch t ctrls = do
   let ctrls' = filter ((>=0) . snd) $ Map.toList $ Map.mapMaybe (id) ctrls
-  sequence_ $ map (\(param, ctrl) -> makeCtrl stream ch (fromJust $ paramN shape param) ctrl t) ctrls' -- FIXME: we should be sure param has ControlChange
+  sequence_ $ map (\(param, ctrl) -> makeCtrl stream ch (fromJust $ paramN shape param) (fromIntegral ctrl) t) ctrls' -- FIXME: we should be sure param has ControlChange
   return ()
 
 sendnote :: RealFrac s => Output -> t -> CLong -> (CLong, CLong, s) -> CULong -> IO ThreadId
@@ -168,7 +168,7 @@ noteOff o ch val t = do
   let evt = makeEvent 0x80 val ch 60 t
   sendEvent o evt
 
-makeCtrl :: Output -> CLong -> ControlChange -> Int -> CULong -> IO (Maybe a)
+makeCtrl :: Output -> CLong -> ControlChange -> CLong -> CULong -> IO (Maybe a)
 makeCtrl o ch (CC {midi=midi, range=range}) n t = makeCC o ch (fromIntegral midi) n t
 makeCtrl o ch (NRPN {midi=midi, range=range}) n t = makeNRPN o ch (fromIntegral midi) n t
 -- makeCtrl o ch (C.SysEx {C.midi=midi, C.range=range, C.scalef=f}) n t = makeSysEx o ch (fromIntegral midi) scaledN t
