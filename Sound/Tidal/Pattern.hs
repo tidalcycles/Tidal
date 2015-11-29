@@ -23,6 +23,7 @@ import Sound.Tidal.Utils
 -- active during that time. For continuous patterns, events with
 -- values for the midpoint of the given @Arc@ is returned.
 data Pattern a = Pattern {arc :: Arc -> [Event a]}
+  deriving Typeable
 
 -- | @show (p :: Pattern)@ returns a text string representing the
 -- event values active during the first cycle of the given pattern.
