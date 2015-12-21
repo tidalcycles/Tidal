@@ -62,6 +62,7 @@ dirt = OscShape {path = "/play",
 dirtstart name = start "127.0.0.1" 7771 dirt
 dirtStream = stream "127.0.0.1" 7771 dirt
 dirtState = Sound.Tidal.Stream.state "127.0.0.1" 7771 dirt
+superDirtState = Sound.Tidal.Stream.state "127.0.0.1" 57120 dirt {timestamp = BundleStamp}
 
 -- disused parameter..
 dirtstream _ = dirtStream
