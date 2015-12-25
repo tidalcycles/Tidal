@@ -12,7 +12,7 @@ synthController = ControllerShape {
     mCC expression_p 11,
     mCC sustainpedal_p 64
      ],
-  latency = 0.1
+  latency = 0.01
   }
 
 synth = toShape synthController
