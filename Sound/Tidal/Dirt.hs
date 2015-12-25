@@ -63,7 +63,7 @@ dirtSlang = OscSlang {
   preamble = []
   }
 
-superDirtSlang = dirtSlang {timestamp = BundleStamp}
+superDirtSlang = dirtSlang { timestamp = BundleStamp }
 
 superDirtBackend = do
   s <- makeConnection "127.0.0.1" 57120 superDirtSlang
@@ -76,8 +76,6 @@ superDirtState = do
 dirtBackend = do
   s <- makeConnection "127.0.0.1" 7771 dirtSlang
   return $ Backend s
-
-
 
 -- dirtstart name = start "127.0.0.1" 7771 dirt
 
@@ -92,6 +90,11 @@ dirtState = do
 dirtSetters :: IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
 dirtSetters getNow = do ds <- dirtState
                         return (setter ds, transition getNow ds)
+
+superDirtSetters :: IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
+superDirtSetters getNow = do ds <- superDirtState
+                             return (setter ds, transition getNow ds)
+
 
 -- -- disused parameter..
 dirtstream _ = dirtStream
