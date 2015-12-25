@@ -1,7 +1,7 @@
 name:                tidal
 version:             0.7
 synopsis:            Pattern language for improvised music
--- description:         
+-- description:
 homepage:            http://tidal.lurk.org/
 license:             GPL-3
 license-file:        LICENSE
@@ -22,6 +22,12 @@ library
                        Sound.Tidal.Dirt
                        Sound.Tidal.Pattern
                        Sound.Tidal.Stream
+                       Sound.Tidal.OscStream
+                       Sound.Tidal.MidiStream
+                       Sound.Tidal.MIDI.Device
+                       Sound.Tidal.MIDI.Params
+                       Sound.Tidal.MIDI.Control
+                       Sound.Tidal.Synth
                        Sound.Tidal.Parse
                        Sound.Tidal.Tempo
                        Sound.Tidal.Time
@@ -31,4 +37,4 @@ library
                        Sound.Tidal.Params
                        Sound.Tidal.Transition
 
-  Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl >=2.1, transformers, mersenne-random-pure64,binary, bytestring, hmt
+  Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl >=2.1, transformers, mersenne-random-pure64,binary, bytestring, hmt, PortMidi >= 0.1.5

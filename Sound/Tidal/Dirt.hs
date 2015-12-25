@@ -1,5 +1,4 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-  
 module Sound.Tidal.Dirt where
 
 import Sound.OSC.FD (Datum)
@@ -17,15 +16,16 @@ import Data.Ratio
 import System.Process
 
 import Sound.Tidal.Stream
+import Sound.Tidal.OscStream
 import Sound.Tidal.Pattern
 import Sound.Tidal.Parse
 import Sound.Tidal.Params
 import Sound.Tidal.Time
+import Sound.Tidal.Transition (transition, wash)
 import Sound.Tidal.Utils (enumerate)
 
-dirt :: OscShape
-dirt = OscShape {path = "/play",
-                 params = [ sound_p,
+dirt :: Shape
+dirt = Shape {   params = [ sound_p,
                             offset_p,
                             begin_p,
                             end_p,
@@ -53,35 +53,64 @@ dirt = OscShape {path = "/play",
                             loop_p
                           ],
                  cpsStamp = True,
-                 timestamp = MessageStamp,
-                 latency = 0.04,
-                 namedParams = False,
-                 preamble = []
+                 latency = 0.04
                 }
 
-dirtstart name = start "127.0.0.1" 7771 dirt
-dirtStream = stream "127.0.0.1" 7771 dirt
-dirtState = Sound.Tidal.Stream.state "127.0.0.1" 7771 dirt
-superDirtState = Sound.Tidal.Stream.state "127.0.0.1" 57120 dirt {timestamp = BundleStamp}
+dirtSlang = OscSlang {
+  path = "/play",
+  timestamp = MessageStamp,
+  namedParams = False,
+  preamble = []
+  }
 
--- disused parameter..
+superDirtSlang = dirtSlang {timestamp = BundleStamp}
+
+superDirtBackend = do
+  s <- makeConnection "127.0.0.1" 57120 superDirtSlang
+  return $ Backend s
+
+superDirtState = do
+  backend <- superDirtBackend
+  Sound.Tidal.Stream.state backend dirt
+
+dirtBackend = do
+  s <- makeConnection "127.0.0.1" 7771 dirtSlang
+  return $ Backend s
+
+
+
+-- dirtstart name = start "127.0.0.1" 7771 dirt
+
+dirtStream = do
+  backend <- dirtBackend
+  stream backend dirt
+
+dirtState = do
+  backend <- dirtBackend
+  Sound.Tidal.Stream.state backend dirt
+
+dirtSetters :: IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
+dirtSetters getNow = do ds <- dirtState
+                        return (setter ds, transition getNow ds)
+
+-- -- disused parameter..
 dirtstream _ = dirtStream
 
-doubledirt = do remote <- stream "178.77.72.138" 7777 dirt
-                local <- stream "192.168.0.102" 7771 dirt
-                return $ \p -> do remote p
-                                  local p
-                                  return ()
+-- doubledirt = do remote <- stream "178.77.72.138" 7777 dirt
+--                 local <- stream "192.168.0.102" 7771 dirt
+--                 return $ \p -> do remote p
+--                                   local p
+--                                   return ()
 
 
-dirtToColour :: OscPattern -> Pattern ColourD
+dirtToColour :: ParamPattern -> Pattern ColourD
 dirtToColour p = s
   where s = fmap (\x -> maybe black (maybe black datumToColour) (Map.lookup (param dirt "sound") x)) p
 
 showToColour :: Show a => a -> ColourD
 showToColour = stringToColour . show
 
-datumToColour :: Datum -> ColourD
+datumToColour :: Value -> ColourD
 datumToColour = showToColour
 
 stringToColour :: String -> ColourD
@@ -91,9 +120,8 @@ stringToColour s = sRGB (r/256) (g/256) (b/256)
         g = fromIntegral $ (i .&. 0x00FF00) `shiftR` 8;
         b = fromIntegral $ (i .&. 0x0000FF);
 
-
 {-
-visualcallback :: IO (OscPattern -> IO ())
+visualcallback :: IO (ParamPattern -> IO ())
 visualcallback = do t <- ticker
                     mv <- startVis t
                     let f p = do let p' = dirtToColour p
@@ -104,27 +132,26 @@ visualcallback = do t <- ticker
 
 --dirtyvisualstream name = do cb <- visualcallback
 --                            streamcallback cb "127.0.0.1" "127.0.0.1" name "127.0.0.1" 7771 dirt
-                            
 
 pick :: String -> Int -> String
 pick name n = name ++ ":" ++ (show n)
 
-striate :: Int -> OscPattern -> OscPattern
+striate :: Int -> ParamPattern -> ParamPattern
 striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p 
-                  # begin (atom (fromIntegral i / fromIntegral n)) 
+  where off i p = p
+                  # begin (atom (fromIntegral i / fromIntegral n))
                   # end (atom (fromIntegral (i+1) / fromIntegral n))
 
-striate' :: Int -> Double -> OscPattern -> OscPattern
+striate' :: Int -> Double -> ParamPattern -> ParamPattern
 striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (atom (slot * i) :: Pattern Double) # end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
-striateO :: OscPattern -> Int -> Double -> OscPattern
+striateO :: ParamPattern -> Int -> Double -> ParamPattern
 striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) # end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
 
-striateL :: Int -> Int -> OscPattern -> OscPattern
+striateL :: Int -> Int -> ParamPattern -> ParamPattern
 striateL n l p = striate n p # loop (atom $ fromIntegral l)
 striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
 
@@ -138,19 +165,26 @@ clutchIn t now (p:p':_) = overlay (fadeOut' now t p') (fadeIn' now t p)
 clutch :: Time -> [Pattern a] -> Pattern a
 clutch = clutchIn 2
 
-xfadeIn :: Time -> Time -> [OscPattern] -> OscPattern
+xfadeIn :: Time -> Time -> [ParamPattern] -> ParamPattern
 xfadeIn _ _ [] = silence
 xfadeIn _ _ (p:[]) = p
 xfadeIn t now (p:p':_) = overlay (p |*| gain (now ~> (slow t envEqR))) (p' |*| gain (now ~> (slow t (envEq))))
 
-xfade :: Time -> [OscPattern] -> OscPattern
+xfade :: Time -> [ParamPattern] -> ParamPattern
 xfade = xfadeIn 2
 
-stut :: Integer -> Double -> Rational -> OscPattern -> OscPattern
-stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)])) 
-  where scale x 
+stut :: Integer -> Double -> Rational -> ParamPattern -> ParamPattern
+stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
+  where scale x
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
 
-stut' :: Integer -> Time -> (OscPattern -> OscPattern) -> OscPattern -> OscPattern
+stut' :: Integer -> Time -> (ParamPattern -> ParamPattern) -> ParamPattern -> ParamPattern
 stut' steps steptime f p | steps <= 0 = p
                          | otherwise = overlay (f (steptime ~> stut' (steps-1) steptime f p)) p
+
+-- Increase comb filter to anticipate 'drop' to next pattern
+anticipateIn :: Time -> Time -> [ParamPattern] -> ParamPattern
+anticipateIn t now = wash (spread' (stut 8 0.2) (now ~> (slow t $ (toRational . (1-)) <$> envL))) t now
+
+anticipate :: Time -> [ParamPattern] -> ParamPattern
+anticipate = anticipateIn 8
