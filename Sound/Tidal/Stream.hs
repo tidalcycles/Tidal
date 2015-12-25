@@ -151,9 +151,9 @@ onTick' backend shape patternsM change ticks
        return ()
 
 make :: (a -> Value) -> Shape -> String -> Pattern a -> ParamPattern
-make toOsc s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
+make toValue s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
   where nParam = param s nm
-        defaultV a = Just $ toOsc a
+        defaultV a = Just $ toValue a
         --defaultV Nothing = defaultValue nParam
 
 nudge :: Pattern Double -> ParamPattern

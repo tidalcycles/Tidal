@@ -17,11 +17,11 @@ data ControllerShape = ControllerShape {
   }
 
 
-toOscShape :: ControllerShape -> S.Shape
-toOscShape cs =
-  let oscparams = [dur_p, note_p, velocity_p] ++ oscparams'
-      oscparams' = [param p | p <- (controls cs)]
-  in S.Shape {   S.params = oscparams,
+toShape :: ControllerShape -> S.Shape
+toShape cs =
+  let params = [dur_p, note_p, velocity_p] ++ params'
+      params' = [param p | p <- (controls cs)]
+  in S.Shape {   S.params = params,
                  S.cpsStamp = False,
                  S.latency = latency cs
              }

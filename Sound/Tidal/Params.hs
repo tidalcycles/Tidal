@@ -5,8 +5,8 @@ import Sound.Tidal.Pattern
 import Data.Map as Map
 
 make' :: (a -> Value) -> Param -> Pattern a -> ParamPattern
-make' toOsc par p = fmap (\x -> Map.singleton par (defaultV x)) p
-  where defaultV a = Just $ toOsc a
+make' toValue par p = fmap (\x -> Map.singleton par (defaultV x)) p
+  where defaultV a = Just $ toValue a
 
 sound :: Pattern String -> ParamPattern
 sound = make' VS sound_p

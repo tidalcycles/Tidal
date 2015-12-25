@@ -15,4 +15,4 @@ synthController = ControllerShape {
   latency = 0.1
   }
 
-synth = toOscShape synthController
+synth = toShape synthController

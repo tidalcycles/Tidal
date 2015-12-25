@@ -1,6 +1,5 @@
 module Sound.Tidal.Transition where
 
-import Sound.Tidal.Dirt
 import Sound.Tidal.Stream
 import Sound.Tidal.Pattern
 import Sound.Tidal.Time
@@ -48,12 +47,6 @@ wash _ _ _ [] = silence
 wash _ _ _ (p:[]) = p
 wash f t now (p:p':_) = overlay (playWhen (< (now + t)) $ f p') (playWhen (>= (now + t)) p)
 
--- Increase comb filter to anticipate 'drop' to next pattern
-anticipateIn :: Time -> Time -> [ParamPattern] -> ParamPattern
-anticipateIn t now = wash (spread' (stut 8 0.2) (now ~> (slow t $ (toRational . (1-)) <$> envL))) t now
-
-anticipate :: Time -> [ParamPattern] -> ParamPattern
-anticipate = anticipateIn 8
 
 -- Just stop for a bit before playing new pattern
 wait :: Time -> Time -> [ParamPattern] -> ParamPattern
@@ -79,7 +72,3 @@ jumpMod n now = jumpIn ((n-1) - ((floor now) `mod` n)) now
 mortal :: Time -> Time -> Time -> [ParamPattern] -> ParamPattern
 mortal _ _ _ [] = silence
 mortal lifespan release now (p:_) = overlay (playWhen (<(now+lifespan)) p) (playWhen (>= (now+lifespan)) (fadeOut' (now + lifespan) release p))
-
-dirtSetters :: IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
-dirtSetters getNow = do ds <- dirtState
-                        return (setter ds, transition getNow ds)

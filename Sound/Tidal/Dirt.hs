@@ -21,6 +21,7 @@ import Sound.Tidal.Pattern
 import Sound.Tidal.Parse
 import Sound.Tidal.Params
 import Sound.Tidal.Time
+import Sound.Tidal.Transition (transition, wash)
 import Sound.Tidal.Utils (enumerate)
 
 dirt :: Shape
@@ -77,6 +78,10 @@ dirtStream = do
 dirtState = do
   backend <- dirtBackend
   Sound.Tidal.Stream.state backend dirt
+
+dirtSetters :: IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
+dirtSetters getNow = do ds <- dirtState
+                        return (setter ds, transition getNow ds)
 
 -- -- disused parameter..
 dirtstream _ = dirtStream
@@ -166,3 +171,10 @@ stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |*| ga
 stut' :: Integer -> Time -> (ParamPattern -> ParamPattern) -> ParamPattern -> ParamPattern
 stut' steps steptime f p | steps <= 0 = p
                          | otherwise = overlay (f (steptime ~> stut' (steps-1) steptime f p)) p
+
+-- Increase comb filter to anticipate 'drop' to next pattern
+anticipateIn :: Time -> Time -> [ParamPattern] -> ParamPattern
+anticipateIn t now = wash (spread' (stut 8 0.2) (now ~> (slow t $ (toRational . (1-)) <$> envL))) t now
+
+anticipate :: Time -> [ParamPattern] -> ParamPattern
+anticipate = anticipateIn 8

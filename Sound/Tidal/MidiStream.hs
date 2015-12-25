@@ -1,4 +1,4 @@
-module Sound.Tidal.MidiStream (midiStream, midiBackend, midiState) where
+module Sound.Tidal.MidiStream (midiStream, midiBackend, midiState, midiSetters) where
 
 -- generics
 import qualified Data.Map as Map
@@ -16,6 +16,8 @@ import Foreign.C
 import Sound.Tidal.Tempo (Tempo, cps)
 import Sound.Tidal.Stream as S
 import Sound.Tidal.Utils
+import Sound.Tidal.Time
+import Sound.Tidal.Transition (transition)
 
 -- MIDI specific
 import Sound.Tidal.MIDI.Device
@@ -92,11 +94,17 @@ midiBackend n c cs = do
 
 midiStream n c s = do
   backend <- midiBackend n c s
-  stream backend (toOscShape s)
+  stream backend (toShape s)
 
 midiState n c s = do
   backend <- midiBackend n c s
-  S.state backend (toOscShape s)
+  S.state backend (toShape s)
+
+midiSetters :: String -> Int -> ControllerShape -> IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
+midiSetters n c s getNow = do
+  ds <- midiState n c s
+  return (setter ds, transition getNow ds)
+
 
 -- actual midi interaction
 sendevents :: Output -> IO ThreadId
