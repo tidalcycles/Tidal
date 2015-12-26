@@ -465,6 +465,8 @@ unDegradeBy x p = unMaybe $ (\a f -> toMaybe (f <= x) a) <$> p <*> rand
 sometimesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 sometimesBy x f p = overlay (degradeBy x p) (f $ unDegradeBy x p)
 
+sometimesBy' x f = sometimesBy x f . (1024 <~)
+
 sometimes = sometimesBy 0.5
 often = sometimesBy 0.75
 rarely = sometimesBy 0.25
