@@ -1,5 +1,6 @@
-module Sound.Tidal.MidiStream (midiStream, midiBackend, midiState, midiSetters) where
+module Sound.Tidal.MidiStream (midiStream, midiBackend, midiState, midiSetters, midiDevices) where
 
+import Control.Monad.Trans.Maybe
 -- generics
 import qualified Data.Map as Map
 import Data.List (sortBy)
@@ -34,6 +35,7 @@ data Output = Output {
                      }
 
 type MidiMap = Map.Map S.Param (Maybe Int)
+type MidiDeviceMap = Map.Map String Output
 
 toMidiEvent :: ControllerShape -> S.Param -> Value -> Maybe Int
 toMidiEvent s p (VF x) = ($) <$> mscale <*> mrange <*> pure x
@@ -61,48 +63,84 @@ send s ch cshape shape change tick o ctrls (tdur:tnote:trest) = midi
       mkMidi = fromIntegral . floor . (*127) . fvalue . snd
       logicalOnset = logicalOnset' change tick o nudge
 
-makeConnection :: String -> Int -> ControllerShape -> IO (S.ToMessageFunc)
-makeConnection deviceName channel cshape = do
-  mid <- getIDForDeviceName deviceName
-  case mid of
-    Nothing -> do putStrLn "List of Available Device Names"
-                  putStrLn =<< displayOutputDevices
-                  error ("Device '" ++ show deviceName ++ "' not found")
-    Just di -> do econn <- outputDevice di (floor $ (*100) $ Sound.Tidal.MIDI.Control.latency cshape)
-                  case econn of
-                    Right err -> error ("Failed opening MIDI Output on Device ID: " ++ show di ++ " - " ++ show err)
-                    Left s -> do
-                      putStrLn ("Successfully initialized Device '" ++ deviceName ++ "'")
-                      sendevents s
-                      return $ (\ shape change tick (o,m) -> do
-                                   let defaulted = (S.applyShape' shape m)
-                                       -- split ParamMap into Properties and Controls
-                                       mpartition = fmap (Map.partitionWithKey (\k _ -> (name k) `elem` ["dur", "note", "velocity", "nudge"])) defaulted
-                                       props = fmap fst mpartition
-                                       ctrls = fmap snd mpartition
-                                       props' = fmap (Map.toAscList) $ fmap (Map.mapMaybe (id)) props
-                                       -- only send explicitly set Control values
-                                       ctrls' = fmap (Map.filterWithKey (\k v -> v /= (defaultValue k))) ctrls
-                                       ctrls'' = fmap (toMidiMap cshape) ctrls'
-                                       send' = fmap (send s channel cshape shape change tick o) ctrls''
-                                   ($) <$> send' <*> props'
-                               )
+mkSend cshape channel s = return $ (\ shape change tick (o,m) -> do
+                        let defaulted = (S.applyShape' shape m)
+                            -- split ParamMap into Properties and Controls
+                            mpartition = fmap (Map.partitionWithKey (\k _ -> (name k) `elem` ["dur", "note", "velocity", "nudge"])) defaulted
+                            props = fmap fst mpartition
+                            ctrls = fmap snd mpartition
+                            props' = fmap (Map.toAscList) $ fmap (Map.mapMaybe (id)) props
+                            -- only send explicitly set Control values
+                            ctrls' = fmap (Map.filterWithKey (\k v -> v /= (defaultValue k))) ctrls
+                            ctrls'' = fmap (toMidiMap cshape) ctrls'
+                            send' = fmap (send s channel cshape shape change tick o) ctrls''
+                        ($) <$> send' <*> props'
+                        )
 
-midiBackend n c cs = do
-  s <- makeConnection n c cs
+connected cshape channel name s = do
+  putStrLn ("Successfully initialized Device '" ++ name ++ "'")
+  sendevents s
+  mkSend cshape channel s
+
+failed di err = do
+  error (show err ++ ": " ++ show di)
+
+notfound name = do
+  putStrLn "List of Available Device Names"
+  putStrLn =<< displayOutputDevices
+  error ("Device '" ++ show name ++ "' not found")
+
+useOutput outsM name lat = do
+  outs <- readMVar outsM -- maybe
+  let outM = Map.lookup name outs -- maybe
+  -- if we have a valid output by now, return
+  case outM of
+    Just o -> do
+      putStrLn "Cached Device Output"
+      return $ Just o
+    Nothing -> do
+      -- otherwise open a new output and store the result in the mvar
+      devidM <- (>>= maybe (failed name "Failed opening MIDI Output Device ID") return) (getIDForDeviceName name)
+      econn <- outputDevice devidM lat  -- either
+      case econn of
+        Left o -> do
+          swapMVar outsM $ Map.insert name o outs
+          return $ Just o
+        Right _ -> return Nothing
+
+
+
+makeConnection :: MVar (MidiDeviceMap) -> String -> Int -> ControllerShape -> IO (S.ToMessageFunc)
+makeConnection devicesM deviceName channel cshape = do
+  let lat = (floor $ (*100) $ Sound.Tidal.MIDI.Control.latency cshape)
+  moutput <- useOutput devicesM deviceName lat
+  case moutput of
+    Just o ->
+      connected cshape channel deviceName o
+    Nothing ->
+      --failed o
+      error "Failed"
+--  devidM'' <- devidM'  -- maybe
+
+midiDevices :: IO (MVar (MidiDeviceMap))
+midiDevices = do
+  newMVar $ Map.fromList []
+
+midiBackend d n c cs = do
+  s <- makeConnection d n c cs
   return $ Backend s
 
-midiStream n c s = do
-  backend <- midiBackend n c s
+midiStream d n c s = do
+  backend <- midiBackend d n c s
   stream backend (toShape s)
 
-midiState n c s = do
-  backend <- midiBackend n c s
+midiState d n c s = do
+  backend <- midiBackend d n c s
   S.state backend (toShape s)
 
-midiSetters :: String -> Int -> ControllerShape -> IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
-midiSetters n c s getNow = do
-  ds <- midiState n c s
+midiSetters :: MVar (MidiDeviceMap) -> String -> Int -> ControllerShape -> IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
+midiSetters d n c s getNow = do
+  ds <- midiState d n c s
   return (setter ds, transition getNow ds)
 
 

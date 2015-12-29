@@ -76,5 +76,5 @@ blinken = Shape {
      light_p
      ],
   cpsStamp = True,
-  latency = 0.01
+  latency = 0.1
   }
