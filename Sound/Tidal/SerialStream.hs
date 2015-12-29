@@ -1,10 +1,19 @@
-module Sound.Tidal.SerialStream where
+module Sound.Tidal.SerialStream (
+  serialDevices,
+  serialBackend,
+  blinken,
+  blinkenStream,
+  blinkenState,
+  blinkenSetters,
+  light) where
 
 import Data.List
 import Data.Maybe
 import qualified Data.Map.Strict as Map
-
 import qualified Data.ByteString.Char8 as B
+
+import Control.Exception
+import Control.Concurrent.MVar
 import qualified System.Hardware.Serialport as Serial
 
 import Sound.Tidal.Time
@@ -14,6 +23,7 @@ import Sound.Tidal.Pattern
 import Sound.Tidal.Params
 
 type SerialMap = Map.Map Param (Maybe String)
+type SerialDeviceMap = Map.Map String Serial.SerialPort
 
 toSerialString :: Value -> Maybe String
 toSerialString (VF x) = Just $ show x
@@ -42,29 +52,54 @@ send s shape change tick (o, m) = msg
     -- toF _ = 0
 
 
+useOutput outsM name = do
+  outs <- readMVar outsM
+  let outM = Map.lookup name outs
+  case outM of
+    Just o -> do
+      putStrLn "Cached Serial Device output"
+      return $ Just o
+    Nothing -> do
+      o <- Serial.openSerial name Serial.defaultSerialSettings
+      swapMVar outsM $ Map.insert name o outs
+      return $ Just o
 
-makeConnection :: String -> IO (ToMessageFunc)
-makeConnection device = do
-  s <- Serial.openSerial device Serial.defaultSerialSettings
-  return (\ shape change tick (o, m) -> do
-             m' <- fmap (toSerialMap) (applyShape' shape m)
-             return $ send s shape change tick (o, m')
-         )
-serialBackend n = do
-  s <- makeConnection n
+makeConnection :: MVar (SerialDeviceMap) -> String -> IO (ToMessageFunc)
+makeConnection devices device = do
+  moutput <- useOutput devices device
+  case moutput of
+    Just s ->
+      return $ (\ shape change tick (o, m) -> do
+                   m' <- fmap (toSerialMap) (applyShape' shape m)
+                   return $ send s shape change tick (o, m')
+               )
+
+    Nothing ->
+      error ("Failed connecting to serial device: '" ++ device ++  "'")
+
+
+serialDevices :: IO (MVar (SerialDeviceMap))
+serialDevices = do
+  d <- newMVar $ Map.fromList []
+  return d
+
+
+  --  return
+serialBackend d n = do
+  s <- makeConnection d n
   return $ Backend s
 
-blinkenStream n = do
-  backend <- serialBackend n
+blinkenStream d n = do
+  backend <- serialBackend d n
   stream backend blinken
 
-blinkenState n = do
-  backend <- serialBackend n
+blinkenState d n = do
+  backend <- serialBackend d n
   state backend blinken
 
-blinkenSetters :: String -> IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
-blinkenSetters n getNow = do
-  ds <- blinkenState n
+blinkenSetters :: MVar (SerialDeviceMap) -> String -> IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
+blinkenSetters d n getNow = do
+  ds <- blinkenState d n
   return (setter ds, transition getNow ds)
 
 light :: Pattern String -> ParamPattern
@@ -76,5 +111,5 @@ blinken = Shape {
      light_p
      ],
   cpsStamp = True,
-  latency = 0.1
+  latency = (-0.6)
   }
