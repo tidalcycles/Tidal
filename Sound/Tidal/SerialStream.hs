@@ -60,7 +60,7 @@ useOutput outsM name = do
       putStrLn "Cached Serial Device output"
       return $ Just o
     Nothing -> do
-      o <- Serial.openSerial name Serial.defaultSerialSettings
+      o <- Serial.openSerial name Serial.defaultSerialSettings { Serial.commSpeed = Serial.CS115200 }
       swapMVar outsM $ Map.insert name o outs
       return $ Just o
 
@@ -111,5 +111,5 @@ blinken = Shape {
      light_p
      ],
   cpsStamp = True,
-  latency = (-0.6)
+  latency = 0.01
   }
