@@ -46,10 +46,10 @@ send s shape change tick (o, m) = msg
       0 -> ""
       _ -> head $ params'
     params' = catMaybes $ map snd $ Map.toList m
-    logicalOnset = logicalOnset' change tick o ((latency shape))
-    -- nudge = maybe 0 (toF) (Map.lookup (F "nudge" (Just 0)) m)
-    -- toF (Just (VF f)) = f
-    -- toF _ = 0
+    logicalOnset = logicalOnset' change tick o ((latency shape) + nudge)
+    nudge = maybe 0 (toF) (Map.lookup (F "nudge" (Just 0)) m)
+    toF (Just s) = read s
+    toF _ = 0
 
 
 useOutput outsM name = do
@@ -83,8 +83,6 @@ serialDevices = do
   d <- newMVar $ Map.fromList []
   return d
 
-
-  --  return
 serialBackend d n = do
   s <- makeConnection d n
   return $ Backend s
