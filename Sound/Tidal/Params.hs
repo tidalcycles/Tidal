@@ -34,7 +34,7 @@ pan_p = F "pan" (Just 0.5)
 
 velocity :: Pattern Double -> ParamPattern
 velocity = make' VF velocity_p
-velocity_p = F "velocity" (Just 0)
+velocity_p = F "velocity" (Just 0.5)
 
 vowel :: Pattern String -> ParamPattern
 vowel = make' VS vowel_p
