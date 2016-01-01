@@ -652,3 +652,11 @@ fit :: Int -> [a] -> Pattern Int -> Pattern a
 fit perCycle xs p = (xs !!!) <$> (Pattern $ \a -> map ((\e -> (mapThd' (+ (cyclePos perCycle e)) e))) (arc p a))
   where cyclePos perCycle e = perCycle * (floor $ eventStart e)
 
+permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
+permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (discretise 1 p)
+      where ps = permsort (length things) steps
+            deviance avg xs = sum $ map (abs . (avg-) . fromIntegral) xs
+            permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total/ fromIntegral n) x)) $ perms n total
+            perms 0 _ = []
+            perms 1 n = [[n]]
+            perms n total = concatMap (\x -> map (x:) $ perms (n-1) (total-x)) [1 .. (total-(n-1))]
