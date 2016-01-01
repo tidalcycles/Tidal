@@ -12,6 +12,7 @@ import Control.Concurrent
 import Control.Concurrent.MVar
 import Data.Bits
 import Foreign.C
+import Control.Applicative
 
 -- Tidal specific
 import Sound.Tidal.Tempo (Tempo, cps)
@@ -25,7 +26,6 @@ import Sound.Tidal.MIDI.Device
 import Sound.Tidal.MIDI.Control
 import Sound.Tidal.MIDI.Params
 import qualified Sound.PortMidi as PM
-
 
 data Output = Output {
                        conn :: PM.PMStream,
