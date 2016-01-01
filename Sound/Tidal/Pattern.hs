@@ -7,6 +7,7 @@ import Data.Monoid
 import Data.Fixed
 import Data.List
 import Data.Maybe
+import Data.Ord
 import Data.Ratio
 import Debug.Trace
 import Data.Typeable
