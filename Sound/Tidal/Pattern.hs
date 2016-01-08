@@ -661,3 +661,7 @@ permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate
             perms 0 _ = []
             perms 1 n = [[n]]
             perms n total = concatMap (\x -> map (x:) $ perms (n-1) (total-x)) [1 .. (total-(n-1))]
+
+-- | @struct a b@: structures pattern @b@ in terms of @a@.
+struct :: Pattern String -> Pattern a -> Pattern a
+struct ps pv = (flip const) <$> ps <*> pv
