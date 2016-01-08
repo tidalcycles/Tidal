@@ -14,6 +14,7 @@ import Data.Monoid
 import Control.Exception as E
 import Control.Applicative ((<$>), (<*>))
 import Data.Maybe
+import Data.List
 
 import Sound.Tidal.Pattern
 
@@ -152,8 +153,19 @@ pBool = do oneOf "t1"
 
 pInt :: Parser (Pattern Int)
 pInt = do s <- sign
-          i <- integer <?> "integer"
+          i <- choice [integer, midinote]
           return $ atom (applySign s $ fromIntegral i)
+
+midinote :: Parser Integer
+midinote = do notechar <- oneOf "abcdefg"
+              sharp <- option "" (string "s")
+              octave <- option 5 natural
+              let note = fromIntegral $ noteLookup (notechar:sharp)
+              return $ note + octave * 12
+
+noteLookup :: String -> Int
+noteLookup s = fromJust $ elemIndex s
+               ["c","cs","d","ds","e","f","fs","g","gs","a","as","b"]
 
 pColour :: Parser (Pattern ColourD)
 pColour = do name <- many1 letter <?> "colour name"
