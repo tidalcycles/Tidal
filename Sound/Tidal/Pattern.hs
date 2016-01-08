@@ -13,6 +13,7 @@ import Debug.Trace
 import Data.Typeable
 import Data.Function
 import System.Random.Mersenne.Pure64
+import qualified Data.Text as T
 
 import Music.Theory.Bjorklund
 
@@ -465,6 +466,8 @@ unDegradeBy x p = unMaybe $ (\a f -> toMaybe (f <= x) a) <$> p <*> rand
 sometimesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 sometimesBy x f p = overlay (degradeBy x p) (f $ unDegradeBy x p)
 
+sometimesBy' x f = sometimesBy x f . (1024 <~)
+
 sometimes = sometimesBy 0.5
 often = sometimesBy 0.75
 rarely = sometimesBy 0.25
@@ -652,6 +655,42 @@ tom = toMIDI
 fit :: Int -> [a] -> Pattern Int -> Pattern a
 fit perCycle xs p = (xs !!!) <$> (Pattern $ \a -> map ((\e -> (mapThd' (+ (cyclePos perCycle e)) e))) (arc p a))
   where cyclePos perCycle e = perCycle * (floor $ eventStart e)
+
+-- flattens a pattern of patterns into a pattern, using the structure
+-- of the outside pattern
+unwrap' :: Time -> Pattern (Pattern a) -> Pattern a
+unwrap' t pp = slow t $ 
+  stack [compress (s/t,e/t) pat | ((s,e),_,pat) <- arc pp (0,t)]
+
+-- like fit, but turns a pattern into a list first
+fit' :: (Time, Time) -> Int -> Pattern Int -> Pattern a -> Pattern a
+fit' (intCyc, pCyc) n pi p = slow pCyc $ unwrap' intCyc $ 
+  fit n [zoom (i%n',(i+1)%n') (density pCyc $ p) | i <- [0..n'-1]] pi
+    where n' = fromIntegral n
+
+---- 
+---- Lindenmayer patterns, use these with the step sequencer
+---- 
+-- general rule parser
+parseRule' :: String -> [(String,String)]
+parseRule' s = map (splitOn ':') (commaSplit s)
+  where splitOn sep str = splitAt (fromJust $ elemIndex sep str) 
+                            $ filter (/= sep) str
+        commaSplit s = map T.unpack $ T.splitOn (T.pack ",") $ T.pack s
+
+-- single character parser for step sequencer
+parseRule :: String -> [(Char, String)]   
+parseRule str = map fixer $ parseRule' str
+  where fixer (c,r) = (head c, r)
+
+-- ruleset in form "a:b,b:ab" 
+-- for example, `lindenmayer "a:b,b:ab" "ab" -> "bab"`
+lindenmayer :: String -> String -> String
+lindenmayer r [] = []
+lindenmayer r (c:cs) = (fromMaybe [c] $ lookup c $ parseRule r) 
+                         ++ (lindenmayer r cs)
+
+lindenmayerN n r s = iterate (lindenmayer r) s !! n
 
 permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
 permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (discretise 1 p)

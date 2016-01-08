@@ -5,6 +5,7 @@ module Sound.Tidal.Strategies where
 import Data.Ratio
 import Control.Applicative
 import qualified Data.Map as Map
+import qualified Data.Char as Char
 
 import Data.Maybe
 import Sound.Tidal.Dirt
@@ -167,6 +168,13 @@ step s steps = cat $ map f steps
 
 steps :: [(String, String)] -> Pattern String
 steps = stack . map (\(a,b) -> step a b)
+
+-- like step, but allows you to specify an array of strings to use for 0,1,2...
+step' :: [String] -> String -> Pattern String
+step' ss steps = cat $ map f steps
+    where f c | c == 'x' = atom $ ss!!0
+              | c >= '0' && c <= '9' = atom $ ss!!(Char.digitToInt c)
+              | otherwise = silence
 
 off :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 off t f p = superimpose (f . (t ~>)) p
