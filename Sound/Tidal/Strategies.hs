@@ -14,7 +14,6 @@ import Sound.Tidal.Stream
 import Sound.Tidal.Time
 import Sound.Tidal.Utils
 import Sound.Tidal.Params
-import qualified Sound.OSC.FD as OSC.FD
 
 stutter n t p = stack $ map (\i -> (t * (fromIntegral i)) ~> p) [0 .. (n-1)]
 
@@ -24,7 +23,7 @@ quad   = stutter 4
 double = echo
 
 jux f p = stack [p # pan (pure 0), f $ p # pan (pure 1)]
-juxcut f p = stack [p     # pan (pure 0) # cut (pure (-1)), 
+juxcut f p = stack [p     # pan (pure 0) # cut (pure (-1)),
                     f $ p # pan (pure 1) # cut (pure (-2))
                    ]
 
@@ -55,7 +54,7 @@ samples' p p' = (flip pick) <$> p' <*> p
 {-
 scrumple :: Time -> Pattern a -> Pattern a -> Pattern a
 scrumple o p p' = p'' -- overlay p (o ~> p'')
-  where p'' = Pattern $ \a -> concatMap 
+  where p'' = Pattern $ \a -> concatMap
                               (\((s,d), vs) -> map (\x -> ((s,d),
                                                            snd x
                                                           )
@@ -65,15 +64,15 @@ scrumple o p p' = p'' -- overlay p (o ~> p'')
 -}
 
 --rev :: Pattern a -> Pattern a
---rev p = Pattern $ \a -> concatMap 
---                        (\a' -> mapFsts mirrorArc $ 
+--rev p = Pattern $ \a -> concatMap
+--                        (\a' -> mapFsts mirrorArc $
 --                                (arc p (mirrorArc a')))
 --                        (arcCycles a)
 
 --spreadf :: [Pattern a -> Pattern b] -> Pattern a -> Pattern b
 spreadf ts p = spread ($)
 
-spin :: Int -> OscPattern -> OscPattern
+spin :: Int -> ParamPattern -> ParamPattern
 spin copies p =
   stack $ map (\n -> let offset = toInteger n % toInteger copies in
                      offset <~ p
@@ -108,19 +107,19 @@ inside n f p = density n $ f (slow n p)
 scale :: (Functor f, Num b) => b -> b -> f b -> f b
 scale from to p = ((+ from) . (* (to-from))) <$> p
 
-chop :: Int -> OscPattern -> OscPattern
+chop :: Int -> ParamPattern -> ParamPattern
 chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
      where f queryA a = concatMap (chopEvent queryA) (arc p a)
            chopEvent (queryS, queryE) (a,a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ chopArc a n)
-           newEvent :: OscMap -> (Int, Arc) -> Event OscMap
-           newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ OSC.FD.float ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ OSC.FD.float ((fromIntegral i)/(fromIntegral n))) v)
+           newEvent :: ParamMap -> (Int, Arc) -> Event ParamMap
+           newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ VF ((fromIntegral i)/(fromIntegral n))) v)
 
-gap :: Int -> OscPattern -> OscPattern
+gap :: Int -> ParamPattern -> ParamPattern
 gap n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
      where f queryA a = concatMap (chopEvent queryA) (arc p a)
            chopEvent (queryS, queryE) (a,a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ everyOther $ chopArc a n)
-           newEvent :: OscMap -> (Int, Arc) -> Event OscMap
-           newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ OSC.FD.float ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ OSC.FD.float ((fromIntegral i)/(fromIntegral n))) v)
+           newEvent :: ParamMap -> (Int, Arc) -> Event ParamMap
+           newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ VF ((fromIntegral i)/(fromIntegral n))) v)
            everyOther (x:(y:xs)) = x:(everyOther xs)
            everyOther xs = xs
 
@@ -128,7 +127,7 @@ chopArc :: Arc -> Int -> [Arc]
 chopArc (s, e) n = map (\i -> ((s + (e-s)*(fromIntegral i/fromIntegral n)), s + (e-s)*((fromIntegral $ i+1)/fromIntegral n))) [0 .. n-1]
 {-
 normEv :: Event a -> Event a -> Event a
-normEv ev@(_, (s,e), _) ev'@(_, (s',e'), _) 
+normEv ev@(_, (s,e), _) ev'@(_, (s',e'), _)
        | not on && not off = [] -- shouldn't happen
        | on && off = splitEv ev'
        | not on && s' > sam s = []
@@ -149,7 +148,7 @@ normEv ev@(_, (s,e), _) ev'@(_, (s',e'), _)
 en :: [(Int, Int)] -> Pattern String -> Pattern String
 en ns p = stack $ map (\(i, (k, n)) -> e k n (samples p (pure i))) $ enumerate ns
 
-weave :: Rational -> OscPattern -> [OscPattern] -> OscPattern
+weave :: Rational -> ParamPattern -> [ParamPattern] -> ParamPattern
 weave t p ps = weave' t p (map (\x -> (x #)) ps)
 
 weave' :: Rational -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
@@ -157,7 +156,7 @@ weave' t p fs | l == 0 = silence
               | otherwise = slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) <~ (density t $ f (slow t p))) (zip [0 ..] fs)
   where l = fromIntegral $ length fs
 
-interlace :: OscPattern -> OscPattern -> OscPattern
+interlace :: ParamPattern -> ParamPattern -> ParamPattern
 interlace a b = weave 16 (shape $ ((* 0.9) <$> sinewave1)) [a, b]
 
 -- Step sequencing
@@ -183,7 +182,7 @@ off t f p = superimpose (f . (t ~>)) p
 offadd :: Num a => Time -> a -> Pattern a -> Pattern a
 offadd t n p = off t ((+n) <$>) p
 
-up :: Pattern Double -> OscPattern
+up :: Pattern Double -> ParamPattern
 up = speed . ((1.059466**) <$>)
 
 ghost'' a f p = superimpose (((a*2.5) ~>) . f) $ superimpose (((a*1.5) ~>) . f) $ p
