@@ -56,8 +56,9 @@ makeConnection :: String -> Int -> OscSlang -> IO (ToMessageFunc)
 makeConnection address port slang = do
   s <- openUDP address port
   return (\ shape change tick (o,m) -> do
+             let m' = if (namedParams slang) then (Just m) else (applyShape' shape m)
              -- this might result in Nothing, make sure we do this first
-             m' <- fmap (toOscMap) (applyShape' shape m)
+             m'' <- fmap (toOscMap) m'
              -- to allow us to simplify `send` (no `do`)
-             return $ send s slang shape change tick (o,m')
+             return $ send s slang shape change tick (o,m'')
          )
