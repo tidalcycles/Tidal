@@ -13,6 +13,7 @@ import Debug.Trace
 import Data.Typeable
 import Data.Function
 import System.Random.Mersenne.Pure64
+import Data.Char
 
 import Music.Theory.Bjorklund
 
@@ -649,6 +650,7 @@ randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (fromI
 toMIDI :: Pattern String -> Pattern Int
 toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
   where
+    noteLookup :: String -> Maybe Int
     noteLookup [] = Nothing
     noteLookup s | not (last s `elem` ['0' .. '9']) = noteLookup (s ++ "5")
                  | not (isLetter (s !! 1)) = noteLookup((head s):'n':(tail s))
