@@ -634,19 +634,30 @@ discretise n p = density n $ (atom (id)) <*> p
 randcat :: [Pattern a] -> Pattern a
 randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (fromIntegral $ length ps)) (slowcat ps)
 
+-- | @toMIDI p@: converts a pattern of human-readable pitch names into
+-- MIDI pitch numbers. For example, @"cs4"@ will be rendered as @"49"@.
+-- Omitting the octave number will create a pitch in the fifth octave
+-- (@"cf"@ -> @"cf5"@). Pitches can be decorated using:
+--
+--    * s = Sharp, a half-step above (@"gs4"@)
+--    * f = Flat, a half-step below (@"gf4"@)
+--    * n = Natural, no decoration (@"g4" and "gn4"@ are equivalent)
+--    * ss = Double sharp, a whole step above (@"gss4"@)
+--    * ff = Double flat, a whole step below (@"gff4"@)
+--
+-- This function also has a shorter alias @tom@.
 toMIDI :: Pattern String -> Pattern Int
 toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
   where
     noteLookup [] = Nothing
-    noteLookup s | last s `elem` ['0' .. '9'] = elemIndex s names
-                 | otherwise = noteLookup (s ++ "5")
-    names = take 128 [(n ++ show o)
-                     | o <- octaves,
-                       n <- notes
-                     ]
-    notes = ["c","cs","d","ds","e","f","fs","g","gs","a","as","b"]
-    octaves = [0 .. 10]
+    noteLookup s | not (last s `elem` ['0' .. '9']) = noteLookup (s ++ "5")
+                 | not (isLetter (s !! 1)) = noteLookup((head s):'n':(tail s))
+                 | otherwise = parse s
+    parse x = (\a b c -> a+b+c) <$> pc x <*> sym x <*> Just(12*digitToInt (last x))
+    pc x = lookup (head x) [('c',0),('d',2),('e',4),('f',5),('g',7),('a',9),('b',11)]
+    sym x = lookup (init (tail x)) [("s",1),("f",-1),("n",0),("ss",2),("ff",-2)]
 
+-- | @tom p@: Alias for @toMIDI@.
 tom = toMIDI
 
 fit :: Int -> [a] -> Pattern Int -> Pattern a
