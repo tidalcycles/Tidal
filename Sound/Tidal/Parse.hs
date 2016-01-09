@@ -157,15 +157,23 @@ pInt = do s <- sign
           return $ atom (applySign s $ fromIntegral i)
 
 midinote :: Parser Integer
-midinote = do notechar <- oneOf "abcdefg"
-              sharp <- option "" (string "s")
+midinote = do n <- notenum
+              modifiers <- many noteModifier
               octave <- option 5 natural
-              let note = fromIntegral $ noteLookup (notechar:sharp)
-              return $ note + octave * 12
-
-noteLookup :: String -> Int
-noteLookup s = fromJust $ elemIndex s
-               ["c","cs","d","ds","e","f","fs","g","gs","a","as","b"]
+              let n' = fromIntegral $ foldr (+) n modifiers
+              return $ n' + octave*12
+  where notenum = choice [char 'c' >> return 0,
+                          char 'd' >> return 2,
+                          char 'e' >> return 4,
+                          char 'f' >> return 5,
+                          char 'g' >> return 7,
+                          char 'a' >> return 9,
+                          char 'b' >> return 11
+                         ]
+        noteModifier = choice [char 's' >> return 1,
+                               char 'f' >> return (-1),
+                               char 'n' >> return 0
+                              ]
 
 pColour :: Parser (Pattern ColourD)
 pColour = do name <- many1 letter <?> "colour name"
