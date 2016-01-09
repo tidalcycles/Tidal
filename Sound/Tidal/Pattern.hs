@@ -633,21 +633,6 @@ discretise n p = density n $ (atom (id)) <*> p
 randcat :: [Pattern a] -> Pattern a
 randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (fromIntegral $ length ps)) (slowcat ps)
 
-{-
-toMIDI :: Pattern String -> Pattern Int
-toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
-  where
-    noteLookup [] = Nothing
-    noteLookup s | last s `elem` ['0' .. '9'] = elemIndex s names
-                 | otherwise = noteLookup (s ++ "5")
-    names = take 128 [(n ++ show o)
-                     | o <- octaves,
-                       n <- notes
-                     ]
-    notes = ["c","cs","d","ds","e","f","fs","g","gs","a","as","b"]
-    octaves = [0 .. 10]
--}
-
 toMIDI :: Pattern String -> Pattern Int
 toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
   where
