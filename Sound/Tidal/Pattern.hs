@@ -11,6 +11,7 @@ import Data.Ratio
 import Debug.Trace
 import Data.Typeable
 import Data.Function
+import Data.Char (digitToInt, isLetter)
 import System.Random.Mersenne.Pure64
 
 import Music.Theory.Bjorklund
@@ -632,6 +633,7 @@ discretise n p = density n $ (atom (id)) <*> p
 randcat :: [Pattern a] -> Pattern a
 randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (fromIntegral $ length ps)) (slowcat ps)
 
+{-
 toMIDI :: Pattern String -> Pattern Int
 toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
   where
@@ -644,6 +646,18 @@ toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
                      ]
     notes = ["c","cs","d","ds","e","f","fs","g","gs","a","as","b"]
     octaves = [0 .. 10]
+-}
+
+toMIDI :: Pattern String -> Pattern Int
+toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
+  where
+    noteLookup [] = Nothing
+    noteLookup s | not (last s `elem` ['0' .. '9']) = noteLookup (s ++ "5")
+                 | not (isLetter (s !! 1)) = noteLookup((head s):'n':(tail s))
+                 | otherwise = parse s
+    parse x = (\a b c -> a+b+c) <$> pc x <*> sym x <*> Just(12*digitToInt (last x))
+    pc x = lookup (head x) [('c',0),('d',2),('e',4),('f',5),('g',7),('a',9),('b',11)]
+    sym x = lookup (init (tail x)) [("s",1),("f",-1),("n",0),("ss",2),("ff",-2)]
 
 tom = toMIDI
 
