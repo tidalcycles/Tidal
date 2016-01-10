@@ -63,7 +63,7 @@ dirtSlang = OscSlang {
   preamble = []
   }
 
-superDirtSlang = dirtSlang { timestamp = BundleStamp }
+superDirtSlang = dirtSlang { timestamp = BundleStamp, path = "/play2" }
 
 superDirtBackend = do
   s <- makeConnection "127.0.0.1" 57120 superDirtSlang
