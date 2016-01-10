@@ -29,20 +29,21 @@ toOscMap :: ParamMap -> OscMap
 toOscMap m = Map.map (toOscDatum) (Map.mapMaybe (id) m)
 
 
--- constructs and sends an Osc Message according to the given slang and other params - this is essentially the same as the former toMessage in Stream.hs
+-- constructs and sends an Osc Message according to the given slang
+-- and other params - this is essentially the same as the former
+-- toMessage in Stream.hs
 send s slang shape change tick (o, m) = osc
     where
       osc | timestamp slang == BundleStamp = sendOSC s $ Bundle (ut_to_ntpr logicalOnset) [Message (path slang) oscdata]
-          | timestamp slang == MessageStamp = sendOSC s $ Message (path slang) oscdata'
+          | timestamp slang == MessageStamp = sendOSC s $ Message (path slang) ((int32 sec):(int32 usec):oscdata)
           | otherwise = doAt logicalOnset $ sendOSC s $ Message (path slang) oscdata
-      oscdata' = ((int32 sec):(int32 usec):oscdata)
-      oscdata = cpsPrefix ++ preamble slang ++ (parameterise $ catMaybes $ mapMaybe (\x -> Map.lookup x m) (params shape))
+      oscPreamble = cpsPrefix ++ preamble slang
+      oscdata | namedParams slang = oscPreamble ++ (concatMap (\(k, Just v) -> [string (name k), v] )
+                                                    $ filter (isJust . snd) $ Map.assocs m)
+              | otherwise = oscPreamble ++ (catMaybes $ mapMaybe (\x -> Map.lookup x m) (params shape))
       cpsPrefix | cpsStamp shape = [float (cps change)]
                 | otherwise = []
-      parameterise :: [Datum] -> [Datum]
-      parameterise ds | namedParams slang =
-                                    mergelists (map (string . name) (params shape)) ds
-                      | otherwise = ds
+      parameterise ds = mergelists (map (string . name) (params shape)) ds
       usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
       sec = floor logicalOnset
       logicalOnset = logicalOnset' change tick o ((latency shape) + nudge)
