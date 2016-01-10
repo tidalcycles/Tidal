@@ -13,6 +13,7 @@ import Sound.Tidal.Stream
 import Sound.Tidal.Time
 import Sound.Tidal.Utils
 import Sound.Tidal.Params
+import Sound.Tidal.Parse
 
 stutter n t p = stack $ map (\i -> (t * (fromIntegral i)) ~> p) [0 .. (n-1)]
 
@@ -180,3 +181,10 @@ up = speed . ((1.059466**) <$>)
 ghost'' a f p = superimpose (((a*2.5) ~>) . f) $ superimpose (((a*1.5) ~>) . f) $ p
 ghost' a p = ghost'' 0.125 ((|*| gain (pure 0.7)) . (|=| end (pure 0.2)) . (|*| speed (pure 1.25))) p
 ghost p = ghost' 0.125 p 
+
+{-
+grp :: Parseable a => [Pattern a -> ParamPattern] -> String -> ParamPattern
+grp fs s = unwrap $ lookupPattern <$> (p s :: Pattern String)
+  where lookupPattern ::  String -> 
+        lookupPattern s = foldr (#) silence $ map (\(f,s') -> f (p s')) $ zip fs $ split (==':') s
+-}
