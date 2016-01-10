@@ -12,6 +12,16 @@ sound :: Pattern String -> ParamPattern
 sound = make' VS sound_p
 sound_p = S "sound" Nothing
 
+-- "s" stands for sample, or synth
+s :: Pattern String -> ParamPattern
+s = make' VS s_p
+s_p = S "s" Nothing
+
+-- "n" stands for sample number, or note
+n :: Pattern Int -> ParamPattern
+n = make' VI n_p
+n_p = I "n" Nothing
+
 offset :: Pattern Double -> ParamPattern
 offset = make' VF offset_p
 offset_p = F "offset" (Just 0)
