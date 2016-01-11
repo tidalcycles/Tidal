@@ -182,9 +182,13 @@ ghost'' a f p = superimpose (((a*2.5) ~>) . f) $ superimpose (((a*1.5) ~>) . f) 
 ghost' a p = ghost'' 0.125 ((|*| gain (pure 0.7)) . (|=| end (pure 0.2)) . (|*| speed (pure 1.25))) p
 ghost p = ghost' 0.125 p 
 
-{-
-grp :: Parseable a => [Pattern a -> ParamPattern] -> String -> ParamPattern
-grp fs s = unwrap $ lookupPattern <$> (p s :: Pattern String)
-  where lookupPattern ::  String -> 
-        lookupPattern s = foldr (#) silence $ map (\(f,s') -> f (p s')) $ zip fs $ split (==':') s
--}
+grp :: [Param] -> Pattern String -> ParamPattern
+grp [] _ = silence
+grp params p = (lookupPattern <$> p)
+  where lookupPattern :: String -> ParamMap
+        lookupPattern s = Map.fromList $ map (\(param,s') -> toPV param s') $ zip params $ (split s)
+        split s = wordsBy (==':') s
+        toPV :: Param -> String -> (Param, Maybe Value)
+        toPV param@(S _ _) s = (param, (Just $ VS s))
+        toPV param@(F _ _) s = (param, (Just $ VF $ read s))
+        toPV param@(I _ _) s = (param, (Just $ VI $ read s))
