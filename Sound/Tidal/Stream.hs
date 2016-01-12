@@ -156,9 +156,6 @@ make toValue s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
         defaultV a = Just $ toValue a
         --defaultV Nothing = defaultValue nParam
 
-nudge :: Pattern Double -> ParamPattern
-nudge p = fmap (\x -> Map.singleton (F "nudge" (Just 0)) (Just $ VF x)) p
-
 makeS = make VS
 
 makeF :: Shape -> String -> Pattern Double -> ParamPattern
@@ -218,3 +215,4 @@ setter :: MVar (a, [a]) -> a -> IO ()
 setter ds p = do ps <- takeMVar ds
                  putMVar ds $ (p, p:snd ps)
                  return ()
+
