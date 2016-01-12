@@ -133,7 +133,7 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
         scale base (ps@((n,_):_)) = map (\(n',p) -> density (fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
 
 pString :: Parser (String)
-pString = many1 (letter <|> oneOf "0123456789:") <?> "string"
+pString = many1 (letter <|> oneOf "0123456789:.-_") <?> "string"
 
 pVocable :: Parser (Pattern String)
 pVocable = do v <- pString
