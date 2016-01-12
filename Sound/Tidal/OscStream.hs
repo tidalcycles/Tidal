@@ -42,7 +42,8 @@ send s slang shape change tick (o, m) = osc
       oscdata | namedParams slang = oscPreamble ++ (concatMap (\(k, Just v) -> [string (name k), v] )
                                                     $ filter (isJust . snd) $ Map.assocs (fixSound m))
               | otherwise = oscPreamble ++ (catMaybes $ mapMaybe (\x -> Map.lookup x m) (params shape))
-      cpsPrefix | cpsStamp shape = [float (cps change)]
+      cpsPrefix | cpsStamp shape && namedParams slang = [string "cps", float (cps change)]
+                | cpsStamp shape = [float (cps change)]
                 | otherwise = []
       parameterise ds = mergelists (map (string . name) (params shape)) ds
       usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
