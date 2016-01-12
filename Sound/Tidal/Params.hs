@@ -22,6 +22,10 @@ n :: Pattern Int -> ParamPattern
 n = make' VI n_p
 n_p = I "n" Nothing
 
+nudge :: Pattern Double -> ParamPattern
+nudge = make' VF nudge_p
+nudge_p = (F "nudge" (Just 0))
+
 offset :: Pattern Double -> ParamPattern
 offset = make' VF offset_p
 offset_p = F "offset" (Just 0)
