@@ -125,3 +125,7 @@ unit_p = S "unit" (Just "rate")
 loop :: Pattern Int -> ParamPattern
 loop = make' VI loop_p
 loop_p = I "loop" (Just 1)
+
+channel :: Pattern Int -> ParamPattern
+channel = make' VI channel_p
+channel_p = I "channel" Nothing
