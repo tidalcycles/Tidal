@@ -27,7 +27,7 @@ juxcut f p = stack [p     # pan (pure 0) # cut (pure (-1)),
                     f $ p # pan (pure 1) # cut (pure (-2))
                    ]
 
-jux' fs p = stack $ map (\n -> ((fs !! n) p) # pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
+jux' fs p = stack $ map (\n -> ((fs !! n) p) |+| pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
   where l = length fs
 
 -- For multichannel
@@ -180,7 +180,7 @@ up = speed . ((1.059466**) <$>)
 
 ghost'' a f p = superimpose (((a*2.5) ~>) . f) $ superimpose (((a*1.5) ~>) . f) $ p
 ghost' a p = ghost'' 0.125 ((|*| gain (pure 0.7)) . (|=| end (pure 0.2)) . (|*| speed (pure 1.25))) p
-ghost p = ghost' 0.125 p 
+ghost p = ghost' 0.125 p
 
 grp :: [Param] -> Pattern String -> ParamPattern
 grp [] _ = silence
