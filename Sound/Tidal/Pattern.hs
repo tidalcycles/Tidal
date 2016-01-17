@@ -7,11 +7,13 @@ import Data.Monoid
 import Data.Fixed
 import Data.List
 import Data.Maybe
+import Data.Ord
 import Data.Ratio
 import Debug.Trace
 import Data.Typeable
 import Data.Function
 import System.Random.Mersenne.Pure64
+import Data.Char
 
 import Music.Theory.Bjorklund
 
@@ -23,6 +25,7 @@ import Sound.Tidal.Utils
 -- active during that time. For continuous patterns, events with
 -- values for the midpoint of the given @Arc@ is returned.
 data Pattern a = Pattern {arc :: Arc -> [Event a]}
+  deriving Typeable
 
 -- | @show (p :: Pattern)@ returns a text string representing the
 -- event values active during the first cycle of the given pattern.
@@ -632,22 +635,46 @@ discretise n p = density n $ (atom (id)) <*> p
 randcat :: [Pattern a] -> Pattern a
 randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (fromIntegral $ length ps)) (slowcat ps)
 
+-- | @toMIDI p@: converts a pattern of human-readable pitch names into
+-- MIDI pitch numbers. For example, @"cs4"@ will be rendered as @"49"@.
+-- Omitting the octave number will create a pitch in the fifth octave
+-- (@"cf"@ -> @"cf5"@). Pitches can be decorated using:
+--
+--    * s = Sharp, a half-step above (@"gs4"@)
+--    * f = Flat, a half-step below (@"gf4"@)
+--    * n = Natural, no decoration (@"g4" and "gn4"@ are equivalent)
+--    * ss = Double sharp, a whole step above (@"gss4"@)
+--    * ff = Double flat, a whole step below (@"gff4"@)
+--
+-- This function also has a shorter alias @tom@.
 toMIDI :: Pattern String -> Pattern Int
 toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
   where
+    noteLookup :: String -> Maybe Int
     noteLookup [] = Nothing
-    noteLookup s | last s `elem` ['0' .. '9'] = elemIndex s names
-                 | otherwise = noteLookup (s ++ "5")
-    names = take 128 [(n ++ show o)
-                     | o <- octaves,
-                       n <- notes
-                     ]
-    notes = ["c","cs","d","ds","e","f","fs","g","gs","a","as","b"]
-    octaves = [0 .. 10]
+    noteLookup s | not (last s `elem` ['0' .. '9']) = noteLookup (s ++ "5")
+                 | not (isLetter (s !! 1)) = noteLookup((head s):'n':(tail s))
+                 | otherwise = parse s
+    parse x = (\a b c -> a+b+c) <$> pc x <*> sym x <*> Just(12*digitToInt (last x))
+    pc x = lookup (head x) [('c',0),('d',2),('e',4),('f',5),('g',7),('a',9),('b',11)]
+    sym x = lookup (init (tail x)) [("s",1),("f",-1),("n",0),("ss",2),("ff",-2)]
 
+-- | @tom p@: Alias for @toMIDI@.
 tom = toMIDI
 
 fit :: Int -> [a] -> Pattern Int -> Pattern a
 fit perCycle xs p = (xs !!!) <$> (Pattern $ \a -> map ((\e -> (mapThd' (+ (cyclePos perCycle e)) e))) (arc p a))
   where cyclePos perCycle e = perCycle * (floor $ eventStart e)
 
+permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
+permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (discretise 1 p)
+      where ps = permsort (length things) steps
+            deviance avg xs = sum $ map (abs . (avg-) . fromIntegral) xs
+            permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total/ fromIntegral n) x)) $ perms n total
+            perms 0 _ = []
+            perms 1 n = [[n]]
+            perms n total = concatMap (\x -> map (x:) $ perms (n-1) (total-x)) [1 .. (total-(n-1))]
+
+-- | @struct a b@: structures pattern @b@ in terms of @a@.
+struct :: Pattern String -> Pattern a -> Pattern a
+struct ps pv = (flip const) <$> ps <*> pv
