@@ -27,7 +27,9 @@ juxcut f p = stack [p     # pan (pure 0) # cut (pure (-1)),
                     f $ p # pan (pure 1) # cut (pure (-2))
                    ]
 
-jux' fs p = stack $ map (\n -> ((fs !! n) p) |+| pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
+jux' fs p = jux'' fs (+) p
+
+jux'' fs g p = stack $ map (\n -> ((fs !! n) p) (g pan) (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
   where l = length fs
 
 -- For multichannel
