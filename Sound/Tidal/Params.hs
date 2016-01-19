@@ -130,10 +130,10 @@ channel :: Pattern Int -> ParamPattern
 channel = make' VI channel_p
 channel_p = I "channel" Nothing
 
-bandq :: Pattern Double -> ParamPattern
+room :: Pattern Double -> ParamPattern
 room = make' VF room_p
 room_p = F "room" Nothing
 
-bandq :: Pattern Double -> ParamPattern
+size :: Pattern Double -> ParamPattern
 size = make' VF size_p
 size_p = F "size" Nothing
