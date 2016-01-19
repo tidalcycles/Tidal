@@ -137,3 +137,7 @@ room_p = F "room" Nothing
 size :: Pattern Double -> ParamPattern
 size = make' VF size_p
 size_p = F "size" Nothing
+
+dry :: Pattern Double -> ParamPattern
+dry = make' VF dry_p
+dry_p = F "dry" (Just 0)
