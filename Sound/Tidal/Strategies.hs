@@ -170,8 +170,7 @@ step s steps = cat $ map f steps
 steps :: [(String, String)] -> Pattern String
 steps = stack . map (\(a,b) -> step a b)
 
--- like step, but allows you to specify an array of strings to use for
-0,1,2...
+-- like step, but allows you to specify an array of strings to use for 0,1,2...
 step' :: [String] -> String -> Pattern String
 step' ss steps = cat $ map f steps
     where f c | c == 'x' = atom $ ss!!0
