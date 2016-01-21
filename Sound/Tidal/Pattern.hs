@@ -449,8 +449,11 @@ rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
 timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
 
-irand :: Double -> Pattern Int
-irand i = (floor . (*i)) <$> rand
+irand :: Int -> Pattern Int
+irand i = (floor . (* (fromIntegral i))) <$> rand
+
+randpick :: [a] -> Pattern a
+randpick xs = (xs !!) <$> (irand $ length xs)
 
 degradeBy :: Double -> Pattern a -> Pattern a
 degradeBy x p = unMaybe $ (\a f -> toMaybe (f > x) a) <$> p <*> rand
@@ -634,7 +637,7 @@ discretise n p = density n $ (atom (id)) <*> p
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (fromIntegral $ length ps)) (slowcat ps)
+randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps)) (slowcat ps)
 
 -- | @toMIDI p@: converts a pattern of human-readable pitch names into
 -- MIDI pitch numbers. For example, @"cs4"@ will be rendered as @"49"@.
