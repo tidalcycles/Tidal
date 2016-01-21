@@ -14,6 +14,7 @@ import Data.Typeable
 import Data.Function
 import System.Random.Mersenne.Pure64
 import Data.Char
+import qualified Data.Text as T
 
 import Music.Theory.Bjorklund
 
@@ -678,3 +679,25 @@ permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate
 -- | @struct a b@: structures pattern @b@ in terms of @a@.
 struct :: Pattern String -> Pattern a -> Pattern a
 struct ps pv = (flip const) <$> ps <*> pv
+
+-- Lindenmayer patterns, these go well with the step sequencer
+-- general rule parser (strings map to strings)
+parseLMRule :: String -> [(String,String)]
+parseLMRule s = map (splitOn ':') (commaSplit s)
+  where splitOn sep str = splitAt (fromJust $ elemIndex sep str) 
+                            $ filter (/= sep) str
+        commaSplit s = map T.unpack $ T.splitOn (T.pack ",") $ T.pack s
+
+-- specific parser for step sequencer (chars map to string)
+-- ruleset in form "a:b,b:ab" 
+parseLMRule' :: String -> [(Char, String)]   
+parseLMRule' str = map fixer $ parseLMRule str
+  where fixer (c,r) = (head c, r)
+
+-- for example, `lindenmayer 1 "a:b,b:ab" "ab" -> "bab"`
+lindenmayer :: Int -> String -> String -> String
+lindenmayer n r [] = []
+lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r) 
+                         ++ (lindenmayer 1 r cs)
+lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
+
