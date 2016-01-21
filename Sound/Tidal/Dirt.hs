@@ -25,7 +25,7 @@ import Sound.Tidal.Transition (transition, wash)
 import Sound.Tidal.Utils (enumerate)
 
 dirt :: Shape
-dirt = Shape {   params = [ sound_p,
+dirt = Shape {   params = [ s_p,
                             offset_p,
                             begin_p,
                             end_p,
@@ -50,7 +50,8 @@ dirt = Shape {   params = [ sound_p,
                             bandf_p,
                             bandq_p,
                             unit_p,
-                            loop_p
+                            loop_p,
+                            n_p
                           ],
                  cpsStamp = True,
                  latency = 0.04

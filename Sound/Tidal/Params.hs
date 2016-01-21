@@ -2,15 +2,26 @@ module Sound.Tidal.Params where
 
 import Sound.Tidal.Stream
 import Sound.Tidal.Pattern
-import Data.Map as Map
+import qualified Data.Map as Map
+import Sound.Tidal.Utils
 
 make' :: (a -> Value) -> Param -> Pattern a -> ParamPattern
 make' toValue par p = fmap (\x -> Map.singleton par (defaultV x)) p
   where defaultV a = Just $ toValue a
 
+grp :: [Param] -> Pattern String -> ParamPattern
+grp [] _ = silence
+grp params p = (fmap lookupPattern p)
+  where lookupPattern :: String -> ParamMap
+        lookupPattern s = Map.fromList $ map (\(param,s') -> toPV param s') $ zip params $ (split s)
+        split s = wordsBy (==':') s
+        toPV :: Param -> String -> (Param, Maybe Value)
+        toPV param@(S _ _) s = (param, (Just $ VS s))
+        toPV param@(F _ _) s = (param, (Just $ VF $ read s))
+        toPV param@(I _ _) s = (param, (Just $ VI $ read s))
+
 sound :: Pattern String -> ParamPattern
-sound = make' VS sound_p
-sound_p = S "sound" Nothing
+sound = grp [s_p, n_p]
 
 -- "s" stands for sample, or synth
 s :: Pattern String -> ParamPattern
@@ -20,7 +31,7 @@ s_p = S "s" Nothing
 -- "n" stands for sample number, or note
 n :: Pattern Int -> ParamPattern
 n = make' VI n_p
-n_p = I "n" Nothing
+n_p = I "n" (Just 0)
 
 nudge :: Pattern Double -> ParamPattern
 nudge = make' VF nudge_p

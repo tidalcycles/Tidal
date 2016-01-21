@@ -40,7 +40,7 @@ send s slang shape change tick (o, m) = osc
           | otherwise = doAt logicalOnset $ sendOSC s $ Message (path slang) oscdata
       oscPreamble = cpsPrefix ++ preamble slang
       oscdata | namedParams slang = oscPreamble ++ (concatMap (\(k, Just v) -> [string (name k), v] )
-                                                    $ filter (isJust . snd) $ Map.assocs (fixSound m))
+                                                    $ filter (isJust . snd) $ Map.assocs m)
               | otherwise = oscPreamble ++ (catMaybes $ mapMaybe (\x -> Map.lookup x m) (params shape))
       cpsPrefix | cpsStamp shape && namedParams slang = [string "cps", float (cps change)]
                 | cpsStamp shape = [float (cps change)]
@@ -52,16 +52,6 @@ send s slang shape change tick (o, m) = osc
       nudge = maybe 0 (toF) (Map.lookup nudge_p m)
       toF (Just (Float f)) = float2Double f
       toF _ = 0
-      fixSound :: OscMap -> OscMap
-      fixSound m | Map.lookup sound_p m == Nothing = makeSound m
-                 | otherwise = m
-      makeSound :: OscMap -> OscMap
-      makeSound m | s' == Nothing = m
-                  | n' == Nothing = Map.union m (Map.singleton sound_p (fromJust s'))
-                  -- omg
-                  | otherwise = Map.union m (Map.singleton sound_p (Just $ string $ (fromJust $ datum_string $ fromJust $ fromJust s') ++ (':':(show $ fromJust $ datum_int32 $ fromJust $ fromJust n'))))
-        where s' = Map.lookup s_p m
-              n' = Map.lookup n_p m
 
 -- type OscMap = Map.Map Param (Maybe Datum)
               
