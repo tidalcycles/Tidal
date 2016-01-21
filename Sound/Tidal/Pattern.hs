@@ -452,8 +452,8 @@ timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
 irand :: Int -> Pattern Int
 irand i = (floor . (* (fromIntegral i))) <$> rand
 
-randpick :: [a] -> Pattern a
-randpick xs = (xs !!) <$> (irand $ length xs)
+choose :: [a] -> Pattern a
+choose xs = (xs !!) <$> (irand $ length xs)
 
 degradeBy :: Double -> Pattern a -> Pattern a
 degradeBy x p = unMaybe $ (\a f -> toMaybe (f > x) a) <$> p <*> rand
