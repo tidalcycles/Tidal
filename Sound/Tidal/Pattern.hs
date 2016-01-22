@@ -704,3 +704,29 @@ lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r)
                          ++ (lindenmayer 1 r cs)
 lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
 
+-- support for fit'
+unwrap' :: Pattern (Pattern a) -> Pattern a
+unwrap' pp = Pattern $ \a -> arc (stack $ map scalep (arc pp a)) a
+  where scalep ev = compress (fst' ev) $ thd' ev
+
+-- removes events from pattern b that don't start during an event from pattern a
+mask :: Pattern a -> Pattern b -> Pattern b
+mask pa pb = Pattern $ \a -> concat [filterOns (subArc a $ eventArc i) (arc pb a) | i <- arc pa a]
+     where filterOns Nothing es = []
+           filterOns (Just arc) es = filter (onsetIn arc) es
+
+enclosingArc :: [Arc] -> Arc
+enclosingArc [] = (0,1)
+enclosingArc as = (minimum (map fst as), maximum (map snd as))
+
+stretch :: Pattern a -> Pattern a
+stretch p = splitQueries $ Pattern $ \a@(s,e) -> arc
+              (zoom (enclosingArc $ map eventArc $ arc p (sam s,nextSam s)) p)
+              a
+
+-- usage example: fit' 2 4 "[0 1 2 3]/2" "[0 3 1 1, 2*4]" "[bd sn:2 cp*2 hh]/2"
+fit' cyc n from to p = unwrap' $ fit n (mapMasks n from' p') to
+  where mapMasks n from p = [stretch $ mask (filterValues (== i) from) p 
+                             | i <- [0..n-1]]
+        p' = density cyc $ p
+        from' = density cyc $ from
