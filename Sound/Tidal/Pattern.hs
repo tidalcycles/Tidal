@@ -77,8 +77,8 @@ instance Monad Pattern where
   -- Pattern a -> (a -> Pattern b) -> Pattern b
   -- Pattern Char -> (Char -> Pattern String) -> Pattern String
   
-  p >>= f = -- unwrap (f <$> p)
-    Pattern (\a -> concatMap
+  p >>= f = unwrap (f <$> p)
+{-Pattern (\a -> concatMap
                    (\((s,e), (s',e'), x) -> map (\ev -> ((s,e), (s',e'), thd' ev)) $
                                             filter
                                             (\(a', _, _) -> isIn a' s)
@@ -86,7 +86,7 @@ instance Monad Pattern where
                    )
                    (arc p a)
              )
-
+-}
 -- join x = x >>= id
 
 
