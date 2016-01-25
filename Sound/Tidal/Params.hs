@@ -152,3 +152,7 @@ size_p = F "size" Nothing
 dry :: Pattern Double -> ParamPattern
 dry = make' VF dry_p
 dry_p = F "dry" (Just 0)
+
+orbit :: Pattern Int -> ParamPattern
+orbit = make' VI orbit_p
+orbit_p = I "orbit" (Just 0)
