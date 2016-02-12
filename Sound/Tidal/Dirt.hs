@@ -21,6 +21,7 @@ import Sound.Tidal.Pattern
 import Sound.Tidal.Parse
 import Sound.Tidal.Params
 import Sound.Tidal.Time
+import Sound.Tidal.Tempo
 import Sound.Tidal.Transition (transition, wash)
 import Sound.Tidal.Utils (enumerate)
 
@@ -66,12 +67,12 @@ dirtSlang = OscSlang {
 
 superDirtSlang = dirtSlang { timestamp = BundleStamp, path = "/play2", namedParams = True }
 
-superDirtBackend = do
-  s <- makeConnection "127.0.0.1" 57120 superDirtSlang
+superDirtBackend port = do
+  s <- makeConnection "127.0.0.1" port superDirtSlang
   return $ Backend s
 
-superDirtState = do
-  backend <- superDirtBackend
+superDirtState port = do
+  backend <- superDirtBackend port
   Sound.Tidal.Stream.state backend dirt
 
 dirtBackend = do
@@ -93,9 +94,14 @@ dirtSetters getNow = do ds <- dirtState
                         return (setter ds, transition getNow ds)
 
 superDirtSetters :: IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
-superDirtSetters getNow = do ds <- superDirtState
+superDirtSetters getNow = do ds <- superDirtState 57120
                              return (setter ds, transition getNow ds)
 
+
+superDirts :: [Int]  -> IO [(ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())]
+superDirts ports = do (_, getNow) <- bpsUtils
+                      states <- mapM (superDirtState) ports
+                      return $ map (\state -> (setter state, transition getNow state)) states
 
 -- -- disused parameter..
 dirtstream _ = dirtStream
