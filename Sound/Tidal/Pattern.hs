@@ -553,7 +553,7 @@ prrw f rot (blen, vlen) beatPattern valuePattern =
     (drop (rot `mod` length values) $ cycle values)
 
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
-prr :: Int -> (Time, Time) -> Pattern a -> Pattern a -> Pattern a
+prr :: Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern b
 prr = prrw $ flip const
 
 {-|
@@ -579,12 +579,12 @@ let p = slow 2 $ "x x x"
 d1 $ sound $ prr 0 (2,1) p "bd sn"
 @
 -}
-preplace :: (Time, Time) -> Pattern a -> Pattern a -> Pattern a
+preplace :: (Time, Time) -> Pattern a -> Pattern b -> Pattern b
 preplace = preplaceWith $ flip const
 
 prep = preplace
 
-preplace1 :: Pattern a -> Pattern a -> Pattern a
+preplace1 :: Pattern a -> Pattern b -> Pattern b
 preplace1 = prr 0 (1, 1)
 
 preplaceWith :: (a -> b -> c) -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
@@ -597,7 +597,7 @@ preplaceWith1 f = prrw f 0 (1, 1)
 
 prw1 = preplaceWith1
 
-(<~>) :: Pattern a -> Pattern a -> Pattern a
+(<~>) :: Pattern a -> Pattern b -> Pattern b
 (<~>) = preplace (1, 1)
 
 -- | @protate len rot p@ rotates pattern @p@ by @rot@ beats to the left.
