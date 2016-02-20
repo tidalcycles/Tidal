@@ -190,3 +190,11 @@ ghost'' a f p = superimpose (((a*2.5) ~>) . f) $ superimpose (((a*1.5) ~>) . f) 
 ghost' a p = ghost'' 0.125 ((|*| gain (pure 0.7)) . (|=| end (pure 0.2)) . (|*| speed (pure 1.25))) p
 ghost p = ghost' 0.125 p 
 
+slice :: Int -> Int -> ParamPattern -> ParamPattern
+slice i n p = 
+      p
+      # begin (pure $ fromIntegral i / fromIntegral n)
+      # end (pure $ fromIntegral (i+1) / fromIntegral n)
+
+randslice :: Int -> ParamPattern -> ParamPattern
+randslice n p = unwrap $ (\i -> slice i n p) <$> irand n
