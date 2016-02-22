@@ -2,7 +2,6 @@ module Sound.Tidal.Synth where
 
 import Sound.Tidal.Params
 import Sound.Tidal.MIDI.Control
-import Sound.Tidal.MIDI.Params
 
 synthController :: ControllerShape
 synthController = ControllerShape {

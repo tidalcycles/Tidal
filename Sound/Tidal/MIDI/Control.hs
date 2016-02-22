@@ -3,7 +3,6 @@ module Sound.Tidal.MIDI.Control where
 import qualified Sound.Tidal.Stream as S
 
 import Sound.Tidal.Params
-import Sound.Tidal.MIDI.Params
 
 type RangeMapFunc = (Int, Int) -> Double -> Int
 
@@ -19,7 +18,7 @@ data ControllerShape = ControllerShape {
 
 toShape :: ControllerShape -> S.Shape
 toShape cs =
-  let params = [dur_p, note_p, velocity_p] ++ params'
+  let params = [dur_p, n_p, velocity_p] ++ params'
       params' = [param p | p <- (controls cs)]
   in S.Shape {   S.params = params,
                  S.cpsStamp = False,
