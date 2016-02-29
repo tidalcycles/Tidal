@@ -2,115 +2,157 @@ module Sound.Tidal.Params where
 
 import Sound.Tidal.Stream
 import Sound.Tidal.Pattern
-import Sound.OSC.FD
-import Sound.OSC.Datum
-import Data.Map as Map
+import qualified Data.Map as Map
+import Sound.Tidal.Utils
 
-make' :: (a -> Datum) -> Param -> Pattern a -> OscPattern
-make' toOsc par p = fmap (\x -> Map.singleton par (defaultV x)) p
-  where defaultV a = Just $ toOsc a
+make' :: (a -> Value) -> Param -> Pattern a -> ParamPattern
+make' toValue par p = fmap (\x -> Map.singleton par (defaultV x)) p
+  where defaultV a = Just $ toValue a
 
-sound :: Pattern String -> OscPattern
-sound = make' string sound_p
-sound_p = S "sound" Nothing
+grp :: [Param] -> Pattern String -> ParamPattern
+grp [] _ = silence
+grp params p = (fmap lookupPattern p)
+  where lookupPattern :: String -> ParamMap
+        lookupPattern s = Map.fromList $ map (\(param,s') -> toPV param s') $ zip params $ (split s)
+        split s = wordsBy (==':') s
+        toPV :: Param -> String -> (Param, Maybe Value)
+        toPV param@(S _ _) s = (param, (Just $ VS s))
+        toPV param@(F _ _) s = (param, (Just $ VF $ read s))
+        toPV param@(I _ _) s = (param, (Just $ VI $ read s))
 
-offset :: Pattern Double -> OscPattern
-offset = make' float offset_p
+sound :: Pattern String -> ParamPattern
+sound = grp [s_p, n_p]
+
+-- "s" stands for sample, or synth
+s :: Pattern String -> ParamPattern
+s = make' VS s_p
+s_p = S "s" Nothing
+
+-- "n" stands for sample number, or note
+n :: Pattern Int -> ParamPattern
+n = make' VI n_p
+n_p = I "n" (Just 0)
+
+nudge :: Pattern Double -> ParamPattern
+nudge = make' VF nudge_p
+nudge_p = (F "nudge" (Just 0))
+
+offset :: Pattern Double -> ParamPattern
+offset = make' VF offset_p
 offset_p = F "offset" (Just 0)
 
-begin :: Pattern Double -> OscPattern
-begin = make' float begin_p
+begin :: Pattern Double -> ParamPattern
+begin = make' VF begin_p
 begin_p = F "begin" (Just 0)
 
-end :: Pattern Double -> OscPattern
-end = make' float end_p
+end :: Pattern Double -> ParamPattern
+end = make' VF end_p
 end_p = F "end" (Just 1)
 
-speed :: Pattern Double -> OscPattern
-speed = make' float speed_p
+speed :: Pattern Double -> ParamPattern
+speed = make' VF speed_p
 speed_p = F "speed" (Just 1)
 
-pan :: Pattern Double -> OscPattern
-pan = make' float pan_p
+pan :: Pattern Double -> ParamPattern
+pan = make' VF pan_p
 pan_p = F "pan" (Just 0.5)
 
-velocity :: Pattern Double -> OscPattern
-velocity = make' float velocity_p
-velocity_p = F "velocity" (Just 0)
+velocity :: Pattern Double -> ParamPattern
+velocity = make' VF velocity_p
+velocity_p = F "velocity" (Just 0.5)
 
-vowel :: Pattern String -> OscPattern
-vowel = make' string vowel_p
+vowel :: Pattern String -> ParamPattern
+vowel = make' VS vowel_p
 vowel_p = S "vowel" (Just "")
 
-cutoff :: Pattern Double -> OscPattern
-cutoff = make' float cutoff_p
+cutoff :: Pattern Double -> ParamPattern
+cutoff = make' VF cutoff_p
 cutoff_p = F "cutoff" (Just 0)
 
-resonance :: Pattern Double -> OscPattern
-resonance = make' float resonance_p
+resonance :: Pattern Double -> ParamPattern
+resonance = make' VF resonance_p
 resonance_p = F "resonance" (Just 0)
 
-accelerate :: Pattern Double -> OscPattern
-accelerate = make' float accelerate_p
+accelerate :: Pattern Double -> ParamPattern
+accelerate = make' VF accelerate_p
 accelerate_p = F "accelerate" (Just 0)
 
-shape :: Pattern Double -> OscPattern
-shape = make' float shape_p
+shape :: Pattern Double -> ParamPattern
+shape = make' VF shape_p
 shape_p = F "shape" (Just 0)
 
-kriole :: Pattern Int -> OscPattern
-kriole = make' int32 kriole_p
+kriole :: Pattern Int -> ParamPattern
+kriole = make' VI kriole_p
 kriole_p = I "kriole" (Just 0)
 
-gain :: Pattern Double -> OscPattern
-gain = make' float gain_p
+gain :: Pattern Double -> ParamPattern
+gain = make' VF gain_p
 gain_p = F "gain" (Just 1)
 
-cut :: Pattern Int -> OscPattern
-cut = make' int32 cut_p
+cut :: Pattern Int -> ParamPattern
+cut = make' VI cut_p
 cut_p = I "cut" (Just (0))
 
-delay :: Pattern Double -> OscPattern
-delay = make' float delay_p
+delay :: Pattern Double -> ParamPattern
+delay = make' VF delay_p
 delay_p = F "delay" (Just (0))
 
-delaytime :: Pattern Double -> OscPattern
-delaytime = make' float delaytime_p
+delaytime :: Pattern Double -> ParamPattern
+delaytime = make' VF delaytime_p
 delaytime_p = F "delaytime" (Just (-1))
 
-delayfeedback :: Pattern Double -> OscPattern
-delayfeedback = make' float delayfeedback_p
+delayfeedback :: Pattern Double -> ParamPattern
+delayfeedback = make' VF delayfeedback_p
 delayfeedback_p = F "delayfeedback" (Just (-1))
 
-crush :: Pattern Double -> OscPattern
-crush = make' float crush_p
+crush :: Pattern Double -> ParamPattern
+crush = make' VF crush_p
 crush_p = F "crush" (Just 0)
 
-coarse :: Pattern Int -> OscPattern
-coarse = make' int32 coarse_p
+coarse :: Pattern Int -> ParamPattern
+coarse = make' VI coarse_p
 coarse_p = I "coarse" (Just 0)
 
-hcutoff :: Pattern Double -> OscPattern
-hcutoff = make' float hcutoff_p
+hcutoff :: Pattern Double -> ParamPattern
+hcutoff = make' VF hcutoff_p
 hcutoff_p = F "hcutoff" (Just 0)
 
-hresonance :: Pattern Double -> OscPattern
-hresonance = make' float hresonance_p
+hresonance :: Pattern Double -> ParamPattern
+hresonance = make' VF hresonance_p
 hresonance_p = F "hresonance" (Just 0)
 
-bandf :: Pattern Double -> OscPattern
-bandf = make' float bandf_p
+bandf :: Pattern Double -> ParamPattern
+bandf = make' VF bandf_p
 bandf_p = F "bandf" (Just 0)
 
-bandq :: Pattern Double -> OscPattern
-bandq = make' float bandq_p
+bandq :: Pattern Double -> ParamPattern
+bandq = make' VF bandq_p
 bandq_p = F "bandq" (Just 0)
 
-unit :: Pattern String -> OscPattern
-unit = make' string unit_p
+unit :: Pattern String -> ParamPattern
+unit = make' VS unit_p
 unit_p = S "unit" (Just "rate")
 
-loop :: Pattern Int -> OscPattern
-loop = make' int32 loop_p
+loop :: Pattern Int -> ParamPattern
+loop = make' VI loop_p
 loop_p = I "loop" (Just 1)
 
+channel :: Pattern Int -> ParamPattern
+channel = make' VI channel_p
+channel_p = I "channel" Nothing
+
+room :: Pattern Double -> ParamPattern
+room = make' VF room_p
+room_p = F "room" Nothing
+
+size :: Pattern Double -> ParamPattern
+size = make' VF size_p
+size_p = F "size" Nothing
+
+dry :: Pattern Double -> ParamPattern
+dry = make' VF dry_p
+dry_p = F "dry" (Just 0)
+
+orbit :: Pattern Int -> ParamPattern
+orbit = make' VI orbit_p
+orbit_p = I "orbit" (Just 0)

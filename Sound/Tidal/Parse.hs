@@ -14,6 +14,7 @@ import Data.Monoid
 import Control.Exception as E
 import Control.Applicative ((<$>), (<*>))
 import Data.Maybe
+import Data.List
 
 import Sound.Tidal.Pattern
 
@@ -132,7 +133,7 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
         scale base (ps@((n,_):_)) = map (\(n',p) -> density (fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
 
 pString :: Parser (String)
-pString = many1 (letter <|> oneOf "0123456789:") <?> "string"
+pString = many1 (letter <|> oneOf "0123456789:.-_") <?> "string"
 
 pVocable :: Parser (Pattern String)
 pVocable = do v <- pString
@@ -152,8 +153,27 @@ pBool = do oneOf "t1"
 
 pInt :: Parser (Pattern Int)
 pInt = do s <- sign
-          i <- integer <?> "integer"
+          i <- choice [integer, midinote]
           return $ atom (applySign s $ fromIntegral i)
+
+midinote :: Parser Integer
+midinote = do n <- notenum
+              modifiers <- many noteModifier
+              octave <- option 5 natural
+              let n' = fromIntegral $ foldr (+) n modifiers
+              return $ n' + octave*12
+  where notenum = choice [char 'c' >> return 0,
+                          char 'd' >> return 2,
+                          char 'e' >> return 4,
+                          char 'f' >> return 5,
+                          char 'g' >> return 7,
+                          char 'a' >> return 9,
+                          char 'b' >> return 11
+                         ]
+        noteModifier = choice [char 's' >> return 1,
+                               char 'f' >> return (-1),
+                               char 'n' >> return 0
+                              ]
 
 pColour :: Parser (Pattern ColourD)
 pColour = do name <- many1 letter <?> "colour name"
