@@ -233,6 +233,16 @@ chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
            newEvent :: ParamMap -> (Int, Arc) -> Event ParamMap
            newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ VF ((fromIntegral i)/(fromIntegral n))) v)
 
+{- | `gap` is similar to `chop` in that it granualizes every sample in place as it is played,
+but every other grain is silent. Use an integer value to specify how many granules
+each sample is chopped into:
+
+~~~~ {haskell}
+
+d1 $ gap 8 $ sound "jvbass"
+d1 $ gap 16 $ sound "[jvbass drum:4]"
+
+~~~~-}
 gap :: Int -> ParamPattern -> ParamPattern
 gap n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
      where f queryA a = concatMap (chopEvent queryA) (arc p a)
