@@ -22,7 +22,7 @@ transition getNow mv f p =
      putMVar mv (p', (p:snd ps))
      return ()
 
--- Pans the last n versions of the pattern across the field
+-- | Pans the last n versions of the pattern across the field
 histpan :: Int -> Time -> [ParamPattern] -> ParamPattern
 histpan _ _ [] = silence
 histpan 0 _ _ = silence
