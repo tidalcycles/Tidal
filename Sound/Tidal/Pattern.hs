@@ -33,11 +33,17 @@ data Pattern a = Pattern {arc :: Arc -> [Event a]}
 instance (Show a) => Show (Pattern a) where
   show p@(Pattern _) = intercalate " " $ map showEvent $ arc p (0, 1)
 
+-- | converts a ratio into human readable string, e.g. @1/3@
+showTime :: (Show a, Integral a) => Ratio a -> String
 showTime t | denominator t == 1 = show (numerator t)
            | otherwise = show (numerator t) ++ ('/':show (denominator t))
 
+-- | converts a time arc into human readable string, e.g. @1/3 3/4@
+showArc :: Arc -> String
 showArc a = concat[showTime $ fst a, (' ':showTime (snd a))]
 
+-- | converts an event into human readable string, e.g. @("bd" 1/4 2/3)@
+showEvent :: (Show a) => Event a -> String
 showEvent (a, b, v) | a == b = concat["(",show v,
                                       (' ':showArc a),
                                       ")"
