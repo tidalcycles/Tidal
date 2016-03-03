@@ -146,21 +146,76 @@ visualcallback = do t <- ticker
 pick :: String -> Int -> String
 pick name n = name ++ ":" ++ (show n)
 
+{- | Striate is a kind of granulator, for example:
+
+~~~~ {haskell}
+
+d1 $ striate 3 $ sound "ho ho:2 ho:3 hc"
+
+~~~~
+
+This plays the loop the given number of times, but triggering
+progressive portions of each sample. So in this case it plays the loop
+three times, the first time playing the first third of each sample,
+then the second time playing the second third of each sample, etc..
+With the highhat samples in the above example it sounds a bit like
+reverb, but it isn't really.
+
+You can also use striate with very long samples, to cut it into short
+chunks and pattern those chunks. This is where things get towards
+granular synthesis. The following cuts a sample into 128 parts, plays
+it over 8 cycles and manipulates those parts by reversing and rotating
+the loops.
+
+~~~~ {haskell}
+
+d1 $  slow 8 $ striate 128 $ sound "bev"
+
+~~~~
+
+-}
 striate :: Int -> ParamPattern -> ParamPattern
 striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p
                   # begin (atom (fromIntegral i / fromIntegral n))
                   # end (atom (fromIntegral (i+1) / fromIntegral n))
 
+{-|
+The `striate'` function is a variant of `striate` with an extra
+parameter, which specifies the length of each part. The `striate'`
+function still scans across the sample over a single cycle, but if
+each bit is longer, it creates a sort of stuttering effect. For
+example the following will cut the bev sample into 32 parts, but each
+will be 1/16th of a sample long:
+
+~~~~ {haskell}
+
+d1 $ slow 32 $ striate' 32 (1/16) $ sound "bev"
+
+~~~~
+
+Note that `striate` uses the `begin` and `end` parameters
+internally. This means that if you're using `striate` (or `striate'`)
+you probably shouldn't also specify `begin` or `end`. -}
 striate' :: Int -> Double -> ParamPattern -> ParamPattern
 striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (atom (slot * i) :: Pattern Double) # end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
+{- | _not sure what this does_, variant of `striate` -}
 striateO :: ParamPattern -> Int -> Double -> ParamPattern
 striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) # end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
 
+{- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
+The primed version is just like `striate'`, where the loop count is the third argument. For example:
+
+@
+d1 $ striateL' 3 0.125 4 $ sound "feel sn:2"
+@
+
+Like `striate`, these use the `begin` and `end` parameters internally, as well as the `loop` parameter for these versions.
+-}
 striateL :: Int -> Int -> ParamPattern -> ParamPattern
 striateL n l p = striate n p # loop (atom $ fromIntegral l)
 striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
