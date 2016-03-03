@@ -461,6 +461,18 @@ irand i = (floor . (* (fromIntegral i))) <$> rand
 choose :: [a] -> Pattern a
 choose xs = (xs !!) <$> (irand $ length xs)
 
+{- |
+Similar to `degrade` `degradeBy` allows you to control the percentage of events that
+are removed. For example, to remove events 90% of the time:
+
+~~~~ {haskell}
+
+d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
+   # accelerate "-6"
+   # speed "2"
+
+~~~~
+-}
 degradeBy :: Double -> Pattern a -> Pattern a
 degradeBy x p = unMaybe $ (\a f -> toMaybe (f > x) a) <$> p <*> rand
     where toMaybe False _ = Nothing
