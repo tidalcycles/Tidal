@@ -320,7 +320,7 @@ d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn:2")
 interlace :: ParamPattern -> ParamPattern -> ParamPattern
 interlace a b = weave 16 (shape $ ((* 0.9) <$> sinewave1)) [a, b]
 
--- Step sequencing
+-- | Step sequencing
 step :: String -> String -> Pattern String
 step s steps = cat $ map f steps
     where f c | c == 'x' = atom s
@@ -330,7 +330,7 @@ step s steps = cat $ map f steps
 steps :: [(String, String)] -> Pattern String
 steps = stack . map (\(a,b) -> step a b)
 
--- like step, but allows you to specify an array of strings to use for 0,1,2...
+-- | like `step`, but allows you to specify an array of strings to use for 0,1,2...
 step' :: [String] -> String -> Pattern String
 step' ss steps = cat $ map f steps
     where f c | c == 'x' = atom $ ss!!0
