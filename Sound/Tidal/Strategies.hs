@@ -169,6 +169,25 @@ inside n f p = density n $ f (slow n p)
 scale :: (Functor f, Num b) => b -> b -> f b -> f b
 scale from to p = ((+ from) . (* (to-from))) <$> p
 
+{- | `chop` granualizes every sample in place as it is played, turning a pattern of samples into a pattern of sample parts. Use an integer value to specify how many granules each sample is chopped into:
+
+~~~~ {haskell}
+
+d1 $ chop 16 $ sound "arpy arp feel*4 arpy*4"
+
+~~~~
+
+Different values of `chop` can yield very different results, depending
+on the samples used:
+
+~~~~ {haskell}
+
+d1 $ chop 16 $ sound (samples "arpy*8" (run 16))
+d1 $ chop 32 $ sound (samples "arpy*8" (run 16))
+d1 $ chop 256 $ sound "bd*4 [sn cp] [hh future]*2 [cp feel]"
+
+~~~~
+-}
 chop :: Int -> ParamPattern -> ParamPattern
 chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
      where f queryA a = concatMap (chopEvent queryA) (arc p a)
