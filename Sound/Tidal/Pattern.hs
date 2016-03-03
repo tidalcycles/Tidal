@@ -997,7 +997,7 @@ unwrap' :: Pattern (Pattern a) -> Pattern a
 unwrap' pp = Pattern $ \a -> arc (stack $ map scalep (arc pp a)) a
   where scalep ev = compress (fst' ev) $ thd' ev
 
--- removes events from pattern b that don't start during an event from pattern a
+-- | removes events from pattern b that don't start during an event from pattern a
 mask :: Pattern a -> Pattern b -> Pattern b
 mask pa pb = Pattern $ \a -> concat [filterOns (subArc a $ eventArc i) (arc pb a) | i <- arc pa a]
      where filterOns Nothing es = []
