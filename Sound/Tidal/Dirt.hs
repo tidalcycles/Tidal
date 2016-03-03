@@ -230,26 +230,74 @@ clutchIn t now (p:p':_) = overlay (fadeOut' now t p') (fadeIn' now t p)
 clutch :: Time -> [Pattern a] -> Pattern a
 clutch = clutchIn 2
 
+{- | crossfades between old and new pattern over given number of cycles, e.g.:
+
+@
+d1 $ sound "bd sn"
+
+t1 (xfadeIn 16) $ sound "jvbass*3"
+@
+
+Will fade over 16 cycles from "bd sn" to "jvbass*3"
+-}
 xfadeIn :: Time -> Time -> [ParamPattern] -> ParamPattern
 xfadeIn _ _ [] = silence
 xfadeIn _ _ (p:[]) = p
 xfadeIn t now (p:p':_) = overlay (p |*| gain (now ~> (slow t envEqR))) (p' |*| gain (now ~> (slow t (envEq))))
 
+{- | 
+Crossfade between old and new pattern over the next two cycles.
+
+@
+d1 $ sound "bd sn"
+
+t1 xfade $ sound "can*3"
+@
+
+`xfade` is built with `xfadeIn` in this case taking two cycles for the fade.
+-}
 xfade :: Time -> [ParamPattern] -> ParamPattern
 xfade = xfadeIn 2
 
+{- | Stut applies a type of delay to a pattern. It has three parameters, 
+which could be called depth, feedback and time. Depth is an integer
+and the others floating point. This adds a bit of echo:
+
+@
+d1 $ stut 4 0.5 0.2 $ sound "bd sn"
+@
+
+The above results in 4 echos, each one 50% quieter than the last, 
+with 1/5th of a cycle between them. It is possible to reverse the echo:
+
+@
+d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
+@
+-}
 stut :: Integer -> Double -> Rational -> ParamPattern -> ParamPattern
 stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
   where scale x
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
 
+{- | _not sure what this does_, variant of `stut`
+-}
 stut' :: Integer -> Time -> (ParamPattern -> ParamPattern) -> ParamPattern -> ParamPattern
 stut' steps steptime f p | steps <= 0 = p
                          | otherwise = overlay (f (steptime ~> stut' (steps-1) steptime f p)) p
 
--- Increase comb filter to anticipate 'drop' to next pattern
+{-| same as `anticipate` though it allows you to specify the number of cycles until dropping to the new pattern, e.g.:
+
+@
+d1 $ sound "jvbass(3,8)"
+
+t1 (anticipateIn 4) $ sound "jvbass(5,8)"
+@-}
 anticipateIn :: Time -> Time -> [ParamPattern] -> ParamPattern
 anticipateIn t now = wash (spread' (stut 8 0.2) (now ~> (slow t $ (toRational . (1-)) <$> envL))) t now
 
+{- | `anticipate` is an increasing comb filter.
+
+Build up some tension, culminating in a _drop_ to the new pattern after 8 cycles.
+-}
 anticipate :: Time -> [ParamPattern] -> ParamPattern
 anticipate = anticipateIn 8
