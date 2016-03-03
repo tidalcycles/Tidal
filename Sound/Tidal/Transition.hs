@@ -79,7 +79,7 @@ jumpIn' n now = superwash id id ((nextSam now) - now + (fromIntegral n)) 0 now
 jumpMod :: Int -> Time -> [ParamPattern] -> ParamPattern
 jumpMod n now = jumpIn ((n-1) - ((floor now) `mod` n)) now
 
--- Degrade the new pattern over time until it goes to nothing
+-- | Degrade the new pattern over time until it goes to nothing
 mortal :: Time -> Time -> Time -> [ParamPattern] -> ParamPattern
 mortal _ _ _ [] = silence
 mortal lifespan release now (p:_) = overlay (playWhen (<(now+lifespan)) p) (playWhen (>= (now+lifespan)) (fadeOut' (now + lifespan) release p))
