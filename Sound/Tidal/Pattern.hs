@@ -976,7 +976,16 @@ parseLMRule' :: String -> [(Char, String)]
 parseLMRule' str = map fixer $ parseLMRule str
   where fixer (c,r) = (head c, r)
 
--- for example, `lindenmayer 1 "a:b,b:ab" "ab" -> "bab"`
+{- | returns the `n`th iteration of a [Lindenmayer System](https://en.wikipedia.org/wiki/L-system) with given start sequence.
+
+for example:
+
+~~~~{haskell}
+
+lindenmayer 1 "a:b,b:ab" "ab" -> "bab"
+
+~~~~
+-}
 lindenmayer :: Int -> String -> String -> String
 lindenmayer n r [] = []
 lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r) 
