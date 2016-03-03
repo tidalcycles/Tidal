@@ -23,17 +23,78 @@ triple = stutter 3
 quad   = stutter 4
 double = echo
 
+{- | The `jux` function creates strange stereo effects, by applying a
+function to a pattern, but only in the right-hand channel. For
+example, the following reverses the pattern on the righthand side:
+
+~~~ haskell
+
+d1 $ slow 32 $ jux (rev) $ striate' 32 (1/16) $ sound "bev"
+
+~~~
+
+When passing pattern transforms to functions like [jux](#jux) and [every](#every),
+it's possible to chain multiple transforms together with `.`, for
+example this both reverses and halves the playback speed of the
+pattern in the righthand channel:
+
+~~~ haskell
+
+d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striate' 32 (1/16) $ sound "bev"
+
+~~~
+-}
 jux f p = stack [p # pan (pure 0), f $ p # pan (pure 1)]
 juxcut f p = stack [p     # pan (pure 0) # cut (pure (-1)),
                     f $ p # pan (pure 1) # cut (pure (-2))
                    ]
 
+{- | In addition to `jux`, `jux'` allows using a list of pattern transform. resulting patterns from each transformation will be spread via pan from left to right.
+
+For example:
+
+@
+d1 $ jux' [iter 4, chop 16, id, rev, palindrome] $ sound "bd sn"
+@
+
+will put `iter 4` of the pattern to the far left and `palindrome` to the far right. In the center the original pattern will play and mid left mid right the chopped and the reversed version will appear.
+
+One could also write:
+
+@
+d1 $ stack [  
+    iter 4 $ sound "bd sn" # pan "0",  
+    chop 16 $ sound "bd sn" # pan "0.25",  
+    sound "bd sn" # pan "0.5",  
+    rev $ sound "bd sn" # pan "0.75",  
+    palindrome $ sound "bd sn" # pan "1",  
+    ]  
+@
+
+-}
 jux' fs p = stack $ map (\n -> ((fs !! n) p) # pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
   where l = length fs
 
--- For multichannel
+-- | Multichannel variant of `jux`, _not sure what it does_
 jux4 f p = stack [p # pan (pure (5/8)), f $ p # pan (pure (1/8))]
 
+{- |
+With `jux`, the original and effected versions of the pattern are
+panned hard left and right (i.e., panned at 0 and 1). This can be a
+bit much, especially when listening on headphones. The variant `juxBy`
+has an additional parameter, which brings the channel closer to the
+centre. For example:
+
+~~~ haskell
+
+d1 $ juxBy 0.5 (density 2) $ sound "bd sn:1"
+
+~~~
+
+
+In the above, the two versions of the pattern would be panned at 0.25
+and 0.75, rather than 0 and 1.
+-}
 juxBy n f p = stack [p # pan (pure $ 0.5 - (n/2)), f $ p # pan (pure $ 0.5 + (n/2))]
 
 -- every 4 (smash 4 [1, 2, 3]) $ sound "[odx sn/2 [~ odx] sn/3, [~ hh]*4]"
