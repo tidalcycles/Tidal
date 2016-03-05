@@ -240,9 +240,39 @@ slow t = density (1/t)
 (~>) :: Time -> Pattern a -> Pattern a
 (~>) = (<~) . (0-)
 
+{- | (The above means that `brak` is a function from patterns of any type,
+to a pattern of the same type.)
+
+Make a pattern sound a bit like a breakbeat
+
+Example:
+
+@
+d1 $ sound (brak "bd sn kurt")
+@
+-}
 brak :: Pattern a -> Pattern a
 brak = when ((== 1) . (`mod` 2)) (((1%4) ~>) . (\x -> cat [x, silence]))
 
+{- | Divides a pattern into a given number of subdivisions, plays the subdivisions
+in order, but increments the starting subdivision each cycle. The pattern
+wraps to the first subdivision after the last subdivision is played.
+
+Example:
+
+@
+d1 $ iter 4 $ sound "bd hh sn cp"
+@
+
+This will produce the following over four cycles:
+
+@
+bd hh sn cp
+hh sn cp bd
+sn cp bd hh
+cp bd hh sn
+@
+-}
 iter :: Int -> Pattern a -> Pattern a
 iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. n]
 
