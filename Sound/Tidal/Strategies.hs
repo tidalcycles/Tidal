@@ -314,6 +314,16 @@ off t f p = superimpose (f . (t ~>)) p
 offadd :: Num a => Time -> a -> Pattern a -> Pattern a
 offadd t n p = off t ((+n) <$>) p
 
+{- | `up` does a poor man's pitchshift by semitones via `speed`.
+
+You can easily produce melodies from a single sample with up:
+
+@
+d1 # up "0 5 4 12" # sound "arpy"
+@
+
+This will play the _arpy_ sample four times a cycle in the original pitch, pitched by 5 semitones, by 4 and then by an octave.
+-}
 up :: Pattern Double -> ParamPattern
 up = speed . ((1.059466**) <$>)
 
