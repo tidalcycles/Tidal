@@ -304,6 +304,20 @@ playWhen test (Pattern f) = Pattern $ (filter (\e -> test (eventOnset e))) . f
 playFor :: Time -> Time -> Pattern a -> Pattern a
 playFor s e = playWhen (\t -> and [t >= s, t < e])
 
+{- | There is a similar function named `seqP` which allows you to define when
+a sound within a list starts and ends. The code below contains three
+separate patterns in a "stack", but each has different start times 
+(zero cycles, eight cycles, and sixteen cycles, respectively). All
+patterns stop after 128 cycles:
+
+@
+d1 $ seqP [ 
+  (0, 128, sound "bd bd*2"), 
+  (8, 128, sound "hh*2 [sn cp] cp future*4"), 
+  (16, 128, sound (samples "arpy*8" (run 16)))
+]
+@
+-}
 seqP :: [(Time, Time, Pattern a)] -> Pattern a
 seqP = stack . (map (\(s, e, p) -> playFor s e ((sam s) ~> p)))
 
