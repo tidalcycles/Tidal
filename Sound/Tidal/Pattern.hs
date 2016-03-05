@@ -608,6 +608,14 @@ d1 $ sound (samples "drum*4" (irand 5))
 irand :: Int -> Pattern Int
 irand i = (floor . (* (fromIntegral i))) <$> rand
 
+{- | Randomly picks an element from the given list
+
+@
+d1 $ sound (samples "xx(3,8)" (tom $ choose ["a", "e", "g", "c"]))
+@
+
+plays a melody randomly choosing one of the four notes: `"a"`, `"e"`, `"g"`, `"c"` 
+-}
 choose :: [a] -> Pattern a
 choose xs = (xs !!) <$> (irand $ length xs)
 
