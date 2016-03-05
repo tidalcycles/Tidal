@@ -563,6 +563,36 @@ ifp test f1 f2 p = splitQueries $ Pattern apply
   where apply a | test (floor $ fst a) = (arc $ f1 p) a
                 | otherwise = (arc $ f2 p) a
 
+{-|
+
+`rand` generates a continuous pattern of (pseudo-)random, floating point numbers between `0` and `1`.
+
+@
+d1 $ sound "bd*8" # pan rand
+@
+
+pans bass drums randomly
+
+@
+d1 $ sound "sn sn ~ sn" # gain rand
+@
+
+makes the snares' randomly loud and quiet.
+
+Numbers coming from this pattern are random, but dependent on time. So if you reset time via `cps (-1)` the random pattern will emit the exact same _random_ numbers again.
+
+In cases where you need two different random patterns, you can shift one of them around to change the time from which the _random_ pattern is read, note the difference:
+
+@
+d1 $ jux (|+| gain rand) $ sound "sn sn ~ sn" # gain rand
+@
+
+and with the juxed version shifted backwards for 1024 cycles:
+
+@
+d1 $ jux (|+| ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
+@
+-}
 rand :: Pattern Double
 rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
