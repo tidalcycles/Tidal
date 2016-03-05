@@ -196,6 +196,14 @@ cross f p p' = Pattern $ \t -> concat [filter flt $ arc p t,
 
 inside n f p = density n $ f (slow n p)
 
+
+{- | `scale` will take a pattern which goes from 0 to 1 (like `sine1`), and scale it to a different range - between the first and second arguments. In the below example, `scale 1 1.5` shifts the range of `sine1` from 0 - 1 to 1 - 1.5.
+
+@
+d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
+  |+| speed (slow 4 $ scale 1 1.5 sine1)
+@
+-}
 scale :: (Functor f, Num b) => b -> b -> f b -> f b
 scale from to p = ((+ from) . (* (to-from))) <$> p
 
