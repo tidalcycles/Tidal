@@ -623,13 +623,12 @@ choose xs = (xs !!) <$> (irand $ length xs)
 Similar to `degrade` `degradeBy` allows you to control the percentage of events that
 are removed. For example, to remove events 90% of the time:
 
-~~~~ {haskell}
-
+@
 d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
    # accelerate "-6"
    # speed "2"
+@
 
-~~~~
 -}
 degradeBy :: Double -> Pattern a -> Pattern a
 degradeBy x p = unMaybe $ (\a f -> toMaybe (f > x) a) <$> p <*> rand
@@ -669,6 +668,27 @@ rarely = sometimesBy 0.25
 almostNever = sometimesBy 0.1
 almostAlways = sometimesBy 0.9
 
+{- | `degrade` randomly removes events from a pattern 50% of the time:
+
+@
+d1 $ slow 2 $ degrade $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
+   # accelerate "-6"
+   # speed "2"
+@
+
+The shorthand syntax for `degrade` is a question mark: `?`. Using `?`
+will allow you to randomly remove events from a portion of a pattern:
+
+@
+d1 $ slow 2 $ sound "bd ~ sn bd ~ bd? [sn bd?] ~"
+@
+
+You can also use `?` to randomly remove events from entire sub-patterns:
+
+@
+d1 $ slow 2 $ sound "[[[feel:5*8,feel*3] feel:3*8]?, feel*4]"
+@
+-}
 degrade :: Pattern a -> Pattern a
 degrade = degradeBy 0.5
 
@@ -681,21 +701,19 @@ wedge t p p' = overlay (densityGap (1/t) p) (t ~> densityGap (1/(1-t)) p')
 whenmod :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 whenmod a b = Sound.Tidal.Pattern.when ((\t -> (t `mod` a) >= b ))
 
-{- | ~~~~{haskell}
-
+{- |
+@
 superimpose f p = stack [p, f p]
-
-~~~~
+@
 
 `superimpose` plays a modified version of a pattern at the same time as the original pattern,
 resulting in two patterns being played at the same time.
 
-~~~~{haskell}
-
+@
 d1 $ superimpose (density 2) $ sound "bd sn [cp ht] hh"
 d1 $ superimpose ((# speed "2") . (0.125 <~)) $ sound "bd sn cp hh"
+@
 
-~~~~
 -}
 superimpose f p = stack [p, f p]
 
@@ -888,11 +906,9 @@ tom = toMIDI
 
 {- | The `fit` function takes a pattern of integer numbers, which are used to select values from the given list. What makes this a bit strange is that only a given number of values are selected each cycle. For example:
 
-~~~~ {haskell}
-
+@
 d1 $ sound (fit 3 ["bd", "sn", "arpy", "arpy:1", "casio"] "0 [~ 1] 2 1")
-
-~~~~
+@
 
 The above fits three samples into the pattern, i.e. for the first cycle this will be `"bd"`, `"sn"` and `"arpy"`, giving the result `"bd [~ sn] arpy sn"` (note that we start counting at zero, so that `0` picks the first value). The following cycle the *next* three values in the list will be picked, i.e. `"arpy:1"`, `"casio"` and `"bd"`, giving the pattern `"arpy:1 [~ casio] bd casio"` (note that the list wraps round here).
 
@@ -957,21 +973,17 @@ stretch p = splitQueries $ Pattern $ \a@(s,e) -> arc
 
 {- | `fit'` is a generalization of `fit`, where the list is instead constructed by using another integer pattern to slice up a given pattern.  The first argument is the number of cycles of that latter pattern to use when slicing.  It's easier to understand this with a few examples:
 
-~~~~ {haskell}
-
+@
 d1 $ sound (fit' 1 2 "0 1" "1 0" "bd sn")
-
-~~~~
+@
 
 So what does this do?  The first `1` just tells it to slice up a single cycle of `"bd sn"`. The `2` tells it to select two values each cycle, just like the first argument to `fit`.  The next pattern `"0 1"` is the "from" pattern which tells it how to slice, which in this case means `"0"` maps to `"bd"`, and `"1"` maps to `"sn"`.  The next pattern `"1 0"` is the "to" pattern, which tells it how to rearrange those slices.  So the final result is the pattern `"sn bd"`.
 
 A more useful example might be something like
 
-~~~~ {haskell}
-
+@
 d1 $ fit' 1 4 (run 4) "[0 3*2 2 1 0 3*2 2 [1*8 ~]]/2" $ chop 4 $ (sound "breaks152" # unit "c")
-
-~~~~
+@
 
 which uses `chop` to break a single sample into individual pieces, which `fit'` then puts into a list (using the `run 4` pattern) and reassembles according to the complicated integer pattern.
 
