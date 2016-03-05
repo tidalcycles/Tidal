@@ -158,6 +158,12 @@ scrumple o p p' = p'' -- overlay p (o ~> p'')
 --spreadf :: [Pattern a -> Pattern b] -> Pattern a -> Pattern b
 spreadf ts p = spread ($)
 
+{- | `spin` will "spin" a layer up a pattern the given number of times, with each successive layer offset in time by an additional `1/n` of a cycle, and panned by an additional `1/n`. The result is a pattern that seems to spin around. This function works best on multichannel systems.
+
+@
+d1 $ slow 3 $ spin 4 $ sound "drum*3 tabla:4 [arpy:2 ~ arpy] [can:2 can:3]"
+@
+-}
 spin :: Int -> ParamPattern -> ParamPattern
 spin copies p =
   stack $ map (\n -> let offset = toInteger n % toInteger copies in
