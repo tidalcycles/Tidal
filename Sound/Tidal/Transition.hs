@@ -53,18 +53,29 @@ wait :: Time -> Time -> [ParamPattern] -> ParamPattern
 wait t _ [] = silence
 wait t now (p:_) = playWhen (>= (nextSam (now+t-1))) p
 
--- transition at cycle boundary after n cycles
-jumpIn' :: Int -> Time -> [ParamPattern] -> ParamPattern
-jumpIn' n now = superwash id id ((nextSam now) - now + (fromIntegral n)) 0 now
+{- |
+Jumps directly into the given pattern, this is essentially the _no transition_-transition.
 
--- sharp transition a certain number of cycles in the future
-jumpIn :: Int -> Time -> [ParamPattern] -> ParamPattern
-jumpIn n = superwash id id (fromIntegral n) 0
-
+Variants of `jump` provide more useful capabilities, see `jumpIn` and `jumpMod`
+-}
 jump :: Time -> [ParamPattern] -> ParamPattern
 jump = jumpIn 0
 
--- transition at next cycle boundary where cycle mod n == 0
+{- | Sharp `jump` transition after the specified number of cycles have passed.
+
+@
+t1 (jumpIn 2) $ sound "kick(3,8)"
+@
+-}
+jumpIn :: Int -> Time -> [ParamPattern] -> ParamPattern
+jumpIn n = superwash id id (fromIntegral n) 0
+
+{- | Unlike `jumpIn` the variant `jumpIn'` will only transition at cycle boundary (e.g. when the cycle count is an integer).
+-}
+jumpIn' :: Int -> Time -> [ParamPattern] -> ParamPattern
+jumpIn' n now = superwash id id ((nextSam now) - now + (fromIntegral n)) 0 now
+
+-- | Sharp `jump` transition at next cycle boundary where cycle mod n == 0
 jumpMod :: Int -> Time -> [ParamPattern] -> ParamPattern
 jumpMod n now = jumpIn ((n-1) - ((floor now) `mod` n)) now
 
