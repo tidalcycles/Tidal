@@ -27,22 +27,18 @@ double = echo
 function to a pattern, but only in the right-hand channel. For
 example, the following reverses the pattern on the righthand side:
 
-~~~ haskell
-
+@
 d1 $ slow 32 $ jux (rev) $ striate' 32 (1/16) $ sound "bev"
-
-~~~
+@
 
 When passing pattern transforms to functions like [jux](#jux) and [every](#every),
 it's possible to chain multiple transforms together with `.`, for
 example this both reverses and halves the playback speed of the
 pattern in the righthand channel:
 
-~~~ haskell
-
+@
 d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striate' 32 (1/16) $ sound "bev"
-
-~~~
+@
 -}
 jux f p = stack [p # pan (pure 0), f $ p # pan (pure 1)]
 juxcut f p = stack [p     # pan (pure 0) # cut (pure (-1)),
@@ -85,12 +81,9 @@ bit much, especially when listening on headphones. The variant `juxBy`
 has an additional parameter, which brings the channel closer to the
 centre. For example:
 
-~~~ haskell
-
+@
 d1 $ juxBy 0.5 (density 2) $ sound "bd sn:1"
-
-~~~
-
+@
 
 In the above, the two versions of the pattern would be panned at 0.25
 and 0.75, rather than 0 and 1.
@@ -209,22 +202,19 @@ scale from to p = ((+ from) . (* (to-from))) <$> p
 
 {- | `chop` granualizes every sample in place as it is played, turning a pattern of samples into a pattern of sample parts. Use an integer value to specify how many granules each sample is chopped into:
 
-~~~~ {haskell}
-
+@
 d1 $ chop 16 $ sound "arpy arp feel*4 arpy*4"
-
-~~~~
+@
 
 Different values of `chop` can yield very different results, depending
 on the samples used:
 
-~~~~ {haskell}
 
+@
 d1 $ chop 16 $ sound (samples "arpy*8" (run 16))
 d1 $ chop 32 $ sound (samples "arpy*8" (run 16))
 d1 $ chop 256 $ sound "bd*4 [sn cp] [hh future]*2 [cp feel]"
-
-~~~~
+@
 -}
 chop :: Int -> ParamPattern -> ParamPattern
 chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
@@ -237,12 +227,10 @@ chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
 but every other grain is silent. Use an integer value to specify how many granules
 each sample is chopped into:
 
-~~~~ {haskell}
-
+@
 d1 $ gap 8 $ sound "jvbass"
 d1 $ gap 16 $ sound "[jvbass drum:4]"
-
-~~~~-}
+@-}
 gap :: Int -> ParamPattern -> ParamPattern
 gap n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
      where f queryA a = concatMap (chopEvent queryA) (arc p a)
@@ -281,11 +269,9 @@ en ns p = stack $ map (\(i, (k, n)) -> e k n (samples p (pure i))) $ enumerate n
 `weave` applies a function smoothly over an array of different patterns. It uses an `OscPattern` to
 apply the function at different levels to each pattern, creating a weaving effect.
 
-~~~~{haskell}
-
+@
 d1 $ weave 3 (shape $ sine1) [sound "bd [sn drum:2*2] bd*2 [sn drum:1]", sound "arpy*8 ~"]
-
-~~~~
+@
 -}
 weave :: Rational -> ParamPattern -> [ParamPattern] -> ParamPattern
 weave t p ps = weave' t p (map (\x -> (x #)) ps)
@@ -293,11 +279,9 @@ weave t p ps = weave' t p (map (\x -> (x #)) ps)
 
 {- | `weave'` is similar in that it blends functions at the same time at different amounts over a pattern:
 
-~~~~{haskell}
-
+@
 d1 $ weave' 3 (sound "bd [sn drum:2*2] bd*2 [sn drum:1]") [density 2, (# speed "0.5"), chop 16]
-
-~~~~
+@
 -}
 weave' :: Rational -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
 weave' t p fs | l == 0 = silence
