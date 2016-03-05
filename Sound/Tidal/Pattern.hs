@@ -750,6 +750,19 @@ trunc t p = slow t $ splitQueries $ p'
         trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 
+{- | Plays a portion of a pattern, specified by a beginning and end arc of time. 
+The new resulting pattern is played over the time period of the original pattern:
+
+@
+d1 $ zoom (0.25, 0.75) $ sound "bd*2 hh*3 [sn bd]*2 drum"
+@
+
+In the pattern above, `zoom` is used with an arc from 25% to 75%. It is equivalent to this pattern:
+
+@
+d1 $ sound "hh*3 [sn bd]*2"
+@
+-}
 zoom :: Arc -> Pattern a -> Pattern a
 zoom a@(s,e) p = splitQueries $ withResultArc (mapCycle ((/d) . (subtract s))) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
