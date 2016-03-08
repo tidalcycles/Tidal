@@ -7,11 +7,14 @@ import Data.Monoid
 import Data.Fixed
 import Data.List
 import Data.Maybe
+import Data.Ord
 import Data.Ratio
 import Debug.Trace
 import Data.Typeable
 import Data.Function
 import System.Random.Mersenne.Pure64
+import Data.Char
+import qualified Data.Text as T
 
 import Music.Theory.Bjorklund
 
@@ -23,6 +26,7 @@ import Sound.Tidal.Utils
 -- active during that time. For continuous patterns, events with
 -- values for the midpoint of the given @Arc@ is returned.
 data Pattern a = Pattern {arc :: Arc -> [Event a]}
+  deriving Typeable
 
 -- | @show (p :: Pattern)@ returns a text string representing the
 -- event values active during the first cycle of the given pattern.
@@ -73,8 +77,8 @@ instance Monad Pattern where
   -- Pattern a -> (a -> Pattern b) -> Pattern b
   -- Pattern Char -> (Char -> Pattern String) -> Pattern String
   
-  p >>= f = -- unwrap (f <$> p)
-    Pattern (\a -> concatMap
+  p >>= f = unwrap (f <$> p)
+{-Pattern (\a -> concatMap
                    (\((s,e), (s',e'), x) -> map (\ev -> ((s,e), (s',e'), thd' ev)) $
                                             filter
                                             (\(a', _, _) -> isIn a' s)
@@ -82,7 +86,7 @@ instance Monad Pattern where
                    )
                    (arc p a)
              )
-
+-}
 -- join x = x >>= id
 
 
@@ -445,8 +449,11 @@ rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
 timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
 
-irand :: Double -> Pattern Int
-irand i = (floor . (*i)) <$> rand
+irand :: Int -> Pattern Int
+irand i = (floor . (* (fromIntegral i))) <$> rand
+
+choose :: [a] -> Pattern a
+choose xs = (xs !!) <$> (irand $ length xs)
 
 degradeBy :: Double -> Pattern a -> Pattern a
 degradeBy x p = unMaybe $ (\a f -> toMaybe (f > x) a) <$> p <*> rand
@@ -546,7 +553,7 @@ prrw f rot (blen, vlen) beatPattern valuePattern =
     (drop (rot `mod` length values) $ cycle values)
 
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
-prr :: Int -> (Time, Time) -> Pattern a -> Pattern a -> Pattern a
+prr :: Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern b
 prr = prrw $ flip const
 
 {-|
@@ -572,12 +579,12 @@ let p = slow 2 $ "x x x"
 d1 $ sound $ prr 0 (2,1) p "bd sn"
 @
 -}
-preplace :: (Time, Time) -> Pattern a -> Pattern a -> Pattern a
+preplace :: (Time, Time) -> Pattern a -> Pattern b -> Pattern b
 preplace = preplaceWith $ flip const
 
 prep = preplace
 
-preplace1 :: Pattern a -> Pattern a -> Pattern a
+preplace1 :: Pattern a -> Pattern b -> Pattern b
 preplace1 = prr 0 (1, 1)
 
 preplaceWith :: (a -> b -> c) -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
@@ -590,7 +597,7 @@ preplaceWith1 f = prrw f 0 (1, 1)
 
 prw1 = preplaceWith1
 
-(<~>) :: Pattern a -> Pattern a -> Pattern a
+(<~>) :: Pattern a -> Pattern b -> Pattern b
 (<~>) = preplace (1, 1)
 
 -- | @protate len rot p@ rotates pattern @p@ by @rot@ beats to the left.
@@ -630,24 +637,96 @@ discretise n p = density n $ (atom (id)) <*> p
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (fromIntegral $ length ps)) (slowcat ps)
+randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps)) (slowcat ps)
 
+-- | @toMIDI p@: converts a pattern of human-readable pitch names into
+-- MIDI pitch numbers. For example, @"cs4"@ will be rendered as @"49"@.
+-- Omitting the octave number will create a pitch in the fifth octave
+-- (@"cf"@ -> @"cf5"@). Pitches can be decorated using:
+--
+--    * s = Sharp, a half-step above (@"gs4"@)
+--    * f = Flat, a half-step below (@"gf4"@)
+--    * n = Natural, no decoration (@"g4" and "gn4"@ are equivalent)
+--    * ss = Double sharp, a whole step above (@"gss4"@)
+--    * ff = Double flat, a whole step below (@"gff4"@)
+--
+-- This function also has a shorter alias @tom@.
 toMIDI :: Pattern String -> Pattern Int
 toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
   where
+    noteLookup :: String -> Maybe Int
     noteLookup [] = Nothing
-    noteLookup s | last s `elem` ['0' .. '9'] = elemIndex s names
-                 | otherwise = noteLookup (s ++ "5")
-    names = take 128 [(n ++ show o)
-                     | o <- octaves,
-                       n <- notes
-                     ]
-    notes = ["c","cs","d","ds","e","f","fs","g","gs","a","as","b"]
-    octaves = [0 .. 10]
+    noteLookup s | not (last s `elem` ['0' .. '9']) = noteLookup (s ++ "5")
+                 | not (isLetter (s !! 1)) = noteLookup((head s):'n':(tail s))
+                 | otherwise = parse s
+    parse x = (\a b c -> a+b+c) <$> pc x <*> sym x <*> Just(12*digitToInt (last x))
+    pc x = lookup (head x) [('c',0),('d',2),('e',4),('f',5),('g',7),('a',9),('b',11)]
+    sym x = lookup (init (tail x)) [("s",1),("f",-1),("n",0),("ss",2),("ff",-2)]
 
+-- | @tom p@: Alias for @toMIDI@.
 tom = toMIDI
 
 fit :: Int -> [a] -> Pattern Int -> Pattern a
 fit perCycle xs p = (xs !!!) <$> (Pattern $ \a -> map ((\e -> (mapThd' (+ (cyclePos perCycle e)) e))) (arc p a))
   where cyclePos perCycle e = perCycle * (floor $ eventStart e)
 
+permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
+permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (discretise 1 p)
+      where ps = permsort (length things) steps
+            deviance avg xs = sum $ map (abs . (avg-) . fromIntegral) xs
+            permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total/ fromIntegral n) x)) $ perms n total
+            perms 0 _ = []
+            perms 1 n = [[n]]
+            perms n total = concatMap (\x -> map (x:) $ perms (n-1) (total-x)) [1 .. (total-(n-1))]
+
+-- | @struct a b@: structures pattern @b@ in terms of @a@.
+struct :: Pattern String -> Pattern a -> Pattern a
+struct ps pv = (flip const) <$> ps <*> pv
+
+-- Lindenmayer patterns, these go well with the step sequencer
+-- general rule parser (strings map to strings)
+parseLMRule :: String -> [(String,String)]
+parseLMRule s = map (splitOn ':') (commaSplit s)
+  where splitOn sep str = splitAt (fromJust $ elemIndex sep str) 
+                            $ filter (/= sep) str
+        commaSplit s = map T.unpack $ T.splitOn (T.pack ",") $ T.pack s
+
+-- specific parser for step sequencer (chars map to string)
+-- ruleset in form "a:b,b:ab" 
+parseLMRule' :: String -> [(Char, String)]   
+parseLMRule' str = map fixer $ parseLMRule str
+  where fixer (c,r) = (head c, r)
+
+-- for example, `lindenmayer 1 "a:b,b:ab" "ab" -> "bab"`
+lindenmayer :: Int -> String -> String -> String
+lindenmayer n r [] = []
+lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r) 
+                         ++ (lindenmayer 1 r cs)
+lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
+
+-- support for fit'
+unwrap' :: Pattern (Pattern a) -> Pattern a
+unwrap' pp = Pattern $ \a -> arc (stack $ map scalep (arc pp a)) a
+  where scalep ev = compress (fst' ev) $ thd' ev
+
+-- removes events from pattern b that don't start during an event from pattern a
+mask :: Pattern a -> Pattern b -> Pattern b
+mask pa pb = Pattern $ \a -> concat [filterOns (subArc a $ eventArc i) (arc pb a) | i <- arc pa a]
+     where filterOns Nothing es = []
+           filterOns (Just arc) es = filter (onsetIn arc) es
+
+enclosingArc :: [Arc] -> Arc
+enclosingArc [] = (0,1)
+enclosingArc as = (minimum (map fst as), maximum (map snd as))
+
+stretch :: Pattern a -> Pattern a
+stretch p = splitQueries $ Pattern $ \a@(s,e) -> arc
+              (zoom (enclosingArc $ map eventArc $ arc p (sam s,nextSam s)) p)
+              a
+
+-- usage example: fit' 2 4 "[0 1 2 3]/2" "[0 3 1 1, 2*4]" "[bd sn:2 cp*2 hh]/2"
+fit' cyc n from to p = unwrap' $ fit n (mapMasks n from' p') to
+  where mapMasks n from p = [stretch $ mask (filterValues (== i) from) p 
+                             | i <- [0..n-1]]
+        p' = density cyc $ p
+        from' = density cyc $ from
