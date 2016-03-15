@@ -137,6 +137,9 @@ Using `cut "0"` is effectively _no_ cutgroup.
 (lhitom, lhitom_p)               = pF "lhitom" (Just 0)
 (lkick, lkick_p)                 = pF "lkick" (Just 0)
 (llotom, llotom_p)               = pF "llotom" (Just 0)
+{- |  A pattern of numbers. Specifies whether delaytime is calculated relative to cps. When set to 1, delaytime is a direct multiple of a cycle.
+-}
+(lock, lock_p)                 = pF "lock" (Just 0)
 -- | loops the sample (from `begin` to `end`) the specified number of times.
 (loop, loop_p)                   = pI "loop" (Just 1)
 (lophat, lophat_p)               = pF "lophat" (Just 0)
