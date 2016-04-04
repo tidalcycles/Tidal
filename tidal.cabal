@@ -1,5 +1,5 @@
 name:                tidal
-version:             0.7
+version:             0.7.1
 synopsis:            Pattern language for improvised music
 -- description:
 homepage:            http://tidal.lurk.org/
@@ -42,4 +42,4 @@ library
                        Sound.Tidal.Params
                        Sound.Tidal.Transition
 
-  Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl >=2.1, transformers, mersenne-random-pure64,binary, bytestring, hmt, PortMidi >= 0.1.5, serialport >= 0.4.7
+  Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl >=2.1, transformers, mersenne-random-pure64,binary, bytestring, hmt, PortMidi == 0.1.6.0, serialport >= 0.4.7
