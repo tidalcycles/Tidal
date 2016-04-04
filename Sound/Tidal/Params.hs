@@ -76,9 +76,9 @@ which performs a similar effect, but due to differences in implementation sounds
 (clhatdecay, clhatdecay_p)       = pF "clhatdecay" (Just 0)
 -- | fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
 (coarse, coarse_p)               = pI "coarse" (Just 0)
--- | bit crushing, a pattern of numbers from 1 for drastic reduction in bit-depth to 16 for barely no reduction.
+-- | bit crushing, a pattern of numbers from 1 (for drastic reduction in bit-depth) to 16 (for barely no reduction).
 (crush, crush_p)                 = pF "crush" (Just 0)
-{- | 
+{- |
 In the style of classic drum-machines, `cut` will stop a playing sample as soon as another samples with in same cutgroup is to be played.
 
 An example would be an open hi-hat followed by a closed one, essentially muting the open.
@@ -137,13 +137,16 @@ Using `cut "0"` is effectively _no_ cutgroup.
 (lhitom, lhitom_p)               = pF "lhitom" (Just 0)
 (lkick, lkick_p)                 = pF "lkick" (Just 0)
 (llotom, llotom_p)               = pF "llotom" (Just 0)
+{- |  A pattern of numbers. Specifies whether delaytime is calculated relative to cps. When set to 1, delaytime is a direct multiple of a cycle.
+-}
+(lock, lock_p)                 = pF "lock" (Just 0)
 -- | loops the sample (from `begin` to `end`) the specified number of times.
 (loop, loop_p)                   = pI "loop" (Just 1)
 (lophat, lophat_p)               = pF "lophat" (Just 0)
 (lsnare, lsnare_p)               = pF "lsnare" (Just 0)
 -- | specifies the sample variation to be used
 (n, n_p)                         = pI "n" (Just 0)
-{- | 
+{- |
 Pushes things forward (or backwards within built-in latency) in time. Allows for nice things like _swing_ feeling:
 
 @
@@ -158,26 +161,26 @@ Low values will give a more _human_ feeling, high values might result in quite t
 (nudge, nudge_p)                 = pF "nudge" (Just 0)
 (offset, offset_p)               = pF "offset" (Just 0)
 (ophatdecay, ophatdecay_p)       = pF "ophatdecay" (Just 0)
-{- | `orbit` is a kind of meta level for played patterns. Patterns with the same orbit will share global effects, e.g. room?! 
+{- |  a pattern of numbers. An `orbit` is a global parameter context for patterns. Patterns with the same orbit will share hardware output bus offset and global effects, e.g. reverb and delay. The maximum number of orbits is specified in the superdirt startup, numbers higher than maximum will wrap around.
 -}
 (orbit, orbit_p)                 = pI "orbit" (Just 0)
--- | a pattern of numbers between 0 and 1, from left to right (assuming stereo)
+-- | a pattern of numbers between 0 and 1, from left to right (assuming stereo).
 (pan, pan_p)                     = pF "pan" (Just 0.5)
 (pitch1, pitch1_p)               = pF "pitch1" (Just 0)
 (pitch2, pitch2_p)               = pF "pitch2" (Just 0)
 (pitch3, pitch3_p)               = pF "pitch3" (Just 0)
 (portamento, portamento_p)       = pF "portamento" (Just 0)
--- | a pattern of numbers from 0 to 1. Applies the resonance of the low-pass filter.
+-- | a pattern of numbers from 0 to 1. Specifies the resonance of the low-pass filter.
 (resonance, resonance_p)         = pF "resonance" (Just 0)
--- | a pattern of numbers from 0 to 1. Sets the level of reverb
+-- | a pattern of numbers from 0 to 1. Sets the level of reverb.
 (room, room_p)                   = pF "room" Nothing
 (sagogo, sagogo_p)               = pF "sagogo" (Just 0)
 (sclap, sclap_p)                 = pF "sclap" (Just 0)
 (sclaves, sclaves_p)             = pF "sclaves" (Just 0)
 (scrash, scrash_p)               = pF "scrash" (Just 0)
--- | wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion
+-- | wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion.
 (shape, shape_p)                 = pF "shape" (Just 0)
--- | a pattern of numbers from 0 to 1. Sets the size of the `room` to be used in reverb.
+-- | a pattern of numbers from 0 to 1. Sets the perceptual size (reverb time) of the `room` to be used in reverb.
 (size, size_p)                   = pF "size" Nothing
 (slide, slide_p)                 = pF "slide" (Just 0)
 -- | a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
