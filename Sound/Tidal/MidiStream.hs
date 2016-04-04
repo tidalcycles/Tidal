@@ -265,7 +265,7 @@ outputDevice deviceID latency = do
 
 makeEvent :: CLong -> CLong -> CLong -> CLong -> CULong -> PM.PMEvent
 makeEvent st n ch v t = PM.PMEvent msg (t)
-  where msg = PM.PMMsg (encodeChannel ch st) (n) (v)
+  where msg = PM.encodeMsg $ PM.PMMsg (encodeChannel ch st) (n) (v)
 
 -- now with a semaphore since PortMIDI is NOT thread safe
 sendEvent :: Output -> PM.PMEvent -> IO (Maybe a)
