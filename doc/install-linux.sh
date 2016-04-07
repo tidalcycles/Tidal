@@ -15,7 +15,7 @@ cd ~/tidal
 sudo apt-get -y install build-essential libsndfile1-dev libsamplerate0-dev \
     liblo-dev libjack-jackd2-dev qjackctl jackd git \
     ghc zlib1g-dev cabal-install \
-    emacs24 haskell-mode
+    emacs24 haskell-mode portmidi-dev
 
 # install Dirt
 if [ -d "Dirt" ]; then
