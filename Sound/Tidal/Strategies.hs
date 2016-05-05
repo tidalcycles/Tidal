@@ -6,8 +6,9 @@ import Data.Ratio
 import Control.Applicative
 import qualified Data.Map as Map
 import qualified Data.Char as Char
-
+import Data.Fixed
 import Data.Maybe
+
 import Sound.Tidal.Dirt
 import Sound.Tidal.Pattern
 import Sound.Tidal.Stream
@@ -40,7 +41,7 @@ pattern in the righthand channel:
 d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striate' 32 (1/16) $ sound "bev"
 @
 -}
-jux f p = stack [p # pan (pure 0), f $ p # pan (pure 1)]
+jux = juxBy 1
 juxcut f p = stack [p     # pan (pure 0) # cut (pure (-1)),
                     f $ p # pan (pure 1) # cut (pure (-2))
                    ]
@@ -88,7 +89,7 @@ d1 $ juxBy 0.5 (density 2) $ sound "bd sn:1"
 In the above, the two versions of the pattern would be panned at 0.25
 and 0.75, rather than 0 and 1.
 -}
-juxBy n f p = stack [p # pan (pure $ 0.5 - (n/2)), f $ p # pan (pure $ 0.5 + (n/2))]
+juxBy n f p = stack [p |+| pan (pure $ mod' (0-(n/2)) 1), f $ p # pan (pure $ mod' (n/2) 1)]
 
 {- | Smash is a combination of `spread` and `striate` - it cuts the samples
 into the given number of bits, and then cuts between playing the loop
@@ -352,3 +353,17 @@ slice i n p =
 
 randslice :: Int -> ParamPattern -> ParamPattern
 randslice n p = unwrap $ (\i -> slice i n p) <$> irand n
+
+{- |
+`loopAt` makes a sample fit the given number of cycles. Internally, it
+works by setting the `unit` parameter to "c", changing the playback
+speed of the sample with the `speed` parameter, and setting setting
+the `density` of the pattern to match.
+
+@
+d1 $ loopAt 4 $ sound "breaks125"
+d1 $ juxBy 0.6 (|*| speed "2") $ slowspread (loopAt) [4,6,2,3] $ chop 12 $ sound "fm:14"
+@ 
+-}
+loopAt :: Time -> ParamPattern -> ParamPattern
+loopAt n p = slow n p |*| speed (pure $ fromRational $ 1/n) # unit (pure "c")
