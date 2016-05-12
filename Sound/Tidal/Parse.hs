@@ -33,6 +33,9 @@ instance Parseable Bool where
 instance Parseable Int where
   p = parseRhythm pInt
 
+instance Parseable Integer where
+  p = (fromIntegral <$>) <$> parseRhythm pInt
+
 instance Parseable Rational where
   p = parseRhythm pRational
 
