@@ -66,7 +66,7 @@ send s ch cshape shape change tick o ctrls (tdur:tnote:trest) = midi
 mkSend cshape channel s = return $ (\ shape change tick (o,m) -> do
                         let defaulted = (S.applyShape' shape m)
                             -- split ParamMap into Properties and Controls
-                            mpartition = fmap (Map.partitionWithKey (\k _ -> (name k) `elem` ["dur", "note", "velocity", "nudge"])) defaulted
+                            mpartition = fmap (Map.partitionWithKey (\k _ -> (name k) `elem` ["dur", "n", "velocity", "nudge"])) defaulted
                             props = fmap fst mpartition
                             ctrls = fmap snd mpartition
                             props' = fmap (Map.toAscList) $ fmap (Map.mapMaybe (id)) props
