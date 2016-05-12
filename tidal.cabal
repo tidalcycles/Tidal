@@ -25,7 +25,6 @@ library
                        Sound.Tidal.OscStream
                        Sound.Tidal.MidiStream
                        Sound.Tidal.MIDI.Device
-                       Sound.Tidal.MIDI.Params
                        Sound.Tidal.MIDI.Control
                        Sound.Tidal.Synth
                        Sound.Tidal.SerialStream
