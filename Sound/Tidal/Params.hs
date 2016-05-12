@@ -200,8 +200,14 @@ Low values will give a more _human_ feeling, high values might result in quite t
 -- | formant filter to make things sound like vowels, a pattern of either `a`, `e`, `i`, `o` or `u`. Use a rest (`~`) for no effect.
 (vowel, vowel_p)                 = pS "vowel" (Just "")
 
+-- MIDI-specific params
 
--- short names
+(dur,dur_p)                      = pF "dur" VF (Just 0.05)
+(modwheel,modwheel_p)            = pF "modwheel" VF (Just 0)
+(expression,expression_p)        = pF "expression" VF (Just 1)
+(sustainpedal,sustainpedal_p)    = pF "sustainpedal" VF (Just 0)
+
+-- aliases
 chdecay = clhatdecay
 ctf  = cutoff
 ctfg = cutoffegint
@@ -240,7 +246,7 @@ tdecay = tomdecay
 vcf  = vcfegint
 vco  = vcoegint
 voi  = voice
-
+note = n
 
 drum = n . (drumN <$>)
 
