@@ -48,6 +48,7 @@ pS name defaultV = (make' VS param, param)
   where param = S name defaultV
 -- | a pattern of numbers that speed up (or slow down) samples while they play.
 (accelerate, accelerate_p)       = pF "accelerate" (Just 0)
+(attack, attack_p)       = pF "attack" (Just 0)
 -- | a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
 (bandf, bandf_p)                 = pF "bandf" (Just 0)
 -- | a pattern of numbers from 0 to 1. Sets the q-factor of the band-pass filter.
@@ -104,6 +105,7 @@ Using `cut "0"` is effectively _no_ cutgroup.
 -- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter.
 (cutoff, cutoff_p)               = pF "cutoff" (Just 0)
 (cutoffegint, cutoffegint_p)     = pF "cutoffegint" (Just 0)
+(decay, decay_p)                 = pF "decay" (Just 0)
 -- | a pattern of numbers from 0 to 1. Sets the level of the delay signal.
 (delay, delay_p)                 = pF "delay" (Just 0)
 -- | a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
@@ -131,6 +133,7 @@ Using `cut "0"` is effectively _no_ cutgroup.
 (lclaves, lclaves_p)             = pF "lclaves" (Just 0)
 (lclhat, lclhat_p)               = pF "lclhat" (Just 0)
 (lcrash, lcrash_p)               = pF "lcrash" (Just 0)
+(lfo, lfo_p)                     = pF "lfo" (Just 0)
 (lfocutoffint, lfocutoffint_p)   = pF "lfocutoffint" (Just 0)
 (lfoint, lfoint_p)               = pF "lfoint" (Just 0)
 (lfopitchint, lfopitchint_p)     = pF "lfopitchint" (Just 0)
@@ -159,6 +162,7 @@ d1 $ stack [
 Low values will give a more _human_ feeling, high values might result in quite the contrary.
 -}
 (nudge, nudge_p)                 = pF "nudge" (Just 0)
+(octave, octave_p)               = pI "octave" (Just 3)
 (offset, offset_p)               = pF "offset" (Just 0)
 (ophatdecay, ophatdecay_p)       = pF "ophatdecay" (Just 0)
 {- |  a pattern of numbers. An `orbit` is a global parameter context for patterns. Patterns with the same orbit will share hardware output bus offset and global effects, e.g. reverb and delay. The maximum number of orbits is specified in the superdirt startup, numbers higher than maximum will wrap around.
@@ -202,12 +206,13 @@ Low values will give a more _human_ feeling, high values might result in quite t
 
 -- MIDI-specific params
 
-(dur,dur_p)                      = pF "dur" VF (Just 0.05)
-(modwheel,modwheel_p)            = pF "modwheel" VF (Just 0)
-(expression,expression_p)        = pF "expression" VF (Just 1)
-(sustainpedal,sustainpedal_p)    = pF "sustainpedal" VF (Just 0)
+(dur,dur_p)                      = pF "dur" (Just 0.05)
+(modwheel,modwheel_p)            = pF "modwheel" (Just 0)
+(expression,expression_p)        = pF "expression" (Just 1)
+(sustainpedal,sustainpedal_p)    = pF "sustainpedal" (Just 0)
 
 -- aliases
+att = attack
 chdecay = clhatdecay
 ctf  = cutoff
 ctfg = cutoffegint

@@ -3,7 +3,6 @@ module Sound.Tidal.MIDI.Control where
 import qualified Sound.Tidal.Stream as S
 
 import Sound.Tidal.Params
-import Sound.Tidal.MIDI.Params
 
 type RangeMapFunc = (Int, Int) -> Double -> Int
 

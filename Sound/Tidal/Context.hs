@@ -16,6 +16,5 @@ import Sound.Tidal.SuperCollider as C
 import Sound.Tidal.Params as C
 import Sound.Tidal.Transition as C
 import Sound.Tidal.MidiStream as C
-import Sound.Tidal.MIDI.Params as C
 import Sound.Tidal.Synth as C
 import Sound.Tidal.SerialStream as C

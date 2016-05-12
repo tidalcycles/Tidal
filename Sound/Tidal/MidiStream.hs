@@ -24,7 +24,6 @@ import Sound.Tidal.Transition (transition)
 -- MIDI specific
 import Sound.Tidal.MIDI.Device
 import Sound.Tidal.MIDI.Control
-import Sound.Tidal.MIDI.Params
 import qualified Sound.PortMidi as PM
 
 data Output = Output {
