@@ -7,9 +7,25 @@ import Sound.Tidal.MIDI.Params
 
 type RangeMapFunc = (Int, Int) -> Double -> Int
 
-data ControlChange = CC { param :: S.Param, midi :: Int, range :: (Int, Int), vdefault :: Double, scalef :: RangeMapFunc }
-           | NRPN { param :: S.Param, midi :: Int, range :: (Int, Int), vdefault :: Double, scalef :: RangeMapFunc }
-           | SysEx { param :: S.Param, midi :: Int, range :: (Int, Int), vdefault :: Double, scalef :: RangeMapFunc }
+data ControlChange =
+  CC { param :: S.Param,
+       midi :: Int,
+       range :: (Int, Int),
+       vdefault :: Double,
+       scalef :: RangeMapFunc
+     }
+  | NRPN { param :: S.Param,
+           midi :: Int,
+           range :: (Int, Int),
+           vdefault :: Double,
+           scalef :: RangeMapFunc
+         }
+  | SysEx { param :: S.Param,
+            midi :: Int,
+            range :: (Int, Int),
+            vdefault :: Double,
+            scalef :: RangeMapFunc
+          }
 
 data ControllerShape = ControllerShape {
   controls :: [ControlChange],
@@ -19,7 +35,7 @@ data ControllerShape = ControllerShape {
 
 toShape :: ControllerShape -> S.Shape
 toShape cs =
-  let params = [dur_p, note_p, velocity_p] ++ params'
+  let params = [dur_p, n_p, velocity_p] ++ params'
       params' = [param p | p <- (controls cs)]
   in S.Shape {   S.params = params,
                  S.cpsStamp = False,
