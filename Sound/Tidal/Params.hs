@@ -135,8 +135,11 @@ Using `cut "0"` is effectively _no_ cutgroup.
 (lcrash, lcrash_p)               = pF "lcrash" (Just 0)
 (lfo, lfo_p)                     = pF "lfo" (Just 0)
 (lfocutoffint, lfocutoffint_p)   = pF "lfocutoffint" (Just 0)
+(lfodelay, lfodelay_p)           = pF "lfodelay" (Just 0)
 (lfoint, lfoint_p)               = pF "lfoint" (Just 0)
 (lfopitchint, lfopitchint_p)     = pF "lfopitchint" (Just 0)
+(lfoshape, lfoshape_p)           = pF "lfoshape" (Just 0)
+(lfosync, lfosync_p)             = pF "lfosync" (Just 0)
 (lhitom, lhitom_p)               = pF "lhitom" (Just 0)
 (lkick, lkick_p)                 = pF "lkick" (Just 0)
 (llotom, llotom_p)               = pF "llotom" (Just 0)
@@ -182,6 +185,7 @@ Low values will give a more _human_ feeling, high values might result in quite t
 (sclap, sclap_p)                 = pF "sclap" (Just 0)
 (sclaves, sclaves_p)             = pF "sclaves" (Just 0)
 (scrash, scrash_p)               = pF "scrash" (Just 0)
+(semitone, semitone_p)           = pF "semitone" (Just 0)
 -- | wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion.
 (shape, shape_p)                 = pF "shape" (Just 0)
 -- | a pattern of numbers from 0 to 1. Sets the perceptual size (reverb time) of the `room` to be used in reverb.
