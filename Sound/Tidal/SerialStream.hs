@@ -85,7 +85,7 @@ serialDevices = do
 
 serialBackend d n = do
   s <- makeConnection d n
-  return $ Backend s
+  return $ Backend s (\_ _ _ -> return ())
 
 blinkenStream d n = do
   backend <- serialBackend d n
