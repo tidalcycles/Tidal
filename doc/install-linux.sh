@@ -26,7 +26,7 @@ if [ -d "Dirt" ]; then
 	fi
 	git pull
 else
-	git clone https://github.com/yaxu/Dirt.git
+	git clone --recursive https://github.com/yaxu/Dirt.git
 	cd Dirt
 fi
 make clean; make
