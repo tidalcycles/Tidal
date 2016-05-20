@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, RankNTypes, NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances, RankNTypes, NoMonomorphismRestriction, DeriveDataTypeable #-}
 
 module Sound.Tidal.Stream where
 
@@ -10,6 +10,7 @@ import Control.Exception as E
 import Data.Time (getCurrentTime)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Data.Ratio
+import Data.Typeable
 import Sound.Tidal.Pattern
 import qualified Sound.Tidal.Parse as P
 import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
@@ -27,6 +28,7 @@ data Backend a = Backend {
 data Param = S {name :: String, sDefault :: Maybe String}
            | F {name :: String, fDefault :: Maybe Double}
            | I {name :: String, iDefault :: Maybe Int}
+  deriving Typeable
 
 instance Eq Param where
   a == b = name a == name b
@@ -41,12 +43,13 @@ data Shape = Shape {params :: [Param],
                     cpsStamp :: Bool}
 
 
-data Value = VS { svalue :: String } | VF { fvalue :: Double } | VI { ivalue :: Int } deriving (Show,Eq,Ord)
+data Value = VS { svalue :: String } | VF { fvalue :: Double } | VI { ivalue :: Int }
+           deriving (Show,Eq,Ord,Typeable)
 
 type ParamMap = Map.Map Param (Maybe Value)
 
 type ParamPattern = Pattern ParamMap
-
+           
 ticksPerCycle = 8
 
 defaultValue :: Param -> Maybe Value
