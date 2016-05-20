@@ -69,7 +69,7 @@ superDirtSlang = dirtSlang { timestamp = BundleStamp, path = "/play2", namedPara
 
 superDirtBackend port = do
   s <- makeConnection "127.0.0.1" port superDirtSlang
-  return $ Backend s
+  return $ Backend s (\_ _ _ -> return ())
 
 superDirtState port = do
   backend <- superDirtBackend port
@@ -77,7 +77,7 @@ superDirtState port = do
 
 dirtBackend = do
   s <- makeConnection "127.0.0.1" 7771 dirtSlang
-  return $ Backend s
+  return $ Backend s (\_ _ _ -> return ())
 
 -- dirtstart name = start "127.0.0.1" 7771 dirt
 

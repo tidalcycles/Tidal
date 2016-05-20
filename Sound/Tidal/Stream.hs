@@ -21,7 +21,8 @@ import qualified Data.Map as Map
 type ToMessageFunc = Shape -> Tempo -> Int -> (Double, ParamMap) -> Maybe (IO ())
 
 data Backend a = Backend {
-  toMessage :: ToMessageFunc
+  toMessage :: ToMessageFunc,
+  flush :: Shape -> Tempo -> Int -> IO ()
   }
 
 data Param = S {name :: String, sDefault :: Maybe String}
@@ -134,6 +135,7 @@ onTick backend shape patternM change ticks
                       (toMessage backend shape change ticks)
                       (seqToRelOnsets (a, b) p)
        E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
+       flush backend shape change ticks
        return ()
 
 -- Variant where mutable variable contains list as history of the patterns
@@ -148,6 +150,7 @@ onTick' backend shape patternsM change ticks
                       (toM shape change ticks)
                       (seqToRelOnsets (a, b) $ fst ps)
        E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
+       flush backend shape change ticks
        return ()
 
 make :: (a -> Value) -> Shape -> String -> Pattern a -> ParamPattern
