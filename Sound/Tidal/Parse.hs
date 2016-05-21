@@ -114,7 +114,8 @@ pPart f = do -- part <- parens (pSequence f) <|> pSingle f <|> pPolyIn f <|> pPo
              part <- pE part
              part <- pRand part
              spaces
-             parts <- pReplicate part
+             parts <- pStretch part
+                      <|> pReplicate part
              spaces
              return $ parts
 
@@ -231,6 +232,13 @@ pReplicate thing =
                          thing' <- pRand thing
                          return $ replicate (fromIntegral n) thing'
      return (thing:concat extras)
+
+
+pStretch :: Pattern a -> Parser ([Pattern a])
+pStretch thing =
+  do char '@'
+     n <- ((read <$> many1 digit) <|> return 1)
+     return $ map (\x -> zoom (x%n,(x+1)%n) thing) [0 .. (n-1)]
 
 pRatio :: Parser (Rational)
 pRatio = do n <- natural <?> "numerator"
