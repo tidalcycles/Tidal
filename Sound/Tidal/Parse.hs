@@ -222,10 +222,15 @@ pE thing = do (n,k,s) <- parens (pair)
                    
 
 pReplicate :: Pattern a -> Parser ([Pattern a])
-pReplicate thing = do extras <- many $ do char '!'
-                                          spaces
-                                          pRand thing
-                      return (thing:extras)
+pReplicate thing =
+  do extras <- many $ do char '!'
+                         -- if a number is given (without a space)
+                         -- replicate that number of times
+                         n <- ((read <$> many1 digit) <|> return 1)
+                         spaces
+                         thing' <- pRand thing
+                         return $ replicate (fromIntegral n) thing'
+     return (thing:concat extras)
 
 pRatio :: Parser (Rational)
 pRatio = do n <- natural <?> "numerator"
