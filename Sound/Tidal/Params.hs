@@ -196,7 +196,7 @@ Low values will give a more _human_ feeling, high values might result in quite t
 -- | a pattern of numbers from 0 to 1. Sets the perceptual size (reverb time) of the `room` to be used in reverb.
 (size, size_p)                   = pF "size" Nothing
 (slide, slide_p)                 = pF "slide" (Just 0)
--- | a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
+-- | a pattern of numbers which changes the speed of sample playback, i.e. a cheap way of changing pitch. Negative values will play the sample backwards!
 (speed, speed_p)                 = pF "speed" (Just 1)
 -- | a pattern of strings. Selects the sample to be played.
 (s, s_p)                         = pS "s" Nothing
@@ -204,7 +204,10 @@ Low values will give a more _human_ feeling, high values might result in quite t
 (stuttertime, stuttertime_p)     = pF "stuttertime" (Just 0)
 (sustain, sustain_p)             = pF "sustain" (Just 0)
 (tomdecay, tomdecay_p)           = pF "tomdecay" (Just 0)
--- | only accepts a value of "c". Used in conjunction with `speed`, it time-stretches a sample to fit in a cycle.
+{- | used in conjunction with `speed`, accepts values of "r" (rate, default behavior), "c" (cycles), or "s" (seconds).
+Using `unit "c"` means `speed` will be interpreted in units of cycles, e.g. `speed "1"` means samples will be stretched to fill a cycle.
+Using `unit "s"` means the playback speed will be adjusted so that the duration is the number of seconds specified by `speed`.
+-}
 (unit, unit_p)                   = pS "unit" (Just "rate")
 (velocity, velocity_p)           = pF "velocity" (Just 0.5)
 (vcfegint, vcfegint_p)           = pF "vcfegint" (Just 0)
