@@ -48,6 +48,7 @@ pS name defaultV = (make' VS param, param)
   where param = S name defaultV
 -- | a pattern of numbers that speed up (or slow down) samples while they play.
 (accelerate, accelerate_p)       = pF "accelerate" (Just 0)
+-- | a pattern of numbers to specify the attack time (in seconds) of an envelope applied to each sample. Only takes effect if `release` is also specified.
 (attack, attack_p)               = pF "attack" (Just (-1))
 -- | a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
 (bandf, bandf_p)                 = pF "bandf" (Just 0)
@@ -125,6 +126,7 @@ Using `cut "0"` is effectively _no_ cutgroup.
 (hatgrain, hatgrain_p)           = pF "hatgrain" (Just 0)
 -- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter.
 (hcutoff, hcutoff_p)             = pF "hcutoff" (Just 0)
+-- | a pattern of numbers to specify the hold time (in seconds) of an envelope applied to each sample. Only takes effect if `attack` and `release` are also specified.
 (hold, hold_p)                   = pF "hold" (Just 0)
 -- | a pattern of numbers from 0 to 1. Applies the resonance of the high-pass filter.
 (hresonance, hresonance_p)       = pF "hresonance" (Just 0)
@@ -178,6 +180,7 @@ Low values will give a more _human_ feeling, high values might result in quite t
 (pitch2, pitch2_p)               = pF "pitch2" (Just 0)
 (pitch3, pitch3_p)               = pF "pitch3" (Just 0)
 (portamento, portamento_p)       = pF "portamento" (Just 0)
+-- | a pattern of numbers to specify the release time (in seconds) of an envelope applied to each sample. Only takes effect if `attack` is also specified.
 (release, release_p)             = pF "release" (Just (-1))
 -- | a pattern of numbers from 0 to 1. Specifies the resonance of the low-pass filter.
 (resonance, resonance_p)         = pF "resonance" (Just 0)
