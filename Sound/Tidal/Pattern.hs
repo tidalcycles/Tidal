@@ -285,9 +285,17 @@ rev p = splitQueries $ Pattern $ \a -> mapArcs mirrorArc (arc p (mirrorArc a))
 -- the pattern alternates between forwards and backwards.
 palindrome p = append' p (rev p)
 
--- | @when test f p@ applies the function @f@ to @p@, but in a way
--- which only affects cycles where the @test@ function applied to the
--- cycle number returns @True@.
+{-|
+Only `when` the given test function returns `True` the given pattern transformation is applied. The test function will be called with the current cycle as a number.
+
+@
+d1 $ when ((elem '4').show)
+  (striate 4)
+  $ sound "hh hc"
+@
+
+The above will only apply `striate 4` to the pattern if the current cycle number contains the number 4. So the fourth cycle will be striated and the fourteenth and so on. Expect lots of striates after cycle number 399.
+-}
 when :: (Int -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
 when test f p = splitQueries $ Pattern apply
   where apply a | test (floor $ fst a) = (arc $ f p) a
