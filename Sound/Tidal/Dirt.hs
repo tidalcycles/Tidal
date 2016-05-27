@@ -275,7 +275,13 @@ stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |*| ga
   where scale x
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
 
-{- | _not sure what this does_, variant of `stut`
+{- | Instead of just decreasing volume to produce echoes, @stut'@ allows to apply a function for each step and overlays the result delayed by the given time.
+
+@
+d1 $ stut' 2 (1%3) (# vowel "{a e i o u}%2") $ sound "bd sn"
+@
+
+In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has the @vowel@ filter applied.
 -}
 stut' :: Integer -> Time -> (ParamPattern -> ParamPattern) -> ParamPattern -> ParamPattern
 stut' steps steptime f p | steps <= 0 = p
