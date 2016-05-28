@@ -198,10 +198,9 @@ striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (atom (slot * i) :: Pattern Double) # end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
-{- | _not sure what this does_, variant of `striate` -}
-striateO :: ParamPattern -> Int -> Double -> ParamPattern
-striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p # begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) # end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
+{- | like `striate`, but with an offset to the begin and end values -}
+striateO :: Int -> Double -> ParamPattern -> ParamPattern
+striateO n o p = striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
 
 {- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
 The primed version is just like `striate'`, where the loop count is the third argument. For example:
