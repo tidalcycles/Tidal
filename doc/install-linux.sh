@@ -15,7 +15,7 @@ cd ~/tidal
 sudo apt-get -y install build-essential libsndfile1-dev libsamplerate0-dev \
     liblo-dev libjack-jackd2-dev qjackctl jackd git \
     ghc zlib1g-dev cabal-install \
-    emacs24 haskell-mode
+    emacs24 haskell-mode libportmidi-dev
 
 # install Dirt
 if [ -d "Dirt" ]; then
@@ -26,7 +26,7 @@ if [ -d "Dirt" ]; then
 	fi
 	git pull
 else
-	git clone https://github.com/yaxu/Dirt.git
+	git clone --recursive https://github.com/yaxu/Dirt.git
 	cd Dirt
 fi
 make clean; make
