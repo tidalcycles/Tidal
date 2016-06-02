@@ -165,8 +165,19 @@ d1 $ stack [
   ] # nudge "[0 0.04]*4"
 @
 
-Low values will give a more _human_ feeling, high values might result in quite the contrary.
--}
+--pitch model -}
+
+
+(degree, degree_p)               = pF "degree" Nothing
+(mtranspose, mtranspose_p)       = pF "mtranspose" Nothing
+(ctranspose, ctranspose_p)       = pF "ctranspose" Nothing
+(harmonic, harmonic_p)           = pF "ctranspose" Nothing
+(stepsPerOctave, stepsPerOctave_p)           = pF "stepsPerOctave" Nothing
+(octaveRatio, octaveRatio_p)           = pF "octaveRatio" Nothing
+
+
+--Low values will give a more _human_ feeling, high values might result in quite the contrary.
+
 (nudge, nudge_p)                 = pF "nudge" (Just 0)
 (octave, octave_p)               = pI "octave" (Just 3)
 (offset, offset_p)               = pF "offset" (Just 0)
