@@ -150,7 +150,7 @@ Using `cut "0"` is effectively _no_ cutgroup.
 -}
 (lock, lock_p)                 = pF "lock" (Just 0)
 -- | loops the sample (from `begin` to `end`) the specified number of times.
-(loop, loop_p)                   = pI "loop" (Just 1)
+(loop, loop_p)                   = pF "loop" (Just 1)
 (lophat, lophat_p)               = pF "lophat" (Just 0)
 (lsnare, lsnare_p)               = pF "lsnare" (Just 0)
 -- | specifies the sample variation to be used
