@@ -4,11 +4,13 @@ import Sound.Tidal.Stream
 import Sound.Tidal.Pattern
 import qualified Data.Map as Map
 import Sound.Tidal.Utils
+import Control.Applicative
 
 make' :: (a -> Value) -> Param -> Pattern a -> ParamPattern
 make' toValue par p = fmap (\x -> Map.singleton par (defaultV x)) p
   where defaultV a = Just $ toValue a
 
+-- | group multiple params into one
 grp :: [Param] -> Pattern String -> ParamPattern
 grp [] _ = silence
 grp params p = (fmap lookupPattern p)
@@ -19,140 +21,260 @@ grp params p = (fmap lookupPattern p)
         toPV param@(S _ _) s = (param, (Just $ VS s))
         toPV param@(F _ _) s = (param, (Just $ VF $ read s))
         toPV param@(I _ _) s = (param, (Just $ VI $ read s))
+{- |
 
+a pattern of strings representing sound sample names (required).
+
+`sound` is a combination of the `s` and `n` parameters to allow specifying both sample name and sample variation in one:
+
+@
+d1 $ sound "bd:2 sn:0"
+@
+
+is essentially the same as:
+
+@
+d1 $ s "bd sn" # n "2 0"
+@
+-}
 sound :: Pattern String -> ParamPattern
 sound = grp [s_p, n_p]
 
--- "s" stands for sample, or synth
-s :: Pattern String -> ParamPattern
-s = make' VS s_p
-s_p = S "s" Nothing
+pF name defaultV = (make' VF param, param)
+  where param = F name defaultV
+pI name defaultV = (make' VI param, param)
+  where param = I name defaultV
+pS name defaultV = (make' VS param, param)
+  where param = S name defaultV
+-- | a pattern of numbers that speed up (or slow down) samples while they play.
+(accelerate, accelerate_p)       = pF "accelerate" (Just 0)
+-- | a pattern of numbers to specify the attack time (in seconds) of an envelope applied to each sample. Only takes effect if `release` is also specified.
+(attack, attack_p)               = pF "attack" (Just (-1))
+-- | a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
+(bandf, bandf_p)                 = pF "bandf" (Just 0)
+-- | a pattern of numbers from 0 to 1. Sets the q-factor of the band-pass filter.
+(bandq, bandq_p)                 = pF "bandq" (Just 0)
+{- | a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample.
 
--- "n" stands for sample number, or note
-n :: Pattern Int -> ParamPattern
-n = make' VI n_p
-n_p = I "n" (Just 0)
+Using `begin "-1"` combined with `cut "-1"` means that when the sample cuts itself it will begin playback from where the previous one left off, so it will sound like one seamless sample. This allows you to apply a synth param across a long sample in a way similar to `chop`:
 
-nudge :: Pattern Double -> ParamPattern
-nudge = make' VF nudge_p
-nudge_p = (F "nudge" (Just 0))
+@
+cps 0.5
 
-offset :: Pattern Double -> ParamPattern
-offset = make' VF offset_p
-offset_p = F "offset" (Just 0)
+d1 $ sound "breaks125*8" # unit "c" # begin "-1" # cut "-1" # coarse "1 2 4 8 16 32 64 128"
+@
 
-begin :: Pattern Double -> ParamPattern
-begin = make' VF begin_p
-begin_p = F "begin" (Just 0)
+This will play the `breaks125` sample and apply the changing `coarse` parameter over the sample. Compare to:
 
-end :: Pattern Double -> ParamPattern
-end = make' VF end_p
-end_p = F "end" (Just 1)
+@
+d1 $ (chop 8 $ sounds "breaks125") # unit "c" # coarse "1 2 4 8 16 32 64 128"
+@
 
-speed :: Pattern Double -> ParamPattern
-speed = make' VF speed_p
-speed_p = F "speed" (Just 1)
+which performs a similar effect, but due to differences in implementation sounds different.
+-}
+(begin, begin_p)                 = pF "begin" (Just 0)
+-- | choose the physical channel the pattern is sent to, this is super dirt specific
+(channel, channel_p)             = pI "channel" Nothing
+(clhatdecay, clhatdecay_p)       = pF "clhatdecay" (Just 0)
+-- | fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
+(coarse, coarse_p)               = pI "coarse" (Just 0)
+-- | bit crushing, a pattern of numbers from 1 (for drastic reduction in bit-depth) to 16 (for barely no reduction).
+(crush, crush_p)                 = pF "crush" (Just 0)
+{- |
+In the style of classic drum-machines, `cut` will stop a playing sample as soon as another samples with in same cutgroup is to be played.
 
-pan :: Pattern Double -> ParamPattern
-pan = make' VF pan_p
-pan_p = F "pan" (Just 0.5)
+An example would be an open hi-hat followed by a closed one, essentially muting the open.
 
-velocity :: Pattern Double -> ParamPattern
-velocity = make' VF velocity_p
-velocity_p = F "velocity" (Just 0.5)
+@
+d1 $ stack [
+  sound "bd",
+  sound "~ [~ [ho:2 hc/2]]" # cut "1"
+  ]
+@
 
-vowel :: Pattern String -> ParamPattern
-vowel = make' VS vowel_p
-vowel_p = S "vowel" (Just "")
+This will mute the open hi-hat every second cycle when the closed one is played.
 
-cutoff :: Pattern Double -> ParamPattern
-cutoff = make' VF cutoff_p
-cutoff_p = F "cutoff" (Just 0)
+Using `cut` with negative values will only cut the same sample. This is useful to cut very long samples
 
-resonance :: Pattern Double -> ParamPattern
-resonance = make' VF resonance_p
-resonance_p = F "resonance" (Just 0)
+@
+d1 $ sound "[bev, [ho:3](3,8)]" # cut "-1"
+@
 
-accelerate :: Pattern Double -> ParamPattern
-accelerate = make' VF accelerate_p
-accelerate_p = F "accelerate" (Just 0)
+Using `cut "0"` is effectively _no_ cutgroup.
+-}
+(cut, cut_p)                     = pI "cut" (Just 0)
+-- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter.
+(cutoff, cutoff_p)               = pF "cutoff" (Just 0)
+(cutoffegint, cutoffegint_p)     = pF "cutoffegint" (Just 0)
+(decay, decay_p)                 = pF "decay" (Just 0)
+-- | a pattern of numbers from 0 to 1. Sets the level of the delay signal.
+(delay, delay_p)                 = pF "delay" (Just 0)
+-- | a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
+(delayfeedback, delayfeedback_p) = pF "delayfeedback" (Just (-1))
+-- | a pattern of numbers from 0 to 1. Sets the length of the delay.
+(delaytime, delaytime_p)         = pF "delaytime" (Just (-1))
+(detune, detune_p)               = pF "detune" (Just 0)
+-- | when set to `1` will disable all reverb for this pattern. See `room` and `size` for more information about reverb.
+(dry, dry_p)                     = pF "dry" (Just 0)
+{- the same as `begin`, but cuts the end off samples, shortening them;
+  e.g. `0.75` to cut off the last quarter of each sample.
+-}
+(end, end_p)                     = pF "end" (Just 1)
+-- | a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder.
+(gain, gain_p)                   = pF "gain" (Just 1)
+(gate, gate_p)                   = pF "gate" (Just 0)
+(hatgrain, hatgrain_p)           = pF "hatgrain" (Just 0)
+-- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter.
+(hcutoff, hcutoff_p)             = pF "hcutoff" (Just 0)
+-- | a pattern of numbers to specify the hold time (in seconds) of an envelope applied to each sample. Only takes effect if `attack` and `release` are also specified.
+(hold, hold_p)                   = pF "hold" (Just 0)
+-- | a pattern of numbers from 0 to 1. Applies the resonance of the high-pass filter.
+(hresonance, hresonance_p)       = pF "hresonance" (Just 0)
+(kriole, kriole_p)               = pI "kriole" (Just 0)
+(lagogo, lagogo_p)               = pF "lagogo" (Just 0)
+(lclap, lclap_p)                 = pF "lclap" (Just 0)
+(lclaves, lclaves_p)             = pF "lclaves" (Just 0)
+(lclhat, lclhat_p)               = pF "lclhat" (Just 0)
+(lcrash, lcrash_p)               = pF "lcrash" (Just 0)
+(lfo, lfo_p)                     = pF "lfo" (Just 0)
+(lfocutoffint, lfocutoffint_p)   = pF "lfocutoffint" (Just 0)
+(lfodelay, lfodelay_p)           = pF "lfodelay" (Just 0)
+(lfoint, lfoint_p)               = pF "lfoint" (Just 0)
+(lfopitchint, lfopitchint_p)     = pF "lfopitchint" (Just 0)
+(lfoshape, lfoshape_p)           = pF "lfoshape" (Just 0)
+(lfosync, lfosync_p)             = pF "lfosync" (Just 0)
+(lhitom, lhitom_p)               = pF "lhitom" (Just 0)
+(lkick, lkick_p)                 = pF "lkick" (Just 0)
+(llotom, llotom_p)               = pF "llotom" (Just 0)
+{- |  A pattern of numbers. Specifies whether delaytime is calculated relative to cps. When set to 1, delaytime is a direct multiple of a cycle.
+-}
+(lock, lock_p)                 = pF "lock" (Just 0)
+-- | loops the sample (from `begin` to `end`) the specified number of times.
+(loop, loop_p)                   = pI "loop" (Just 1)
+(lophat, lophat_p)               = pF "lophat" (Just 0)
+(lsnare, lsnare_p)               = pF "lsnare" (Just 0)
+-- | specifies the sample variation to be used
+(n, n_p)                         = pI "n" (Just 0)
+{- |
+Pushes things forward (or backwards within built-in latency) in time. Allows for nice things like _swing_ feeling:
 
-shape :: Pattern Double -> ParamPattern
-shape = make' VF shape_p
-shape_p = F "shape" (Just 0)
+@
+d1 $ stack [
+  sound "bd bd/4",
+  sound "hh(5,8)"
+  ] # nudge "[0 0.04]*4"
+@
 
-kriole :: Pattern Int -> ParamPattern
-kriole = make' VI kriole_p
-kriole_p = I "kriole" (Just 0)
+Low values will give a more _human_ feeling, high values might result in quite the contrary.
+-}
+(nudge, nudge_p)                 = pF "nudge" (Just 0)
+(octave, octave_p)               = pI "octave" (Just 3)
+(offset, offset_p)               = pF "offset" (Just 0)
+(ophatdecay, ophatdecay_p)       = pF "ophatdecay" (Just 0)
+{- |  a pattern of numbers. An `orbit` is a global parameter context for patterns. Patterns with the same orbit will share hardware output bus offset and global effects, e.g. reverb and delay. The maximum number of orbits is specified in the superdirt startup, numbers higher than maximum will wrap around.
+-}
+(orbit, orbit_p)                 = pI "orbit" (Just 0)
+-- | a pattern of numbers between 0 and 1, from left to right (assuming stereo).
+(pan, pan_p)                     = pF "pan" (Just 0.5)
+(pitch1, pitch1_p)               = pF "pitch1" (Just 0)
+(pitch2, pitch2_p)               = pF "pitch2" (Just 0)
+(pitch3, pitch3_p)               = pF "pitch3" (Just 0)
+(portamento, portamento_p)       = pF "portamento" (Just 0)
+-- | a pattern of numbers to specify the release time (in seconds) of an envelope applied to each sample. Only takes effect if `attack` is also specified.
+(release, release_p)             = pF "release" (Just (-1))
+-- | a pattern of numbers from 0 to 1. Specifies the resonance of the low-pass filter.
+(resonance, resonance_p)         = pF "resonance" (Just 0)
+-- | a pattern of numbers from 0 to 1. Sets the level of reverb.
+(room, room_p)                   = pF "room" Nothing
+(sagogo, sagogo_p)               = pF "sagogo" (Just 0)
+(sclap, sclap_p)                 = pF "sclap" (Just 0)
+(sclaves, sclaves_p)             = pF "sclaves" (Just 0)
+(scrash, scrash_p)               = pF "scrash" (Just 0)
+(semitone, semitone_p)           = pF "semitone" (Just 0)
+-- | wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion.
+(shape, shape_p)                 = pF "shape" (Just 0)
+-- | a pattern of numbers from 0 to 1. Sets the perceptual size (reverb time) of the `room` to be used in reverb.
+(size, size_p)                   = pF "size" Nothing
+(slide, slide_p)                 = pF "slide" (Just 0)
+-- | a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
+(speed, speed_p)                 = pF "speed" (Just 1)
+-- | a pattern of strings. Selects the sample to be played.
+(s, s_p)                         = pS "s" Nothing
+(stutterdepth, stutterdepth_p)   = pF "stutterdepth" (Just 0)
+(stuttertime, stuttertime_p)     = pF "stuttertime" (Just 0)
+(sustain, sustain_p)             = pF "sustain" (Just 0)
+(tomdecay, tomdecay_p)           = pF "tomdecay" (Just 0)
+-- | only accepts a value of "c". Used in conjunction with `speed`, it time-stretches a sample to fit in a cycle.
+(unit, unit_p)                   = pS "unit" (Just "rate")
+(velocity, velocity_p)           = pF "velocity" (Just 0.5)
+(vcfegint, vcfegint_p)           = pF "vcfegint" (Just 0)
+(vcoegint, vcoegint_p)           = pF "vcoegint" (Just 0)
+(voice, voice_p)                 = pF "voice" (Just 0)
+-- | formant filter to make things sound like vowels, a pattern of either `a`, `e`, `i`, `o` or `u`. Use a rest (`~`) for no effect.
+(vowel, vowel_p)                 = pS "vowel" (Just "")
 
-gain :: Pattern Double -> ParamPattern
-gain = make' VF gain_p
-gain_p = F "gain" (Just 1)
+-- MIDI-specific params
 
-cut :: Pattern Int -> ParamPattern
-cut = make' VI cut_p
-cut_p = I "cut" (Just (0))
+(dur,dur_p)                      = pF "dur" (Just 0.05)
+(modwheel,modwheel_p)            = pF "modwheel" (Just 0)
+(expression,expression_p)        = pF "expression" (Just 1)
+(sustainpedal,sustainpedal_p)    = pF "sustainpedal" (Just 0)
 
-delay :: Pattern Double -> ParamPattern
-delay = make' VF delay_p
-delay_p = F "delay" (Just (0))
+-- aliases
+att = attack
+chdecay = clhatdecay
+ctf  = cutoff
+ctfg = cutoffegint
+delayfb = delayfeedback
+delayt  = delaytime
+det  = detune
+gat = gate_p
+hg = hatgrain
+lag = lagogo
+lbd = lkick
+lch = lclhat
+lcl = lclaves
+lcp = lclap
+lcr = lcrash
+lfoc = lfocutoffint
+lfoi = lfoint
+lfop = lfopitchint
+lht = lhitom
+llt = llotom
+loh = lophat
+lsn = lsnare
+ohdecay = ophatdecay
+pit1 = pitch1
+pit2 = pitch2
+pit3 = pitch3
+por = portamento
+sag = sagogo
+scl = sclaves
+scp = sclap
+scr = scrash
+sld = slide
+std = stutterdepth
+stt = stuttertime
+sus  = sustain
+tdecay = tomdecay
+vcf  = vcfegint
+vco  = vcoegint
+voi  = voice
 
-delaytime :: Pattern Double -> ParamPattern
-delaytime = make' VF delaytime_p
-delaytime_p = F "delaytime" (Just (-1))
+note = n
+midinote = n . ((subtract 60) <$>)
 
-delayfeedback :: Pattern Double -> ParamPattern
-delayfeedback = make' VF delayfeedback_p
-delayfeedback_p = F "delayfeedback" (Just (-1))
+drum = n . (drumN <$>)
 
-crush :: Pattern Double -> ParamPattern
-crush = make' VF crush_p
-crush_p = F "crush" (Just 0)
-
-coarse :: Pattern Int -> ParamPattern
-coarse = make' VI coarse_p
-coarse_p = I "coarse" (Just 0)
-
-hcutoff :: Pattern Double -> ParamPattern
-hcutoff = make' VF hcutoff_p
-hcutoff_p = F "hcutoff" (Just 0)
-
-hresonance :: Pattern Double -> ParamPattern
-hresonance = make' VF hresonance_p
-hresonance_p = F "hresonance" (Just 0)
-
-bandf :: Pattern Double -> ParamPattern
-bandf = make' VF bandf_p
-bandf_p = F "bandf" (Just 0)
-
-bandq :: Pattern Double -> ParamPattern
-bandq = make' VF bandq_p
-bandq_p = F "bandq" (Just 0)
-
-unit :: Pattern String -> ParamPattern
-unit = make' VS unit_p
-unit_p = S "unit" (Just "rate")
-
-loop :: Pattern Int -> ParamPattern
-loop = make' VI loop_p
-loop_p = I "loop" (Just 1)
-
-channel :: Pattern Int -> ParamPattern
-channel = make' VI channel_p
-channel_p = I "channel" Nothing
-
-room :: Pattern Double -> ParamPattern
-room = make' VF room_p
-room_p = F "room" Nothing
-
-size :: Pattern Double -> ParamPattern
-size = make' VF size_p
-size_p = F "size" Nothing
-
-dry :: Pattern Double -> ParamPattern
-dry = make' VF dry_p
-dry_p = F "dry" (Just 0)
-
-orbit :: Pattern Int -> ParamPattern
-orbit = make' VI orbit_p
-orbit_p = I "orbit" (Just 0)
+drumN :: String -> Int
+drumN "bd"  = 36
+drumN "sn"  = 38
+drumN "lt"  = 43
+drumN "ht"  = 50
+drumN "ch"  = 42
+drumN "oh"  = 46
+drumN "cp"  = 39
+drumN "cl"  = 75
+drumN "ag"  = 67
+drumN "cr"  = 49
+drumN _ = 0

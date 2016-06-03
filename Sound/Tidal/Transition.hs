@@ -22,7 +22,7 @@ transition getNow mv f p =
      putMVar mv (p', (p:snd ps))
      return ()
 
--- Pans the last n versions of the pattern across the field
+-- | Pans the last n versions of the pattern across the field
 histpan :: Int -> Time -> [ParamPattern] -> ParamPattern
 histpan _ _ [] = silence
 histpan 0 _ _ = silence
@@ -48,27 +48,38 @@ wash _ _ _ (p:[]) = p
 wash f t now (p:p':_) = overlay (playWhen (< (now + t)) $ f p') (playWhen (>= (now + t)) p)
 
 
--- Just stop for a bit before playing new pattern
+-- | Just stop for a bit before playing new pattern
 wait :: Time -> Time -> [ParamPattern] -> ParamPattern
 wait t _ [] = silence
 wait t now (p:_) = playWhen (>= (nextSam (now+t-1))) p
 
--- transition at cycle boundary after n cycles
-jumpIn' :: Int -> Time -> [ParamPattern] -> ParamPattern
-jumpIn' n now = superwash id id ((nextSam now) - now + (fromIntegral n)) 0 now
+{- |
+Jumps directly into the given pattern, this is essentially the _no transition_-transition.
 
--- sharp transition a certain number of cycles in the future
-jumpIn :: Int -> Time -> [ParamPattern] -> ParamPattern
-jumpIn n = superwash id id (fromIntegral n) 0
-
+Variants of `jump` provide more useful capabilities, see `jumpIn` and `jumpMod`
+-}
 jump :: Time -> [ParamPattern] -> ParamPattern
 jump = jumpIn 0
 
--- transition at next cycle boundary where cycle mod n == 0
+{- | Sharp `jump` transition after the specified number of cycles have passed.
+
+@
+t1 (jumpIn 2) $ sound "kick(3,8)"
+@
+-}
+jumpIn :: Int -> Time -> [ParamPattern] -> ParamPattern
+jumpIn n = superwash id id (fromIntegral n) 0
+
+{- | Unlike `jumpIn` the variant `jumpIn'` will only transition at cycle boundary (e.g. when the cycle count is an integer).
+-}
+jumpIn' :: Int -> Time -> [ParamPattern] -> ParamPattern
+jumpIn' n now = superwash id id ((nextSam now) - now + (fromIntegral n)) 0 now
+
+-- | Sharp `jump` transition at next cycle boundary where cycle mod n == 0
 jumpMod :: Int -> Time -> [ParamPattern] -> ParamPattern
 jumpMod n now = jumpIn ((n-1) - ((floor now) `mod` n)) now
 
--- Degrade the new pattern over time until it goes to nothing
+-- | Degrade the new pattern over time until it goes to nothing
 mortal :: Time -> Time -> Time -> [ParamPattern] -> ParamPattern
 mortal _ _ _ [] = silence
 mortal lifespan release now (p:_) = overlay (playWhen (<(now+lifespan)) p) (playWhen (>= (now+lifespan)) (fadeOut' (now + lifespan) release p))
