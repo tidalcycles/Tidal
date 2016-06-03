@@ -155,19 +155,24 @@ pBool = do oneOf "t1"
         do oneOf "f0"
            return $ atom False
 
+parseIntNote :: Parser Int
+parseIntNote = do s <- sign
+                  i <- choice [integer, parseNote]
+                  return $ applySign s $ fromIntegral i
+
 parseInt :: Parser Int
 parseInt = do s <- sign
-              i <- choice [integer, parseNote]
+              i <- integer
               return $ applySign s $ fromIntegral i
 
 pInt :: Parser (Pattern Int)
-pInt = do i <- parseInt
+pInt = do i <- parseIntNote
           return $ atom i
 
 parseNote :: Integral a => Parser a
 parseNote = do n <- notenum
                modifiers <- many noteModifier
-               octave <- option 0 parseInt
+               octave <- option 0 natural
                let n' = foldr (+) n modifiers
                return $ fromIntegral $ n' + (octave*12)
   where
