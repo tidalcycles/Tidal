@@ -272,9 +272,15 @@ hh sn cp bd
 sn cp bd hh
 cp bd hh sn
 @
+
+There is also `iter'`, which shifts the pattern in the opposite direction.
+
 -}
 iter :: Int -> Pattern a -> Pattern a
 iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. n]
+
+iter' :: Int -> Pattern a -> Pattern a
+iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) ~> p) [0 .. n]
 
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
@@ -1034,3 +1040,20 @@ fit' cyc n from to p = unwrap' $ fit n (mapMasks n from' p') to
                              | i <- [0..n-1]]
         p' = density cyc $ p
         from' = density cyc $ from
+
+{- `runWith n f p` treats the given pattern `p` as having `n` sections, and applies the function `f` to one of those sections per cycle, running from left to right.
+
+@
+d1 $ runWith 4 (density 4) $ sound "cp sn arpy [mt lt]"
+@
+-}
+runWith :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+runWith n f p = do i <- slow (toRational n) $ run (fromIntegral n)
+                   within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
+
+
+{- `runWith'` works much the same as `runWith`, but runs from right to left.
+ -}
+runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+runWith' n f p = do i <- slow (toRational n) $ rev $ run (fromIntegral n)
+                    within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
