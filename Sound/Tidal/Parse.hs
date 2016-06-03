@@ -172,9 +172,9 @@ pInt = do i <- parseIntNote
 parseNote :: Integral a => Parser a
 parseNote = do n <- notenum
                modifiers <- many noteModifier
-               octave <- option 0 natural
+               octave <- option 5 natural
                let n' = foldr (+) n modifiers
-               return $ fromIntegral $ n' + (octave*12)
+               return $ fromIntegral $ n' + ((octave-5)*12)
   where
         notenum = choice [char 'c' >> return 0,
                           char 'd' >> return 2,
