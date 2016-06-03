@@ -260,7 +260,9 @@ tdecay = tomdecay
 vcf  = vcfegint
 vco  = vcoegint
 voi  = voice
+
 note = n
+midinote = n . ((subtract 60) <$>)
 
 drum = n . (drumN <$>)
 

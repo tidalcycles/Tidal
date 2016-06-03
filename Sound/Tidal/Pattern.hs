@@ -915,32 +915,41 @@ discretise n p = density n $ (atom (id)) <*> p
 randcat :: [Pattern a] -> Pattern a
 randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps)) (slowcat ps)
 
--- | @toMIDI p@: converts a pattern of human-readable pitch names into
--- MIDI pitch numbers. For example, @"cs4"@ will be rendered as @"49"@.
--- Omitting the octave number will create a pitch in the fifth octave
--- (@"cf"@ -> @"cf5"@). Pitches can be decorated using:
+-- | @fromNote p@: converts a pattern of human-readable pitch names
+-- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
+-- in the 2nd octave with the result of @11@, and @"b-3"@ as
+-- @-25@. Pitches can be decorated using:
 --
---    * s = Sharp, a half-step above (@"gs4"@)
---    * f = Flat, a half-step below (@"gf4"@)
---    * n = Natural, no decoration (@"g4" and "gn4"@ are equivalent)
---    * ss = Double sharp, a whole step above (@"gss4"@)
---    * ff = Double flat, a whole step below (@"gff4"@)
+--    * s = Sharp, a half-step above (@"gs-1"@)
+--    * f = Flat, a half-step below (@"gf-1"@)
+--    * n = Natural, no decoration (@"g-1" and "gn-1"@ are equivalent)
+--    * ss = Double sharp, a whole step above (@"gss-1"@)
+--    * ff = Double flat, a whole step below (@"gff-1"@)
 --
--- This function also has a shorter alias @tom@.
+-- Note that TidalCycles now assumes that middle C is represented by
+-- the value 0, rather than the previous value of 60. This function
+-- is similar to previously available functions @tom@ and @toMIDI@,
+-- but the default octave is now 0 rather than 5.
+{-
+
+definition moved to Parse.hs ..
+
 toMIDI :: Pattern String -> Pattern Int
 toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
   where
     noteLookup :: String -> Maybe Int
     noteLookup [] = Nothing
-    noteLookup s | not (last s `elem` ['0' .. '9']) = noteLookup (s ++ "5")
+    noteLookup s | not (last s `elem` ['0' .. '9']) = noteLookup (s ++ "0")
                  | not (isLetter (s !! 1)) = noteLookup((head s):'n':(tail s))
                  | otherwise = parse s
     parse x = (\a b c -> a+b+c) <$> pc x <*> sym x <*> Just(12*digitToInt (last x))
     pc x = lookup (head x) [('c',0),('d',2),('e',4),('f',5),('g',7),('a',9),('b',11)]
     sym x = lookup (init (tail x)) [("s",1),("f",-1),("n",0),("ss",2),("ff",-2)]
+-}
 
 -- | @tom p@: Alias for @toMIDI@.
-tom = toMIDI
+-- tom = toMIDI
+
 
 {- | The `fit` function takes a pattern of integer numbers, which are used to select values from the given list. What makes this a bit strange is that only a given number of values are selected each cycle. For example:
 

@@ -155,18 +155,23 @@ pBool = do oneOf "t1"
         do oneOf "f0"
            return $ atom False
 
-pInt :: Parser (Pattern Int)
-pInt = do s <- sign
-          i <- choice [integer, midinote]
-          return $ atom (applySign s $ fromIntegral i)
+parseInt :: Parser Int
+parseInt = do s <- sign
+              i <- choice [integer, parseNote]
+              return $ applySign s $ fromIntegral i
 
-midinote :: Parser Integer
-midinote = do n <- notenum
-              modifiers <- many noteModifier
-              octave <- option 5 natural
-              let n' = fromIntegral $ foldr (+) n modifiers
-              return $ n' + octave*12
-  where notenum = choice [char 'c' >> return 0,
+pInt :: Parser (Pattern Int)
+pInt = do i <- parseInt
+          return $ atom i
+
+parseNote :: Integral a => Parser a
+parseNote = do n <- notenum
+               modifiers <- many noteModifier
+               octave <- option 0 parseInt
+               let n' = foldr (+) n modifiers
+               return $ fromIntegral $ n' + (octave*12)
+  where
+        notenum = choice [char 'c' >> return 0,
                           char 'd' >> return 2,
                           char 'e' >> return 4,
                           char 'f' >> return 5,
@@ -178,6 +183,9 @@ midinote = do n <- notenum
                                char 'f' >> return (-1),
                                char 'n' >> return 0
                               ]
+
+fromNote :: Integral c => Pattern String -> Pattern c
+fromNote p = (\s -> either (const 0) id $ parse parseNote "" s) <$> p
 
 pColour :: Parser (Pattern ColourD)
 pColour = do name <- many1 letter <?> "colour name"
