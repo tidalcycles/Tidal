@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, RankNTypes, NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances, RankNTypes, NoMonomorphismRestriction, DeriveDataTypeable #-}
 
 module Sound.Tidal.Stream where
 
@@ -10,6 +10,7 @@ import Control.Exception as E
 import Data.Time (getCurrentTime)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Data.Ratio
+import Data.Typeable
 import Sound.Tidal.Pattern
 import qualified Sound.Tidal.Parse as P
 import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
@@ -21,12 +22,14 @@ import qualified Data.Map as Map
 type ToMessageFunc = Shape -> Tempo -> Int -> (Double, ParamMap) -> Maybe (IO ())
 
 data Backend a = Backend {
-  toMessage :: ToMessageFunc
+  toMessage :: ToMessageFunc,
+  flush :: Shape -> Tempo -> Int -> IO ()
   }
 
 data Param = S {name :: String, sDefault :: Maybe String}
            | F {name :: String, fDefault :: Maybe Double}
            | I {name :: String, iDefault :: Maybe Int}
+  deriving Typeable
 
 instance Eq Param where
   a == b = name a == name b
@@ -41,12 +44,13 @@ data Shape = Shape {params :: [Param],
                     cpsStamp :: Bool}
 
 
-data Value = VS { svalue :: String } | VF { fvalue :: Double } | VI { ivalue :: Int } deriving (Show,Eq,Ord)
+data Value = VS { svalue :: String } | VF { fvalue :: Double } | VI { ivalue :: Int }
+           deriving (Show,Eq,Ord,Typeable)
 
 type ParamMap = Map.Map Param (Maybe Value)
 
 type ParamPattern = Pattern ParamMap
-
+           
 ticksPerCycle = 8
 
 defaultValue :: Param -> Maybe Value
@@ -134,6 +138,7 @@ onTick backend shape patternM change ticks
                       (toMessage backend shape change ticks)
                       (seqToRelOnsets (a, b) p)
        E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
+       flush backend shape change ticks
        return ()
 
 -- Variant where mutable variable contains list as history of the patterns
@@ -148,6 +153,7 @@ onTick' backend shape patternsM change ticks
                       (toM shape change ticks)
                       (seqToRelOnsets (a, b) $ fst ps)
        E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
+       flush backend shape change ticks
        return ()
 
 make :: (a -> Value) -> Shape -> String -> Pattern a -> ParamPattern

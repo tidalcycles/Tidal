@@ -25,7 +25,7 @@ scSlang n = OscSlang {
 
 scBackend n = do
   s <- makeConnection "127.0.0.1" 57110 (scSlang n)
-  return $ Backend s
+  return $ Backend s (\_ _ _ -> return ())
 
 scStream n ps l = do let shape = (supercollider ps l)
                      backend <- scBackend n

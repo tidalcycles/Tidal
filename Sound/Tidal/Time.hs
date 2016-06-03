@@ -1,3 +1,7 @@
+{-|
+Module: Time
+Description: Defines core data types and functions for handling tidal's concept of time in `Arc`s & `Event`s
+-}
 module Sound.Tidal.Time where
 
 import Sound.Tidal.Utils
@@ -36,7 +40,7 @@ nextSam = (1+) . sam
 cyclePos :: Time -> Time
 cyclePos t = t - sam t
 
--- | @isIn a t@ is @True@ iff @t@ is inside 
+-- | @isIn a t@ is @True@ if @t@ is inside
 -- the arc represented by @a@.
 isIn :: Arc -> Time -> Bool
 isIn (s,e) t = t >= s && t < e
@@ -96,14 +100,18 @@ eventArc = snd'
 midPoint :: Arc -> Time
 midPoint (s,e) = s + ((e - s) / 2)
 
+-- | `True` if an `Event`'s first and second `Arc`'s start times match
 hasOnset :: Event a -> Bool
 hasOnset ((s,_), (s',_), _) = s == s'
 
+-- | `True` if an `Event`'s first and second `Arc`'s end times match
 hasOffset :: Event a -> Bool
 hasOffset ((_,e), (_,e'), _) = e == e'
 
+-- | `True` if an `Event`'s starts is within given `Arc`
 onsetIn :: Arc -> Event a -> Bool
 onsetIn a e = isIn a (eventOnset e)
 
+-- | `True` if an `Event`'s ends is within given `Arc`
 offsetIn :: Arc -> Event a -> Bool
 offsetIn a e = isIn a (eventOffset e)

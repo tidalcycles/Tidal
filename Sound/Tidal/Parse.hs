@@ -33,6 +33,9 @@ instance Parseable Bool where
 instance Parseable Int where
   p = parseRhythm pInt
 
+instance Parseable Integer where
+  p = (fromIntegral <$>) <$> parseRhythm pInt
+
 instance Parseable Rational where
   p = parseRhythm pRational
 
@@ -111,7 +114,8 @@ pPart f = do -- part <- parens (pSequence f) <|> pSingle f <|> pPolyIn f <|> pPo
              part <- pE part
              part <- pRand part
              spaces
-             parts <- pReplicate part
+             parts <- pStretch part
+                      <|> pReplicate part
              spaces
              return $ parts
 
@@ -151,18 +155,28 @@ pBool = do oneOf "t1"
         do oneOf "f0"
            return $ atom False
 
-pInt :: Parser (Pattern Int)
-pInt = do s <- sign
-          i <- choice [integer, midinote]
-          return $ atom (applySign s $ fromIntegral i)
+parseIntNote :: Parser Int
+parseIntNote = do s <- sign
+                  i <- choice [integer, parseNote]
+                  return $ applySign s $ fromIntegral i
 
-midinote :: Parser Integer
-midinote = do n <- notenum
-              modifiers <- many noteModifier
-              octave <- option 5 natural
-              let n' = fromIntegral $ foldr (+) n modifiers
-              return $ n' + octave*12
-  where notenum = choice [char 'c' >> return 0,
+parseInt :: Parser Int
+parseInt = do s <- sign
+              i <- integer
+              return $ applySign s $ fromIntegral i
+
+pInt :: Parser (Pattern Int)
+pInt = do i <- parseIntNote
+          return $ atom i
+
+parseNote :: Integral a => Parser a
+parseNote = do n <- notenum
+               modifiers <- many noteModifier
+               octave <- option 5 natural
+               let n' = foldr (+) n modifiers
+               return $ fromIntegral $ n' + ((octave-5)*12)
+  where
+        notenum = choice [char 'c' >> return 0,
                           char 'd' >> return 2,
                           char 'e' >> return 4,
                           char 'f' >> return 5,
@@ -174,6 +188,9 @@ midinote = do n <- notenum
                                char 'f' >> return (-1),
                                char 'n' >> return 0
                               ]
+
+fromNote :: Integral c => Pattern String -> Pattern c
+fromNote p = (\s -> either (const 0) id $ parse parseNote "" s) <$> p
 
 pColour :: Parser (Pattern ColourD)
 pColour = do name <- many1 letter <?> "colour name"
@@ -219,10 +236,22 @@ pE thing = do (n,k,s) <- parens (pair)
                    
 
 pReplicate :: Pattern a -> Parser ([Pattern a])
-pReplicate thing = do extras <- many $ do char '!'
-                                          spaces
-                                          pRand thing
-                      return (thing:extras)
+pReplicate thing =
+  do extras <- many $ do char '!'
+                         -- if a number is given (without a space)
+                         -- replicate that number of times
+                         n <- ((read <$> many1 digit) <|> return 1)
+                         spaces
+                         thing' <- pRand thing
+                         return $ replicate (fromIntegral n) thing'
+     return (thing:concat extras)
+
+
+pStretch :: Pattern a -> Parser ([Pattern a])
+pStretch thing =
+  do char '@'
+     n <- ((read <$> many1 digit) <|> return 1)
+     return $ map (\x -> zoom (x%n,(x+1)%n) thing) [0 .. (n-1)]
 
 pRatio :: Parser (Rational)
 pRatio = do n <- natural <?> "numerator"
