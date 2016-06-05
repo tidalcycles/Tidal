@@ -541,8 +541,10 @@ filterStartInRange (Pattern f) =
 
 filterOnsetsInRange = filterOnsets . filterStartInRange
 
-seqToRelOnsets :: Arc -> Pattern a -> [(Double, a)]
-seqToRelOnsets (s, e) p = map (\((s', _), _, x) -> (fromRational $ (s'-s) / (e-s), x)) $ arc (filterOnsetsInRange p) (s, e)
+-- Samples some events from a pattern, returning a list of onsets
+-- (relative to the given arc), deltas (durations) and values.
+seqToRelOnsetDeltas :: Arc -> Pattern a -> [(Double, Double, a)]
+seqToRelOnsetDeltas (s, e) p = map (\((s', e'), _, x) -> (fromRational $ (s'-s) / (e-s), fromRational $ (e'-s) / (e-s), x)) $ arc (filterOnsetsInRange p) (s, e)
 
 segment :: Pattern a -> Pattern [a]
 segment p = Pattern $ \(s,e) -> filter (\(_,(s',e'),_) -> s' < e && e' > s) $ groupByTime (segment' (arc p (s,e)))
