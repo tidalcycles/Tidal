@@ -75,6 +75,10 @@ which performs a similar effect, but due to differences in implementation sounds
 (begin, begin_p)                 = pF "begin" (Just 0)
 -- | choose the physical channel the pattern is sent to, this is super dirt specific
 (channel, channel_p)             = pI "channel" Nothing
+
+--legato controls the amount of overlap between two adjacent synth sounds
+(legato, legato_p)             = pF "legato" (Just 1)
+
 (clhatdecay, clhatdecay_p)       = pF "clhatdecay" (Just 0)
 -- | fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
 (coarse, coarse_p)               = pI "coarse" (Just 0)
