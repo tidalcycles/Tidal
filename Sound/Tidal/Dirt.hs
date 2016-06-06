@@ -218,11 +218,36 @@ striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
 
+{-|
+Also degrades the current pattern and undegrades the next.
+To change the number of cycles the transition takes, you can use @clutchIn@ like so:
+
+@
+d1 $ sound "bd(5,8)"
+
+t1 (clutchIn 8) $ sound "[hh*4, odx(3,8)]"
+@
+
+will take 8 cycles for the transition.
+-}
 clutchIn :: Time -> Time -> [Pattern a] -> Pattern a
 clutchIn _ _ [] = silence
 clutchIn _ _ (p:[]) = p
 clutchIn t now (p:p':_) = overlay (fadeOut' now t p') (fadeIn' now t p)
 
+{-|
+Degrades the current pattern while undegrading the next.
+
+This is like @xfade@ but not by gain of samples but by randomly removing events from the current pattern and slowly adding back in missing events from the next one.
+
+@
+d1 $ sound "bd(3,8)"
+
+t1 clutch $ sound "[hh*4, odx(3,8)]"
+@
+
+@clutch@ takes two cycles for the transition, essentially this is @clutchIn 2@.
+-}
 clutch :: Time -> [Pattern a] -> Pattern a
 clutch = clutchIn 2
 

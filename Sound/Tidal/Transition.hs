@@ -44,6 +44,17 @@ superwash fout fin delay durin durout now (p:p':_) =
  where
    between lo hi x = (x >= lo) && (x < hi)
 
+{-|
+Wash away the current pattern by applying a function to it over time, then switching over to the next.
+
+@
+d1 $ sound "feel ! feel:1 feel:2"
+
+t1 (wash (chop 8) 4) $ sound "feel*4 [feel:2 sn:2]"
+@
+
+Note that `chop 8` is applied to `sound "feel ! feel:1 feel:2"` for 4 cycles and then the whole pattern is replaced by `sound "feel*4 [feel:2 sn:2]`
+-}
 wash :: (Pattern a -> Pattern a) -> Time -> Time -> [Pattern a] -> Pattern a
 wash _ _ _ [] = silence
 wash _ _ _ (p:[]) = p
@@ -81,7 +92,7 @@ jumpIn' n now = superwash id id ((nextSam now) - now + (fromIntegral n)) 0 0 now
 jumpMod :: Int -> Time -> [ParamPattern] -> ParamPattern
 jumpMod n now = jumpIn ((n-1) - ((floor now) `mod` n)) now
 
--- | Degrade the new pattern over time until it goes to nothing
+-- | Degrade the new pattern over time until it ends in silence
 mortal :: Time -> Time -> Time -> [ParamPattern] -> ParamPattern
 mortal _ _ _ [] = silence
 mortal lifespan release now (p:_) = overlay (playWhen (<(now+lifespan)) p) (playWhen (>= (now+lifespan)) (fadeOut' (now + lifespan) release p))
