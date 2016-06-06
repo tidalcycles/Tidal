@@ -30,15 +30,17 @@ histpan n _ ps = stack $ map (\(i,p) -> p # pan (atom $ (fromIntegral i) / (from
   where ps' = take n ps
         n' = length ps' -- in case there's fewer patterns than requested
 
--- generalizing wash to use pattern transformers on fadeout, fadein, and delay
--- to start of transition
-superwash :: (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Time -> Time -> Time -> [Pattern a] -> Pattern a
-superwash _ _ _ _ _ [] = silence
-superwash _ _ _ _ _ (p:[]) = p
-superwash fout fin delay dur now (p:p':_) =
+{-|
+A generalization of `wash`. Washes away the current pattern after a certain delay by applying a function to it over time, then switching over to the next pattern to which another function is applied.
+-}
+superwash :: (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Time -> Time -> Time -> Time -> [Pattern a] -> Pattern a
+superwash _ _ _ _ _ _ [] = silence
+superwash _ _ _ _ _ _ (p:[]) = p
+superwash fout fin delay durin durout now (p:p':_) =
    (playWhen (< (now + delay)) p') <>
-   (playWhen (between (now + delay) (now + delay + dur)) $ fout p') <>
-   (playWhen (>= (now + delay + dur)) $ fin p)
+   (playWhen (between (now + delay) (now + delay + durin)) $ fout p') <>
+   (playWhen (between (now + delay + durin) (now + delay + durin + durout)) $ fin p) <>
+   (playWhen (>= (now + delay + durin + durout)) $ p)
  where
    between lo hi x = (x >= lo) && (x < hi)
 
@@ -68,12 +70,12 @@ t1 (jumpIn 2) $ sound "kick(3,8)"
 @
 -}
 jumpIn :: Int -> Time -> [ParamPattern] -> ParamPattern
-jumpIn n = superwash id id (fromIntegral n) 0
+jumpIn n = superwash id id (fromIntegral n) 0 0
 
 {- | Unlike `jumpIn` the variant `jumpIn'` will only transition at cycle boundary (e.g. when the cycle count is an integer).
 -}
 jumpIn' :: Int -> Time -> [ParamPattern] -> ParamPattern
-jumpIn' n now = superwash id id ((nextSam now) - now + (fromIntegral n)) 0 now
+jumpIn' n now = superwash id id ((nextSam now) - now + (fromIntegral n)) 0 0 now
 
 -- | Sharp `jump` transition at next cycle boundary where cycle mod n == 0
 jumpMod :: Int -> Time -> [ParamPattern] -> ParamPattern
