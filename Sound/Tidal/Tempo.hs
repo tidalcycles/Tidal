@@ -56,10 +56,12 @@ tempoMVar = do now <- getCurrentTime
   where f mv change _ = do swapMVar mv change
                            return ()
 
+-- beatNow: accesses a clock and returns the time now in terms of
+-- beats relative to metrical grid of a given Tempo
 beatNow :: Tempo -> IO (Double)
 beatNow t = do now <- getCurrentTime
                let delta = realToFrac $ diffUTCTime now (at t)
-               let beatDelta = cps t * delta               
+               let beatDelta = cps t * delta
                return $ beat t + beatDelta
 
 clientApp :: MVar Tempo -> MVar Double -> WS.ClientApp ()
@@ -84,12 +86,12 @@ sendCps conn mTempo mCps = forever $ do
     WS.sendTextData conn (T.pack $ show t')
 
 connectClient :: Bool -> String -> MVar Tempo -> MVar Double -> IO ()
-connectClient secondTry ip mTempo mCps = do 
+connectClient secondTry ip mTempo mCps = do
   let errMsg = "Failed to connect to tidal server. Try specifying a " ++
                "different port (default is 9160) setting the " ++
                "environment variable TIDAL_TEMPO_PORT"
   serverPort <- getServerPort
-  WS.runClient ip serverPort "/tempo" (clientApp mTempo mCps) `E.catch` 
+  WS.runClient ip serverPort "/tempo" (clientApp mTempo mCps) `E.catch`
     \(_ :: E.SomeException) -> do
       case secondTry of
         True -> error errMsg
@@ -102,10 +104,10 @@ connectClient secondTry ip mTempo mCps = do
               connectClient True ip mTempo mCps
 
 runClient :: IO ((MVar Tempo, MVar Double))
-runClient = 
+runClient =
   do clockip <- getClockIp
-     mTempo <- newEmptyMVar 
-     mCps <- newEmptyMVar 
+     mTempo <- newEmptyMVar
+     mCps <- newEmptyMVar
      forkIO $ connectClient False clockip mTempo mCps
      return (mTempo, mCps)
 
@@ -128,7 +130,7 @@ clocked :: (Tempo -> Int -> IO ()) -> IO ()
 clocked = clockedTick 1
 
 {-
-clocked callback = 
+clocked callback =
   do (mTempo, mCps) <- runClient
      t <- readMVar mTempo
      now <- getCurrentTime
@@ -138,7 +140,7 @@ clocked callback =
          nextBeat = ceiling nowBeat
          -- next4 = nextBeat + (4 - (nextBeat `mod` 4))
      loop mTempo nextBeat
-  where loop mTempo b = 
+  where loop mTempo b =
           do t <- readMVar mTempo
              b' <- doSlice t b
              loop mTempo $ b'
@@ -154,9 +156,9 @@ clocked callback =
              callback t b
              return $ b + 1
 -}
-                         
+
 clockedTick :: Int -> (Tempo -> Int -> IO ()) -> IO ()
-clockedTick tpb callback = 
+clockedTick tpb callback =
   do (mTempo, mCps) <- runClient
      t <- readMVar mTempo
      now <- getCurrentTime
@@ -166,7 +168,7 @@ clockedTick tpb callback =
          nextTick = ceiling (nowBeat * (fromIntegral tpb))
          -- next4 = nextBeat + (4 - (nextBeat `mod` 4))
      loop mTempo nextTick
-  where loop mTempo tick = 
+  where loop mTempo tick =
           do tempo <- readMVar mTempo
              tick' <- doTick tempo tick
              loop mTempo tick'
@@ -204,7 +206,7 @@ updateTempo t cps'
     -- unpause
     do now <- getCurrentTime
        return $ t {at = addUTCTime (realToFrac $ clockLatency t) now, cps = cps', paused = False}
-  | otherwise = 
+  | otherwise =
     do now <- getCurrentTime
        let delta = realToFrac $ diffUTCTime now (at t)
            beat' = (beat t) + ((cps t) * delta)
@@ -212,7 +214,7 @@ updateTempo t cps'
        return $ t {at = now, beat = beat'', cps = cps', paused = (cps' <= 0)}
 
 addClient client clients = client : clients
-  
+
 removeClient :: WS.Connection -> ClientState -> ClientState
 removeClient client = filter (/= client)
 
@@ -240,17 +242,16 @@ serverApp tempoState clientState pending = do
     serverLoop conn tempoState clientState
 
 serverLoop :: WS.Connection -> MVar Tempo -> MVar ClientState -> IO ()
-serverLoop conn tempoState clientState = E.handle catchDisconnect $ 
+serverLoop conn tempoState clientState = E.handle catchDisconnect $
   forever $ do
     msg <- WS.receiveData conn
     --liftIO $ updateTempo tempoState $ maybeRead $ T.unpack msg
     liftIO $ readMVar clientState >>= broadcast msg
     --tempo <- liftIO $ readMVar tempoState
-    -- liftIO $ readMVar clientState >>= broadcast (T.pack $ show tempo) 
+    -- liftIO $ readMVar clientState >>= broadcast (T.pack $ show tempo)
   where
     catchDisconnect e = case E.fromException e of
         Just WS.ConnectionClosed -> liftIO $ modifyMVar_ clientState $ \s -> do
             let s' = removeClient conn s
             return s'
         _ -> return ()
-

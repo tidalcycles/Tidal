@@ -17,6 +17,8 @@ import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
 import Sound.Tidal.Utils
 import qualified Sound.Tidal.Time as T
 
+import Sound.Tidal.EspGrid
+
 import qualified Data.Map as Map
 
 type ToMessageFunc = Shape -> Tempo -> Int -> (Double, ParamMap) -> Maybe (IO ())
@@ -50,7 +52,7 @@ data Value = VS { svalue :: String } | VF { fvalue :: Double } | VI { ivalue :: 
 type ParamMap = Map.Map Param (Maybe Value)
 
 type ParamPattern = Pattern ParamMap
-           
+
 ticksPerCycle = 8
 
 defaultValue :: Param -> Maybe Value
@@ -104,7 +106,7 @@ start :: Backend a -> Shape -> IO (MVar (ParamPattern))
 start backend shape
   = do patternM <- newMVar silence
        let ot = (onTick backend shape patternM) :: Tempo -> Int -> IO ()
-       forkIO $ clockedTick ticksPerCycle ot
+       forkIO $ clockedTickEsp ticksPerCycle ot
        return patternM
 
 -- variant of start where history of patterns is available
@@ -112,7 +114,7 @@ state :: Backend a -> Shape -> IO (MVar (ParamPattern, [ParamPattern]))
 state backend shape
   = do patternsM <- newMVar (silence, [])
        let ot = (onTick' backend shape patternsM) :: Tempo -> Int -> IO ()
-       forkIO $ clockedTick ticksPerCycle ot
+       forkIO $ clockedTickEsp ticksPerCycle ot
        return patternsM
 
 stream :: Backend a -> Shape -> IO (ParamPattern -> IO ())
@@ -221,4 +223,3 @@ setter :: MVar (a, [a]) -> a -> IO ()
 setter ds p = do ps <- takeMVar ds
                  putMVar ds $ (p, p:snd ps)
                  return ()
-
