@@ -63,7 +63,7 @@ t1 (wait' (xfadeIn 8) 4) $ sound "hh*8"
 -}
 wait' :: (Time -> [ParamPattern] -> ParamPattern) -> Time -> Time -> [ParamPattern] -> ParamPattern
 wait' _ t _ [] = silence
-wait' f t now ps@(p:_) = playWhen (>= (nextSam (now+t-1))) (f now ps)
+wait' f t now ps@(p:_) = playWhen (>= (nextSam (now+t-1))) (f (now + t) ps)
 
 
 {- |
