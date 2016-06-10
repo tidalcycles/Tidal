@@ -53,6 +53,19 @@ wait :: Time -> Time -> [ParamPattern] -> ParamPattern
 wait t _ [] = silence
 wait t now (p:_) = playWhen (>= (nextSam (now+t-1))) p
 
+{- | Just as `wait`, `wait'` stops for a bit and then applies the given transition to the playing pattern
+
+@
+d1 $ sound "bd"
+
+t1 (wait' (xfadeIn 8) 4) $ sound "hh*8"
+@
+-}
+wait' :: (Time -> [ParamPattern] -> ParamPattern) -> Time -> Time -> [ParamPattern] -> ParamPattern
+wait' _ t _ [] = silence
+wait' f t now ps@(p:_) = playWhen (>= (nextSam (now+t-1))) (f now ps)
+
+
 {- |
 Jumps directly into the given pattern, this is essentially the _no transition_-transition.
 
