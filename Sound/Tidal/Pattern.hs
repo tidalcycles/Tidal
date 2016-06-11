@@ -751,10 +751,7 @@ d1 $ trunc 0.75 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
 @
 -}
 trunc :: Time -> Pattern a -> Pattern a
-trunc t p = slow t $ splitQueries $ p'
-  where p' = Pattern $ \a -> mapArcs (stretch . trunc') $ arc p (trunc' a)
-        trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
-        stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
+trunc t = compress (0,t) . zoom (0,t)
 
 {- | Plays a portion of a pattern, specified by a beginning and end arc of time. 
 The new resulting pattern is played over the time period of the original pattern:
