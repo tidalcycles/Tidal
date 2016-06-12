@@ -17,7 +17,7 @@ import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
 import Sound.Tidal.Utils
 import qualified Sound.Tidal.Time as T
 
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 
 type ToMessageFunc = Shape -> Tempo -> Int -> (Double, Double, ParamMap) -> Maybe (IO ())
 
