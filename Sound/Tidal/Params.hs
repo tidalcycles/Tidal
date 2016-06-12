@@ -75,6 +75,10 @@ which performs a similar effect, but due to differences in implementation sounds
 (begin, begin_p)                 = pF "begin" (Just 0)
 -- | choose the physical channel the pattern is sent to, this is super dirt specific
 (channel, channel_p)             = pI "channel" Nothing
+
+--legato controls the amount of overlap between two adjacent synth sounds
+(legato, legato_p)             = pF "legato" (Just 1)
+
 (clhatdecay, clhatdecay_p)       = pF "clhatdecay" (Just 0)
 -- | fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
 (coarse, coarse_p)               = pI "coarse" (Just 0)
@@ -150,7 +154,7 @@ Using `cut "0"` is effectively _no_ cutgroup.
 -}
 (lock, lock_p)                 = pF "lock" (Just 0)
 -- | loops the sample (from `begin` to `end`) the specified number of times.
-(loop, loop_p)                   = pI "loop" (Just 1)
+(loop, loop_p)                   = pF "loop" (Just 1)
 (lophat, lophat_p)               = pF "lophat" (Just 0)
 (lsnare, lsnare_p)               = pF "lsnare" (Just 0)
 -- | specifies the sample variation to be used
@@ -165,8 +169,19 @@ d1 $ stack [
   ] # nudge "[0 0.04]*4"
 @
 
-Low values will give a more _human_ feeling, high values might result in quite the contrary.
--}
+--pitch model -}
+
+
+(degree, degree_p)               = pF "degree" Nothing
+(mtranspose, mtranspose_p)       = pF "mtranspose" Nothing
+(ctranspose, ctranspose_p)       = pF "ctranspose" Nothing
+(harmonic, harmonic_p)           = pF "ctranspose" Nothing
+(stepsPerOctave, stepsPerOctave_p)           = pF "stepsPerOctave" Nothing
+(octaveRatio, octaveRatio_p)           = pF "octaveRatio" Nothing
+
+
+--Low values will give a more _human_ feeling, high values might result in quite the contrary.
+
 (nudge, nudge_p)                 = pF "nudge" (Just 0)
 (octave, octave_p)               = pI "octave" (Just 3)
 (offset, offset_p)               = pF "offset" (Just 0)
