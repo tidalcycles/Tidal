@@ -8,7 +8,9 @@ import Sound.Tidal.Utils
 
 import Control.Concurrent.MVar
 import Control.Applicative
+import Data.Maybe
 
+import qualified Data.Map.Strict as Map
 import Data.Monoid
 
 transition :: (IO Time) -> MVar (ParamPattern, [ParamPattern]) -> (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ()
@@ -83,3 +85,18 @@ jumpMod n now = jumpIn ((n-1) - ((floor now) `mod` n)) now
 mortal :: Time -> Time -> Time -> [ParamPattern] -> ParamPattern
 mortal _ _ _ [] = silence
 mortal lifespan release now (p:_) = overlay (playWhen (<(now+lifespan)) p) (playWhen (>= (now+lifespan)) (fadeOut' (now + lifespan) release p))
+
+combineV :: (Value -> Value -> Value) -> ParamMap -> ParamMap -> ParamMap
+combineV f a b = Map.mapWithKey pairUp a
+  where pairUp k v | Map.notMember k b = v
+                   | otherwise = liftA2 f v (fromJust $ Map.lookup k b)
+
+mixNums v (VF a) (VF b) = VF $ (a * v) + (b * (1-v))
+mixNums v (VI a) (VI b) = VI $ floor $ (fromIntegral a * v) + (fromIntegral b * (1-v))
+mixNums v _ b = b
+
+interpolateIn :: Time -> Time -> [ParamPattern] -> ParamPattern
+interpolateIn _ _ [] = silence
+interpolateIn _ _ (p:[]) = p
+interpolateIn t now (p:p':_) = do n <- now ~> (slow t envL)
+                                  combineV (mixNums n) <$> p <*> p'
