@@ -16,6 +16,7 @@ import qualified Control.Exception as E
 import qualified System.IO.Error as Error
 import GHC.Conc.Sync (ThreadId)
 import System.Environment (getEnv)
+import Sound.OSC.FD
 
 import Sound.Tidal.Utils
 
@@ -72,8 +73,9 @@ clientApp mTempo mCps conn = do
         msg <- WS.receiveData conn
         let s = T.unpack msg
         let tempo = readTempo $ s
-        --putStrLn $ "to: " ++ show tempo
-        liftIO $ tryTakeMVar mTempo
+        old <- liftIO $ tryTakeMVar mTempo
+        -- putStrLn $ "from: " ++ show old
+        -- putStrLn $ "to: " ++ show tempo
         liftIO $ putMVar mTempo tempo
 
 sendCps :: WS.Connection -> MVar Tempo -> MVar Double -> IO ()
@@ -182,12 +184,17 @@ clockedTick tpb callback =
              let tps = (fromIntegral tpb) * cps tempo
                  delta = realToFrac $ diffUTCTime now (at tempo)
                  actualTick = ((fromIntegral tpb) * beat tempo) + (tps * delta)
-                 tickDelta = (fromIntegral tick) - actualTick
+                 -- only wait by up to two ticks
+                 tickDelta = min 2 $ (fromIntegral tick) - actualTick
                  delay = tickDelta / tps
+             -- putStrLn $ "tick delta: " ++ show tickDelta
              --putStrLn ("Delay: " ++ show delay ++ "s Beat: " ++ show (beat tempo))
              threadDelay $ floor (delay * 1000000)
              callback tempo tick
-             return $ tick + 1
+             -- putStrLn $ "hmm diff: " ++ show (abs $ (floor actualTick) - tick)
+             let newTick | (abs $ (floor actualTick) - tick) > 4 = floor actualTick
+                         | otherwise = tick + 1
+             return $ newTick
 
 --updateTempo :: MVar Tempo -> Maybe Double -> IO ()
 --updateTempo mt Nothing = return ()
@@ -228,6 +235,7 @@ startServer = do
   l <- getLatency
   tempoState <- newMVar (Tempo start 0 1 False l)
   clientState <- newMVar []
+  liftIO $ oscBridge clientState
   forkIO $ WS.runServer "0.0.0.0" serverPort $ serverApp tempoState clientState
 
 serverApp :: MVar Tempo -> MVar ClientState -> WS.ServerApp
@@ -235,9 +243,38 @@ serverApp tempoState clientState pending = do
     conn <- WS.acceptRequest pending
     tempo <- liftIO $ readMVar tempoState
     liftIO $ WS.sendTextData conn $ T.pack $ show tempo
-    clients <- liftIO $ readMVar clientState
+    -- clients <- liftIO $ readMVar clientState
     liftIO $ modifyMVar_ clientState $ \s -> return $ addClient conn s
     serverLoop conn tempoState clientState
+
+oscBridge :: MVar ClientState -> IO ()
+oscBridge clientState =
+  do -- putStrLn $ "start osc bridge"
+     osc <- liftIO $ udpServer "0.0.0.0" 6060
+     forkIO $ loop osc
+     return ()
+  where loop osc =
+          do b <- recvBundle osc
+             -- putStrLn $ "received bundle" ++ (show b)
+             let timestamp = addUTCTime (realToFrac $ ntpr_to_ut $ bundleTime b) ut_epoch
+                 msg = head $ bundleMessages b
+                 -- todo - Data.Maybe version of !!
+                 tick = datum_floating $ (messageDatum msg) !! 0
+                 tempo = datum_floating $ (messageDatum msg) !! 1
+                 address = messageAddress msg
+             act address timestamp tick tempo
+             loop osc
+        act "/sync" timestamp (Just tick) (Just tempo)
+          = do -- putStrLn $ "time " ++ show timestamp ++ " tick " ++ show tick ++ " tempo " ++ show tempo
+               let t = Tempo {at = timestamp, beat = tick, cps = tempo,
+                              paused = False,
+                              clockLatency = 0
+                             }
+                   msg = T.pack $ show t
+               clients <- readMVar clientState
+               broadcast msg clients
+               return ()
+        act _ _ _ _  = return ()
 
 serverLoop :: WS.Connection -> MVar Tempo -> MVar ClientState -> IO ()
 serverLoop conn tempoState clientState = E.handle catchDisconnect $ 
