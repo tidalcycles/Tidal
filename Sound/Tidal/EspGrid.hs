@@ -9,13 +9,6 @@ import Data.Time.Clock
 import Data.Time.Clock.POSIX
 import Data.Time.Calendar (fromGregorian)
 
--- test = do
---  (cps,getNow) <- cpsUtilsEsp
---  (c1,ct1) <- dirtSetters getNow
---  c1 $ s (p "bd cp")
---  getLine
---  c1 silence
-
 parseEspTempo :: [Datum] -> Maybe Tempo
 parseEspTempo d = do
   on <- datum_integral (d!!0)
@@ -25,47 +18,36 @@ parseEspTempo d = do
   n <- datum_integral (d!!4)
   let nanos = (t1*1000000000) + t2
   let utc = posixSecondsToUTCTime ((realToFrac nanos)/1000000000)
-  return (Tempo utc (fromIntegral n) (bpm/60) (on==0) 0.04)
+  return (Tempo utc (fromIntegral n) (bpm/60/4) (on==0) 0.04)
 
 changeTempo :: MVar Tempo -> Packet -> IO ()
 changeTempo mvar (Packet_Message msg) = do
-    let t = parseEspTempo (messageDatum msg)
-    case t of
-      Just t' -> do
-        tryTakeMVar mvar
-        putMVar mvar t'
---        putStrLn ("changeTempo: " ++ (show t'))
-        return ()
+    case parseEspTempo (messageDatum msg) of
+      Just t -> tryTakeMVar mvar >> putMVar mvar t
       Nothing -> error "Unable to parse message as Tempo"
 changeTempo _ _ = error "Can only process Packet_Message"
-
-tempoQuery :: MVar Tempo -> IO ()
-tempoQuery mvar = do
-  socket <- openUDP "127.0.0.1" 5510
-  sendOSC socket $ Message "/esp/tempo/q" []
-  response <- waitAddress socket "/esp/tempo/r"
-  changeTempo mvar response
-
-clientEsp :: MVar Tempo -> MVar Double -> IO ()
-clientEsp t cps = forever $ do
-  tempoQuery t
-  threadDelay 500000
-
--- this should be moved to Tempo.hs and incorporated in other places
-getCurrentBeat :: MVar Tempo -> IO Rational
-getCurrentBeat t = (readMVar t) >>= (beatNow) >>= (return . toRational)
 
 runClientEsp :: IO (MVar Tempo,MVar Double)
 runClientEsp = do
   mTempo <- newEmptyMVar
   mCps <- newEmptyMVar
-  forkIO $ clientEsp mTempo mCps
+  socket <- openUDP "127.0.0.1" 5510
+  forkIO $ forever $ do
+    sendOSC socket $ Message "/esp/tempo/q" []
+    response <- waitAddress socket "/esp/tempo/r"
+    changeTempo mTempo response
+    threadDelay 100000
   return (mTempo, mCps)
+
+sendEspTempo :: Real t => t -> IO ()
+sendEspTempo t = do
+  socket <- openUDP "127.0.0.1" 5510
+  sendOSC socket $ Message "/esp/tempo/s" [float (t*60*4)]
 
 cpsUtilsEsp :: IO (Double -> IO (), IO Rational)
 cpsUtilsEsp = do
   (mTempo,mCps) <- runClientEsp
-  return (putMVar mCps,getCurrentBeat mTempo)
+  return (sendEspTempo,getCurrentBeat mTempo)
 
 clockedTickEsp :: Int -> (Tempo -> Int -> IO ()) -> IO ()
 clockedTickEsp tpb callback =

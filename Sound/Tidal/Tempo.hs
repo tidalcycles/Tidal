@@ -64,6 +64,10 @@ beatNow t = do now <- getCurrentTime
                let beatDelta = cps t * delta
                return $ beat t + beatDelta
 
+-- getCurrentBeat: given current Tempo grid, gets the current beat
+getCurrentBeat :: MVar Tempo -> IO Rational
+getCurrentBeat t = (readMVar t) >>= (beatNow) >>= (return . toRational)
+
 clientApp :: MVar Tempo -> MVar Double -> WS.ClientApp ()
 clientApp mTempo mCps conn = do
   --sink <- WS.getSink
@@ -113,11 +117,7 @@ runClient =
 
 cpsUtils :: IO ((Double -> IO (), IO (Rational)))
 cpsUtils = do (mTempo, mCps) <- runClient
-              let cpsSetter b = putMVar mCps b
-                  currentTime = do tempo <- readMVar mTempo
-                                   now <- beatNow tempo
-                                   return $ toRational now
-              return (cpsSetter, currentTime)
+              return (putMVar mCps, getCurrentBeat mTempo )
 
 -- Backwards compatibility
 bpsUtils :: IO ((Double -> IO (), IO (Rational)))
