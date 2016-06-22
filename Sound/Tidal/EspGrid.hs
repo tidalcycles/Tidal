@@ -1,6 +1,5 @@
 module Sound.Tidal.EspGrid where
 
-import Sound.Tidal.Tempo
 import Control.Concurrent.MVar
 import Control.Concurrent
 import Control.Monad (forever)
@@ -9,6 +8,14 @@ import Sound.OSC.FD
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
 import Data.Time.Calendar (fromGregorian)
+
+import Sound.Tidal.Tempo
+import Sound.Tidal.Time as T
+import Sound.Tidal.Stream
+import Sound.Tidal.Dirt
+import Sound.Tidal.Transition (transition)
+import Sound.Tidal.Pattern (silence)
+
 
 parseEspTempo :: [Datum] -> Maybe Tempo
 parseEspTempo d = do
@@ -72,3 +79,34 @@ clockedTickLoopEsp tpb callback mTempo tick = do
       threadDelay $ floor (delayUntilTick * 1000000)
       callback tempo tick
       return $ tick + 1
+
+streamEsp :: Backend a -> Shape -> IO (ParamPattern -> IO ())
+streamEsp backend shape = do
+  patternM <- newMVar silence
+  forkIO $ clockedTickEsp ticksPerCycle (onTick backend shape patternM)
+  return $ \p -> do swapMVar patternM p
+                    return ()
+
+dirtStreamEsp :: IO (ParamPattern -> IO ())
+dirtStreamEsp = do
+  backend <- dirtBackend
+  streamEsp backend dirt
+
+stateEsp :: Backend a -> Shape -> IO (MVar (ParamPattern, [ParamPattern]))
+stateEsp backend shape = do
+  patternsM <- newMVar (silence, [])
+  let ot = (onTick' backend shape patternsM) :: Tempo -> Int -> IO ()
+  forkIO $ clockedTickEsp ticksPerCycle ot
+  return patternsM
+
+dirtSettersEsp :: IO T.Time -> IO (ParamPattern -> IO (), (T.Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
+dirtSettersEsp getNow = do
+  backend <- dirtBackend
+  ds <- stateEsp backend dirt
+  return (setter ds, transition getNow ds)
+
+superDirtSettersEsp :: IO T.Time -> IO (ParamPattern -> IO (), (T.Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
+superDirtSettersEsp getNow = do
+  backend <- superDirtBackend 57120
+  ds <- stateEsp backend dirt
+  return (setter ds, transition getNow ds)
