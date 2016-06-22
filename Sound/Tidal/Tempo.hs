@@ -119,34 +119,6 @@ cpsSetter :: IO (Double -> IO ())
 cpsSetter = do (f, _) <- cpsUtils
                return f
 
-{-
-clocked callback =
-  do (mTempo, mCps) <- runClient
-     t <- readMVar mTempo
-     now <- getCurrentTime
-     let delta = realToFrac $ diffUTCTime now (at t)
-         beatDelta = cps t * delta
-         nowBeat = beat t + beatDelta
-         nextBeat = ceiling nowBeat
-         -- next4 = nextBeat + (4 - (nextBeat `mod` 4))
-     loop mTempo nextBeat
-  where loop mTempo b =
-          do t <- readMVar mTempo
-             b' <- doSlice t b
-             loop mTempo $ b'
-        -- wait an eighth of a cycle if we're paused
-        doSlice t b | paused t = threadDelay $ floor ((0.125 / cps t) * 1000000)
-                    | otherwise =
-          do now <- getCurrentTime
-             let delta = realToFrac $ diffUTCTime now (at t)
-                 actualBeat = (beat t) + ((cps t) * delta)
-                 beatDelta = (fromIntegral b) - actualBeat
-                 delay = beatDelta / (cps t)
-             threadDelay $ floor (delay * 1000000)
-             callback t b
-             return $ b + 1
--}
-
 clockedTick :: Int -> (Tempo -> Int -> IO ()) -> IO ()
 clockedTick tpb callback =
   do (mTempo, mCps) <- runClient
