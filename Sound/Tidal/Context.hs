@@ -16,3 +16,4 @@ import Sound.Tidal.SuperCollider as C
 import Sound.Tidal.Params as C
 import Sound.Tidal.Transition as C
 import Sound.Tidal.EspGrid as C
+import Sound.Tidal.MultiMode as C

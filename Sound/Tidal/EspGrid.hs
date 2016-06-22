@@ -91,36 +91,6 @@ dirtStreamEsp = do
   backend <- dirtBackend
   streamEsp backend dirt
 
-data StreamType = Dirt | DirtEsp
-
-initializeStreamType :: IO (MVar StreamType)
-initializeStreamType = newMVar Dirt
-
-changeStreamType :: MVar StreamType -> StreamType -> IO (IO StreamType)
-changeStreamType mvar t = return (swapMVar mvar t)
-
-multiStream :: MVar StreamType -> IO (ParamPattern -> IO ())
-multiStream mType = do
-  classicDirt <- dirtStream
-  espDirt <- dirtStreamEsp
-  return $ \p -> do
-    t <- readMVar mType
-    case t of Dirt -> do putStrLn "using classic Dirt"
-                         classicDirt p
-                         espDirt silence
-              DirtEsp -> do putStrLn "using Dirt + Esp"
-                            espDirt p
-                            classicDirt silence
-
-{-
-  Example of using above multistream:
-  streamType <- initializeStreamType
-  esp <- changeStreamType streamType DirtEsp
-  classic <- changeStreamType streamType Dirt
-  d1 <- multiStream streamType
-  d2 <- multiStream streamType
--}
-
 stateEsp :: Backend a -> Shape -> IO (MVar (ParamPattern, [ParamPattern]))
 stateEsp backend shape = do
   patternsM <- newMVar (silence, [])
