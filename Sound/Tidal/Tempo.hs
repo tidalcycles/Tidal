@@ -153,15 +153,6 @@ clockedTick tpb callback =
              callback tempo tick
              return $ tick + 1
 
---updateTempo :: MVar Tempo -> Maybe Double -> IO ()
---updateTempo mt Nothing = return ()
---updateTempo mt (Just cps') = do t <- takeMVar mt
---                                now <- getCurrentTime
---                                let delta = realToFrac $ diffUTCTime now (at t)
---                                    beat' = (beat t) + ((cps t) * delta)
---                                putMVar mt $ Tempo now beat' cps' (paused t)
-
-
 updateTempo :: Tempo -> Double -> IO (Tempo)
 updateTempo t cps'
   | paused t == True && cps' > 0 =
