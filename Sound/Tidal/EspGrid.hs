@@ -4,6 +4,7 @@ import Sound.Tidal.Tempo
 import Control.Concurrent.MVar
 import Control.Concurrent
 import Control.Monad (forever)
+import Control.Monad.Loops (iterateM_)
 import Sound.OSC.FD
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
@@ -54,12 +55,12 @@ clockedTickEsp tpb callback = do
   (mTempo, _) <- runClientEsp
   nowBeat <- getCurrentBeat mTempo
   let nextTick = ceiling (nowBeat * (fromIntegral tpb))
-  clockedTickLoopEsp tpb callback mTempo nextTick
+  iterateM_ (clockedTickLoopEsp tpb callback mTempo) nextTick
 
-clockedTickLoopEsp :: Int -> (Tempo -> Int -> IO ()) -> MVar Tempo -> Int -> IO ()
+clockedTickLoopEsp :: Int -> (Tempo -> Int -> IO ()) -> MVar Tempo -> Int -> IO Int
 clockedTickLoopEsp tpb callback mTempo tick = do
   tempo <- readMVar mTempo
-  tick' <- if (paused tempo)
+  if (paused tempo)
     then do  -- TODO - do this via blocking read on the mvar somehow rather than polling
       let pause = 0.01
       threadDelay $ floor (pause * 1000000)
@@ -71,4 +72,3 @@ clockedTickLoopEsp tpb callback mTempo tick = do
       threadDelay $ floor (delayUntilTick * 1000000)
       callback tempo tick
       return $ tick + 1
-  clockedTickLoopEsp tpb callback mTempo tick'
