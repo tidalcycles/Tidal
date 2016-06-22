@@ -47,14 +47,6 @@ logicalTime t b = changeT + timeDelta
         timeDelta = beatDelta / (cps t)
         changeT = realToFrac $ utcTimeToPOSIXSeconds $ at t
 
-tempoMVar :: IO (MVar (Tempo))
-tempoMVar = do now <- getCurrentTime
-               l <- getLatency
-               mv <- newMVar (Tempo now 0 0.5 False l)
-               forkIO $ clocked $ f mv
-               return mv
-  where f mv change _ = do swapMVar mv change
-                           return ()
 
 -- beatNow: accesses a clock and returns the time now in terms of
 -- beats relative to metrical grid of a given Tempo
