@@ -118,8 +118,6 @@ bpsUtils = cpsUtils
 cpsSetter :: IO (Double -> IO ())
 cpsSetter = do (f, _) <- cpsUtils
                return f
-clocked :: (Tempo -> Int -> IO ()) -> IO ()
-clocked = clockedTick 1
 
 {-
 clocked callback =
