@@ -18,7 +18,7 @@ parseEspTempo d = do
   n <- datum_integral (d!!4)
   let nanos = (t1*1000000000) + t2
   let utc = posixSecondsToUTCTime ((realToFrac nanos)/1000000000)
-  return (Tempo utc (fromIntegral n) (bpm/60/4) (on==0) 0.04)
+  return (Tempo utc (fromIntegral n) (bpm/60) (on==0) 0.04)
 
 changeTempo :: MVar Tempo -> Packet -> IO ()
 changeTempo mvar (Packet_Message msg) = do
@@ -42,7 +42,7 @@ runClientEsp = do
 sendEspTempo :: Real t => t -> IO ()
 sendEspTempo t = do
   socket <- openUDP "127.0.0.1" 5510
-  sendOSC socket $ Message "/esp/tempo/s" [float (t*60*4)]
+  sendOSC socket $ Message "/esp/tempo/s" [float (t*60)]
 
 cpsUtilsEsp :: IO (Double -> IO (), IO Rational)
 cpsUtilsEsp = do
@@ -50,36 +50,25 @@ cpsUtilsEsp = do
   return (sendEspTempo,getCurrentBeat mTempo)
 
 clockedTickEsp :: Int -> (Tempo -> Int -> IO ()) -> IO ()
-clockedTickEsp tpb callback =
-    do (mTempo, mCps) <- runClientEsp
-       t <- readMVar mTempo
-       now <- getCurrentTime
-       let delta = realToFrac $ diffUTCTime now (at t)
-           beatDelta = cps t * delta
-           nowBeat = beat t + beatDelta
-           nextTick = ceiling (nowBeat * (fromIntegral tpb))
-           -- next4 = nextBeat + (4 - (nextBeat `mod` 4))
-       loop mTempo nextTick
-    where loop mTempo tick =
-            do tempo <- readMVar mTempo
---               putStrLn ("clockedTickEsp: " ++ (show tempo))
-               tick' <- doTick tempo tick
-               loop mTempo tick'
-          doTick tempo tick | paused tempo =
-            do let pause = 0.01
-               -- TODO - do this via blocking read on the mvar somehow
-               -- rather than polling
-               threadDelay $ floor (pause * 1000000)
-               -- reset tick to 0 if cps is negative
-               return $ if cps tempo < 0 then 0 else tick
-                            | otherwise =
-            do now <- getCurrentTime
-               let tps = (fromIntegral tpb) * cps tempo
-                   delta = realToFrac $ diffUTCTime now (at tempo)
-                   actualTick = ((fromIntegral tpb) * beat tempo) + (tps * delta)
-                   tickDelta = (fromIntegral tick) - actualTick
-                   delay = tickDelta / tps
-               --putStrLn ("Delay: " ++ show delay ++ "s Beat: " ++ show (beat tempo))
-               threadDelay $ floor (delay * 1000000)
-               callback tempo tick
-               return $ tick + 1
+clockedTickEsp tpb callback = do
+  (mTempo, _) <- runClientEsp
+  nowBeat <- getCurrentBeat mTempo
+  let nextTick = ceiling (nowBeat * (fromIntegral tpb))
+  clockedTickLoopEsp tpb callback mTempo nextTick
+
+clockedTickLoopEsp :: Int -> (Tempo -> Int -> IO ()) -> MVar Tempo -> Int -> IO ()
+clockedTickLoopEsp tpb callback mTempo tick = do
+  tempo <- readMVar mTempo
+  tick' <- if (paused tempo)
+    then do  -- TODO - do this via blocking read on the mvar somehow rather than polling
+      let pause = 0.01
+      threadDelay $ floor (pause * 1000000)
+      return $ if cps tempo < 0 then 0 else tick  -- reset tick to 0 if cps is negative
+    else do
+      now <- getCurrentTime
+      let beatsFromAtToTick = fromIntegral tick / fromIntegral tpb - beat tempo
+          delayUntilTick = beatsFromAtToTick / cps tempo - realToFrac (diffUTCTime now (at tempo))
+      threadDelay $ floor (delayUntilTick * 1000000)
+      callback tempo tick
+      return $ tick + 1
+  clockedTickLoopEsp tpb callback mTempo tick'
