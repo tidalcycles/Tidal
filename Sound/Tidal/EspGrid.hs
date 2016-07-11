@@ -49,7 +49,7 @@ runClientEsp = do
 sendEspTempo :: Real t => t -> IO ()
 sendEspTempo t = do
   socket <- openUDP "127.0.0.1" 5510
-  sendOSC socket $ Message "/esp/tempo/s" [float (t*60)]
+  sendOSC socket $ Message "/esp/beat/tempo" [float (t*60)]
 
 cpsUtilsEsp :: IO (Double -> IO (), IO Rational)
 cpsUtilsEsp = do
