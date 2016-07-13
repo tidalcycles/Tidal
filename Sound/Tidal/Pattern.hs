@@ -277,10 +277,10 @@ There is also `iter'`, which shifts the pattern in the opposite direction.
 
 -}
 iter :: Int -> Pattern a -> Pattern a
-iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. n]
+iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. (n-1)]
 
 iter' :: Int -> Pattern a -> Pattern a
-iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) ~> p) [0 .. n]
+iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) ~> p) [0 .. (n-1)]
 
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
