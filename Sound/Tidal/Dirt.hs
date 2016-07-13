@@ -58,7 +58,7 @@ dirt = Shape {   params = [ s_p,
                             release_p
                           ],
                  cpsStamp = True,
-                 latency = 0.2
+                 latency = 0.04
                 }
 
 dirtSlang = OscSlang {
