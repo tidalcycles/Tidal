@@ -291,9 +291,17 @@ rev p = splitQueries $ Pattern $ \a -> mapArcs mirrorArc (arc p (mirrorArc a))
 -- the pattern alternates between forwards and backwards.
 palindrome p = append' p (rev p)
 
--- | @when test f p@ applies the function @f@ to @p@, but in a way
--- which only affects cycles where the @test@ function applied to the
--- cycle number returns @True@.
+{-|
+Only `when` the given test function returns `True` the given pattern transformation is applied. The test function will be called with the current cycle as a number.
+
+@
+d1 $ when ((elem '4').show)
+  (striate 4)
+  $ sound "hh hc"
+@
+
+The above will only apply `striate 4` to the pattern if the current cycle number contains the number 4. So the fourth cycle will be striated and the fourteenth and so on. Expect lots of striates after cycle number 399.
+-}
 when :: (Int -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
 when test f p = splitQueries $ Pattern apply
   where apply a | test (floor $ fst a) = (arc $ f p) a
@@ -566,6 +574,20 @@ groupByTime :: [Event a] -> [Event [a]]
 groupByTime es = map mrg $ groupBy ((==) `on` snd') $ sortBy (compare `on` snd') es
   where mrg es@((a, a', _):_) = (a, a', map thd' es)
 
+
+{-| Decide whether to apply one or another function depending on the result of a test function that is passed the current cycle as a number.
+
+@
+d1 $ ifp ((== 0).(flip mod 2))
+  (striate 4)
+  (# coarse "24 48") $
+  sound "hh hc"
+@
+
+This will apply `striate 4` for every _even_ cycle and aply `# coarse "24 48"` for every _odd_.
+
+Detail: As you can see the test function is arbitrary and does not rely on anything tidal specific. In fact it uses only plain haskell functionality, that is: it calculates the modulo of 2 of the current cycle which is either 0 (for even cycles) or 1. It then compares this value against 0 and returns the result, which is either `True` or `False`. This is what the `ifp` signature's first part signifies `(Int -> Bool)`, a function that takes a whole number and returns either `True` or `False`.
+-}
 ifp :: (Int -> Bool) -> (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ifp test f1 f2 p = splitQueries $ Pattern apply
   where apply a | test (floor $ fst a) = (arc $ f1 p) a
@@ -1014,7 +1036,35 @@ unwrap' :: Pattern (Pattern a) -> Pattern a
 unwrap' pp = Pattern $ \a -> arc (stack $ map scalep (arc pp a)) a
   where scalep ev = compress (fst' ev) $ thd' ev
 
--- | removes events from pattern b that don't start during an event from pattern a
+{-|
+Removes events from second pattern that don't start during an event from first.
+
+Consider this, kind of messy rhythm without any rests.
+
+@
+d1 $ sound (slowcat ["sn*8", "[cp*4 bd*4, hc*5]"]) # n (run 8)
+@
+
+If we apply a mask to it
+
+@
+d1 $ s (mask ("1 1 1 ~ 1 1 ~ 1" :: Pattern Bool)
+  (slowcat ["sn*8", "[cp*4 bd*4, bass*5]"] ))
+  # n (run 8) 
+@
+
+Due to the use of `slowcat` here, the same mask is first applied to `"sn*8"` and in the next cycle to `"[cp*4 bd*4, hc*5]".
+
+You could achieve the same effect by adding rests within the `slowcat` patterns, but mask allows you to do this more easily. It kind of keeps the rhythmic structure and you can change the used samples independently, e.g.
+
+@
+d1 $ s (mask ("1 ~ 1 ~ 1 1 ~ 1" :: Pattern Bool)
+  (slowcat ["can*8", "[cp*4 sn*4, jvbass*16]"] ))
+  # n (run 8) 
+@
+
+Detail: It is currently needed to explicitly _tell_ Tidal that the mask itself is a `Pattern Bool` as it cannot infer this by itself, otherwise it will complain as it does not know how to interpret your input.
+-}
 mask :: Pattern a -> Pattern b -> Pattern b
 mask pa pb = Pattern $ \a -> concat [filterOns (subArc a $ eventArc i) (arc pb a) | i <- arc pa a]
      where filterOns Nothing es = []
