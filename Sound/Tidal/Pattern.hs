@@ -835,7 +835,7 @@ index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
   where zoom' sz start = zoom (start, start+sz)
 
--- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
+-- | @prrw f rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
 prrw :: (a -> b -> c) -> Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
 prrw f rot (blen, vlen) beatPattern valuePattern =
   let
@@ -850,7 +850,7 @@ prrw f rot (blen, vlen) beatPattern valuePattern =
     (drop (rot `mod` length values) $ cycle values)
 
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
-prr :: Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern b
+prr :: Int -> (Time, Time) -> Pattern String -> Pattern b -> Pattern b
 prr = prrw $ flip const
 
 {-|
@@ -869,20 +869,20 @@ d1 $ sound "[jvbass jvbass:5]*3" |+| (shape $ "1 1 1 1 1" <~> "0.2 0.9")
 
 It is assumed the pattern fits into a single cycle. This works well with
 pattern literals, but not always with patterns defined elsewhere. In those cases
-use @prr@ and provide desired pattern lengths:
+use @preplace@ and provide desired pattern lengths:
 @
 let p = slow 2 $ "x x x"
 
-d1 $ sound $ prr 0 (2,1) p "bd sn"
+d1 $ sound $ prreplace (2,1) p "bd sn"
 @
 -}
-preplace :: (Time, Time) -> Pattern a -> Pattern b -> Pattern b
+preplace :: (Time, Time) -> Pattern String -> Pattern b -> Pattern b
 preplace = preplaceWith $ flip const
 
 prep = preplace
 
-preplace1 :: Pattern a -> Pattern b -> Pattern b
-preplace1 = prr 0 (1, 1)
+preplace1 :: Pattern String -> Pattern b -> Pattern b
+preplace1 = preplace (1, 1)
 
 preplaceWith :: (a -> b -> c) -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
 preplaceWith f (blen, plen) = prrw f 0 (blen, plen)
@@ -894,14 +894,14 @@ preplaceWith1 f = prrw f 0 (1, 1)
 
 prw1 = preplaceWith1
 
-(<~>) :: Pattern a -> Pattern b -> Pattern b
+(<~>) :: Pattern String -> Pattern b -> Pattern b
 (<~>) = preplace (1, 1)
 
 -- | @protate len rot p@ rotates pattern @p@ by @rot@ beats to the left.
 -- @len@: length of the pattern, in cycles.
 -- Example: @d1 $ every 4 (protate 2 (-1)) $ slow 2 $ sound "bd hh hh hh"@
 protate :: Time -> Int -> Pattern a -> Pattern a
-protate len rot p = prr rot (len, len) p p
+protate len rot p = prrw (flip const) rot (len, len) p p
 
 prot = protate
 prot1 = protate 1
