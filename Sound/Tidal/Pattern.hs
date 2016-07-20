@@ -934,7 +934,7 @@ discretise n p = density n $ (atom (id)) <*> p
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps)) (slowcat ps)
+randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps - 1)) (slowcat ps)
 
 -- | @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
