@@ -1005,7 +1005,7 @@ struct ps pv = (flip const) <$> ps <*> pv
 substruct :: Pattern String -> Pattern b -> Pattern b
 substruct s p = Pattern $ f
   where f a = concatMap (\a' -> arc (compressTo a' p) a') $ (map fst' $ arc s a)
-              compressTo (s,e) p = compress (cyclePos s, e-(sam s)) p
+        compressTo (s,e) p = compress (cyclePos s, e-(sam s)) p
 
 -- Lindenmayer patterns, these go well with the step sequencer
 -- general rule parser (strings map to strings)
