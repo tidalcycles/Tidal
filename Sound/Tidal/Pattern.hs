@@ -697,6 +697,8 @@ often = sometimesBy 0.75
 rarely = sometimesBy 0.25
 almostNever = sometimesBy 0.1
 almostAlways = sometimesBy 0.9
+never = flip const
+always = id
 
 {- | `degrade` randomly removes events from a pattern 50% of the time:
 
@@ -997,6 +999,13 @@ permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate
 -- | @struct a b@: structures pattern @b@ in terms of @a@.
 struct :: Pattern String -> Pattern a -> Pattern a
 struct ps pv = (flip const) <$> ps <*> pv
+
+
+-- | @substruct a b@: similar to @struct@, but each event in pattern @a@ gets replaced with pattern @b@, compressed to fit the timespan of the event.
+substruct :: Pattern String -> Pattern b -> Pattern b
+substruct s p = Pattern $ f
+  where f a = concatMap (\a' -> arc (compressTo a' p) a') $ (map fst' $ arc s a)
+              compressTo (s,e) p = compress (cyclePos s, e-(sam s)) p
 
 -- Lindenmayer patterns, these go well with the step sequencer
 -- general rule parser (strings map to strings)
