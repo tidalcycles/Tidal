@@ -41,6 +41,8 @@ readTempo :: String -> Tempo
 readTempo x = Tempo (read a) (read b) (read c) (read d) (read e)
   where (a:b:c:d:e:_) = wordsBy (== ',') x
 
+-- given a Tempo and a cycle position (aka "a beat")
+-- returns the POSIX time of that cycle position (aka beat)
 logicalTime :: Tempo -> Double -> Double
 logicalTime t b = changeT + timeDelta
   where beatDelta = b - (beat t)
