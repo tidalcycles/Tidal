@@ -543,9 +543,10 @@ filterOnsets (Pattern f) =
   Pattern $ (filter (\e -> eventOnset e >= eventStart e)) . f
 
 -- Filter events which have onsets, which are within the given range
+-- TODO - what about < e ??
 filterStartInRange :: Pattern a -> Pattern a
 filterStartInRange (Pattern f) =
-  Pattern $ \(s,e) -> filter ((>= s) . eventOnset) $ f (s,e)
+  Pattern $ \(s,e) -> filter ((isIn (s,e)) . eventOnset) $ f (s,e)
 
 filterOnsetsInRange = filterOnsets . filterStartInRange
 
@@ -1003,7 +1004,7 @@ struct ps pv = (flip const) <$> ps <*> pv
 
 -- | @substruct a b@: similar to @struct@, but each event in pattern @a@ gets replaced with pattern @b@, compressed to fit the timespan of the event.
 substruct :: Pattern String -> Pattern b -> Pattern b
-substruct s p = Pattern $ f
+substruct s p = filterStartInRange $ Pattern $ f
   where f a = concatMap (\a' -> arc (compressTo a' p) a') $ (map fst' $ arc s a)
         compressTo (s,e) p = compress (cyclePos s, e-(sam s)) p
 
