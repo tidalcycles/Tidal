@@ -4,7 +4,7 @@ module Sound.Tidal.Tempo where
 import Data.Time (getCurrentTime, UTCTime, NominalDiffTime, diffUTCTime, addUTCTime)
 import Data.Time.Clock.POSIX
 import Control.Monad (forM_, forever, void)
-import Control.Monad.IO.Class (liftIO)
+--import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
 import Control.Monad.Trans (liftIO)
