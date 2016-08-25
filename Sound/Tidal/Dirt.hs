@@ -13,7 +13,6 @@ import Data.Bits
 import Data.Maybe
 import Data.Fixed
 import Data.Ratio
-import System.Process
 
 import Sound.Tidal.Stream
 import Sound.Tidal.OscStream
