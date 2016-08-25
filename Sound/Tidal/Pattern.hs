@@ -16,10 +16,9 @@ import System.Random.Mersenne.Pure64
 import Data.Char
 import qualified Data.Text as T
 
-import Music.Theory.Bjorklund
-
 import Sound.Tidal.Time
 import Sound.Tidal.Utils
+import Sound.Tidal.Bjorklund
 
 -- | The pattern datatype, a function from a time @Arc@ to @Event@
 -- values. For discrete patterns, this returns the events which are
@@ -826,6 +825,8 @@ within (s,e) f p = stack [sliceArc (0,s) p,
                           ]
 
 revArc a = within a rev
+
+-- 
 
 e :: Int -> Int -> Pattern a -> Pattern a
 e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)) <*> p
