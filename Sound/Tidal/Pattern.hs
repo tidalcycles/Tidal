@@ -12,7 +12,9 @@ import Data.Ratio
 import Debug.Trace
 import Data.Typeable
 import Data.Function
-import System.Random.Mersenne.Pure64
+import Data.Word
+import System.Random.TF
+import qualified System.Random.TF.Gen as TFGen
 import Data.Char
 import qualified Data.Text as T
 
@@ -627,7 +629,19 @@ d1 $ jux (|+| ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 rand :: Pattern Double
 rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
-timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
+timeToRand t = fst $ randomDouble $ mkTFGen $ floor $ (*1000000) t
+
+-- Replicate Double generation for the @tf-random@ library which only generates Word32's.
+-- Upto Tidal version 0.8 we depended on @mersenne-random-pure64@ which natively generated Doubles. 
+randomDouble :: TFGen -> (Double, TFGen)
+randomDouble g = 
+    let (n,g1) = TFGen.next g 
+        i = expandW32 n
+    in (fromIntegral (i `div` 2048)/ 9007199254740992,g1)
+
+expandW32 :: Word32 -> Word64
+expandW32 n = let i = fromIntegral n  in i*i
+
 
 {- | Just like `rand` but for integers, `irand n` generates a pattern of (pseudo-)random integers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:

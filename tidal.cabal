@@ -32,4 +32,4 @@ library
                        Sound.Tidal.Params
                        Sound.Tidal.Transition
 
-  Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl >=2.1, transformers, mersenne-random-pure64,binary, bytestring, hmt
+  Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl >=2.1, transformers, tf-random,binary, bytestring, hmt
