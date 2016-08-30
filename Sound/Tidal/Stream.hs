@@ -180,6 +180,7 @@ infixl 1 |=|
 (|=|) :: ParamPattern -> ParamPattern -> ParamPattern
 (|=|) = merge
 
+infixl 1 #
 (#) = (|=|)
 
 mergeWith op x y = (Map.unionWithKey op) <$> x <*> y
