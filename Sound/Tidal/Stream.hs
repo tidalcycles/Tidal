@@ -17,9 +17,9 @@ import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
 import Sound.Tidal.Utils
 import qualified Sound.Tidal.Time as T
 
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 
-type ToMessageFunc = Shape -> Tempo -> Int -> (Double, ParamMap) -> Maybe (IO ())
+type ToMessageFunc = Shape -> Tempo -> Int -> (Double, Double, ParamMap) -> Maybe (IO ())
 
 data Backend a = Backend {
   toMessage :: ToMessageFunc,
@@ -136,7 +136,7 @@ onTick backend shape patternM change ticks
            b = (ticks' + 1) % ticksPerCycle
            messages = mapMaybe
                       (toMessage backend shape change ticks)
-                      (seqToRelOnsets (a, b) p)
+                      (seqToRelOnsetDeltas (a, b) p)
        E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
        flush backend shape change ticks
        return ()
@@ -151,7 +151,7 @@ onTick' backend shape patternsM change ticks
            b = (ticks' + 1) % ticksPerCycle
            messages = mapMaybe
                       (toM shape change ticks)
-                      (seqToRelOnsets (a, b) $ fst ps)
+                      (seqToRelOnsetDeltas (a, b) $ fst ps)
        E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
        flush backend shape change ticks
        return ()
@@ -180,6 +180,7 @@ infixl 1 |=|
 (|=|) :: ParamPattern -> ParamPattern -> ParamPattern
 (|=|) = merge
 
+infixl 1 #
 (#) = (|=|)
 
 mergeWith op x y = (Map.unionWithKey op) <$> x <*> y
