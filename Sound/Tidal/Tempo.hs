@@ -157,7 +157,7 @@ clocked callback =
                          
 clockedTick :: Int -> (Tempo -> Int -> IO ()) -> IO ()
 clockedTick tpb callback = 
-  do (mTempo, mCps) <- runClient
+  do (mTempo, _mCps) <- runClient
      t <- readMVar mTempo
      now <- getCurrentTime
      let delta = realToFrac $ diffUTCTime now (at t)
@@ -235,12 +235,12 @@ serverApp tempoState clientState pending = do
     conn <- WS.acceptRequest pending
     tempo <- liftIO $ readMVar tempoState
     liftIO $ WS.sendTextData conn $ T.pack $ show tempo
-    clients <- liftIO $ readMVar clientState
+    -- clients <- liftIO $ readMVar clientState
     liftIO $ modifyMVar_ clientState $ \s -> return $ addClient conn s
     serverLoop conn tempoState clientState
 
 serverLoop :: WS.Connection -> MVar Tempo -> MVar ClientState -> IO ()
-serverLoop conn tempoState clientState = E.handle catchDisconnect $ 
+serverLoop conn _tempoState clientState = E.handle catchDisconnect $
   forever $ do
     msg <- WS.receiveData conn
     --liftIO $ updateTempo tempoState $ maybeRead $ T.unpack msg

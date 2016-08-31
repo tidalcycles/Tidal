@@ -50,7 +50,7 @@ wash f t now (p:p':_) = overlay (playWhen (< (now + t)) $ f p') (playWhen (>= (n
 
 -- | Just stop for a bit before playing new pattern
 wait :: Time -> Time -> [ParamPattern] -> ParamPattern
-wait t _ [] = silence
+wait _ _ [] = silence
 wait t now (p:_) = playWhen (>= (nextSam (now+t-1))) p
 
 {- |

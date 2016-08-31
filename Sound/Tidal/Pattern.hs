@@ -209,7 +209,7 @@ scan n = cat $ map run [1 .. n]
 -- that is twice as fast, and @density (1%3) p@ will return one three
 -- times as slow.
 density :: Time -> Pattern a -> Pattern a
-density 0 p = silence
+density 0 _ = silence
 density 1 p = p
 density r p = withResultTime (/ r) $ withQueryTime (* r) p
 
@@ -219,7 +219,7 @@ density r p = withResultTime (/ r) $ withQueryTime (* r) p
 -- pattern @p@ into the first half of each cycle (and the second
 -- halves would be empty).
 densityGap :: Time -> Pattern a -> Pattern a
-densityGap 0 p = silence
+densityGap 0 _ = silence
 densityGap r p = splitQueries $ withResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
 
 -- | @slow@ does the opposite of @density@, i.e. @slow 2 p@ will
@@ -330,7 +330,7 @@ seqP = stack . (map (\(s, e, p) -> playFor s e ((sam s) ~> p)))
 -- | @every n f p@ applies the function @f@ to @p@, but only affects
 -- every @n@ cycles.
 every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-every 0 f p = p
+every 0 _ p = p
 every n f p = when ((== 0) . (`mod` n)) f p
 
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
@@ -1002,7 +1002,7 @@ lindenmayer 1 "a:b,b:ab" "ab" -> "bab"
 ~~~~
 -}
 lindenmayer :: Int -> String -> String -> String
-lindenmayer n r [] = []
+lindenmayer _ _ [] = []
 lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r) 
                          ++ (lindenmayer 1 r cs)
 lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
@@ -1015,7 +1015,7 @@ unwrap' pp = Pattern $ \a -> arc (stack $ map scalep (arc pp a)) a
 -- | removes events from pattern b that don't start during an event from pattern a
 mask :: Pattern a -> Pattern b -> Pattern b
 mask pa pb = Pattern $ \a -> concat [filterOns (subArc a $ eventArc i) (arc pb a) | i <- arc pa a]
-     where filterOns Nothing es = []
+     where filterOns Nothing _ = []
            filterOns (Just arc) es = filter (onsetIn arc) es
 
 enclosingArc :: [Arc] -> Arc
@@ -1023,7 +1023,7 @@ enclosingArc [] = (0,1)
 enclosingArc as = (minimum (map fst as), maximum (map snd as))
 
 stretch :: Pattern a -> Pattern a
-stretch p = splitQueries $ Pattern $ \a@(s,e) -> arc
+stretch p = splitQueries $ Pattern $ \a@(s,_e) -> arc
               (zoom (enclosingArc $ map eventArc $ arc p (sam s,nextSam s)) p)
               a
 
