@@ -32,7 +32,7 @@ toOscMap m = Map.map (toOscDatum) (Map.mapMaybe (id) m)
 -- constructs and sends an Osc Message according to the given slang
 -- and other params - this is essentially the same as the former
 -- toMessage in Stream.hs
-send s slang shape change tick (o, m) = osc
+send s slang shape change tick (on, off, m) = osc
     where
       osc | timestamp slang == BundleStamp =
             sendOSC s $ Bundle (ut_to_ntpr logicalOnset) [Message (path slang) oscdata]
@@ -44,13 +44,14 @@ send s slang shape change tick (o, m) = osc
       oscdata | namedParams slang = oscPreamble ++ (concatMap (\(k, Just v) -> [string (name k), v] )
                                                     $ filter (isJust . snd) $ Map.assocs m)
               | otherwise = oscPreamble ++ (catMaybes $ mapMaybe (\x -> Map.lookup x m) (params shape))
-      cpsPrefix | cpsStamp shape && namedParams slang = [string "cps", float (cps change)]
+      cpsPrefix | cpsStamp shape && namedParams slang = [string "cps", float (cps change), string "delta", float (logicalOffset - logicalOnset)]
                 | cpsStamp shape = [float (cps change)]
                 | otherwise = []
       _parameterise ds = mergelists (map (string . name) (params shape)) ds
       usec = floor $ 1000000 * (logicalOnset - (fromIntegral sec))
       sec = floor logicalOnset
-      logicalOnset = logicalOnset' change tick o ((latency shape) + nudge)
+      logicalOnset = logicalOnset' change tick on ((latency shape) + nudge)
+      logicalOffset = logicalOnset' change tick off ((latency shape) + nudge)
       nudge = maybe 0 (toF) (Map.lookup nudge_p m)
       toF (Just (Float f)) = float2Double f
       toF _ = 0
@@ -62,10 +63,10 @@ send s slang shape change tick (o, m) = osc
 makeConnection :: String -> Int -> OscSlang -> IO (ToMessageFunc)
 makeConnection address port slang = do
   s <- openUDP address port
-  return (\ shape change tick (o,m) -> do
+  return (\ shape change tick (on,off,m) -> do
              let m' = if (namedParams slang) then (Just m) else (applyShape' shape m)
              -- this might result in Nothing, make sure we do this first
              m'' <- fmap (toOscMap) m'
              -- to allow us to simplify `send` (no `do`)
-             return $ send s slang shape change tick (o,m'')
+             return $ send s slang shape change tick (on,off,m'')
          )
