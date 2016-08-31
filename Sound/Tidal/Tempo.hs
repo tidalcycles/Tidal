@@ -166,7 +166,7 @@ clocked callback =
                          
 clockedTick :: Int -> (Tempo -> Int -> IO ()) -> IO ()
 clockedTick tpb callback = 
-  do (mTempo, mCps) <- runClient
+  do (mTempo, _mCps) <- runClient
      t <- readMVar mTempo
      now <- getCurrentTime
      let delta = realToFrac $ diffUTCTime now (at t)
@@ -284,7 +284,7 @@ oscBridge clientState =
         act _ _ _ _  = return ()
 
 serverLoop :: TConnection -> MVar Tempo -> MVar ClientState -> IO ()
-serverLoop conn tempoState clientState = E.handle catchDisconnect $ 
+serverLoop conn _tempoState clientState = E.handle catchDisconnect $
   forever $ do
     msg <- WS.receiveData $ wsConn conn
     --liftIO $ updateTempo tempoState $ maybeRead $ T.unpack msg
