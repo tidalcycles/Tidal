@@ -235,7 +235,7 @@ slow t = density (1/t)
 (<~) :: Time -> Pattern a -> Pattern a
 (<~) t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 
--- | The @~>@ operator does the same as @~>@ but shifts events to the
+-- | The @~>@ operator does the same as @<~@ but shifts events to the
 -- right (or clockwise) rather than to the left.
 (~>) :: Time -> Pattern a -> Pattern a
 (~>) = (<~) . (0-)
