@@ -13,7 +13,6 @@ import Data.Bits
 import Data.Maybe
 import Data.Fixed
 import Data.Ratio
-import System.Process
 
 import Sound.Tidal.Stream
 import Sound.Tidal.OscStream
@@ -198,10 +197,9 @@ striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (atom (slot * i) :: Pattern Double) # end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
-{- | _not sure what this does_, variant of `striate` -}
-striateO :: ParamPattern -> Int -> Double -> ParamPattern
-striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p # begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) # end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
+{- | like `striate`, but with an offset to the begin and end values -}
+striateO :: Int -> Double -> ParamPattern -> ParamPattern
+striateO n o p = striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
 
 {- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
 The primed version is just like `striate'`, where the loop count is the third argument. For example:
@@ -218,11 +216,36 @@ striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
 
 metronome = slow 2 $ sound (p "[odx, [hh]*8]")
 
+{-|
+Also degrades the current pattern and undegrades the next.
+To change the number of cycles the transition takes, you can use @clutchIn@ like so:
+
+@
+d1 $ sound "bd(5,8)"
+
+t1 (clutchIn 8) $ sound "[hh*4, odx(3,8)]"
+@
+
+will take 8 cycles for the transition.
+-}
 clutchIn :: Time -> Time -> [Pattern a] -> Pattern a
 clutchIn _ _ [] = silence
 clutchIn _ _ (p:[]) = p
 clutchIn t now (p:p':_) = overlay (fadeOut' now t p') (fadeIn' now t p)
 
+{-|
+Degrades the current pattern while undegrading the next.
+
+This is like @xfade@ but not by gain of samples but by randomly removing events from the current pattern and slowly adding back in missing events from the next one.
+
+@
+d1 $ sound "bd(3,8)"
+
+t1 clutch $ sound "[hh*4, odx(3,8)]"
+@
+
+@clutch@ takes two cycles for the transition, essentially this is @clutchIn 2@.
+-}
 clutch :: Time -> [Pattern a] -> Pattern a
 clutch = clutchIn 2
 
@@ -275,7 +298,13 @@ stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |*| ga
   where scale x
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
 
-{- | _not sure what this does_, variant of `stut`
+{- | Instead of just decreasing volume to produce echoes, @stut'@ allows to apply a function for each step and overlays the result delayed by the given time.
+
+@
+d1 $ stut' 2 (1%3) (# vowel "{a e i o u}%2") $ sound "bd sn"
+@
+
+In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has the @vowel@ filter applied.
 -}
 stut' :: Integer -> Time -> (ParamPattern -> ParamPattern) -> ParamPattern -> ParamPattern
 stut' steps steptime f p | steps <= 0 = p
