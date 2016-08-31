@@ -38,7 +38,8 @@ library
     , hashable
     , colour
     , hosc > 0.13
-    , text, mersenne-random-pure64
+    , text
+    , mersenne-random-pure64
     , time
     , parsec
     , websockets > 0.8
