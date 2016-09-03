@@ -3,6 +3,7 @@ module Sound.Tidal.Tempo where
 
 import Data.Time (getCurrentTime, UTCTime, NominalDiffTime, diffUTCTime, addUTCTime)
 import Data.Time.Clock.POSIX
+import Control.Applicative ((<$>), (<*>))
 import Control.Monad (forM_, forever, void)
 --import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent (forkIO, threadDelay)
@@ -11,6 +12,7 @@ import Control.Monad.Trans (liftIO)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import Data.Unique
 import qualified Network.WebSockets as WS
 import qualified Control.Exception as E
 import qualified System.IO.Error as Error
@@ -22,9 +24,15 @@ import Sound.Tidal.Utils
 
 data Tempo = Tempo {at :: UTCTime, beat :: Double, cps :: Double, paused :: Bool, clockLatency :: Double}
 
-type ClientState = [WS.Connection]
+type ClientState = [TConnection]
 
-instance Eq WS.Connection
+data TConnection = TConnection Unique WS.Connection
+
+wsConn :: TConnection -> WS.Connection
+wsConn (TConnection _ c) = c
+
+instance Eq TConnection where
+   TConnection a _ == TConnection b _ = a == b
 
 instance Show Tempo where
   show x = show (at x) ++ "," ++ show (beat x) ++ "," ++ show (cps x) ++ "," ++ show (paused x) ++ "," ++ (show $ clockLatency x)
@@ -159,7 +167,7 @@ clocked callback =
                          
 clockedTick :: Int -> (Tempo -> Int -> IO ()) -> IO ()
 clockedTick tpb callback = 
-  do (mTempo, mCps) <- runClient
+  do (mTempo, _mCps) <- runClient
      t <- readMVar mTempo
      now <- getCurrentTime
      let delta = realToFrac $ diffUTCTime now (at t)
@@ -220,13 +228,13 @@ updateTempo t cps'
 
 addClient client clients = client : clients
   
-removeClient :: WS.Connection -> ClientState -> ClientState
+removeClient :: TConnection -> ClientState -> ClientState
 removeClient client = filter (/= client)
 
 broadcast :: Text -> ClientState -> IO ()
 broadcast message clients = do
   -- T.putStrLn message
-  forM_ clients $ \conn -> WS.sendTextData conn $ message
+  forM_ clients $ \conn -> WS.sendTextData (wsConn conn) $ message
 
 startServer :: IO (ThreadId)
 startServer = do
@@ -240,10 +248,10 @@ startServer = do
 
 serverApp :: MVar Tempo -> MVar ClientState -> WS.ServerApp
 serverApp tempoState clientState pending = do
-    conn <- WS.acceptRequest pending
+    conn <- TConnection <$> newUnique <*> WS.acceptRequest pending
     tempo <- liftIO $ readMVar tempoState
-    liftIO $ WS.sendTextData conn $ T.pack $ show tempo
-    -- clients <- liftIO $ readMVar clientState
+    liftIO $ WS.sendTextData (wsConn conn) $ T.pack $ show tempo
+    clients <- liftIO $ readMVar clientState
     liftIO $ modifyMVar_ clientState $ \s -> return $ addClient conn s
     serverLoop conn tempoState clientState
 
@@ -276,10 +284,10 @@ oscBridge clientState =
                return ()
         act _ _ _ _  = return ()
 
-serverLoop :: WS.Connection -> MVar Tempo -> MVar ClientState -> IO ()
-serverLoop conn tempoState clientState = E.handle catchDisconnect $ 
+serverLoop :: TConnection -> MVar Tempo -> MVar ClientState -> IO ()
+serverLoop conn _tempoState clientState = E.handle catchDisconnect $
   forever $ do
-    msg <- WS.receiveData conn
+    msg <- WS.receiveData $ wsConn conn
     --liftIO $ updateTempo tempoState $ maybeRead $ T.unpack msg
     liftIO $ readMVar clientState >>= broadcast msg
     --tempo <- liftIO $ readMVar tempoState
