@@ -13,7 +13,7 @@ import Data.Colour.SRGB
 import GHC.Exts( IsString(..) )
 import Data.Monoid
 import Control.Exception as E
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative ((<$>), (<*>), pure)
 import Data.Maybe
 import Data.List
 
@@ -32,7 +32,7 @@ data TPat a
    | TPat_Cat [TPat a]
    | TPat_Overlay (TPat a) (TPat a)
    | TPat_ShiftL Time (TPat a)
-   | TPat_E Int Int (TPat a)
+   -- | TPat_E Int Int (TPat a)
    | TPat_pE (TPat Int) (TPat Int) (TPat Integer) (TPat a)
  deriving (Show)
 
