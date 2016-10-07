@@ -4,9 +4,7 @@ Description: Helper functions not directly specific to Tidal
 -}
 module Sound.Tidal.Utils where
 
-import System.Environment (lookupEnv)
-import Data.Maybe (listToMaybe, fromMaybe)
-import Control.Exception
+import Data.Maybe (listToMaybe)
 
 {- | enumerate a list of things
 
