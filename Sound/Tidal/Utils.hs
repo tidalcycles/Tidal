@@ -4,8 +4,8 @@ Description: Helper functions not directly specific to Tidal
 -}
 module Sound.Tidal.Utils where
 
-import System.Environment (getEnv)
-import Data.Maybe (listToMaybe)
+import System.Environment (lookupEnv)
+import Data.Maybe (listToMaybe, fromMaybe)
 import Control.Exception
 
 {- | enumerate a list of things
@@ -84,9 +84,8 @@ mapArcs f = (mapFsts' f) . (mapSnds' f)
 
 -- | return environment variable @var@'s value or @defValue@
 getEnvDefault :: String -> String -> IO String
-getEnvDefault defValue var = do
-  res <- try . getEnv $ var
-  return $ either (const defValue) id (res :: Either IOException String)
+getEnvDefault defValue var =
+  fromMaybe defValue <$> lookupEnv var
 
 {- | combines two lists by interleaving them
 

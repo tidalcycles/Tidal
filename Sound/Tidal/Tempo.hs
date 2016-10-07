@@ -17,7 +17,6 @@ import qualified Network.WebSockets as WS
 import qualified Control.Exception as E
 import qualified System.IO.Error as Error
 import GHC.Conc.Sync (ThreadId)
-import System.Environment (getEnv)
 import Sound.OSC.FD
 
 import Sound.Tidal.Utils
