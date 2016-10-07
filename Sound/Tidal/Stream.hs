@@ -82,7 +82,8 @@ isSubset :: (Eq a) => [a] -> [a] -> Bool
 isSubset xs ys = all (\x -> elem x ys) xs
 
 
-doAt t action = do forkIO $ do now <- getCurrentTime
+doAt t action = do _ <- forkIO $ do
+                               now <- getCurrentTime
                                let nowf = realToFrac $ utcTimeToPOSIXSeconds now
                                threadDelay $ floor $ (t - nowf) * 1000000
                                action

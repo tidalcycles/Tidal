@@ -121,11 +121,10 @@ runClient =
 
 cpsUtils :: IO ((Double -> IO (), IO (Rational)))
 cpsUtils = do (mTempo, mCps) <- runClient
-              let cpsSetter b = putMVar mCps b
-                  currentTime = do tempo <- readMVar mTempo
+              let currentTime = do tempo <- readMVar mTempo
                                    now <- beatNow tempo
                                    return $ toRational now
-              return (cpsSetter, currentTime)
+              return (putMVar mCps, currentTime)
 
 -- Backwards compatibility
 bpsUtils :: IO ((Double -> IO (), IO (Rational)))
@@ -226,8 +225,6 @@ updateTempo t cps'
            beat'' = if cps' < 0 then 0 else beat'
        return $ t {at = now, beat = beat'', cps = cps', paused = (cps' <= 0)}
 
-addClient client clients = client : clients
-  
 removeClient :: TConnection -> ClientState -> ClientState
 removeClient client = filter (/= client)
 
@@ -252,14 +249,14 @@ serverApp tempoState clientState pending = do
     tempo <- liftIO $ readMVar tempoState
     liftIO $ WS.sendTextData (wsConn conn) $ T.pack $ show tempo
     clients <- liftIO $ readMVar clientState
-    liftIO $ modifyMVar_ clientState $ \s -> return $ addClient conn s
+    liftIO $ modifyMVar_ clientState $ return . (conn:)
     serverLoop conn tempoState clientState
 
 oscBridge :: MVar ClientState -> IO ()
 oscBridge clientState =
   do -- putStrLn $ "start osc bridge"
      osc <- liftIO $ udpServer "0.0.0.0" 6060
-     forkIO $ loop osc
+     _ <- forkIO $ loop osc
      return ()
   where loop osc =
           do b <- recvBundle osc
