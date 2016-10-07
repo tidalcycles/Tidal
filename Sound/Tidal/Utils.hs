@@ -82,11 +82,6 @@ mapThds' = fmap . mapThd'
 mapArcs :: (a -> a) -> [(a, a, x)] -> [(a, a, x)]
 mapArcs f = (mapFsts' f) . (mapSnds' f)
 
--- | return environment variable @var@'s value or @defValue@
-getEnvDefault :: String -> String -> IO String
-getEnvDefault defValue var =
-  fromMaybe defValue <$> lookupEnv var
-
 {- | combines two lists by interleaving them
 
 >>> mergelists [1,2,3] [9,8,7]
