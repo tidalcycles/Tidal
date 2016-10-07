@@ -101,7 +101,7 @@ superDirtSetters getNow = do ds <- superDirtState 57120
 
 
 superDirts :: [Int]  -> IO [(ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())]
-superDirts ports = do (_, getNow) <- bpsUtils
+superDirts ports = do (_, getNow) <- cpsUtils
                       states <- mapM (superDirtState) ports
                       return $ map (\state -> (setter state, transition getNow state)) states
 
