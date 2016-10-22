@@ -190,7 +190,7 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
 
 pString :: Parser (String)
 pString = do c <- (letter <|> oneOf "0123456789") <?> "charnum"
-             cs <- many1 (letter <|> oneOf "0123456789:.-_") <?> "string"
+             cs <- many (letter <|> oneOf "0123456789:.-_") <?> "string"
              return (c:cs)
 
 pVocable :: Parser (TPat String)
