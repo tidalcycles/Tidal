@@ -29,6 +29,7 @@ data TPat a
    | TPat_Zoom Arc (TPat a)
    | TPat_DegradeBy Double (TPat a)
    | TPat_Silence
+   | TPat_Foot
    | TPat_Cat [TPat a]
    | TPat_Overlay (TPat a) (TPat a)
    | TPat_ShiftL Time (TPat a)
@@ -53,6 +54,7 @@ toPat = \case
    TPat_ShiftL t x -> t <~ toPat x
    TPat_pE n k s thing ->
       unwrap $ eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
+   TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
 
 parsePat :: Parseable a => String -> Pattern a
 parsePat = toPat . p
@@ -138,8 +140,20 @@ pSequenceN :: Parser (TPat a) -> GenParser Char () (Int, TPat a)
 pSequenceN f = do spaces
                   d <- pDensity
                   ps <- many $ pPart f
-                  return (length ps, TPat_Density d $ TPat_Cat $ concat ps)
-                 
+                               <|> do symbol "."
+                                      return [TPat_Foot]
+                  let ps' = TPat_Cat $ map TPat_Cat $ splitFeet $ concat ps
+                  return (length ps, TPat_Density d $ ps')
+
+-- could use splitOn here but `TPat a` isn't a member of `EQ`..
+splitFeet :: [TPat t] -> [[TPat t]]
+splitFeet [] = []
+splitFeet ps = foot:(splitFeet ps')
+  where (foot, ps') = takeFoot ps
+        takeFoot [] = ([], [])
+        takeFoot (TPat_Foot:ps) = ([], ps)
+        takeFoot (p:ps) = (\(a,b) -> (p:a,b)) $ takeFoot ps
+
 pSequence :: Parser (TPat a) -> GenParser Char () (TPat a)
 pSequence f = do (_, p) <- pSequenceN f
                  return p
@@ -148,8 +162,7 @@ pSingle :: Parser (TPat a) -> Parser (TPat a)
 pSingle f = f >>= pRand >>= pMult
 
 pPart :: Parser (TPat a) -> Parser [TPat a]
-pPart f = do -- part <- parens (pSequence f) <|> pSingle f <|> pPolyIn f <|> pPolyOut f
-             part <- pSingle f <|> pPolyIn f <|> pPolyOut f
+pPart f = do part <- pSingle f <|> pPolyIn f <|> pPolyOut f
              part <- pE part
              part <- pRand part
              spaces
@@ -176,7 +189,9 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
         scale base (ps@((n,_):_)) = map (\(n',p) -> TPat_Density (fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
 
 pString :: Parser (String)
-pString = many1 (letter <|> oneOf "0123456789:.-_") <?> "string"
+pString = do c <- (letter <|> oneOf "0123456789") <?> "charnum"
+             cs <- many1 (letter <|> oneOf "0123456789:.-_") <?> "string"
+             return (c:cs)
 
 pVocable :: Parser (TPat String)
 pVocable = do v <- pString
