@@ -349,7 +349,7 @@ sig f = Pattern f'
 -- sinewave with frequency of one cycle, and amplitude from -1 to 1.
 sinewave :: Pattern Double
 sinewave = sig $ \t -> sin $ pi * 2 * (fromRational t)
--- | @sine@ is a synonym for @sinewave.
+-- | @sine@ is a synonym for @sinewave@.
 sine = sinewave
 -- | @sinerat@ is equivalent to @sinewave@ for @Rational@ values,
 -- suitable for use as @Time@ offsets.
@@ -839,6 +839,7 @@ of @values@. Other ways of saying this are:
 * @values@ quantized to @beats@.
 
 Examples:
+
 @
 d1 $ sound $ preplace (1,1) "x [~ x] x x" "bd sn"
 d1 $ sound $ preplace (1,1) "x(3,8)" "bd sn"
@@ -849,6 +850,7 @@ d1 $ sound "[jvbass jvbass:5]*3" |+| (shape $ "1 1 1 1 1" <~> "0.2 0.9")
 It is assumed the pattern fits into a single cycle. This works well with
 pattern literals, but not always with patterns defined elsewhere. In those cases
 use @prr@ and provide desired pattern lengths:
+
 @
 let p = slow 2 $ "x x x"
 
@@ -995,11 +997,9 @@ parseLMRule' str = map fixer $ parseLMRule str
 
 for example:
 
-~~~~{haskell}
-
+@
 lindenmayer 1 "a:b,b:ab" "ab" -> "bab"
-
-~~~~
+@
 -}
 lindenmayer :: Int -> String -> String -> String
 lindenmayer n r [] = []
@@ -1050,7 +1050,7 @@ fit' cyc n from to p = unwrap' $ fit n (mapMasks n from' p') to
         p' = density cyc $ p
         from' = density cyc $ from
 
-{- `runWith n f p` treats the given pattern `p` as having `n` sections, and applies the function `f` to one of those sections per cycle, running from left to right.
+{-| `runWith n f p` treats the given pattern `p` as having `n` sections, and applies the function `f` to one of those sections per cycle, running from left to right.
 
 @
 d1 $ runWith 4 (density 4) $ sound "cp sn arpy [mt lt]"
@@ -1061,8 +1061,8 @@ runWith n f p = do i <- slow (toRational n) $ run (fromIntegral n)
                    within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
 
 
-{- `runWith'` works much the same as `runWith`, but runs from right to left.
- -}
+{-| `runWith'` works much the same as `runWith`, but runs from right to left.
+-}
 runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 runWith' n f p = do i <- slow (toRational n) $ rev $ run (fromIntegral n)
                     within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
