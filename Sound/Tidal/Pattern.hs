@@ -82,7 +82,7 @@ instance Monad Pattern where
   return = pure
   -- Pattern a -> (a -> Pattern b) -> Pattern b
   -- Pattern Char -> (Char -> Pattern String) -> Pattern String
-  
+
   p >>= f = unwrap (f <$> p)
 {-Pattern (\a -> concatMap
                    (\((s,e), (s',e'), x) -> map (\ev -> ((s,e), (s',e'), thd' ev)) $
@@ -314,14 +314,14 @@ playFor s e = playWhen (\t -> and [t >= s, t < e])
 
 {- | The function @seqP@ allows you to define when
 a sound within a list starts and ends. The code below contains three
-separate patterns in a "stack", but each has different start times 
+separate patterns in a "stack", but each has different start times
 (zero cycles, eight cycles, and sixteen cycles, respectively). All
 patterns stop after 128 cycles:
 
 @
-d1 $ seqP [ 
-  (0, 128, sound "bd bd*2"), 
-  (8, 128, sound "hh*2 [sn cp] cp future*4"), 
+d1 $ seqP [
+  (0, 128, sound "bd bd*2"),
+  (8, 128, sound "hh*2 [sn cp] cp future*4"),
   (16, 128, sound (samples "arpy*8" (run 16)))
 ]
 @
@@ -502,13 +502,13 @@ d1 $ spread slow [2,4%3] $ sound "ho ho:2 ho:3 hc"
 spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 spread f xs p = cat $ map (\x -> f x p) xs
 
-{- | `slowspread` takes a list of pattern transforms and applies them one at a time, per cycle, 
+{- | `slowspread` takes a list of pattern transforms and applies them one at a time, per cycle,
 then repeats.
 
 Example:
 
 @
-d1 $ slowspread ($) [density 2, rev, slow 2, striate 3, (# speed "0.8")] 
+d1 $ slowspread ($) [density 2, rev, slow 2, striate 3, (# speed "0.8")]
     $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4"
 @
 
@@ -638,7 +638,7 @@ irand i = (floor . (* (fromIntegral i))) <$> rand
 d1 $ sound (samples "xx(3,8)" (tom $ choose ["a", "e", "g", "c"]))
 @
 
-plays a melody randomly choosing one of the four notes: `"a"`, `"e"`, `"g"`, `"c"` 
+plays a melody randomly choosing one of the four notes: `"a"`, `"e"`, `"g"`, `"c"`
 -}
 choose :: [a] -> Pattern a
 choose xs = (xs !!) <$> (irand $ length xs)
@@ -666,7 +666,7 @@ unDegradeBy x p = unMaybe $ (\a f -> toMaybe (f <= x) a) <$> p <*> rand
           toMaybe True a  = Just a
           unMaybe = (fromJust <$>) . filterValues isJust
 
-{- | Use `sometimesBy` to apply a given function "sometimes". For example, the 
+{- | Use `sometimesBy` to apply a given function "sometimes". For example, the
 following code results in `density 2` being applied about 25% of the time:
 
 @
@@ -727,7 +727,7 @@ degrade = degradeBy 0.5
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
 wedge t p p' = overlay (densityGap (1/t) p) (t ~> densityGap (1/(1-t)) p')
 
-{- | `whenmod` has a similar form and behavior to `every`, but requires an 
+{- | `whenmod` has a similar form and behavior to `every`, but requires an
 additional number. Applies the function to the pattern, when the
 remainder of the current loop number divided by the first parameter,
 is greater or equal than the second parameter.
@@ -1052,13 +1052,13 @@ struct ps pv = (flip const) <$> ps <*> pv
 -- general rule parser (strings map to strings)
 parseLMRule :: String -> [(String,String)]
 parseLMRule s = map (splitOn ':') (commaSplit s)
-  where splitOn sep str = splitAt (fromJust $ elemIndex sep str) 
+  where splitOn sep str = splitAt (fromJust $ elemIndex sep str)
                             $ filter (/= sep) str
         commaSplit s = map T.unpack $ T.splitOn (T.pack ",") $ T.pack s
 
 -- specific parser for step sequencer (chars map to string)
--- ruleset in form "a:b,b:ab" 
-parseLMRule' :: String -> [(Char, String)]   
+-- ruleset in form "a:b,b:ab"
+parseLMRule' :: String -> [(Char, String)]
 parseLMRule' str = map fixer $ parseLMRule str
   where fixer (c,r) = (head c, r)
 
@@ -1072,7 +1072,7 @@ lindenmayer 1 "a:b,b:ab" "ab" -> "bab"
 -}
 lindenmayer :: Int -> String -> String -> String
 lindenmayer n r [] = []
-lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r) 
+lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r)
                          ++ (lindenmayer 1 r cs)
 lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
 
@@ -1114,7 +1114,7 @@ which uses `chop` to break a single sample into individual pieces, which `fit'` 
 
 -}
 fit' cyc n from to p = unwrap' $ fit n (mapMasks n from' p') to
-  where mapMasks n from p = [stretch $ mask (filterValues (== i) from) p 
+  where mapMasks n from p = [stretch $ mask (filterValues (== i) from) p
                              | i <- [0..n-1]]
         p' = density cyc $ p
         from' = density cyc $ from
