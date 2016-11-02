@@ -915,7 +915,7 @@ discretise n p = density n $ (atom (id)) <*> p
 randcat :: [Pattern a] -> Pattern a
 randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps)) (slowcat ps)
 
--- | @fromNote p@: converts a pattern of human-readable pitch names
+-- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
 -- in the 2nd octave with the result of @11@, and @"b-3"@ as
 -- @-25@. Pitches can be decorated using:
@@ -947,7 +947,7 @@ toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
     sym x = lookup (init (tail x)) [("s",1),("f",-1),("n",0),("ss",2),("ff",-2)]
 -}
 
--- | @tom p@: Alias for @toMIDI@.
+-- @tom p@: Alias for @toMIDI@.
 -- tom = toMIDI
 
 
