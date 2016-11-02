@@ -279,6 +279,8 @@ There is also `iter'`, which shifts the pattern in the opposite direction.
 iter :: Int -> Pattern a -> Pattern a
 iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. n]
 
+-- | @iter'@ is the same as @iter@, but decrements the starting
+-- subdivision instead of incrementing it.
 iter' :: Int -> Pattern a -> Pattern a
 iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) ~> p) [0 .. n]
 
@@ -310,7 +312,7 @@ playWhen test (Pattern f) = Pattern $ (filter (\e -> test (eventOnset e))) . f
 playFor :: Time -> Time -> Pattern a -> Pattern a
 playFor s e = playWhen (\t -> and [t >= s, t < e])
 
-{- | There is a similar function named `seqP` which allows you to define when
+{- | The function @seqP@ allows you to define when
 a sound within a list starts and ends. The code below contains three
 separate patterns in a "stack", but each has different start times 
 (zero cycles, eight cycles, and sixteen cycles, respectively). All
@@ -354,6 +356,7 @@ sine = sinewave
 -- | @sinerat@ is equivalent to @sinewave@ for @Rational@ values,
 -- suitable for use as @Time@ offsets.
 sinerat = fmap toRational sine
+-- | @ratsine@ is a synonym for @sinerat@.
 ratsine = sinerat
 
 -- | @sinewave1@ is equivalent to @sinewave@, but with amplitude from 0 to 1.
@@ -370,7 +373,7 @@ sinerat1 = fmap toRational sine1
 sineAmp1 :: Double -> Pattern Double
 sineAmp1 offset = (+ offset) <$> sinewave1
 
--- | @sawwave@ is the equivalent of @sinewave@ for sawtooth waves.
+-- | @sawwave@ is the equivalent of @sinewave@ for (ascending) sawtooth waves.
 sawwave :: Pattern Double
 sawwave = ((subtract 1) . (* 2)) <$> sawwave1
 
@@ -381,9 +384,15 @@ saw = sawwave
 -- suitable for use as @Time@ offsets.
 sawrat = fmap toRational saw
 
+-- | @sawwave1@ is the equivalent of @sinewave1@ for (ascending) sawtooth waves.
 sawwave1 :: Pattern Double
 sawwave1 = sig $ \t -> mod' (fromRational t) 1
+
+-- | @saw1@ is a synonym for @sawwave1@.
 saw1 = sawwave1
+
+-- | @sawrat1@ is the same as @sawwave1@ but returns @Rational@ values
+-- suitable for use as @Time@ offsets.
 sawrat1 = fmap toRational saw1
 
 -- | @triwave@ is the equivalent of @sinewave@ for triangular waves.
@@ -397,21 +406,30 @@ tri = triwave
 -- suitable for use as @Time@ offsets.
 trirat = fmap toRational tri
 
+-- | @triwave1@ is the equivalent of @sinewave1@ for triangular waves.
 triwave1 :: Pattern Double
 triwave1 = append sawwave1 (rev sawwave1)
 
+-- | @tri1@ is a synonym for @triwave1@.
 tri1 = triwave1
+
+-- | @trirat1@ is the same as @triwave1@ but returns @Rational@ values
+-- suitable for use as @Time@ offsets.
 trirat1 = fmap toRational tri1
 
--- todo - triangular waves again
-
+-- | @squarewave1@ is the equivalent of @sinewave1@ for square waves.
 squarewave1 :: Pattern Double
 squarewave1 = sig $
               \t -> fromIntegral $ floor $ (mod' (fromRational t) 1) * 2
+
+-- | @square1@ is a synonym for @squarewave1@.
 square1 = squarewave1
 
+-- | @squarewave@ is the equivalent of @sinewave@ for square waves.
 squarewave :: Pattern Double
 squarewave = ((subtract 1) . (* 2)) <$> squarewave1
+
+-- | @square@ is a synonym for @squarewave@.
 square = squarewave
 
 -- | @envL@ is a @Pattern@ of continuous @Double@ values, representing
@@ -668,10 +686,15 @@ almostAlways = sometimesBy 0.9
 sometimesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 sometimesBy x f p = overlay (degradeBy x p) (f $ unDegradeBy x p)
 
+-- | @sometimes@ is an alias for sometimesBy 0.5.
 sometimes = sometimesBy 0.5
+-- | @often@ is an alias for sometimesBy 0.75.
 often = sometimesBy 0.75
+-- | @rarely@ is an alias for sometimesBy 0.25.
 rarely = sometimesBy 0.25
+-- | @almostNever@ is an alias for sometimesBy 0.1
 almostNever = sometimesBy 0.1
+-- | @almostAlways@ is an alias for sometimesBy 0.9
 almostAlways = sometimesBy 0.9
 
 {- | `degrade` randomly removes events from a pattern 50% of the time:
@@ -743,7 +766,7 @@ superimpose f p = stack [p, f p]
 splitQueries :: Pattern a -> Pattern a
 splitQueries p = Pattern $ \a -> concatMap (arc p) $ arcCycles a
 
-{- | Truncates a pattern so that only a fraction of the pattern is played. 
+{- | Truncates a pattern so that only a fraction of the pattern is played.
 The following example plays only the first three quarters of the pattern:
 
 @
@@ -756,7 +779,7 @@ trunc t p = slow t $ splitQueries $ p'
         trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 
-{- | Plays a portion of a pattern, specified by a beginning and end arc of time. 
+{- | Plays a portion of a pattern, specified by a beginning and end arc of time.
 The new resulting pattern is played over the time period of the original pattern:
 
 @
@@ -803,6 +826,50 @@ within (s,e) f p = stack [sliceArc (0,s) p,
 
 revArc a = within a rev
 
+{- | You can use the @e@ function to apply a Euclidean algorithm over a
+complex pattern, although the structure of that pattern will be lost:
+
+@
+d1 $ e 3 8 $ sound "bd*2 [sn cp]"
+@
+
+In the above, three sounds are picked from the pattern on the right according
+to the structure given by the `e 3 8`. It ends up picking two `bd` sounds, a
+`cp` and missing the `sn` entirely.
+
+These types of sequences use "Bjorklund's algorithm", which wasn't made for
+music but for an application in nuclear physics, which is exciting. More
+exciting still is that it is very similar in structure to the one of the first
+known algorithms written in Euclid's book of elements in 300 BC. You can read
+more about this in the paper
+[The Euclidean Algorithm Generates Traditional Musical Rhythms](http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf)
+by Toussaint. Some examples from this paper are included below,
+including rotation in some cases.
+
+@
+- (2,5) : A thirteenth century Persian rhythm called Khafif-e-ramal.
+- (3,4) : The archetypal pattern of the Cumbia from Colombia, as well as a Calypso rhythm from Trinidad.
+- (3,5,2) : Another thirteenth century Persian rhythm by the name of Khafif-e-ramal, as well as a Rumanian folk-dance rhythm.
+- (3,7) : A Ruchenitza rhythm used in a Bulgarian folk-dance.
+- (3,8) : The Cuban tresillo pattern.
+- (4,7) : Another Ruchenitza Bulgarian folk-dance rhythm.
+- (4,9) : The Aksak rhythm of Turkey.
+- (4,11) : The metric pattern used by Frank Zappa in his piece titled Outside Now.
+- (5,6) : Yields the York-Samai pattern, a popular Arab rhythm.
+- (5,7) : The Nawakhat pattern, another popular Arab rhythm.
+- (5,8) : The Cuban cinquillo pattern.
+- (5,9) : A popular Arab rhythm called Agsag-Samai.
+- (5,11) : The metric pattern used by Moussorgsky in Pictures at an Exhibition.
+- (5,12) : The Venda clapping pattern of a South African children’s song.
+- (5,16) : The Bossa-Nova rhythm necklace of Brazil.
+- (7,8) : A typical rhythm played on the Bendir (frame drum).
+- (7,12) : A common West African bell pattern.
+- (7,16,14) : A Samba rhythm necklace from Brazil.
+- (9,16) : A rhythm necklace used in the Central African Republic.
+- (11,24,14) : A rhythm necklace of the Aka Pygmies of Central Africa.
+- (13,24,5) : Another rhythm necklace of the Aka Pygmies of the upper Sangha.
+@
+-}
 e :: Int -> Int -> Pattern a -> Pattern a
 e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)) <*> p
 
@@ -860,6 +927,7 @@ d1 $ sound $ prr 0 (2,1) p "bd sn"
 preplace :: (Time, Time) -> Pattern a -> Pattern b -> Pattern b
 preplace = preplaceWith $ flip const
 
+-- | @prep@ is an alias for preplace.
 prep = preplace
 
 preplace1 :: Pattern a -> Pattern b -> Pattern b
@@ -899,6 +967,7 @@ d1 $ sound "sn ~ hh bd"
 (<<~) :: Int -> Pattern a -> Pattern a
 (<<~) = protate 1
 
+-- | @~>>@ is like @<<~@ but for shifting to the right.
 (~>>) :: Int -> Pattern a -> Pattern a
 (~>>) = (<<~) . (0-)
 
