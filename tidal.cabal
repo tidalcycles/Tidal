@@ -11,7 +11,8 @@ Stability:           Experimental
 Copyright:           (c) Alex McLean and other contributors, 2016
 category:            Sound
 build-type:          Simple
-cabal-version:       >=1.4
+cabal-version:       >=1.6
+tested-with:         GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1
 
 Extra-source-files: README.md tidal.el doc/tidal.md
 
@@ -33,3 +34,7 @@ library
                        Sound.Tidal.Transition
 
   Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl >=2.1, transformers, mersenne-random-pure64, binary, bytestring, hmt
+source-repository head
+  type:     git
+  location: https://github.com/tidalcycles/Tidal
+
