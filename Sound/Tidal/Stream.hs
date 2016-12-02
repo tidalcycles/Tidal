@@ -218,6 +218,11 @@ infixl 1 |/|
 (|/|) :: ParamPattern -> ParamPattern -> ParamPattern
 (|/|) = mergeNumWith (div) (/)
 
+(###) = foldl (#)
+(***) = foldl (|*|)
+(+++) = foldl (|+|)
+(///) = foldl (|/|)
+
 setter :: MVar (a, [a]) -> a -> IO ()
 setter ds p = do ps <- takeMVar ds
                  putMVar ds $ (p, p:snd ps)
