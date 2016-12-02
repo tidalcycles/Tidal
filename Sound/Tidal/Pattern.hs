@@ -700,6 +700,13 @@ almostAlways = sometimesBy 0.9
 never = flip const
 always = id
 
+{- | `somecyclesBy` is a cycle-by-cycle version of sometimesBy, and has a
+`somecycles = somecyclesBy 0.5` alias -}
+somecyclesBy x = when (test x)
+  where test x c = (timeToRand $ fromIntegral c) < x
+
+somecycles = somecyclesBy 0.5
+
 {- | `degrade` randomly removes events from a pattern 50% of the time:
 
 @
