@@ -340,6 +340,10 @@ every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 every 0 _ p = p
 every n f p = when ((== 0) . (`mod` n)) f p
 
+-- | @every n o f'@ is like @every n f@ with an offset of @o@ cycles
+every' :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+every' n o f = when ((== o) . (`mod` n)) f
+
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
 -- each cycle in @ns@.
 foldEvery :: [Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
