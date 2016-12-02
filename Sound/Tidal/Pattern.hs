@@ -1170,3 +1170,12 @@ toScale' o s p = (+) <$> fmap (s!!) notep <*> fmap (o*) octp
 
 toScale::[Int] -> Pattern Int -> Pattern Int
 toScale = toScale' 12
+
+{- | `swingBy x n` divides a cycle into `n` slices and delays the notes in
+the second half of each slice by `x` fraction of a slice . `swing` is an alias
+for `swingBy (1%3)`
+-}
+swingBy::Time -> Time -> Pattern a -> Pattern a 
+swingBy x n = inside n (within (0.5,1) (x ~>))
+
+swing = swingBy (1%3)
