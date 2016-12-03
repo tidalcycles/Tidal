@@ -218,6 +218,7 @@ infixl 1 |/|
 (|/|) :: ParamPattern -> ParamPattern -> ParamPattern
 (|/|) = mergeNumWith (div) (/)
 
+{- | These are shorthand for merging lists of patterns with @#@, @|*|@, @|+|@,
 or @|/|@.  Sometimes this saves a little typing and can improve readability
 when passing things into other functions.  As an example, instead of writing
 @
