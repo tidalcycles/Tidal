@@ -218,6 +218,16 @@ infixl 1 |/|
 (|/|) :: ParamPattern -> ParamPattern -> ParamPattern
 (|/|) = mergeNumWith (div) (/)
 
+or @|/|@.  Sometimes this saves a little typing and can improve readability
+when passing things into other functions.  As an example, instead of writing
+@
+d1 $ sometimes ((|*| speed "2") . (|*| cutoff "2") . (|*| shape "1.5")) $ sound "arpy*4" # cutoff "350" # shape "0.3"
+@
+you can write
+@
+d1 $ sometimes (*** [speed "2", cutoff "2", shape "1.5"]) $ sound "arpy*4" ### [cutoff "350", shape "0.3"]
+@
+-}
 (###) = foldl (#)
 (***) = foldl (|*|)
 (+++) = foldl (|+|)
