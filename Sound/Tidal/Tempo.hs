@@ -9,7 +9,7 @@ import Control.Monad (forM_, forever, void)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
 import Control.Monad.Trans (liftIO)
-import Data.Maybe
+import Data.Maybe (fromMaybe, maybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
