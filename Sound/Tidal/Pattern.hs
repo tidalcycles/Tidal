@@ -332,7 +332,7 @@ d1 $ seqP [
 @
 -}
 seqP :: [(Time, Time, Pattern a)] -> Pattern a
-seqP = stack . (map (\(s, e, p) -> playFor s e ((sam s) ~> p)))
+seqP ps = stack $ map (\(s, e, p) -> playFor s e ((sam s) ~> p)) ps
 
 -- | @every n f p@ applies the function @f@ to @p@, but only affects
 -- every @n@ cycles.
@@ -1126,3 +1126,22 @@ runWith n f p = do i <- slow (toRational n) $ run (fromIntegral n)
 runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 runWith' n f p = do i <- slow (toRational n) $ rev $ run (fromIntegral n)
                     within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
+
+inside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
+inside n f p = density n $ f (slow n p)
+
+outside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
+outside n = inside (1/n)
+
+loopFirst p = splitQueries $ Pattern f
+  where f a@(s,e) = mapSnds' plus $ mapFsts' plus $ arc p (minus a)
+          where minus = mapArc (subtract (sam s))
+                plus = mapArc (+ (sam s))
+
+timeLoop :: Time -> Pattern a -> Pattern a
+timeLoop n = outside n loopFirst
+
+seqPLoop :: [(Time, Time, Pattern a)] -> Pattern a
+seqPLoop ps = timeLoop (maxT - minT) $ minT <~ seqP ps
+  where minT = minimum $ map fst' ps
+        maxT = maximum $ map snd' ps

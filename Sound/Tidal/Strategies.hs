@@ -191,9 +191,6 @@ cross f p p' = Pattern $ \t -> concat [filter flt $ arc p t,
 ]  where flt = f . cyclePos . fst . fst
 -}
 
-inside n f p = density n $ f (slow n p)
-
-
 {- | `scale` will take a pattern which goes from 0 to 1 (like `sine1`), and scale it to a different range - between the first and second arguments. In the below example, `scale 1 1.5` shifts the range of `sine1` from 0 - 1 to 1 - 1.5.
 
 @
