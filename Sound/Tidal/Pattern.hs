@@ -16,10 +16,9 @@ import System.Random.Mersenne.Pure64
 import Data.Char
 import qualified Data.Text as T
 
-import Music.Theory.Bjorklund
-
 import Sound.Tidal.Time
 import Sound.Tidal.Utils
+import Sound.Tidal.Bjorklund
 
 -- | The pattern datatype, a function from a time @Arc@ to @Event@
 -- values. For discrete patterns, this returns the events which are
@@ -209,7 +208,7 @@ scan n = cat $ map run [1 .. n]
 -- that is twice as fast, and @density (1%3) p@ will return one three
 -- times as slow.
 density :: Time -> Pattern a -> Pattern a
-density 0 p = silence
+density 0 _ = silence
 density 1 p = p
 density r p = withResultTime (/ r) $ withQueryTime (* r) p
 
@@ -219,7 +218,7 @@ density r p = withResultTime (/ r) $ withQueryTime (* r) p
 -- pattern @p@ into the first half of each cycle (and the second
 -- halves would be empty).
 densityGap :: Time -> Pattern a -> Pattern a
-densityGap 0 p = silence
+densityGap 0 _ = silence
 densityGap r p = splitQueries $ withResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
 
 -- | @slow@ does the opposite of @density@, i.e. @slow 2 p@ will
@@ -235,7 +234,7 @@ slow t = density (1/t)
 (<~) :: Time -> Pattern a -> Pattern a
 (<~) t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 
--- | The @~>@ operator does the same as @~>@ but shifts events to the
+-- | The @~>@ operator does the same as @<~@ but shifts events to the
 -- right (or clockwise) rather than to the left.
 (~>) :: Time -> Pattern a -> Pattern a
 (~>) = (<~) . (0-)
@@ -277,12 +276,12 @@ There is also `iter'`, which shifts the pattern in the opposite direction.
 
 -}
 iter :: Int -> Pattern a -> Pattern a
-iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. n]
+iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. (n-1)]
 
 -- | @iter'@ is the same as @iter@, but decrements the starting
 -- subdivision instead of incrementing it.
 iter' :: Int -> Pattern a -> Pattern a
-iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) ~> p) [0 .. n]
+iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) ~> p) [0 .. (n-1)]
 
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
@@ -293,9 +292,17 @@ rev p = splitQueries $ Pattern $ \a -> mapArcs mirrorArc (arc p (mirrorArc a))
 -- the pattern alternates between forwards and backwards.
 palindrome p = append' p (rev p)
 
--- | @when test f p@ applies the function @f@ to @p@, but in a way
--- which only affects cycles where the @test@ function applied to the
--- cycle number returns @True@.
+{-|
+Only `when` the given test function returns `True` the given pattern transformation is applied. The test function will be called with the current cycle as a number.
+
+@
+d1 $ when ((elem '4').show)
+  (striate 4)
+  $ sound "hh hc"
+@
+
+The above will only apply `striate 4` to the pattern if the current cycle number contains the number 4. So the fourth cycle will be striated and the fourteenth and so on. Expect lots of striates after cycle number 399.
+-}
 when :: (Int -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
 when test f p = splitQueries $ Pattern apply
   where apply a | test (floor $ fst a) = (arc $ f p) a
@@ -327,12 +334,12 @@ d1 $ seqP [
 @
 -}
 seqP :: [(Time, Time, Pattern a)] -> Pattern a
-seqP = stack . (map (\(s, e, p) -> playFor s e ((sam s) ~> p)))
+seqP ps = stack $ map (\(s, e, p) -> playFor s e ((sam s) ~> p)) ps
 
 -- | @every n f p@ applies the function @f@ to @p@, but only affects
 -- every @n@ cycles.
 every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-every 0 f p = p
+every 0 _ p = p
 every n f p = when ((== 0) . (`mod` n)) f p
 
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
@@ -553,14 +560,17 @@ filterOnsets (Pattern f) =
   Pattern $ (filter (\e -> eventOnset e >= eventStart e)) . f
 
 -- Filter events which have onsets, which are within the given range
+-- TODO - what about < e ??
 filterStartInRange :: Pattern a -> Pattern a
 filterStartInRange (Pattern f) =
-  Pattern $ \(s,e) -> filter ((>= s) . eventOnset) $ f (s,e)
+  Pattern $ \(s,e) -> filter ((isIn (s,e)) . eventOnset) $ f (s,e)
 
 filterOnsetsInRange = filterOnsets . filterStartInRange
 
-seqToRelOnsets :: Arc -> Pattern a -> [(Double, a)]
-seqToRelOnsets (s, e) p = map (\((s', _), _, x) -> (fromRational $ (s'-s) / (e-s), x)) $ arc (filterOnsetsInRange p) (s, e)
+-- Samples some events from a pattern, returning a list of onsets
+-- (relative to the given arc), deltas (durations) and values.
+seqToRelOnsetDeltas :: Arc -> Pattern a -> [(Double, Double, a)]
+seqToRelOnsetDeltas (s, e) p = map (\((s', e'), _, x) -> (fromRational $ (s'-s) / (e-s), fromRational $ (e'-s) / (e-s), x)) $ arc (filterOnsetsInRange p) (s, e)
 
 segment :: Pattern a -> Pattern [a]
 segment p = Pattern $ \(s,e) -> filter (\(_,(s',e'),_) -> s' < e && e' > s) $ groupByTime (segment' (arc p (s,e)))
@@ -582,6 +592,20 @@ groupByTime :: [Event a] -> [Event [a]]
 groupByTime es = map mrg $ groupBy ((==) `on` snd') $ sortBy (compare `on` snd') es
   where mrg es@((a, a', _):_) = (a, a', map thd' es)
 
+
+{-| Decide whether to apply one or another function depending on the result of a test function that is passed the current cycle as a number.
+
+@
+d1 $ ifp ((== 0).(flip mod 2))
+  (striate 4)
+  (# coarse "24 48") $
+  sound "hh hc"
+@
+
+This will apply `striate 4` for every _even_ cycle and aply `# coarse "24 48"` for every _odd_.
+
+Detail: As you can see the test function is arbitrary and does not rely on anything tidal specific. In fact it uses only plain haskell functionality, that is: it calculates the modulo of 2 of the current cycle which is either 0 (for even cycles) or 1. It then compares this value against 0 and returns the result, which is either `True` or `False`. This is what the `ifp` signature's first part signifies `(Int -> Bool)`, a function that takes a whole number and returns either `True` or `False`.
+-}
 ifp :: (Int -> Bool) -> (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ifp test f1 f2 p = splitQueries $ Pattern apply
   where apply a | test (floor $ fst a) = (arc $ f1 p) a
@@ -696,6 +720,8 @@ rarely = sometimesBy 0.25
 almostNever = sometimesBy 0.1
 -- | @almostAlways@ is an alias for sometimesBy 0.9
 almostAlways = sometimesBy 0.9
+never = flip const
+always = id
 
 {- | `degrade` randomly removes events from a pattern 50% of the time:
 
@@ -774,10 +800,7 @@ d1 $ trunc 0.75 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
 @
 -}
 trunc :: Time -> Pattern a -> Pattern a
-trunc t p = slow t $ splitQueries $ p'
-  where p' = Pattern $ \a -> mapArcs (stretch . trunc') $ arc p (trunc' a)
-        trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
-        stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
+trunc t = compress (0,t) . zoom (0,t)
 
 {- | Plays a portion of a pattern, specified by a beginning and end arc of time.
 The new resulting pattern is played over the time period of the original pattern:
@@ -881,7 +904,7 @@ index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
   where zoom' sz start = zoom (start, start+sz)
 
--- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
+-- | @prrw f rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
 prrw :: (a -> b -> c) -> Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
 prrw f rot (blen, vlen) beatPattern valuePattern =
   let
@@ -896,7 +919,7 @@ prrw f rot (blen, vlen) beatPattern valuePattern =
     (drop (rot `mod` length values) $ cycle values)
 
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
-prr :: Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern b
+prr :: Int -> (Time, Time) -> Pattern String -> Pattern b -> Pattern b
 prr = prrw $ flip const
 
 {-|
@@ -916,22 +939,21 @@ d1 $ sound "[jvbass jvbass:5]*3" |+| (shape $ "1 1 1 1 1" <~> "0.2 0.9")
 
 It is assumed the pattern fits into a single cycle. This works well with
 pattern literals, but not always with patterns defined elsewhere. In those cases
-use @prr@ and provide desired pattern lengths:
-
+use @preplace@ and provide desired pattern lengths:
 @
 let p = slow 2 $ "x x x"
 
-d1 $ sound $ prr 0 (2,1) p "bd sn"
+d1 $ sound $ preplace (2,1) p "bd sn"
 @
 -}
-preplace :: (Time, Time) -> Pattern a -> Pattern b -> Pattern b
+preplace :: (Time, Time) -> Pattern String -> Pattern b -> Pattern b
 preplace = preplaceWith $ flip const
 
 -- | @prep@ is an alias for preplace.
 prep = preplace
 
-preplace1 :: Pattern a -> Pattern b -> Pattern b
-preplace1 = prr 0 (1, 1)
+preplace1 :: Pattern String -> Pattern b -> Pattern b
+preplace1 = preplace (1, 1)
 
 preplaceWith :: (a -> b -> c) -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
 preplaceWith f (blen, plen) = prrw f 0 (blen, plen)
@@ -943,14 +965,14 @@ preplaceWith1 f = prrw f 0 (1, 1)
 
 prw1 = preplaceWith1
 
-(<~>) :: Pattern a -> Pattern b -> Pattern b
+(<~>) :: Pattern String -> Pattern b -> Pattern b
 (<~>) = preplace (1, 1)
 
 -- | @protate len rot p@ rotates pattern @p@ by @rot@ beats to the left.
 -- @len@: length of the pattern, in cycles.
 -- Example: @d1 $ every 4 (protate 2 (-1)) $ slow 2 $ sound "bd hh hh hh"@
 protate :: Time -> Int -> Pattern a -> Pattern a
-protate len rot p = prr rot (len, len) p p
+protate len rot p = prrw (flip const) rot (len, len) p p
 
 prot = protate
 prot1 = protate 1
@@ -984,7 +1006,7 @@ discretise n p = density n $ (atom (id)) <*> p
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps)) (slowcat ps)
+randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps - 1)) (slowcat ps)
 
 -- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
@@ -1048,6 +1070,13 @@ permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate
 struct :: Pattern String -> Pattern a -> Pattern a
 struct ps pv = (flip const) <$> ps <*> pv
 
+
+-- | @substruct a b@: similar to @struct@, but each event in pattern @a@ gets replaced with pattern @b@, compressed to fit the timespan of the event.
+substruct :: Pattern String -> Pattern b -> Pattern b
+substruct s p = filterStartInRange $ Pattern $ f
+  where f a = concatMap (\a' -> arc (compressTo a' p) a') $ (map fst' $ arc s a)
+        compressTo (s,e) p = compress (cyclePos s, e-(sam s)) p
+
 -- Lindenmayer patterns, these go well with the step sequencer
 -- general rule parser (strings map to strings)
 parseLMRule :: String -> [(String,String)]
@@ -1071,8 +1100,8 @@ lindenmayer 1 "a:b,b:ab" "ab" -> "bab"
 @
 -}
 lindenmayer :: Int -> String -> String -> String
-lindenmayer n r [] = []
-lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r)
+lindenmayer _ _ [] = []
+lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r) 
                          ++ (lindenmayer 1 r cs)
 lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
 
@@ -1081,10 +1110,38 @@ unwrap' :: Pattern (Pattern a) -> Pattern a
 unwrap' pp = Pattern $ \a -> arc (stack $ map scalep (arc pp a)) a
   where scalep ev = compress (fst' ev) $ thd' ev
 
--- | removes events from pattern b that don't start during an event from pattern a
+{-|
+Removes events from second pattern that don't start during an event from first.
+
+Consider this, kind of messy rhythm without any rests.
+
+@
+d1 $ sound (slowcat ["sn*8", "[cp*4 bd*4, hc*5]"]) # n (run 8)
+@
+
+If we apply a mask to it
+
+@
+d1 $ s (mask ("1 1 1 ~ 1 1 ~ 1" :: Pattern Bool)
+  (slowcat ["sn*8", "[cp*4 bd*4, bass*5]"] ))
+  # n (run 8) 
+@
+
+Due to the use of `slowcat` here, the same mask is first applied to `"sn*8"` and in the next cycle to `"[cp*4 bd*4, hc*5]".
+
+You could achieve the same effect by adding rests within the `slowcat` patterns, but mask allows you to do this more easily. It kind of keeps the rhythmic structure and you can change the used samples independently, e.g.
+
+@
+d1 $ s (mask ("1 ~ 1 ~ 1 1 ~ 1" :: Pattern Bool)
+  (slowcat ["can*8", "[cp*4 sn*4, jvbass*16]"] ))
+  # n (run 8) 
+@
+
+Detail: It is currently needed to explicitly _tell_ Tidal that the mask itself is a `Pattern Bool` as it cannot infer this by itself, otherwise it will complain as it does not know how to interpret your input.
+-}
 mask :: Pattern a -> Pattern b -> Pattern b
 mask pa pb = Pattern $ \a -> concat [filterOns (subArc a $ eventArc i) (arc pb a) | i <- arc pa a]
-     where filterOns Nothing es = []
+     where filterOns Nothing _ = []
            filterOns (Just arc) es = filter (onsetIn arc) es
 
 enclosingArc :: [Arc] -> Arc
@@ -1092,7 +1149,7 @@ enclosingArc [] = (0,1)
 enclosingArc as = (minimum (map fst as), maximum (map snd as))
 
 stretch :: Pattern a -> Pattern a
-stretch p = splitQueries $ Pattern $ \a@(s,e) -> arc
+stretch p = splitQueries $ Pattern $ \a@(s,_e) -> arc
               (zoom (enclosingArc $ map eventArc $ arc p (sam s,nextSam s)) p)
               a
 
@@ -1135,3 +1192,22 @@ runWith n f p = do i <- slow (toRational n) $ run (fromIntegral n)
 runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 runWith' n f p = do i <- slow (toRational n) $ rev $ run (fromIntegral n)
                     within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
+
+inside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
+inside n f p = density n $ f (slow n p)
+
+outside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
+outside n = inside (1/n)
+
+loopFirst p = splitQueries $ Pattern f
+  where f a@(s,e) = mapSnds' plus $ mapFsts' plus $ arc p (minus a)
+          where minus = mapArc (subtract (sam s))
+                plus = mapArc (+ (sam s))
+
+timeLoop :: Time -> Pattern a -> Pattern a
+timeLoop n = outside n loopFirst
+
+seqPLoop :: [(Time, Time, Pattern a)] -> Pattern a
+seqPLoop ps = timeLoop (maxT - minT) $ minT <~ seqP ps
+  where minT = minimum $ map fst' ps
+        maxT = maximum $ map snd' ps

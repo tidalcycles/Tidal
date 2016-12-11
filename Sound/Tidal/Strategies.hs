@@ -188,9 +188,6 @@ cross f p p' = Pattern $ \t -> concat [filter flt $ arc p t,
 ]  where flt = f . cyclePos . fst . fst
 -}
 
-inside n f p = density n $ f (slow n p)
-
-
 {- | `scale` will take a pattern which goes from 0 to 1 (like `sine1`), and scale it to a different range - between the first and second arguments. In the below example, `scale 1 1.5` shifts the range of `sine1` from 0 - 1 to 1 - 1.5.
 
 @
@@ -220,7 +217,7 @@ d1 $ chop 256 $ sound "bd*4 [sn cp] [hh future]*2 [cp feel]"
 chop :: Int -> ParamPattern -> ParamPattern
 chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
      where f queryA a = concatMap (chopEvent queryA) (arc p a)
-           chopEvent (queryS, queryE) (a,a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ chopArc a n)
+           chopEvent (queryS, queryE) (a,_a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ chopArc a n)
            newEvent :: ParamMap -> (Int, Arc) -> Event ParamMap
            newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ VF ((fromIntegral i)/(fromIntegral n))) v)
 
@@ -235,10 +232,10 @@ d1 $ gap 16 $ sound "[jvbass drum:4]"
 gap :: Int -> ParamPattern -> ParamPattern
 gap n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
      where f queryA a = concatMap (chopEvent queryA) (arc p a)
-           chopEvent (queryS, queryE) (a,a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ everyOther $ chopArc a n)
+           chopEvent (queryS, queryE) (a,_a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ everyOther $ chopArc a n)
            newEvent :: ParamMap -> (Int, Arc) -> Event ParamMap
            newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ VF ((fromIntegral i)/(fromIntegral n))) v)
-           everyOther (x:(y:xs)) = x:(everyOther xs)
+           everyOther (x:_:xs) = x:everyOther xs
            everyOther xs = xs
 
 chopArc :: Arc -> Int -> [Arc]
