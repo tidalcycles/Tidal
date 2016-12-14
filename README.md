@@ -1,4 +1,4 @@
-Tidal [![Build Status](https://travis-ci.org/tidalcycles/Tidal.svg?branch=master)](https://travis-ci.org/tidalcycles/Tidal)
+Tidal [![Build Status](https://travis-ci.org/tidalcycles/Tidal.svg?branch=0.9-dev)](https://travis-ci.org/tidalcycles/Tidal)
 =====
 
 Language for live coding of pattern
