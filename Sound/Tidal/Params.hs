@@ -72,6 +72,9 @@ d1 $ (chop 8 $ sounds "breaks125") # unit "c" # coarse "1 2 4 8 16 32 64 128"
 
 which performs a similar effect, but due to differences in implementation sounds different.
 -}
+begin_p, channel_p, legato_p, clhatdecay_p, coarse_p, crush_p :: Param
+begin, legato, clhatdecay, crush :: Pattern Double -> ParamPattern
+channel, coarse :: Pattern Int -> ParamPattern
 (begin, begin_p)                 = pF "begin" (Just 0)
 -- | choose the physical channel the pattern is sent to, this is super dirt specific
 (channel, channel_p)             = pI "channel" Nothing
@@ -171,7 +174,8 @@ d1 $ stack [
 
 --pitch model -}
 
-
+degree, mtranspose, ctranspose, harmonic, stepsPerOctave, octaveRatio :: Pattern Double -> ParamPattern
+degree_p, mtranspose_p, ctranspose_p, harmonic_p, stepsPerOctave_p, octaveRatio_p :: Param
 (degree, degree_p)               = pF "degree" Nothing
 (mtranspose, mtranspose_p)       = pF "mtranspose" Nothing
 (ctranspose, ctranspose_p)       = pF "ctranspose" Nothing
@@ -239,6 +243,10 @@ Using `unit "s"` means the playback speed will be adjusted so that the duration 
 (sustainpedal,sustainpedal_p)    = pF "sustainpedal" (Just 0)
 
 -- aliases
+att, chdecay, ctf, ctfg, delayfb, delayt, lbd, lch, lcl, lcp, lcr, lfoc, lfoi
+   , lfop, lht, llt, loh, lsn, ohdecay, pit1, pit2, pit3, por, sag, scl, scp
+   , scr, sld, std, stt, sus, tdecay, vcf, vco, voi
+      :: Pattern Double -> ParamPattern
 att = attack
 chdecay = clhatdecay
 ctf  = cutoff
@@ -279,9 +287,11 @@ vcf  = vcfegint
 vco  = vcoegint
 voi  = voice
 
+note, midinote :: Pattern Int -> ParamPattern
 note = n
 midinote = n . ((subtract 60) <$>)
 
+drum :: Pattern String -> ParamPattern
 drum = n . (drumN <$>)
 
 drumN :: String -> Int

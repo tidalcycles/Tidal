@@ -75,10 +75,11 @@ beatNow t = do now <- getCurrentTime
                let beatDelta = cps t * delta               
                return $ beat t + beatDelta
 
-clientApp :: MVar Tempo -> MVar Double -> WS.ClientApp ()
-clientApp mTempo mCps conn = do
+clientApp :: MVar Tempo -> MVar Double -> MVar Double -> WS.ClientApp ()
+clientApp mTempo mCps mNudge conn = do
   --sink <- WS.getSink
     liftIO $ forkIO $ sendCps conn mTempo mCps
+    liftIO $ forkIO $ sendNudge conn mTempo mNudge
     forever loop
   where
     loop = do
@@ -90,20 +91,29 @@ clientApp mTempo mCps conn = do
         -- putStrLn $ "to: " ++ show tempo
         liftIO $ putMVar mTempo tempo
 
+sendTempo :: WS.Connection -> Tempo -> IO ()
+sendTempo conn t = WS.sendTextData conn (T.pack $ show t)
+
 sendCps :: WS.Connection -> MVar Tempo -> MVar Double -> IO ()
 sendCps conn mTempo mCps = forever $ do
     cps <- takeMVar mCps
     t <- readMVar mTempo
     t' <- updateTempo t cps
-    WS.sendTextData conn (T.pack $ show t')
+    sendTempo conn t'
 
-connectClient :: Bool -> String -> MVar Tempo -> MVar Double -> IO ()
-connectClient secondTry ip mTempo mCps = do 
+sendNudge :: WS.Connection -> MVar Tempo -> MVar Double -> IO ()
+sendNudge conn mTempo mNudge = forever $ do
+    secs <- takeMVar mNudge
+    t <- readMVar mTempo
+    sendTempo conn $ nudgeTempo t secs
+
+connectClient :: Bool -> String -> MVar Tempo -> MVar Double -> MVar Double -> IO ()
+connectClient secondTry ip mTempo mCps mNudge = do 
   let errMsg = "Failed to connect to tidal server. Try specifying a " ++
                "different port (default is 9160) setting the " ++
                "environment variable TIDAL_TEMPO_PORT"
   serverPort <- getServerPort
-  WS.runClient ip serverPort "/tempo" (clientApp mTempo mCps) `E.catch` 
+  WS.runClient ip serverPort "/tempo" (clientApp mTempo mCps mNudge) `E.catch` 
     \(_ :: E.SomeException) -> do
       case secondTry of
         True -> error errMsg
@@ -113,22 +123,28 @@ connectClient secondTry ip mTempo mCps = do
             Left (_ :: E.SomeException) -> error errMsg
             Right _ -> do
               threadDelay 500000
-              connectClient True ip mTempo mCps
+              connectClient True ip mTempo mCps mNudge
 
-runClient :: IO ((MVar Tempo, MVar Double))
+runClient :: IO ((MVar Tempo, MVar Double, MVar Double))
 runClient = 
   do clockip <- getClockIp
      mTempo <- newEmptyMVar 
      mCps <- newEmptyMVar 
-     forkIO $ connectClient False clockip mTempo mCps
-     return (mTempo, mCps)
+     mNudge <- newEmptyMVar 
+     forkIO $ connectClient False clockip mTempo mCps mNudge
+     return (mTempo, mCps, mNudge)
 
-cpsUtils :: IO ((Double -> IO (), IO (Rational)))
-cpsUtils = do (mTempo, mCps) <- runClient
-              let cpsSetter b = putMVar mCps b
-                  currentTime = do tempo <- readMVar mTempo
-                                   now <- beatNow tempo
-                                   return $ toRational now
+cpsUtils' :: IO ((Double -> IO (), (Double -> IO ()), IO Rational))
+cpsUtils' = do (mTempo, mCps, mNudge) <- runClient
+               let cpsSetter = putMVar mCps
+                   nudger = putMVar mNudge
+                   currentTime = do tempo <- readMVar mTempo
+                                    now <- beatNow tempo
+                                    return $ toRational now
+               return (cpsSetter, nudger, currentTime)
+
+-- backward compatibility
+cpsUtils = do (cpsSetter, _, currentTime) <- cpsUtils'
               return (cpsSetter, currentTime)
 
 -- Backwards compatibility
@@ -171,7 +187,7 @@ clocked callback =
                          
 clockedTick :: Int -> (Tempo -> Int -> IO ()) -> IO ()
 clockedTick tpb callback = 
-  do (mTempo, _mCps) <- runClient
+  do (mTempo, _, mCps) <- runClient
      t <- readMVar mTempo
      now <- getCurrentTime
      let delta = realToFrac $ diffUTCTime now (at t)
@@ -230,8 +246,9 @@ updateTempo t cps'
            beat'' = if cps' < 0 then 0 else beat'
        return $ t {at = now, beat = beat'', cps = cps', paused = (cps' <= 0)}
 
-addClient client clients = client : clients
-  
+nudgeTempo :: Tempo -> Double -> Tempo
+nudgeTempo t secs = t {at = addUTCTime (realToFrac secs) (at t)}
+
 removeClient :: TConnection -> ClientState -> ClientState
 removeClient client = filter (/= client)
 
@@ -256,14 +273,14 @@ serverApp tempoState clientState pending = do
     tempo <- liftIO $ readMVar tempoState
     liftIO $ WS.sendTextData (wsConn conn) $ T.pack $ show tempo
     clients <- liftIO $ readMVar clientState
-    liftIO $ modifyMVar_ clientState $ \s -> return $ addClient conn s
+    liftIO $ modifyMVar_ clientState $ return . (conn:)
     serverLoop conn tempoState clientState
 
 oscBridge :: MVar ClientState -> IO ()
 oscBridge clientState =
   do -- putStrLn $ "start osc bridge"
      osc <- liftIO $ udpServer "0.0.0.0" 6060
-     forkIO $ loop osc
+     _ <- forkIO $ loop osc
      return ()
   where loop osc =
           do b <- recvBundle osc

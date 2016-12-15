@@ -15,6 +15,7 @@ supercollider ps l = Shape {
   latency = l
   }
 
+scSlang :: String -> OscSlang
 scSlang n = OscSlang {
   -- The OSC path
   path = "/s_new",
@@ -23,10 +24,12 @@ scSlang n = OscSlang {
   timestamp = BundleStamp
   }
 
+scBackend :: String -> IO (Backend a)
 scBackend n = do
   s <- makeConnection "127.0.0.1" 57110 (scSlang n)
   return $ Backend s (\_ _ _ -> return ())
 
+scStream :: String -> [Param] -> Double -> IO (ParamPattern -> IO (), Shape)
 scStream n ps l = do let shape = (supercollider ps l)
                      backend <- scBackend n
                      sc <- stream backend shape

@@ -17,8 +17,10 @@ import Sound.Tidal.Utils
 import Sound.Tidal.Params
 import Sound.Tidal.Parse
 
+stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * (fromIntegral i)) ~> p) [0 .. (n-1)]
 
+echo, triple, quad, double :: Time -> Pattern a -> Pattern a
 echo   = stutter 2
 triple = stutter 3
 quad   = stutter 4
@@ -173,6 +175,7 @@ stripe (stripeS, stripeE) p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 -}
 
+sawwave4, sinewave4, rand4 :: Pattern Double
 sawwave4 = ((*4) <$> sawwave1)
 sinewave4 = ((*4) <$> sinewave1)
 rand4 = ((*4) <$> rand)
@@ -187,9 +190,6 @@ cross f p p' = Pattern $ \t -> concat [filter flt $ arc p t,
                                       ]
 ]  where flt = f . cyclePos . fst . fst
 -}
-
-inside n f p = density n $ f (slow n p)
-
 
 {- | `scale` will take a pattern which goes from 0 to 1 (like `sine1`), and scale it to a different range - between the first and second arguments. In the below example, `scale 1 1.5` shifts the range of `sine1` from 0 - 1 to 1 - 1.5.
 

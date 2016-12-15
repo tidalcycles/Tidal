@@ -29,6 +29,7 @@ data TPat a
    | TPat_Zoom Arc (TPat a)
    | TPat_DegradeBy Double (TPat a)
    | TPat_Silence
+   | TPat_Foot
    | TPat_Cat [TPat a]
    | TPat_Overlay (TPat a) (TPat a)
    | TPat_ShiftL Time (TPat a)
@@ -53,51 +54,62 @@ toPat = \case
    TPat_ShiftL t x -> t <~ toPat x
    TPat_pE n k s thing ->
       unwrap $ eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
+   TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
 
 parsePat :: Parseable a => String -> Pattern a
-parsePat = toPat . p
+parsePat = toPat . parseTPat
 
 class Parseable a where
-  p :: String -> TPat a
+  parseTPat :: String -> TPat a
 
 instance Parseable Double where
-  p = parseRhythm pDouble
+  parseTPat = parseRhythm pDouble
 
 instance Parseable String where
-  p = parseRhythm pVocable
+  parseTPat = parseRhythm pVocable
 
 instance Parseable Bool where
-  p = parseRhythm pBool
+  parseTPat = parseRhythm pBool
 
 instance Parseable Int where
-  p = parseRhythm pIntegral
+  parseTPat = parseRhythm pIntegral
 
 instance Parseable Integer where
-  p s = parseRhythm pIntegral s
+  parseTPat s = parseRhythm pIntegral s
 
 instance Parseable Rational where
-  p = parseRhythm pRational
+  parseTPat = parseRhythm pRational
 
 type ColourD = Colour Double
 
 instance Parseable ColourD where
-  p = parseRhythm pColour
+  parseTPat = parseRhythm pColour
 
 instance (Parseable a) => IsString (Pattern a) where
-  fromString = toPat . p
+  fromString = toPat . parseTPat
 
 --instance (Parseable a, Pattern p) => IsString (p a) where
 --  fromString = p :: String -> p a
 
 lexer   = P.makeTokenParser haskellDef
+
+braces, brackets, parens, angles:: Parser a -> Parser a
 braces  = P.braces lexer
 brackets = P.brackets lexer
 parens = P.parens lexer
 angles = P.angles lexer
+
+symbol :: String -> Parser String
 symbol  = P.symbol lexer
+
+natural, integer :: Parser Integer
 natural = P.natural lexer
 integer = P.integer lexer
+
+float :: Parser Double
 float = P.float lexer
+
+naturalOrFloat :: Parser (Either Integer Double)
 naturalOrFloat = P.naturalOrFloat lexer
 
 data Sign      = Positive | Negative
@@ -126,7 +138,7 @@ r s orig = do E.handle
                 (\err -> do putStrLn (show (err :: E.SomeException))
                             return orig 
                 )
-                (return $ toPat $ p s)
+                (return $ parsePat s)
 
 parseRhythm :: Parser (TPat a) -> String -> TPat a
 parseRhythm f input = either (const TPat_Silence) id $ parse (pSequence f') "" input
@@ -138,8 +150,20 @@ pSequenceN :: Parser (TPat a) -> GenParser Char () (Int, TPat a)
 pSequenceN f = do spaces
                   d <- pDensity
                   ps <- many $ pPart f
-                  return (length ps, TPat_Density d $ TPat_Cat $ concat ps)
-                 
+                               <|> do symbol "."
+                                      return [TPat_Foot]
+                  let ps' = TPat_Cat $ map TPat_Cat $ splitFeet $ concat ps
+                  return (length ps, TPat_Density d $ ps')
+
+-- could use splitOn here but `TPat a` isn't a member of `EQ`..
+splitFeet :: [TPat t] -> [[TPat t]]
+splitFeet [] = []
+splitFeet ps = foot:(splitFeet ps')
+  where (foot, ps') = takeFoot ps
+        takeFoot [] = ([], [])
+        takeFoot (TPat_Foot:ps) = ([], ps)
+        takeFoot (p:ps) = (\(a,b) -> (p:a,b)) $ takeFoot ps
+
 pSequence :: Parser (TPat a) -> GenParser Char () (TPat a)
 pSequence f = do (_, p) <- pSequenceN f
                  return p
@@ -148,8 +172,7 @@ pSingle :: Parser (TPat a) -> Parser (TPat a)
 pSingle f = f >>= pRand >>= pMult
 
 pPart :: Parser (TPat a) -> Parser [TPat a]
-pPart f = do -- part <- parens (pSequence f) <|> pSingle f <|> pPolyIn f <|> pPolyOut f
-             part <- pSingle f <|> pPolyIn f <|> pPolyOut f
+pPart f = do part <- pSingle f <|> pPolyIn f <|> pPolyOut f
              part <- pE part
              part <- pRand part
              spaces
@@ -176,7 +199,9 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
         scale base (ps@((n,_):_)) = map (\(n',p) -> TPat_Density (fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
 
 pString :: Parser (String)
-pString = many1 (letter <|> oneOf "0123456789:.-_") <?> "string"
+pString = do c <- (letter <|> oneOf "0123456789") <?> "charnum"
+             cs <- many (letter <|> oneOf "0123456789:.-_") <?> "string"
+             return (c:cs)
 
 pVocable :: Parser (TPat String)
 pVocable = do v <- pString
