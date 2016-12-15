@@ -57,49 +57,59 @@ toPat = \case
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
 
 parsePat :: Parseable a => String -> Pattern a
-parsePat = toPat . p
+parsePat = toPat . parseTPat
 
 class Parseable a where
-  p :: String -> TPat a
+  parseTPat :: String -> TPat a
 
 instance Parseable Double where
-  p = parseRhythm pDouble
+  parseTPat = parseRhythm pDouble
 
 instance Parseable String where
-  p = parseRhythm pVocable
+  parseTPat = parseRhythm pVocable
 
 instance Parseable Bool where
-  p = parseRhythm pBool
+  parseTPat = parseRhythm pBool
 
 instance Parseable Int where
-  p = parseRhythm pIntegral
+  parseTPat = parseRhythm pIntegral
 
 instance Parseable Integer where
-  p s = parseRhythm pIntegral s
+  parseTPat s = parseRhythm pIntegral s
 
 instance Parseable Rational where
-  p = parseRhythm pRational
+  parseTPat = parseRhythm pRational
 
 type ColourD = Colour Double
 
 instance Parseable ColourD where
-  p = parseRhythm pColour
+  parseTPat = parseRhythm pColour
 
 instance (Parseable a) => IsString (Pattern a) where
-  fromString = toPat . p
+  fromString = toPat . parseTPat
 
 --instance (Parseable a, Pattern p) => IsString (p a) where
 --  fromString = p :: String -> p a
 
 lexer   = P.makeTokenParser haskellDef
+
+braces, brackets, parens, angles:: Parser a -> Parser a
 braces  = P.braces lexer
 brackets = P.brackets lexer
 parens = P.parens lexer
 angles = P.angles lexer
+
+symbol :: String -> Parser String
 symbol  = P.symbol lexer
+
+natural, integer :: Parser Integer
 natural = P.natural lexer
 integer = P.integer lexer
+
+float :: Parser Double
 float = P.float lexer
+
+naturalOrFloat :: Parser (Either Integer Double)
 naturalOrFloat = P.naturalOrFloat lexer
 
 data Sign      = Positive | Negative
@@ -128,7 +138,7 @@ r s orig = do E.handle
                 (\err -> do putStrLn (show (err :: E.SomeException))
                             return orig 
                 )
-                (return $ toPat $ p s)
+                (return $ parsePat s)
 
 parseRhythm :: Parser (TPat a) -> String -> TPat a
 parseRhythm f input = either (const TPat_Silence) id $ parse (pSequence f') "" input

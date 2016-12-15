@@ -130,7 +130,7 @@ runClient =
      forkIO $ connectClient False clockip mTempo mCps mNudge
      return (mTempo, mCps, mNudge)
 
-cpsUtils' :: IO ((Double -> IO (), (Double -> IO ()), IO (Rational)))
+cpsUtils' :: IO ((Double -> IO (), (Double -> IO ()), IO Rational))
 cpsUtils' = do (mTempo, mCps, mNudge) <- runClient
                let cpsSetter = putMVar mCps
                    nudger = putMVar mNudge
@@ -142,6 +142,8 @@ cpsUtils' = do (mTempo, mCps, mNudge) <- runClient
 -- backward compatibility
 cpsUtils = do (cpsSetter, _, currentTime) <- cpsUtils'
               return (cpsSetter, currentTime)
+
+-- Backwards compatibility
 bpsUtils :: IO ((Double -> IO (), IO (Rational)))
 bpsUtils = cpsUtils
 
@@ -243,8 +245,6 @@ updateTempo t cps'
 nudgeTempo :: Tempo -> Double -> Tempo
 nudgeTempo t secs = t {at = addUTCTime (realToFrac secs) (at t)}
 
-addClient client clients = client : clients
-  
 removeClient :: TConnection -> ClientState -> ClientState
 removeClient client = filter (/= client)
 
@@ -269,14 +269,14 @@ serverApp tempoState clientState pending = do
     tempo <- liftIO $ readMVar tempoState
     liftIO $ WS.sendTextData (wsConn conn) $ T.pack $ show tempo
     clients <- liftIO $ readMVar clientState
-    liftIO $ modifyMVar_ clientState $ \s -> return $ addClient conn s
+    liftIO $ modifyMVar_ clientState $ return . (conn:)
     serverLoop conn tempoState clientState
 
 oscBridge :: MVar ClientState -> IO ()
 oscBridge clientState =
   do -- putStrLn $ "start osc bridge"
      osc <- liftIO $ udpServer "0.0.0.0" 6060
-     forkIO $ loop osc
+     _ <- forkIO $ loop osc
      return ()
   where loop osc =
           do b <- recvBundle osc
