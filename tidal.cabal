@@ -44,6 +44,7 @@ library
     , mersenne-random-pure64
     , time
     , parsec
+    , safe
     , websockets > 0.8
     , mtl >= 2.1
 

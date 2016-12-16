@@ -9,15 +9,17 @@ import Control.Monad (forM_, forever, void)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
 import Control.Monad.Trans (liftIO)
+import Data.Maybe (fromMaybe, maybe)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Unique
 import qualified Network.WebSockets as WS
 import qualified Control.Exception as E
+import Safe (readNote)
+import System.Environment (lookupEnv)
 import qualified System.IO.Error as Error
 import GHC.Conc.Sync (ThreadId)
-import System.Environment (getEnv)
 import Sound.OSC.FD
 
 import Sound.Tidal.Utils
@@ -38,13 +40,15 @@ instance Show Tempo where
   show x = show (at x) ++ "," ++ show (beat x) ++ "," ++ show (cps x) ++ "," ++ show (paused x) ++ "," ++ (show $ clockLatency x)
 
 getLatency :: IO Double
-getLatency = fmap (read) (getEnvDefault "0.04" "TIDAL_CLOCK_LATENCY")
+getLatency =
+   maybe 0.04 (readNote "latency parse") <$> lookupEnv "TIDAL_CLOCK_LATENCY"
 
 getClockIp :: IO String
-getClockIp = getEnvDefault "127.0.0.1" "TIDAL_TEMPO_IP"
+getClockIp = fromMaybe "127.0.0.1" <$> lookupEnv "TIDAL_TEMPO_IP"
 
 getServerPort :: IO Int
-getServerPort = fmap read (getEnvDefault "9160" "TIDAL_TEMPO_PORT")
+getServerPort =
+   maybe 9160 (readNote "port parse") <$> lookupEnv "TIDAL_TEMPO_PORT"
 
 readTempo :: String -> Tempo
 readTempo x = Tempo (read a) (read b) (read c) (read d) (read e)
