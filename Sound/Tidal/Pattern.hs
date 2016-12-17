@@ -340,6 +340,10 @@ every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 every 0 _ p = p
 every n f p = when ((== 0) . (`mod` n)) f p
 
+-- | @every n o f'@ is like @every n f@ with an offset of @o@ cycles
+every' :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+every' n o f = when ((== o) . (`mod` n)) f
+
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
 -- each cycle in @ns@.
 foldEvery :: [Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
@@ -699,6 +703,13 @@ almostNever = sometimesBy 0.1
 almostAlways = sometimesBy 0.9
 never = flip const
 always = id
+
+{- | @somecyclesBy@ is a cycle-by-cycle version of @sometimesBy@, and has a
+`somecycles = somecyclesBy 0.5` alias -}
+somecyclesBy x = when (test x)
+  where test x c = (timeToRand $ fromIntegral c) < x
+
+somecycles = somecyclesBy 0.5
 
 {- | `degrade` randomly removes events from a pattern 50% of the time:
 
@@ -1145,3 +1156,26 @@ seqPLoop :: [(Time, Time, Pattern a)] -> Pattern a
 seqPLoop ps = timeLoop (maxT - minT) $ minT <~ seqP ps
   where minT = minimum $ map fst' ps
         maxT = maximum $ map snd' ps
+
+{- | @toScale@ lets you turn a pattern of notes within a scale (expressed as a
+list) to note numbers.  For example `toScale [0, 4, 7] "0 1 2 3"` will turn
+into the pattern `"0 4 7 12"`.  It assumes your scale fits within an octave,
+to change this use `toScale' size`.  Example:
+`toscale' 24 [0,4,7,10,14,17] (run 8)` turns into `"0 4 7 10 14 17 24 28"`
+-}
+toScale'::Int -> [Int] -> Pattern Int -> Pattern Int
+toScale' o s p = (+) <$> fmap (s!!) notep <*> fmap (o*) octp
+  where notep = fmap (`mod` (length s)) p
+        octp  = fmap (`div` (length s)) p
+
+toScale::[Int] -> Pattern Int -> Pattern Int
+toScale = toScale' 12
+
+{- | `swingBy x n` divides a cycle into `n` slices and delays the notes in
+the second half of each slice by `x` fraction of a slice . @swing@ is an alias
+for `swingBy (1%3)`
+-}
+swingBy::Time -> Time -> Pattern a -> Pattern a 
+swingBy x n = inside n (within (0.5,1) (x ~>))
+
+swing = swingBy (1%3)

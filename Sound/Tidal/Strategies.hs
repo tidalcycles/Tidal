@@ -201,6 +201,11 @@ d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
 scale :: (Functor f, Num b) => b -> b -> f b -> f b
 scale from to p = ((+ from) . (* (to-from))) <$> p
 
+{- | `scalex` is an exponential version of `scale`, good for using with
+frequencies.  Do *not* use negative numbers or zero as arguments! -}
+scalex :: (Functor f, Floating b) => b -> b -> f b -> f b
+scalex from to p = exp <$> scale (log from) (log to) p
+
 {- | `chop` granualizes every sample in place as it is played, turning a pattern of samples into a pattern of sample parts. Use an integer value to specify how many granules each sample is chopped into:
 
 @
