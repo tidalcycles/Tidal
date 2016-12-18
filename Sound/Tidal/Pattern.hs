@@ -321,7 +321,7 @@ playFor s e = playWhen (\t -> and [t >= s, t < e])
 
 {- | The function @seqP@ allows you to define when
 a sound within a list starts and ends. The code below contains three
-separate patterns in a "stack", but each has different start times
+separate patterns in a `stack`, but each has different start times
 (zero cycles, eight cycles, and sixteen cycles, respectively). All
 patterns stop after 128 cycles:
 
@@ -509,7 +509,7 @@ d1 $ spread slow [2,4%3] $ sound "ho ho:2 ho:3 hc"
 spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 spread f xs p = cat $ map (\x -> f x p) xs
 
-{- | `slowspread` takes a list of pattern transforms and applies them one at a time, per cycle,
+{- | @slowspread@ takes a list of pattern transforms and applies them one at a time, per cycle,
 then repeats.
 
 Example:
@@ -662,7 +662,7 @@ irand i = (floor . (* (fromIntegral i))) <$> rand
 d1 $ sound (samples "xx(3,8)" (tom $ choose ["a", "e", "g", "c"]))
 @
 
-plays a melody randomly choosing one of the four notes: `"a"`, `"e"`, `"g"`, `"c"`
+plays a melody randomly choosing one of the four notes \"a\", \"e\", \"g\", \"c\".
 -}
 choose :: [a] -> Pattern a
 choose xs = (xs !!) <$> (irand $ length xs)
@@ -690,7 +690,7 @@ unDegradeBy x p = unMaybe $ (\a f -> toMaybe (f <= x) a) <$> p <*> rand
           toMaybe True a  = Just a
           unMaybe = (fromJust <$>) . filterValues isJust
 
-{- | Use `sometimesBy` to apply a given function "sometimes". For example, the
+{- | Use @sometimesBy@ to apply a given function "sometimes". For example, the
 following code results in `density 2` being applied about 25% of the time:
 
 @
@@ -753,7 +753,7 @@ degrade = degradeBy 0.5
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
 wedge t p p' = overlay (densityGap (1/t) p) (t ~> densityGap (1/(1-t)) p')
 
-{- | `whenmod` has a similar form and behavior to `every`, but requires an
+{- | @whenmod@ has a similar form and behavior to `every`, but requires an
 additional number. Applies the function to the pattern, when the
 remainder of the current loop number divided by the first parameter,
 is greater or equal than the second parameter.
@@ -1176,7 +1176,7 @@ fit' cyc n from to p = unwrap' $ fit n (mapMasks n from' p') to
         p' = density cyc $ p
         from' = density cyc $ from
 
-{-| `runWith n f p` treats the given pattern `p` as having `n` sections, and applies the function `f` to one of those sections per cycle, running from left to right.
+{-| @runWith n f p@ treats the given pattern @p@ as having @n@ sections, and applies the function @f@ to one of those sections per cycle, running from left to right.
 
 @
 d1 $ runWith 4 (density 4) $ sound "cp sn arpy [mt lt]"
@@ -1187,7 +1187,7 @@ runWith n f p = do i <- slow (toRational n) $ run (fromIntegral n)
                    within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
 
 
-{-| `runWith'` works much the same as `runWith`, but runs from right to left.
+{-| @runWith'@ works much the same as `runWith`, but runs from right to left.
 -}
 runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 runWith' n f p = do i <- slow (toRational n) $ rev $ run (fromIntegral n)
