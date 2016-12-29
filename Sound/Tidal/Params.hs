@@ -193,8 +193,17 @@ degree_p, mtranspose_p, ctranspose_p, harmonic_p, stepsPerOctave_p, octaveRatio_
 {- |  a pattern of numbers. An `orbit` is a global parameter context for patterns. Patterns with the same orbit will share hardware output bus offset and global effects, e.g. reverb and delay. The maximum number of orbits is specified in the superdirt startup, numbers higher than maximum will wrap around.
 -}
 (orbit, orbit_p)                 = pI "orbit" (Just 0)
--- | a pattern of numbers between 0 and 1, from left to right (assuming stereo).
+-- | a pattern of numbers between 0 and 1, from left to right (assuming stereo), once round a circle (assuming multichannel)
 (pan, pan_p)                     = pF "pan" (Just 0.5)
+-- | a pattern of numbers between -inf and inf, which controls how much multichannel output is fanned out (negative is backwards ordering)
+(spread, spread_p)                     = pF "spread" (Just 1.0)
+-- | a pattern of numbers between 0.0 and 1.0, which controls the multichannel spread range (multichannel only)
+(splay, splay_p)                     = pF "splay" (Just 1.0)
+-- | a pattern of numbers between 0.0 and inf, which controls how much each channel is distributed over neighbours (multichannel only)
+(panwidth, panwidth_p)                     = pF "panwidth" (Just 2.0)
+-- | a pattern of numbers between -1.0 and 1.0, which controls the relative position of the centre pan in a pair of adjacent speakers (multichannel only)
+(orientation, orientation_p)                     = pF "orientation" (Just 0.5)
+
 (pitch1, pitch1_p)               = pF "pitch1" (Just 0)
 (pitch2, pitch2_p)               = pF "pitch2" (Just 0)
 (pitch3, pitch3_p)               = pF "pitch3" (Just 0)
