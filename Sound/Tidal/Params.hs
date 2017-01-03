@@ -242,6 +242,12 @@ Using `unit "s"` means the playback speed will be adjusted so that the duration 
 (expression,expression_p)        = pF "expression" (Just 1)
 (sustainpedal,sustainpedal_p)    = pF "sustainpedal" (Just 0)
 
+-- Tremolo Audio DSP effect | params are "rate" and "depth"
+
+(rate,rate_p)                    = pF "rate" (Just 1)
+(depth,depth_p)                  = pF "depth" (Just 0.5)
+
+
 -- aliases
 att, chdecay, ctf, ctfg, delayfb, delayt, lbd, lch, lcl, lcp, lcr, lfoc, lfoi
    , lfop, lht, llt, loh, lsn, ohdecay, pit1, pit2, pit3, por, sag, scl, scp
