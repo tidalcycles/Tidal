@@ -1181,3 +1181,25 @@ swingBy::Time -> Time -> Pattern a -> Pattern a
 swingBy x n = inside n (within (0.5,1) (x ~>))
 
 swing = swingBy (1%3)
+
+{- | `cycleChoose` is like `choose` but only picks a new item from the list
+once each cycle -}
+cycleChoose::[a] -> Pattern a
+cycleChoose xs = Pattern $ \(s,e) -> [((s,e),(s,e), xs!!(floor $ (dlen xs)*(ctrand s) ))]
+  where dlen xs = fromIntegral $ length xs
+        ctrand s = timeToRand $ fromIntegral $ floor $ sam s
+
+{- | `shuffle n p` divides one cycle of the `p` into `n` parts and returns a
+new random permutation each cycle.  For example, `shuffle 4 "bd sn cp hh"` 
+might return `"sn cp bd hh"` one cycle and `"hh cp bd sn"` the next.
+-}
+shuffle::Int -> Pattern a -> Pattern a
+shuffle n = fit' 1 n (run n) (unwrap $ cycleChoose $ map listToPat $ 
+  permutations [0..n-1])
+
+{- | `scramble n p` is like `shuffle` but instead of a permutation simply
+picks a random part each time, which means it may repeat parts multiple times
+-}
+scramble::Int -> Pattern a -> Pattern a
+scramble n = fit' 1 n (run n) (density (fromIntegral n) $ 
+  liftA2 (+) (pure 0) $ irand n)
