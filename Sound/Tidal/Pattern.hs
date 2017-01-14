@@ -1189,16 +1189,20 @@ cycleChoose xs = Pattern $ \(s,e) -> [((s,e),(s,e), xs!!(floor $ (dlen xs)*(ctra
   where dlen xs = fromIntegral $ length xs
         ctrand s = timeToRand $ fromIntegral $ floor $ sam s
 
-{- | `shuffle n p` divides one cycle of the `p` into `n` parts and returns a
-new random permutation each cycle.  For example, `shuffle 4 "bd sn cp hh"` 
-might return `"sn cp bd hh"` one cycle and `"hh cp bd sn"` the next.
+{- | `shuffle n p` evenly divides one cycle of the pattern `p` into `n` parts,
+and returns a random permutation of the parts each cycle.  For example, 
+`shuffle 3 "a b c"` could return `"a b c"`, `"a c b"`, `"b a c"`, `"b c a"`,
+`"c a b"`, or `"c b a"`.  But it will **never** return `"a a a"`, because that
+is not a permutation of the parts.
 -}
 shuffle::Int -> Pattern a -> Pattern a
 shuffle n = fit' 1 n (run n) (unwrap $ cycleChoose $ map listToPat $ 
   permutations [0..n-1])
 
-{- | `scramble n p` is like `shuffle` but instead of a permutation simply
-picks a random part each time, which means it may repeat parts multiple times
+{- | `scramble n p` is like `shuffle` but randomly selects from the parts
+of `p` instead of making permutations. 
+For example, `scramble 3 "a b c"` will randomly select 3 parts from
+`"a"` `"b"` and `"c"`, possibly repeating a single part.
 -}
 scramble::Int -> Pattern a -> Pattern a
 scramble n = fit' 1 n (run n) (density (fromIntegral n) $ 
