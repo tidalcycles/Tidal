@@ -264,7 +264,7 @@ voi  = voice
 note = n
 midinote = n . ((subtract 60) <$>)
 
-drum = n . (drumN <$>)
+drum = midinote . (drumN <$>)
 
 drumN :: String -> Int
 drumN "bd"  = 36
