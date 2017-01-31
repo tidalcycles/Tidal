@@ -23,9 +23,13 @@ grp params p = (fmap lookupPattern p)
         toPV param@(I _ _) s = (param, (Just $ VI $ read s))
 {- |
 
-a pattern of strings representing sound sample names (required).
+A pattern of strings representing sounds or synth notes. 
 
-`sound` is a combination of the `s` and `n` parameters to allow specifying both sample name and sample variation in one:
+Internally, `sound` or its shorter alias `s` is a combination of the samplebank name and number when used with samples, or synth name and note number when used with a synthesiser. For example `bd:2` specifies the third sample (not the second as you might expect, because we start counting at zero) in the `bd` sample folder.
+
+*Internally, `sound`/`s` is a combination of two parameters, the
+hidden parameter `s'` which specifies the samplebank or synth, and the
+`n` parameter which specifies the sample or note number. For example:
 
 @
 d1 $ sound "bd:2 sn:0"
@@ -34,11 +38,25 @@ d1 $ sound "bd:2 sn:0"
 is essentially the same as:
 
 @
-d1 $ s "bd sn" # n "2 0"
+d1 $ s' "bd sn" # n "2 0"
+@
+
+`n` is therefore useful when you want to pattern the sample or note
+number separately from the samplebank or synth. For example:
+
+@
+d1 $ n "0 5 ~ 2" # sound "drum"
+@
+
+is equivalent to:
+
+@
+d1 $ sound "drum:0 drum:5 ~ drum:2"
 @
 -}
 sound :: Pattern String -> ParamPattern
 sound = grp [s_p, n_p]
+s = sound
 
 pF name defaultV = (make' VF param, param)
   where param = F name defaultV
@@ -218,7 +236,7 @@ degree_p, mtranspose_p, ctranspose_p, harmonic_p, stepsPerOctave_p, octaveRatio_
 -- | a pattern of numbers which changes the speed of sample playback, i.e. a cheap way of changing pitch. Negative values will play the sample backwards!
 (speed, speed_p)                 = pF "speed" (Just 1)
 -- | a pattern of strings. Selects the sample to be played.
-(s, s_p)                         = pS "s" Nothing
+(s', s_p)                         = pS "s" Nothing
 (stutterdepth, stutterdepth_p)   = pF "stutterdepth" (Just 0)
 (stuttertime, stuttertime_p)     = pF "stuttertime" (Just 0)
 (sustain, sustain_p)             = pF "sustain" (Just 0)
