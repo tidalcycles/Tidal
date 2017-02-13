@@ -148,12 +148,12 @@ parseRhythm f input = either (const TPat_Silence) id $ parse (pSequence f') "" i
 
 pSequenceN :: Parser (TPat a) -> GenParser Char () (Int, TPat a)
 pSequenceN f = do spaces
-                  d <- pDensity
+                  -- d <- pDensity
                   ps <- many $ pPart f
                                <|> do symbol "."
                                       return [TPat_Foot]
                   let ps' = TPat_Cat $ map TPat_Cat $ splitFeet $ concat ps
-                  return (length ps, TPat_Density d $ ps')
+                  return (length ps, ps')
 
 -- could use splitOn here but `TPat a` isn't a member of `EQ`..
 splitFeet :: [TPat t] -> [[TPat t]]
@@ -195,6 +195,10 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
                            return $ Just (fromIntegral i)
                         <|> return Nothing
                 pMult $ mconcat $ scale base ps
+             <|>
+             do ps <- angles (pSequenceN f `sepBy` symbol ",")
+                spaces
+                pMult $ mconcat $ scale (Just 1) ps
   where scale _ [] = []
         scale base (ps@((n,_):_)) = map (\(n',p) -> TPat_Density (fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
 
@@ -334,8 +338,9 @@ pRational :: Parser (TPat Rational)
 pRational = do r <- pRatio
                return $ TPat_Atom r
 
+{-
 pDensity :: Parser (Rational)
 pDensity = angles (pRatio <?> "ratio")
            <|>
            return (1 % 1)
-
+-}
