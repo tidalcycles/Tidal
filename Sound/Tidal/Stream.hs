@@ -240,3 +240,10 @@ setter ds p = do ps <- takeMVar ds
                  putMVar ds $ (p, p:snd ps)
                  return ()
 
+{- | Copies values from one parameter to another. Used by @nToOrbit@ in @Sound.Tidal.Dirt@. -}
+
+copyParam:: Param -> Param -> ParamPattern -> ParamPattern
+copyParam fromParam toParam pat = f <$> pat
+  where f m = maybe m (updateValue m) (Map.lookup fromParam m)
+        updateValue m v = Map.union m (Map.fromList [(toParam,v)])
+

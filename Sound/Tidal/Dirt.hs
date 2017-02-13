@@ -326,3 +326,6 @@ Build up some tension, culminating in a _drop_ to the new pattern after 8 cycles
 -}
 anticipate :: Time -> [ParamPattern] -> ParamPattern
 anticipate = anticipateIn 8
+
+{- | Copies the @n@ parameter to the @orbit@ parameter, so different sound variants or notes go to different orbits in SuperDirt. -}
+nToOrbit = copyParam n_p orbit_p
