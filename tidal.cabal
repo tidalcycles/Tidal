@@ -33,6 +33,8 @@ library
                        Sound.Tidal.SuperCollider
                        Sound.Tidal.Params
                        Sound.Tidal.Transition
+                       Sound.Tidal.Scales
+                       Sound.Tidal.Chords
 
   Build-depends:
       base < 5
