@@ -316,7 +316,7 @@ note = n
 midinote = n . ((subtract 60) <$>)
 
 drum :: Pattern String -> ParamPattern
-drum = n . (drumN <$>)
+drum = midinote . (drumN <$>)
 
 drumN :: String -> Int
 drumN "bd"  = 36
