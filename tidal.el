@@ -57,6 +57,8 @@
   (tidal-send-string ":set prompt \"\"")
   (tidal-send-string ":set prompt2 \"\"")
   (tidal-send-string ":module Sound.Tidal.Context")
+  (tidal-send-string "import qualified Sound.Tidal.Scales as Scales")
+  (tidal-send-string "import qualified Sound.Tidal.Chords as Chords")
   (tidal-send-string "(cps, getNow) <- cpsUtils")
   (tidal-send-string "(d1,t1) <- superDirtSetters getNow")
   (tidal-send-string "(d2,t2) <- superDirtSetters getNow")
