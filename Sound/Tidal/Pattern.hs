@@ -81,7 +81,7 @@ instance Monad Pattern where
   return = pure
   -- Pattern a -> (a -> Pattern b) -> Pattern b
   -- Pattern Char -> (Char -> Pattern String) -> Pattern String
-  
+
   p >>= f = unwrap (f <$> p)
 {-Pattern (\a -> concatMap
                    (\((s,e), (s',e'), x) -> map (\ev -> ((s,e), (s',e'), thd' ev)) $
@@ -278,6 +278,8 @@ There is also `iter'`, which shifts the pattern in the opposite direction.
 iter :: Int -> Pattern a -> Pattern a
 iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. (n-1)]
 
+-- | @iter'@ is the same as @iter@, but decrements the starting
+-- subdivision instead of incrementing it.
 iter' :: Int -> Pattern a -> Pattern a
 iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) ~> p) [0 .. (n-1)]
 
@@ -317,16 +319,16 @@ playWhen test (Pattern f) = Pattern $ (filter (\e -> test (eventOnset e))) . f
 playFor :: Time -> Time -> Pattern a -> Pattern a
 playFor s e = playWhen (\t -> and [t >= s, t < e])
 
-{- | There is a similar function named `seqP` which allows you to define when
+{- | The function @seqP@ allows you to define when
 a sound within a list starts and ends. The code below contains three
-separate patterns in a "stack", but each has different start times 
+separate patterns in a `stack`, but each has different start times
 (zero cycles, eight cycles, and sixteen cycles, respectively). All
 patterns stop after 128 cycles:
 
 @
-d1 $ seqP [ 
-  (0, 128, sound "bd bd*2"), 
-  (8, 128, sound "hh*2 [sn cp] cp future*4"), 
+d1 $ seqP [
+  (0, 128, sound "bd bd*2"),
+  (8, 128, sound "hh*2 [sn cp] cp future*4"),
   (16, 128, sound (samples "arpy*8" (run 16)))
 ]
 @
@@ -360,11 +362,12 @@ sig f = Pattern f'
 -- sinewave with frequency of one cycle, and amplitude from -1 to 1.
 sinewave :: Pattern Double
 sinewave = sig $ \t -> sin $ pi * 2 * (fromRational t)
--- | @sine@ is a synonym for @sinewave.
+-- | @sine@ is a synonym for @sinewave@.
 sine = sinewave
 -- | @sinerat@ is equivalent to @sinewave@ for @Rational@ values,
 -- suitable for use as @Time@ offsets.
 sinerat = fmap toRational sine
+-- | @ratsine@ is a synonym for @sinerat@.
 ratsine = sinerat
 
 -- | @sinewave1@ is equivalent to @sinewave@, but with amplitude from 0 to 1.
@@ -381,7 +384,7 @@ sinerat1 = fmap toRational sine1
 sineAmp1 :: Double -> Pattern Double
 sineAmp1 offset = (+ offset) <$> sinewave1
 
--- | @sawwave@ is the equivalent of @sinewave@ for sawtooth waves.
+-- | @sawwave@ is the equivalent of @sinewave@ for (ascending) sawtooth waves.
 sawwave :: Pattern Double
 sawwave = ((subtract 1) . (* 2)) <$> sawwave1
 
@@ -392,9 +395,15 @@ saw = sawwave
 -- suitable for use as @Time@ offsets.
 sawrat = fmap toRational saw
 
+-- | @sawwave1@ is the equivalent of @sinewave1@ for (ascending) sawtooth waves.
 sawwave1 :: Pattern Double
 sawwave1 = sig $ \t -> mod' (fromRational t) 1
+
+-- | @saw1@ is a synonym for @sawwave1@.
 saw1 = sawwave1
+
+-- | @sawrat1@ is the same as @sawwave1@ but returns @Rational@ values
+-- suitable for use as @Time@ offsets.
 sawrat1 = fmap toRational saw1
 
 -- | @triwave@ is the equivalent of @sinewave@ for triangular waves.
@@ -408,21 +417,30 @@ tri = triwave
 -- suitable for use as @Time@ offsets.
 trirat = fmap toRational tri
 
+-- | @triwave1@ is the equivalent of @sinewave1@ for triangular waves.
 triwave1 :: Pattern Double
 triwave1 = append sawwave1 (rev sawwave1)
 
+-- | @tri1@ is a synonym for @triwave1@.
 tri1 = triwave1
+
+-- | @trirat1@ is the same as @triwave1@ but returns @Rational@ values
+-- suitable for use as @Time@ offsets.
 trirat1 = fmap toRational tri1
 
--- todo - triangular waves again
-
+-- | @squarewave1@ is the equivalent of @sinewave1@ for square waves.
 squarewave1 :: Pattern Double
 squarewave1 = sig $
               \t -> fromIntegral $ floor $ (mod' (fromRational t) 1) * 2
+
+-- | @square1@ is a synonym for @squarewave1@.
 square1 = squarewave1
 
+-- | @squarewave@ is the equivalent of @sinewave@ for square waves.
 squarewave :: Pattern Double
 squarewave = ((subtract 1) . (* 2)) <$> squarewave1
+
+-- | @square@ is a synonym for @squarewave@.
 square = squarewave
 
 -- | @envL@ is a @Pattern@ of continuous @Double@ values, representing
@@ -495,13 +513,13 @@ d1 $ spread slow [2,4%3] $ sound "ho ho:2 ho:3 hc"
 spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 spread f xs p = cat $ map (\x -> f x p) xs
 
-{- | `slowspread` takes a list of pattern transforms and applies them one at a time, per cycle, 
+{- | @slowspread@ takes a list of pattern transforms and applies them one at a time, per cycle,
 then repeats.
 
 Example:
 
 @
-d1 $ slowspread ($) [density 2, rev, slow 2, striate 3, (# speed "0.8")] 
+d1 $ slowspread ($) [density 2, rev, slow 2, striate 3, (# speed "0.8")]
     $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4"
 @
 
@@ -648,7 +666,7 @@ irand i = (floor . (* (fromIntegral i))) <$> rand
 d1 $ sound (samples "xx(3,8)" (tom $ choose ["a", "e", "g", "c"]))
 @
 
-plays a melody randomly choosing one of the four notes: `"a"`, `"e"`, `"g"`, `"c"` 
+plays a melody randomly choosing one of the four notes \"a\", \"e\", \"g\", \"c\".
 -}
 choose :: [a] -> Pattern a
 choose xs = (xs !!) <$> (irand $ length xs)
@@ -676,7 +694,7 @@ unDegradeBy x p = unMaybe $ (\a f -> toMaybe (f <= x) a) <$> p <*> rand
           toMaybe True a  = Just a
           unMaybe = (fromJust <$>) . filterValues isJust
 
-{- | Use `sometimesBy` to apply a given function "sometimes". For example, the 
+{- | Use @sometimesBy@ to apply a given function "sometimes". For example, the
 following code results in `density 2` being applied about 25% of the time:
 
 @
@@ -696,10 +714,15 @@ almostAlways = sometimesBy 0.9
 sometimesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 sometimesBy x f p = overlay (degradeBy x p) (f $ unDegradeBy x p)
 
+-- | @sometimes@ is an alias for sometimesBy 0.5.
 sometimes = sometimesBy 0.5
+-- | @often@ is an alias for sometimesBy 0.75.
 often = sometimesBy 0.75
+-- | @rarely@ is an alias for sometimesBy 0.25.
 rarely = sometimesBy 0.25
+-- | @almostNever@ is an alias for sometimesBy 0.1
 almostNever = sometimesBy 0.1
+-- | @almostAlways@ is an alias for sometimesBy 0.9
 almostAlways = sometimesBy 0.9
 never = flip const
 always = id
@@ -743,10 +766,10 @@ degrade = degradeBy 0.5
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
 wedge t p p' = overlay (densityGap (1/t) p) (t ~> densityGap (1/(1-t)) p')
 
-{- | `whenmod` has a similar form and behavior to `every`, but requires an 
+{- | @whenmod@ has a similar form and behavior to `every`, but requires an
 additional number. Applies the function to the pattern, when the
 remainder of the current loop number divided by the first parameter,
-is less than the second parameter.
+is greater or equal than the second parameter.
 
 For example the following makes every other block of four loops twice
 as dense:
@@ -782,7 +805,7 @@ superimpose f p = stack [p, f p]
 splitQueries :: Pattern a -> Pattern a
 splitQueries p = Pattern $ \a -> concatMap (arc p) $ arcCycles a
 
-{- | Truncates a pattern so that only a fraction of the pattern is played. 
+{- | Truncates a pattern so that only a fraction of the pattern is played.
 The following example plays only the first three quarters of the pattern:
 
 @
@@ -792,7 +815,7 @@ d1 $ trunc 0.75 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
 trunc :: Time -> Pattern a -> Pattern a
 trunc t = compress (0,t) . zoom (0,t)
 
-{- | Plays a portion of a pattern, specified by a beginning and end arc of time. 
+{- | Plays a portion of a pattern, specified by a beginning and end arc of time.
 The new resulting pattern is played over the time period of the original pattern:
 
 @
@@ -839,8 +862,50 @@ within (s,e) f p = stack [sliceArc (0,s) p,
 
 revArc a = within a rev
 
--- 
+{- | You can use the @e@ function to apply a Euclidean algorithm over a
+complex pattern, although the structure of that pattern will be lost:
 
+@
+d1 $ e 3 8 $ sound "bd*2 [sn cp]"
+@
+
+In the above, three sounds are picked from the pattern on the right according
+to the structure given by the `e 3 8`. It ends up picking two `bd` sounds, a
+`cp` and missing the `sn` entirely.
+
+These types of sequences use "Bjorklund's algorithm", which wasn't made for
+music but for an application in nuclear physics, which is exciting. More
+exciting still is that it is very similar in structure to the one of the first
+known algorithms written in Euclid's book of elements in 300 BC. You can read
+more about this in the paper
+[The Euclidean Algorithm Generates Traditional Musical Rhythms](http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf)
+by Toussaint. Some examples from this paper are included below,
+including rotation in some cases.
+
+@
+- (2,5) : A thirteenth century Persian rhythm called Khafif-e-ramal.
+- (3,4) : The archetypal pattern of the Cumbia from Colombia, as well as a Calypso rhythm from Trinidad.
+- (3,5,2) : Another thirteenth century Persian rhythm by the name of Khafif-e-ramal, as well as a Rumanian folk-dance rhythm.
+- (3,7) : A Ruchenitza rhythm used in a Bulgarian folk-dance.
+- (3,8) : The Cuban tresillo pattern.
+- (4,7) : Another Ruchenitza Bulgarian folk-dance rhythm.
+- (4,9) : The Aksak rhythm of Turkey.
+- (4,11) : The metric pattern used by Frank Zappa in his piece titled Outside Now.
+- (5,6) : Yields the York-Samai pattern, a popular Arab rhythm.
+- (5,7) : The Nawakhat pattern, another popular Arab rhythm.
+- (5,8) : The Cuban cinquillo pattern.
+- (5,9) : A popular Arab rhythm called Agsag-Samai.
+- (5,11) : The metric pattern used by Moussorgsky in Pictures at an Exhibition.
+- (5,12) : The Venda clapping pattern of a South African children’s song.
+- (5,16) : The Bossa-Nova rhythm necklace of Brazil.
+- (7,8) : A typical rhythm played on the Bendir (frame drum).
+- (7,12) : A common West African bell pattern.
+- (7,16,14) : A Samba rhythm necklace from Brazil.
+- (9,16) : A rhythm necklace used in the Central African Republic.
+- (11,24,14) : A rhythm necklace of the Aka Pygmies of Central Africa.
+- (13,24,5) : Another rhythm necklace of the Aka Pygmies of the upper Sangha.
+@
+-}
 e :: Int -> Int -> Pattern a -> Pattern a
 e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)) <*> p
 
@@ -877,6 +942,7 @@ of @values@. Other ways of saying this are:
 * @values@ quantized to @beats@.
 
 Examples:
+
 @
 d1 $ sound $ preplace (1,1) "x [~ x] x x" "bd sn"
 d1 $ sound $ preplace (1,1) "x(3,8)" "bd sn"
@@ -890,12 +956,13 @@ use @preplace@ and provide desired pattern lengths:
 @
 let p = slow 2 $ "x x x"
 
-d1 $ sound $ prreplace (2,1) p "bd sn"
+d1 $ sound $ preplace (2,1) p "bd sn"
 @
 -}
 preplace :: (Time, Time) -> Pattern String -> Pattern b -> Pattern b
 preplace = preplaceWith $ flip const
 
+-- | @prep@ is an alias for preplace.
 prep = preplace
 
 preplace1 :: Pattern String -> Pattern b -> Pattern b
@@ -935,6 +1002,7 @@ d1 $ sound "sn ~ hh bd"
 (<<~) :: Int -> Pattern a -> Pattern a
 (<<~) = protate 1
 
+-- | @~>>@ is like @<<~@ but for shifting to the right.
 (~>>) :: Int -> Pattern a -> Pattern a
 (~>>) = (<<~) . (0-)
 
@@ -953,7 +1021,7 @@ discretise n p = density n $ (atom (id)) <*> p
 randcat :: [Pattern a] -> Pattern a
 randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps - 1)) (slowcat ps)
 
--- | @fromNote p@: converts a pattern of human-readable pitch names
+-- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
 -- in the 2nd octave with the result of @11@, and @"b-3"@ as
 -- @-25@. Pitches can be decorated using:
@@ -985,7 +1053,7 @@ toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
     sym x = lookup (init (tail x)) [("s",1),("f",-1),("n",0),("ss",2),("ff",-2)]
 -}
 
--- | @tom p@: Alias for @toMIDI@.
+-- @tom p@: Alias for @toMIDI@.
 -- tom = toMIDI
 
 
@@ -1026,13 +1094,13 @@ substruct s p = filterStartInRange $ Pattern $ f
 -- general rule parser (strings map to strings)
 parseLMRule :: String -> [(String,String)]
 parseLMRule s = map (splitOn ':') (commaSplit s)
-  where splitOn sep str = splitAt (fromJust $ elemIndex sep str) 
+  where splitOn sep str = splitAt (fromJust $ elemIndex sep str)
                             $ filter (/= sep) str
         commaSplit s = map T.unpack $ T.splitOn (T.pack ",") $ T.pack s
 
 -- specific parser for step sequencer (chars map to string)
--- ruleset in form "a:b,b:ab" 
-parseLMRule' :: String -> [(Char, String)]   
+-- ruleset in form "a:b,b:ab"
+parseLMRule' :: String -> [(Char, String)]
 parseLMRule' str = map fixer $ parseLMRule str
   where fixer (c,r) = (head c, r)
 
@@ -1040,11 +1108,9 @@ parseLMRule' str = map fixer $ parseLMRule str
 
 for example:
 
-~~~~{haskell}
-
+@
 lindenmayer 1 "a:b,b:ab" "ab" -> "bab"
-
-~~~~
+@
 -}
 lindenmayer :: Int -> String -> String -> String
 lindenmayer _ _ [] = []
@@ -1118,12 +1184,12 @@ which uses `chop` to break a single sample into individual pieces, which `fit'` 
 
 -}
 fit' cyc n from to p = unwrap' $ fit n (mapMasks n from' p') to
-  where mapMasks n from p = [stretch $ mask (filterValues (== i) from) p 
+  where mapMasks n from p = [stretch $ mask (filterValues (== i) from) p
                              | i <- [0..n-1]]
         p' = density cyc $ p
         from' = density cyc $ from
 
-{- `runWith n f p` treats the given pattern `p` as having `n` sections, and applies the function `f` to one of those sections per cycle, running from left to right.
+{-| @runWith n f p@ treats the given pattern @p@ as having @n@ sections, and applies the function @f@ to one of those sections per cycle, running from left to right.
 
 @
 d1 $ runWith 4 (density 4) $ sound "cp sn arpy [mt lt]"
@@ -1134,8 +1200,8 @@ runWith n f p = do i <- slow (toRational n) $ run (fromIntegral n)
                    within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
 
 
-{- `runWith'` works much the same as `runWith`, but runs from right to left.
- -}
+{-| @runWith'@ works much the same as `runWith`, but runs from right to left.
+-}
 runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 runWith' n f p = do i <- slow (toRational n) $ rev $ run (fromIntegral n)
                     within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
@@ -1181,3 +1247,29 @@ swingBy::Time -> Time -> Pattern a -> Pattern a
 swingBy x n = inside n (within (0.5,1) (x ~>))
 
 swing = swingBy (1%3)
+
+{- | `cycleChoose` is like `choose` but only picks a new item from the list
+once each cycle -}
+cycleChoose::[a] -> Pattern a
+cycleChoose xs = Pattern $ \(s,e) -> [((s,e),(s,e), xs!!(floor $ (dlen xs)*(ctrand s) ))]
+  where dlen xs = fromIntegral $ length xs
+        ctrand s = timeToRand $ fromIntegral $ floor $ sam s
+
+{- | `shuffle n p` evenly divides one cycle of the pattern `p` into `n` parts,
+and returns a random permutation of the parts each cycle.  For example, 
+`shuffle 3 "a b c"` could return `"a b c"`, `"a c b"`, `"b a c"`, `"b c a"`,
+`"c a b"`, or `"c b a"`.  But it will **never** return `"a a a"`, because that
+is not a permutation of the parts.
+-}
+shuffle::Int -> Pattern a -> Pattern a
+shuffle n = fit' 1 n (run n) (unwrap $ cycleChoose $ map listToPat $ 
+  permutations [0..n-1])
+
+{- | `scramble n p` is like `shuffle` but randomly selects from the parts
+of `p` instead of making permutations. 
+For example, `scramble 3 "a b c"` will randomly select 3 parts from
+`"a"` `"b"` and `"c"`, possibly repeating a single part.
+-}
+scramble::Int -> Pattern a -> Pattern a
+scramble n = fit' 1 n (run n) (density (fromIntegral n) $ 
+  liftA2 (+) (pure 0) $ irand n)

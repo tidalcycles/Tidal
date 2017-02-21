@@ -260,6 +260,12 @@ Using `unit "s"` means the playback speed will be adjusted so that the duration 
 (expression,expression_p)        = pF "expression" (Just 1)
 (sustainpedal,sustainpedal_p)    = pF "sustainpedal" (Just 0)
 
+-- Tremolo Audio DSP effect | params are "tremolorate" and "tremolodepth"
+tremolorate, tremolodepth :: Pattern Double -> ParamPattern
+tremolorate_p, tremolodepth_p :: Param
+(tremolorate,tremolorate_p)      = pF "tremolorate" (Just 1)
+(tremolodepth,tremolodepth_p)    = pF "tremolodepth" (Just 0.5)
+
 -- aliases
 att, chdecay, ctf, ctfg, delayfb, delayt, lbd, lch, lcl, lcp, lcr, lfoc, lfoi
    , lfop, lht, llt, loh, lsn, ohdecay, pit1, pit2, pit3, por, sag, scl, scp
@@ -310,7 +316,7 @@ note = n
 midinote = n . ((subtract 60) <$>)
 
 drum :: Pattern String -> ParamPattern
-drum = n . (drumN <$>)
+drum = midinote . (drumN <$>)
 
 drumN :: String -> Int
 drumN "bd"  = 36
