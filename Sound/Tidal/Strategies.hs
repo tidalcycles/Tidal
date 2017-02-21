@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -XNoMonomorphismRestriction #-}
+{-# OPTIONS_GHC -XNoMonomorphismRestriction -XOverloadedStrings #-}
 
 module Sound.Tidal.Strategies where
 
@@ -16,6 +16,7 @@ import Sound.Tidal.Time
 import Sound.Tidal.Utils
 import Sound.Tidal.Params
 import Sound.Tidal.Parse
+import Data.List (transpose)
 
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * (fromIntegral i)) ~> p) [0 .. (n-1)]
@@ -48,6 +49,9 @@ juxcut f p = stack [p     # pan (pure 0) # cut (pure (-1)),
                     f $ p # pan (pure 1) # cut (pure (-2))
                    ]
 
+juxcut' fs p = stack $ map (\n -> ((fs !! n) p |+| cut (pure $ 1-n)) # pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
+  where l = length fs
+ 
 {- | In addition to `jux`, `jux'` allows using a list of pattern transform. resulting patterns from each transformation will be spread via pan from left to right.
 
 For example:
@@ -372,3 +376,21 @@ d1 $ juxBy 0.6 (|*| speed "2") $ slowspread (loopAt) [4,6,2,3] $ chop 12 $ sound
 -}
 loopAt :: Time -> ParamPattern -> ParamPattern
 loopAt n p = slow n p |*| speed (pure $ fromRational $ 1/n) # unit (pure "c")
+
+
+{- |
+   tabby - A more literal weaving than the `weave` function, give number
+   of 'threads' per cycle and two patterns, and this function will weave them
+   together using a plain (aka 'tabby') weave, with a simple over/under structure
+ -}
+tabby n p p' = stack [maskedWarp n p,
+                      maskedWeft n p'
+                     ]
+  where             
+    weft n = concatMap (\x -> [[0..n-1],(reverse [0..n-1])]) [0 .. (n `div` 2) - 1]
+    warp = transpose . weft
+    thread xs n p = slow (n%1) $ cat $ map (\i -> zoom (i%n,(i+1)%n) p) (concat xs)
+    weftP n p = thread (weft n) n p
+    warpP n p = thread (warp n) n p
+    maskedWeft n p = Sound.Tidal.Pattern.mask (every 2 rev $ density ((n)%2) "~ 1" :: Pattern Int) $ weftP n p
+    maskedWarp n p = mask (every 2 rev $ density ((n)%2) "1 ~" :: Pattern Int) $ warpP n p
