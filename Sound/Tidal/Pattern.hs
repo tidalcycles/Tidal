@@ -513,10 +513,20 @@ d1 $ spread slow [2,4%3] $ sound "ho ho:2 ho:3 hc"
 spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 spread f xs p = cat $ map (\x -> f x p) xs
 
-{- | @slowspread@ takes a list of pattern transforms and applies them one at a time, per cycle,
-then repeats.
+{- | @slowspread@ works the same as @spread@, but the pattern is slowed
+down. If you gave four values to @spread@, you would get four
+repetitions of the pattern per cycle, once for each value. With
+@slowspread@, you will always only get one repetition of the original
+pattern per cycle, with a new value picked every cycle. Compare these two:
 
-Example:
+d1 $ spread chop [64,32,16] $ sound "ho ho:2 ho:3 hc"
+
+d1 $ slowspread chop [64,32,16] $ sound "ho ho:2 ho:3 hc"
+
+In practice, you'll generally want to use @slowspread@ rather than @spread@.
+
+Note that if you pass ($) as the function to spread values over, you
+can put functions as the list of values. For example:
 
 @
 d1 $ slowspread ($) [density 2, rev, slow 2, striate 3, (# speed "0.8")]
@@ -554,6 +564,15 @@ spread' :: (a -> Pattern b -> Pattern c) -> Pattern a -> Pattern b -> Pattern c
 spread' f timepat pat =
   Pattern $ \r -> concatMap (\(_,r', x) -> (arc (f x pat) r')) (rs r)
   where rs r = arc (filterOnsetsInRange timepat) r
+
+{- | `spreadChoose f xs p` is similar to `slowspread` but picks values from
+`xs` at random, rather than cycling through them in order. It has a
+shorter alias `spreadr`.
+-}
+spreadChoose :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
+spreadChoose f vs p = do v <- discretise 1 (choose vs)
+                         f v p
+spreadr = spreadChoose
 
 filterValues :: (a -> Bool) -> Pattern a -> Pattern a
 filterValues f (Pattern x) = Pattern $ (filter (f . thd')) . x
