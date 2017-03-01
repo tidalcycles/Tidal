@@ -509,27 +509,11 @@ the two speeds:
 d1 $ spread slow [2,4%3] $ sound "ho ho:2 ho:3 hc"
 @
 
--}
-spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
-spread f xs p = cat $ map (\x -> f x p) xs
-
-{- | @slowspread@ works the same as @spread@, but the pattern is slowed
-down. If you gave four values to @spread@, you would get four
-repetitions of the pattern per cycle, once for each value. With
-@slowspread@, you will always only get one repetition of the original
-pattern per cycle, with a new value picked every cycle. Compare these two:
-
-d1 $ spread chop [64,32,16] $ sound "ho ho:2 ho:3 hc"
-
-d1 $ slowspread chop [64,32,16] $ sound "ho ho:2 ho:3 hc"
-
-In practice, you'll generally want to use @slowspread@ rather than @spread@.
-
 Note that if you pass ($) as the function to spread values over, you
 can put functions as the list of values. For example:
 
 @
-d1 $ slowspread ($) [density 2, rev, slow 2, striate 3, (# speed "0.8")]
+d1 $ spread ($) [density 2, rev, slow 2, striate 3, (# speed "0.8")]
     $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4"
 @
 
@@ -543,8 +527,21 @@ Above, the pattern will have these transforms applied to it, one at a time, per 
 
 After `(# speed "0.8")`, the transforms will repeat and start at `density 2` again.
 -}
-slowspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
-slowspread f xs p = slowcat $ map (\x -> f x p) xs
+spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
+spread f xs p = slowcat $ map (\x -> f x p) xs
+
+slowspread = spread
+
+{- | @fastspread@ works the same as @spread@, but the result is squashed into a single cycle. If you gave four values to @spread@, then the result would seem to speed up by a factor of four. Compare these two:
+
+d1 $ spread chop [4,64,32,16] $ sound "ho ho:2 ho:3 hc"
+
+d1 $ fastspread chop [4,64,32,16] $ sound "ho ho:2 ho:3 hc"
+
+There is also @slowspread@, which is an alias of @spread@.
+-}
+fastspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
+fastspread f xs p = cat $ map (\x -> f x p) xs
 
 {- | There's a version of this function, `spread'` (pronounced "spread prime"), which takes a *pattern* of parameters, instead of a list:
 
@@ -561,9 +558,8 @@ d1 $ spread' slow "[2 4%3, 3]" $ sound "ho ho:2 ho:3 hc"
 @
 -}
 spread' :: (a -> Pattern b -> Pattern c) -> Pattern a -> Pattern b -> Pattern c
-spread' f timepat pat =
-  Pattern $ \r -> concatMap (\(_,r', x) -> (arc (f x pat) r')) (rs r)
-  where rs r = arc (filterOnsetsInRange timepat) r
+spread' f vpat pat = do v <- vpat
+                        f v pat
 
 {- | `spreadChoose f xs p` is similar to `slowspread` but picks values from
 `xs` at random, rather than cycling through them in order. It has a
