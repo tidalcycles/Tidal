@@ -214,7 +214,7 @@ striateL :: Int -> Int -> ParamPattern -> ParamPattern
 striateL n l p = striate n p # loop (atom $ fromIntegral l)
 striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
 
-metronome = slow 2 $ sound (parsePat "[odx, [hh]*8]")
+metronome = slow 2 $ sound (p "[odx, [hh]*8]")
 
 {-|
 Also degrades the current pattern and undegrades the next.
