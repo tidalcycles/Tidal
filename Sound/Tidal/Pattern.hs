@@ -557,9 +557,8 @@ using `spread'` though is that you can provide polyphonic parameters, e.g.:
 d1 $ spread' slow "[2 4%3, 3]" $ sound "ho ho:2 ho:3 hc"
 @
 -}
-spread' :: (a -> Pattern b -> Pattern c) -> Pattern a -> Pattern b -> Pattern c
-spread' f vpat pat = do v <- vpat
-                        f v pat
+spread' :: Monad m => (a -> b -> m c) -> m a -> b -> m c
+spread' f vpat pat = vpat >>= \v -> f v pat
 
 {- | `spreadChoose f xs p` is similar to `slowspread` but picks values from
 `xs` at random, rather than cycling through them in order. It has a
