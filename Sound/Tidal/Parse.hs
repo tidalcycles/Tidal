@@ -56,8 +56,8 @@ toPat = \case
       unwrap $ eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
 
-parsePat :: Parseable a => String -> Pattern a
-parsePat = toPat . parseTPat
+p :: Parseable a => String -> Pattern a
+p = toPat . parseTPat
 
 class Parseable a where
   parseTPat :: String -> TPat a
@@ -138,7 +138,7 @@ r s orig = do E.handle
                 (\err -> do putStrLn (show (err :: E.SomeException))
                             return orig 
                 )
-                (return $ parsePat s)
+                (return $ p s)
 
 parseRhythm :: Parser (TPat a) -> String -> TPat a
 parseRhythm f input = either (const TPat_Silence) id $ parse (pSequence f') "" input
