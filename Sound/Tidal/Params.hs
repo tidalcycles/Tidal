@@ -8,7 +8,7 @@ import Control.Applicative
 
 make' :: (a -> Value) -> Param -> Pattern a -> ParamPattern
 make' toValue par p = fmap (\x -> Map.singleton par (defaultV x)) p
-  where defaultV a = Just $ toValue a
+  where defaultV a = toValue a
 
 -- | group multiple params into one
 grp :: [Param] -> Pattern String -> ParamPattern
@@ -17,10 +17,10 @@ grp params p = (fmap lookupPattern p)
   where lookupPattern :: String -> ParamMap
         lookupPattern s = Map.fromList $ map (\(param,s') -> toPV param s') $ zip params $ (split s)
         split s = wordsBy (==':') s
-        toPV :: Param -> String -> (Param, Maybe Value)
-        toPV param@(S _ _) s = (param, (Just $ VS s))
-        toPV param@(F _ _) s = (param, (Just $ VF $ read s))
-        toPV param@(I _ _) s = (param, (Just $ VI $ read s))
+        toPV :: Param -> String -> (Param, Value)
+        toPV param@(S _ _) s = (param, (VS s))
+        toPV param@(F _ _) s = (param, (VF $ read s))
+        toPV param@(I _ _) s = (param, (VI $ read s))
 {- |
 
 A pattern of strings representing sounds or synth notes. 

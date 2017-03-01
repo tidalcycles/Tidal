@@ -47,17 +47,16 @@ data Shape = Shape {params :: [Param],
 data Value = VS { svalue :: String } | VF { fvalue :: Double } | VI { ivalue :: Int }
            deriving (Show,Eq,Ord,Typeable)
 
-type ParamMap = Map.Map Param (Maybe Value)
+type ParamMap = Map.Map Param Value
 
 type ParamPattern = Pattern ParamMap
            
 ticksPerCycle = 8
 
-defaultValue :: Param -> Maybe Value
-defaultValue (S _ (Just x)) = Just $ VS x
-defaultValue (I _ (Just x)) = Just $ VI x
-defaultValue (F _ (Just x)) = Just $ VF x
-defaultValue _ = Nothing
+defaultValue :: Param -> Value
+defaultValue (S _ (Just x)) = VS x
+defaultValue (I _ (Just x)) = VI x
+defaultValue (F _ (Just x)) = VF x
 
 hasDefault :: Param -> Bool
 hasDefault (S _ Nothing) = False
@@ -76,7 +75,7 @@ required :: Shape -> [Param]
 required = filter (not . hasDefault) . params
 
 hasRequired :: Shape -> ParamMap -> Bool
-hasRequired s m = isSubset (required s) (Map.keys (Map.filter (\x -> x /= Nothing) m))
+hasRequired s m = isSubset (required s) (Map.keys m)
 
 isSubset :: (Eq a) => [a] -> [a] -> Bool
 isSubset xs ys = all (\x -> elem x ys) xs
@@ -160,7 +159,7 @@ onTick' backend shape patternsM change ticks
 make :: (a -> Value) -> Shape -> String -> Pattern a -> ParamPattern
 make toValue s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
   where nParam = param s nm
-        defaultV a = Just $ toValue a
+        defaultV a = toValue a
         --defaultV Nothing = defaultValue nParam
 
 makeS = make VS
@@ -192,16 +191,15 @@ mergeWith
      -> f (Map.Map k a) -> f (Map.Map k a) -> f (Map.Map k a)
 
 mergeNumWith intOp floatOp = mergeWith f
-  where f (F _ _) (Just (VF a)) (Just (VF b)) = Just (VF $ floatOp a b)
-        f (I _ _) (Just (VI a)) (Just (VI b)) = Just (VI $ intOp a b)
+  where f (F _ _) (VF a) (VF b) = VF $ floatOp a b
+        f (I _ _) (VI a) (VI b) = VI $ intOp a b
         f _ _ b = b
 
 mergePlus = mergeWith f
-  where f (F _ _) (Just (VF a)) (Just (VF b)) = Just (VF $ a + b)
-        f (I _ _) (Just (VI a)) (Just (VI b)) = Just (VI $ a + b)
-        f (S _ _) (Just (VS a)) (Just (VS b)) = Just (VS $ a ++ b)
+  where f (F _ _) (VF a) (VF b) = VF $ a + b
+        f (I _ _) (VI a) (VI b) = VI $ a + b
+        f (S _ _) (VS a) (VS b) = VS $ a ++ b
         f _ _ b = b
-
 
 infixl 1 |*|
 (|*|) :: ParamPattern -> ParamPattern -> ParamPattern

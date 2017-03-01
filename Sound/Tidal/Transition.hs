@@ -115,7 +115,7 @@ mortal lifespan release now (p:_) = overlay (playWhen (<(now+lifespan)) p) (play
 combineV :: (Value -> Value -> Value) -> ParamMap -> ParamMap -> ParamMap
 combineV f a b = Map.mapWithKey pairUp a
   where pairUp k v | Map.notMember k b = v
-                   | otherwise = liftA2 f v (fromJust $ Map.lookup k b)
+                   | otherwise = f v (fromJust $ Map.lookup k b)
 
 mixNums v (VF a) (VF b) = VF $ (a * v) + (b * (1-v))
 mixNums v (VI a) (VI b) = VI $ floor $ (fromIntegral a * v) + (fromIntegral b * (1-v))
