@@ -135,6 +135,16 @@ withResultArc f p = Pattern $ \a -> mapArcs f $ arc p a
 withResultTime :: (Time -> Time) -> Pattern a -> Pattern a
 withResultTime = withResultArc . mapArc
 
+-- | @withEvent f p@ returns a new @Pattern@ with events mapped over
+-- function @f@.
+withEvent :: (Event a -> Event b) -> Pattern a -> Pattern b
+withEvent f p = Pattern $ \a -> map f $ arc p a
+
+-- | @timedValues p@ returns a new @Pattern@ where values are turned
+-- into tuples of @Arc@ and value.
+timedValues :: Pattern a -> Pattern (Arc, a)
+timedValues = withEvent (\(a,a',v) -> (a,a',(a,v)))
+
 -- | @overlay@ combines two @Pattern@s into a new pattern, so that
 -- their events are combined over time. This is the same as the infix
 -- operator `<>`.
@@ -1287,3 +1297,16 @@ For example, `scramble 3 "a b c"` will randomly select 3 parts from
 scramble::Int -> Pattern a -> Pattern a
 scramble n = fit' 1 n (run n) (density (fromIntegral n) $ 
   liftA2 (+) (pure 0) $ irand n)
+
+ur :: Time -> Pattern String -> [Pattern a] -> Pattern a
+ur t outer_p ps = slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
+  where split s = wordsBy (==':') s
+        getPat (n:xs) = (ps' !!! read n, transform xs)
+        ps' = map (density t) ps
+        adjust (a, (p, f)) = f a p
+        transform (x:_) a = transform' x a
+        transform _ _ = id
+        transform' "in" (s,e) p = twiddle (fadeIn) (s,e) p
+        transform' "out" (s,e) p = twiddle (fadeOut) (s,e) p
+        transform' _ _ p = p
+        twiddle f (s,e) p = s ~> (f (e-s) p)
