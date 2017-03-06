@@ -27,7 +27,7 @@ import Sound.Tidal.Bjorklund
 data Pattern a = Pattern {arc :: Arc -> [Event a]}
   deriving Typeable
 
--- | Admit the pattern datatype to the Num and Fractional classes,
+-- | Admit the pattern datatype to the Num, Fractional and Floating classes,
 -- to allow arithmetic on them, and for bare numbers to be automatically
 -- converted into patterns of numbers
 instance Num a => Num (Pattern a) where
@@ -41,6 +41,26 @@ instance Num a => Num (Pattern a) where
 instance (Fractional a) => Fractional (Pattern a) where
   fromRational = pure . fromRational
   (/) = liftA2 (/)
+
+instance Floating a => Floating (Pattern a) where
+  pi = pure pi
+  exp = liftA (exp)
+  log = liftA (log)
+  sqrt = liftA (sqrt)
+  (**) = liftA2 (**)
+  logBase = liftA2 (logBase)
+  sin = liftA (sin)
+  cos = liftA (cos)
+  tan = liftA (tan)
+  asin = liftA (asin)
+  acos = liftA (acos)
+  atan = liftA (atan)
+  sinh = liftA (sinh)
+  cosh = liftA (cosh)
+  tanh = liftA (tanh)
+  asinh = liftA (asinh)
+  acosh = liftA (acosh)
+  atanh = liftA (atanh)
 
 -- | @show (p :: Pattern)@ returns a text string representing the
 -- event values active during the first cycle of the given pattern.
