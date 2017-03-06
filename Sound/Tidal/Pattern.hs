@@ -1348,9 +1348,8 @@ ur t outer_p ps = slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <
         transform' _ _ p = p
         twiddle f (s,e) p = s ~> (f (e-s) p)
 
-
-ur' :: Time -> Pattern String -> [(String, Pattern a)] -> Pattern a
-ur' t outer_p ps = slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
+ur' :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
+ur' t outer_p ps fs = slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
   where split s = wordsBy (==':') s
         getPat (s:xs) = (match s, transform xs)
         match s = fromMaybe silence $ lookup s ps'
@@ -1358,9 +1357,8 @@ ur' t outer_p ps = slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) 
         adjust (a, (p, f)) = f a p
         transform (x:_) a = transform' x a
         transform _ _ = id
-        transform' "in" (s,e) p = twiddle (fadeIn) (s,e) p
-        transform' "out" (s,e) p = twiddle (fadeOut) (s,e) p
-        transform' _ _ p = p
+        transform' str (s,e) p = s ~> (inside (1/(e-s)) (matchF str) p)
+        matchF str = fromMaybe id $ lookup str fs
         twiddle f (s,e) p = s ~> (f (e-s) p)
 
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
