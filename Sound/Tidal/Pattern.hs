@@ -27,6 +27,41 @@ import Sound.Tidal.Bjorklund
 data Pattern a = Pattern {arc :: Arc -> [Event a]}
   deriving Typeable
 
+-- | Admit the pattern datatype to the Num, Fractional and Floating classes,
+-- to allow arithmetic on them, and for bare numbers to be automatically
+-- converted into patterns of numbers
+instance Num a => Num (Pattern a) where
+      negate      = fmap negate
+      (+)         = liftA2 (+)
+      (*)         = liftA2 (*)
+      fromInteger = pure . fromInteger
+      abs         = fmap abs
+      signum      = fmap signum
+
+instance (Fractional a) => Fractional (Pattern a) where
+  fromRational = pure . fromRational
+  (/) = liftA2 (/)
+
+instance Floating a => Floating (Pattern a) where
+  pi = pure pi
+  exp = liftA (exp)
+  log = liftA (log)
+  sqrt = liftA (sqrt)
+  (**) = liftA2 (**)
+  logBase = liftA2 (logBase)
+  sin = liftA (sin)
+  cos = liftA (cos)
+  tan = liftA (tan)
+  asin = liftA (asin)
+  acos = liftA (acos)
+  atan = liftA (atan)
+  sinh = liftA (sinh)
+  cosh = liftA (cosh)
+  tanh = liftA (tanh)
+  asinh = liftA (asinh)
+  acosh = liftA (acosh)
+  atanh = liftA (atanh)
+
 -- | @show (p :: Pattern)@ returns a text string representing the
 -- event values active during the first cycle of the given pattern.
 instance (Show a) => Show (Pattern a) where
@@ -215,13 +250,13 @@ scan n = cat $ map run [1 .. n]
 
 -- | @density@ returns the given pattern with density increased by the
 -- given @Time@ factor. Therefore @density 2 p@ will return a pattern
--- that is twice as fast, and @density (1%3) p@ will return one three
+-- that is twice as fast, and @density (1/3) p@ will return one three
 -- times as slow.
 density :: Time -> Pattern a -> Pattern a
-density 0 _ = silence
-density 1 p = p
 density r p = withResultTime (/ r) $ withQueryTime (* r) p
 
+density' :: Pattern Time -> Pattern a -> Pattern a
+density' tp p = unwrap $ (\tv -> density tv p) <$> tp
 
 -- | @densityGap@ is similar to @density@ but maintains its cyclic
 -- alignment. For example, @densityGap 2 p@ would squash the events in
@@ -236,6 +271,8 @@ densityGap r p = splitQueries $ withResultArc (\(s,e) -> (sam s + ((s - sam s)/r
 slow :: Time -> Pattern a -> Pattern a
 slow 0 = id
 slow t = density (1/t)
+
+slow' tp p = density' (1/tp) p
 
 -- | The @<~@ operator shifts (or rotates) a pattern to the left (or
 -- counter-clockwise) by the given @Time@ value. For example
@@ -1310,3 +1347,19 @@ ur t outer_p ps = slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <
         transform' "out" (s,e) p = twiddle (fadeOut) (s,e) p
         transform' _ _ p = p
         twiddle f (s,e) p = s ~> (f (e-s) p)
+
+ur' :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
+ur' t outer_p ps fs = slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
+  where split s = wordsBy (==':') s
+        getPat (s:xs) = (match s, transform xs)
+        match s = fromMaybe silence $ lookup s ps'
+        ps' = map (fmap (density t)) ps
+        adjust (a, (p, f)) = f a p
+        transform (x:_) a = transform' x a
+        transform _ _ = id
+        transform' str (s,e) p = s ~> (inside (1/(e-s)) (matchF str) p)
+        matchF str = fromMaybe id $ lookup str fs
+        twiddle f (s,e) p = s ~> (f (e-s) p)
+
+inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
+inhabit ps p = unwrap' $ (\s -> fromMaybe silence $ lookup s ps) <$> p
