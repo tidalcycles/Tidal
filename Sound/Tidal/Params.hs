@@ -135,7 +135,7 @@ Using `cut "0"` is effectively _no_ cutgroup.
 -- | a pattern of numbers from 0 to 1. Sets the level of the delay signal.
 (delay, delay_p)                 = pF "delay" (Just 0)
 -- | a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
-(delayfeedback, delayfeedback_p) = pF "delayfeedback" (Just (-1))
+(delayfeedback, delayfeedback_p) = pF "delayfeedback" (Just 0)
 -- | a pattern of numbers from 0 to 1. Sets the length of the delay.
 (delaytime, delaytime_p)         = pF "delaytime" (Just (-1))
 (detune, detune_p)               = pF "detune" (Just 0)
