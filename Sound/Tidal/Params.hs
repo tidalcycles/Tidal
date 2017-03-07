@@ -23,7 +23,7 @@ grp params p = (fmap lookupPattern p)
         toPV param@(I _ _) s = (param, (VI $ read s))
 {- |
 
-A pattern of strings representing sounds or synth notes. 
+A pattern of strings representing sounds or synth notes.
 
 Internally, `sound` or its shorter alias `s` is a combination of the samplebank name and number when used with samples, or synth name and note number when used with a synthesiser. For example `bd:2` specifies the third sample (not the second as you might expect, because we start counting at zero) in the `bd` sample folder.
 
@@ -265,6 +265,12 @@ tremolorate, tremolodepth :: Pattern Double -> ParamPattern
 tremolorate_p, tremolodepth_p :: Param
 (tremolorate,tremolorate_p)      = pF "tremolorate" (Just 1)
 (tremolodepth,tremolodepth_p)    = pF "tremolodepth" (Just 0.5)
+
+-- Phaser Audio DSP effect | params are "phaserrate" and "phaserdepth"
+phaserrate, phaserdepth :: Pattern Double -> ParamPattern
+phaserrate_p, phaserdepth_p :: Param
+(phaserrate,phaserrate_p)      = pF "phaserrate" (Just 1)
+(phaserdepth,phaserdepth_p)    = pF "phaserdepth" (Just 0.5)
 
 -- aliases
 att, chdecay, ctf, ctfg, delayfb, delayt, lbd, lch, lcl, lcp, lcr, lfoc, lfoi
