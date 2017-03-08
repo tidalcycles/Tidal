@@ -711,15 +711,15 @@ rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
 timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
 
-{- | Just like `rand` but for integers, `irand n` generates a pattern of (pseudo-)random integers between `0` to `n-1` inclusive. Notably used to pick a random
+{- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:
 
 @
-d1 $ sound (samples "drum*4" (irand 5))
+d1 $ n (irand 5) # sound "drum"
 @
 -}
-irand :: Int -> Pattern Int
-irand i = (floor . (* (fromIntegral i))) <$> rand
+irand :: Num a => Int -> Pattern a
+irand i = (fromIntegral . floor . (* (fromIntegral i))) <$> rand
 
 {- | Randomly picks an element from the given list
 
