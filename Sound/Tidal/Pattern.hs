@@ -523,7 +523,7 @@ fadeIn :: Time -> Pattern a -> Pattern a
 fadeIn n = spread' (degradeBy) (slow n $ (1-) <$> envL)
 
 {- | (The above is difficult to describe, if you don't understand Haskell,
-just read the description and examples..)
+just ignore it and read the below..)
 
 The `spread` function allows you to take a pattern transformation
 which takes a parameter, such as `slow`, and provide several
