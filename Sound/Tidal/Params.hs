@@ -272,6 +272,10 @@ att, chdecay, ctf, ctfg, delayfb, delayt, lbd, lch, lcl, lcp, lcr, lfoc, lfoi
    , scr, sld, std, stt, sus, tdecay, vcf, vco, voi
       :: Pattern Double -> ParamPattern
 att = attack
+bpf = bandf
+bpf_p = bandf_p
+bpq = bandq
+bpq_p = bandq_p
 chdecay = clhatdecay
 ctf  = cutoff
 ctfg = cutoffegint
@@ -280,6 +284,10 @@ delayt  = delaytime
 det  = detune
 gat = gate
 hg = hatgrain
+hpf = hcutoff
+hpf_p = hcutoff_p
+hpq = hresonance
+hpq_p = hresonance_p
 lag = lagogo
 lbd = lkick
 lch = lclhat
@@ -292,6 +300,10 @@ lfop = lfopitchint
 lht = lhitom
 llt = llotom
 loh = lophat
+lpf = cutoff
+lpf_p = cutoff_p
+lpq = resonance
+lpq_p = resonance_p
 lsn = lsnare
 ohdecay = ophatdecay
 pit1 = pitch1
