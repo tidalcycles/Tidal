@@ -17,3 +17,5 @@ import Sound.Tidal.Params as C
 import Sound.Tidal.Transition as C
 import qualified Sound.Tidal.Scales as Scales
 import qualified Sound.Tidal.Chords as Chords
+
+tidal_version = 0.9
