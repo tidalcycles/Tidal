@@ -2,6 +2,7 @@ module Sound.Tidal.Chords where
 
 import Sound.Tidal.Pattern
 import Data.Maybe
+import Control.Applicative
 
 major :: [Int]
 major = [0,4,7]
