@@ -333,14 +333,14 @@ step' ss steps = cat $ map f steps
               | c >= '0' && c <= '9' = atom $ ss!!(Char.digitToInt c)
               | otherwise = silence
 
-off :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-off t f p = superimpose (f . (t ~>)) p
+off :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+off tp f p = unwrap $ (\tv -> off' tv f p) <$> tp
 
-off' :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-off' tp f p = unwrap $ (\tv -> superimpose (f . (tv ~>)) p) <$> tp
+off' :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+off' t f p = superimpose (f . (t ~>)) p
 
-offadd :: Num a => Time -> a -> Pattern a -> Pattern a
-offadd t n p = off t ((+n) <$>) p
+offadd :: Num a => Pattern Time -> Pattern a -> Pattern a -> Pattern a
+offadd tp pn p = off tp (+pn) p
 
 {- | `up` does a poor man's pitchshift by semitones via `speed`.
 
