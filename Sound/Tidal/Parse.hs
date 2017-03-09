@@ -24,7 +24,7 @@ import Sound.Tidal.Time (Arc, Time)
 data TPat a
    = TPat_Atom a
    | TPat_Density Time (TPat a)
-      -- We keep this distinct from 'density' because of divide-by-zero:
+      -- We keep this distinct from '_density because of divide-by-zero:
    | TPat_Slow Time (TPat a)
    | TPat_Zoom Arc (TPat a)
    | TPat_DegradeBy Double (TPat a)
@@ -44,8 +44,8 @@ instance Monoid (TPat a) where
 toPat :: TPat a -> Pattern a
 toPat = \case
    TPat_Atom x -> atom x
-   TPat_Density t x -> density' t $ toPat x
-   TPat_Slow t x -> slow' t $ toPat x
+   TPat_Density t x -> _density t $ toPat x
+   TPat_Slow t x -> _slow t $ toPat x
    TPat_Zoom arc x -> zoom arc $ toPat x
    TPat_DegradeBy amt x -> degradeBy amt $ toPat x
    TPat_Silence -> silence

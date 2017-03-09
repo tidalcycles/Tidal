@@ -124,5 +124,5 @@ mixNums v _ b = b
 interpolateIn :: Time -> Time -> [ParamPattern] -> ParamPattern
 interpolateIn _ _ [] = silence
 interpolateIn _ _ (p:[]) = p
-interpolateIn t now (p:p':_) = do n <- now ~> (slow' t envL)
+interpolateIn t now (p:p':_) = do n <- now ~> (_slow t envL)
                                   combineV (mixNums n) <$> p <*> p'

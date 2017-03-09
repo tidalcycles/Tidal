@@ -265,10 +265,10 @@ scan n = cat $ map run [1 .. n]
 -- that is twice as fast, and @density (1/3) p@ will return one three
 -- times as slow.
 density :: Pattern Time -> Pattern a -> Pattern a
-density tp p = unwrap $ (\tv -> density' tv p) <$> tp
+density tp p = unwrap $ (\tv -> _density tv p) <$> tp
 
-density' :: Time -> Pattern a -> Pattern a
-density' r p = withResultTime (/ r) $ withQueryTime (* r) p
+_density :: Time -> Pattern a -> Pattern a
+_density r p = withResultTime (/ r) $ withQueryTime (* r) p
 
 -- | @densityGap@ is similar to @density@ but maintains its cyclic
 -- alignment. For example, @densityGap 2 p@ would squash the events in
@@ -281,7 +281,7 @@ densityGap r p = splitQueries $ withResultArc (\(s,e) -> (sam s + ((s - sam s)/r
 -- | @slow@ does the opposite of @density@, i.e. @slow 2 p@ will
 -- return a pattern that is half the speed.
 slow tp p = density (1/tp) p
-slow' t p = density' (1/t) p
+_slow t p = _density (1/t) p
 
 -- | The @<~@ operator shifts (or rotates) a pattern to the left (or
 -- counter-clockwise) by the given @Time@ value. For example
@@ -518,18 +518,18 @@ envEq = sig $ \t -> sqrt (sin (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
 envEqR = sig $ \t -> sqrt (cos (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
 
 fadeOut :: Time -> Pattern a -> Pattern a
-fadeOut n = spread' (degradeBy) (slow' n $ envL)
+fadeOut n = spread' (degradeBy) (_slow n $ envL)
 
 -- Alternate versions where you can provide the time from which the fade starts
 fadeOut' :: Time -> Time -> Pattern a -> Pattern a
-fadeOut' from dur p = spread' (degradeBy) (from ~> slow' dur envL) p
+fadeOut' from dur p = spread' (degradeBy) (from ~> _slow dur envL) p
 
 -- The 1 <~ is so fade ins and outs have different degredations
 fadeIn' :: Time -> Time -> Pattern a -> Pattern a
-fadeIn' from dur p = spread' (\n p -> 1 <~ degradeBy n p) (from ~> slow' dur ((1-) <$> envL)) p
+fadeIn' from dur p = spread' (\n p -> 1 <~ degradeBy n p) (from ~> _slow dur ((1-) <$> envL)) p
 
 fadeIn :: Time -> Pattern a -> Pattern a
-fadeIn n = spread' (degradeBy) (slow' n $ (1-) <$> envL)
+fadeIn n = spread' (degradeBy) (_slow n $ (1-) <$> envL)
 
 {- | (The above is difficult to describe, if you don't understand Haskell,
 just ignore it and read the below..)
@@ -996,9 +996,9 @@ prrw f rot (blen, vlen) beatPattern valuePattern =
     values = fmap thd' . sortBy ecompare $ arc valuePattern (0, vlen)
     cycles = blen * (fromIntegral $ lcm (length beats) (length values) `div` (length beats))
   in
-    slow' cycles $ stack $ zipWith
+    _slow cycles $ stack $ zipWith
     (\( _, (start, end), v') v -> (start ~>) $ densityGap (1 / (end - start)) $ pure (f v' v))
-    (sortBy ecompare $ arc (density' cycles $ beatPattern) (0, blen))
+    (sortBy ecompare $ arc (_density cycles $ beatPattern) (0, blen))
     (drop (rot `mod` length values) $ cycle values)
 
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
@@ -1087,7 +1087,7 @@ discretise :: Pattern Time -> Pattern a -> Pattern a
 discretise n p = density n $ (atom (id)) <*> p
 
 discretise' :: Time -> Pattern a -> Pattern a
-discretise' n p = density' n $ (atom (id)) <*> p
+discretise' n p = _density n $ (atom (id)) <*> p
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
@@ -1269,18 +1269,18 @@ d1 $ runWith 4 (density 4) $ sound "cp sn arpy [mt lt]"
 @
 -}
 runWith :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-runWith n f p = do i <- slow' (toRational n) $ run (fromIntegral n)
+runWith n f p = do i <- _slow (toRational n) $ run (fromIntegral n)
                    within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
 
 
 {-| @runWith'@ works much the same as `runWith`, but runs from right to left.
 -}
 runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-runWith' n f p = do i <- slow' (toRational n) $ rev $ run (fromIntegral n)
+runWith' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
                     within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
 
 inside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
-inside n f p = density' n $ f (slow' n p)
+inside n f p = _density n $ f (_slow n p)
 
 outside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 outside n = inside (1/n)
@@ -1348,10 +1348,10 @@ scramble n = fit' 1 n (run n) (density (fromIntegral n) $
   liftA2 (+) (pure 0) $ irand n)
 
 ur :: Time -> Pattern String -> [Pattern a] -> Pattern a
-ur t outer_p ps = slow' t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
+ur t outer_p ps = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
   where split s = wordsBy (==':') s
         getPat (n:xs) = (ps' !!! read n, transform xs)
-        ps' = map (density' t) ps
+        ps' = map (_density t) ps
         adjust (a, (p, f)) = f a p
         transform (x:_) a = transform' x a
         transform _ _ = id
@@ -1361,11 +1361,11 @@ ur t outer_p ps = slow' t $ unwrap $ adjust <$> (timedValues $ (getPat . split) 
         twiddle f (s,e) p = s ~> (f (e-s) p)
 
 ur' :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
-ur' t outer_p ps fs = slow' t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
+ur' t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
   where split s = wordsBy (==':') s
         getPat (s:xs) = (match s, transform xs)
         match s = fromMaybe silence $ lookup s ps'
-        ps' = map (fmap (density' t)) ps
+        ps' = map (fmap (_density t)) ps
         adjust (a, (p, f)) = f a p
         transform (x:_) a = transform' x a
         transform _ _ = id

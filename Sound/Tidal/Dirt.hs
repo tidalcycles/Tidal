@@ -214,7 +214,7 @@ striateL :: Int -> Int -> ParamPattern -> ParamPattern
 striateL n l p = striate n p # loop (atom $ fromIntegral l)
 striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
 
-metronome = slow' 2 $ sound (p "[odx, [hh]*8]")
+metronome = _slow 2 $ sound (p "[odx, [hh]*8]")
 
 {-|
 Also degrades the current pattern and undegrades the next.
@@ -262,7 +262,7 @@ Will fade over 16 cycles from "bd sn" to "jvbass*3"
 xfadeIn :: Time -> Time -> [ParamPattern] -> ParamPattern
 xfadeIn _ _ [] = silence
 xfadeIn _ _ (p:[]) = p
-xfadeIn t now (p:p':_) = overlay (p |*| gain (now ~> (slow' t envEqR))) (p' |*| gain (now ~> (slow' t (envEq))))
+xfadeIn t now (p:p':_) = overlay (p |*| gain (now ~> (_slow t envEqR))) (p' |*| gain (now ~> (_slow t (envEq))))
 
 {- |
 Crossfade between old and new pattern over the next two cycles.
@@ -318,7 +318,7 @@ d1 $ sound "jvbass(3,8)"
 t1 (anticipateIn 4) $ sound "jvbass(5,8)"
 @-}
 anticipateIn :: Time -> Time -> [ParamPattern] -> ParamPattern
-anticipateIn t now = wash (spread' (stut 8 0.2) (now ~> (slow' t $ (toRational . (1-)) <$> envL))) t now
+anticipateIn t now = wash (spread' (stut 8 0.2) (now ~> (_slow t $ (toRational . (1-)) <$> envL))) t now
 
 {- | `anticipate` is an increasing comb filter.
 
