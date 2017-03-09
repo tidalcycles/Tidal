@@ -44,8 +44,8 @@ instance Monoid (TPat a) where
 toPat :: TPat a -> Pattern a
 toPat = \case
    TPat_Atom x -> atom x
-   TPat_Density t x -> density t $ toPat x
-   TPat_Slow t x -> slow t $ toPat x
+   TPat_Density t x -> density' t $ toPat x
+   TPat_Slow t x -> slow' t $ toPat x
    TPat_Zoom arc x -> zoom arc $ toPat x
    TPat_DegradeBy amt x -> degradeBy amt $ toPat x
    TPat_Silence -> silence
@@ -327,12 +327,19 @@ pStretch thing =
      return $ map (\x -> TPat_Zoom (x%n,(x+1)%n) thing) [0 .. (n-1)]
 
 pRatio :: Parser (Rational)
-pRatio = do n <- natural <?> "numerator"
-            d <- do oneOf "/%"
-                    natural <?> "denominator"
-                 <|>
-                 return 1
-            return $ n % d
+pRatio = do n <- natural
+            result <- do char '%'
+                         d <- natural
+                         return (n%d)
+                      <|>
+                      do char '.'
+                         d <- natural
+                         -- A hack, but not sure if doing this
+                         -- numerically would be any faster..
+                         return (toRational $ ((read $ show n ++ "." ++ show d)  :: Double))
+                      <|>
+                      return (n%1)
+            return result
 
 pRational :: Parser (TPat Rational)
 pRational = do r <- pRatio
