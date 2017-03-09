@@ -1,5 +1,5 @@
 name:                tidal
-version:             0.8.2
+version:             0.9
 synopsis:            Pattern language for improvised music
 -- description:
 homepage:            http://tidal.lurk.org/
@@ -19,7 +19,8 @@ Extra-source-files: README.md tidal.el doc/tidal.md
 Description: Tidal is a domain specific language for live coding pattern.
 
 library
-  Exposed-modules:     Sound.Tidal.Strategies
+  Exposed-modules:     Sound.Tidal.Bjorklund
+                       Sound.Tidal.Strategies
                        Sound.Tidal.Dirt
                        Sound.Tidal.Pattern
                        Sound.Tidal.Stream
@@ -32,9 +33,23 @@ library
                        Sound.Tidal.SuperCollider
                        Sound.Tidal.Params
                        Sound.Tidal.Transition
+                       Sound.Tidal.Scales
+                       Sound.Tidal.Chords
 
-  Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl >=2.1, transformers, mersenne-random-pure64, binary, bytestring, hmt
+  Build-depends:
+      base < 5
+    , containers
+    , hashable
+    , colour
+    , hosc > 0.13
+    , text
+    , mersenne-random-pure64
+    , time
+    , parsec
+    , safe
+    , websockets > 0.8
+    , mtl >= 2.1
+
 source-repository head
   type:     git
   location: https://github.com/tidalcycles/Tidal
-

@@ -8,7 +8,7 @@ import Control.Applicative
 
 make' :: (a -> Value) -> Param -> Pattern a -> ParamPattern
 make' toValue par p = fmap (\x -> Map.singleton par (defaultV x)) p
-  where defaultV a = Just $ toValue a
+  where defaultV a = toValue a
 
 -- | group multiple params into one
 grp :: [Param] -> Pattern String -> ParamPattern
@@ -17,15 +17,19 @@ grp params p = (fmap lookupPattern p)
   where lookupPattern :: String -> ParamMap
         lookupPattern s = Map.fromList $ map (\(param,s') -> toPV param s') $ zip params $ (split s)
         split s = wordsBy (==':') s
-        toPV :: Param -> String -> (Param, Maybe Value)
-        toPV param@(S _ _) s = (param, (Just $ VS s))
-        toPV param@(F _ _) s = (param, (Just $ VF $ read s))
-        toPV param@(I _ _) s = (param, (Just $ VI $ read s))
+        toPV :: Param -> String -> (Param, Value)
+        toPV param@(S _ _) s = (param, (VS s))
+        toPV param@(F _ _) s = (param, (VF $ read s))
+        toPV param@(I _ _) s = (param, (VI $ read s))
 {- |
 
-a pattern of strings representing sound sample names (required).
+A pattern of strings representing sounds or synth notes.
 
-`sound` is a combination of the `s` and `n` parameters to allow specifying both sample name and sample variation in one:
+Internally, `sound` or its shorter alias `s` is a combination of the samplebank name and number when used with samples, or synth name and note number when used with a synthesiser. For example `bd:2` specifies the third sample (not the second as you might expect, because we start counting at zero) in the `bd` sample folder.
+
+*Internally, `sound`/`s` is a combination of two parameters, the
+hidden parameter `s'` which specifies the samplebank or synth, and the
+`n` parameter which specifies the sample or note number. For example:
 
 @
 d1 $ sound "bd:2 sn:0"
@@ -34,11 +38,25 @@ d1 $ sound "bd:2 sn:0"
 is essentially the same as:
 
 @
-d1 $ s "bd sn" # n "2 0"
+d1 $ s' "bd sn" # n "2 0"
+@
+
+`n` is therefore useful when you want to pattern the sample or note
+number separately from the samplebank or synth. For example:
+
+@
+d1 $ n "0 5 ~ 2" # sound "drum"
+@
+
+is equivalent to:
+
+@
+d1 $ sound "drum:0 drum:5 ~ drum:2"
 @
 -}
 sound :: Pattern String -> ParamPattern
 sound = grp [s_p, n_p]
+s = sound
 
 pF name defaultV = (make' VF param, param)
   where param = F name defaultV
@@ -72,9 +90,16 @@ d1 $ (chop 8 $ sounds "breaks125") # unit "c" # coarse "1 2 4 8 16 32 64 128"
 
 which performs a similar effect, but due to differences in implementation sounds different.
 -}
+begin_p, channel_p, legato_p, clhatdecay_p, coarse_p, crush_p :: Param
+begin, legato, clhatdecay, crush :: Pattern Double -> ParamPattern
+channel, coarse :: Pattern Int -> ParamPattern
 (begin, begin_p)                 = pF "begin" (Just 0)
 -- | choose the physical channel the pattern is sent to, this is super dirt specific
 (channel, channel_p)             = pI "channel" Nothing
+
+--legato controls the amount of overlap between two adjacent synth sounds
+(legato, legato_p)             = pF "legato" (Just 1)
+
 (clhatdecay, clhatdecay_p)       = pF "clhatdecay" (Just 0)
 -- | fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
 (coarse, coarse_p)               = pI "coarse" (Just 0)
@@ -150,7 +175,7 @@ Using `cut "0"` is effectively _no_ cutgroup.
 -}
 (lock, lock_p)                 = pF "lock" (Just 0)
 -- | loops the sample (from `begin` to `end`) the specified number of times.
-(loop, loop_p)                   = pI "loop" (Just 1)
+(loop, loop_p)                   = pF "loop" (Just 1)
 (lophat, lophat_p)               = pF "lophat" (Just 0)
 (lsnare, lsnare_p)               = pF "lsnare" (Just 0)
 -- | specifies the sample variation to be used
@@ -165,8 +190,20 @@ d1 $ stack [
   ] # nudge "[0 0.04]*4"
 @
 
-Low values will give a more _human_ feeling, high values might result in quite the contrary.
--}
+--pitch model -}
+
+degree, mtranspose, ctranspose, harmonic, stepsPerOctave, octaveRatio :: Pattern Double -> ParamPattern
+degree_p, mtranspose_p, ctranspose_p, harmonic_p, stepsPerOctave_p, octaveRatio_p :: Param
+(degree, degree_p)               = pF "degree" Nothing
+(mtranspose, mtranspose_p)       = pF "mtranspose" Nothing
+(ctranspose, ctranspose_p)       = pF "ctranspose" Nothing
+(harmonic, harmonic_p)           = pF "ctranspose" Nothing
+(stepsPerOctave, stepsPerOctave_p)           = pF "stepsPerOctave" Nothing
+(octaveRatio, octaveRatio_p)           = pF "octaveRatio" Nothing
+
+
+--Low values will give a more _human_ feeling, high values might result in quite the contrary.
+
 (nudge, nudge_p)                 = pF "nudge" (Just 0)
 (octave, octave_p)               = pI "octave" (Just 3)
 (offset, offset_p)               = pF "offset" (Just 0)
@@ -174,8 +211,17 @@ Low values will give a more _human_ feeling, high values might result in quite t
 {- |  a pattern of numbers. An `orbit` is a global parameter context for patterns. Patterns with the same orbit will share hardware output bus offset and global effects, e.g. reverb and delay. The maximum number of orbits is specified in the superdirt startup, numbers higher than maximum will wrap around.
 -}
 (orbit, orbit_p)                 = pI "orbit" (Just 0)
--- | a pattern of numbers between 0 and 1, from left to right (assuming stereo).
+-- | a pattern of numbers between 0 and 1, from left to right (assuming stereo), once round a circle (assuming multichannel)
 (pan, pan_p)                     = pF "pan" (Just 0.5)
+-- | a pattern of numbers between -inf and inf, which controls how much multichannel output is fanned out (negative is backwards ordering)
+(panspan, panspan_p)                     = pF "span" (Just 1.0)
+-- | a pattern of numbers between 0.0 and 1.0, which controls the multichannel spread range (multichannel only)
+(pansplay, pansplay_p)                     = pF "splay" (Just 1.0)
+-- | a pattern of numbers between 0.0 and inf, which controls how much each channel is distributed over neighbours (multichannel only)
+(panwidth, panwidth_p)                     = pF "panwidth" (Just 2.0)
+-- | a pattern of numbers between -1.0 and 1.0, which controls the relative position of the centre pan in a pair of adjacent speakers (multichannel only)
+(panorient, panorient_p)                     = pF "orientation" (Just 0.5)
+
 (pitch1, pitch1_p)               = pF "pitch1" (Just 0)
 (pitch2, pitch2_p)               = pF "pitch2" (Just 0)
 (pitch3, pitch3_p)               = pF "pitch3" (Just 0)
@@ -196,15 +242,18 @@ Low values will give a more _human_ feeling, high values might result in quite t
 -- | a pattern of numbers from 0 to 1. Sets the perceptual size (reverb time) of the `room` to be used in reverb.
 (size, size_p)                   = pF "size" Nothing
 (slide, slide_p)                 = pF "slide" (Just 0)
--- | a pattern of numbers from 0 to 1, which changes the speed of sample playback, i.e. a cheap way of changing pitch
+-- | a pattern of numbers which changes the speed of sample playback, i.e. a cheap way of changing pitch. Negative values will play the sample backwards!
 (speed, speed_p)                 = pF "speed" (Just 1)
 -- | a pattern of strings. Selects the sample to be played.
-(s, s_p)                         = pS "s" Nothing
+(s', s_p)                         = pS "s" Nothing
 (stutterdepth, stutterdepth_p)   = pF "stutterdepth" (Just 0)
 (stuttertime, stuttertime_p)     = pF "stuttertime" (Just 0)
 (sustain, sustain_p)             = pF "sustain" (Just 0)
 (tomdecay, tomdecay_p)           = pF "tomdecay" (Just 0)
--- | only accepts a value of "c". Used in conjunction with `speed`, it time-stretches a sample to fit in a cycle.
+{- | used in conjunction with `speed`, accepts values of "r" (rate, default behavior), "c" (cycles), or "s" (seconds).
+Using `unit "c"` means `speed` will be interpreted in units of cycles, e.g. `speed "1"` means samples will be stretched to fill a cycle.
+Using `unit "s"` means the playback speed will be adjusted so that the duration is the number of seconds specified by `speed`.
+-}
 (unit, unit_p)                   = pS "unit" (Just "rate")
 (velocity, velocity_p)           = pF "velocity" (Just 0.5)
 (vcfegint, vcfegint_p)           = pF "vcfegint" (Just 0)
@@ -220,7 +269,23 @@ Low values will give a more _human_ feeling, high values might result in quite t
 (expression,expression_p)        = pF "expression" (Just 1)
 (sustainpedal,sustainpedal_p)    = pF "sustainpedal" (Just 0)
 
+-- Tremolo Audio DSP effect | params are "tremolorate" and "tremolodepth"
+tremolorate, tremolodepth :: Pattern Double -> ParamPattern
+tremolorate_p, tremolodepth_p :: Param
+(tremolorate,tremolorate_p)      = pF "tremolorate" (Just 1)
+(tremolodepth,tremolodepth_p)    = pF "tremolodepth" (Just 0.5)
+
+-- Phaser Audio DSP effect | params are "phaserrate" and "phaserdepth"
+phaserrate, phaserdepth :: Pattern Double -> ParamPattern
+phaserrate_p, phaserdepth_p :: Param
+(phaserrate,phaserrate_p)      = pF "phaserrate" (Just 1)
+(phaserdepth,phaserdepth_p)    = pF "phaserdepth" (Just 0.5)
+
 -- aliases
+att, chdecay, ctf, ctfg, delayfb, delayt, lbd, lch, lcl, lcp, lcr, lfoc, lfoi
+   , lfop, lht, llt, loh, lsn, ohdecay, pit1, pit2, pit3, por, sag, scl, scp
+   , scr, sld, std, stt, sus, tdecay, vcf, vco, voi
+      :: Pattern Double -> ParamPattern
 att = attack
 chdecay = clhatdecay
 ctf  = cutoff
@@ -228,7 +293,7 @@ ctfg = cutoffegint
 delayfb = delayfeedback
 delayt  = delaytime
 det  = detune
-gat = gate_p
+gat = gate
 hg = hatgrain
 lag = lagogo
 lbd = lkick
@@ -261,10 +326,12 @@ vcf  = vcfegint
 vco  = vcoegint
 voi  = voice
 
+note, midinote :: Pattern Int -> ParamPattern
 note = n
 midinote = n . ((subtract 60) <$>)
 
-drum = n . (drumN <$>)
+drum :: Pattern String -> ParamPattern
+drum = midinote . (drumN <$>)
 
 drumN :: String -> Int
 drumN "bd"  = 36

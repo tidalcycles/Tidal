@@ -4,9 +4,7 @@ Description: Helper functions not directly specific to Tidal
 -}
 module Sound.Tidal.Utils where
 
-import System.Environment (getEnv)
 import Data.Maybe (listToMaybe)
-import Control.Exception
 
 {- | enumerate a list of things
 
@@ -81,12 +79,6 @@ mapThds' = fmap . mapThd'
 -- | map @f@ over a given list of arcs
 mapArcs :: (a -> a) -> [(a, a, x)] -> [(a, a, x)]
 mapArcs f = (mapFsts' f) . (mapSnds' f)
-
--- | return environment variable @var@'s value or @defValue@
-getEnvDefault :: String -> String -> IO String
-getEnvDefault defValue var = do
-  res <- try . getEnv $ var
-  return $ either (const defValue) id (res :: Either IOException String)
 
 {- | combines two lists by interleaving them
 

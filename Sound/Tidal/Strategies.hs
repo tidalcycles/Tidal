@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -XNoMonomorphismRestriction #-}
+{-# OPTIONS_GHC -XNoMonomorphismRestriction -XOverloadedStrings #-}
 
 module Sound.Tidal.Strategies where
 
@@ -16,9 +16,12 @@ import Sound.Tidal.Time
 import Sound.Tidal.Utils
 import Sound.Tidal.Params
 import Sound.Tidal.Parse
+import Data.List (transpose)
 
+stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * (fromIntegral i)) ~> p) [0 .. (n-1)]
 
+echo, triple, quad, double :: Time -> Pattern a -> Pattern a
 echo   = stutter 2
 triple = stutter 3
 quad   = stutter 4
@@ -46,6 +49,9 @@ juxcut f p = stack [p     # pan (pure 0) # cut (pure (-1)),
                     f $ p # pan (pure 1) # cut (pure (-2))
                    ]
 
+juxcut' fs p = stack $ map (\n -> ((fs !! n) p |+| cut (pure $ 1-n)) # pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
+  where l = length fs
+ 
 {- | In addition to `jux`, `jux'` allows using a list of pattern transform. resulting patterns from each transformation will be spread via pan from left to right.
 
 For example:
@@ -173,6 +179,7 @@ stripe (stripeS, stripeE) p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
         stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
 -}
 
+sawwave4, sinewave4, rand4 :: Pattern Double
 sawwave4 = ((*4) <$> sawwave1)
 sinewave4 = ((*4) <$> sinewave1)
 rand4 = ((*4) <$> rand)
@@ -188,9 +195,6 @@ cross f p p' = Pattern $ \t -> concat [filter flt $ arc p t,
 ]  where flt = f . cyclePos . fst . fst
 -}
 
-inside n f p = density n $ f (slow n p)
-
-
 {- | `scale` will take a pattern which goes from 0 to 1 (like `sine1`), and scale it to a different range - between the first and second arguments. In the below example, `scale 1 1.5` shifts the range of `sine1` from 0 - 1 to 1 - 1.5.
 
 @
@@ -200,6 +204,11 @@ d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
 -}
 scale :: (Functor f, Num b) => b -> b -> f b -> f b
 scale from to p = ((+ from) . (* (to-from))) <$> p
+
+{- | `scalex` is an exponential version of `scale`, good for using with
+frequencies.  Do *not* use negative numbers or zero as arguments! -}
+scalex :: (Functor f, Floating b) => b -> b -> f b -> f b
+scalex from to p = exp <$> scale (log from) (log to) p
 
 {- | `chop` granualizes every sample in place as it is played, turning a pattern of samples into a pattern of sample parts. Use an integer value to specify how many granules each sample is chopped into:
 
@@ -220,9 +229,11 @@ d1 $ chop 256 $ sound "bd*4 [sn cp] [hh future]*2 [cp feel]"
 chop :: Int -> ParamPattern -> ParamPattern
 chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
      where f queryA a = concatMap (chopEvent queryA) (arc p a)
-           chopEvent (queryS, queryE) (a,a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ chopArc a n)
+           chopEvent (queryS, queryE) (a,_a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ chopArc a n)
            newEvent :: ParamMap -> (Int, Arc) -> Event ParamMap
-           newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ VF ((fromIntegral i)/(fromIntegral n))) v)
+           newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (VF ((fromIntegral i)/(fromIntegral n))) v)
+
+chop' tp p = unwrap $ (\tv -> chop tv p) <$> tp
 
 {- | `gap` is similar to `chop` in that it granualizes every sample in place as it is played,
 but every other grain is silent. Use an integer value to specify how many granules
@@ -235,10 +246,10 @@ d1 $ gap 16 $ sound "[jvbass drum:4]"
 gap :: Int -> ParamPattern -> ParamPattern
 gap n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
      where f queryA a = concatMap (chopEvent queryA) (arc p a)
-           chopEvent (queryS, queryE) (a,a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ everyOther $ chopArc a n)
+           chopEvent (queryS, queryE) (a,_a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ everyOther $ chopArc a n)
            newEvent :: ParamMap -> (Int, Arc) -> Event ParamMap
-           newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (Just $ VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (Just $ VF ((fromIntegral i)/(fromIntegral n))) v)
-           everyOther (x:(y:xs)) = x:(everyOther xs)
+           newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (VF ((fromIntegral i)/(fromIntegral n))) v)
+           everyOther (x:_:xs) = x:everyOther xs
            everyOther xs = xs
 
 chopArc :: Arc -> Int -> [Arc]
@@ -367,3 +378,21 @@ d1 $ juxBy 0.6 (|*| speed "2") $ slowspread (loopAt) [4,6,2,3] $ chop 12 $ sound
 -}
 loopAt :: Time -> ParamPattern -> ParamPattern
 loopAt n p = slow n p |*| speed (pure $ fromRational $ 1/n) # unit (pure "c")
+
+
+{- |
+   tabby - A more literal weaving than the `weave` function, give number
+   of 'threads' per cycle and two patterns, and this function will weave them
+   together using a plain (aka 'tabby') weave, with a simple over/under structure
+ -}
+tabby n p p' = stack [maskedWarp n p,
+                      maskedWeft n p'
+                     ]
+  where             
+    weft n = concatMap (\x -> [[0..n-1],(reverse [0..n-1])]) [0 .. (n `div` 2) - 1]
+    warp = transpose . weft
+    thread xs n p = slow (n%1) $ cat $ map (\i -> zoom (i%n,(i+1)%n) p) (concat xs)
+    weftP n p = thread (weft n) n p
+    warpP n p = thread (warp n) n p
+    maskedWeft n p = Sound.Tidal.Pattern.mask (every 2 rev $ density ((n)%2) "~ 1" :: Pattern Int) $ weftP n p
+    maskedWarp n p = mask (every 2 rev $ density ((n)%2) "1 ~" :: Pattern Int) $ warpP n p
