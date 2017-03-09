@@ -226,14 +226,15 @@ d1 $ chop 32 $ sound (samples "arpy*8" (run 16))
 d1 $ chop 256 $ sound "bd*4 [sn cp] [hh future]*2 [cp feel]"
 @
 -}
-chop :: Int -> ParamPattern -> ParamPattern
-chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
-     where f queryA a = concatMap (chopEvent queryA) (arc p a)
-           chopEvent (queryS, queryE) (a,_a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ chopArc a n)
-           newEvent :: ParamMap -> (Int, Arc) -> Event ParamMap
-           newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (VF ((fromIntegral i)/(fromIntegral n))) v)
+chop tp p = unwrap $ (\tv -> chop' tv p) <$> tp
 
-chop' tp p = unwrap $ (\tv -> chop tv p) <$> tp
+chop' :: Int -> ParamPattern -> ParamPattern
+chop' n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
+  where f queryA a = concatMap (chopEvent queryA) (arc p a)
+        chopEvent (queryS, queryE) (a,_a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ chopArc a n)
+        newEvent :: ParamMap -> (Int, Arc) -> Event ParamMap
+        newEvent v (i, a) = (a,a,Map.insert (param dirt "end") (VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert (param dirt "begin") (VF ((fromIntegral i)/(fromIntegral n))) v)
+
 
 {- | `gap` is similar to `chop` in that it granualizes every sample in place as it is played,
 but every other grain is silent. Use an integer value to specify how many granules
