@@ -1,5 +1,9 @@
 module Sound.Tidal.Chords where
 
+import Sound.Tidal.Pattern
+import Data.Maybe
+import Control.Applicative
+
 major :: [Int]
 major = [0,4,7]
 minor :: [Int]
@@ -88,3 +92,23 @@ thirteen :: [Int]
 thirteen = [0,4,7,10,14,17,21]
 m13 :: [Int]
 m13 = [0,3,7,10,14,17,21]
+
+-- | @chordate cs m n@ selects the @n@th "chord" (a chord is a list of Ints)
+-- from a list of chords @cs@ and transposes it by @m@
+chordate :: Num b => [[b]] -> b -> Int -> [b]
+chordate cs m n = map (+m) $ cs!!n
+
+-- | @flatpat@ takes a Pattern of lists and pulls the list elements as
+-- separate Events
+flatpat :: Pattern [a] -> Pattern a
+flatpat p = stack [unMaybe $ fmap (`maybeInd` i) p | i <- [0..9]]
+  where maybeInd xs i | i < length xs = Just $ xs!!i
+                      | otherwise = Nothing
+        unMaybe = (fromJust <$>) . filterValues isJust
+
+-- | @enchord chords pn pc@ turns every note in the note pattern @pn@ into
+-- a chord, selecting from the chord lists @chords@ using the index pattern
+-- @pc@.  For example, @Chords.enchord [Chords.major Chords.minor] "c g" "0 1"@
+-- will create a pattern of a C-major chord followed by a G-minor chord.
+enchord :: Num a => [[a]] -> Pattern a -> Pattern Int -> Pattern a
+enchord chords pn pc = flatpat $ (chordate chords) <$> pn <*> pc
