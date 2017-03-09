@@ -297,7 +297,7 @@ d1 $ weave' 3 (sound "bd [sn drum:2*2] bd*2 [sn drum:1]") [density 2, (# speed "
 -}
 weave' :: Rational -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
 weave' t p fs | l == 0 = silence
-              | otherwise = slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) <~ (density t $ f (slow t p))) (zip [0 ..] fs)
+              | otherwise = slow' t $ stack $ map (\(i, f) -> (fromIntegral i % l) <~ (density' t $ f (slow' t p))) (zip [0 ..] fs)
   where l = fromIntegral $ length fs
 
 {- | 
@@ -335,6 +335,9 @@ step' ss steps = cat $ map f steps
 
 off :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 off t f p = superimpose (f . (t ~>)) p
+
+off' :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+off' tp f p = unwrap $ (\tv -> superimpose (f . (tv ~>)) p) <$> tp
 
 offadd :: Num a => Time -> a -> Pattern a -> Pattern a
 offadd t n p = off t ((+n) <$>) p
@@ -376,8 +379,8 @@ d1 $ loopAt 4 $ sound "breaks125"
 d1 $ juxBy 0.6 (|*| speed "2") $ slowspread (loopAt) [4,6,2,3] $ chop 12 $ sound "fm:14"
 @ 
 -}
-loopAt :: Time -> ParamPattern -> ParamPattern
-loopAt n p = slow n p |*| speed (pure $ fromRational $ 1/n) # unit (pure "c")
+loopAt :: Pattern Time -> ParamPattern -> ParamPattern
+loopAt n p = slow n p |*| speed (fromRational <$> (1/n)) # unit (pure "c")
 
 
 {- |
@@ -391,8 +394,8 @@ tabby n p p' = stack [maskedWarp n p,
   where             
     weft n = concatMap (\x -> [[0..n-1],(reverse [0..n-1])]) [0 .. (n `div` 2) - 1]
     warp = transpose . weft
-    thread xs n p = slow (n%1) $ cat $ map (\i -> zoom (i%n,(i+1)%n) p) (concat xs)
+    thread xs n p = slow' (n%1) $ cat $ map (\i -> zoom (i%n,(i+1)%n) p) (concat xs)
     weftP n p = thread (weft n) n p
     warpP n p = thread (warp n) n p
-    maskedWeft n p = Sound.Tidal.Pattern.mask (every 2 rev $ density ((n)%2) "~ 1" :: Pattern Int) $ weftP n p
-    maskedWarp n p = mask (every 2 rev $ density ((n)%2) "1 ~" :: Pattern Int) $ warpP n p
+    maskedWeft n p = Sound.Tidal.Pattern.mask (every 2 rev $ density' ((n)%2) "~ 1" :: Pattern Int) $ weftP n p
+    maskedWarp n p = mask (every 2 rev $ density' ((n)%2) "1 ~" :: Pattern Int) $ warpP n p
