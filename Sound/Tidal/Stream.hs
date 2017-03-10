@@ -39,6 +39,7 @@ instance Ord Param where
 instance Show Param where
   show p = name p
 
+
 data Shape = Shape {params :: [Param],
                     latency :: Double,
                     cpsStamp :: Bool}
@@ -49,18 +50,22 @@ data Value = VS { svalue :: String } | VF { fvalue :: Double } | VI { ivalue :: 
 
 class ParamType a where
   fromV :: Value -> Maybe a
+  toV :: a -> Value
 
 instance ParamType String where
   fromV (VS s) = Just s
   fromV _ = Nothing
+  toV s = VS s
 
 instance ParamType Double where
   fromV (VF f) = Just f
   fromV _ = Nothing
+  toV f = VF f
 
 instance ParamType Int where
   fromV (VI i) = Just i
   fromV _ = Nothing
+  toV i = VI i
 
 type ParamMap = Map.Map Param Value
 
@@ -177,6 +182,12 @@ make toValue s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
         defaultV a = toValue a
         --defaultV Nothing = defaultValue nParam
 
+make' :: ParamType a => (a -> Value) -> Param -> Pattern a -> ParamPattern
+make' toValue par p = fmap (\x -> Map.singleton par (toValue x)) p
+
+makeP :: ParamType a => Param -> Pattern a -> ParamPattern
+makeP par p = fmap (\x -> Map.singleton par (toV x)) p
+
 makeS = make VS
 
 makeF :: Shape -> String -> Pattern Double -> ParamPattern
@@ -264,3 +275,5 @@ copyParam fromParam toParam pat = f <$> pat
 get :: ParamType a => Param -> ParamPattern -> Pattern a
 get param p = filterJust $ fromV <$> (filterJust $ Map.lookup param <$> p)
 
+follow :: ParamType a => Param -> Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+follow source dest f p = p # (makeP dest $ f (get source p))

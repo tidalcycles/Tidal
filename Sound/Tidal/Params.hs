@@ -6,10 +6,6 @@ import qualified Data.Map as Map
 import Sound.Tidal.Utils
 import Control.Applicative
 
-make' :: (a -> Value) -> Param -> Pattern a -> ParamPattern
-make' toValue par p = fmap (\x -> Map.singleton par (defaultV x)) p
-  where defaultV a = toValue a
-
 -- | group multiple params into one
 grp :: [Param] -> Pattern String -> ParamPattern
 grp [] _ = silence
