@@ -47,6 +47,21 @@ data Shape = Shape {params :: [Param],
 data Value = VS { svalue :: String } | VF { fvalue :: Double } | VI { ivalue :: Int }
            deriving (Show,Eq,Ord,Typeable)
 
+class ParamType a where
+  fromV :: Value -> Maybe a
+
+instance ParamType String where
+  fromV (VS s) = Just s
+  fromV _ = Nothing
+
+instance ParamType Double where
+  fromV (VF f) = Just f
+  fromV _ = Nothing
+
+instance ParamType Int where
+  fromV (VI i) = Just i
+  fromV _ = Nothing
+
 type ParamMap = Map.Map Param Value
 
 type ParamPattern = Pattern ParamMap
@@ -244,4 +259,8 @@ copyParam:: Param -> Param -> ParamPattern -> ParamPattern
 copyParam fromParam toParam pat = f <$> pat
   where f m = maybe m (updateValue m) (Map.lookup fromParam m)
         updateValue m v = Map.union m (Map.fromList [(toParam,v)])
+
+
+get :: ParamType a => Param -> ParamPattern -> Pattern a
+get param p = filterJust $ fromV <$> (filterJust $ Map.lookup param <$> p)
 

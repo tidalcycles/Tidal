@@ -628,6 +628,9 @@ spreadr = spreadChoose
 filterValues :: (a -> Bool) -> Pattern a -> Pattern a
 filterValues f (Pattern x) = Pattern $ (filter (f . thd')) . x
 
+filterJust :: Pattern (Maybe a) -> Pattern a
+filterJust p = fromJust <$> (filterValues (isJust) p)
+
 -- Filter out events that have had their onsets cut off
 filterOnsets :: Pattern a -> Pattern a
 filterOnsets (Pattern f) =
