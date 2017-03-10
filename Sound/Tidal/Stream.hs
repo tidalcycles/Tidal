@@ -277,3 +277,12 @@ get param p = filterJust $ fromV <$> (filterJust $ Map.lookup param <$> p)
 
 follow :: ParamType a => Param -> Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
 follow source dest f p = p # (makeP dest $ f (get source p))
+
+followI :: Param -> Param -> (Pattern Int -> Pattern Int) -> ParamPattern -> ParamPattern
+followI = follow
+
+followF :: Param -> Param -> (Pattern Double -> Pattern Double) -> ParamPattern -> ParamPattern
+followF = follow
+
+followS :: Param -> Param -> (Pattern String -> Pattern String) -> ParamPattern -> ParamPattern
+followS = follow
