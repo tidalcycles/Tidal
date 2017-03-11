@@ -70,7 +70,7 @@ instance ParamType Int where
 type ParamMap = Map.Map Param Value
 
 type ParamPattern = Pattern ParamMap
-           
+
 ticksPerCycle = 8
 
 defaultValue :: Param -> Value
@@ -186,7 +186,7 @@ make' :: ParamType a => (a -> Value) -> Param -> Pattern a -> ParamPattern
 make' toValue par p = fmap (\x -> Map.singleton par (toValue x)) p
 
 makeP :: ParamType a => Param -> Pattern a -> ParamPattern
-makeP par p = fmap (\x -> Map.singleton par (toV x)) p
+makeP par p = coerce par $ fmap (\x -> Map.singleton par (toV x)) p
 
 makeS = make VS
 
@@ -271,18 +271,35 @@ copyParam fromParam toParam pat = f <$> pat
   where f m = maybe m (updateValue m) (Map.lookup fromParam m)
         updateValue m v = Map.union m (Map.fromList [(toParam,v)])
 
-
 get :: ParamType a => Param -> ParamPattern -> Pattern a
 get param p = filterJust $ fromV <$> (filterJust $ Map.lookup param <$> p)
 
-follow :: ParamType a => Param -> Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
-follow source dest f p = p # (makeP dest $ f (get source p))
+follow :: ParamType a => Param -> (Pattern a -> ParamPattern) -> ParamPattern -> ParamPattern
+follow source dest p = p # (dest $ get source p)
+
+follow' :: ParamType a => Param -> Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+follow' source dest f p = p # (makeP dest $ f (get source p))
 
 followI :: Param -> Param -> (Pattern Int -> Pattern Int) -> ParamPattern -> ParamPattern
-followI = follow
-
+followI = follow'
 followF :: Param -> Param -> (Pattern Double -> Pattern Double) -> ParamPattern -> ParamPattern
-followF = follow
-
+followF = follow'
 followS :: Param -> Param -> (Pattern String -> Pattern String) -> ParamPattern -> ParamPattern
-followS = follow
+followS = follow'
+
+-- with :: ParamType a => Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+-- with source f p = p # (makeP source $ f (get source p))
+coerce :: Param -> ParamPattern -> ParamPattern
+coerce par@(S _ _) p = (Map.update f par) <$> p
+  where f (VS s) = Just (VS s)
+        f (VI i) = Just (VS $ show i)
+        f (VF f) = Just (VS $ show f)
+coerce par@(I _ _) p = (Map.update f par) <$> p
+  where f (VS s) = Just (VI $ read s)
+        f (VI i) = Just (VI i)
+        f (VF f) = Just (VI $ floor f)
+coerce par@(F _ _) p = (Map.update f par) <$> p
+  where f (VS s) = Just (VF $ read s)
+        f (VI i) = Just (VF $ fromIntegral i)
+        f (VF f) = Just (VF f)
+
