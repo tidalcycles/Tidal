@@ -171,8 +171,12 @@ the loops.
 d1 $  slow 8 $ striate 128 $ sound "bev"
 @
 -}
-striate :: Int -> ParamPattern -> ParamPattern
-striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+
+striate :: Pattern Int -> ParamPattern -> ParamPattern
+striate tp p = unwrap $ (\tv -> _striate tv p) <$> tp
+
+_striate :: Int -> ParamPattern -> ParamPattern
+_striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p
                   # begin (atom (fromIntegral i / fromIntegral n))
                   # end (atom (fromIntegral (i+1) / fromIntegral n))
@@ -199,7 +203,7 @@ striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
 
 {- | like `striate`, but with an offset to the begin and end values -}
 striateO :: Int -> Double -> ParamPattern -> ParamPattern
-striateO n o p = striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
+striateO n o p = _striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
 
 {- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
 The primed version is just like `striate'`, where the loop count is the third argument. For example:
@@ -211,7 +215,7 @@ d1 $ striateL' 3 0.125 4 $ sound "feel sn:2"
 Like `striate`, these use the `begin` and `end` parameters internally, as well as the `loop` parameter for these versions.
 -}
 striateL :: Int -> Int -> ParamPattern -> ParamPattern
-striateL n l p = striate n p # loop (atom $ fromIntegral l)
+striateL n l p = _striate n p # loop (atom $ fromIntegral l)
 striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
 
 metronome = _slow 2 $ sound (p "[odx, [hh]*8]")
