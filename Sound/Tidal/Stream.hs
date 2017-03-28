@@ -275,6 +275,22 @@ copyParam fromParam toParam pat = f <$> pat
 get :: ParamType a => Param -> ParamPattern -> Pattern a
 get param p = filterJust $ fromV <$> (filterJust $ Map.lookup param <$> p)
 
+getI :: Param -> ParamPattern -> Pattern Int
+getI = get
+getF :: Param -> ParamPattern -> Pattern Double
+getF = get
+getS :: Param -> ParamPattern -> Pattern String
+getS = get
+
+with :: (ParamType a) => Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+with param f p = p # (makeP param) ((\x -> f (get param x)) p)
+withI :: Param -> (Pattern Int -> Pattern Int) -> ParamPattern -> ParamPattern
+withI = with
+withF :: Param -> (Pattern Double -> Pattern Double) -> ParamPattern -> ParamPattern
+withF = with
+withS :: Param -> (Pattern String -> Pattern String) -> ParamPattern -> ParamPattern
+withS = with
+
 follow :: ParamType a => Param -> Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
 follow source dest f p = p # (makeP dest $ f (get source p))
 
