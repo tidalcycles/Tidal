@@ -260,26 +260,32 @@ maybeListToPat = cat . map f
 run n = listToPat [0 .. n-1]
 scan n = cat $ map run [1 .. n]
 
--- | @density@ returns the given pattern with density increased by the
--- given @Time@ factor. Therefore @density 2 p@ will return a pattern
--- that is twice as fast, and @density (1/3) p@ will return one three
--- times as slow.
-density :: Pattern Time -> Pattern a -> Pattern a
-density tp p = unwrap $ (\tv -> _density tv p) <$> tp
+-- | @fast@ (also known as @density@) returns the given pattern with speed
+-- (or density) increased by the given @Time@ factor. Therefore @fast 2 p@
+-- will return a pattern that is twice as fast, and @fast (1/3) p@
+-- will return one three times as slow.
+fast :: Pattern Time -> Pattern a -> Pattern a
+fast tp p = unwrap $ (\tv -> _density tv p) <$> tp
+
+-- | @density@ is an alias of @fast@. @fast@ is quicker to type, but
+-- @density@ is its old name so is used in a lot of examples.
+density = fast
 
 _density :: Time -> Pattern a -> Pattern a
 _density r p = withResultTime (/ r) $ withQueryTime (* r) p
 
--- | @densityGap@ is similar to @density@ but maintains its cyclic
--- alignment. For example, @densityGap 2 p@ would squash the events in
+-- | @fastGap@ (also known as @densityGap@ is similar to @fast@ but maintains its cyclic
+-- alignment. For example, @fastGap 2 p@ would squash the events in
 -- pattern @p@ into the first half of each cycle (and the second
 -- halves would be empty).
-densityGap :: Time -> Pattern a -> Pattern a
-densityGap 0 _ = silence
-densityGap r p = splitQueries $ withResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
+fastGap :: Time -> Pattern a -> Pattern a
+fastGap 0 _ = silence
+fastGap r p = splitQueries $ withResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
 
--- | @slow@ does the opposite of @density@, i.e. @slow 2 p@ will
--- return a pattern that is half the speed.
+densityGap = fastGap
+
+-- | @slow@ does the opposite of @fast@, i.e. @slow 2 p@ will return a
+-- pattern that is half the speed.
 slow tp p = density (1/tp) p
 _slow t p = _density (1/t) p
 
