@@ -221,6 +221,8 @@ append' a b  = slowcat [a,b]
 fastcat :: [Pattern a] -> Pattern a
 fastcat ps = density (fromIntegral $ length ps) $ slowcat ps
 
+-- | @cat@ is an alias of @fastcat@
+cat = fastcat
 
 splitAtSam :: Pattern a -> Pattern a
 splitAtSam p =
