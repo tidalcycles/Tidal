@@ -208,18 +208,18 @@ stack ps = foldr overlay silence ps
 -- first pattern, within a single cycle
 
 append :: Pattern a -> Pattern a -> Pattern a
-append a b = cat [a,b]
+append a b = fastcat [a,b]
 
 -- | @append'@ does the same as @append@, but over two cycles, so that
 -- the cycles alternate between the two patterns.
 append' :: Pattern a -> Pattern a -> Pattern a
-append' a b  = slow 2 $ cat [a,b]
+append' a b  = slowcat [a,b]
 
--- | @cat@ returns a new pattern which interlaces the cycles of the
+-- | @fastcat@ returns a new pattern which interlaces the cycles of the
 -- given patterns, within a single cycle. It's the equivalent of
 -- @append@, but with a list of patterns.
-cat :: [Pattern a] -> Pattern a
-cat ps = density (fromIntegral $ length ps) $ slowcat ps
+fastcat :: [Pattern a] -> Pattern a
+fastcat ps = density (fromIntegral $ length ps) $ slowcat ps
 
 
 splitAtSam :: Pattern a -> Pattern a
@@ -246,26 +246,29 @@ slowcat ps = splitQueries $ Pattern f
 -- | @listToPat@ turns the given list of values to a Pattern, which
 -- cycles through the list.
 listToPat :: [a] -> Pattern a
-listToPat = cat . map atom
+listToPat = fastcat . map atom
 
 -- | @maybeListToPat@ is similar to @listToPat@, but allows values to
 -- be optional using the @Maybe@ type, so that @Nothing@ results in
 -- gaps in the pattern.
 maybeListToPat :: [Maybe a] -> Pattern a
-maybeListToPat = cat . map f
+maybeListToPat = fastcat . map f
   where f Nothing = silence
         f (Just x) = atom x
 
 -- | @run@ @n@ returns a pattern representing a cycle of numbers from @0@ to @n-1@.
 run n = listToPat [0 .. n-1]
-scan n = cat $ map run [1 .. n]
+scan n = fastcat $ map run [1 .. n]
+
+temporalParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
+temporalParam f tv p = unwrap $ (\v -> f v p) <$> tv
 
 -- | @fast@ (also known as @density@) returns the given pattern with speed
 -- (or density) increased by the given @Time@ factor. Therefore @fast 2 p@
 -- will return a pattern that is twice as fast, and @fast (1/3) p@
 -- will return one three times as slow.
 fast :: Pattern Time -> Pattern a -> Pattern a
-fast tp p = unwrap $ (\tv -> _density tv p) <$> tp
+fast = temporalParam _density
 
 -- | @density@ is an alias of @fast@. @fast@ is quicker to type, but
 -- @density@ is its old name so is used in a lot of examples.
@@ -313,7 +316,7 @@ d1 $ sound (brak "bd sn kurt")
 @
 -}
 brak :: Pattern a -> Pattern a
-brak = when ((== 1) . (`mod` 2)) (((1%4) ~>) . (\x -> cat [x, silence]))
+brak = when ((== 1) . (`mod` 2)) (((1%4) ~>) . (\x -> fastcat [x, silence]))
 
 {- | Divides a pattern into a given number of subdivisions, plays the subdivisions
 in order, but increments the starting subdivision each cycle. The pattern
@@ -603,7 +606,7 @@ d1 $ fastspread chop [4,64,32,16] $ sound "ho ho:2 ho:3 hc"
 There is also @slowspread@, which is an alias of @spread@.
 -}
 fastspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
-fastspread f xs p = cat $ map (\x -> f x p) xs
+fastspread f xs p = fastcat $ map (\x -> f x p) xs
 
 {- | There's a version of this function, `spread'` (pronounced "spread prime"), which takes a *pattern* of parameters, instead of a list:
 
@@ -762,16 +765,10 @@ d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
 
 -}
 degradeBy :: Double -> Pattern a -> Pattern a
-degradeBy x p = unMaybe $ (\a f -> toMaybe (f > x) a) <$> p <*> rand
-    where toMaybe False _ = Nothing
-          toMaybe True a  = Just a
-          unMaybe = (fromJust <$>) . filterValues isJust
+degradeBy x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <*> rand
 
 unDegradeBy :: Double -> Pattern a -> Pattern a
-unDegradeBy x p = unMaybe $ (\a f -> toMaybe (f <= x) a) <$> p <*> rand
-    where toMaybe False _ = Nothing
-          toMaybe True a  = Just a
-          unMaybe = (fromJust <$>) . filterValues isJust
+unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <*> rand
 
 {- | Use @sometimesBy@ to apply a given function "sometimes". For example, the
 following code results in `density 2` being applied about 25% of the time:
@@ -989,7 +986,7 @@ e :: Int -> Int -> Pattern a -> Pattern a
 e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)) <*> p
 
 e' :: Int -> Int -> Pattern a -> Pattern a
-e' n k p = cat $ map (\x -> if x then p else silence) (bjorklund (n,k))
+e' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
@@ -1384,3 +1381,6 @@ ur' t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . spl
 
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
 inhabit ps p = unwrap' $ (\s -> fromMaybe silence $ lookup s ps) <$> p
+
+repeatCycles :: Int -> Pattern a -> Pattern a
+repeatCycles n p = fastcat (replicate n p)

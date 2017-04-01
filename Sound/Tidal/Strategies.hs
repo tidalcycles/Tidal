@@ -127,7 +127,7 @@ smash n xs p = slowcat $ map (\n -> slow n p') xs
 {- | an altenative form to `smash` is `smash'` which will use `chop` instead of `striate`.
 -}
 smash' n xs p = slowcat $ map (\n -> slow n p') xs
-  where p' = chop n p
+  where p' = _chop n p
 
 -- samples "jvbass [~ latibro] [jvbass [latibro jvbass]]" ((1%2) <~ slow 6 "[1 6 8 7 3]")
 
@@ -226,10 +226,10 @@ d1 $ chop 32 $ sound (samples "arpy*8" (run 16))
 d1 $ chop 256 $ sound "bd*4 [sn cp] [hh future]*2 [cp feel]"
 @
 -}
-chop tp p = unwrap $ (\tv -> chop' tv p) <$> tp
+chop tp p = temporalParam _chop
 
-chop' :: Int -> ParamPattern -> ParamPattern
-chop' n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
+_chop :: Int -> ParamPattern -> ParamPattern
+_chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
   where f queryA a = concatMap (chopEvent queryA) (arc p a)
         chopEvent (queryS, queryE) (a,_a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ chopArc a n)
         newEvent :: ParamMap -> (Int, Arc) -> Event ParamMap
@@ -319,7 +319,7 @@ interlace a b = weave 16 (shape $ ((* 0.9) <$> sinewave1)) [a, b]
 
 -- | Step sequencing
 step :: String -> String -> Pattern String
-step s steps = cat $ map f steps
+step s steps = fastcat $ map f steps
     where f c | c == 'x' = atom s
               | c >= '0' && c <= '9' = atom $ s ++ ":" ++ [c]
               | otherwise = silence
@@ -329,16 +329,16 @@ steps = stack . map (\(a,b) -> step a b)
 
 -- | like `step`, but allows you to specify an array of strings to use for 0,1,2...
 step' :: [String] -> String -> Pattern String
-step' ss steps = cat $ map f steps
+step' ss steps = fastcat $ map f steps
     where f c | c == 'x' = atom $ ss!!0
               | c >= '0' && c <= '9' = atom $ ss!!(Char.digitToInt c)
               | otherwise = silence
 
 off :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-off tp f p = unwrap $ (\tv -> off' tv f p) <$> tp
+off tp f p = unwrap $ (\tv -> _off tv f p) <$> tp
 
-off' :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-off' t f p = superimpose (f . (t ~>)) p
+_off :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_off t f p = superimpose (f . (t ~>)) p
 
 offadd :: Num a => Pattern Time -> Pattern a -> Pattern a -> Pattern a
 offadd tp pn p = off tp (+pn) p
@@ -395,7 +395,7 @@ tabby n p p' = stack [maskedWarp n p,
   where             
     weft n = concatMap (\x -> [[0..n-1],(reverse [0..n-1])]) [0 .. (n `div` 2) - 1]
     warp = transpose . weft
-    thread xs n p = _slow (n%1) $ cat $ map (\i -> zoom (i%n,(i+1)%n) p) (concat xs)
+    thread xs n p = _slow (n%1) $ fastcat $ map (\i -> zoom (i%n,(i+1)%n) p) (concat xs)
     weftP n p = thread (weft n) n p
     warpP n p = thread (warp n) n p
     maskedWeft n p = Sound.Tidal.Pattern.mask (every 2 rev $ _density ((n)%2) "~ 1" :: Pattern Int) $ weftP n p

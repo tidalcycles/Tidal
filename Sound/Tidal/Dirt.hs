@@ -173,10 +173,10 @@ d1 $  slow 8 $ striate 128 $ sound "bev"
 -}
 
 striate :: Pattern Int -> ParamPattern -> ParamPattern
-striate tp p = unwrap $ (\tv -> _striate tv p) <$> tp
+striate = temporalParam _striate
 
 _striate :: Int -> ParamPattern -> ParamPattern
-_striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+_striate n p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p
                   # begin (atom (fromIntegral i / fromIntegral n))
                   # end (atom (fromIntegral (i+1) / fromIntegral n))
@@ -197,7 +197,7 @@ Note that `striate` uses the `begin` and `end` parameters
 internally. This means that if you're using `striate` (or `striate'`)
 you probably shouldn't also specify `begin` or `end`. -}
 striate' :: Int -> Double -> ParamPattern -> ParamPattern
-striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (atom (slot * i) :: Pattern Double) # end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 

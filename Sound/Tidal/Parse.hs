@@ -49,7 +49,7 @@ toPat = \case
    TPat_Zoom arc x -> zoom arc $ toPat x
    TPat_DegradeBy amt x -> degradeBy amt $ toPat x
    TPat_Silence -> silence
-   TPat_Cat xs -> cat $ map toPat xs
+   TPat_Cat xs -> fastcat $ map toPat xs
    TPat_Overlay x0 x1 -> overlay (toPat x0) (toPat x1)
    TPat_ShiftL t x -> t <~ toPat x
    TPat_pE n k s thing ->
@@ -310,7 +310,7 @@ eoff n k s p = ((s%(fromIntegral k)) <~) (e n k p)
 pReplicate :: TPat a -> Parser [TPat a]
 pReplicate thing =
   do extras <- many $ do char '!'
-                         -- if a number is given (without a space)
+                         -- if a number is given (without a space)slow 2 $ fast
                          -- replicate that number of times
                          n <- ((read <$> many1 digit) <|> return 2)
                          spaces
