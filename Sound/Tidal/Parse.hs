@@ -47,7 +47,7 @@ toPat = \case
    TPat_Density t x -> _density t $ toPat x
    TPat_Slow t x -> _slow t $ toPat x
    TPat_Zoom arc x -> zoom arc $ toPat x
-   TPat_DegradeBy amt x -> degradeBy amt $ toPat x
+   TPat_DegradeBy amt x -> _degradeBy amt $ toPat x
    TPat_Silence -> silence
    TPat_Cat xs -> fastcat $ map toPat xs
    TPat_Overlay x0 x1 -> overlay (toPat x0) (toPat x1)

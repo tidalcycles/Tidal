@@ -529,18 +529,18 @@ envEq = sig $ \t -> sqrt (sin (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
 envEqR = sig $ \t -> sqrt (cos (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
 
 fadeOut :: Time -> Pattern a -> Pattern a
-fadeOut n = spread' (degradeBy) (_slow n $ envL)
+fadeOut n = spread' (_degradeBy) (_slow n $ envL)
 
 -- Alternate versions where you can provide the time from which the fade starts
 fadeOut' :: Time -> Time -> Pattern a -> Pattern a
-fadeOut' from dur p = spread' (degradeBy) (from ~> _slow dur envL) p
+fadeOut' from dur p = spread' (_degradeBy) (from ~> _slow dur envL) p
 
 -- The 1 <~ is so fade ins and outs have different degredations
 fadeIn' :: Time -> Time -> Pattern a -> Pattern a
-fadeIn' from dur p = spread' (\n p -> 1 <~ degradeBy n p) (from ~> _slow dur ((1-) <$> envL)) p
+fadeIn' from dur p = spread' (\n p -> 1 <~ _degradeBy n p) (from ~> _slow dur ((1-) <$> envL)) p
 
 fadeIn :: Time -> Pattern a -> Pattern a
-fadeIn n = spread' (degradeBy) (_slow n $ (1-) <$> envL)
+fadeIn n = spread' (_degradeBy) (_slow n $ (1-) <$> envL)
 
 {- | (The above is difficult to describe, if you don't understand Haskell,
 just ignore it and read the below..)
@@ -766,11 +766,22 @@ d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
 @
 
 -}
-degradeBy :: Double -> Pattern a -> Pattern a
-degradeBy x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <*> rand
 
-unDegradeBy :: Double -> Pattern a -> Pattern a
-unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <*> rand
+degradeBy :: Pattern Double -> Pattern a -> Pattern a
+degradeBy = temporalParam _degradeBy
+
+_degradeBy :: Double -> Pattern a -> Pattern a
+_degradeBy x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <*> rand
+
+unDegradeBy :: Pattern Double -> Pattern a -> Pattern a
+unDegradeBy = temporalParam _unDegradeBy
+
+_unDegradeBy :: Double -> Pattern a -> Pattern a
+_unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <*> rand
+
+degradeOverBy :: Int -> Pattern Double -> Pattern a -> Pattern a
+degradeOverBy i tx p = unwrap $ (\x -> (fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <*> repeatCycles i rand)) <$> (slow (fromIntegral i) tx)
+
 
 {- | Use @sometimesBy@ to apply a given function "sometimes". For example, the
 following code results in `density 2` being applied about 25% of the time:
@@ -790,7 +801,7 @@ almostAlways = sometimesBy 0.9
 @
 -}
 sometimesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-sometimesBy x f p = overlay (degradeBy x p) (f $ unDegradeBy x p)
+sometimesBy x f p = overlay (_degradeBy x p) (f $ _unDegradeBy x p)
 
 -- | @sometimes@ is an alias for sometimesBy 0.5.
 sometimes = sometimesBy 0.5
@@ -836,7 +847,7 @@ d1 $ slow 2 $ sound "[[[feel:5*8,feel*3] feel:3*8]?, feel*4]"
 @
 -}
 degrade :: Pattern a -> Pattern a
-degrade = degradeBy 0.5
+degrade = _degradeBy 0.5
 
 -- | @wedge t p p'@ combines patterns @p@ and @p'@ by squashing the
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the
