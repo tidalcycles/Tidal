@@ -164,8 +164,11 @@ spreadf ts p = spread ($)
 d1 $ slow 3 $ spin 4 $ sound "drum*3 tabla:4 [arpy:2 ~ arpy] [can:2 can:3]"
 @
 -}
-spin :: Int -> ParamPattern -> ParamPattern
-spin copies p =
+spin :: Pattern Int -> ParamPattern -> ParamPattern
+spin = temporalParam _spin
+
+_spin :: Int -> ParamPattern -> ParamPattern
+_spin copies p =
   stack $ map (\n -> let offset = toInteger n % toInteger copies in
                      offset <~ p
                      # pan (pure $ fromRational offset)
@@ -226,7 +229,9 @@ d1 $ chop 32 $ sound (samples "arpy*8" (run 16))
 d1 $ chop 256 $ sound "bd*4 [sn cp] [hh future]*2 [cp feel]"
 @
 -}
-chop tp p = temporalParam _chop
+
+chop :: Pattern Int -> ParamPattern -> ParamPattern
+chop = temporalParam _chop
 
 _chop :: Int -> ParamPattern -> ParamPattern
 _chop n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
@@ -244,8 +249,12 @@ each sample is chopped into:
 d1 $ gap 8 $ sound "jvbass"
 d1 $ gap 16 $ sound "[jvbass drum:4]"
 @-}
-gap :: Int -> ParamPattern -> ParamPattern
-gap n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
+
+gap :: Pattern Int -> ParamPattern -> ParamPattern
+gap = temporalParam _gap
+
+_gap :: Int -> ParamPattern -> ParamPattern
+_gap n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
      where f queryA a = concatMap (chopEvent queryA) (arc p a)
            chopEvent (queryS, queryE) (a,_a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ everyOther $ chopArc a n)
            newEvent :: ParamMap -> (Int, Arc) -> Event ParamMap
