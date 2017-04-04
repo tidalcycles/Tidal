@@ -167,7 +167,12 @@ should now see a large folder full of samples.
 
 # MIDI
 
-# Tidal for Improvisation
+# TidalCycles in Practice
 
-# Tidal for Composition
+## Improvisation
 
+## Composition
+
+# Personal accounts
+
+# Index
