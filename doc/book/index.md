@@ -18,6 +18,8 @@ Pattern is everywhere, in textiles, language, mathematics and of
 course music. But what do we mean by pattern? Pattern can be thought
 about in four different aspects of behaviour:
 
+[//]: # (TODO Examples for each)
+
 * Repetition: Essential to rhythm, repetition forms the backbone of a
   great deal of music.
 
@@ -47,7 +49,94 @@ them through sonic filters and effects. Lets do that now.
 
 # Sounds
 
+Tidal does not make sound itself, but sends messages to synthesisers
+(hardware or software) to make sound. For the following lets assume
+you followed the install instructions and have Tidal set up with
+SuperDirt, a synthesiser made for use with Tidal (and vice-versa).
+
+SuperDirt makes sound using two different methods. One is to play
+pre-recorded sounds or sound 'samples', usually short ones. The other
+is to play sounds which SuperDirt synthesises from scratch. Lets
+concentrate on the former, first.
+
+Lets start by playing a bass drum sound:
+
+```
+d1 $ sound "bd"
+```
+
+> To run the above, paste this in to your editor (probably Atom), and
+> hold down ctrl and press enter. If it didn't work, make sure the
+> blinking cursor is on the line, and also that there is a blank line
+> above and below the line, separating it from any other code.
+
+You should hear a bass drum sound repeating forever. The next thing
+you'll want to do is stop it!
+
+## Silence
+
+To stop a pattern from playing, replace it with silence. Run the
+following in the same way as the above:
+
+```
+d1 $ silence
+```
+
+> You don't have to delete or think about the other code in your
+> editor before you run this, by pressing ctrl-enter you are only
+> sending Tidal the block of code that the cursor is on. You can see
+> which block this is because it flashes momentarily when you press
+> ctrl-enter.
+
+## Anatomy of a simple pattern
+
+Lets go back to our bass drum sound, and try to understand what the
+different bits mean. Don't worry if it doesn't make total sense yet,
+things will become clearer as you play with them.
+
+```
+d1 $ sound "bd"
+```
+
+* `d1` is a 'connection' to superdirt. You'll see how to have
+  different patterns using different connections later, but for now
+  we'll just deal with the first connection, `d1`. It takes one and
+  one and only one 'parameter' - a pattern to send to SuperDirt.
+* `$` is a bit of useful 'syntax', which you'll get the hang of later on.
+  > If you're curious now, think about `$` as telling tidal to pass
+  > whatever is on the right hand side of it (in this case `sound "bd"`)
+  > to the left of it (`d1`). In other words, `d1` is a 'function' with a
+  > single 'parameter', which is the pattern `sound "bd"`. If you didn't
+  > have the `$` here, Tidal would try to send `sound` on its own to `d1`,
+  > get very confused, and you'd get an error message. An alternative is
+  > to wrap the parameter in parenthesis like this `d1 (sound "bd")`, but
+  > with more complicated patterns you usually want to reduce the number
+  > of brackets.
+* `sound` is the name of a synthesiser parameter. There are others for
+  changing the sound in different ways, which you'll see later.
+* `"bd"` is a pattern of sound names, in this case the single name
+  `bd`, which is the name of a bass drum samplebank.
+
+So reading it backwards, we have a pattern `"bd"` which we treat as a
+pattern of `sound`s, which we pass to `d1`, which sends it to
+superdirt for us.
+
+You can try other sound names in there, for example a snaredrum:
+
+```
+d1 $ sound "sd"
+```
+
+But where does this `bd` and `sd` sound come from? They are sound
+samples, which exist in folders on your computer. Have a look at
+them - open supercollider, and from the menu select `File` > `Open
+user support directory`. A folder window should pop up, open
+`downloaded-quarks` subfolder and then `Dirt-Samples` in that. You
+should now see a large folder full of samples.
+
 # Sequences
+
+# Effects
 
 # Patternings
 
