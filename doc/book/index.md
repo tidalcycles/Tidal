@@ -1,4 +1,4 @@
-% TidalCycles
+% TidalCycles: Patterns I Have Known And Loved
 
 # Introduction: What is TidalCycles?
 
@@ -20,6 +20,7 @@ about in four different aspects of behaviour:
 
 [//]: # (TODO Examples for each)
 
+<span class="index" term="pattern" />
 *Repetition:* Essential to rhythm, repetition forms the backbone of a
   great deal of music. The clue is in the name - TidalCycles is all
   about repetitive cycles. However that doesn't mean that each cycle
@@ -64,6 +65,8 @@ them through sonic filters and effects. Lets do that now.
 
 # Sounds
 
+<span class="index" term="SuperDirt" />
+
 Tidal does not make sound itself, but sends messages to synthesisers
 (hardware or software) to make sound. For the following lets assume
 you followed the install instructions and have Tidal set up with
@@ -90,6 +93,8 @@ you'll want to do is stop it!
 
 ## Silence
 
+<span class="index" term="silence" />
+
 To stop a pattern from playing, replace it with silence. Run the
 following in the same way as the above:
 
@@ -105,6 +110,8 @@ d1 $ silence
 
 ## Anatomy of a simple pattern
 
+<span class="index" term="sound" />
+
 Lets go back to our bass drum sound, and try to understand what the
 different bits mean. Don't worry if it doesn't make total sense yet,
 things will become clearer as you play with them.
@@ -118,6 +125,7 @@ d1 $ sound "bd"
   we'll just deal with the first connection, `d1`. It takes one and
   one and only one 'parameter' - a pattern to send to SuperDirt.
 * `$` is a bit of useful 'syntax', which you'll get the hang of later on.
+  <span class="index" term="sample files" />
   > If you're curious now, think about `$` as telling tidal to pass
   > whatever is on the right hand side of it (in this case `sound "bd"`)
   > to the left of it (`d1`). In other words, `d1` is a 'function' with a
@@ -142,16 +150,97 @@ You can try other sound names in there, for example a snaredrum:
 d1 $ sound "sd"
 ```
 
-But where does this `bd` and `sd` sound come from? They are sound
-samples, which exist in folders on your computer. Have a look at
-them - open supercollider, and from the menu select `File` > `Open
-user support directory`. A folder window should pop up, open
-`downloaded-quarks` subfolder and then `Dirt-Samples` in that. You
-should now see a large folder full of samples.
+An important point is that `sd` is the name of not a single sound
+samples but a whole pack of samples. You can access the others using a
+`:` followed by a number, starting at `0` for the first one. For
+example, to play the third sample in the `sd` pack:
 
-# Sequences
+```
+d1 $ sound "sd:2"
+```
 
-# Effects
+> But where are these files? They are simply folders on your
+> computer. Have a look at them - open supercollider, and from the
+> menu select `File` > `Open user support directory`. A folder window
+> should pop up, open `downloaded-quarks` subfolder and then
+> `Dirt-Samples` in that. You should now see a large folder full of
+> samplepack folders. The sounds are all recorded in the `wav` format,
+> and as they're called up by number, the names of the wav files don't
+> matter.
+
+<span class="index" term="s" />
+
+You'll also sometimes see the sound specified with the shorthand `s`:
+
+```
+d1 $ s "sd:2"
+```
+
+<span class="index" term="n" />
+
+Shorter, but perhaps less clear. It's also possible to give the sample
+number as a separate pattern, labeled `n` and joined together with
+the `#` symbol, like this:
+
+```
+d1 $ sound "sd" # n "2"
+```
+
+You'll see much more of this `#` symbol later, but we'll leave it to
+the side for now.
+
+# Sequencing
+
+<span class="index" term="sequences" />
+
+So far we've just been listening to single, repeating sounds. How
+about stringing together different sounds, in order to sequence a
+rhythm? Tidal contains a highly expressive mini-language for
+describing sequences, which is accessible wherever you see double
+quotes.
+
+## Simple sequences
+
+Most simply, you can just list out the sounds you want, and tidal will
+play them in turn:
+
+```
+d1 $ sound "bd sd"
+```
+
+You can put as many things as you like in a sequence:
+
+```
+d1 $ sound "bd bd cp sd"
+```
+
+You'll notice in the above that if you put four sounds in there, it
+goes twice as fast as if you put two in. This is because the sequence
+is being squashed to fit into the cycle length, so the more sounds you
+put in, the faster they are played:
+
+```
+d1 $ sound "bd bd cp sd sd cp bd sd"
+```
+
+<span class="index" term="clock" />
+<span class="index" term="cps" />
+<span class="index" term="bpm" />
+
+> Tidal has a global 'clock', which keeps track of the cycles, which
+> you can imagine continually running in the background even when no
+> sound is playing. By default, the clock runs at one cycle per
+> second. You can control how fast this goes with the `cps` function,
+> for example type `cps 0.7` on its own line and run it to slow the
+> clock down a bit.  You might be more used to thinking in 'beats per
+> minute', but as we have just seen above, Tidal does not have a fixed
+> number of beats per bar (or cycle) - that kind of depends on how
+> many events you decide to cram in. However if you are making 4/4
+> music, you can get a rough approximation by dividing the bpm by 60
+> to get beats per second, and the result by 4 to get beats per
+> cycle. For example `cps (150 / 60 / 4)` to get 150 bpm.
+
+# Effects and other parameters
 
 # Patternings
 
