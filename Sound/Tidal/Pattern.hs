@@ -90,9 +90,9 @@ showArc a = concat[showTime $ fst a, (' ':showTime (snd a))]
 
 -- | converts an event into human readable string, e.g. @("bd" 1/4 2/3)@
 showEvent :: (Show a) => Event a -> String
-showEvent (a, b, v) | a == b = concat["(",show v,
+showEvent (a, b, v) | a == b = concat[show v,
                                       (' ':showArc a),
-                                      ")"
+                                      "\n"
                                      ]
                     | otherwise = show v
 

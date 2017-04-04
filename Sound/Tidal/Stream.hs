@@ -46,7 +46,12 @@ data Shape = Shape {params :: [Param],
 
 
 data Value = VS { svalue :: String } | VF { fvalue :: Double } | VI { ivalue :: Int }
-           deriving (Show,Eq,Ord,Typeable)
+           deriving (Eq,Ord,Typeable)
+
+instance Show Value where
+  show (VS s) = s
+  show (VF f) = show f
+  show (VI i) = show i
 
 class ParamType a where
   fromV :: Value -> Maybe a
