@@ -20,19 +20,25 @@ about in four different aspects of behaviour:
 
 [//]: # (TODO Examples for each)
 
-* Repetition: Essential to rhythm, repetition forms the backbone of a
-  great deal of music.
+*Repetition:* Essential to rhythm, repetition forms the backbone of a
+  great deal of music. The clue is in the name - TidalCycles is all
+  about repetitive cycles. However that doesn't mean that each cycle
+  has to be the same, or that everything has to be locked to a single
+  cycle. Far from it, Tidal's conceptual of time is very flexible,
+  with great support for polyrhythm, complex meters, and flowing
+  (continuous) and grid-based (discrete) patterns, able to be
+  subdivided to whatever level of complexity you like.
 
-* Symmetry: By this we mean rotation as well as reflection, and
+*Symmetry:* By this we mean rotation as well as reflection, and
   relatedly self-similarity at multiple scales.
 
-* Interference: Where two or more patterns can be combined, creating
+*Interference:* Where two or more patterns can be combined, creating
   often astonishing 'higher-order' patterns out of simple parts.  For
   example the moire patterns seen when netting overlaps, or where the
   structure of a textile weave interferes with colour patternings of
   warp and weft threads.
 
-* Deviation: Where we use the above to set up expectation and sweet
+*Deviation:* Where we use the above to set up expectation and sweet
   anticipation, we all too often purposefully break those
   expectations, playing with people's minds. In computing, we call
   this 'random numbers' but it's really about choosing not to make
@@ -42,6 +48,15 @@ It's possible to use Tidal to notate music you already have in
 mind. However, by exploring and combining such patternings together
 you can find music that is beyond your imagination. This is really
 what Tidal is made for - exploration and improvisation.
+
+In exploring these different flavours and levels of patternings,
+you'll realise that they are never independent. For example how many
+different kinds of symmetry can you add to a pattern before they
+starts to interefere with each other? How much deviation or
+interference can you add before the sense of repetition breaks down?
+How long can a repetition be before you stop perceiving it as such?
+The answer to all these is generally "not much", and there is much
+music to be found on these boundaries.
 
 First of all though we need to cover some basics. Before we get on to
 patternings, we need to work out how to play sounds, and how to modify
