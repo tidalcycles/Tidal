@@ -338,16 +338,22 @@ d1 $ sound "{bd cp, arpy arpy:1 arpy:2 arpy:3}"
 
 The two subpatterns in the first example line up like this:
 
+|             |                |
+|-------------|----------------|
 | bd          | cp             |
 | arpy arpy:1 | arpy:2  arpy:3 |
 
 Whereas in the second they line up like this:
 
+|      |        |
+|------|--------|
 | bd   | cp     | 
 | arpy | arpy:1 | 
 
 This means some events are left over from the second subpattern, but don't worry, they make an appearance on the following (and then every other) cycle, like this:
 
+|        |        |
+|--------|--------|
 | bd     | cp     | 
 | arpy:2 | arpy:3 | 
 
