@@ -211,7 +211,7 @@ d1 $ sound "bd sd"
 You can put as many things as you like in a sequence:
 
 ```
-d1 $ sound "bd bd cp sd"
+d1 $ sound "bd bd ht lt"
 ```
 
 You'll notice in the above that if you put four sounds in there, it
@@ -220,7 +220,7 @@ is being squashed to fit into the cycle length, so the more sounds you
 put in, the faster they are played:
 
 ```
-d1 $ sound "bd bd cp sd sd cp bd sd"
+d1 $ sound "bd bd lt sd sd cp bd sd"
 ```
 
 <span class="index" term="clock" />
@@ -249,20 +249,111 @@ Silence is of course central to music, and in Tidal sequences you can
 insert empty gaps with the `~` character.
 
 ```
-d1 $ sound "bd bd ~ sd sd cp ~ ~"
+d1 $ sound "bd bd ~ sd sd ht ~ lt"
 ```
 
-## Subpatterns
+## Grouping and subpatterns
 
 <span class="index" term="subpatterns" />
 <span class="index" term="grouping" />
 
-Earlier we said Tidal's conception of time was flexible, but we
-haven't seen much of that yet. ...
+Earlier we said Tidal's conception of time was flexible, lets look at
+some of that. First of all, there's the idea of marking out rhythmic
+'feet' with a `.` symbol:
 
 ```
-d1 $ sound "[bd bd ~] [sd sd ~ bd]"
+d1 $ sound "bd bd sd . arpy mt:1 lt sd:1"
 ```
+
+The above `.` divides the sequence into two halves, but the first half
+has three events, and the second has four. This gives an off-kilter
+rhythm that you might find pleasing. You can add more feet if
+you want:
+
+```
+d1 $ sound "bd bd sd . mt sd lt ~ . bd sd"
+```
+
+An alternative way of writing the above is this:
+
+```
+d1 $ sound "[bd bd sd] [mt sd lt ~] [bd sd]"
+```
+
+Instead of marking out the feet with `.`, the sounds are grouped
+together by wrapping them in `[` and `]`. The end result is exactly
+the same, but the latter approach allows you to put groups within
+groups, e.g:
+
+```
+d1 $ sound "[bd ~ sd] [hc [mt:1 lt] ~ hc]"
+```
+
+You can think of the above as being a sequence with two steps, the first one broken down into a subpattern with three steps `bd`, `~` and `sd` each lasting a sixth of a cycle each, and the second one broken down into four steps `hc`, `[mt:1 lt]`, `~` and `hc`, each lasting an eigth of a cycle each. In the latter subpattern, the second step is broken down further into two steps, each lasting a sixteenth of a cycle.
+
+You can keep going if you want:
+
+```
+d1 $ sound "[bd ~ sd] [bd [mt:1 [lt [lt [mt bd]]]] ~ lt:4]"
+```
+
+## Parallel patterns, polyphony and polyrhythm
+
+Another good thing about grouping with `[` and `]` is that you can put more than one subpattern in there, which will
+then be played at the same time:
+
+```
+d1 $ sound "[bd bd cp, arpy arpy:1 arpy:3]"
+``` 
+
+In the simple example above the sounds line up nicely, but they don't have to, here we put four sounds against three, creating a kind of triplet or polyrhythm:
+
+```
+d1 $ sound "[bd bd cp hc, arpy arpy:1 arpy:3]"
+``` 
+
+Tidal takes care of spreading them out to fit the enclosing step perfectly. As the subpatterns are the only step in the above pattern, they fill the whole cycle.
+
+We can keep layering up subpatterns simply by using more commas:
+
+```
+d1 $ sound "[bd bd cp hc, arpy arpy:1 arpy:3, ~ off]"
+``` 
+
+### Polymeter
+
+The subpatterns in `[` and `]` fill all the space available, but there are other ways of arranging subpatterns.
+
+One is `{` and `}`, which is similar to our friends `[` and `]`, but instead of squashing the subpatterns into the same space, it matches up the sub-steps.
+
+Compare this:
+
+```
+d1 $ sound "[bd cp, arpy arpy:1 arpy:2 arpy:3]"
+```
+with this:
+```
+d1 $ sound "{bd cp, arpy arpy:1 arpy:2 arpy:3}"
+``` 
+
+The two subpatterns in the first example line up like this:
+
+| bd          | cp             |
+| arpy arpy:1 | arpy:2  arpy:3 |
+
+Whereas in the second they line up like this:
+
+| bd   | cp     | 
+| arpy | arpy:1 | 
+
+This means some events are left over from the second subpattern, but don't worry, they make an appearance on the following (and then every other) cycle, like this:
+
+| bd     | cp     | 
+| arpy:2 | arpy:3 | 
+
+In brief, `[]` matches the length of the subpatterns, whereas `{}` does this with the first subpattern, but then the others are matched up event-by-event. This lack of alignment between patterns with different lengths can be broadly thought of in musical terms as 'polymeter.
+
+##
 
 # Effects and other parameters
 
