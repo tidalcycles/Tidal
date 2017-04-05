@@ -240,7 +240,48 @@ d1 $ sound "bd bd cp sd sd cp bd sd"
 > to get beats per second, and the result by 4 to get beats per
 > cycle. For example `cps (150 / 60 / 4)` to get 150 bpm.
 
+## Rests and gaps
+
+<span class="index" term="rests" />
+<span class="index" term="silence" />
+
+Silence is of course central to music, and in Tidal sequences you can
+insert empty gaps with the `~` character.
+
+```
+d1 $ sound "bd bd ~ sd sd cp ~ ~"
+```
+
+## Subpatterns
+
+<span class="index" term="subpatterns" />
+<span class="index" term="grouping" />
+
+Earlier we said Tidal's conception of time was flexible, but we
+haven't seen much of that yet. ...
+
+```
+d1 $ sound "[bd bd ~] [sd sd ~ bd]"
+```
+
 # Effects and other parameters
+
+We have so far seen two parameters, the `sound` (aka `s`) one, and
+
+## Synths
+
+<span class="index" term="synths" />
+The `bd`, `sd` etc sounds are recorded samples, but with SuperDirt it's
+also possible to synthesise sounds on the fly. There are a few synths
+built-in, lets have a quick listen to one of them.
+
+```
+d1 $ n "0 7 12 5" # sound "supermandolin"
+```
+
+In the above `0` is middle c, the others notes relative to that. 
+
+note names ...
 
 # Patternings
 
