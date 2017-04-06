@@ -1,20 +1,20 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, CPP #-}
-{-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
+{-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-name-shadowing #-}
 
 module Sound.Tidal.Pattern where
 
 import Control.Applicative
-import Data.Monoid
+-- import Data.Monoid
 import Data.Fixed
 import Data.List
 import Data.Maybe
 import Data.Ord
 import Data.Ratio
-import Debug.Trace
+-- import Debug.Trace
 import Data.Typeable
 import Data.Function
 import System.Random.Mersenne.Pure64
-import Data.Char
+-- import Data.Char
 import qualified Data.Text as T
 
 import Sound.Tidal.Time
@@ -36,43 +36,6 @@ data Pattern a = Pattern {arc :: Arc -> [Event a]}
 
 #define APPLICATIVE Pattern
 #include "ApplicativeNumeric-inc.hs"
-
-{-
--- | Admit the pattern datatype to the Num, Fractional and Floating classes,
--- to allow arithmetic on them, and for bare numbers to be automatically
--- converted into patterns of numbers
-instance Num a => Num (Pattern a) where
-      negate      = fmap negate
-      (+)         = liftA2 (+)
-      (*)         = liftA2 (*)
-      fromInteger = pure . fromInteger
-      abs         = fmap abs
-      signum      = fmap signum
-
-instance (Fractional a) => Fractional (Pattern a) where
-  fromRational = pure . fromRational
-  (/) = liftA2 (/)
-
-instance Floating a => Floating (Pattern a) where
-  pi = pure pi
-  exp = liftA (exp)
-  log = liftA (log)
-  sqrt = liftA (sqrt)
-  (**) = liftA2 (**)
-  logBase = liftA2 (logBase)
-  sin = liftA (sin)
-  cos = liftA (cos)
-  tan = liftA (tan)
-  asin = liftA (asin)
-  acos = liftA (acos)
-  atan = liftA (atan)
-  sinh = liftA (sinh)
-  cosh = liftA (cosh)
-  tanh = liftA (tanh)
-  asinh = liftA (asinh)
-  acosh = liftA (acosh)
-  atanh = liftA (atanh)
--}
 
 -- | @show (p :: Pattern)@ returns a text string representing the
 -- event values active during the first cycle of the given pattern.
@@ -222,6 +185,7 @@ fastcat :: [Pattern a] -> Pattern a
 fastcat ps = density (fromIntegral $ length ps) $ slowcat ps
 
 -- | @cat@ is an alias of @fastcat@
+cat :: [Pattern a] -> Pattern a
 cat = fastcat
 
 splitAtSam :: Pattern a -> Pattern a
@@ -259,7 +223,10 @@ maybeListToPat = fastcat . map f
         f (Just x) = atom x
 
 -- | @run@ @n@ returns a pattern representing a cycle of numbers from @0@ to @n-1@.
+run :: (Enum a, Num a) => a -> Pattern a
 run n = listToPat [0 .. n-1]
+
+scan :: (Enum a, Num a) => a -> Pattern a
 scan n = fastcat $ map run [1 .. n]
 
 temporalParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
@@ -274,6 +241,7 @@ fast = temporalParam _density
 
 -- | @density@ is an alias of @fast@. @fast@ is quicker to type, but
 -- @density@ is its old name so is used in a lot of examples.
+density :: Pattern Time -> Pattern a -> Pattern a
 density = fast
 
 _density :: Time -> Pattern a -> Pattern a
@@ -287,11 +255,15 @@ fastGap :: Time -> Pattern a -> Pattern a
 fastGap 0 _ = silence
 fastGap r p = splitQueries $ withResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
 
+densityGap :: Time -> Pattern a -> Pattern a
 densityGap = fastGap
 
 -- | @slow@ does the opposite of @fast@, i.e. @slow 2 p@ will return a
 -- pattern that is half the speed.
+slow :: Pattern Time -> Pattern a -> Pattern a
 slow tp p = density (1/tp) p
+
+_slow :: Time -> Pattern a -> Pattern a
 _slow t p = _density (1/t) p
 
 -- | The @<~@ operator shifts (or rotates) a pattern to the left (or
@@ -342,13 +314,17 @@ cp bd hh sn
 There is also `iter'`, which shifts the pattern in the opposite direction.
 
 -}
+iter :: Pattern Int -> Pattern c -> Pattern c
 iter = temporalParam _iter
+
 _iter :: Int -> Pattern a -> Pattern a
 _iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. (n-1)]
 
 -- | @iter'@ is the same as @iter@, but decrements the starting
 -- subdivision instead of incrementing it.
+iter' :: Pattern Int -> Pattern c -> Pattern c
 iter' = temporalParam _iter'
+
 _iter' :: Int -> Pattern a -> Pattern a
 _iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) ~> p) [0 .. (n-1)]
 
@@ -359,6 +335,7 @@ rev p = splitQueries $ Pattern $ \a -> mapArcs mirrorArc (arc p (mirrorArc a))
 
 -- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
 -- the pattern alternates between forwards and backwards.
+palindrome :: Pattern a -> Pattern a
 palindrome p = append' p (rev p)
 
 {-|
@@ -431,12 +408,18 @@ sig f = Pattern f'
 -- sinewave with frequency of one cycle, and amplitude from -1 to 1.
 sinewave :: Pattern Double
 sinewave = sig $ \t -> sin $ pi * 2 * (fromRational t)
+
 -- | @sine@ is a synonym for @sinewave@.
+sine :: Pattern Double
 sine = sinewave
+
 -- | @sinerat@ is equivalent to @sinewave@ for @Rational@ values,
 -- suitable for use as @Time@ offsets.
+sinerat :: Pattern Rational
 sinerat = fmap toRational sine
+
 -- | @ratsine@ is a synonym for @sinerat@.
+ratsine :: Pattern Rational
 ratsine = sinerat
 
 -- | @sinewave1@ is equivalent to @sinewave@, but with amplitude from 0 to 1.
@@ -444,9 +427,11 @@ sinewave1 :: Pattern Double
 sinewave1 = fmap ((/ 2) . (+ 1)) sinewave
 
 -- | @sine1@ is a synonym for @sinewave1@.
+sine1 :: Pattern Double
 sine1 = sinewave1
 
 -- | @sinerat1@ is equivalent to @sinerat@, but with amplitude from 0 to 1.
+sinerat1 :: Pattern Rational
 sinerat1 = fmap toRational sine1
 
 -- | @sineAmp1 d@ returns @sinewave1@ with its amplitude offset by @d@.
@@ -458,10 +443,12 @@ sawwave :: Pattern Double
 sawwave = ((subtract 1) . (* 2)) <$> sawwave1
 
 -- | @saw@ is a synonym for @sawwave@.
+saw :: Pattern Double
 saw = sawwave
 
 -- | @sawrat@ is the same as @sawwave@ but returns @Rational@ values
 -- suitable for use as @Time@ offsets.
+sawrat :: Pattern Rational
 sawrat = fmap toRational saw
 
 -- | @sawwave1@ is the equivalent of @sinewave1@ for (ascending) sawtooth waves.
@@ -469,10 +456,12 @@ sawwave1 :: Pattern Double
 sawwave1 = sig $ \t -> mod' (fromRational t) 1
 
 -- | @saw1@ is a synonym for @sawwave1@.
+saw1 :: Pattern Double
 saw1 = sawwave1
 
 -- | @sawrat1@ is the same as @sawwave1@ but returns @Rational@ values
 -- suitable for use as @Time@ offsets.
+sawrat1 :: Pattern Rational
 sawrat1 = fmap toRational saw1
 
 -- | @triwave@ is the equivalent of @sinewave@ for triangular waves.
@@ -480,10 +469,12 @@ triwave :: Pattern Double
 triwave = ((subtract 1) . (* 2)) <$> triwave1
 
 -- | @tri@ is a synonym for @triwave@.
+tri :: Pattern Double
 tri = triwave
 
 -- | @trirat@ is the same as @triwave@ but returns @Rational@ values
 -- suitable for use as @Time@ offsets.
+trirat :: Pattern Rational
 trirat = fmap toRational tri
 
 -- | @triwave1@ is the equivalent of @sinewave1@ for triangular waves.
@@ -491,18 +482,21 @@ triwave1 :: Pattern Double
 triwave1 = append sawwave1 (rev sawwave1)
 
 -- | @tri1@ is a synonym for @triwave1@.
+tri1 :: Pattern Double
 tri1 = triwave1
 
 -- | @trirat1@ is the same as @triwave1@ but returns @Rational@ values
 -- suitable for use as @Time@ offsets.
+trirat1 :: Pattern Rational
 trirat1 = fmap toRational tri1
 
 -- | @squarewave1@ is the equivalent of @sinewave1@ for square waves.
 squarewave1 :: Pattern Double
 squarewave1 = sig $
-              \t -> fromIntegral $ floor $ (mod' (fromRational t) 1) * 2
+              \t -> fromIntegral $ ((floor $ (mod' (fromRational t :: Double) 1) * 2) :: Integer)
 
 -- | @square1@ is a synonym for @squarewave1@.
+square1 :: Pattern Double
 square1 = squarewave1
 
 -- | @squarewave@ is the equivalent of @sinewave@ for square waves.
@@ -510,6 +504,7 @@ squarewave :: Pattern Double
 squarewave = ((subtract 1) . (* 2)) <$> squarewave1
 
 -- | @square@ is a synonym for @squarewave@.
+square :: Pattern Double
 square = squarewave
 
 -- | @envL@ is a @Pattern@ of continuous @Double@ values, representing
@@ -527,7 +522,9 @@ envLR = (1-) <$> envL
 -- 'Equal power' for gain-based transitions
 envEq :: Pattern Double
 envEq = sig $ \t -> sqrt (sin (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
+
 -- Equal power reversed
+envEqR :: Pattern Double
 envEqR = sig $ \t -> sqrt (cos (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
 
 fadeOut :: Time -> Pattern a -> Pattern a
@@ -599,6 +596,7 @@ After `(# speed "0.8")`, the transforms will repeat and start at `density 2` aga
 spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 spread f xs p = slowcat $ map (\x -> f x p) xs
 
+slowspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 slowspread = spread
 
 {- | @fastspread@ works the same as @spread@, but the result is squashed into a single cycle. If you gave four values to @spread@, then the result would seem to speed up by a factor of four. Compare these two:
@@ -636,6 +634,8 @@ shorter alias `spreadr`.
 spreadChoose :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
 spreadChoose f vs p = do v <- discretise 1 (choose vs)
                          f v p
+
+spreadr :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
 spreadr = spreadChoose
 
 filterValues :: (a -> Bool) -> Pattern a -> Pattern a
