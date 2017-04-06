@@ -299,6 +299,9 @@ d1 $ sound "[bd ~ sd] [bd [mt:1 [lt [lt [mt bd]]]] ~ lt:4]"
 
 ## Parallel patterns, polyphony and polyrhythm
 
+<span class="index" term="polyrhythm" />
+<span class="index" term="polyphony" />
+
 Another good thing about grouping with `[` and `]` is that you can put more than one subpattern in there, which will
 then be played at the same time:
 
@@ -321,6 +324,8 @@ d1 $ sound "[bd bd cp hc, arpy arpy:1 arpy:3, ~ off]"
 ``` 
 
 ### Polymeter
+
+<span class="index" term="polymeter" />
 
 The subpatterns in `[` and `]` fill all the space available, but there are other ways of arranging subpatterns.
 
@@ -365,7 +370,7 @@ In brief, `[]` matches the length of the subpatterns, whereas `{}` does this wit
 
 We have so far seen two parameters, the `sound` (aka `s`) one, and
 
-## Synths
+# Built-in Synths
 
 <span class="index" term="synths" />
 The `bd`, `sd` etc sounds are recorded samples, but with SuperDirt it's
@@ -373,12 +378,49 @@ also possible to synthesise sounds on the fly. There are a few synths
 built-in, lets have a quick listen to one of them.
 
 ```
-d1 $ n "0 7 12 5" # sound "supermandolin"
+d1 $ n "0 7 [12 5] 4" # sound "supermandolin"
 ```
 
-In the above `0` is middle c, the others notes relative to that. 
+Available built-in synths include super808, superchip, superclap,
+supercomparator, superfork, supergong, superhammond, superhat,
+superhoover, superkick, supermandolin, supernoise, superpiano,
+superpwm, supersaw, supersiren, supersnare, supersquare, superstatic,
+supervibe and superzow. Try them out!
 
-note names ...
+<span class="index" term="note names" />
+
+In the `n` pattern of the previous example, `0` is by default middle c in the western scale, and the others notes relative to that. If you'd rather deal with note names rather than notes, you can. For example the above can be written like this:
+
+```
+d1 $ n "c g [c6 f] e" # sound "supermandolin"
+```
+
+The `c6` means `c` in the sixth octave (the default octave being the fifth). You can mix and match these, for example you might want to add together a pattern of note names with a pattern of note transpositions:
+
+```
+d1 $ n ("c g [c6 f] e" + "<0 0 7 5>") # sound "supermandolin"
+```
+
+For sharps put `s` after the note (and before the octave number, if present), and for flats use `f`:
+
+```
+d1 $ n "c gf4 [cs6 fs6] ef7" # sound "superpiano"
+```
+
+You can even do sharp-sharps and flat-sharp-sharps, if that makes any sense to you.
+
+d1 $ n "cs6 css6 csssfs7" # sound "superpiano"
+
+Remember that you can use just about all the same effects with synths as you can with samples:
+
+```
+d1 $ every 2 (# vowel "a") $
+  off 0.5 (# (s "superpiano" # gain 0.8))
+    $ n (off 0.25 (+7) $ slow 2 $ "c(3,8) g [c6*2 f] e*2" + "<0 0 7 5>") # sound "supermandolin"
+  # room 0.4
+  # size 0.9
+  # shape 0.3
+```
 
 # Patternings
 
@@ -392,13 +434,19 @@ note names ...
 
 # Syntax
 
-# MIDI
-
 # TidalCycles in Practice
 
 ## Improvisation
 
 ## Composition
+
+# Interoperation
+
+## SuperDirt
+
+## MIDI
+
+## Custom Open Sound Control
 
 # Personal accounts
 
