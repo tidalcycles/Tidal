@@ -35,6 +35,7 @@ library
                        Sound.Tidal.Transition
                        Sound.Tidal.Scales
                        Sound.Tidal.Chords
+                       Sound.Tidal.Version
 
   Build-depends:
       base < 5
