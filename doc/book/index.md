@@ -376,7 +376,7 @@ Lets spend some time now though looking at how different parameters combine. The
 d1 $ sound "rash rash" # n "50 38"
 ```
 
-Breaking the above down, we can actually isolate five patterns from the above:
+We can break the above down into four patterns that make up the whole:
 
 1. `"50 52"` - A pattern of whole numbers
 2. `n "50 52"` - A pattern of synth parameters (containing sample or note numbers)
@@ -384,57 +384,7 @@ Breaking the above down, we can actually isolate five patterns from the above:
 4. `s "rash rash"` - Another pattern of synth parameters (containing sample or synth names)
 5. `n "50 52" # sound "rash rash"` - The two patterns of synth parameters combined into the final pattern of synth parameters, which contains both sample/synth numbers and names.
 
-## Structure of composition
-
-In the previous example, both the `sound` and `n` patterns had the same, simple *structure* -- two events that matched up in an obvious way. A nice thing about Tidal though is that it will take care of matching up patterns that have very different structures. Even though Tidal takes care of this, it's good to get a feel for exactly what it's doing.
-
-A general rule of thumb is that when Tidal combines patterns, the *structure comes from the left*. As a simple example, the following only plays one drum sound per cycle:
-
-```
-d1 $ sound "drum" # n "0 1 [2 4]"
-```
-
-The structure of the pattern on the left is a single event, `drum` which matches up with the first `n` value, which is `0`. So that's all we hear. To get four sounds to play, lets just swap the parameters around:
-
-```
-d1 $ n "0 1 [2 4]" # sound "drum"
-```
-
-That's better. The structure comes from the `n` pattern, and all of them match up with the single `drum` event, so we get to hear four sounds. At this point an advantage of using the `n` parameter is clear. Using the `:` trick, we could have specified everything inside the `sound` parameter, but that would have involved typing `drum` four times:
-
-```
-d1 $ sound "drum:0 drum:1 [drum:2 drum:4]"
-```
-
-Not only is the above more typing, but it's less flexible - if we wanted to change the sampleset to something else that would have involved editing the sound name four times as well.
-
-Although the structure comes from the pattern on the left, that doesn't mean that the structure of the pattern on the right doesn't matter. For example we can make the `sound` pattern play from one sampleset for the first half of the cycle, and another for the second half:
-
-```
-d1 $ n "0 1 [2 4]" # sound "drum arpy"
-```
-
-Or alternate between samplesets from cycle to cycle:
-
-```
-d1 $ n "0 1 [2 4]" # sound "<drum arpy>"
-```
-
-Or play from two samplesets at once:
-
-```
-d1 $ n "0 1 [2 4]" # sound "[drum, arpy]"
-```
-
-You might wonder what the mechanics of this are, looking closely at the first example, there are three steps in the pattern on the left (`0`, `1`, and the subpattern `[2 4]`), and two on the right (`drum` and `arpy`).
-
-```
-d1 $ n "0 1 [2 4]" # sound "drum arpy"
-```
-
-You can think about this in terms of Tidal lining up both cycles, and matching up where the events start in the pattern on the left, with the timespan of the events in the pattern on the right. Working the above example, `0` starts at the beginning of the pattern, and so does `drum`, so it's clear that they match. However `1` starts one third of the way through the pattern, and no event in the pattern on the right starts at the same point in time. But because there are two events, `drum` occupies the first half of the pattern on the right, and because `1/3` is between `0` and `1/2`, the `0` sample number matches with the `drum`. Likewise the `2` sample number begins at position `2/3`, and the `4` sample number begins at position `5/6`, which both lie within the timespan of the second event, which lasts from `1/2` to `1`.
-
-This is difficult to get your head around, especially for more complex patterns, but don't worry too much. Tidal takes care of all this for you, and you'll get a feel for it over time.
+There are particular rules for how patterns combine, which we will return to right after looking at all the parameters available in SuperDirt.
 
 ## Effects
 
@@ -510,7 +460,68 @@ This is difficult to get your head around, especially for more complex patterns,
 | room | |
 | size | |
 
+
+# Combining patterns
+
+We briefly saw how to combine superdirt parameters earlier, but noted that there are particular rules for how more complex patterns combine. Lets look at this again.
+
+```
+d1 $ sound "rash rash" # n "50 38"
+```
+
+In the example we above, both the `sound` and `n` patterns have the same, simple *structure* -- two events that matched up in an obvious way. A nice thing about Tidal though is that it will take care of matching up patterns that have very different structures. Even though Tidal takes care of this, it's good to get a feel for exactly what it's doing.
+
+A general rule of thumb is that when Tidal combines patterns, the *structure comes from the left*. As a simple example, the following only plays one drum sound per cycle:
+
+```
+d1 $ sound "drum" # n "0 1 [2 4]"
+```
+
+The structure of the pattern on the left is a single event, `drum` which matches up with the first `n` value, which is `0`. So that's all we hear. To get four sounds to play, lets just swap the parameters around:
+
+```
+d1 $ n "0 1 [2 4]" # sound "drum"
+```
+
+That's better. The structure comes from the `n` pattern, and all of them match up with the single `drum` event, so we get to hear four sounds. At this point an advantage of using the `n` parameter is clear. Using the `:` trick, we could have specified everything inside the `sound` parameter, but that would have involved typing `drum` four times:
+
+```
+d1 $ sound "drum:0 drum:1 [drum:2 drum:4]"
+```
+
+Not only is the above more typing, but it's less flexible - if we wanted to change the sampleset to something else that would have involved editing the sound name four times as well.
+
+Although the structure comes from the pattern on the left, that doesn't mean that the structure of the pattern on the right doesn't matter. For example we can make the `sound` pattern play from one sampleset for the first half of the cycle, and another for the second half:
+
+```
+d1 $ n "0 1 [2 4]" # sound "drum arpy"
+```
+
+Or alternate between samplesets from cycle to cycle:
+
+```
+d1 $ n "0 1 [2 4]" # sound "<drum arpy>"
+```
+
+Or play from two samplesets at once:
+
+```
+d1 $ n "0 1 [2 4]" # sound "[drum, arpy]"
+```
+
+You might wonder what the mechanics of this are, looking closely at the first example, there are three steps in the pattern on the left (`0`, `1`, and the subpattern `[2 4]`), and two on the right (`drum` and `arpy`).
+
+```
+d1 $ n "0 1 [2 4]" # sound "drum arpy"
+```
+
+You can think about this in terms of Tidal lining up both cycles, and matching up where the events start in the pattern on the left, with the timespan of the events in the pattern on the right. Working the above example, `0` starts at the beginning of the pattern, and so does `drum`, so it's clear that they match. However `1` starts one third of the way through the pattern, and no event in the pattern on the right starts at the same point in time. But because there are two events, `drum` occupies the first half of the pattern on the right, and because `1/3` is between `0` and `1/2`, the `0` sample number matches with the `drum`. Likewise the `2` sample number begins at position `2/3`, and the `4` sample number begins at position `5/6`, which both lie within the timespan of the second event, which lasts from `1/2` to `1`.
+
+This is difficult to get your head around, especially for more complex patterns, but don't worry too much. Tidal takes care of all this for you, and you'll get a feel for it over time.
+
 # Patterns of numbers
+
+
 
 # Built-in Synths
 
