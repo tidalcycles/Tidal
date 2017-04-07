@@ -463,6 +463,8 @@ There are particular rules for how patterns combine, which we will return to rig
 
 # Combining patterns
 
+<span class="index" term="combining patterns" />
+
 We briefly saw how to combine superdirt parameters earlier, but noted that there are particular rules for how more complex patterns combine. Lets look at this again.
 
 ```
@@ -519,9 +521,78 @@ You can think about this in terms of Tidal lining up both cycles, and matching u
 
 This is difficult to get your head around, especially for more complex patterns, but don't worry too much. Tidal takes care of all this for you, and you'll get a feel for it over time.
 
-# Patterns of numbers
+# Continuous patterns
 
+<span class="index" term="continuous pattern" />
+<span class="index" term="automation" />
 
+Tidal provides a set of patterns that have no structure, but are *continuous*.
+There are currently five of these available:
+
+* `sine` (aka `sinewave`) - sinewave with amplitude between 0 and 1 over a cycle
+* `square` (aka `squarewave`) - square wave with amplitude between 0 and 1 over a cycle
+* `tri` (aka `triwave`) - triangular wave with amplitude between 0 and 1 over a cycle
+* `saw` (aka `sawwave`) - saw wave with amplitude between 0 and 1 over a cycle
+* `rand` - stream of floating point pseudo-random numbers between 0 and 1
+* `irand n` - a stream of pseudo-random integers (whole numbers) between 0 and n, for example use `irand 16` to get numbers between 0 and 15 inclusive.
+
+These are create for smooth changes to effects, for example on a low pass filter:
+
+```
+d1 $ n "0 [1 5] 2*2 [3 4]" # sound "amencutup"
+  # lpq 0.2
+  # lpf (sine * 5000 + 100)
+```
+
+You'll often want to slow `sine` and friends down, so they go over a longer period, such as four cycles in the following:
+
+```
+d1 $ n "0 [1 5] 2*2 [3 4]" # sound "amencutup"
+  # lpq 0.2
+  # lpf (slow 4 (sine * 5000 + 300))
+```
+
+We'll see much more about `slow` and friends later.
+
+<span class="index" term="random numbers" />
+
+Standard fare in live coding is the randomly cut-up amen break, giving perhaps the nicest sounding result with the least effort. This has great power, please use it wisely:
+
+```
+d1 $ sound "amencutup*8" # n (irand 16)
+```
+
+We'll see more about randomisation later on as well.
+
+# Patterns of numbers as numbers
+
+<span class="index" term="numbers" />
+<span class="index" term="combining patterns" />
+
+Patterns of numbers are special in Tidal, because you can work with them as if they were numbers.
+
+If you have just want a pattern of a single number, every cycle, then you can just use the number on its own, without having to put it in quotes:
+
+```
+d1 $ sound "bd [bd bd*2]"
+  # shape 0.7
+```
+
+You can also do simple arithmetic directly on patterns, for example adding patterns together:
+
+```
+d1 $ n ("0 7 5" + "<0 7>")
+  # sound "jvbass"
+```
+
+In the above, the same rules are followed as when combining parameters together -- the structure comes from the left. You can do the same with continuous patterns of numbers like `sinewave`:
+
+```
+d1 $ sound "jvbass*16"
+  # speed (sinewave * (slow 4 sine) + 1)
+```
+
+There is a caveat here though, because structure comes from the left, you'll also want to put `sine` on the left hand side of any arithmetic, so that its continuous nature is preserved.
 
 # Built-in Synths
 
@@ -575,7 +646,11 @@ d1 $ every 2 (# vowel "a") $
   # shape 0.3
 ```
 
+There's a couple of new things in the above, `every`, `off`, and `slow`. These are functions for transforming pattern, a pretty big topic, so we'd better start a new chapter.
+
 # Patternings
+
+
 
 ## Repetition
 
