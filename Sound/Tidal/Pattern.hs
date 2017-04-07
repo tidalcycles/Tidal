@@ -422,32 +422,6 @@ sinerat = fmap toRational sine
 ratsine :: Pattern Rational
 ratsine = sinerat
 
--- backward compatibility
-sinewave1 :: Pattern Double
-sinewave1 = sinewave
-sine1 :: Pattern Double
-sine1 = sinewave
-sinerat1 :: Pattern Rational
-sinerat1 = sinerat
-sineAmp1 :: Double -> Pattern Double
-sineAmp1 = sineAmp
-sawwave1 :: Pattern Double
-sawwave1 = sawwave
-saw1 :: Pattern Double
-saw1 = sawwave
-sawrat1 :: Pattern Rational
-sawrat1 = sawrat
-triwave1 :: Pattern Double
-triwave1 = triwave
-tri1 :: Pattern Double
-tri1 = triwave
-trirat1 :: Pattern Rational
-trirat1 = trirat
-squarewave1 :: Pattern Double
-squarewave1 = squarewave
-square1 :: Pattern Double
-square1 = square
-
 -- | @sineAmp d@ returns @sinewave@ with its amplitude offset by @d@.
 -- Deprecated, as these days you can simply do e.g. (sine + 0.5)
 sineAmp :: Double -> Pattern Double
@@ -487,6 +461,32 @@ squarewave = sig $
 -- | @square@ is a synonym for @squarewave@.
 square :: Pattern Double
 square = squarewave
+
+-- deprecated..
+sinewave1 :: Pattern Double
+sinewave1 = sinewave
+sine1 :: Pattern Double
+sine1 = sinewave
+sinerat1 :: Pattern Rational
+sinerat1 = sinerat
+sineAmp1 :: Double -> Pattern Double
+sineAmp1 = sineAmp
+sawwave1 :: Pattern Double
+sawwave1 = sawwave
+saw1 :: Pattern Double
+saw1 = sawwave
+sawrat1 :: Pattern Rational
+sawrat1 = sawrat
+triwave1 :: Pattern Double
+triwave1 = triwave
+tri1 :: Pattern Double
+tri1 = triwave
+trirat1 :: Pattern Rational
+trirat1 = trirat
+squarewave1 :: Pattern Double
+squarewave1 = squarewave
+square1 :: Pattern Double
+square1 = square
 
 -- | @envL@ is a @Pattern@ of continuous @Double@ values, representing
 -- a linear interpolation between 0 and 1 during the first cycle, then
