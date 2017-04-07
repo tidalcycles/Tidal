@@ -364,6 +364,18 @@ This means some events are left over from the second subpattern, but don't worry
 
 In brief, `[]` matches the length of the subpatterns, whereas `{}` does this with the first subpattern, but then the others are matched up event-by-event. This lack of alignment between patterns with different lengths can be broadly thought of in musical terms as 'polymeter.
 
+## Random drop-outs
+
+<span class="index" term="random numbers" />
+
+There's a lot of random-generation in algorithmic music, and although it can be overused at times, it's a great, quick way to get some variation going in a pattern. We'll return to random numbers later, but for now lets see how to randomly drop events from pattern:
+
+```
+d1 $ sound "bd? sd*2 [arpy? arpy:4?] arpy"
+```
+
+That's it - you just stick `?` after an event, and with a 50/50 chance, sometimes it will play, and other times not.
+
 # Dimensions of sound - SuperDirt parameters
 
 <span class="index" term="SuperDirt parameters" />
@@ -556,7 +568,7 @@ We'll see much more about `slow` and friends later.
 
 <span class="index" term="random numbers" />
 
-Standard fare in live coding is the randomly cut-up amen break, giving perhaps the nicest sounding result with the least effort. This has great power, please use it wisely:
+Standard fare in live coding is the randomly cut-up [amen break](https://en.wikipedia.org/wiki/Amen_break), giving perhaps the nicest sounding result with the least effort. This has great power, please use it wisely:
 
 ```
 d1 $ sound "amencutup*8" # n (irand 16)
@@ -646,11 +658,11 @@ d1 $ every 2 (# vowel "a") $
   # shape 0.3
 ```
 
-There's a couple of new things in the above, `every`, `off`, and `slow`. These are functions for transforming pattern, a pretty big topic, so we'd better start a new chapter.
+There's a couple of new things in the above, `every`, `off`, and `slow`. These are functions for transforming pattern, which is a large topic at the heart of Tidal, so we'd better start a new chapter.
 
 # Patternings
 
-
+We have so far spent a lot of time focussed on sequences and parameters, but Tidal is a language for live coding pattern, and there's a lot more to patterns than sequences.
 
 ## Repetition
 
