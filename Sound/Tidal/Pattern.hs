@@ -405,9 +405,9 @@ sig f = Pattern f'
                  | otherwise = [((s,e), (s,e), f s)]
 
 -- | @sinewave@ returns a @Pattern@ of continuous @Double@ values following a
--- sinewave with frequency of one cycle, and amplitude from -1 to 1.
+-- sinewave with frequency of one cycle, and amplitude from 0 to 1.
 sinewave :: Pattern Double
-sinewave = sig $ \t -> sin $ pi * 2 * (fromRational t)
+sinewave = sig $ \t -> ((sin $ pi * 2 * (fromRational t)) + 1) / 2
 
 -- | @sine@ is a synonym for @sinewave@.
 sine :: Pattern Double
@@ -422,25 +422,40 @@ sinerat = fmap toRational sine
 ratsine :: Pattern Rational
 ratsine = sinerat
 
--- | @sinewave1@ is equivalent to @sinewave@, but with amplitude from 0 to 1.
+-- backward compatibility
 sinewave1 :: Pattern Double
-sinewave1 = fmap ((/ 2) . (+ 1)) sinewave
-
--- | @sine1@ is a synonym for @sinewave1@.
+sinewave1 = sinewave
 sine1 :: Pattern Double
-sine1 = sinewave1
-
--- | @sinerat1@ is equivalent to @sinerat@, but with amplitude from 0 to 1.
+sine1 = sinewave
 sinerat1 :: Pattern Rational
-sinerat1 = fmap toRational sine1
-
--- | @sineAmp1 d@ returns @sinewave1@ with its amplitude offset by @d@.
+sinerat1 = sinerat
 sineAmp1 :: Double -> Pattern Double
-sineAmp1 offset = (+ offset) <$> sinewave1
+sineAmp1 = sineAmp
+sawwave1 :: Pattern Double
+sawwave1 = sawwave
+saw1 :: Pattern Double
+saw1 = sawwave
+sawrat1 :: Pattern Rational
+sawrat1 = sawrat
+triwave1 :: Pattern Double
+triwave1 = triwave
+tri1 :: Pattern Double
+tri1 = triwave
+trirat1 :: Pattern Rational
+trirat1 = trirat
+squarewave1 :: Pattern Double
+squarewave1 = squarewave
+square1 :: Pattern Double
+square1 = square
+
+-- | @sineAmp d@ returns @sinewave@ with its amplitude offset by @d@.
+-- Deprecated, as these days you can simply do e.g. (sine + 0.5)
+sineAmp :: Double -> Pattern Double
+sineAmp offset = (+ offset) <$> sinewave1
 
 -- | @sawwave@ is the equivalent of @sinewave@ for (ascending) sawtooth waves.
 sawwave :: Pattern Double
-sawwave = ((subtract 1) . (* 2)) <$> sawwave1
+sawwave = sig $ \t -> mod' (fromRational t) 1
 
 -- | @saw@ is a synonym for @sawwave@.
 saw :: Pattern Double
@@ -451,22 +466,9 @@ saw = sawwave
 sawrat :: Pattern Rational
 sawrat = fmap toRational saw
 
--- | @sawwave1@ is the equivalent of @sinewave1@ for (ascending) sawtooth waves.
-sawwave1 :: Pattern Double
-sawwave1 = sig $ \t -> mod' (fromRational t) 1
-
--- | @saw1@ is a synonym for @sawwave1@.
-saw1 :: Pattern Double
-saw1 = sawwave1
-
--- | @sawrat1@ is the same as @sawwave1@ but returns @Rational@ values
--- suitable for use as @Time@ offsets.
-sawrat1 :: Pattern Rational
-sawrat1 = fmap toRational saw1
-
 -- | @triwave@ is the equivalent of @sinewave@ for triangular waves.
 triwave :: Pattern Double
-triwave = ((subtract 1) . (* 2)) <$> triwave1
+triwave = append sawwave1 (rev sawwave1)
 
 -- | @tri@ is a synonym for @triwave@.
 tri :: Pattern Double
@@ -477,31 +479,10 @@ tri = triwave
 trirat :: Pattern Rational
 trirat = fmap toRational tri
 
--- | @triwave1@ is the equivalent of @sinewave1@ for triangular waves.
-triwave1 :: Pattern Double
-triwave1 = append sawwave1 (rev sawwave1)
-
--- | @tri1@ is a synonym for @triwave1@.
-tri1 :: Pattern Double
-tri1 = triwave1
-
--- | @trirat1@ is the same as @triwave1@ but returns @Rational@ values
--- suitable for use as @Time@ offsets.
-trirat1 :: Pattern Rational
-trirat1 = fmap toRational tri1
-
--- | @squarewave1@ is the equivalent of @sinewave1@ for square waves.
-squarewave1 :: Pattern Double
-squarewave1 = sig $
-              \t -> fromIntegral $ ((floor $ (mod' (fromRational t :: Double) 1) * 2) :: Integer)
-
--- | @square1@ is a synonym for @squarewave1@.
-square1 :: Pattern Double
-square1 = squarewave1
-
--- | @squarewave@ is the equivalent of @sinewave@ for square waves.
+-- | @squarewave1@ is the equivalent of @sinewave@ for square waves.
 squarewave :: Pattern Double
-squarewave = ((subtract 1) . (* 2)) <$> squarewave1
+squarewave = sig $
+             \t -> fromIntegral $ ((floor $ (mod' (fromRational t :: Double) 1) * 2) :: Integer)
 
 -- | @square@ is a synonym for @squarewave@.
 square :: Pattern Double
