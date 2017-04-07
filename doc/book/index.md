@@ -364,11 +364,153 @@ This means some events are left over from the second subpattern, but don't worry
 
 In brief, `[]` matches the length of the subpatterns, whereas `{}` does this with the first subpattern, but then the others are matched up event-by-event. This lack of alignment between patterns with different lengths can be broadly thought of in musical terms as 'polymeter.
 
-##
+# Dimensions of sound - SuperDirt parameters
 
-# Effects and other parameters
+<span class="index" term="SuperDirt parameters" />
 
-We have so far seen two parameters, the `sound` (aka `s`) one, and
+We have so far seen two parameters that can be sent to SuperDirt, the `sound` (aka `s`) one, and briefly, the `n` one. There's a whole lot more of them, listed out later in this section. Feel free to have a sneak peak ahead play with some of them.
+
+Lets spend some time now though looking at how different parameters combine. The first thing to bear in mind is that Tidal is all about combining patterns. Each parameter is itself a pattern, and contains a pattern. 
+
+```
+d1 $ sound "rash rash" # n "50 38"
+```
+
+Breaking the above down, we can actually isolate five patterns from the above:
+
+1. `"50 52"` - A pattern of whole numbers
+2. `n "50 52"` - A pattern of synth parameters (containing sample or note numbers)
+3. `"rash rash"` - A pattern of words
+4. `s "rash rash"` - Another pattern of synth parameters (containing sample or synth names)
+5. `n "50 52" # sound "rash rash"` - The two patterns of synth parameters combined into the final pattern of synth parameters, which contains both sample/synth numbers and names.
+
+## Structure of composition
+
+In the previous example, both the `sound` and `n` patterns had the same, simple *structure* -- two events that matched up in an obvious way. A nice thing about Tidal though is that it will take care of matching up patterns that have very different structures. Even though Tidal takes care of this, it's good to get a feel for exactly what it's doing.
+
+A general rule of thumb is that when Tidal combines patterns, the *structure comes from the left*. As a simple example, the following only plays one drum sound per cycle:
+
+```
+d1 $ sound "drum" # n "0 1 [2 4]"
+```
+
+The structure of the pattern on the left is a single event, `drum` which matches up with the first `n` value, which is `0`. So that's all we hear. To get four sounds to play, lets just swap the parameters around:
+
+```
+d1 $ n "0 1 [2 4]" # sound "drum"
+```
+
+That's better. The structure comes from the `n` pattern, and all of them match up with the single `drum` event, so we get to hear four sounds. At this point an advantage of using the `n` parameter is clear. Using the `:` trick, we could have specified everything inside the `sound` parameter, but that would have involved typing `drum` four times:
+
+```
+d1 $ sound "drum:0 drum:1 [drum:2 drum:4]"
+```
+
+Not only is the above more typing, but it's less flexible - if we wanted to change the sampleset to something else that would have involved editing the sound name four times as well.
+
+Although the structure comes from the pattern on the left, that doesn't mean that the structure of the pattern on the right doesn't matter. For example we can make the `sound` pattern play from one sampleset for the first half of the cycle, and another for the second half:
+
+```
+d1 $ n "0 1 [2 4]" # sound "drum arpy"
+```
+
+Or alternate between samplesets from cycle to cycle:
+
+```
+d1 $ n "0 1 [2 4]" # sound "<drum arpy>"
+```
+
+Or play from two samplesets at once:
+
+```
+d1 $ n "0 1 [2 4]" # sound "[drum, arpy]"
+```
+
+You might wonder what the mechanics of this are, looking closely at the first example, there are three steps in the pattern on the left (`0`, `1`, and the subpattern `[2 4]`), and two on the right (`drum` and `arpy`).
+
+```
+d1 $ n "0 1 [2 4]" # sound "drum arpy"
+```
+
+You can think about this in terms of Tidal lining up both cycles, and matching up where the events start in the pattern on the left, with the timespan of the events in the pattern on the right. Working the above example, `0` starts at the beginning of the pattern, and so does `drum`, so it's clear that they match. However `1` starts one third of the way through the pattern, and no event in the pattern on the right starts at the same point in time. But because there are two events, `drum` occupies the first half of the pattern on the right, and because `1/3` is between `0` and `1/2`, the `0` sample number matches with the `drum`. Likewise the `2` sample number begins at position `2/3`, and the `4` sample number begins at position `5/6`, which both lie within the timespan of the second event, which lasts from `1/2` to `1`.
+
+This is difficult to get your head around, especially for more complex patterns, but don't worry too much. Tidal takes care of all this for you, and you'll get a feel for it over time.
+
+## Effects
+
+<span class="index" term="parameters, effect" />
+<span class="index" term="effect parameters" />
+
+| name   | description |
+|--------|-------------|
+| attack | |
+| bpf | |
+| bpq | |
+| coarse | |
+| crush | |
+| lpf | |
+| lpq | |
+| gain | |
+| hcutoff | |
+| hpf | |
+| hpq | |
+| hold | |
+| phaserdepth | |
+| phaserrate | |
+| release | |
+| shape | |
+| tremolodepth | |
+| tremolorate | |
+| vowel | |
+
+## Control
+
+<span class="index" term="parameters, control" />
+<span class="index" term="control parameters" />
+
+| name   | description |
+|--------|-------------|
+| accelerate | |
+| begin | |
+| buffer | |
+| channel | |
+| cut | |
+| delayAmp | |
+| delta | |
+| end | |
+| endSpeed | |
+| fadeInTime | |
+| fadeTime | |
+| lag | |
+| latency | |
+| legato | |
+| loop | |
+| midinote | |
+| n | |
+| octave | |
+| offset | |
+| orbit | |
+| pan | |
+| sound / s | |
+| sustain | |
+| synthGroup | |
+| unit | |
+
+<span class="index" term="parameters, global" />
+<span class="index" term="global parameters" />
+
+| name   | description |
+|--------|-------------|
+| delayAmp | |
+| delayfeedback | |
+| delaytime | |
+| leslie | |
+| lrate | |
+| lsize | |
+| room | |
+| size | |
+
+# Patterns of numbers
 
 # Built-in Synths
 
