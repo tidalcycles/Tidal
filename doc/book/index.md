@@ -374,7 +374,7 @@ There's a lot of random-generation in algorithmic music, and although it can be 
 d1 $ sound "bd? sd*2 [arpy? arpy:4?] arpy"
 ```
 
-That's it - you just stick `?` after an event, and with a 50/50 chance, sometimes it will play, and other times not.
+That's it - you just stick `?` after an event, and with a 50% chance, sometimes it will play, and other times not.
 
 # Dimensions of sound - SuperDirt parameters
 
@@ -663,6 +663,20 @@ There's a couple of new things in the above, `every`, `off`, and `slow`. These a
 # Patternings
 
 We have so far spent a lot of time focussed on sequences and parameters, but Tidal is a language for live coding pattern, and there's a lot more to patterns than sequences.
+
+## Manipulating time
+
+Time is the most common noun in the English language, and is of course pretty important to music. In Tidal, time is maleable -- it both flows in cycles, and develops over time. It can be reversed, shifted forward into the future or back into the past, and subdivided to whatever level of depth you like.
+
+### `Fast`er and `slow`er
+
+### Shifting time with `<~` and `~>`
+
+### Iter
+
+## Manipulating space with `jux` and friends
+
+
 
 ## Repetition
 
