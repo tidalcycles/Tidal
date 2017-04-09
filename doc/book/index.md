@@ -733,15 +733,68 @@ d1 $ fast "<0.5 [2 1]>" $ sound "arpy:2 [arpy:3 arpy]"
 In the above, the first cycle plays the cycle at half speed, and the
 second cycle plays it twice as fast for the first half, and normally
 for the second half. In that second cycle, the effect is to play whole
-cycle in the space of half of one, then play the second half of it.
+cycle in the space of half of one, then play the second half of
+it. This quick way to produce different densities at different scales
+allows you to explore a kind of symmetry, as self-similarity.
+
+The previous example is one way to vary the speed of a pattern over
+time, but you might want to do this more explicitly. There are 'higher
+order functions' which allow you to conditionally apply a
+transformation such as `fast 2`, for example to make every third cycle
+twice as fast you could do this:
+
+```
+d1 $ every 3 (fast 2) $ sound "arpy:2 [arpy:3 arpy]"
+```
+
+If you're curious about the other functions in `every`'s family, you
+could peek ahead at the section on conditionals.
 
 ### Shifting time with `<~` and `~>`
+
+Here is where Tidal's conception of time as being cyclic begins to
+become particularly apparent. Lets use that `every` again, this time
+with the `~>` operator to shift the pattern a quarter (in decimal,
+`0.25`) of a cycle every fourth cycle:
+
+```
+d1 $ every 4 (0.25 ~>) $ n "0 1 2 3" # sound "arpy"
+```
+
+Here's what's happening every cycle in turn, in terms of the value of
+`n` in the cycles:
+
+1. `0 1 2 3`
+2. `0 1 2 3`
+3. `0 1 2 3`
+4. `3 0 1 2`
+
+Then it starts again at the first cycle. You can see that in that
+fourth cycle, the `~> 0.25` has been applied, shifting the pattern
+into the future, which has pulled in the `3` from the previous
+pattern. Or alternatively you could think of the `0 1 2 3` being in a
+ring, and the `~> 0.25` popping the `3` off the end and sticking it on
+the start. You can either think of time as being linear or cyclic
+here, whichever you prefer.
+
+If you use `<~` instead of `~>`, the fourth repetition will of course
+end up with `1 2 3 0`:
+
+```
+d1 $ every 4 (0.25 <~) $ n "0 1 2 3" # sound "arpy"
+```
 
 ### Iter
 
 ## Manipulating space with `jux` and friends
 
 ## Conditionals
+
+### every
+
+### foldEvery
+
+### chunk
 
 # Syntax
 
