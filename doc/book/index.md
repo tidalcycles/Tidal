@@ -662,13 +662,78 @@ There's a couple of new things in the above, `every`, `off`, and `slow`. These a
 
 # Patternings
 
-We have so far spent a lot of time focussed on sequences and parameters, but Tidal is a language for live coding pattern, and there's a lot more to patterns than sequences.
+We have so far spent a lot of time focussed on sequences and
+parameters, but Tidal is a language for live coding pattern, and
+there's a lot more to patterns than sequences. In this chapter we're
+going to exploring the different kinds of patterning that were
+mentioned in the introduction; repetition, symmetry, interference and
+deviation. All are about taking a sequence and transforming it in a
+way that may be perceived by the listener, or at least give them a
+sense of order amongst chaos. Because there is a clear structure in
+the creation of pattern, the sonic environment that results has the
+possibility to be an engaging place that unfolds through the process
+of listening. But of course everyone listens differently; a pattern is
+not necessarily a puzzle to be solved, but an environment to be
+explored.
 
 ## Manipulating time
 
-Time is the most common noun in the English language, and is of course pretty important to music. In Tidal, time is maleable -- it both flows in cycles, and develops over time. It can be reversed, shifted forward into the future or back into the past, and subdivided to whatever level of depth you like.
+Time is the most common noun in the English language, and music is of
+course a time-based artform. In Tidal, time is malleable -- it both
+flows in cycles, and develops over time. It can be reversed, shifted
+forward into the future or back into the past, expanded and
+contracted, chopped up and rearranged, and subdivided to whatever
+level of depth you like.
 
 ### `Fast`er and `slow`er
+
+Lets start with speeding up and slowing down patterns. To make a
+pattern faster, you can use the `fast` function, here speeding up a
+pattern by a factor of `2`, making it twice as fast:
+
+```
+d1 $ fast 2 $ sound "arpy:2 [arpy:3 arpy]"
+```
+
+> Time for a refresher: remember that the `$` doesn't do anything
+> apart from pass the result of the code on the right to the function
+> on the left. So `fast` here expects two parameters, the first one
+> being `2` and the second being a whole pattern. The `$` makes sure
+> the pattern `sound "arpy:2 arpy:3"` is passed to `fast` as a
+> whole. Without it, Tidal would read along and try to pass the single
+> word `sound` as a pattern, which wouldn't make sense.
+
+There is also `slow` for slowing it down:
+
+```
+d1 $ slow 2 $ sound "arpy:2 [arpy:3 arpy]"
+```
+
+Another way of slowing down by half is to pass one half to `fast`:
+
+```
+d1 $ fast 0.5 $ sound "arpy:2 [arpy:3 arpy]"
+```
+
+You can also think of `fast` as making a pattern more *dense* and
+`slow` as making it less *sparse*, and indeed there are aliases
+`density` and `sparsity` that you can use if you prefer. In the old
+days only `density` and `slow` were defined so many examples use
+these.
+
+The first parameter of both `fast` and `slow` (and their aliases
+`density` and `sparsity`) is actually a pattern. This allows you to
+transform a simple pattern into a complex one simply by varying how
+dense it is/fast it goes over time:
+
+```
+d1 $ fast "<0.5 [2 1]>" $ sound "arpy:2 [arpy:3 arpy]"
+```
+
+In the above, the first cycle plays the cycle at half speed, and the
+second cycle plays it twice as fast for the first half, and normally
+for the second half. In that second cycle, the effect is to play whole
+cycle in the space of half of one, then play the second half of it.
 
 ### Shifting time with `<~` and `~>`
 
@@ -676,15 +741,7 @@ Time is the most common noun in the English language, and is of course pretty im
 
 ## Manipulating space with `jux` and friends
 
-
-
-## Repetition
-
-## Symmetry
-
-## Interference
-
-## Deviation
+## Conditionals
 
 # Syntax
 
