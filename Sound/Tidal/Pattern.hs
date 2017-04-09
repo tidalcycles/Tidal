@@ -184,16 +184,12 @@ append' a b  = slowcat [a,b]
 fastcat :: [Pattern a] -> Pattern a
 fastcat ps = density (fromIntegral $ length ps) $ slowcat ps
 
--- | @cat@ is an alias of @fastcat@
-cat :: [Pattern a] -> Pattern a
-cat = fastcat
-
 splitAtSam :: Pattern a -> Pattern a
 splitAtSam p =
   splitQueries $ Pattern $ \(s,e) -> mapSnds' (trimArc (sam s)) $ arc p (s,e)
   where trimArc s' (s,e) = (max (s') s, min (s'+1) e)
 
--- | @slowcat@ does the same as @cat@, but maintaining the duration of
+-- | @slowcat@ does the same as @fastcat@, but maintaining the duration of
 -- the original patterns. It is the equivalent of @append'@, but with
 -- a list of patterns.
 
@@ -208,6 +204,10 @@ slowcat ps = splitQueries $ Pattern f
                 n = (r `mod` l) :: Int
                 offset = (fromIntegral $ r - ((r - n) `div` l)) :: Time
                 (s', e') = (s-offset, e-offset)
+
+-- | @cat@ is an alias of @slowcat@
+cat :: [Pattern a] -> Pattern a
+cat = slowcat
 
 -- | @listToPat@ turns the given list of values to a Pattern, which
 -- cycles through the list.
@@ -227,7 +227,7 @@ run :: (Enum a, Num a) => a -> Pattern a
 run n = listToPat [0 .. n-1]
 
 scan :: (Enum a, Num a) => a -> Pattern a
-scan n = fastcat $ map run [1 .. n]
+scan n = slowcat $ map run [1 .. n]
 
 temporalParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 temporalParam f tv p = unwrap $ (\v -> f v p) <$> tv
@@ -1388,3 +1388,13 @@ inhabit ps p = unwrap' $ (\s -> fromMaybe silence $ lookup s ps) <$> p
 
 repeatCycles :: Int -> Pattern a -> Pattern a
 repeatCycles n p = fastcat (replicate n p)
+
+{- | @spaceOut xs p@ repeats a pattern @p@ at different durations given by the list of time values in @xs@ -}
+spaceOut :: [Time] -> Pattern a -> Pattern a
+spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compress a p) $ spaceArcs xs
+  where markOut :: Time -> [Time] -> [(Time, Time)]
+        markOut offset [] = []
+        markOut offset (x:xs) = (offset,offset+x):(markOut (offset+x) xs)
+        spaceArcs xs = map (\(a,b) -> (a/s,b/s)) $ markOut 0 xs
+        s = sum xs
+
