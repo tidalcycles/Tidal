@@ -784,7 +784,26 @@ end up with `1 2 3 0`:
 d1 $ every 4 (0.25 <~) $ n "0 1 2 3" # sound "arpy"
 ```
 
-### Iter
+The nature of `~>` and `<~` is surprisingly confusing to think about. This is because we both think of ourselves as moving forward through time, but also time coming towards us. To give an everyday example, if you decide to move your dentist appointment into the future, you're likely to say that you are 'moving it back' away from you, even though if you look at a calendar, you're clearly moving it forward in time. It's probably best not to worry to much about the direction of time, and go with whatever sounds best in a given situation.
+
+At this point you might be wondering about what happens if you are working on a waltz and want to shift by a third. You could shift by `0.33333` but it's based on a ratio
+
+```
+d1 $ every 4 ((1/3) <~) $ n "0 1 2" # sound "arpy"
+```
+
+### iter
+
+The `iter` function is similar to `<~`, but shifts a pattern by an increasing amount every cycle, until it gets back to where it started.
+
+```
+d1 $ retrig $ iter 4 $ n "0 1 2 3" # sound "arpy"
+```
+
+0 1 2 3
+1 2 3 0
+2 3 0 1
+3 0 1 2
 
 ## Manipulating space with `jux` and friends
 
