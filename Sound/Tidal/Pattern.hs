@@ -182,7 +182,7 @@ append' a b  = slowcat [a,b]
 -- given patterns, within a single cycle. It's the equivalent of
 -- @append@, but with a list of patterns.
 fastcat :: [Pattern a] -> Pattern a
-fastcat ps = density (fromIntegral $ length ps) $ slowcat ps
+fastcat ps = _density (fromIntegral $ length ps) $ slowcat ps
 
 splitAtSam :: Pattern a -> Pattern a
 splitAtSam p =
@@ -1089,7 +1089,7 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -- events per cycle. Useful for turning a continuous pattern into a
 -- discrete one.
 discretise :: Pattern Time -> Pattern a -> Pattern a
-discretise n p = density n $ (atom (id)) <*> p
+discretise n p = _density n $ (atom (id)) <*> p
 
 discretise' :: Time -> Pattern a -> Pattern a
 discretise' n p = _density n $ (atom (id)) <*> p
@@ -1354,7 +1354,7 @@ For example, `scramble 3 "a b c"` will randomly select 3 parts from
 `"a"` `"b"` and `"c"`, possibly repeating a single part.
 -}
 scramble::Int -> Pattern a -> Pattern a
-scramble n = fit' 1 n (run n) (density (fromIntegral n) $ 
+scramble n = fit' 1 n (run n) (_density (fromIntegral n) $ 
   liftA2 (+) (pure 0) $ irand n)
 
 ur :: Time -> Pattern String -> [Pattern a] -> Pattern a
