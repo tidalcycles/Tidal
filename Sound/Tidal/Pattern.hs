@@ -1073,10 +1073,10 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -- events per cycle. Useful for turning a continuous pattern into a
 -- discrete one.
 discretise :: Pattern Time -> Pattern a -> Pattern a
-discretise n p = density n $ (atom (id)) <*> p
+discretise n p = (density n $ atom (id)) <*> p
 
 discretise' :: Time -> Pattern a -> Pattern a
-discretise' n p = _density n $ (atom (id)) <*> p
+discretise' n p = (_density n $ atom (id)) <*> p
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
