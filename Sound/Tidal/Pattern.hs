@@ -89,30 +89,14 @@ instance Monoid (Pattern a) where
 
 instance Monad Pattern where
   return = pure
-  -- Pattern a -> (a -> Pattern b) -> Pattern b
-  -- Pattern Char -> (Char -> Pattern String) -> Pattern String
 
   p >>= f = unwrap (f <$> p)
-{-Pattern (\a -> concatMap
-                   (\((s,e), (s',e'), x) -> map (\ev -> ((s,e), (s',e'), thd' ev)) $
-                                            filter
-                                            (\(a', _, _) -> isIn a' s)
-                                            (arc (f x) (s,e))
-                   )
-                   (arc p a)
-             )
--}
--- join x = x >>= id
 
-
--- Take a pattern, and function from elements in the pattern to another pattern,
--- and then return that pattern
---bind :: Pattern a -> (a -> Pattern b) -> Pattern b
---bind p f =
-
--- this is actually join
 unwrap :: Pattern (Pattern a) -> Pattern a
-unwrap p = Pattern $ \a -> concatMap ((\p' -> arc p' a) . thd') (arc p a)
+unwrap p = Pattern $ \a -> concatMap (\(outerWhole, outerPart, p') -> catMaybes $ map (munge outerPart) $ arc p' a) (arc p a)
+  where munge a (whole,part,v) = do part' <- subArc a part
+                                    return (whole, part',v)
+
 
 -- | @atom@ is a synonym for @pure@.
 atom :: a -> Pattern a
@@ -1089,7 +1073,7 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -- events per cycle. Useful for turning a continuous pattern into a
 -- discrete one.
 discretise :: Pattern Time -> Pattern a -> Pattern a
-discretise n p = _density n $ (atom (id)) <*> p
+discretise n p = density n $ (atom (id)) <*> p
 
 discretise' :: Time -> Pattern a -> Pattern a
 discretise' n p = _density n $ (atom (id)) <*> p
