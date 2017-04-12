@@ -1356,8 +1356,11 @@ and returns a random permutation of the parts each cycle.  For example,
 is not a permutation of the parts.
 -}
 shuffle::Int -> Pattern a -> Pattern a
-shuffle n = fit' 1 n (_run n) (unwrap $ cycleChoose $ map listToPat $ 
-  permutations [0..n-1])
+shuffle n = fit' 1 n (run n) (randpat n)
+  where randpat n = Pattern $ \(s,e) -> arc (p n $ sam s) (s,e)
+        p n c = listToPat $ map snd $ sort $ zip 
+                  [timeToRand (c+i/n') | i <- [0..n'-1]] [0..n-1]
+        n' = fromIntegral n
 
 {- | `scramble n p` is like `shuffle` but randomly selects from the parts
 of `p` instead of making permutations. 
