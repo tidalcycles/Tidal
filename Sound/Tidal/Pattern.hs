@@ -210,11 +210,17 @@ maybeListToPat = fastcat . map f
         f (Just x) = atom x
 
 -- | @run@ @n@ returns a pattern representing a cycle of numbers from @0@ to @n-1@.
-run :: (Enum a, Num a) => a -> Pattern a
-run n = listToPat [0 .. n-1]
+run :: (Enum a, Num a) => Pattern a -> Pattern a
+run tp =  tp >>= _run
 
-scan :: (Enum a, Num a) => a -> Pattern a
-scan n = slowcat $ map run [1 .. n]
+_run :: (Enum a, Num a) => a -> Pattern a
+_run n = listToPat [0 .. n-1]
+
+scan :: (Enum a, Num a) => Pattern a -> Pattern a
+scan tp =  tp >>= _scan
+
+_scan :: (Enum a, Num a) => a -> Pattern a
+_scan n = slowcat $ map _run [1 .. n]
 
 temporalParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 temporalParam f tv p = unwrap $ (\v -> f v p) <$> tv
@@ -1338,7 +1344,7 @@ and returns a random permutation of the parts each cycle.  For example,
 is not a permutation of the parts.
 -}
 shuffle::Int -> Pattern a -> Pattern a
-shuffle n = fit' 1 n (run n) (unwrap $ cycleChoose $ map listToPat $ 
+shuffle n = fit' 1 n (_run n) (unwrap $ cycleChoose $ map listToPat $ 
   permutations [0..n-1])
 
 {- | `scramble n p` is like `shuffle` but randomly selects from the parts
@@ -1347,7 +1353,7 @@ For example, `scramble 3 "a b c"` will randomly select 3 parts from
 `"a"` `"b"` and `"c"`, possibly repeating a single part.
 -}
 scramble::Int -> Pattern a -> Pattern a
-scramble n = fit' 1 n (run n) (_density (fromIntegral n) $ 
+scramble n = fit' 1 n (_run n) (_density (fromIntegral n) $ 
   liftA2 (+) (pure 0) $ irand n)
 
 ur :: Time -> Pattern String -> [Pattern a] -> Pattern a
