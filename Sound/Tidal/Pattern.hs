@@ -248,7 +248,7 @@ densityGap = fastGap
 -- | @slow@ does the opposite of @fast@, i.e. @slow 2 p@ will return a
 -- pattern that is half the speed.
 slow :: Pattern Time -> Pattern a -> Pattern a
-slow tp p = density (1/tp) p
+slow = temporalParam _slow
 
 _slow :: Time -> Pattern a -> Pattern a
 _slow t p = _density (1/t) p
