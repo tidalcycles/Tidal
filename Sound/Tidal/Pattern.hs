@@ -225,12 +225,18 @@ _scan n = slowcat $ map _run [1 .. n]
 temporalParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 temporalParam f tv p = unwrap $ (\v -> f v p) <$> tv
 
+temporalParam' :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
+temporalParam' f tv p = unwrap' $ (\v -> f v p) <$> tv
+
 -- | @fast@ (also known as @density@) returns the given pattern with speed
 -- (or density) increased by the given @Time@ factor. Therefore @fast 2 p@
 -- will return a pattern that is twice as fast, and @fast (1/3) p@
 -- will return one three times as slow.
 fast :: Pattern Time -> Pattern a -> Pattern a
 fast = temporalParam _density
+
+fast' :: Pattern Time -> Pattern a -> Pattern a
+fast' = temporalParam' _density
 
 -- | @density@ is an alias of @fast@. @fast@ is quicker to type, but
 -- @density@ is its old name so is used in a lot of examples.
@@ -255,6 +261,9 @@ densityGap = fastGap
 -- pattern that is half the speed.
 slow :: Pattern Time -> Pattern a -> Pattern a
 slow = temporalParam _slow
+
+slow' :: Pattern Time -> Pattern a -> Pattern a
+slow' = temporalParam' _slow
 
 _slow :: Time -> Pattern a -> Pattern a
 _slow t p = _density (1/t) p
