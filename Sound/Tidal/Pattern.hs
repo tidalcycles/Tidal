@@ -1,24 +1,27 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, CPP #-}
+{-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-name-shadowing #-}
 
 module Sound.Tidal.Pattern where
 
 import Control.Applicative
-import Data.Monoid
+-- import Data.Monoid
 import Data.Fixed
 import Data.List
 import Data.Maybe
 import Data.Ord
 import Data.Ratio
-import Debug.Trace
+-- import Debug.Trace
 import Data.Typeable
 import Data.Function
 import System.Random.Mersenne.Pure64
-import Data.Char
+-- import Data.Char
 import qualified Data.Text as T
 
 import Sound.Tidal.Time
 import Sound.Tidal.Utils
 import Sound.Tidal.Bjorklund
+
+import Text.Show.Functions ()
 
 -- | The pattern datatype, a function from a time @Arc@ to @Event@
 -- values. For discrete patterns, this returns the events which are
@@ -27,40 +30,12 @@ import Sound.Tidal.Bjorklund
 data Pattern a = Pattern {arc :: Arc -> [Event a]}
   deriving Typeable
 
--- | Admit the pattern datatype to the Num, Fractional and Floating classes,
--- to allow arithmetic on them, and for bare numbers to be automatically
--- converted into patterns of numbers
-instance Num a => Num (Pattern a) where
-      negate      = fmap negate
-      (+)         = liftA2 (+)
-      (*)         = liftA2 (*)
-      fromInteger = pure . fromInteger
-      abs         = fmap abs
-      signum      = fmap signum
+#define INSTANCE_Eq
+#define INSTANCE_Ord
+#define INSTANCE_Enum
 
-instance (Fractional a) => Fractional (Pattern a) where
-  fromRational = pure . fromRational
-  (/) = liftA2 (/)
-
-instance Floating a => Floating (Pattern a) where
-  pi = pure pi
-  exp = liftA (exp)
-  log = liftA (log)
-  sqrt = liftA (sqrt)
-  (**) = liftA2 (**)
-  logBase = liftA2 (logBase)
-  sin = liftA (sin)
-  cos = liftA (cos)
-  tan = liftA (tan)
-  asin = liftA (asin)
-  acos = liftA (acos)
-  atan = liftA (atan)
-  sinh = liftA (sinh)
-  cosh = liftA (cosh)
-  tanh = liftA (tanh)
-  asinh = liftA (asinh)
-  acosh = liftA (acosh)
-  atanh = liftA (atanh)
+#define APPLICATIVE Pattern
+#include "ApplicativeNumeric-inc.hs"
 
 -- | @show (p :: Pattern)@ returns a text string representing the
 -- event values active during the first cycle of the given pattern.
@@ -78,11 +53,14 @@ showArc a = concat[showTime $ fst a, (' ':showTime (snd a))]
 
 -- | converts an event into human readable string, e.g. @("bd" 1/4 2/3)@
 showEvent :: (Show a) => Event a -> String
-showEvent (a, b, v) | a == b = concat["(",show v,
-                                      (' ':showArc a),
-                                      ")"
-                                     ]
-                    | otherwise = show v
+showEvent e@(a, b, v) = concat[on, show v, off,
+                               (' ':showArc b),
+                               "\n"
+                              ]
+  where on | hasOnset e = ""
+           | otherwise = ".."
+        off | hasOffset e = ""
+            | otherwise = ".."
 
 instance Functor Pattern where
   fmap f (Pattern a) = Pattern $ fmap (fmap (mapThd' f)) a
@@ -114,30 +92,14 @@ instance Monoid (Pattern a) where
 
 instance Monad Pattern where
   return = pure
-  -- Pattern a -> (a -> Pattern b) -> Pattern b
-  -- Pattern Char -> (Char -> Pattern String) -> Pattern String
 
   p >>= f = unwrap (f <$> p)
-{-Pattern (\a -> concatMap
-                   (\((s,e), (s',e'), x) -> map (\ev -> ((s,e), (s',e'), thd' ev)) $
-                                            filter
-                                            (\(a', _, _) -> isIn a' s)
-                                            (arc (f x) (s,e))
-                   )
-                   (arc p a)
-             )
--}
--- join x = x >>= id
 
-
--- Take a pattern, and function from elements in the pattern to another pattern,
--- and then return that pattern
---bind :: Pattern a -> (a -> Pattern b) -> Pattern b
---bind p f =
-
--- this is actually join
 unwrap :: Pattern (Pattern a) -> Pattern a
-unwrap p = Pattern $ \a -> concatMap ((\p' -> arc p' a) . thd') (arc p a)
+unwrap p = Pattern $ \a -> concatMap (\(outerWhole, outerPart, p') -> catMaybes $ map (munge outerPart) $ arc p' a) (arc p a)
+  where munge a (whole,part,v) = do part' <- subArc a part
+                                    return (whole, part',v)
+
 
 -- | @atom@ is a synonym for @pure@.
 atom :: a -> Pattern a
@@ -196,26 +158,25 @@ stack ps = foldr overlay silence ps
 -- first pattern, within a single cycle
 
 append :: Pattern a -> Pattern a -> Pattern a
-append a b = cat [a,b]
+append a b = fastcat [a,b]
 
 -- | @append'@ does the same as @append@, but over two cycles, so that
 -- the cycles alternate between the two patterns.
 append' :: Pattern a -> Pattern a -> Pattern a
-append' a b  = slow 2 $ cat [a,b]
+append' a b  = slowcat [a,b]
 
--- | @cat@ returns a new pattern which interlaces the cycles of the
+-- | @fastcat@ returns a new pattern which interlaces the cycles of the
 -- given patterns, within a single cycle. It's the equivalent of
 -- @append@, but with a list of patterns.
-cat :: [Pattern a] -> Pattern a
-cat ps = density (fromIntegral $ length ps) $ slowcat ps
-
+fastcat :: [Pattern a] -> Pattern a
+fastcat ps = _density (fromIntegral $ length ps) $ slowcat ps
 
 splitAtSam :: Pattern a -> Pattern a
 splitAtSam p =
   splitQueries $ Pattern $ \(s,e) -> mapSnds' (trimArc (sam s)) $ arc p (s,e)
   where trimArc s' (s,e) = (max (s') s, min (s'+1) e)
 
--- | @slowcat@ does the same as @cat@, but maintaining the duration of
+-- | @slowcat@ does the same as @fastcat@, but maintaining the duration of
 -- the original patterns. It is the equivalent of @append'@, but with
 -- a list of patterns.
 
@@ -231,60 +192,102 @@ slowcat ps = splitQueries $ Pattern f
                 offset = (fromIntegral $ r - ((r - n) `div` l)) :: Time
                 (s', e') = (s-offset, e-offset)
 
+-- | @cat@ is an alias of @slowcat@
+cat :: [Pattern a] -> Pattern a
+cat = slowcat
+
 -- | @listToPat@ turns the given list of values to a Pattern, which
 -- cycles through the list.
 listToPat :: [a] -> Pattern a
-listToPat = cat . map atom
+listToPat = fastcat . map atom
 
 -- | @maybeListToPat@ is similar to @listToPat@, but allows values to
 -- be optional using the @Maybe@ type, so that @Nothing@ results in
 -- gaps in the pattern.
 maybeListToPat :: [Maybe a] -> Pattern a
-maybeListToPat = cat . map f
+maybeListToPat = fastcat . map f
   where f Nothing = silence
         f (Just x) = atom x
 
 -- | @run@ @n@ returns a pattern representing a cycle of numbers from @0@ to @n-1@.
-run n = listToPat [0 .. n-1]
-scan n = cat $ map run [1 .. n]
+run :: (Enum a, Num a) => Pattern a -> Pattern a
+run tp =  tp >>= _run
 
--- | @density@ returns the given pattern with density increased by the
--- given @Time@ factor. Therefore @density 2 p@ will return a pattern
--- that is twice as fast, and @density (1/3) p@ will return one three
--- times as slow.
-density :: Time -> Pattern a -> Pattern a
-density r p = withResultTime (/ r) $ withQueryTime (* r) p
+_run :: (Enum a, Num a) => a -> Pattern a
+_run n = listToPat [0 .. n-1]
 
-density' :: Pattern Time -> Pattern a -> Pattern a
-density' tp p = unwrap $ (\tv -> density tv p) <$> tp
+scan :: (Enum a, Num a) => Pattern a -> Pattern a
+scan tp =  tp >>= _scan
 
--- | @densityGap@ is similar to @density@ but maintains its cyclic
--- alignment. For example, @densityGap 2 p@ would squash the events in
+_scan :: (Enum a, Num a) => a -> Pattern a
+_scan n = slowcat $ map _run [1 .. n]
+
+temporalParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
+temporalParam f tv p = unwrap $ (\v -> f v p) <$> tv
+
+temporalParam' :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
+temporalParam' f tv p = unwrap' $ (\v -> f v p) <$> tv
+
+-- | @fast@ (also known as @density@) returns the given pattern with speed
+-- (or density) increased by the given @Time@ factor. Therefore @fast 2 p@
+-- will return a pattern that is twice as fast, and @fast (1/3) p@
+-- will return one three times as slow.
+fast :: Pattern Time -> Pattern a -> Pattern a
+fast = temporalParam _density
+
+fast' :: Pattern Time -> Pattern a -> Pattern a
+fast' = temporalParam' _density
+
+-- | @density@ is an alias of @fast@. @fast@ is quicker to type, but
+-- @density@ is its old name so is used in a lot of examples.
+density :: Pattern Time -> Pattern a -> Pattern a
+density = fast
+
+_density :: Time -> Pattern a -> Pattern a
+_density r p = withResultTime (/ r) $ withQueryTime (* r) p
+
+-- | @fastGap@ (also known as @densityGap@ is similar to @fast@ but maintains its cyclic
+-- alignment. For example, @fastGap 2 p@ would squash the events in
 -- pattern @p@ into the first half of each cycle (and the second
 -- halves would be empty).
+fastGap :: Time -> Pattern a -> Pattern a
+fastGap 0 _ = silence
+fastGap r p = splitQueries $ withResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
+
 densityGap :: Time -> Pattern a -> Pattern a
-densityGap 0 _ = silence
-densityGap r p = splitQueries $ withResultArc (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> arc p $ mapArc (\t -> sam t + (min 1 (r * cyclePos t))) a)
+densityGap = fastGap
 
--- | @slow@ does the opposite of @density@, i.e. @slow 2 p@ will
--- return a pattern that is half the speed.
-slow :: Time -> Pattern a -> Pattern a
-slow 0 = id
-slow t = density (1/t)
+-- | @slow@ does the opposite of @fast@, i.e. @slow 2 p@ will return a
+-- pattern that is half the speed.
+slow :: Pattern Time -> Pattern a -> Pattern a
+slow = temporalParam _slow
 
-slow' tp p = density' (1/tp) p
+sparsity :: Pattern Time -> Pattern a -> Pattern a
+sparsity = slow
+
+slow' :: Pattern Time -> Pattern a -> Pattern a
+slow' = temporalParam' _slow
+
+_slow :: Time -> Pattern a -> Pattern a
+_slow t p = _density (1/t) p
 
 -- | The @<~@ operator shifts (or rotates) a pattern to the left (or
 -- counter-clockwise) by the given @Time@ value. For example
 -- @(1%16) <~ p@ will return a pattern with all the events moved
 -- one 16th of a cycle to the left.
-(<~) :: Time -> Pattern a -> Pattern a
-(<~) t p = withResultTime (subtract t) $ withQueryTime (+ t) p
+rotL :: Time -> Pattern a -> Pattern a
+rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
+
+(<~) :: Pattern Time -> Pattern a -> Pattern a
+(<~) = temporalParam rotL
 
 -- | The @~>@ operator does the same as @<~@ but shifts events to the
 -- right (or clockwise) rather than to the left.
-(~>) :: Time -> Pattern a -> Pattern a
-(~>) = (<~) . (0-)
+rotR :: Time -> Pattern a -> Pattern a
+rotR = (rotL) . (0-)
+
+(~>) :: Pattern Time -> Pattern a -> Pattern a
+(~>) = temporalParam rotR
 
 {- | (The above means that `brak` is a function from patterns of any type,
 to a pattern of the same type.)
@@ -298,7 +301,7 @@ d1 $ sound (brak "bd sn kurt")
 @
 -}
 brak :: Pattern a -> Pattern a
-brak = when ((== 1) . (`mod` 2)) (((1%4) ~>) . (\x -> cat [x, silence]))
+brak = when ((== 1) . (`mod` 2)) (((1%4) `rotR`) . (\x -> fastcat [x, silence]))
 
 {- | Divides a pattern into a given number of subdivisions, plays the subdivisions
 in order, but increments the starting subdivision each cycle. The pattern
@@ -322,13 +325,19 @@ cp bd hh sn
 There is also `iter'`, which shifts the pattern in the opposite direction.
 
 -}
-iter :: Int -> Pattern a -> Pattern a
-iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. (n-1)]
+iter :: Pattern Int -> Pattern c -> Pattern c
+iter = temporalParam _iter
+
+_iter :: Int -> Pattern a -> Pattern a
+_iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) `rotL` p) [0 .. (n-1)]
 
 -- | @iter'@ is the same as @iter@, but decrements the starting
 -- subdivision instead of incrementing it.
-iter' :: Int -> Pattern a -> Pattern a
-iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) ~> p) [0 .. (n-1)]
+iter' :: Pattern Int -> Pattern c -> Pattern c
+iter' = temporalParam _iter'
+
+_iter' :: Int -> Pattern a -> Pattern a
+_iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) `rotR` p) [0 .. (n-1)]
 
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
@@ -337,6 +346,7 @@ rev p = splitQueries $ Pattern $ \a -> mapArcs mirrorArc (arc p (mirrorArc a))
 
 -- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
 -- the pattern alternates between forwards and backwards.
+palindrome :: Pattern a -> Pattern a
 palindrome p = append' p (rev p)
 
 {-|
@@ -381,7 +391,7 @@ d1 $ seqP [
 @
 -}
 seqP :: [(Time, Time, Pattern a)] -> Pattern a
-seqP ps = stack $ map (\(s, e, p) -> playFor s e ((sam s) ~> p)) ps
+seqP ps = stack $ map (\(s, e, p) -> playFor s e ((sam s) `rotR` p)) ps
 
 -- | @every n f p@ applies the function @f@ to @p@, but only affects
 -- every @n@ cycles.
@@ -406,89 +416,88 @@ sig f = Pattern f'
                  | otherwise = [((s,e), (s,e), f s)]
 
 -- | @sinewave@ returns a @Pattern@ of continuous @Double@ values following a
--- sinewave with frequency of one cycle, and amplitude from -1 to 1.
+-- sinewave with frequency of one cycle, and amplitude from 0 to 1.
 sinewave :: Pattern Double
-sinewave = sig $ \t -> sin $ pi * 2 * (fromRational t)
+sinewave = sig $ \t -> ((sin $ pi * 2 * (fromRational t)) + 1) / 2
+
 -- | @sine@ is a synonym for @sinewave@.
+sine :: Pattern Double
 sine = sinewave
+
 -- | @sinerat@ is equivalent to @sinewave@ for @Rational@ values,
 -- suitable for use as @Time@ offsets.
+sinerat :: Pattern Rational
 sinerat = fmap toRational sine
+
 -- | @ratsine@ is a synonym for @sinerat@.
+ratsine :: Pattern Rational
 ratsine = sinerat
 
--- | @sinewave1@ is equivalent to @sinewave@, but with amplitude from 0 to 1.
-sinewave1 :: Pattern Double
-sinewave1 = fmap ((/ 2) . (+ 1)) sinewave
-
--- | @sine1@ is a synonym for @sinewave1@.
-sine1 = sinewave1
-
--- | @sinerat1@ is equivalent to @sinerat@, but with amplitude from 0 to 1.
-sinerat1 = fmap toRational sine1
-
--- | @sineAmp1 d@ returns @sinewave1@ with its amplitude offset by @d@.
-sineAmp1 :: Double -> Pattern Double
-sineAmp1 offset = (+ offset) <$> sinewave1
+-- | @sineAmp d@ returns @sinewave@ with its amplitude offset by @d@.
+-- Deprecated, as these days you can simply do e.g. (sine + 0.5)
+sineAmp :: Double -> Pattern Double
+sineAmp offset = (+ offset) <$> sinewave1
 
 -- | @sawwave@ is the equivalent of @sinewave@ for (ascending) sawtooth waves.
 sawwave :: Pattern Double
-sawwave = ((subtract 1) . (* 2)) <$> sawwave1
+sawwave = sig $ \t -> mod' (fromRational t) 1
 
 -- | @saw@ is a synonym for @sawwave@.
+saw :: Pattern Double
 saw = sawwave
 
 -- | @sawrat@ is the same as @sawwave@ but returns @Rational@ values
 -- suitable for use as @Time@ offsets.
+sawrat :: Pattern Rational
 sawrat = fmap toRational saw
-
--- | @sawwave1@ is the equivalent of @sinewave1@ for (ascending) sawtooth waves.
-sawwave1 :: Pattern Double
-sawwave1 = sig $ \t -> mod' (fromRational t) 1
-
--- | @saw1@ is a synonym for @sawwave1@.
-saw1 = sawwave1
-
--- | @sawrat1@ is the same as @sawwave1@ but returns @Rational@ values
--- suitable for use as @Time@ offsets.
-sawrat1 = fmap toRational saw1
 
 -- | @triwave@ is the equivalent of @sinewave@ for triangular waves.
 triwave :: Pattern Double
-triwave = ((subtract 1) . (* 2)) <$> triwave1
+triwave = append sawwave1 (rev sawwave1)
 
 -- | @tri@ is a synonym for @triwave@.
+tri :: Pattern Double
 tri = triwave
 
 -- | @trirat@ is the same as @triwave@ but returns @Rational@ values
 -- suitable for use as @Time@ offsets.
+trirat :: Pattern Rational
 trirat = fmap toRational tri
 
--- | @triwave1@ is the equivalent of @sinewave1@ for triangular waves.
-triwave1 :: Pattern Double
-triwave1 = append sawwave1 (rev sawwave1)
-
--- | @tri1@ is a synonym for @triwave1@.
-tri1 = triwave1
-
--- | @trirat1@ is the same as @triwave1@ but returns @Rational@ values
--- suitable for use as @Time@ offsets.
-trirat1 = fmap toRational tri1
-
--- | @squarewave1@ is the equivalent of @sinewave1@ for square waves.
-squarewave1 :: Pattern Double
-squarewave1 = sig $
-              \t -> fromIntegral $ floor $ (mod' (fromRational t) 1) * 2
-
--- | @square1@ is a synonym for @squarewave1@.
-square1 = squarewave1
-
--- | @squarewave@ is the equivalent of @sinewave@ for square waves.
+-- | @squarewave1@ is the equivalent of @sinewave@ for square waves.
 squarewave :: Pattern Double
-squarewave = ((subtract 1) . (* 2)) <$> squarewave1
+squarewave = sig $
+             \t -> fromIntegral $ ((floor $ (mod' (fromRational t :: Double) 1) * 2) :: Integer)
 
 -- | @square@ is a synonym for @squarewave@.
+square :: Pattern Double
 square = squarewave
+
+-- deprecated..
+sinewave1 :: Pattern Double
+sinewave1 = sinewave
+sine1 :: Pattern Double
+sine1 = sinewave
+sinerat1 :: Pattern Rational
+sinerat1 = sinerat
+sineAmp1 :: Double -> Pattern Double
+sineAmp1 = sineAmp
+sawwave1 :: Pattern Double
+sawwave1 = sawwave
+saw1 :: Pattern Double
+saw1 = sawwave
+sawrat1 :: Pattern Rational
+sawrat1 = sawrat
+triwave1 :: Pattern Double
+triwave1 = triwave
+tri1 :: Pattern Double
+tri1 = triwave
+trirat1 :: Pattern Rational
+trirat1 = trirat
+squarewave1 :: Pattern Double
+squarewave1 = squarewave
+square1 :: Pattern Double
+square1 = square
 
 -- | @envL@ is a @Pattern@ of continuous @Double@ values, representing
 -- a linear interpolation between 0 and 1 during the first cycle, then
@@ -505,25 +514,27 @@ envLR = (1-) <$> envL
 -- 'Equal power' for gain-based transitions
 envEq :: Pattern Double
 envEq = sig $ \t -> sqrt (sin (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
+
 -- Equal power reversed
+envEqR :: Pattern Double
 envEqR = sig $ \t -> sqrt (cos (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
 
 fadeOut :: Time -> Pattern a -> Pattern a
-fadeOut n = spread' (degradeBy) (slow n $ envL)
+fadeOut n = spread' (_degradeBy) (_slow n $ envL)
 
 -- Alternate versions where you can provide the time from which the fade starts
 fadeOut' :: Time -> Time -> Pattern a -> Pattern a
-fadeOut' from dur p = spread' (degradeBy) (from ~> slow dur envL) p
+fadeOut' from dur p = spread' (_degradeBy) (from `rotR` _slow dur envL) p
 
 -- The 1 <~ is so fade ins and outs have different degredations
 fadeIn' :: Time -> Time -> Pattern a -> Pattern a
-fadeIn' from dur p = spread' (\n p -> 1 <~ degradeBy n p) (from ~> slow dur ((1-) <$> envL)) p
+fadeIn' from dur p = spread' (\n p -> 1 `rotL` _degradeBy n p) (from `rotR` _slow dur ((1-) <$> envL)) p
 
 fadeIn :: Time -> Pattern a -> Pattern a
-fadeIn n = spread' (degradeBy) (slow n $ (1-) <$> envL)
+fadeIn n = spread' (_degradeBy) (_slow n $ (1-) <$> envL)
 
 {- | (The above is difficult to describe, if you don't understand Haskell,
-just read the description and examples..)
+just ignore it and read the below..)
 
 The `spread` function allows you to take a pattern transformation
 which takes a parameter, such as `slow`, and provide several
@@ -577,6 +588,7 @@ After `(# speed "0.8")`, the transforms will repeat and start at `density 2` aga
 spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 spread f xs p = slowcat $ map (\x -> f x p) xs
 
+slowspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 slowspread = spread
 
 {- | @fastspread@ works the same as @spread@, but the result is squashed into a single cycle. If you gave four values to @spread@, then the result would seem to speed up by a factor of four. Compare these two:
@@ -588,7 +600,7 @@ d1 $ fastspread chop [4,64,32,16] $ sound "ho ho:2 ho:3 hc"
 There is also @slowspread@, which is an alias of @spread@.
 -}
 fastspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
-fastspread f xs p = cat $ map (\x -> f x p) xs
+fastspread f xs p = fastcat $ map (\x -> f x p) xs
 
 {- | There's a version of this function, `spread'` (pronounced "spread prime"), which takes a *pattern* of parameters, instead of a list:
 
@@ -614,10 +626,15 @@ shorter alias `spreadr`.
 spreadChoose :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
 spreadChoose f vs p = do v <- discretise 1 (choose vs)
                          f v p
+
+spreadr :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
 spreadr = spreadChoose
 
 filterValues :: (a -> Bool) -> Pattern a -> Pattern a
 filterValues f (Pattern x) = Pattern $ (filter (f . thd')) . x
+
+filterJust :: Pattern (Maybe a) -> Pattern a
+filterJust p = fromJust <$> (filterValues (isJust) p)
 
 -- Filter out events that have had their onsets cut off
 filterOnsets :: Pattern a -> Pattern a
@@ -711,15 +728,15 @@ rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
 timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
 
-{- | Just like `rand` but for integers, `irand n` generates a pattern of (pseudo-)random integers between `0` to `n-1` inclusive. Notably used to pick a random
+{- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:
 
 @
-d1 $ sound (samples "drum*4" (irand 5))
+d1 $ n (irand 5) # sound "drum"
 @
 -}
-irand :: Int -> Pattern Int
-irand i = (floor . (* (fromIntegral i))) <$> rand
+irand :: Num a => Int -> Pattern a
+irand i = (fromIntegral . floor . (* (fromIntegral i))) <$> rand
 
 {- | Randomly picks an element from the given list
 
@@ -743,17 +760,22 @@ d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
 @
 
 -}
-degradeBy :: Double -> Pattern a -> Pattern a
-degradeBy x p = unMaybe $ (\a f -> toMaybe (f > x) a) <$> p <*> rand
-    where toMaybe False _ = Nothing
-          toMaybe True a  = Just a
-          unMaybe = (fromJust <$>) . filterValues isJust
 
-unDegradeBy :: Double -> Pattern a -> Pattern a
-unDegradeBy x p = unMaybe $ (\a f -> toMaybe (f <= x) a) <$> p <*> rand
-    where toMaybe False _ = Nothing
-          toMaybe True a  = Just a
-          unMaybe = (fromJust <$>) . filterValues isJust
+degradeBy :: Pattern Double -> Pattern a -> Pattern a
+degradeBy = temporalParam _degradeBy
+
+_degradeBy :: Double -> Pattern a -> Pattern a
+_degradeBy x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <*> rand
+
+unDegradeBy :: Pattern Double -> Pattern a -> Pattern a
+unDegradeBy = temporalParam _unDegradeBy
+
+_unDegradeBy :: Double -> Pattern a -> Pattern a
+_unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <*> rand
+
+degradeOverBy :: Int -> Pattern Double -> Pattern a -> Pattern a
+degradeOverBy i tx p = unwrap $ (\x -> (fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <*> repeatCycles i rand)) <$> (slow (fromIntegral i) tx)
+
 
 {- | Use @sometimesBy@ to apply a given function "sometimes". For example, the
 following code results in `density 2` being applied about 25% of the time:
@@ -773,7 +795,7 @@ almostAlways = sometimesBy 0.9
 @
 -}
 sometimesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-sometimesBy x f p = overlay (degradeBy x p) (f $ unDegradeBy x p)
+sometimesBy x f p = overlay (_degradeBy x p) (f $ _unDegradeBy x p)
 
 -- | @sometimes@ is an alias for sometimesBy 0.5.
 sometimes = sometimesBy 0.5
@@ -819,13 +841,13 @@ d1 $ slow 2 $ sound "[[[feel:5*8,feel*3] feel:3*8]?, feel*4]"
 @
 -}
 degrade :: Pattern a -> Pattern a
-degrade = degradeBy 0.5
+degrade = _degradeBy 0.5
 
 -- | @wedge t p p'@ combines patterns @p@ and @p'@ by squashing the
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the
 -- remainer of each cycle.
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
-wedge t p p' = overlay (densityGap (1/t) p) (t ~> densityGap (1/(1-t)) p')
+wedge t p p' = overlay (densityGap (1/t) p) (t `rotR` densityGap (1/(1-t)) p')
 
 {- | @whenmod@ has a similar form and behavior to `every`, but requires an
 additional number. Applies the function to the pattern, when the
@@ -873,8 +895,11 @@ The following example plays only the first three quarters of the pattern:
 d1 $ trunc 0.75 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
 @
 -}
-trunc :: Time -> Pattern a -> Pattern a
-trunc t = compress (0,t) . zoom (0,t)
+trunc :: Pattern Time -> Pattern a -> Pattern a
+trunc = temporalParam _trunc
+
+_trunc :: Time -> Pattern a -> Pattern a
+_trunc t = compress (0,t) . zoom (0,t)
 
 {- | Plays a portion of a pattern, specified by a beginning and end arc of time.
 The new resulting pattern is played over the time period of the original pattern:
@@ -895,7 +920,7 @@ zoom a@(s,e) p = splitQueries $ withResultArc (mapCycle ((/d) . (subtract s))) $
 
 compress :: Arc -> Pattern a -> Pattern a
 compress a@(s,e) p | s >= e = silence
-                   | otherwise = s ~> densityGap (1/(e-s)) p
+                   | otherwise = s `rotR` densityGap (1/(e-s)) p
 
 sliceArc :: Arc -> Pattern a -> Pattern a
 sliceArc a@(s,e) p | s >= e = silence
@@ -971,7 +996,7 @@ e :: Int -> Int -> Pattern a -> Pattern a
 e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)) <*> p
 
 e' :: Int -> Int -> Pattern a -> Pattern a
-e' n k p = cat $ map (\x -> if x then p else silence) (bjorklund (n,k))
+e' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
@@ -987,9 +1012,9 @@ prrw f rot (blen, vlen) beatPattern valuePattern =
     values = fmap thd' . sortBy ecompare $ arc valuePattern (0, vlen)
     cycles = blen * (fromIntegral $ lcm (length beats) (length values) `div` (length beats))
   in
-    slow cycles $ stack $ zipWith
-    (\( _, (start, end), v') v -> (start ~>) $ densityGap (1 / (end - start)) $ pure (f v' v))
-    (sortBy ecompare $ arc (density cycles $ beatPattern) (0, blen))
+    _slow cycles $ stack $ zipWith
+    (\( _, (start, end), v') v -> (start `rotR`) $ densityGap (1 / (end - start)) $ pure (f v' v))
+    (sortBy ecompare $ arc (_density cycles $ beatPattern) (0, blen))
     (drop (rot `mod` length values) $ cycle values)
 
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
@@ -1074,13 +1099,16 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -- | @discretise n p@: 'samples' the pattern @p@ at a rate of @n@
 -- events per cycle. Useful for turning a continuous pattern into a
 -- discrete one.
-discretise :: Time -> Pattern a -> Pattern a
-discretise n p = density n $ (atom (id)) <*> p
+discretise :: Pattern Time -> Pattern a -> Pattern a
+discretise n p = (density n $ atom (id)) <*> p
+
+discretise' :: Time -> Pattern a -> Pattern a
+discretise' n p = (_density n $ atom (id)) <*> p
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps - 1)) (slowcat ps)
+randcat ps = spread' (rotL) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps - 1)) (slowcat ps)
 
 -- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
@@ -1250,25 +1278,30 @@ fit' cyc n from to p = unwrap' $ fit n (mapMasks n from' p') to
         p' = density cyc $ p
         from' = density cyc $ from
 
-{-| @runWith n f p@ treats the given pattern @p@ as having @n@ sections, and applies the function @f@ to one of those sections per cycle, running from left to right.
+{-| @chunk n f p@ treats the given pattern @p@ as having @n@ chunks, and applies the function @f@ to one of those sections per cycle, running from left to right.
 
 @
-d1 $ runWith 4 (density 4) $ sound "cp sn arpy [mt lt]"
+d1 $ chunk 4 (density 4) $ sound "cp sn arpy [mt lt]"
 @
 -}
-runWith :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-runWith n f p = do i <- slow (toRational n) $ run (fromIntegral n)
-                   within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
+chunk :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+chunk n f p = do i <- _slow (toRational n) $ run (fromIntegral n)
+                 within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
 
+-- deprecated (renamed to chunk)
+runWith = chunk
 
-{-| @runWith'@ works much the same as `runWith`, but runs from right to left.
+{-| @chunk'@ works much the same as `chunk`, but runs from right to left.
 -}
-runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-runWith' n f p = do i <- slow (toRational n) $ rev $ run (fromIntegral n)
-                    within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
+chunk' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+chunk' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
+                  within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
+
+-- deprecated (renamed to chunk')
+runWith' = chunk'
 
 inside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
-inside n f p = density n $ f (slow n p)
+inside n f p = _density n $ f (_slow n p)
 
 outside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 outside n = inside (1/n)
@@ -1282,7 +1315,7 @@ timeLoop :: Time -> Pattern a -> Pattern a
 timeLoop n = outside n loopFirst
 
 seqPLoop :: [(Time, Time, Pattern a)] -> Pattern a
-seqPLoop ps = timeLoop (maxT - minT) $ minT <~ seqP ps
+seqPLoop ps = timeLoop (maxT - minT) $ minT `rotL` seqP ps
   where minT = minimum $ map fst' ps
         maxT = maximum $ map snd' ps
 
@@ -1305,7 +1338,7 @@ the second half of each slice by `x` fraction of a slice . @swing@ is an alias
 for `swingBy (1%3)`
 -}
 swingBy::Time -> Time -> Pattern a -> Pattern a 
-swingBy x n = inside n (within (0.5,1) (x ~>))
+swingBy x n = inside n (within (0.5,1) (x `rotR`))
 
 swing = swingBy (1%3)
 
@@ -1335,34 +1368,47 @@ For example, `scramble 3 "a b c"` will randomly select 3 parts from
 `"a"` `"b"` and `"c"`, possibly repeating a single part.
 -}
 scramble::Int -> Pattern a -> Pattern a
-scramble n = fit' 1 n (run n) (density (fromIntegral n) $ 
+scramble n = fit' 1 n (_run n) (_density (fromIntegral n) $ 
   liftA2 (+) (pure 0) $ irand n)
 
 ur :: Time -> Pattern String -> [Pattern a] -> Pattern a
-ur t outer_p ps = slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
+ur t outer_p ps = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
   where split s = wordsBy (==':') s
         getPat (n:xs) = (ps' !!! read n, transform xs)
-        ps' = map (density t) ps
+        ps' = map (_density t) ps
         adjust (a, (p, f)) = f a p
         transform (x:_) a = transform' x a
         transform _ _ = id
         transform' "in" (s,e) p = twiddle (fadeIn) (s,e) p
         transform' "out" (s,e) p = twiddle (fadeOut) (s,e) p
         transform' _ _ p = p
-        twiddle f (s,e) p = s ~> (f (e-s) p)
+        twiddle f (s,e) p = s `rotR` (f (e-s) p)
 
 ur' :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
-ur' t outer_p ps fs = slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
+ur' t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
   where split s = wordsBy (==':') s
         getPat (s:xs) = (match s, transform xs)
         match s = fromMaybe silence $ lookup s ps'
-        ps' = map (fmap (density t)) ps
+        ps' = map (fmap (_density t)) ps
         adjust (a, (p, f)) = f a p
         transform (x:_) a = transform' x a
         transform _ _ = id
-        transform' str (s,e) p = s ~> (inside (1/(e-s)) (matchF str) p)
+        transform' str (s,e) p = s `rotR` (inside (1/(e-s)) (matchF str) p)
         matchF str = fromMaybe id $ lookup str fs
-        twiddle f (s,e) p = s ~> (f (e-s) p)
+        twiddle f (s,e) p = s `rotR` (f (e-s) p)
 
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
 inhabit ps p = unwrap' $ (\s -> fromMaybe silence $ lookup s ps) <$> p
+
+repeatCycles :: Int -> Pattern a -> Pattern a
+repeatCycles n p = fastcat (replicate n p)
+
+{- | @spaceOut xs p@ repeats a pattern @p@ at different durations given by the list of time values in @xs@ -}
+spaceOut :: [Time] -> Pattern a -> Pattern a
+spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compress a p) $ spaceArcs xs
+  where markOut :: Time -> [Time] -> [(Time, Time)]
+        markOut offset [] = []
+        markOut offset (x:xs) = (offset,offset+x):(markOut (offset+x) xs)
+        spaceArcs xs = map (\(a,b) -> (a/s,b/s)) $ markOut 0 xs
+        s = sum xs
+

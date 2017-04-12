@@ -15,5 +15,7 @@ import Sound.Tidal.Time as C
 import Sound.Tidal.SuperCollider as C
 import Sound.Tidal.Params as C
 import Sound.Tidal.Transition as C
+import Sound.Tidal.Version as C
 import qualified Sound.Tidal.Scales as Scales
 import qualified Sound.Tidal.Chords as Chords
+
