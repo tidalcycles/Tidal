@@ -19,7 +19,7 @@ import Sound.Tidal.Parse
 import Data.List (transpose)
 
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
-stutter n t p = stack $ map (\i -> (t * (fromIntegral i)) ~> p) [0 .. (n-1)]
+stutter n t p = stack $ map (\i -> (t * (fromIntegral i)) `rotR` p) [0 .. (n-1)]
 
 echo, triple, quad, double :: Time -> Pattern a -> Pattern a
 echo   = stutter 2
@@ -129,7 +129,7 @@ smash n xs p = slowcat $ map (\n -> slow n p') xs
 smash' n xs p = slowcat $ map (\n -> slow n p') xs
   where p' = _chop n p
 
--- samples "jvbass [~ latibro] [jvbass [latibro jvbass]]" ((1%2) <~ slow 6 "[1 6 8 7 3]")
+-- samples "jvbass [~ latibro] [jvbass [latibro jvbass]]" ((1%2) `rotL` slow 6 "[1 6 8 7 3]")
 
 samples :: Applicative f => f String -> f Int -> f String
 samples p p' = pick <$> p <*> p'
@@ -139,7 +139,7 @@ samples' p p' = (flip pick) <$> p' <*> p
 
 {-
 scrumple :: Time -> Pattern a -> Pattern a -> Pattern a
-scrumple o p p' = p'' -- overlay p (o ~> p'')
+scrumple o p p' = p'' -- overlay p (o `rotR` p'')
   where p'' = Pattern $ \a -> concatMap
                               (\((s,d), vs) -> map (\x -> ((s,d),
                                                            snd x
@@ -170,7 +170,7 @@ spin = temporalParam _spin
 _spin :: Int -> ParamPattern -> ParamPattern
 _spin copies p =
   stack $ map (\n -> let offset = toInteger n % toInteger copies in
-                     offset <~ p
+                     offset `rotL` p
                      # pan (pure $ fromRational offset)
               )
           [0 .. (copies - 1)]
@@ -188,7 +188,7 @@ sinewave4 = ((*4) <$> sinewave1)
 rand4 = ((*4) <$> rand)
 
 stackwith p ps | null ps = silence
-               | otherwise = stack $ map (\(i, p') -> p' # (((fromIntegral i) % l) <~ p)) (zip [0 ..] ps)
+               | otherwise = stack $ map (\(i, p') -> p' # (((fromIntegral i) % l) `rotL` p)) (zip [0 ..] ps)
   where l = fromIntegral $ length ps
 
 {-
@@ -307,7 +307,7 @@ d1 $ weave' 3 (sound "bd [sn drum:2*2] bd*2 [sn drum:1]") [density 2, (# speed "
 -}
 weave' :: Rational -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
 weave' t p fs | l == 0 = silence
-              | otherwise = _slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) <~ (_density t $ f (_slow t p))) (zip [0 ..] fs)
+              | otherwise = _slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) `rotL` (_density t $ f (_slow t p))) (zip [0 ..] fs)
   where l = fromIntegral $ length fs
 
 {- | 
@@ -347,7 +347,7 @@ off :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 off tp f p = unwrap $ (\tv -> _off tv f p) <$> tp
 
 _off :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_off t f p = superimpose (f . (t ~>)) p
+_off t f p = superimpose (f . (t `rotR`)) p
 
 offadd :: Num a => Pattern Time -> Pattern a -> Pattern a -> Pattern a
 offadd tp pn p = off tp (+pn) p
@@ -365,7 +365,7 @@ This will play the _arpy_ sample four times a cycle in the original pitch, pitch
 up :: Pattern Double -> ParamPattern
 up = speed . ((1.059466**) <$>)
 
-ghost'' a f p = superimpose (((a*2.5) ~>) . f) $ superimpose (((a*1.5) ~>) . f) $ p
+ghost'' a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) $ p
 ghost' a p = ghost'' 0.125 ((|*| gain (pure 0.7)) . (|=| end (pure 0.2)) . (|*| speed (pure 1.25))) p
 ghost p = ghost' 0.125 p 
 

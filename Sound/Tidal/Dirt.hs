@@ -266,7 +266,7 @@ Will fade over 16 cycles from "bd sn" to "jvbass*3"
 xfadeIn :: Time -> Time -> [ParamPattern] -> ParamPattern
 xfadeIn _ _ [] = silence
 xfadeIn _ _ (p:[]) = p
-xfadeIn t now (p:p':_) = overlay (p |*| gain (now ~> (_slow t envEqR))) (p' |*| gain (now ~> (_slow t (envEq))))
+xfadeIn t now (p:p':_) = overlay (p |*| gain (now `rotR` (_slow t envEqR))) (p' |*| gain (now `rotR` (_slow t (envEq))))
 
 {- |
 Crossfade between old and new pattern over the next two cycles.
@@ -302,7 +302,7 @@ stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ParamPattern ->
 stut n g t p = unwrap $ (\a b c -> _stut a b c p) <$> n <*> g <*> t
 
 _stut :: Integer -> Double -> Rational -> ParamPattern -> ParamPattern
-_stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
+_stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) `rotR` (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
   where scale x
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
 
@@ -316,7 +316,7 @@ In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has 
 -}
 stut' :: Integer -> Time -> (ParamPattern -> ParamPattern) -> ParamPattern -> ParamPattern
 stut' steps steptime f p | steps <= 0 = p
-                         | otherwise = overlay (f (steptime ~> stut' (steps-1) steptime f p)) p
+                         | otherwise = overlay (f (steptime `rotR` stut' (steps-1) steptime f p)) p
 
 {-| same as `anticipate` though it allows you to specify the number of cycles until dropping to the new pattern, e.g.:
 
@@ -326,7 +326,7 @@ d1 $ sound "jvbass(3,8)"
 t1 (anticipateIn 4) $ sound "jvbass(5,8)"
 @-}
 anticipateIn :: Time -> Time -> [ParamPattern] -> ParamPattern
-anticipateIn t now = wash (spread' (_stut 8 0.2) (now ~> (_slow t $ (toRational . (1-)) <$> envL))) t now
+anticipateIn t now = wash (spread' (_stut 8 0.2) (now `rotR` (_slow t $ (toRational . (1-)) <$> envL))) t now
 
 {- | `anticipate` is an increasing comb filter.
 

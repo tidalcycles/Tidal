@@ -51,7 +51,7 @@ toPat = \case
    TPat_Silence -> silence
    TPat_Cat xs -> fastcat $ map toPat xs
    TPat_Overlay x0 x1 -> overlay (toPat x0) (toPat x1)
-   TPat_ShiftL t x -> t <~ toPat x
+   TPat_ShiftL t x -> t `rotL` toPat x
    TPat_pE n k s thing ->
       unwrap $ eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
@@ -304,7 +304,7 @@ pE thing = do (n,k,s) <- parens (pair)
                    return (a, b, c)
 
 eoff :: Int -> Int -> Integer -> Pattern a -> Pattern a
-eoff n k s p = ((s%(fromIntegral k)) <~) (e n k p)
+eoff n k s p = ((s%(fromIntegral k)) `rotL`) (e n k p)
    -- TPat_ShiftL (s%(fromIntegral k)) (TPat_E n k p)
 
 pReplicate :: TPat a -> Parser [TPat a]

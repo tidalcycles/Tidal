@@ -257,13 +257,19 @@ _slow t p = _density (1/t) p
 -- counter-clockwise) by the given @Time@ value. For example
 -- @(1%16) <~ p@ will return a pattern with all the events moved
 -- one 16th of a cycle to the left.
-(<~) :: Time -> Pattern a -> Pattern a
-(<~) t p = withResultTime (subtract t) $ withQueryTime (+ t) p
+rotL :: Time -> Pattern a -> Pattern a
+rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
+
+(<~) :: Pattern Time -> Pattern a -> Pattern a
+(<~) = temporalParam rotL
 
 -- | The @~>@ operator does the same as @<~@ but shifts events to the
 -- right (or clockwise) rather than to the left.
-(~>) :: Time -> Pattern a -> Pattern a
-(~>) = (<~) . (0-)
+rotR :: Time -> Pattern a -> Pattern a
+rotR = (rotL) . (0-)
+
+(~>) :: Pattern Time -> Pattern a -> Pattern a
+(~>) = temporalParam rotR
 
 {- | (The above means that `brak` is a function from patterns of any type,
 to a pattern of the same type.)
@@ -277,7 +283,7 @@ d1 $ sound (brak "bd sn kurt")
 @
 -}
 brak :: Pattern a -> Pattern a
-brak = when ((== 1) . (`mod` 2)) (((1%4) ~>) . (\x -> fastcat [x, silence]))
+brak = when ((== 1) . (`mod` 2)) (((1%4) `rotR`) . (\x -> fastcat [x, silence]))
 
 {- | Divides a pattern into a given number of subdivisions, plays the subdivisions
 in order, but increments the starting subdivision each cycle. The pattern
@@ -305,7 +311,7 @@ iter :: Pattern Int -> Pattern c -> Pattern c
 iter = temporalParam _iter
 
 _iter :: Int -> Pattern a -> Pattern a
-_iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) <~ p) [0 .. (n-1)]
+_iter n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) `rotL` p) [0 .. (n-1)]
 
 -- | @iter'@ is the same as @iter@, but decrements the starting
 -- subdivision instead of incrementing it.
@@ -313,7 +319,7 @@ iter' :: Pattern Int -> Pattern c -> Pattern c
 iter' = temporalParam _iter'
 
 _iter' :: Int -> Pattern a -> Pattern a
-_iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) ~> p) [0 .. (n-1)]
+_iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) `rotR` p) [0 .. (n-1)]
 
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
@@ -367,7 +373,7 @@ d1 $ seqP [
 @
 -}
 seqP :: [(Time, Time, Pattern a)] -> Pattern a
-seqP ps = stack $ map (\(s, e, p) -> playFor s e ((sam s) ~> p)) ps
+seqP ps = stack $ map (\(s, e, p) -> playFor s e ((sam s) `rotR` p)) ps
 
 -- | @every n f p@ applies the function @f@ to @p@, but only affects
 -- every @n@ cycles.
@@ -500,11 +506,11 @@ fadeOut n = spread' (_degradeBy) (_slow n $ envL)
 
 -- Alternate versions where you can provide the time from which the fade starts
 fadeOut' :: Time -> Time -> Pattern a -> Pattern a
-fadeOut' from dur p = spread' (_degradeBy) (from ~> _slow dur envL) p
+fadeOut' from dur p = spread' (_degradeBy) (from `rotR` _slow dur envL) p
 
 -- The 1 <~ is so fade ins and outs have different degredations
 fadeIn' :: Time -> Time -> Pattern a -> Pattern a
-fadeIn' from dur p = spread' (\n p -> 1 <~ _degradeBy n p) (from ~> _slow dur ((1-) <$> envL)) p
+fadeIn' from dur p = spread' (\n p -> 1 `rotL` _degradeBy n p) (from `rotR` _slow dur ((1-) <$> envL)) p
 
 fadeIn :: Time -> Pattern a -> Pattern a
 fadeIn n = spread' (_degradeBy) (_slow n $ (1-) <$> envL)
@@ -823,7 +829,7 @@ degrade = _degradeBy 0.5
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the
 -- remainer of each cycle.
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
-wedge t p p' = overlay (densityGap (1/t) p) (t ~> densityGap (1/(1-t)) p')
+wedge t p p' = overlay (densityGap (1/t) p) (t `rotR` densityGap (1/(1-t)) p')
 
 {- | @whenmod@ has a similar form and behavior to `every`, but requires an
 additional number. Applies the function to the pattern, when the
@@ -896,7 +902,7 @@ zoom a@(s,e) p = splitQueries $ withResultArc (mapCycle ((/d) . (subtract s))) $
 
 compress :: Arc -> Pattern a -> Pattern a
 compress a@(s,e) p | s >= e = silence
-                   | otherwise = s ~> densityGap (1/(e-s)) p
+                   | otherwise = s `rotR` densityGap (1/(e-s)) p
 
 sliceArc :: Arc -> Pattern a -> Pattern a
 sliceArc a@(s,e) p | s >= e = silence
@@ -989,7 +995,7 @@ prrw f rot (blen, vlen) beatPattern valuePattern =
     cycles = blen * (fromIntegral $ lcm (length beats) (length values) `div` (length beats))
   in
     _slow cycles $ stack $ zipWith
-    (\( _, (start, end), v') v -> (start ~>) $ densityGap (1 / (end - start)) $ pure (f v' v))
+    (\( _, (start, end), v') v -> (start `rotR`) $ densityGap (1 / (end - start)) $ pure (f v' v))
     (sortBy ecompare $ arc (_density cycles $ beatPattern) (0, blen))
     (drop (rot `mod` length values) $ cycle values)
 
@@ -1084,7 +1090,7 @@ discretise' n p = (_density n $ atom (id)) <*> p
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' (<~) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps - 1)) (slowcat ps)
+randcat ps = spread' (rotL) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps - 1)) (slowcat ps)
 
 -- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
@@ -1291,7 +1297,7 @@ timeLoop :: Time -> Pattern a -> Pattern a
 timeLoop n = outside n loopFirst
 
 seqPLoop :: [(Time, Time, Pattern a)] -> Pattern a
-seqPLoop ps = timeLoop (maxT - minT) $ minT <~ seqP ps
+seqPLoop ps = timeLoop (maxT - minT) $ minT `rotL` seqP ps
   where minT = minimum $ map fst' ps
         maxT = maximum $ map snd' ps
 
@@ -1314,7 +1320,7 @@ the second half of each slice by `x` fraction of a slice . @swing@ is an alias
 for `swingBy (1%3)`
 -}
 swingBy::Time -> Time -> Pattern a -> Pattern a 
-swingBy x n = inside n (within (0.5,1) (x ~>))
+swingBy x n = inside n (within (0.5,1) (x `rotR`))
 
 swing = swingBy (1%3)
 
@@ -1355,7 +1361,7 @@ ur t outer_p ps = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) 
         transform' "in" (s,e) p = twiddle (fadeIn) (s,e) p
         transform' "out" (s,e) p = twiddle (fadeOut) (s,e) p
         transform' _ _ p = p
-        twiddle f (s,e) p = s ~> (f (e-s) p)
+        twiddle f (s,e) p = s `rotR` (f (e-s) p)
 
 ur' :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
 ur' t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
@@ -1366,9 +1372,9 @@ ur' t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . spl
         adjust (a, (p, f)) = f a p
         transform (x:_) a = transform' x a
         transform _ _ = id
-        transform' str (s,e) p = s ~> (inside (1/(e-s)) (matchF str) p)
+        transform' str (s,e) p = s `rotR` (inside (1/(e-s)) (matchF str) p)
         matchF str = fromMaybe id $ lookup str fs
-        twiddle f (s,e) p = s ~> (f (e-s) p)
+        twiddle f (s,e) p = s `rotR` (f (e-s) p)
 
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
 inhabit ps p = unwrap' $ (\s -> fromMaybe silence $ lookup s ps) <$> p
