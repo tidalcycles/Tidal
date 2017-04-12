@@ -262,6 +262,9 @@ densityGap = fastGap
 slow :: Pattern Time -> Pattern a -> Pattern a
 slow = temporalParam _slow
 
+sparsity :: Pattern Time -> Pattern a -> Pattern a
+sparsity = slow
+
 slow' :: Pattern Time -> Pattern a -> Pattern a
 slow' = temporalParam' _slow
 
