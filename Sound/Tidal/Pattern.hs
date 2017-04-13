@@ -53,7 +53,7 @@ showArc a = concat[showTime $ fst a, (' ':showTime (snd a))]
 
 -- | converts an event into human readable string, e.g. @("bd" 1/4 2/3)@
 showEvent :: (Show a) => Event a -> String
-showEvent e@(a, b, v) = concat[on, show v, off,
+showEvent e@(_, b, v) = concat[on, show v, off,
                                (' ':showArc b),
                                "\n"
                               ]
@@ -96,7 +96,7 @@ instance Monad Pattern where
   p >>= f = unwrap (f <$> p)
 
 unwrap :: Pattern (Pattern a) -> Pattern a
-unwrap p = Pattern $ \a -> concatMap (\(outerWhole, outerPart, p') -> catMaybes $ map (munge outerPart) $ arc p' a) (arc p a)
+unwrap p = Pattern $ \a -> concatMap (\(_, outerPart, p') -> catMaybes $ map (munge outerPart) $ arc p' a) (arc p a)
   where munge a (whole,part,v) = do part' <- subArc a part
                                     return (whole, part',v)
 
@@ -650,6 +650,7 @@ filterStartInRange :: Pattern a -> Pattern a
 filterStartInRange (Pattern f) =
   Pattern $ \(s,e) -> filter ((isIn (s,e)) . eventOnset) $ f (s,e)
 
+filterOnsetsInRange :: Pattern a -> Pattern a
 filterOnsetsInRange = filterOnsets . filterStartInRange
 
 -- Samples some events from a pattern, returning a list of onsets
@@ -676,6 +677,7 @@ points ((_,(s,e), _):es) = s:e:(points es)
 groupByTime :: [Event a] -> [Event [a]]
 groupByTime es = map mrg $ groupBy ((==) `on` snd') $ sortBy (compare `on` snd') es
   where mrg es@((a, a', _):_) = (a, a', map thd' es)
+        mrg _ = error "groupByTime"
 
 
 {-| Decide whether to apply one or another function depending on the result of a test function that is passed the current cycle as a number.
@@ -729,6 +731,7 @@ d1 $ jux (|+| ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 rand :: Pattern Double
 rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
+timeToRand :: RealFrac r => r -> Double
 timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
 
 {- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
@@ -739,7 +742,7 @@ d1 $ n (irand 5) # sound "drum"
 @
 -}
 irand :: Num a => Int -> Pattern a
-irand i = (fromIntegral . floor . (* (fromIntegral i))) <$> rand
+irand i = (fromIntegral . (floor :: Double -> Int) . (* (fromIntegral i))) <$> rand
 
 {- | Randomly picks an element from the given list
 
@@ -801,25 +804,41 @@ sometimesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 sometimesBy x f p = overlay (_degradeBy x p) (f $ _unDegradeBy x p)
 
 -- | @sometimes@ is an alias for sometimesBy 0.5.
+sometimes :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 sometimes = sometimesBy 0.5
+
 -- | @often@ is an alias for sometimesBy 0.75.
+often :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 often = sometimesBy 0.75
+
 -- | @rarely@ is an alias for sometimesBy 0.25.
+rarely :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 rarely = sometimesBy 0.25
+
 -- | @almostNever@ is an alias for sometimesBy 0.1
+almostNever :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 almostNever = sometimesBy 0.1
+
 -- | @almostAlways@ is an alias for sometimesBy 0.9
+almostAlways :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 almostAlways = sometimesBy 0.9
+
+never :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 never = flip const
+
+always :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 always = id
 
 {- | @someCyclesBy@ is a cycle-by-cycle version of @sometimesBy@. It has a
 `someCycles = someCyclesBy 0.5` alias -}
+someCyclesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 someCyclesBy x = when (test x)
-  where test x c = (timeToRand $ fromIntegral c) < x
+  where test x c = (timeToRand (fromIntegral c :: Double)) < x
 
+somecyclesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 somecyclesBy = someCyclesBy
 
+someCycles :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 someCycles = someCyclesBy 0.5
 
 {- | `degrade` randomly removes events from a pattern 50% of the time:
@@ -881,6 +900,7 @@ d1 $ superimpose ((# speed "2") . (0.125 <~)) $ sound "bd sn cp hh"
 @
 
 -}
+superimpose :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 superimpose f p = stack [p, f p]
 
 -- | @splitQueries p@ wraps `p` to ensure that it does not get
@@ -918,12 +938,12 @@ d1 $ sound "hh*3 [sn bd]*2"
 @
 -}
 zoom :: Arc -> Pattern a -> Pattern a
-zoom a@(s,e) p = splitQueries $ withResultArc (mapCycle ((/d) . (subtract s))) $ withQueryArc (mapCycle ((+s) . (*d))) p
+zoom (s,e) p = splitQueries $ withResultArc (mapCycle ((/d) . (subtract s))) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 
 compress :: Arc -> Pattern a -> Pattern a
-compress a@(s,e) p | s >= e = silence
-                   | otherwise = s `rotR` densityGap (1/(e-s)) p
+compress (s,e) p | s >= e = silence
+                 | otherwise = s `rotR` densityGap (1/(e-s)) p
 
 sliceArc :: Arc -> Pattern a -> Pattern a
 sliceArc a@(s,e) p | s >= e = silence
@@ -949,6 +969,7 @@ within (s,e) f p = stack [sliceArc (0,s) p,
                            sliceArc (e,1) p
                           ]
 
+revArc :: Arc -> Pattern a -> Pattern a
 revArc a = within a rev
 
 {- | You can use the @e@ function to apply a Euclidean algorithm over a
@@ -1052,6 +1073,7 @@ preplace :: (Time, Time) -> Pattern String -> Pattern b -> Pattern b
 preplace = preplaceWith $ flip const
 
 -- | @prep@ is an alias for preplace.
+prep :: (Time, Time) -> Pattern String -> Pattern b -> Pattern b
 prep = preplace
 
 preplace1 :: Pattern String -> Pattern b -> Pattern b
@@ -1060,11 +1082,13 @@ preplace1 = preplace (1, 1)
 preplaceWith :: (a -> b -> c) -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
 preplaceWith f (blen, plen) = prrw f 0 (blen, plen)
 
+prw :: (a -> b -> c) -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
 prw = preplaceWith
 
 preplaceWith1 :: (a -> b -> c) -> Pattern a -> Pattern b -> Pattern c
 preplaceWith1 f = prrw f 0 (1, 1)
 
+prw1 :: (a -> b -> c) -> Pattern a -> Pattern b -> Pattern c
 prw1 = preplaceWith1
 
 (<~>) :: Pattern String -> Pattern b -> Pattern b
@@ -1076,7 +1100,10 @@ prw1 = preplaceWith1
 protate :: Time -> Int -> Pattern a -> Pattern a
 protate len rot p = prrw (flip const) rot (len, len) p p
 
+prot :: Time -> Int -> Pattern a -> Pattern a
 prot = protate
+
+prot1 :: Int -> Pattern a -> Pattern a
 prot1 = protate 1
 
 {-| The @<<~@ operator rotates a unit pattern to the left, similar to @<~@,
@@ -1111,7 +1138,7 @@ discretise' n p = (_density n $ atom (id)) <*> p
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' (rotL) (discretise 1 $ ((%1) . fromIntegral) <$> irand (length ps - 1)) (slowcat ps)
+randcat ps = spread' (rotL) (discretise 1 $ ((%1) . fromIntegral) <$> (irand (length ps - 1) :: Pattern Int)) (slowcat ps)
 
 -- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
@@ -1166,7 +1193,7 @@ permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
 permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (discretise 1 p)
       where ps = permsort (length things) steps
             deviance avg xs = sum $ map (abs . (avg-) . fromIntegral) xs
-            permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total/ fromIntegral n) x)) $ perms n total
+            permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total / (fromIntegral n :: Double)) x)) $ perms n total
             perms 0 _ = []
             perms 1 n = [[n]]
             perms n total = concatMap (\x -> map (x:) $ perms (n-1) (total-x)) [1 .. (total-(n-1))]
@@ -1275,6 +1302,7 @@ d1 $ fit' 1 4 (run 4) "[0 3*2 2 1 0 3*2 2 [1*8 ~]]/2" $ chop 4 $ (sound "breaks1
 which uses `chop` to break a single sample into individual pieces, which `fit'` then puts into a list (using the `run 4` pattern) and reassembles according to the complicated integer pattern.
 
 -}
+fit' :: Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 fit' cyc n from to p = unwrap' $ fit n (mapMasks n from' p') to
   where mapMasks n from p = [stretch $ mask (filterValues (== i) from) p
                              | i <- [0..n-1]]
@@ -1292,6 +1320,7 @@ chunk n f p = do i <- _slow (toRational n) $ run (fromIntegral n)
                  within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
 
 -- deprecated (renamed to chunk)
+runWith :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 runWith = chunk
 
 {-| @chunk'@ works much the same as `chunk`, but runs from right to left.
@@ -1301,6 +1330,7 @@ chunk' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
                   within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
 
 -- deprecated (renamed to chunk')
+runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 runWith' = chunk'
 
 inside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
@@ -1309,8 +1339,9 @@ inside n f p = _density n $ f (_slow n p)
 outside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 outside n = inside (1/n)
 
+loopFirst :: Pattern a -> Pattern a
 loopFirst p = splitQueries $ Pattern f
-  where f a@(s,e) = mapSnds' plus $ mapFsts' plus $ arc p (minus a)
+  where f a@(s,_) = mapSnds' plus $ mapFsts' plus $ arc p (minus a)
           where minus = mapArc (subtract (sam s))
                 plus = mapArc (+ (sam s))
 
@@ -1343,6 +1374,7 @@ for `swingBy (1%3)`
 swingBy::Time -> Time -> Pattern a -> Pattern a 
 swingBy x n = inside n (within (0.5,1) (x `rotR`))
 
+swing :: Time -> Pattern a -> Pattern a 
 swing = swingBy (1%3)
 
 {- | `cycleChoose` is like `choose` but only picks a new item from the list
@@ -1350,7 +1382,7 @@ once each cycle -}
 cycleChoose::[a] -> Pattern a
 cycleChoose xs = Pattern $ \(s,e) -> [((s,e),(s,e), xs!!(floor $ (dlen xs)*(ctrand s) ))]
   where dlen xs = fromIntegral $ length xs
-        ctrand s = timeToRand $ fromIntegral $ floor $ sam s
+        ctrand s = (timeToRand :: Time -> Double) $ fromIntegral $ (floor :: Time -> Int) $ sam s
 
 {- | `shuffle n p` evenly divides one cycle of the pattern `p` into `n` parts,
 and returns a random permutation of the parts each cycle.  For example, 
@@ -1363,6 +1395,7 @@ shuffle n = fit' 1 n (_run n) (randpat n)
   where randpat n = Pattern $ \(s,e) -> arc (p n $ sam s) (s,e)
         p n c = listToPat $ map snd $ sort $ zip 
                   [timeToRand (c+i/n') | i <- [0..n'-1]] [0..n-1]
+        n' :: Time
         n' = fromIntegral n
 
 {- | `scramble n p` is like `shuffle` but randomly selects from the parts
@@ -1398,7 +1431,6 @@ ur' t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . spl
         transform _ _ = id
         transform' str (s,e) p = s `rotR` (inside (1/(e-s)) (matchF str) p)
         matchF str = fromMaybe id $ lookup str fs
-        twiddle f (s,e) p = s `rotR` (f (e-s) p)
 
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
 inhabit ps p = unwrap' $ (\s -> fromMaybe silence $ lookup s ps) <$> p
@@ -1410,7 +1442,7 @@ repeatCycles n p = fastcat (replicate n p)
 spaceOut :: [Time] -> Pattern a -> Pattern a
 spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compress a p) $ spaceArcs xs
   where markOut :: Time -> [Time] -> [(Time, Time)]
-        markOut offset [] = []
+        markOut _ [] = []
         markOut offset (x:xs) = (offset,offset+x):(markOut (offset+x) xs)
         spaceArcs xs = map (\(a,b) -> (a/s,b/s)) $ markOut 0 xs
         s = sum xs
