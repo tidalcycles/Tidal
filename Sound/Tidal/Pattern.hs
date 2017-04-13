@@ -395,9 +395,12 @@ seqP ps = stack $ map (\(s, e, p) -> playFor s e ((sam s) `rotR` p)) ps
 
 -- | @every n f p@ applies the function @f@ to @p@, but only affects
 -- every @n@ cycles.
-every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-every 0 _ p = p
-every n f p = when ((== 0) . (`mod` n)) f p
+every :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+every tp f p = tp >>= \t -> _every t f p
+
+_every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_every 0 _ p = p
+_every n f p = when ((== 0) . (`mod` n)) f p
 
 -- | @every n o f'@ is like @every n f@ with an offset of @o@ cycles
 every' :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
@@ -406,7 +409,7 @@ every' n o f = when ((== o) . (`mod` n)) f
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
 -- each cycle in @ns@.
 foldEvery :: [Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-foldEvery ns f p = foldr ($) p (map (\x -> every x f) ns)
+foldEvery ns f p = foldr ($) p (map (\x -> _every x f) ns)
 
 -- | @sig f@ takes a function from time to values, and turns it into a
 -- @Pattern@.
