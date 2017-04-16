@@ -41,7 +41,7 @@ vLines sf fn (x,y) pat cyclesPerLine nLines =
                       C.restore
             ) [0 .. (nLines - 1)]
       C.restore 
-  where drawLine p = mapM_ renderEvent (events (density cyclesPerLine p))
+  where drawLine p = mapM_ renderEvent (events (_density cyclesPerLine p))
 
 
 renderEvent (_, (s,e), (cs)) = do C.save

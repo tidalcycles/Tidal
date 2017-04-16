@@ -171,8 +171,12 @@ the loops.
 d1 $  slow 8 $ striate 128 $ sound "bev"
 @
 -}
-striate :: Int -> ParamPattern -> ParamPattern
-striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+
+striate :: Pattern Int -> ParamPattern -> ParamPattern
+striate = temporalParam _striate
+
+_striate :: Int -> ParamPattern -> ParamPattern
+_striate n p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p
                   # begin (atom (fromIntegral i / fromIntegral n))
                   # end (atom (fromIntegral (i+1) / fromIntegral n))
@@ -193,13 +197,13 @@ Note that `striate` uses the `begin` and `end` parameters
 internally. This means that if you're using `striate` (or `striate'`)
 you probably shouldn't also specify `begin` or `end`. -}
 striate' :: Int -> Double -> ParamPattern -> ParamPattern
-striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (atom (slot * i) :: Pattern Double) # end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
 {- | like `striate`, but with an offset to the begin and end values -}
 striateO :: Int -> Double -> ParamPattern -> ParamPattern
-striateO n o p = striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
+striateO n o p = _striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
 
 {- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
 The primed version is just like `striate'`, where the loop count is the third argument. For example:
@@ -211,10 +215,10 @@ d1 $ striateL' 3 0.125 4 $ sound "feel sn:2"
 Like `striate`, these use the `begin` and `end` parameters internally, as well as the `loop` parameter for these versions.
 -}
 striateL :: Int -> Int -> ParamPattern -> ParamPattern
-striateL n l p = striate n p # loop (atom $ fromIntegral l)
+striateL n l p = _striate n p # loop (atom $ fromIntegral l)
 striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
 
-metronome = slow 2 $ sound (p "[odx, [hh]*8]")
+metronome = _slow 2 $ sound (p "[odx, [hh]*8]")
 
 {-|
 Also degrades the current pattern and undegrades the next.
@@ -262,7 +266,7 @@ Will fade over 16 cycles from "bd sn" to "jvbass*3"
 xfadeIn :: Time -> Time -> [ParamPattern] -> ParamPattern
 xfadeIn _ _ [] = silence
 xfadeIn _ _ (p:[]) = p
-xfadeIn t now (p:p':_) = overlay (p |*| gain (now ~> (slow t envEqR))) (p' |*| gain (now ~> (slow t (envEq))))
+xfadeIn t now (p:p':_) = overlay (p |*| gain (now `rotR` (_slow t envEqR))) (p' |*| gain (now `rotR` (_slow t (envEq))))
 
 {- |
 Crossfade between old and new pattern over the next two cycles.
@@ -293,8 +297,12 @@ with 1/5th of a cycle between them. It is possible to reverse the echo:
 d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 @
 -}
-stut :: Integer -> Double -> Rational -> ParamPattern -> ParamPattern
-stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
+
+stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ParamPattern -> ParamPattern
+stut n g t p = unwrap $ (\a b c -> _stut a b c p) <$> n <*> g <*> t
+
+_stut :: Integer -> Double -> Rational -> ParamPattern -> ParamPattern
+_stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) `rotR` (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
   where scale x
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
 
@@ -308,7 +316,7 @@ In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has 
 -}
 stut' :: Integer -> Time -> (ParamPattern -> ParamPattern) -> ParamPattern -> ParamPattern
 stut' steps steptime f p | steps <= 0 = p
-                         | otherwise = overlay (f (steptime ~> stut' (steps-1) steptime f p)) p
+                         | otherwise = overlay (f (steptime `rotR` stut' (steps-1) steptime f p)) p
 
 {-| same as `anticipate` though it allows you to specify the number of cycles until dropping to the new pattern, e.g.:
 
@@ -318,7 +326,7 @@ d1 $ sound "jvbass(3,8)"
 t1 (anticipateIn 4) $ sound "jvbass(5,8)"
 @-}
 anticipateIn :: Time -> Time -> [ParamPattern] -> ParamPattern
-anticipateIn t now = wash (spread' (stut 8 0.2) (now ~> (slow t $ (toRational . (1-)) <$> envL))) t now
+anticipateIn t now = wash (spread' (_stut 8 0.2) (now `rotR` (_slow t $ (toRational . (1-)) <$> envL))) t now
 
 {- | `anticipate` is an increasing comb filter.
 

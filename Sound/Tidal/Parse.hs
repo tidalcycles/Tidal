@@ -24,7 +24,7 @@ import Sound.Tidal.Time (Arc, Time)
 data TPat a
    = TPat_Atom a
    | TPat_Density Time (TPat a)
-      -- We keep this distinct from 'density' because of divide-by-zero:
+      -- We keep this distinct from '_density because of divide-by-zero:
    | TPat_Slow Time (TPat a)
    | TPat_Zoom Arc (TPat a)
    | TPat_DegradeBy Double (TPat a)
@@ -44,14 +44,14 @@ instance Monoid (TPat a) where
 toPat :: TPat a -> Pattern a
 toPat = \case
    TPat_Atom x -> atom x
-   TPat_Density t x -> density t $ toPat x
-   TPat_Slow t x -> slow t $ toPat x
+   TPat_Density t x -> _density t $ toPat x
+   TPat_Slow t x -> _slow t $ toPat x
    TPat_Zoom arc x -> zoom arc $ toPat x
-   TPat_DegradeBy amt x -> degradeBy amt $ toPat x
+   TPat_DegradeBy amt x -> _degradeBy amt $ toPat x
    TPat_Silence -> silence
-   TPat_Cat xs -> cat $ map toPat xs
+   TPat_Cat xs -> fastcat $ map toPat xs
    TPat_Overlay x0 x1 -> overlay (toPat x0) (toPat x1)
-   TPat_ShiftL t x -> t <~ toPat x
+   TPat_ShiftL t x -> t `rotL` toPat x
    TPat_pE n k s thing ->
       unwrap $ eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
@@ -304,13 +304,13 @@ pE thing = do (n,k,s) <- parens (pair)
                    return (a, b, c)
 
 eoff :: Int -> Int -> Integer -> Pattern a -> Pattern a
-eoff n k s p = ((s%(fromIntegral k)) <~) (e n k p)
+eoff n k s p = ((s%(fromIntegral k)) `rotL`) (e n k p)
    -- TPat_ShiftL (s%(fromIntegral k)) (TPat_E n k p)
 
 pReplicate :: TPat a -> Parser [TPat a]
 pReplicate thing =
   do extras <- many $ do char '!'
-                         -- if a number is given (without a space)
+                         -- if a number is given (without a space)slow 2 $ fast
                          -- replicate that number of times
                          n <- ((read <$> many1 digit) <|> return 2)
                          spaces
@@ -327,12 +327,19 @@ pStretch thing =
      return $ map (\x -> TPat_Zoom (x%n,(x+1)%n) thing) [0 .. (n-1)]
 
 pRatio :: Parser (Rational)
-pRatio = do n <- natural <?> "numerator"
-            d <- do oneOf "/%"
-                    natural <?> "denominator"
-                 <|>
-                 return 1
-            return $ n % d
+pRatio = do n <- natural
+            result <- do char '%'
+                         d <- natural
+                         return (n%d)
+                      <|>
+                      do char '.'
+                         d <- natural
+                         -- A hack, but not sure if doing this
+                         -- numerically would be any faster..
+                         return (toRational $ ((read $ show n ++ "." ++ show d)  :: Double))
+                      <|>
+                      return (n%1)
+            return result
 
 pRational :: Parser (TPat Rational)
 pRational = do r <- pRatio

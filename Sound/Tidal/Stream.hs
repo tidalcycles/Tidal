@@ -39,18 +39,43 @@ instance Ord Param where
 instance Show Param where
   show p = name p
 
+
 data Shape = Shape {params :: [Param],
                     latency :: Double,
                     cpsStamp :: Bool}
 
 
 data Value = VS { svalue :: String } | VF { fvalue :: Double } | VI { ivalue :: Int }
-           deriving (Show,Eq,Ord,Typeable)
+           deriving (Eq,Ord,Typeable)
+
+instance Show Value where
+  show (VS s) = s
+  show (VF f) = show f
+  show (VI i) = show i
+
+class ParamType a where
+  fromV :: Value -> Maybe a
+  toV :: a -> Value
+
+instance ParamType String where
+  fromV (VS s) = Just s
+  fromV _ = Nothing
+  toV s = VS s
+
+instance ParamType Double where
+  fromV (VF f) = Just f
+  fromV _ = Nothing
+  toV f = VF f
+
+instance ParamType Int where
+  fromV (VI i) = Just i
+  fromV _ = Nothing
+  toV i = VI i
 
 type ParamMap = Map.Map Param Value
 
 type ParamPattern = Pattern ParamMap
-           
+
 ticksPerCycle = 8
 
 defaultValue :: Param -> Value
@@ -162,6 +187,12 @@ make toValue s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
         defaultV a = toValue a
         --defaultV Nothing = defaultValue nParam
 
+make' :: ParamType a => (a -> Value) -> Param -> Pattern a -> ParamPattern
+make' toValue par p = fmap (\x -> Map.singleton par (toValue x)) p
+
+makeP :: ParamType a => Param -> Pattern a -> ParamPattern
+makeP par p = coerce par $ fmap (\x -> Map.singleton par (toV x)) p
+
 makeS = make VS
 
 makeF :: Shape -> String -> Pattern Double -> ParamPattern
@@ -244,4 +275,55 @@ copyParam:: Param -> Param -> ParamPattern -> ParamPattern
 copyParam fromParam toParam pat = f <$> pat
   where f m = maybe m (updateValue m) (Map.lookup fromParam m)
         updateValue m v = Map.union m (Map.fromList [(toParam,v)])
+
+get :: ParamType a => Param -> ParamPattern -> Pattern a
+get param p = filterJust $ fromV <$> (filterJust $ Map.lookup param <$> p)
+
+getI :: Param -> ParamPattern -> Pattern Int
+getI = get
+getF :: Param -> ParamPattern -> Pattern Double
+getF = get
+getS :: Param -> ParamPattern -> Pattern String
+getS = get
+
+with :: (ParamType a) => Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+with param f p = p # (makeP param) ((\x -> f (get param x)) p)
+withI :: Param -> (Pattern Int -> Pattern Int) -> ParamPattern -> ParamPattern
+withI = with
+withF :: Param -> (Pattern Double -> Pattern Double) -> ParamPattern -> ParamPattern
+withF = with
+withS :: Param -> (Pattern String -> Pattern String) -> ParamPattern -> ParamPattern
+withS = with
+
+follow :: ParamType a => Param -> Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+follow source dest f p = p # (makeP dest $ f (get source p))
+
+-- follow :: ParamType a => Param -> (Pattern a -> ParamPattern) -> ParamPattern -> ParamPattern
+-- follow source dest p = p # (dest $ get source p)
+
+follow' :: ParamType a => Param -> Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+follow' source dest f p = p # (makeP dest $ f (get source p))
+
+followI :: Param -> Param -> (Pattern Int -> Pattern Int) -> ParamPattern -> ParamPattern
+followI = follow'
+followF :: Param -> Param -> (Pattern Double -> Pattern Double) -> ParamPattern -> ParamPattern
+followF = follow'
+followS :: Param -> Param -> (Pattern String -> Pattern String) -> ParamPattern -> ParamPattern
+followS = follow'
+
+-- with :: ParamType a => Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+-- with source f p = p # (makeP source $ f (get source p))
+coerce :: Param -> ParamPattern -> ParamPattern
+coerce par@(S _ _) p = (Map.update f par) <$> p
+  where f (VS s) = Just (VS s)
+        f (VI i) = Just (VS $ show i)
+        f (VF f) = Just (VS $ show f)
+coerce par@(I _ _) p = (Map.update f par) <$> p
+  where f (VS s) = Just (VI $ read s)
+        f (VI i) = Just (VI i)
+        f (VF f) = Just (VI $ floor f)
+coerce par@(F _ _) p = (Map.update f par) <$> p
+  where f (VS s) = Just (VF $ read s)
+        f (VI i) = Just (VF $ fromIntegral i)
+        f (VF f) = Just (VF f)
 
