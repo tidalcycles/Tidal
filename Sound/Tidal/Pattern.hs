@@ -1207,7 +1207,7 @@ struct ps pv = (flip const) <$> ps <*> pv
 
 -- | @substruct a b@: similar to @struct@, but each event in pattern @a@ gets replaced with pattern @b@, compressed to fit the timespan of the event.
 substruct :: Pattern String -> Pattern b -> Pattern b
-substruct s p = filterStartInRange $ Pattern $ f
+substruct s p = Pattern $ f
   where f a = concatMap (\a' -> arc (compressTo a' p) a') $ (map fst' $ arc s a)
         compressTo (s,e) p = compress (cyclePos s, e-(sam s)) p
 
