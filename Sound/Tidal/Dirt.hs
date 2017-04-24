@@ -13,6 +13,7 @@ import Data.Bits
 import Data.Maybe
 import Data.Fixed
 import Data.Ratio
+import Data.List (elemIndex)
 
 import Sound.Tidal.Stream
 import Sound.Tidal.OscStream
@@ -337,3 +338,7 @@ anticipate = anticipateIn 8
 
 {- | Copies the @n@ parameter to the @orbit@ parameter, so different sound variants or notes go to different orbits in SuperDirt. -}
 nToOrbit = copyParam n_p orbit_p
+
+{- | Maps the sample or synth names to different @orbit@s, using indexes from the given list. E.g. @soundToOrbit ["bd", "sn", "cp"] $ sound "bd [cp sn]"@ would cause the bd, sn and cp smamples to be sent to orbit 0, 1, 2 respectively.-}
+soundToOrbit :: [String] -> ParamPattern -> ParamPattern
+soundToOrbit sounds p = follow s_p orbit_p ((\s -> fromMaybe 0 $ elemIndex s sounds) <$>) p

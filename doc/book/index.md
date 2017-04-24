@@ -716,7 +716,7 @@ d1 $ fast 0.5 $ sound "arpy:2 [arpy:3 arpy]"
 ```
 
 You can also think of `fast` as making a pattern more *dense* and
-`slow` as making it less *sparse*, and indeed there are aliases
+`slow` as making it more *sparse*, and indeed there are aliases
 `density` and `sparsity` that you can use if you prefer. In the old
 days only `density` and `slow` were defined so many examples use
 these.
@@ -814,8 +814,6 @@ d1 $ retrig $ iter 4 $ n "0 1 2 3" # sound "arpy"
 ### foldEvery
 
 ### chunk
-
-# Syntax
 
 # TidalCycles in Practice
 
