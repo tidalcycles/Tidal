@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-name-shadowing #-}
 
 module Sound.Tidal.Pattern where
@@ -30,12 +30,88 @@ import Text.Show.Functions ()
 data Pattern a = Pattern {arc :: Arc -> [Event a]}
   deriving Typeable
 
-#define INSTANCE_Eq
-#define INSTANCE_Ord
-#define INSTANCE_Enum
+noOv :: String -> a
+noOv meth = error $ meth ++ ": No overloading"
 
-#define APPLICATIVE Pattern
-#include "ApplicativeNumeric-inc.hs"
+instance Eq (Pattern a) where
+  (==) = noOv "(==)"
+
+instance Ord a => Ord (Pattern a) where
+  min = liftA2 min
+  max = liftA2 max
+
+instance Num a => Num (Pattern a) where
+  negate      = fmap negate
+  (+)         = liftA2 (+)
+  (*)         = liftA2 (*)
+  fromInteger = pure . fromInteger
+  abs         = fmap abs
+  signum      = fmap signum
+
+instance Enum a => Enum (Pattern a) where
+  succ           = fmap succ
+  pred           = fmap pred
+  toEnum         = pure . toEnum
+  fromEnum       = noOv "fromEnum"
+  enumFrom       = noOv "enumFrom"
+  enumFromThen   = noOv "enumFromThen"
+  enumFromTo     = noOv "enumFromTo"
+  enumFromThenTo = noOv "enumFromThenTo"
+
+instance (Num a, Ord a) => Real (Pattern a) where
+  toRational = noOv "toRational"
+
+instance (Integral a) => Integral (Pattern a) where
+  quot          = liftA2 quot
+  rem           = liftA2 rem
+  div           = liftA2 div
+  mod           = liftA2 mod
+  toInteger     = noOv "toInteger"
+  x `quotRem` y = (x `quot` y, x `rem` y)
+  x `divMod`  y = (x `div`  y, x `mod` y)
+
+instance (Fractional a) => Fractional (Pattern a) where
+  recip        = fmap recip
+  fromRational = pure . fromRational
+
+instance (Floating a) => Floating (Pattern a) where
+  pi    = pure pi
+  sqrt  = fmap sqrt
+  exp   = fmap exp
+  log   = fmap log
+  sin   = fmap sin
+  cos   = fmap cos
+  asin  = fmap asin
+  atan  = fmap atan
+  acos  = fmap acos
+  sinh  = fmap sinh
+  cosh  = fmap cosh
+  asinh = fmap asinh
+  atanh = fmap atanh
+  acosh = fmap acosh
+
+instance (RealFrac a) => RealFrac (Pattern a) where
+  properFraction = noOv "properFraction"
+  truncate       = noOv "truncate"
+  round          = noOv "round"
+  ceiling        = noOv "ceiling"
+  floor          = noOv "floor"
+
+instance (RealFloat a) => RealFloat (Pattern a) where
+  floatRadix     = noOv "floatRadix"
+  floatDigits    = noOv "floatDigits"
+  floatRange     = noOv "floatRange"
+  decodeFloat    = noOv "decodeFloat"
+  encodeFloat    = ((.).(.)) pure encodeFloat
+  exponent       = noOv "exponent"
+  significand    = noOv "significand"
+  scaleFloat n   = fmap (scaleFloat n)
+  isNaN          = noOv "isNaN"
+  isInfinite     = noOv "isInfinite"
+  isDenormalized = noOv "isDenormalized"
+  isNegativeZero = noOv "isNegativeZero"
+  isIEEE         = noOv "isIEEE"
+  atan2          = liftA2 atan2
 
 -- | @show (p :: Pattern)@ returns a text string representing the
 -- event values active during the first cycle of the given pattern.
@@ -342,7 +418,9 @@ _iter' n p = slowcat $ map (\i -> ((fromIntegral i)%(fromIntegral n)) `rotR` p) 
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
 rev :: Pattern a -> Pattern a
-rev p = splitQueries $ Pattern $ \a -> mapArcs mirrorArc (arc p (mirrorArc a))
+rev p = splitQueries $ Pattern $ \a -> map makeWholeAbsolute $ mapSnds' mirrorArc $ map makeWholeRelative (arc p (mirrorArc a))
+  where makeWholeRelative ((s,e), part@(s',e'), v) = ((s'-s, e-e'), part, v)
+        makeWholeAbsolute ((s,e), part@(s',e'), v) = ((s'-e,e'+s), part, v)
 
 -- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
 -- the pattern alternates between forwards and backwards.
@@ -911,11 +989,11 @@ superimpose f p = stack [p, f p]
 splitQueries :: Pattern a -> Pattern a
 splitQueries p = Pattern $ \a -> concatMap (arc p) $ arcCycles a
 
-{- | Truncates a pattern so that only a fraction of the pattern is played.
-The following example plays only the first three quarters of the pattern:
+{- | @trunc@ truncates a pattern so that only a fraction of the pattern is played.
+The following example plays only the first quarter of the pattern:
 
 @
-d1 $ trunc 0.75 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
+d1 $ trunc 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
 @
 -}
 trunc :: Pattern Time -> Pattern a -> Pattern a
@@ -923,6 +1001,18 @@ trunc = temporalParam _trunc
 
 _trunc :: Time -> Pattern a -> Pattern a
 _trunc t = compress (0,t) . zoom (0,t)
+
+{- | @linger@ is similar to `trunc` but the truncated part of the pattern loops until the end of the cycle
+
+@
+d1 $ linger 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
+@
+-}
+linger :: Pattern Time -> Pattern a -> Pattern a
+linger = temporalParam _linger
+
+_linger :: Time -> Pattern a -> Pattern a
+_linger n p = _density (1/n) $ zoom (0,n) p
 
 {- | Plays a portion of a pattern, specified by a beginning and end arc of time.
 The new resulting pattern is played over the time period of the original pattern:
@@ -1205,7 +1295,7 @@ struct ps pv = (flip const) <$> ps <*> pv
 
 -- | @substruct a b@: similar to @struct@, but each event in pattern @a@ gets replaced with pattern @b@, compressed to fit the timespan of the event.
 substruct :: Pattern String -> Pattern b -> Pattern b
-substruct s p = filterStartInRange $ Pattern $ f
+substruct s p = Pattern $ f
   where f a = concatMap (\a' -> arc (compressTo a' p) a') $ (map fst' $ arc s a)
         compressTo (s,e) p = compress (cyclePos s, e-(sam s)) p
 

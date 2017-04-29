@@ -50,7 +50,6 @@ library
     , safe
     , websockets > 0.8
     , mtl >= 2.1
-    , applicative-numbers
 
 source-repository head
   type:     git
