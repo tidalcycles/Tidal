@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleInstances #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase, GADTs #-}
 
 module Sound.Tidal.Parse where
 
@@ -21,23 +21,25 @@ import Sound.Tidal.Pattern
 import Sound.Tidal.Time (Arc, Time)
 
 -- | AST representation of patterns
-data TPat a
-   = TPat_Atom a
-   | TPat_Density Time (TPat a)
-      -- We keep this distinct from '_density because of divide-by-zero:
-   | TPat_Slow Time (TPat a)
-   | TPat_Zoom Arc (TPat a)
-   | TPat_DegradeBy Double (TPat a)
-   | TPat_Silence
-   | TPat_Foot
-   | TPat_Cat [TPat a]
-   | TPat_Overlay (TPat a) (TPat a)
-   | TPat_ShiftL Time (TPat a)
-   -- | TPat_E Int Int (TPat a)
-   | TPat_pE (TPat Int) (TPat Int) (TPat Integer) (TPat a)
- deriving (Show)
+data TPat a where
+   TPat_Atom :: Parseable a => a -> TPat a
+   TPat_Density :: Parseable a => Time -> (TPat a) -> (TPat a)
+   -- We keep this distinct from '_density because of divide-by-zero:
+   TPat_Slow :: Parseable a => Time -> TPat a -> TPat a
+   TPat_Zoom :: Parseable a => Arc -> TPat a -> TPat a
+   TPat_DegradeBy :: Parseable a => Double -> TPat a -> TPat a
+   TPat_Silence :: Parseable a => TPat a
+   TPat_Foot :: Parseable a => TPat a
+   TPat_Enum :: Parseable a => TPat a
+   TPat_Cat :: Parseable a => [TPat a] -> TPat a
+   TPat_Overlay :: Parseable a => TPat a -> TPat a -> TPat a
+   TPat_ShiftL :: Parseable a => Time -> TPat a -> TPat a
+   -- TPat_E Int Int (TPat a)
+   TPat_pE :: Parseable a => TPat Int -> TPat Int -> TPat Integer -> TPat a -> TPat a
 
-instance Monoid (TPat a) where
+-- deriving (Show)
+
+instance Parseable a => Monoid (TPat a) where
    mempty = TPat_Silence
    mappend = TPat_Overlay
 
@@ -61,29 +63,45 @@ p = toPat . parseTPat
 
 class Parseable a where
   parseTPat :: String -> TPat a
+  fromTo :: a -> a -> [a]
+  fromThenTo :: a -> a -> a -> [a]
 
 instance Parseable Double where
   parseTPat = parseRhythm pDouble
+  fromTo a b = enumFromTo a b
+  fromThenTo a b c = enumFromThenTo a b c
 
 instance Parseable String where
   parseTPat = parseRhythm pVocable
+  fromTo a b = [a,b]
+  fromThenTo a b c = [a,b,c]
 
 instance Parseable Bool where
   parseTPat = parseRhythm pBool
+  fromTo a b = enumFromTo a b
+  fromThenTo a b c = enumFromThenTo a b c
 
 instance Parseable Int where
   parseTPat = parseRhythm pIntegral
+  fromTo a b = enumFromTo a b
+  fromThenTo a b c = enumFromThenTo a b c
 
 instance Parseable Integer where
   parseTPat s = parseRhythm pIntegral s
+  fromTo a b = enumFromTo a b
+  fromThenTo a b c = enumFromThenTo a b c
 
 instance Parseable Rational where
   parseTPat = parseRhythm pRational
+  fromTo a b = enumFromTo a b
+  fromThenTo a b c = enumFromThenTo a b c
 
-type ColourD = Colour Double
+type ColourD = Colour Double 
 
 instance Parseable ColourD where
   parseTPat = parseRhythm pColour
+  fromTo a b = [a,b]
+  fromThenTo a b c = [a,b,c]
 
 instance (Parseable a) => IsString (Pattern a) where
   fromString = toPat . parseTPat
@@ -140,20 +158,32 @@ r s orig = do E.handle
                 )
                 (return $ p s)
 
-parseRhythm :: Parser (TPat a) -> String -> TPat a
+parseRhythm :: Parseable a => Parser (TPat a) -> String -> TPat a
 parseRhythm f input = either (const TPat_Silence) id $ parse (pSequence f') "" input
   where f' = f
              <|> do symbol "~" <?> "rest"
                     return TPat_Silence
 
-pSequenceN :: Parser (TPat a) -> GenParser Char () (Int, TPat a)
+pSequenceN :: Parseable a => Parser (TPat a) -> GenParser Char () (Int, TPat a)
 pSequenceN f = do spaces
                   -- d <- pDensity
                   ps <- many $ pPart f
+                               <|> do Text.ParserCombinators.Parsec.try $ symbol ".."
+                                      return [TPat_Enum]
                                <|> do symbol "."
                                       return [TPat_Foot]
-                  let ps' = TPat_Cat $ map TPat_Cat $ splitFeet $ concat ps
+                                      
+                  let ps' = TPat_Cat $ map TPat_Cat $ splitFeet $ expandEnum Nothing Nothing $ concat ps
                   return (length ps, ps')
+
+expandEnum :: Parseable t => Maybe (TPat t) -> Maybe (TPat t) -> [TPat t] -> [TPat t]
+expandEnum a b [] = catMaybes [a,b]
+expandEnum Nothing (Just (TPat_Atom b)) (TPat_Enum:(TPat_Atom c):ps) = map TPat_Atom (fromTo b c) ++ expandEnum Nothing Nothing ps
+expandEnum (Just (TPat_Atom a)) (Just (TPat_Atom b)) (TPat_Enum:(TPat_Atom c):ps) = map TPat_Atom (fromThenTo a b c) ++ expandEnum Nothing Nothing ps
+-- ignore ..s in other places
+expandEnum a b (TPat_Enum:ps) = expandEnum a b ps
+expandEnum (Just a) b (c:ps) = a:(expandEnum b (Just c) ps)
+expandEnum Nothing b (c:ps) = expandEnum b (Just c) ps
 
 -- could use splitOn here but `TPat a` isn't a member of `EQ`..
 splitFeet :: [TPat t] -> [[TPat t]]
@@ -164,14 +194,14 @@ splitFeet ps = foot:(splitFeet ps')
         takeFoot (TPat_Foot:ps) = ([], ps)
         takeFoot (p:ps) = (\(a,b) -> (p:a,b)) $ takeFoot ps
 
-pSequence :: Parser (TPat a) -> GenParser Char () (TPat a)
+pSequence :: Parseable a => Parser (TPat a) -> GenParser Char () (TPat a)
 pSequence f = do (_, p) <- pSequenceN f
                  return p
 
-pSingle :: Parser (TPat a) -> Parser (TPat a)
+pSingle :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 pSingle f = f >>= pRand >>= pMult
 
-pPart :: Parser (TPat a) -> Parser [TPat a]
+pPart :: Parseable a => Parser (TPat a) -> Parser [TPat a]
 pPart f = do part <- pSingle f <|> pPolyIn f <|> pPolyOut f
              part <- pE part
              part <- pRand part
@@ -181,12 +211,12 @@ pPart f = do part <- pSingle f <|> pPolyIn f <|> pPolyOut f
              spaces
              return $ parts
 
-pPolyIn :: Parser (TPat a) -> Parser (TPat a)
+pPolyIn :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 pPolyIn f = do ps <- brackets (pSequence f `sepBy` symbol ",")
                spaces
                pMult $ mconcat ps
 
-pPolyOut :: Parser (TPat a) -> Parser (TPat a)
+pPolyOut :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
                 spaces
                 base <- do char '%'
@@ -233,7 +263,7 @@ parseInt = do s <- sign
               i <- integer
               return $ applySign s $ fromIntegral i
 
-pIntegral :: Integral i => Parser (TPat i)
+pIntegral :: Parseable a => Integral a => Parser (TPat a)
 pIntegral = TPat_Atom <$> parseIntNote
 
 parseNote :: Integral a => Parser a
@@ -266,7 +296,7 @@ pColour = do name <- many1 letter <?> "colour name"
              colour <- readColourName name <?> "known colour"
              return $ TPat_Atom colour
 
-pMult :: TPat a -> Parser (TPat a)
+pMult :: Parseable a => TPat a -> Parser (TPat a)
 pMult thing = do char '*'
                  spaces
                  r <- pRatio
@@ -281,13 +311,13 @@ pMult thing = do char '*'
 
 
 
-pRand :: TPat a -> Parser (TPat a)
+pRand :: Parseable a => TPat a -> Parser (TPat a)
 pRand thing = do char '?'
                  spaces
                  return $ TPat_DegradeBy 0.5 thing
               <|> return thing
 
-pE :: TPat a -> Parser (TPat a)
+pE :: Parseable a => TPat a -> Parser (TPat a)
 pE thing = do (n,k,s) <- parens (pair)
               pure $ TPat_pE n k s thing
             <|> return thing
@@ -307,7 +337,7 @@ eoff :: Int -> Int -> Integer -> Pattern a -> Pattern a
 eoff n k s p = ((s%(fromIntegral k)) `rotL`) (e n k p)
    -- TPat_ShiftL (s%(fromIntegral k)) (TPat_E n k p)
 
-pReplicate :: TPat a -> Parser [TPat a]
+pReplicate :: Parseable a => TPat a -> Parser [TPat a]
 pReplicate thing =
   do extras <- many $ do char '!'
                          -- if a number is given (without a space)slow 2 $ fast
@@ -320,7 +350,7 @@ pReplicate thing =
      return (thing:concat extras)
 
 
-pStretch :: TPat a -> Parser [TPat a]
+pStretch :: Parseable a => TPat a -> Parser [TPat a]
 pStretch thing =
   do char '@'
      n <- ((read <$> many1 digit) <|> return 1)
