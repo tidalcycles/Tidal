@@ -57,6 +57,7 @@ toPat = \case
    TPat_pE n k s thing ->
       unwrap $ eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
+   TPat_Enum -> error "Can't happen, enums (..'s) only used internally.."
 
 p :: Parseable a => String -> Pattern a
 p = toPat . parseTPat
@@ -68,8 +69,8 @@ class Parseable a where
 
 instance Parseable Double where
   parseTPat = parseRhythm pDouble
-  fromTo a b = enumFromTo a b
-  fromThenTo a b c = enumFromThenTo a b c
+  fromTo a b = enumFromTo' a b
+  fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable String where
   parseTPat = parseRhythm pVocable
@@ -78,23 +79,29 @@ instance Parseable String where
 
 instance Parseable Bool where
   parseTPat = parseRhythm pBool
-  fromTo a b = enumFromTo a b
-  fromThenTo a b c = enumFromThenTo a b c
+  fromTo a b = enumFromTo' a b
+  fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable Int where
   parseTPat = parseRhythm pIntegral
-  fromTo a b = enumFromTo a b
-  fromThenTo a b c = enumFromThenTo a b c
+  fromTo a b = enumFromTo' a b
+  fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable Integer where
   parseTPat s = parseRhythm pIntegral s
-  fromTo a b = enumFromTo a b
-  fromThenTo a b c = enumFromThenTo a b c
+  fromTo a b = enumFromTo' a b
+  fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable Rational where
   parseTPat = parseRhythm pRational
-  fromTo a b = enumFromTo a b
-  fromThenTo a b c = enumFromThenTo a b c
+  fromTo a b = enumFromTo' a b
+  fromThenTo a b c = enumFromThenTo' a b c
+
+enumFromTo' a b | a > b = reverse $ enumFromTo b a
+                | otherwise = enumFromTo a b
+
+enumFromThenTo' a b c | a > c = reverse $ enumFromThenTo c b a
+                      | otherwise = enumFromThenTo a b c
 
 type ColourD = Colour Double 
 
