@@ -31,6 +31,8 @@ data TPat a where
    TPat_Silence :: Parseable a => TPat a
    TPat_Foot :: Parseable a => TPat a
    TPat_Enum :: Parseable a => TPat a
+   TPat_EnumFromTo :: Parseable a => TPat a -> TPat a -> TPat a 
+   TPat_EnumFromThenTo :: Parseable a => TPat a -> TPat a -> TPat a -> TPat a
    TPat_Cat :: Parseable a => [TPat a] -> TPat a
    TPat_Overlay :: Parseable a => TPat a -> TPat a -> TPat a
    TPat_ShiftL :: Parseable a => Time -> TPat a -> TPat a
@@ -43,7 +45,7 @@ instance Parseable a => Monoid (TPat a) where
    mempty = TPat_Silence
    mappend = TPat_Overlay
 
-toPat :: TPat a -> Pattern a
+toPat :: Parseable a => TPat a -> Pattern a
 toPat = \case
    TPat_Atom x -> atom x
    TPat_Density t x -> _density t $ toPat x
@@ -58,14 +60,16 @@ toPat = \case
       unwrap $ eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
    TPat_Enum -> error "Can't happen, enums (..'s) only used internally.."
+   TPat_EnumFromTo a b -> unwrap $ fromTo <$> (toPat a) <*> (toPat b)
+   TPat_EnumFromThenTo a b c -> unwrap $ fromThenTo <$> (toPat a) <*> (toPat b) <*> (toPat c)
 
 p :: Parseable a => String -> Pattern a
 p = toPat . parseTPat
 
 class Parseable a where
   parseTPat :: String -> TPat a
-  fromTo :: a -> a -> [a]
-  fromThenTo :: a -> a -> a -> [a]
+  fromTo :: a -> a -> Pattern a
+  fromThenTo :: a -> a -> a -> Pattern a
 
 instance Parseable Double where
   parseTPat = parseRhythm pDouble
@@ -74,13 +78,13 @@ instance Parseable Double where
 
 instance Parseable String where
   parseTPat = parseRhythm pVocable
-  fromTo a b = [a,b]
-  fromThenTo a b c = [a,b,c]
+  fromTo a b = listToPat [a,b]
+  fromThenTo a b c = listToPat [a,b,c]
 
 instance Parseable Bool where
   parseTPat = parseRhythm pBool
-  fromTo a b = enumFromTo' a b
-  fromThenTo a b c = enumFromThenTo' a b c
+  fromTo a b = listToPat [a,b]
+  fromThenTo a b c = listToPat [a,b,c]
 
 instance Parseable Int where
   parseTPat = parseRhythm pIntegral
@@ -97,18 +101,18 @@ instance Parseable Rational where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
-enumFromTo' a b | a > b = reverse $ enumFromTo b a
-                | otherwise = enumFromTo a b
+enumFromTo' a b | a > b = listToPat $ reverse $ enumFromTo b a
+                | otherwise = listToPat $ enumFromTo a b
 
-enumFromThenTo' a b c | a > c = reverse $ enumFromThenTo c b a
-                      | otherwise = enumFromThenTo a b c
+enumFromThenTo' a b c | a > c = listToPat $ reverse $ enumFromThenTo c (c + (a-b)) a
+                      | otherwise = listToPat $ enumFromThenTo a b c
 
 type ColourD = Colour Double 
 
 instance Parseable ColourD where
   parseTPat = parseRhythm pColour
-  fromTo a b = [a,b]
-  fromThenTo a b c = [a,b,c]
+  fromTo a b = listToPat [a,b]
+  fromThenTo a b c = listToPat [a,b,c]
 
 instance (Parseable a) => IsString (Pattern a) where
   fromString = toPat . parseTPat
@@ -185,8 +189,8 @@ pSequenceN f = do spaces
 
 expandEnum :: Parseable t => Maybe (TPat t) -> Maybe (TPat t) -> [TPat t] -> [TPat t]
 expandEnum a b [] = catMaybes [a,b]
-expandEnum Nothing (Just (TPat_Atom b)) (TPat_Enum:(TPat_Atom c):ps) = map TPat_Atom (fromTo b c) ++ expandEnum Nothing Nothing ps
-expandEnum (Just (TPat_Atom a)) (Just (TPat_Atom b)) (TPat_Enum:(TPat_Atom c):ps) = map TPat_Atom (fromThenTo a b c) ++ expandEnum Nothing Nothing ps
+expandEnum Nothing (Just b) (TPat_Enum:c:ps) = (TPat_EnumFromTo b c) : (expandEnum Nothing Nothing ps)
+expandEnum (Just a) (Just b) (TPat_Enum:c:ps) = (TPat_EnumFromThenTo a b c) : (expandEnum Nothing Nothing ps)
 -- ignore ..s in other places
 expandEnum a b (TPat_Enum:ps) = expandEnum a b ps
 expandEnum (Just a) b (c:ps) = a:(expandEnum b (Just c) ps)
