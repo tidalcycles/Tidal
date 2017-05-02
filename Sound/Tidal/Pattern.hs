@@ -277,6 +277,9 @@ cat = slowcat
 listToPat :: [a] -> Pattern a
 listToPat = fastcat . map atom
 
+patToList :: Pattern a -> [a]
+patToList p = map (thd') $ sortBy (\a b -> compare (snd' a) (snd' b)) $ filter ((\x -> x >= 0 && x < 1) . fst . snd' ) (arc p (0,1))
+
 -- | @maybeListToPat@ is similar to @listToPat@, but allows values to
 -- be optional using the @Maybe@ type, so that @Nothing@ results in
 -- gaps in the pattern.
