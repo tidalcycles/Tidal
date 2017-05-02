@@ -32,7 +32,6 @@ data TPat a where
    TPat_Foot :: Parseable a => TPat a
    TPat_Enum :: Parseable a => TPat a
    TPat_EnumFromTo :: Parseable a => TPat a -> TPat a -> TPat a 
-   TPat_EnumFromThenTo :: Parseable a => TPat a -> TPat a -> TPat a -> TPat a
    TPat_Cat :: Parseable a => [TPat a] -> TPat a
    TPat_Overlay :: Parseable a => TPat a -> TPat a -> TPat a
    TPat_ShiftL :: Parseable a => Time -> TPat a -> TPat a
@@ -61,7 +60,7 @@ toPat = \case
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
    TPat_Enum -> error "Can't happen, enums (..'s) only used internally.."
    TPat_EnumFromTo a b -> unwrap $ fromTo <$> (toPat a) <*> (toPat b)
-   TPat_EnumFromThenTo a b c -> unwrap $ fromThenTo <$> (toPat a) <*> (toPat b) <*> (toPat c)
+   -- TPat_EnumFromThenTo a b c -> unwrap $ fromThenTo <$> (toPat a) <*> (toPat b) <*> (toPat c)
 
 p :: Parseable a => String -> Pattern a
 p = toPat . parseTPat
@@ -178,23 +177,25 @@ parseRhythm f input = either (const TPat_Silence) id $ parse (pSequence f') "" i
 pSequenceN :: Parseable a => Parser (TPat a) -> GenParser Char () (Int, TPat a)
 pSequenceN f = do spaces
                   -- d <- pDensity
-                  ps <- many $ pPart f
-                               <|> do Text.ParserCombinators.Parsec.try $ symbol ".."
-                                      return [TPat_Enum]
+                  ps <- many $ do a <- pPart f
+                                  do Text.ParserCombinators.Parsec.try $ symbol "-"
+                                     b <- pPart f
+                                     return [TPat_EnumFromTo (TPat_Cat a) (TPat_Cat b)]
+                                    <|> return a
                                <|> do symbol "."
                                       return [TPat_Foot]
-                                      
-                  let ps' = TPat_Cat $ map TPat_Cat $ splitFeet $ expandEnum Nothing Nothing $ concat ps
+                  let ps' = TPat_Cat $ map TPat_Cat $ splitFeet $ concat ps
                   return (length ps, ps')
 
-expandEnum :: Parseable t => Maybe (TPat t) -> Maybe (TPat t) -> [TPat t] -> [TPat t]
-expandEnum a b [] = catMaybes [a,b]
-expandEnum Nothing (Just b) (TPat_Enum:c:ps) = (TPat_EnumFromTo b c) : (expandEnum Nothing Nothing ps)
-expandEnum (Just a) (Just b) (TPat_Enum:c:ps) = (TPat_EnumFromThenTo a b c) : (expandEnum Nothing Nothing ps)
+{-
+expandEnum :: Parseable t => Maybe (TPat t) -> [TPat t] -> [TPat t]
+expandEnum a [] = [a]
+expandEnum (Just a) (TPat_Enum:b:ps) = (TPat_EnumFromTo a b) : (expandEnum Nothing ps)
 -- ignore ..s in other places
-expandEnum a b (TPat_Enum:ps) = expandEnum a b ps
-expandEnum (Just a) b (c:ps) = a:(expandEnum b (Just c) ps)
-expandEnum Nothing b (c:ps) = expandEnum b (Just c) ps
+expandEnum a (TPat_Enum:ps) = expandEnum a ps
+expandEnum (Just a) (b:ps) = a:(expandEnum b (Just c) ps)
+expandEnum Nothing (c:ps) = expandEnum (Just c) ps
+-}
 
 -- could use splitOn here but `TPat a` isn't a member of `EQ`..
 splitFeet :: [TPat t] -> [[TPat t]]
