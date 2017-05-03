@@ -4,7 +4,7 @@
 module Sound.Tidal.Pattern where
 
 import Control.Applicative
-import Data.Monoid (mappend, mempty, Monoid())
+-- import Data.Monoid (mappend, mempty, Monoid())
 import Data.Fixed
 import Data.List
 import Data.Maybe
@@ -1225,8 +1225,8 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 discretise :: Pattern Time -> Pattern a -> Pattern a
 discretise n p = (density n $ atom (id)) <*> p
 
-discretise' :: Time -> Pattern a -> Pattern a
-discretise' n p = (_density n $ atom (id)) <*> p
+_discretise :: Time -> Pattern a -> Pattern a
+_discretise n p = (_density n $ atom (id)) <*> p
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
