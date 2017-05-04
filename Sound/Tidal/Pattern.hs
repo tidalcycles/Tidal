@@ -314,6 +314,8 @@ temporalParam' f tv p = unwrap' $ (\v -> f v p) <$> tv
 fast :: Pattern Time -> Pattern a -> Pattern a
 fast = temporalParam _density
 
+_fast = _density
+
 fast' :: Pattern Time -> Pattern a -> Pattern a
 fast' = temporalParam' _density
 
@@ -1222,11 +1224,11 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -- | @discretise n p@: 'samples' the pattern @p@ at a rate of @n@
 -- events per cycle. Useful for turning a continuous pattern into a
 -- discrete one.
-discretise :: Pattern Time -> Pattern a -> Pattern a
-discretise n p = (density n $ atom (id)) <*> p
 
-_discretise :: Time -> Pattern a -> Pattern a
-_discretise n p = (_density n $ atom (id)) <*> p
+discretise :: Time -> Pattern a -> Pattern a
+discretise n p = (_density n $ atom (id)) <*> p
+
+discretise' = discretise
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
