@@ -1229,6 +1229,7 @@ discretise :: Time -> Pattern a -> Pattern a
 discretise n p = (_density n $ atom (id)) <*> p
 
 discretise' = discretise
+_discretise = discretise
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
