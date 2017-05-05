@@ -1,6 +1,6 @@
 # TidalCycles log of changes
 
-## [Unreleased]
+## 0.9.3
 
 ### Enhancements
 
