@@ -4,7 +4,7 @@
 module Sound.Tidal.Pattern where
 
 import Control.Applicative
--- import Data.Monoid (mappend, mempty, Monoid())
+import Data.Monoid ()
 import Data.Fixed
 import Data.List
 import Data.Maybe
