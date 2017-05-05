@@ -295,7 +295,7 @@ withF = with
 withS :: Param -> (Pattern String -> Pattern String) -> ParamPattern -> ParamPattern
 withS = with
 
-follow :: ParamType a => Param -> Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+follow :: (ParamType a, ParamType b) => Param -> Param -> (Pattern a -> Pattern b) -> ParamPattern -> ParamPattern
 follow source dest f p = p # (makeP dest $ f (get source p))
 
 -- follow :: ParamType a => Param -> (Pattern a -> ParamPattern) -> ParamPattern -> ParamPattern

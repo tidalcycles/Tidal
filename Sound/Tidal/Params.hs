@@ -321,6 +321,7 @@ pit1 = pitch1
 pit2 = pitch2
 pit3 = pitch3
 por = portamento
+rel = release
 sag = sagogo
 scl = sclaves
 scp = sclap

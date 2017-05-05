@@ -37,7 +37,7 @@ vLines sf fn (x,y) pat cyclesPerLine nLines =
       C.fill
       mapM_ (\x -> do C.save
                       C.translate 0 (fromIntegral x)
-                      drawLine ((cyclesPerLine * (fromIntegral x)) ~> pat)
+                      drawLine ((cyclesPerLine * (fromIntegral x)) `rotR` pat)
                       C.restore
             ) [0 .. (nLines - 1)]
       C.restore 

@@ -29,4 +29,4 @@ Likewise, we'd like to describe how to..
 
 * Share with others for testing
 * Tagging release
-* Uploading to hackage (currently I think only @yaxu can do this - need to look into how to get others doing that)
+* Uploading to hackage

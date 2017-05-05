@@ -7,6 +7,7 @@ import Data.Ratio as C
 import Data.Monoid as C
 import Sound.Tidal.Parse as C
 import Sound.Tidal.Pattern as C
+import Sound.Tidal.PatternList as C
 import Sound.Tidal.Stream as C
 import Sound.Tidal.Dirt as C
 import Sound.Tidal.Strategies as C
