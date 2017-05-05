@@ -72,4 +72,3 @@ test-suite test
               , tasty >= 0.11
               , tasty-hunit
     , tidal
-  cabal-version: >=1.10
