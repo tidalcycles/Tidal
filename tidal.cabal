@@ -1,5 +1,5 @@
 name:                tidal
-version:             0.9.3
+version:             0.9.4
 synopsis:            Pattern language for improvised music
 -- description:
 homepage:            http://tidalcycles.org/
@@ -38,7 +38,7 @@ library
                        Sound.Tidal.Scales
                        Sound.Tidal.Chords
                        Sound.Tidal.Version
-                       Sound.Tidal.PatternList
+                       -- Sound.Tidal.PatternList
 
   Build-depends:
       base < 5

@@ -178,7 +178,7 @@ pSequenceN :: Parseable a => Parser (TPat a) -> GenParser Char () (Int, TPat a)
 pSequenceN f = do spaces
                   -- d <- pDensity
                   ps <- many $ do a <- pPart f
-                                  do Text.ParserCombinators.Parsec.try $ symbol "-"
+                                  do Text.ParserCombinators.Parsec.try $ symbol ".."
                                      b <- pPart f
                                      return [TPat_EnumFromTo (TPat_Cat a) (TPat_Cat b)]
                                     <|> return a
