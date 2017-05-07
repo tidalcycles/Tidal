@@ -1,5 +1,12 @@
 # TidalCycles log of changes
 
+## 0.9.4
+
+### Fixes
+
+* Swapped `-` for `..` in ranges as quick fix for issue with parsing negative numbers
+* Removed overloaded list thingie for now, unsure whether it's worth the dependency
+
 ## 0.9.3
 
 ### Enhancements
