@@ -954,6 +954,13 @@ degrade = _degradeBy 0.5
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
 wedge t p p' = overlay (densityGap (1/t) p) (t `rotR` densityGap (1/(1-t)) p')
 
+timeCat :: [(Time, Pattern a)] -> Pattern a
+timeCat tps = stack $ map (\(s,e,p) -> compress (s/total, e/total) p) $ arrange 0 tps
+    where total = sum $ map fst tps
+          arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
+          arrange _ [] = []
+          arrange t ((t',p):tps) = (t,t+t',p):(arrange (t+t') tps)
+
 {- | @whenmod@ has a similar form and behavior to `every`, but requires an
 additional number. Applies the function to the pattern, when the
 remainder of the current loop number divided by the first parameter,
