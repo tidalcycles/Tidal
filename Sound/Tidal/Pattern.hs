@@ -1067,10 +1067,9 @@ d1 $ within (0.75, 1) (# speed "0.5") $ sound "bd*2 sn lt mt hh hh hh hh"
 @
 -}
 within :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-within (s,e) f p = stack [sliceArc (0,s) p,
-                           compress (s,e) $ f $ zoom (s,e) p,
-                           sliceArc (e,1) p
-                          ]
+within (s,e) f p = stack [playWhen (\t -> cyclePos t >= s && cyclePos t < e) $ f p,
+                          playWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p
+                         ]
 
 revArc :: Arc -> Pattern a -> Pattern a
 revArc a = within a rev
