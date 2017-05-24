@@ -1,5 +1,5 @@
 name:                tidal-vis
-version:             0.9.3
+version:             0.9.4
 synopsis:            Visual rendering for Tidal patterns
 -- description:         
 homepage:            http://yaxu.org/tidal/
@@ -19,5 +19,6 @@ Description: Tidal is a domain specific language for live coding pattern. This p
 
 library
   Exposed-modules:     Sound.Tidal.Vis
+                       Sound.Tidal.Vis2
 
-  Build-depends: base < 5, tidal>=0.9.3, colour, cairo
+  Build-depends: base < 5, tidal>=0.9.4, colour, cairo, process
