@@ -117,8 +117,9 @@ dirtstream _ = dirtStream
 
 
 dirtToColour :: ParamPattern -> Pattern ColourD
-dirtToColour p = s
-  where s = fmap (\x -> maybe black (datumToColour) (Map.lookup (param dirt "s") x)) p
+--dirtToColour p = s
+--  where s = fmap (\x -> maybe black (datumToColour) (Map.lookup (param dirt "s") x)) p
+dirtToColour = fmap (stringToColour . show)
 
 showToColour :: Show a => a -> ColourD
 showToColour = stringToColour . show
