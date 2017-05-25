@@ -13,6 +13,7 @@ import Data.Ratio
 import Data.Maybe
 import System.Cmd
 import Data.List
+import Data.Ord         ( comparing )
 
 totalWidth = 600 :: Double
 ratio = 1/40
@@ -78,7 +79,8 @@ vis name pat = do v (C.withSVGSurface) (name ++ ".svg") (totalWidth, levelHeight
                   rawSystem "/home/alex/Dropbox/bin/fixsvg.pl" [name ++ ".svg"]
                   -- rawSystem "convert" [name ++ ".svg", name ++ ".pdf"]
                   return ()
-                    where levels = arrangeEvents $ sortOn ((\x -> snd x - fst x) . snd') (magicallyMakeEverythingFaster pat)
+                    where levels = arrangeEvents $ sortOn ((\x -> snd x - fst x) . snd') (arc pat (0,1))
+                          sortOn f = map snd . sortBy (comparing fst) . map (\x -> let y = f x in y `seq` (y, x))
 
 visAsString pat = do vis "/tmp/vis2-tmp" pat
                      svg <- readFile "/tmp/vis2-tmp.svg"
