@@ -1,5 +1,5 @@
 name:                tidal-vis
-version:             0.9.4
+version:             0.9.5
 synopsis:            Visual rendering for Tidal patterns
 -- description:         
 homepage:            http://yaxu.org/tidal/
@@ -21,4 +21,4 @@ library
   Exposed-modules:     Sound.Tidal.Vis
                        Sound.Tidal.Vis2
 
-  Build-depends: base < 5, tidal>=0.9.4, colour, cairo, process
+  Build-depends: base < 5, tidal>=0.9.5, colour, cairo, process
