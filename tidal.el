@@ -187,7 +187,7 @@
   (if (>= emacs-major-version 25)
       (save-mark-and-excursion
        (tidal-eval-multiple-lines))
-    (save-mark
+    (save-excursion
      (tidal-eval-multiple-lines))
     )
   )
