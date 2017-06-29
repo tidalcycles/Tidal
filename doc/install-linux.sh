@@ -6,7 +6,7 @@ echo linux distributions that have echo supercollider 1.3.7 or later.
 
 echo Installing dependencies..
 sudo apt-get update
-sudo apt-get install supercollider sc3-plugins build-essential git qjackctl cabal-install zlib1g-dev libportmidi-dev libasound2-dev
+sudo apt-get install supercollider sc3-plugins build-essential git qjackctl haskell-cabal zlib1g-dev libportmidi-dev libasound2-dev
 
 echo Adding user to the 'audio' group
 sudo adduser $USER audio
