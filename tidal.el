@@ -164,25 +164,32 @@
   (next-line)
   )
 
+(defun tidal-eval-multiple-lines ()
+  "Eval the current region in the interpreter as a single line."
+  (tidal-get-now)
+  (mark-paragraph)
+  (let* ((s (buffer-substring-no-properties (region-beginning)
+                                            (region-end)))
+         (s* (if tidal-literate-p
+                 (tidal-unlit s)
+               s)))
+    (tidal-send-string ":{")
+    (tidal-send-string s*)
+    (tidal-send-string ":}")
+    (mark-paragraph)
+    (pulse-momentary-highlight-region (mark) (point))
+    )
+  )
+
 (defun tidal-run-multiple-lines ()
   "Send the current region to the interpreter as a single line."
   (interactive)
-  (tidal-get-now)
-  (save-excursion
-   (mark-paragraph)
-   (let* ((s (buffer-substring-no-properties (region-beginning)
-                                             (region-end)))
-          (s* (if tidal-literate-p
-                  (tidal-unlit s)
-                s)))
-     (tidal-send-string ":{")
-     (tidal-send-string s*)
-     (tidal-send-string ":}")
-     (mark-paragraph)
-     (pulse-momentary-highlight-region (mark) (point))
-     )
-    ;(tidal-send-string (replace-regexp-in-string "\n" " " s*))
-   )
+  (if (>= emacs-major-version 25)
+      (save-mark-and-excursion
+       (tidal-eval-multiple-lines))
+    (save-excursion
+     (tidal-eval-multiple-lines))
+    )
   )
 
 (defun tidal-run-d1 ()
