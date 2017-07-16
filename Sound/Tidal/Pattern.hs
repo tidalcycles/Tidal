@@ -314,6 +314,7 @@ temporalParam' f tv p = unwrap' $ (\v -> f v p) <$> tv
 fast :: Pattern Time -> Pattern a -> Pattern a
 fast = temporalParam _density
 
+_fast :: Time -> Pattern a -> Pattern a
 _fast = _density
 
 fast' :: Pattern Time -> Pattern a -> Pattern a
@@ -510,6 +511,10 @@ sinewave = sig $ \t -> ((sin $ pi * 2 * (fromRational t)) + 1) / 2
 -- | @sine@ is a synonym for @sinewave@.
 sine :: Pattern Double
 sine = sinewave
+
+-- | @sine@ is a synonym for @0.25 ~> sine@.
+cosine :: Pattern Double
+cosine = 0.25 ~> sine 
 
 -- | @sinerat@ is equivalent to @sinewave@ for @Rational@ values,
 -- suitable for use as @Time@ offsets.
@@ -1310,7 +1315,52 @@ struct ps pv = (flip const) <$> ps <*> pv
 substruct :: Pattern String -> Pattern b -> Pattern b
 substruct s p = Pattern $ f
   where f a = concatMap (\a' -> arc (compressTo a' p) a') $ (map fst' $ arc s a)
-        compressTo (s,e) p = compress (cyclePos s, e-(sam s)) p
+
+compressTo :: Arc -> Pattern a -> Pattern a
+compressTo (s,e) p = compress (cyclePos s, e-(sam s)) p
+
+randArcs :: Int -> Pattern [Arc]
+randArcs n =
+  do rs <- mapM (\x -> (pure $ (toRational x)/(toRational n)) <~ choose [1,2,3]) [0 .. (n-1)]
+     let rats = map toRational rs
+         total = sum rats
+         pairs = pairUp $ accumulate $ map ((/total)) rats
+     return $ pairs
+       where pairUp [] = []
+             pairUp xs = (0,head xs):(pairUp' xs)
+             pairUp' [] = []
+             pairUp' (a:[]) = []
+             pairUp' (a:b:[]) = [(a,1)]
+             pairUp' (a:b:xs) = (a,b):(pairUp' (b:xs))
+
+randStruct n = splitQueries $ Pattern f
+  where f (s,e) = mapSnds' fromJust $ filter (\(_,x,_) -> isJust x) $ as
+          where as = map (\(n, (s',e')) -> ((s' + sam s, e' + sam s),
+                                           subArc (s,e) (s' + sam s, e' + sam s),
+                                           n
+                                          )
+                         ) $ enumerate $ thd' $ head $ arc (randArcs n) (sam s, nextSam s)
+
+substruct' :: Pattern Int -> Pattern a -> Pattern a
+substruct' s p = Pattern $ \a -> concatMap (\(a', _, i) -> arc (compressTo a' (inside (1/toRational(length (arc s (sam (fst a), nextSam (fst a))))) (rotR (toRational i)) p)) a') (arc s a)
+
+-- | @stripe n p@: repeats pattern @p@, @n@ times per cycle. So
+-- similar to @fast@, but with random durations. The repetitions will
+-- be continguous (touching, but not overlapping) and the durations
+-- will add up to a single cycle. @n@ can be supplied as a pattern of
+-- integers.
+stripe :: Pattern Int -> Pattern a -> Pattern a
+stripe = temporalParam _stripe
+
+_stripe :: Int -> Pattern a -> Pattern a
+_stripe = substruct' . randStruct
+
+-- | @slowstripe n p@: The same as @stripe@, but the result is also
+-- @n@ times slower, so that the mean average duration of the stripes
+-- is exactly one cycle, and every @n@th stripe starts on a cycle
+-- boundary (in indian classical terms, the @sam@).
+slowstripe :: Pattern Int -> Pattern a -> Pattern a
+slowstripe n = slow (toRational <$> n) . stripe n
 
 -- Lindenmayer patterns, these go well with the step sequencer
 -- general rule parser (strings map to strings)
