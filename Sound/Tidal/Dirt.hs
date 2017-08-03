@@ -13,7 +13,7 @@ import Data.Bits
 import Data.Maybe
 import Data.Fixed
 import Data.Ratio
-import System.Process
+import Data.List (elemIndex)
 
 import Sound.Tidal.Stream
 import Sound.Tidal.OscStream
@@ -58,7 +58,7 @@ dirt = Shape {   params = [ s_p,
                             release_p
                           ],
                  cpsStamp = True,
-                 latency = 0.04
+                 latency = 0.3
                 }
 
 dirtSlang = OscSlang {
@@ -102,7 +102,7 @@ superDirtSetters getNow = do ds <- superDirtState 57120
 
 
 superDirts :: [Int]  -> IO [(ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())]
-superDirts ports = do (_, getNow) <- bpsUtils
+superDirts ports = do (_, getNow) <- cpsUtils
                       states <- mapM (superDirtState) ports
                       return $ map (\state -> (setter state, transition getNow state)) states
 
@@ -118,7 +118,7 @@ dirtstream _ = dirtStream
 
 dirtToColour :: ParamPattern -> Pattern ColourD
 dirtToColour p = s
-  where s = fmap (\x -> maybe black (maybe black datumToColour) (Map.lookup (param dirt "sound") x)) p
+  where s = fmap (\x -> maybe black (datumToColour) (Map.lookup (param dirt "s") x)) p
 
 showToColour :: Show a => a -> ColourD
 showToColour = stringToColour . show
@@ -172,8 +172,12 @@ the loops.
 d1 $  slow 8 $ striate 128 $ sound "bev"
 @
 -}
-striate :: Int -> ParamPattern -> ParamPattern
-striate n p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+
+striate :: Pattern Int -> ParamPattern -> ParamPattern
+striate = temporalParam _striate
+
+_striate :: Int -> ParamPattern -> ParamPattern
+_striate n p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p
                   # begin (atom (fromIntegral i / fromIntegral n))
                   # end (atom (fromIntegral (i+1) / fromIntegral n))
@@ -194,14 +198,13 @@ Note that `striate` uses the `begin` and `end` parameters
 internally. This means that if you're using `striate` (or `striate'`)
 you probably shouldn't also specify `begin` or `end`. -}
 striate' :: Int -> Double -> ParamPattern -> ParamPattern
-striate' n f p = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (atom (slot * i) :: Pattern Double) # end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
-{- | _not sure what this does_, variant of `striate` -}
-striateO :: ParamPattern -> Int -> Double -> ParamPattern
-striateO p n o = cat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p # begin ((atom $ (fromIntegral i / fromIntegral n) + o) :: Pattern Double) # end ((atom $ (fromIntegral (i+1) / fromIntegral n) + o) :: Pattern Double)
+{- | like `striate`, but with an offset to the begin and end values -}
+striateO :: Int -> Double -> ParamPattern -> ParamPattern
+striateO n o p = _striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
 
 {- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
 The primed version is just like `striate'`, where the loop count is the third argument. For example:
@@ -213,16 +216,41 @@ d1 $ striateL' 3 0.125 4 $ sound "feel sn:2"
 Like `striate`, these use the `begin` and `end` parameters internally, as well as the `loop` parameter for these versions.
 -}
 striateL :: Int -> Int -> ParamPattern -> ParamPattern
-striateL n l p = striate n p # loop (atom $ fromIntegral l)
+striateL n l p = _striate n p # loop (atom $ fromIntegral l)
 striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
 
-metronome = slow 2 $ sound (p "[odx, [hh]*8]")
+metronome = _slow 2 $ sound (p "[odx, [hh]*8]")
 
+{-|
+Also degrades the current pattern and undegrades the next.
+To change the number of cycles the transition takes, you can use @clutchIn@ like so:
+
+@
+d1 $ sound "bd(5,8)"
+
+t1 (clutchIn 8) $ sound "[hh*4, odx(3,8)]"
+@
+
+will take 8 cycles for the transition.
+-}
 clutchIn :: Time -> Time -> [Pattern a] -> Pattern a
 clutchIn _ _ [] = silence
 clutchIn _ _ (p:[]) = p
 clutchIn t now (p:p':_) = overlay (fadeOut' now t p') (fadeIn' now t p)
 
+{-|
+Degrades the current pattern while undegrading the next.
+
+This is like @xfade@ but not by gain of samples but by randomly removing events from the current pattern and slowly adding back in missing events from the next one.
+
+@
+d1 $ sound "bd(3,8)"
+
+t1 clutch $ sound "[hh*4, odx(3,8)]"
+@
+
+@clutch@ takes two cycles for the transition, essentially this is @clutchIn 2@.
+-}
 clutch :: Time -> [Pattern a] -> Pattern a
 clutch = clutchIn 2
 
@@ -239,9 +267,9 @@ Will fade over 16 cycles from "bd sn" to "jvbass*3"
 xfadeIn :: Time -> Time -> [ParamPattern] -> ParamPattern
 xfadeIn _ _ [] = silence
 xfadeIn _ _ (p:[]) = p
-xfadeIn t now (p:p':_) = overlay (p |*| gain (now ~> (slow t envEqR))) (p' |*| gain (now ~> (slow t (envEq))))
+xfadeIn t now (p:p':_) = overlay (p |*| gain (now `rotR` (_slow t envEqR))) (p' |*| gain (now `rotR` (_slow t (envEq))))
 
-{- | 
+{- |
 Crossfade between old and new pattern over the next two cycles.
 
 @
@@ -255,7 +283,7 @@ t1 xfade $ sound "can*3"
 xfade :: Time -> [ParamPattern] -> ParamPattern
 xfade = xfadeIn 2
 
-{- | Stut applies a type of delay to a pattern. It has three parameters, 
+{- | Stut applies a type of delay to a pattern. It has three parameters,
 which could be called depth, feedback and time. Depth is an integer
 and the others floating point. This adds a bit of echo:
 
@@ -263,23 +291,33 @@ and the others floating point. This adds a bit of echo:
 d1 $ stut 4 0.5 0.2 $ sound "bd sn"
 @
 
-The above results in 4 echos, each one 50% quieter than the last, 
+The above results in 4 echos, each one 50% quieter than the last,
 with 1/5th of a cycle between them. It is possible to reverse the echo:
 
 @
 d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 @
 -}
-stut :: Integer -> Double -> Rational -> ParamPattern -> ParamPattern
-stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) ~> (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
+
+stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ParamPattern -> ParamPattern
+stut n g t p = unwrap $ (\a b c -> _stut a b c p) <$> n <*> g <*> t
+
+_stut :: Integer -> Double -> Rational -> ParamPattern -> ParamPattern
+_stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) `rotR` (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
   where scale x
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
 
-{- | _not sure what this does_, variant of `stut`
+{- | Instead of just decreasing volume to produce echoes, @stut'@ allows to apply a function for each step and overlays the result delayed by the given time.
+
+@
+d1 $ stut' 2 (1%3) (# vowel "{a e i o u}%2") $ sound "bd sn"
+@
+
+In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has the @vowel@ filter applied.
 -}
 stut' :: Integer -> Time -> (ParamPattern -> ParamPattern) -> ParamPattern -> ParamPattern
 stut' steps steptime f p | steps <= 0 = p
-                         | otherwise = overlay (f (steptime ~> stut' (steps-1) steptime f p)) p
+                         | otherwise = overlay (f (steptime `rotR` stut' (steps-1) steptime f p)) p
 
 {-| same as `anticipate` though it allows you to specify the number of cycles until dropping to the new pattern, e.g.:
 
@@ -289,7 +327,7 @@ d1 $ sound "jvbass(3,8)"
 t1 (anticipateIn 4) $ sound "jvbass(5,8)"
 @-}
 anticipateIn :: Time -> Time -> [ParamPattern] -> ParamPattern
-anticipateIn t now = wash (spread' (stut 8 0.2) (now ~> (slow t $ (toRational . (1-)) <$> envL))) t now
+anticipateIn t now = wash (spread' (_stut 8 0.2) (now `rotR` (_slow t $ (toRational . (1-)) <$> envL))) t now
 
 {- | `anticipate` is an increasing comb filter.
 
@@ -297,3 +335,10 @@ Build up some tension, culminating in a _drop_ to the new pattern after 8 cycles
 -}
 anticipate :: Time -> [ParamPattern] -> ParamPattern
 anticipate = anticipateIn 8
+
+{- | Copies the @n@ parameter to the @orbit@ parameter, so different sound variants or notes go to different orbits in SuperDirt. -}
+nToOrbit = copyParam n_p orbit_p
+
+{- | Maps the sample or synth names to different @orbit@s, using indexes from the given list. E.g. @soundToOrbit ["bd", "sn", "cp"] $ sound "bd [cp sn]"@ would cause the bd, sn and cp smamples to be sent to orbit 0, 1, 2 respectively.-}
+soundToOrbit :: [String] -> ParamPattern -> ParamPattern
+soundToOrbit sounds p = follow s_p orbit_p ((\s -> fromMaybe 0 $ elemIndex s sounds) <$>) p

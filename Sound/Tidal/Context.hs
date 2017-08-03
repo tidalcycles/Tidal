@@ -7,6 +7,7 @@ import Data.Ratio as C
 import Data.Monoid as C
 import Sound.Tidal.Parse as C
 import Sound.Tidal.Pattern as C
+-- import Sound.Tidal.PatternList as C
 import Sound.Tidal.Stream as C
 import Sound.Tidal.Dirt as C
 import Sound.Tidal.Strategies as C
@@ -17,3 +18,6 @@ import Sound.Tidal.Params as C
 import Sound.Tidal.Transition as C
 import Sound.Tidal.EspGrid as C
 import Sound.Tidal.MultiMode as C
+import Sound.Tidal.Version as C
+import qualified Sound.Tidal.Scales as Scales
+import qualified Sound.Tidal.Chords as Chords

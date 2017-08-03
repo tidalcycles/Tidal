@@ -17,9 +17,9 @@ import Sound.Tidal.Tempo (Tempo, logicalTime, clockedTick,cps)
 import Sound.Tidal.Utils
 import qualified Sound.Tidal.Time as T
 
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 
-type ToMessageFunc = Shape -> Tempo -> Int -> (Double, ParamMap) -> Maybe (IO ())
+type ToMessageFunc = Shape -> Tempo -> Int -> (Double, Double, ParamMap) -> Maybe (IO ())
 
 data Backend a = Backend {
   toMessage :: ToMessageFunc,
@@ -39,25 +39,49 @@ instance Ord Param where
 instance Show Param where
   show p = name p
 
+
 data Shape = Shape {params :: [Param],
                     latency :: Double,
                     cpsStamp :: Bool}
 
 
 data Value = VS { svalue :: String } | VF { fvalue :: Double } | VI { ivalue :: Int }
-           deriving (Show,Eq,Ord,Typeable)
+           deriving (Eq,Ord,Typeable)
 
-type ParamMap = Map.Map Param (Maybe Value)
+instance Show Value where
+  show (VS s) = s
+  show (VF f) = show f
+  show (VI i) = show i
+
+class ParamType a where
+  fromV :: Value -> Maybe a
+  toV :: a -> Value
+
+instance ParamType String where
+  fromV (VS s) = Just s
+  fromV _ = Nothing
+  toV s = VS s
+
+instance ParamType Double where
+  fromV (VF f) = Just f
+  fromV _ = Nothing
+  toV f = VF f
+
+instance ParamType Int where
+  fromV (VI i) = Just i
+  fromV _ = Nothing
+  toV i = VI i
+
+type ParamMap = Map.Map Param Value
 
 type ParamPattern = Pattern ParamMap
 
 ticksPerCycle = 8
 
-defaultValue :: Param -> Maybe Value
-defaultValue (S _ (Just x)) = Just $ VS x
-defaultValue (I _ (Just x)) = Just $ VI x
-defaultValue (F _ (Just x)) = Just $ VF x
-defaultValue _ = Nothing
+defaultValue :: Param -> Value
+defaultValue (S _ (Just x)) = VS x
+defaultValue (I _ (Just x)) = VI x
+defaultValue (F _ (Just x)) = VF x
 
 hasDefault :: Param -> Bool
 hasDefault (S _ Nothing) = False
@@ -76,13 +100,14 @@ required :: Shape -> [Param]
 required = filter (not . hasDefault) . params
 
 hasRequired :: Shape -> ParamMap -> Bool
-hasRequired s m = isSubset (required s) (Map.keys (Map.filter (\x -> x /= Nothing) m))
+hasRequired s m = isSubset (required s) (Map.keys m)
 
 isSubset :: (Eq a) => [a] -> [a] -> Bool
 isSubset xs ys = all (\x -> elem x ys) xs
 
 
-doAt t action = do forkIO $ do now <- getCurrentTime
+doAt t action = do _ <- forkIO $ do
+                               now <- getCurrentTime
                                let nowf = realToFrac $ utcTimeToPOSIXSeconds now
                                threadDelay $ floor $ (t - nowf) * 1000000
                                action
@@ -136,7 +161,7 @@ onTick backend shape patternM change ticks
            b = (ticks' + 1) % ticksPerCycle
            messages = mapMaybe
                       (toMessage backend shape change ticks)
-                      (seqToRelOnsets (a, b) p)
+                      (seqToRelOnsetDeltas (a, b) p)
        E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
        flush backend shape change ticks
        return ()
@@ -151,7 +176,7 @@ onTick' backend shape patternsM change ticks
            b = (ticks' + 1) % ticksPerCycle
            messages = mapMaybe
                       (toM shape change ticks)
-                      (seqToRelOnsets (a, b) $ fst ps)
+                      (seqToRelOnsetDeltas (a, b) $ fst ps)
        E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
        flush backend shape change ticks
        return ()
@@ -159,8 +184,14 @@ onTick' backend shape patternsM change ticks
 make :: (a -> Value) -> Shape -> String -> Pattern a -> ParamPattern
 make toValue s nm p = fmap (\x -> Map.singleton nParam (defaultV x)) p
   where nParam = param s nm
-        defaultV a = Just $ toValue a
+        defaultV a = toValue a
         --defaultV Nothing = defaultValue nParam
+
+make' :: ParamType a => (a -> Value) -> Param -> Pattern a -> ParamPattern
+make' toValue par p = fmap (\x -> Map.singleton par (toValue x)) p
+
+makeP :: ParamType a => Param -> Pattern a -> ParamPattern
+makeP par p = coerce par $ fmap (\x -> Map.singleton par (toV x)) p
 
 makeS = make VS
 
@@ -180,6 +211,7 @@ infixl 1 |=|
 (|=|) :: ParamPattern -> ParamPattern -> ParamPattern
 (|=|) = merge
 
+infixl 1 #
 (#) = (|=|)
 
 mergeWith op x y = (Map.unionWithKey op) <$> x <*> y
@@ -190,16 +222,15 @@ mergeWith
      -> f (Map.Map k a) -> f (Map.Map k a) -> f (Map.Map k a)
 
 mergeNumWith intOp floatOp = mergeWith f
-  where f (F _ _) (Just (VF a)) (Just (VF b)) = Just (VF $ floatOp a b)
-        f (I _ _) (Just (VI a)) (Just (VI b)) = Just (VI $ intOp a b)
+  where f (F _ _) (VF a) (VF b) = VF $ floatOp a b
+        f (I _ _) (VI a) (VI b) = VI $ intOp a b
         f _ _ b = b
 
 mergePlus = mergeWith f
-  where f (F _ _) (Just (VF a)) (Just (VF b)) = Just (VF $ a + b)
-        f (I _ _) (Just (VI a)) (Just (VI b)) = Just (VI $ a + b)
-        f (S _ _) (Just (VS a)) (Just (VS b)) = Just (VS $ a ++ b)
+  where f (F _ _) (VF a) (VF b) = VF $ a + b
+        f (I _ _) (VI a) (VI b) = VI $ a + b
+        f (S _ _) (VS a) (VS b) = VS $ a ++ b
         f _ _ b = b
-
 
 infixl 1 |*|
 (|*|) :: ParamPattern -> ParamPattern -> ParamPattern
@@ -217,7 +248,81 @@ infixl 1 |/|
 (|/|) :: ParamPattern -> ParamPattern -> ParamPattern
 (|/|) = mergeNumWith (div) (/)
 
+{- | These are shorthand for merging lists of patterns with @#@, @|*|@, @|+|@,
+or @|/|@.  Sometimes this saves a little typing and can improve readability
+when passing things into other functions.  As an example, instead of writing
+@
+d1 $ sometimes ((|*| speed "2") . (|*| cutoff "2") . (|*| shape "1.5")) $ sound "arpy*4" # cutoff "350" # shape "0.3"
+@
+you can write
+@
+d1 $ sometimes (*** [speed "2", cutoff "2", shape "1.5"]) $ sound "arpy*4" ### [cutoff "350", shape "0.3"]
+@
+-}
+(###) = foldl (#)
+(***) = foldl (|*|)
+(+++) = foldl (|+|)
+(///) = foldl (|/|)
+
 setter :: MVar (a, [a]) -> a -> IO ()
 setter ds p = do ps <- takeMVar ds
                  putMVar ds $ (p, p:snd ps)
                  return ()
+
+{- | Copies values from one parameter to another. Used by @nToOrbit@ in @Sound.Tidal.Dirt@. -}
+
+copyParam:: Param -> Param -> ParamPattern -> ParamPattern
+copyParam fromParam toParam pat = f <$> pat
+  where f m = maybe m (updateValue m) (Map.lookup fromParam m)
+        updateValue m v = Map.union m (Map.fromList [(toParam,v)])
+
+get :: ParamType a => Param -> ParamPattern -> Pattern a
+get param p = filterJust $ fromV <$> (filterJust $ Map.lookup param <$> p)
+
+getI :: Param -> ParamPattern -> Pattern Int
+getI = get
+getF :: Param -> ParamPattern -> Pattern Double
+getF = get
+getS :: Param -> ParamPattern -> Pattern String
+getS = get
+
+with :: (ParamType a) => Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+with param f p = p # (makeP param) ((\x -> f (get param x)) p)
+withI :: Param -> (Pattern Int -> Pattern Int) -> ParamPattern -> ParamPattern
+withI = with
+withF :: Param -> (Pattern Double -> Pattern Double) -> ParamPattern -> ParamPattern
+withF = with
+withS :: Param -> (Pattern String -> Pattern String) -> ParamPattern -> ParamPattern
+withS = with
+
+follow :: (ParamType a, ParamType b) => Param -> Param -> (Pattern a -> Pattern b) -> ParamPattern -> ParamPattern
+follow source dest f p = p # (makeP dest $ f (get source p))
+
+-- follow :: ParamType a => Param -> (Pattern a -> ParamPattern) -> ParamPattern -> ParamPattern
+-- follow source dest p = p # (dest $ get source p)
+
+follow' :: ParamType a => Param -> Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+follow' source dest f p = p # (makeP dest $ f (get source p))
+
+followI :: Param -> Param -> (Pattern Int -> Pattern Int) -> ParamPattern -> ParamPattern
+followI = follow'
+followF :: Param -> Param -> (Pattern Double -> Pattern Double) -> ParamPattern -> ParamPattern
+followF = follow'
+followS :: Param -> Param -> (Pattern String -> Pattern String) -> ParamPattern -> ParamPattern
+followS = follow'
+
+-- with :: ParamType a => Param -> (Pattern a -> Pattern a) -> ParamPattern -> ParamPattern
+-- with source f p = p # (makeP source $ f (get source p))
+coerce :: Param -> ParamPattern -> ParamPattern
+coerce par@(S _ _) p = (Map.update f par) <$> p
+  where f (VS s) = Just (VS s)
+        f (VI i) = Just (VS $ show i)
+        f (VF f) = Just (VS $ show f)
+coerce par@(I _ _) p = (Map.update f par) <$> p
+  where f (VS s) = Just (VI $ read s)
+        f (VI i) = Just (VI i)
+        f (VF f) = Just (VI $ floor f)
+coerce par@(F _ _) p = (Map.update f par) <$> p
+  where f (VS s) = Just (VF $ read s)
+        f (VI i) = Just (VF $ fromIntegral i)
+        f (VF f) = Just (VF f)

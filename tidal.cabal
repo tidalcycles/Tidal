@@ -1,24 +1,28 @@
 name:                tidal
-version:             0.8
+version:             0.9.4
 synopsis:            Pattern language for improvised music
 -- description:
-homepage:            http://tidal.lurk.org/
+homepage:            http://tidalcycles.org/
 license:             GPL-3
 license-file:        LICENSE
 author:              Alex McLean
 maintainer:          Alex McLean <alex@slab.org>, Mike Hodnick <mike.hodnick@gmail.com>
 Stability:           Experimental
-Copyright:           (c) Alex McLean and other contributors, 2016
+Copyright:           (c) Tidal contributors, 2017
 category:            Sound
 build-type:          Simple
-cabal-version:       >=1.4
+cabal-version:       >=1.10
+tested-with:         GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1
 
 Extra-source-files: README.md tidal.el doc/tidal.md
 
 Description: Tidal is a domain specific language for live coding pattern.
 
 library
-  Exposed-modules:     Sound.Tidal.Strategies
+  default-language:    Haskell2010
+
+  Exposed-modules:     Sound.Tidal.Bjorklund
+                       Sound.Tidal.Strategies
                        Sound.Tidal.Dirt
                        Sound.Tidal.Pattern
                        Sound.Tidal.Stream
@@ -33,5 +37,41 @@ library
                        Sound.Tidal.Transition
                        Sound.Tidal.EspGrid
                        Sound.Tidal.MultiMode
+                       Sound.Tidal.Scales
+                       Sound.Tidal.Chords
+                       Sound.Tidal.Version
+                       -- Sound.Tidal.PatternList
 
-  Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl >=2.1, transformers, mersenne-random-pure64,binary, bytestring, hmt, monad-loops
+  Build-depends:
+      base < 5
+    , containers
+    , hashable
+    , colour
+    , hosc > 0.13
+    , text
+    , mersenne-random-pure64
+    , time
+    , parsec
+    , safe
+    , websockets > 0.8
+    , mtl >= 2.1
+    , monad-loops
+
+source-repository head
+  type:     git
+  location: https://github.com/tidalcycles/Tidal
+
+test-suite test
+  default-language:
+    Haskell2010
+  type:
+    exitcode-stdio-1.0
+  hs-source-dirs:
+    tests
+  main-is:
+    test.hs
+  build-depends:
+      base >= 4 && < 5
+              , tasty >= 0.11
+              , tasty-hunit
+    , tidal
