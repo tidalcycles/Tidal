@@ -31,8 +31,11 @@ changeTempo :: MVar Tempo -> Packet -> IO ()
 changeTempo mvar (Packet_Message msg) = do
     case parseEspTempo (messageDatum msg) of
       Just t -> tryTakeMVar mvar >> putMVar mvar t
-      Nothing -> error "Unable to parse message as Tempo"
-changeTempo _ _ = error "Can only process Packet_Message"
+      Nothing -> putStrLn "Unable to parse message as Tempo"
+changeTempo _ _ = putStrLn "Can only process Packet_Message"
+
+getTempo :: MVar Tempo -> IO Tempo
+getTempo = readMVar
 
 runClientEsp :: IO (MVar Tempo,MVar Double)
 runClientEsp = do
@@ -51,10 +54,10 @@ sendEspTempo t = do
   socket <- openUDP "127.0.0.1" 5510
   sendOSC socket $ Message "/esp/beat/tempo" [float (t*60)]
 
-cpsUtilsEsp :: IO (Double -> IO (), IO Rational)
+cpsUtilsEsp :: IO (Double -> IO (), IO Rational, IO Tempo)
 cpsUtilsEsp = do
   (mTempo,mCps) <- runClientEsp
-  return (sendEspTempo,getCurrentBeat mTempo)
+  return (sendEspTempo,getCurrentBeat mTempo,getTempo mTempo)
 
 clockedTickEsp :: Int -> (Tempo -> Int -> IO ()) -> IO ()
 clockedTickEsp tpb callback = do

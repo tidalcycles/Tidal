@@ -71,12 +71,13 @@ multiModeSetters getNowNone getNowEsp mSync mStream = do
 {-
 
 Example of using the above definitions:
+(note: if using Atom, evaluate each of the lines below one by one using shift-Enter)
 
 syncType <- initializeSyncType
 nosync <- changeSyncType syncType NoSync
 esp <- changeSyncType syncType Esp
 (cpsNone,getNowNone) <- cpsUtils
-(cpsEsp,getNowEsp) <- cpsUtilsEsp
+(cpsEsp,getNowEsp,getTempoEsp) <- cpsUtilsEsp
 (cps,getNow) <- multiModeCpsUtils (cpsNone,getNowNone) (cpsEsp,getNowEsp) syncType
 
 streamType <- initializeStreamType
@@ -98,8 +99,8 @@ let hush = mapM_ ($ silence) [d1,d2,d3,d4,d5,d6,d7,d8,d9,d10]
 let solo = (>>) hush
 
 then you can evaluate "classicDirt" to switch to classic Dirt
-and "superDirt" to switch back to SuperDirt
+and "superDirt" to switch back to SuperDirt (the default)
 and "esp" to turn on EspGrid-aware synchronization
-and "nosync" to switch off EspGrid-aware synchronization
-
+and "nosync" to switch off EspGrid-aware synchronization (the default)
+(switching between sync types is only noticeable after the next time a pattern is redefined right now)
 -}
