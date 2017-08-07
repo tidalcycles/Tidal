@@ -265,8 +265,7 @@ slave serverState clientState =
 
 slaveAct :: String -> MVar ServerMode -> MVar ClientState -> Message -> IO ()
 slaveAct "/tempo" serverState clientState m
-  | isJust t = do putStrLn $ "tempo from master: " ++ (show $ fromJust t)
-                  clients <- readMVar clientState
+  | isJust t = do clients <- readMVar clientState
                   setSlave serverState
                   sendTempo (map wsConn clients) (fromJust t)
   | otherwise = return ()
