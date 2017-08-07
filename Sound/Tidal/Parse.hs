@@ -386,10 +386,10 @@ pRatio = do n <- natural
                          return (n%d)
                       <|>
                       do char '.'
-                         d <- natural
+                         s <- many1 digit
                          -- A hack, but not sure if doing this
                          -- numerically would be any faster..
-                         return (toRational $ ((read $ show n ++ "." ++ show d)  :: Double))
+                         return (toRational $ ((read $ show n ++ "." ++ s)  :: Double))
                       <|>
                       return (n%1)
             return result
