@@ -31,6 +31,10 @@ type ClientState = [TConnection]
 data ServerMode = Master
                 | Slave UDP
 
+instance Show ServerMode where
+  show Master = "Master"
+  show _ = "Slave"
+
 data TConnection = TConnection Unique WS.Connection
 
 wsConn :: TConnection -> WS.Connection
@@ -261,7 +265,8 @@ slave serverState clientState =
 
 slaveAct :: String -> MVar ServerMode -> MVar ClientState -> Message -> IO ()
 slaveAct "/tempo" serverState clientState m
-  | isJust t = do clients <- readMVar clientState
+  | isJust t = do putStrLn $ "tempo from master: " ++ (show $ fromJust t)
+                  clients <- readMVar clientState
                   setSlave serverState
                   sendTempo (map wsConn clients) (fromJust t)
   | otherwise = return ()
@@ -279,13 +284,16 @@ slaveAct "/tempo" serverState clientState m
         dsec = ((fromIntegral sec) + ((fromIntegral usec) / 1000000)) :: Double
 
 setSlave :: MVar ServerMode -> IO ()
-setSlave serverState = do withMVar serverState setSlave
+setSlave serverState = do s <- takeMVar serverState
+                          s' <- updateState s
+                          putMVar serverState s'
                           return ()
-     where setSlave Master = do masterPort <- getMasterPort
-                                sock <- openUDP "127.0.0.1" (fromIntegral masterPort)
-                                return (Slave sock)
+     where updateState Master = do putStrLn "Slaving tempo.."
+                                   masterPort <- getMasterPort
+                                   sock <- openUDP "127.0.0.1" (fromIntegral masterPort)
+                                   return (Slave sock)
            -- already slaving..
-           setSlave s = return s
+           updateState s = return s
                           
 serverLoop :: TConnection -> MVar Tempo -> MVar ServerMode -> MVar ClientState -> IO ()
 serverLoop conn tempoState serverState clientState = E.handle catchDisconnect $
@@ -306,8 +314,7 @@ serverLoop conn tempoState serverState clientState = E.handle catchDisconnect $
 
 
 serverAct :: String -> ServerMode -> MVar Tempo -> MVar ClientState -> IO ()
-serverAct ('c':'p':'s':' ':n) mode tempoState clientState = do putStrLn $ "got cps " ++ (show n)
-                                                               setCps (read n) mode tempoState clientState
+serverAct ('c':'p':'s':' ':n) mode tempoState clientState = setCps (read n) mode tempoState clientState
 serverAct ('n':'u':'d':'g':'e':' ':n) mode tempoState clientState = setNudge (read n) mode tempoState clientState
 serverAct s _ _ _ = do putStrLn $ "tempo server received unknown message " ++ s
                        return ()
@@ -318,7 +325,6 @@ setCps n Master tempoState clientState = do tempo <- takeMVar tempoState
                                             clients <- readMVar clientState
                                             sendTempo (map wsConn clients) (tempo')
                                             putMVar tempoState tempo'
-                                            putStrLn $ "updated cps " ++ (show n)
                                             return ()
                                             
 setCps n (Slave sock) tempoState clientState = sendOSC sock $ Message "/cps" [Float (realToFrac n)]
