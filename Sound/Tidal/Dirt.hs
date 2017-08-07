@@ -316,9 +316,28 @@ d1 $ stut' 2 (1%3) (# vowel "{a e i o u}%2") $ sound "bd sn"
 
 In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has the @vowel@ filter applied.
 -}
-stut' :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stut' steps steptime f p | steps <= 0 = p
-                         | otherwise = overlay (f (steptime `rotR` stut' (steps-1) steptime f p)) p
+stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stut' n t f p = unwrap $ (\a b -> _stut' a b f p) <$> n <*> t
+
+_stut' :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_stut' steps steptime f p | steps <= 0 = p
+                         | otherwise = overlay (f (steptime `rotR` _stut' (steps-1) steptime f p)) p
+
+{- | @durPattern@ takes a pattern and returns the length of events in that
+pattern as a new pattern 
+-}
+
+durPattern :: Pattern a -> Pattern Time
+durPattern p = Pattern $ \a -> map eventLengthEvent $ arc p a
+  where eventLengthEvent (a1@(s1,e1), a2, x) = (a1, a2, e1-s1)
+
+{- | @stutx@ is like @stut'@ but will limit the number of repeats using the 
+duration of the original sound.  This usually prevents overlapping "stutters"
+from subsequent sounds.
+-}
+
+stutx :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stutx n t f p = stut' (liftA2 min n (fmap floor $ durPattern p / (t+0.001))) t f p
 
 {-| same as `anticipate` though it allows you to specify the number of cycles until dropping to the new pattern, e.g.:
 
