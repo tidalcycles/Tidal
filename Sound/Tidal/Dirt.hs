@@ -13,7 +13,7 @@ import Data.Bits
 import Data.Maybe
 import Data.Fixed
 import Data.Ratio
-import Data.List (elemIndex)
+import Data.List (elemIndex, sort)
 
 import Sound.Tidal.Stream
 import Sound.Tidal.OscStream
@@ -23,7 +23,7 @@ import Sound.Tidal.Params
 import Sound.Tidal.Time
 import Sound.Tidal.Tempo
 import Sound.Tidal.Transition (transition, wash)
-import Sound.Tidal.Utils (enumerate)
+import Sound.Tidal.Utils (enumerate, fst')
 
 dirt :: Shape
 dirt = Shape {   params = [ s_p,
@@ -324,12 +324,25 @@ _stut' steps steptime f p | steps <= 0 = p
                          | otherwise = overlay (f (steptime `rotR` _stut' (steps-1) steptime f p)) p
 
 {- | @durPattern@ takes a pattern and returns the length of events in that
-pattern as a new pattern 
+pattern as a new pattern.  For example the result of `durPattern "[a ~] b"`
+would be `"[0.25 ~] 0.5"`.
 -}
 
 durPattern :: Pattern a -> Pattern Time
 durPattern p = Pattern $ \a -> map eventLengthEvent $ arc p a
   where eventLengthEvent (a1@(s1,e1), a2, x) = (a1, a2, e1-s1)
+
+{- | @durPattern'@ is similar to @durPattern@, but does some lookahead to try
+to find the length of time to the *next* event. For example, the result of
+`durPattern' "[a ~] b"` would be `"[0.5 ~] 0.5"`.
+-}
+
+durPattern' :: Pattern a -> Pattern Time
+durPattern' p = Pattern $ \a@(s,e) -> map (eventDurToNext (arc p (s,e+1))) (arc p a)
+      where eventDurToNext evs ev@(a1,a2,x) = (a1, a2, (nextNum (t ev) (mt evs)) - (t ev))
+            t = fst . fst'
+            mt = (map fst) . (map fst')
+            nextNum a = head . sort . filter (\x -> x >a)
 
 {- | @stutx@ is like @stut'@ but will limit the number of repeats using the 
 duration of the original sound.  This usually prevents overlapping "stutters"
@@ -337,7 +350,7 @@ from subsequent sounds.
 -}
 
 stutx :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stutx n t f p = stut' (liftA2 min n (fmap floor $ durPattern p / (t+0.001))) t f p
+stutx n t f p = stut' (liftA2 min n (fmap floor $ durPattern' p / (t+0.001))) t f p
 
 {-| same as `anticipate` though it allows you to specify the number of cycles until dropping to the new pattern, e.g.:
 
