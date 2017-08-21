@@ -197,14 +197,20 @@ d1 $ slow 32 $ striate' 32 (1/16) $ sound "bev"
 Note that `striate` uses the `begin` and `end` parameters
 internally. This means that if you're using `striate` (or `striate'`)
 you probably shouldn't also specify `begin` or `end`. -}
-striate' :: Int -> Double -> ParamPattern -> ParamPattern
-striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+striate' :: Pattern Int -> Pattern Double -> ParamPattern -> ParamPattern
+striate' = temporalParam2 _striate'
+
+_striate' :: Int -> Double -> ParamPattern -> ParamPattern
+_striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (atom (slot * i) :: Pattern Double) # end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
 {- | like `striate`, but with an offset to the begin and end values -}
-striateO :: Int -> Double -> ParamPattern -> ParamPattern
-striateO n o p = _striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
+striateO :: Pattern Int -> Pattern Double -> ParamPattern -> ParamPattern
+striateO = temporalParam2 _striateO
+
+_striateO :: Int -> Double -> ParamPattern -> ParamPattern
+_striateO n o p = _striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
 
 {- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
 The primed version is just like `striate'`, where the loop count is the third argument. For example:
@@ -215,9 +221,15 @@ d1 $ striateL' 3 0.125 4 $ sound "feel sn:2"
 
 Like `striate`, these use the `begin` and `end` parameters internally, as well as the `loop` parameter for these versions.
 -}
-striateL :: Int -> Int -> ParamPattern -> ParamPattern
-striateL n l p = _striate n p # loop (atom $ fromIntegral l)
-striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
+striateL :: Pattern Int -> Pattern Int -> ParamPattern -> ParamPattern
+striateL = temporalParam2 _striateL
+
+striateL' :: Pattern Int -> Pattern Double -> Pattern Int -> ParamPattern -> ParamPattern
+striateL' = temporalParam3 _striateL'
+
+_striateL :: Int -> Int -> ParamPattern -> ParamPattern
+_striateL n l p = _striate n p # loop (atom $ fromIntegral l)
+_striateL' n f l p = _striate' n f p # loop (atom $ fromIntegral l)
 
 metronome = _slow 2 $ sound (p "[odx, [hh]*8]")
 
@@ -300,7 +312,7 @@ d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 -}
 
 stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ParamPattern -> ParamPattern
-stut n g t p = unwrap $ (\a b c -> _stut a b c p) <$> n <*> g <*> t
+stut = temporalParam3 _stut
 
 _stut :: Integer -> Double -> Rational -> ParamPattern -> ParamPattern
 _stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) `rotR` (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
