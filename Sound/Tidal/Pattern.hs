@@ -22,7 +22,7 @@ import Sound.Tidal.Utils
 import Sound.Tidal.Bjorklund
 
 import Text.Show.Functions ()
-import Control.Exception as E
+import qualified Control.Exception as E
 
 -- | The pattern datatype, a function from a time @Arc@ to @Event@
 -- values. For discrete patterns, this returns the events which are
@@ -843,7 +843,7 @@ d1 $ sound (samples "xx(3,8)" (tom $ choose ["a", "e", "g", "c"]))
 plays a melody randomly choosing one of the four notes \"a\", \"e\", \"g\", \"c\".
 -}
 choose :: [a] -> Pattern a
-choose [] =  throw (ErrorCall "Empty list. Nothing to choose from.")
+choose [] =  E.throw (ErrorCall "Empty list. Nothing to choose from.")
 choose xs = (xs !!) <$> (irand $ length xs)
 
 {- |
