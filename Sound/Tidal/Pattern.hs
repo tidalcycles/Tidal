@@ -22,6 +22,7 @@ import Sound.Tidal.Utils
 import Sound.Tidal.Bjorklund
 
 import Text.Show.Functions ()
+import Control.Exception.throw
 
 -- | The pattern datatype, a function from a time @Arc@ to @Event@
 -- values. For discrete patterns, this returns the events which are
