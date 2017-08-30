@@ -1457,9 +1457,8 @@ to change this use `toScale' size`.  Example:
 -}
 toScale' :: Int -> [Int] -> Pattern Int -> Pattern Int
 toScale' o s = fmap noteInScale
-  where note x = x `mod` length s
-        octave x = x `div` length s
-        noteInScale x = (s !!! note x) + o * octave x
+  where octave x = x `div` length s
+        noteInScale x = (s !!! x) + o * octave x
 
 toScale :: [Int] -> Pattern Int -> Pattern Int
 toScale = toScale' 12
