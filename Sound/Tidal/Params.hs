@@ -279,8 +279,8 @@ phaserrate_p, phaserdepth_p :: Param
 
 -- aliases
 att, chdecay, ctf, ctfg, delayfb, delayt, lbd, lch, lcl, lcp, lcr, lfoc, lfoi
-   , lfop, lht, llt, loh, lsn, ohdecay, pit1, pit2, pit3, por, sag, scl, scp
-   , scr, sld, std, stt, sus, tdecay, vcf, vco, voi
+   , lfop, lht, llt, loh, lsn, ohdecay, phasdp, phasr, pit1, pit2, pit3, por, sag, scl, scp
+   , scr, sld, std, stt, sus, tdecay, tremdp, tremr, vcf, vco, voi
       :: Pattern Double -> ParamPattern
 att = attack
 bpf = bandf
@@ -317,6 +317,8 @@ lpq = resonance
 lpq_p = resonance_p
 lsn = lsnare
 ohdecay = ophatdecay
+phasdp = phaserdepth
+phasr = phaserrate
 pit1 = pitch1
 pit2 = pitch2
 pit3 = pitch3
@@ -332,6 +334,8 @@ std = stutterdepth
 stt = stuttertime
 sus  = sustain
 tdecay = tomdecay
+tremdp = tremolodepth
+tremr = tremolorate
 vcf  = vcfegint
 vco  = vcoegint
 voi  = voice
