@@ -117,8 +117,9 @@ dirtstream _ = dirtStream
 
 
 dirtToColour :: ParamPattern -> Pattern ColourD
-dirtToColour p = s
-  where s = fmap (\x -> maybe black (datumToColour) (Map.lookup (param dirt "s") x)) p
+--dirtToColour p = s
+--  where s = fmap (\x -> maybe black (datumToColour) (Map.lookup (param dirt "s") x)) p
+dirtToColour = fmap (stringToColour . show)
 
 showToColour :: Show a => a -> ColourD
 showToColour = stringToColour . show
@@ -315,7 +316,7 @@ d1 $ stut' 2 (1%3) (# vowel "{a e i o u}%2") $ sound "bd sn"
 
 In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has the @vowel@ filter applied.
 -}
-stut' :: Integer -> Time -> (ParamPattern -> ParamPattern) -> ParamPattern -> ParamPattern
+stut' :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 stut' steps steptime f p | steps <= 0 = p
                          | otherwise = overlay (f (steptime `rotR` stut' (steps-1) steptime f p)) p
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleInstances #-}
-{-# LANGUAGE LambdaCase, GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Sound.Tidal.Parse where
 
@@ -21,24 +21,23 @@ import Sound.Tidal.Pattern
 import Sound.Tidal.Time (Arc, Time)
 
 -- | AST representation of patterns
-data TPat a where
-   TPat_Atom :: Parseable a => a -> TPat a
-   TPat_Density :: Parseable a => Time -> (TPat a) -> (TPat a)
-   -- We keep this distinct from '_density because of divide-by-zero:
-   TPat_Slow :: Parseable a => Time -> TPat a -> TPat a
-   TPat_Zoom :: Parseable a => Arc -> TPat a -> TPat a
-   TPat_DegradeBy :: Parseable a => Double -> TPat a -> TPat a
-   TPat_Silence :: Parseable a => TPat a
-   TPat_Foot :: Parseable a => TPat a
-   TPat_Enum :: Parseable a => TPat a
-   TPat_EnumFromTo :: Parseable a => TPat a -> TPat a -> TPat a 
-   TPat_Cat :: Parseable a => [TPat a] -> TPat a
-   TPat_Overlay :: Parseable a => TPat a -> TPat a -> TPat a
-   TPat_ShiftL :: Parseable a => Time -> TPat a -> TPat a
-   -- TPat_E Int Int (TPat a)
-   TPat_pE :: Parseable a => TPat Int -> TPat Int -> TPat Integer -> TPat a -> TPat a
 
--- deriving (Show)
+data TPat a = TPat_Atom a
+            | TPat_Density Time (TPat a)
+            | TPat_Slow Time (TPat a)
+            | TPat_Zoom Arc (TPat a)
+            | TPat_DegradeBy Double (TPat a)
+            | TPat_Silence
+            | TPat_Foot
+            | TPat_Elongate Int
+            | TPat_EnumFromTo (TPat a) (TPat a)
+            | TPat_Cat [TPat a]
+            | TPat_TimeCat [TPat a]
+            | TPat_Overlay (TPat a) (TPat a)
+            | TPat_ShiftL Time (TPat a)
+              -- TPat_E Int Int (TPat a)
+            | TPat_pE (TPat Int) (TPat Int) (TPat Integer) (TPat a)
+            deriving (Show)
 
 instance Parseable a => Monoid (TPat a) where
    mempty = TPat_Silence
@@ -53,14 +52,20 @@ toPat = \case
    TPat_DegradeBy amt x -> _degradeBy amt $ toPat x
    TPat_Silence -> silence
    TPat_Cat xs -> fastcat $ map toPat xs
+   TPat_TimeCat xs -> timeCat $ map (\(n, p) -> (toRational n, toPat p)) $ durations xs
    TPat_Overlay x0 x1 -> overlay (toPat x0) (toPat x1)
    TPat_ShiftL t x -> t `rotL` toPat x
    TPat_pE n k s thing ->
       unwrap $ eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
-   TPat_Enum -> error "Can't happen, enums (..'s) only used internally.."
    TPat_EnumFromTo a b -> unwrap $ fromTo <$> (toPat a) <*> (toPat b)
    -- TPat_EnumFromThenTo a b c -> unwrap $ fromThenTo <$> (toPat a) <*> (toPat b) <*> (toPat c)
+
+durations :: [TPat a] -> [(Int, TPat a)]
+durations [] = []
+durations ((TPat_Elongate n):xs) = (n, TPat_Silence):(durations xs)
+durations (a:(TPat_Elongate n):xs) = (n+1,a):(durations xs)
+durations (a:xs) = (1,a):(durations xs)
 
 p :: Parseable a => String -> Pattern a
 p = toPat . parseTPat
@@ -184,9 +189,15 @@ pSequenceN f = do spaces
                                     <|> return a
                                <|> do symbol "."
                                       return [TPat_Foot]
-                  let ps' = TPat_Cat $ map TPat_Cat $ splitFeet $ concat ps
+                               <|> do es <- many1 (symbol "_")
+                                      return [TPat_Elongate (length es)]
+                  let ps' = TPat_Cat $ map elongate $ splitFeet $ concat ps
                   return (length ps, ps')
 
+elongate xs | any (isElongate) xs = TPat_TimeCat xs
+            | otherwise = TPat_Cat xs
+  where isElongate (TPat_Elongate _) = True
+        isElongate _ = False
 {-
 expandEnum :: Parseable t => Maybe (TPat t) -> [TPat t] -> [TPat t]
 expandEnum a [] = [a]
@@ -375,10 +386,10 @@ pRatio = do n <- natural
                          return (n%d)
                       <|>
                       do char '.'
-                         d <- natural
+                         s <- many1 digit
                          -- A hack, but not sure if doing this
                          -- numerically would be any faster..
-                         return (toRational $ ((read $ show n ++ "." ++ show d)  :: Double))
+                         return (toRational $ ((read $ show n ++ "." ++ s)  :: Double))
                       <|>
                       return (n%1)
             return result

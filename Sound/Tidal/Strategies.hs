@@ -409,3 +409,6 @@ tabby n p p' = stack [maskedWarp n p,
     warpP n p = thread (warp n) n p
     maskedWeft n p = Sound.Tidal.Pattern.mask (every 2 rev $ _density ((n)%2) "~ 1" :: Pattern Int) $ weftP n p
     maskedWarp n p = mask (every 2 rev $ _density ((n)%2) "1 ~" :: Pattern Int) $ warpP n p
+
+hurry :: Pattern Rational -> ParamPattern -> ParamPattern
+hurry x = (|*| speed (fromRational <$> x)) . fast x

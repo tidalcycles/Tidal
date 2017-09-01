@@ -1,5 +1,14 @@
 # TidalCycles log of changes
 
+## 0.9.5
+
+### Enhancements
+
+* Added `hurry` which both speeds up the sound and the pattern by the given amount.
+* Added `stripe` which repeats a pattern a given number of times per
+  cycle, with random but contiguous durations.
+* Added continuous function `cosine`
+
 ## 0.9.4
 
 ### Fixes
