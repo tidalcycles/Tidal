@@ -22,6 +22,7 @@ import Sound.Tidal.Utils
 import Sound.Tidal.Bjorklund
 
 import Text.Show.Functions ()
+import qualified Control.Exception as E (throw)
 
 -- | The pattern datatype, a function from a time @Arc@ to @Event@
 -- values. For discrete patterns, this returns the events which are
@@ -514,7 +515,7 @@ sine = sinewave
 
 -- | @sine@ is a synonym for @0.25 ~> sine@.
 cosine :: Pattern Double
-cosine = 0.25 ~> sine 
+cosine = 0.25 ~> sine
 
 -- | @sinerat@ is equivalent to @sinewave@ for @Rational@ values,
 -- suitable for use as @Time@ offsets.
@@ -842,6 +843,7 @@ d1 $ sound (samples "xx(3,8)" (tom $ choose ["a", "e", "g", "c"]))
 plays a melody randomly choosing one of the four notes \"a\", \"e\", \"g\", \"c\".
 -}
 choose :: [a] -> Pattern a
+choose [] =  E.throw (E.ErrorCall "Empty list. Nothing to choose from.")
 choose xs = (xs !!) <$> (irand $ length xs)
 
 {- |
@@ -1386,7 +1388,7 @@ lindenmayer 1 "a:b,b:ab" "ab" -> "bab"
 -}
 lindenmayer :: Int -> String -> String -> String
 lindenmayer _ _ [] = []
-lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r) 
+lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r)
                          ++ (lindenmayer 1 r cs)
 lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
 
@@ -1409,7 +1411,7 @@ If we apply a mask to it
 @
 d1 $ s (mask ("1 1 1 ~ 1 1 ~ 1" :: Pattern Bool)
   (slowcat ["sn*8", "[cp*4 bd*4, bass*5]"] ))
-  # n (run 8) 
+  # n (run 8)
 @
 
 Due to the use of `slowcat` here, the same mask is first applied to `"sn*8"` and in the next cycle to `"[cp*4 bd*4, hc*5]".
@@ -1419,7 +1421,7 @@ You could achieve the same effect by adding rests within the `slowcat` patterns,
 @
 d1 $ s (mask ("1 ~ 1 ~ 1 1 ~ 1" :: Pattern Bool)
   (slowcat ["can*8", "[cp*4 sn*4, jvbass*16]"] ))
-  # n (run 8) 
+  # n (run 8)
 @
 
 Detail: It is currently needed to explicitly _tell_ Tidal that the mask itself is a `Pattern Bool` as it cannot infer this by itself, otherwise it will complain as it does not know how to interpret your input.
@@ -1528,10 +1530,10 @@ toScale = toScale' 12
 the second half of each slice by `x` fraction of a slice . @swing@ is an alias
 for `swingBy (1%3)`
 -}
-swingBy::Time -> Time -> Pattern a -> Pattern a 
+swingBy::Time -> Time -> Pattern a -> Pattern a
 swingBy x n = inside n (within (0.5,1) (x `rotR`))
 
-swing :: Time -> Pattern a -> Pattern a 
+swing :: Time -> Pattern a -> Pattern a
 swing = swingBy (1%3)
 
 {- | `cycleChoose` is like `choose` but only picks a new item from the list
@@ -1542,7 +1544,7 @@ cycleChoose xs = Pattern $ \(s,e) -> [((s,e),(s,e), xs!!(floor $ (dlen xs)*(ctra
         ctrand s = (timeToRand :: Time -> Double) $ fromIntegral $ (floor :: Time -> Int) $ sam s
 
 {- | `shuffle n p` evenly divides one cycle of the pattern `p` into `n` parts,
-and returns a random permutation of the parts each cycle.  For example, 
+and returns a random permutation of the parts each cycle.  For example,
 `shuffle 3 "a b c"` could return `"a b c"`, `"a c b"`, `"b a c"`, `"b c a"`,
 `"c a b"`, or `"c b a"`.  But it will **never** return `"a a a"`, because that
 is not a permutation of the parts.
@@ -1550,18 +1552,18 @@ is not a permutation of the parts.
 shuffle::Int -> Pattern a -> Pattern a
 shuffle n = fit' 1 n (_run n) (randpat n)
   where randpat n = Pattern $ \(s,e) -> arc (p n $ sam s) (s,e)
-        p n c = listToPat $ map snd $ sort $ zip 
+        p n c = listToPat $ map snd $ sort $ zip
                   [timeToRand (c+i/n') | i <- [0..n'-1]] [0..n-1]
         n' :: Time
         n' = fromIntegral n
 
 {- | `scramble n p` is like `shuffle` but randomly selects from the parts
-of `p` instead of making permutations. 
+of `p` instead of making permutations.
 For example, `scramble 3 "a b c"` will randomly select 3 parts from
 `"a"` `"b"` and `"c"`, possibly repeating a single part.
 -}
 scramble::Int -> Pattern a -> Pattern a
-scramble n = fit' 1 n (_run n) (_density (fromIntegral n) $ 
+scramble n = fit' 1 n (_run n) (_density (fromIntegral n) $
   liftA2 (+) (pure 0) $ irand n)
 
 ur :: Time -> Pattern String -> [Pattern a] -> Pattern a
@@ -1603,4 +1605,3 @@ spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compress a p) $
         markOut offset (x:xs) = (offset,offset+x):(markOut (offset+x) xs)
         spaceArcs xs = map (\(a,b) -> (a/s,b/s)) $ markOut 0 xs
         s = sum xs
-
