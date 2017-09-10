@@ -1451,16 +1451,16 @@ seqPLoop ps = timeLoop (maxT - minT) $ minT `rotL` seqP ps
 
 {- | @toScale@ lets you turn a pattern of notes within a scale (expressed as a
 list) to note numbers.  For example `toScale [0, 4, 7] "0 1 2 3"` will turn
-into the pattern `"0 4 7 12"`.  It assumes your scale fits within an octave,
+into the pattern `"0 4 7 12"`.  It assumes your scale fits within an octave;
 to change this use `toScale' size`.  Example:
-`toscale' 24 [0,4,7,10,14,17] (run 8)` turns into `"0 4 7 10 14 17 24 28"`
+`toScale' 24 [0,4,7,10,14,17] (run 8)` turns into `"0 4 7 10 14 17 24 28"`
 -}
-toScale'::Int -> [Int] -> Pattern Int -> Pattern Int
-toScale' o s p = (+) <$> fmap (s!!) notep <*> fmap (o*) octp
-  where notep = fmap (`mod` (length s)) p
-        octp  = fmap (`div` (length s)) p
+toScale' :: Int -> [Int] -> Pattern Int -> Pattern Int
+toScale' o s = fmap noteInScale
+  where octave x = x `div` length s
+        noteInScale x = (s !!! x) + o * octave x
 
-toScale::[Int] -> Pattern Int -> Pattern Int
+toScale :: [Int] -> Pattern Int -> Pattern Int
 toScale = toScale' 12
 
 {- | `swingBy x n` divides a cycle into `n` slices and delays the notes in
