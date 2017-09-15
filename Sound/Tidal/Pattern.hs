@@ -493,8 +493,11 @@ _every 0 _ p = p
 _every n f p = when ((== 0) . (`mod` n)) f p
 
 -- | @every n o f'@ is like @every n f@ with an offset of @o@ cycles
-every' :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-every' n o f = when ((== o) . (`mod` n)) f
+every' :: Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+every' np op f p = do { n <- np; o <- op; _every' n o f p }
+
+_every' :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_every' n o f = when ((== o) . (`mod` n)) f
 
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
 -- each cycle in @ns@.
