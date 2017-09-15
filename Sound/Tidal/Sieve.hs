@@ -3,6 +3,7 @@
 module Sound.Tidal.Sieve where
 
 import Control.Applicative
+import Data.Monoid
 
 import Sound.Tidal.Parse
 import Sound.Tidal.Pattern
