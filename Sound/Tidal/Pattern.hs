@@ -1129,6 +1129,11 @@ e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)
 e' :: Int -> Int -> Pattern a -> Pattern a
 e' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
+einv :: Int -> Int -> Pattern a -> Pattern a
+einv n k p = (flip const) <$> (filterValues (== False) $ listToPat $ bjorklund (n,k)) <*> p
+
+efull :: Int -> Int -> Pattern a -> Pattern a -> Pattern a
+efull n k pa pb = stack [ e n k pa, einv n k pb ]
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
