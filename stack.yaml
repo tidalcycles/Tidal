@@ -2,7 +2,4 @@ flags: {}
 packages:
 - '.'
 extra-deps:
-- applicative-numbers-0.1.3
-- binary-0.7.5.0
-- hosc-0.15
-resolver: lts-2.14
+resolver: lts-9.6

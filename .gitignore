@@ -4,3 +4,4 @@ dist
 cabal
 *.o
 *.hi
+.stack-work
