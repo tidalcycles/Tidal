@@ -326,6 +326,7 @@ sag = sagogo
 scl = sclaves
 scp = sclap
 scr = scrash
+sz  = size
 sld = slide
 std = stutterdepth
 stt = stuttertime
