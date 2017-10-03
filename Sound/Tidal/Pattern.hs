@@ -326,7 +326,9 @@ density :: Pattern Time -> Pattern a -> Pattern a
 density = fast
 
 _density :: Time -> Pattern a -> Pattern a
-_density r p = withResultTime (/ r) $ withQueryTime (* r) p
+_density r p | r == 0 = silence
+             | r < 0 = _density (0-r) p
+             | otherwise = withResultTime (/ r) $ withQueryTime (* r) p
 
 -- | @fastGap@ (also known as @densityGap@ is similar to @fast@ but maintains its cyclic
 -- alignment. For example, @fastGap 2 p@ would squash the events in
