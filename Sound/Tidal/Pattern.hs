@@ -22,6 +22,7 @@ import Sound.Tidal.Utils
 import Sound.Tidal.Bjorklund
 
 import Text.Show.Functions ()
+import qualified Control.Exception as E
 
 -- | The pattern datatype, a function from a time @Arc@ to @Event@
 -- values. For discrete patterns, this returns the events which are
@@ -314,6 +315,7 @@ temporalParam' f tv p = unwrap' $ (\v -> f v p) <$> tv
 fast :: Pattern Time -> Pattern a -> Pattern a
 fast = temporalParam _density
 
+_fast :: Time -> Pattern a -> Pattern a
 _fast = _density
 
 fast' :: Pattern Time -> Pattern a -> Pattern a
@@ -510,6 +512,10 @@ sinewave = sig $ \t -> ((sin $ pi * 2 * (fromRational t)) + 1) / 2
 -- | @sine@ is a synonym for @sinewave@.
 sine :: Pattern Double
 sine = sinewave
+
+-- | @sine@ is a synonym for @0.25 ~> sine@.
+cosine :: Pattern Double
+cosine = 0.25 ~> sine
 
 -- | @sinerat@ is equivalent to @sinewave@ for @Rational@ values,
 -- suitable for use as @Time@ offsets.
@@ -837,6 +843,7 @@ d1 $ sound (samples "xx(3,8)" (tom $ choose ["a", "e", "g", "c"]))
 plays a melody randomly choosing one of the four notes \"a\", \"e\", \"g\", \"c\".
 -}
 choose :: [a] -> Pattern a
+choose [] =  E.throw (E.ErrorCall "Empty list. Nothing to choose from.")
 choose xs = (xs !!) <$> (irand $ length xs)
 
 {- |
@@ -1310,7 +1317,52 @@ struct ps pv = (flip const) <$> ps <*> pv
 substruct :: Pattern String -> Pattern b -> Pattern b
 substruct s p = Pattern $ f
   where f a = concatMap (\a' -> arc (compressTo a' p) a') $ (map fst' $ arc s a)
-        compressTo (s,e) p = compress (cyclePos s, e-(sam s)) p
+
+compressTo :: Arc -> Pattern a -> Pattern a
+compressTo (s,e) p = compress (cyclePos s, e-(sam s)) p
+
+randArcs :: Int -> Pattern [Arc]
+randArcs n =
+  do rs <- mapM (\x -> (pure $ (toRational x)/(toRational n)) <~ choose [1,2,3]) [0 .. (n-1)]
+     let rats = map toRational rs
+         total = sum rats
+         pairs = pairUp $ accumulate $ map ((/total)) rats
+     return $ pairs
+       where pairUp [] = []
+             pairUp xs = (0,head xs):(pairUp' xs)
+             pairUp' [] = []
+             pairUp' (a:[]) = []
+             pairUp' (a:b:[]) = [(a,1)]
+             pairUp' (a:b:xs) = (a,b):(pairUp' (b:xs))
+
+randStruct n = splitQueries $ Pattern f
+  where f (s,e) = mapSnds' fromJust $ filter (\(_,x,_) -> isJust x) $ as
+          where as = map (\(n, (s',e')) -> ((s' + sam s, e' + sam s),
+                                           subArc (s,e) (s' + sam s, e' + sam s),
+                                           n
+                                          )
+                         ) $ enumerate $ thd' $ head $ arc (randArcs n) (sam s, nextSam s)
+
+substruct' :: Pattern Int -> Pattern a -> Pattern a
+substruct' s p = Pattern $ \a -> concatMap (\(a', _, i) -> arc (compressTo a' (inside (1/toRational(length (arc s (sam (fst a), nextSam (fst a))))) (rotR (toRational i)) p)) a') (arc s a)
+
+-- | @stripe n p@: repeats pattern @p@, @n@ times per cycle. So
+-- similar to @fast@, but with random durations. The repetitions will
+-- be continguous (touching, but not overlapping) and the durations
+-- will add up to a single cycle. @n@ can be supplied as a pattern of
+-- integers.
+stripe :: Pattern Int -> Pattern a -> Pattern a
+stripe = temporalParam _stripe
+
+_stripe :: Int -> Pattern a -> Pattern a
+_stripe = substruct' . randStruct
+
+-- | @slowstripe n p@: The same as @stripe@, but the result is also
+-- @n@ times slower, so that the mean average duration of the stripes
+-- is exactly one cycle, and every @n@th stripe starts on a cycle
+-- boundary (in indian classical terms, the @sam@).
+slowstripe :: Pattern Int -> Pattern a -> Pattern a
+slowstripe n = slow (toRational <$> n) . stripe n
 
 -- Lindenmayer patterns, these go well with the step sequencer
 -- general rule parser (strings map to strings)
@@ -1336,7 +1388,7 @@ lindenmayer 1 "a:b,b:ab" "ab" -> "bab"
 -}
 lindenmayer :: Int -> String -> String -> String
 lindenmayer _ _ [] = []
-lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r) 
+lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r)
                          ++ (lindenmayer 1 r cs)
 lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
 
@@ -1359,7 +1411,7 @@ If we apply a mask to it
 @
 d1 $ s (mask ("1 1 1 ~ 1 1 ~ 1" :: Pattern Bool)
   (slowcat ["sn*8", "[cp*4 bd*4, bass*5]"] ))
-  # n (run 8) 
+  # n (run 8)
 @
 
 Due to the use of `slowcat` here, the same mask is first applied to `"sn*8"` and in the next cycle to `"[cp*4 bd*4, hc*5]".
@@ -1369,7 +1421,7 @@ You could achieve the same effect by adding rests within the `slowcat` patterns,
 @
 d1 $ s (mask ("1 ~ 1 ~ 1 1 ~ 1" :: Pattern Bool)
   (slowcat ["can*8", "[cp*4 sn*4, jvbass*16]"] ))
-  # n (run 8) 
+  # n (run 8)
 @
 
 Detail: It is currently needed to explicitly _tell_ Tidal that the mask itself is a `Pattern Bool` as it cannot infer this by itself, otherwise it will complain as it does not know how to interpret your input.
@@ -1462,26 +1514,26 @@ seqPLoop ps = timeLoop (maxT - minT) $ minT `rotL` seqP ps
 
 {- | @toScale@ lets you turn a pattern of notes within a scale (expressed as a
 list) to note numbers.  For example `toScale [0, 4, 7] "0 1 2 3"` will turn
-into the pattern `"0 4 7 12"`.  It assumes your scale fits within an octave,
+into the pattern `"0 4 7 12"`.  It assumes your scale fits within an octave;
 to change this use `toScale' size`.  Example:
-`toscale' 24 [0,4,7,10,14,17] (run 8)` turns into `"0 4 7 10 14 17 24 28"`
+`toScale' 24 [0,4,7,10,14,17] (run 8)` turns into `"0 4 7 10 14 17 24 28"`
 -}
-toScale'::Int -> [Int] -> Pattern Int -> Pattern Int
-toScale' o s p = (+) <$> fmap (s!!) notep <*> fmap (o*) octp
-  where notep = fmap (`mod` (length s)) p
-        octp  = fmap (`div` (length s)) p
+toScale' :: Int -> [Int] -> Pattern Int -> Pattern Int
+toScale' o s = fmap noteInScale
+  where octave x = x `div` length s
+        noteInScale x = (s !!! x) + o * octave x
 
-toScale::[Int] -> Pattern Int -> Pattern Int
+toScale :: [Int] -> Pattern Int -> Pattern Int
 toScale = toScale' 12
 
 {- | `swingBy x n` divides a cycle into `n` slices and delays the notes in
 the second half of each slice by `x` fraction of a slice . @swing@ is an alias
 for `swingBy (1%3)`
 -}
-swingBy::Time -> Time -> Pattern a -> Pattern a 
+swingBy::Time -> Time -> Pattern a -> Pattern a
 swingBy x n = inside n (within (0.5,1) (x `rotR`))
 
-swing :: Time -> Pattern a -> Pattern a 
+swing :: Time -> Pattern a -> Pattern a
 swing = swingBy (1%3)
 
 {- | `cycleChoose` is like `choose` but only picks a new item from the list
@@ -1492,7 +1544,7 @@ cycleChoose xs = Pattern $ \(s,e) -> [((s,e),(s,e), xs!!(floor $ (dlen xs)*(ctra
         ctrand s = (timeToRand :: Time -> Double) $ fromIntegral $ (floor :: Time -> Int) $ sam s
 
 {- | `shuffle n p` evenly divides one cycle of the pattern `p` into `n` parts,
-and returns a random permutation of the parts each cycle.  For example, 
+and returns a random permutation of the parts each cycle.  For example,
 `shuffle 3 "a b c"` could return `"a b c"`, `"a c b"`, `"b a c"`, `"b c a"`,
 `"c a b"`, or `"c b a"`.  But it will **never** return `"a a a"`, because that
 is not a permutation of the parts.
@@ -1500,18 +1552,18 @@ is not a permutation of the parts.
 shuffle::Int -> Pattern a -> Pattern a
 shuffle n = fit' 1 n (_run n) (randpat n)
   where randpat n = Pattern $ \(s,e) -> arc (p n $ sam s) (s,e)
-        p n c = listToPat $ map snd $ sort $ zip 
+        p n c = listToPat $ map snd $ sort $ zip
                   [timeToRand (c+i/n') | i <- [0..n'-1]] [0..n-1]
         n' :: Time
         n' = fromIntegral n
 
 {- | `scramble n p` is like `shuffle` but randomly selects from the parts
-of `p` instead of making permutations. 
+of `p` instead of making permutations.
 For example, `scramble 3 "a b c"` will randomly select 3 parts from
 `"a"` `"b"` and `"c"`, possibly repeating a single part.
 -}
 scramble::Int -> Pattern a -> Pattern a
-scramble n = fit' 1 n (_run n) (_density (fromIntegral n) $ 
+scramble n = fit' 1 n (_run n) (_density (fromIntegral n) $
   liftA2 (+) (pure 0) $ irand n)
 
 ur :: Time -> Pattern String -> [Pattern a] -> Pattern a
@@ -1553,4 +1605,3 @@ spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compress a p) $
         markOut offset (x:xs) = (offset,offset+x):(markOut (offset+x) xs)
         spaceArcs xs = map (\(a,b) -> (a/s,b/s)) $ markOut 0 xs
         s = sum xs
-
