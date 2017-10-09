@@ -1129,9 +1129,16 @@ e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)
 e' :: Int -> Int -> Pattern a -> Pattern a
 e' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
+{- | `einv` fills in the blanks left by `e`
+ -
+ @e 3 8 "x"@ -> @"x ~ ~ x ~ ~ x ~"@
+
+ @einv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
+-}
 einv :: Int -> Int -> Pattern a -> Pattern a
 einv n k p = (flip const) <$> (filterValues (== False) $ listToPat $ bjorklund (n,k)) <*> p
 
+{- | `efull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
 efull :: Int -> Int -> Pattern a -> Pattern a -> Pattern a
 efull n k pa pb = stack [ e n k pa, einv n k pb ]
 
