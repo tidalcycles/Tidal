@@ -1,3 +1,4 @@
+
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-name-shadowing #-}
 
@@ -1607,3 +1608,13 @@ spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compress a p) $
         markOut offset (x:xs) = (offset,offset+x):(markOut (offset+x) xs)
         spaceArcs xs = map (\(a,b) -> (a/s,b/s)) $ markOut 0 xs
         s = sum xs
+
+-- | @flatpat@ takes a Pattern of lists and pulls the list elements as
+-- separate Events
+flatpat :: Pattern [a] -> Pattern a
+flatpat p = Pattern $ \a -> (concatMap (\(b,b',xs) -> map (\x -> (b,b',x)) xs) $ arc p a)
+
+-- | @layer@ takes a Pattern of lists and pulls the list elements as
+-- separate Events
+layer :: [a -> Pattern b] -> a -> Pattern b
+layer fs p = stack $ map ($ p) fs
