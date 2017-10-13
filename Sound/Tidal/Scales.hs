@@ -4,6 +4,7 @@ import Data.Maybe
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
+import Control.Applicative
 
 -- five notes scales
 minPent :: Num a => [a]
