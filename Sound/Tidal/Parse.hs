@@ -380,7 +380,8 @@ pStretch thing =
      return $ map (\x -> TPat_Zoom (x%n,(x+1)%n) thing) [0 .. (n-1)]
 
 pRatio :: Parser (Rational)
-pRatio = do n <- natural
+pRatio = do s <- sign
+            n <- natural
             result <- do char '%'
                          d <- natural
                          return (n%d)
@@ -392,7 +393,7 @@ pRatio = do n <- natural
                          return (toRational $ ((read $ show n ++ "." ++ s)  :: Double))
                       <|>
                       return (n%1)
-            return result
+            return $ applySign s result
 
 pRational :: Parser (TPat Rational)
 pRational = do r <- pRatio
