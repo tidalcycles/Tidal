@@ -1,3 +1,4 @@
+
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-name-shadowing #-}
 
@@ -327,7 +328,9 @@ density :: Pattern Time -> Pattern a -> Pattern a
 density = fast
 
 _density :: Time -> Pattern a -> Pattern a
-_density r p = withResultTime (/ r) $ withQueryTime (* r) p
+_density r p | r == 0 = silence
+             | r < 0 = _density (0-r) p
+             | otherwise = withResultTime (/ r) $ withQueryTime (* r) p
 
 -- | @fastGap@ (also known as @densityGap@ is similar to @fast@ but maintains its cyclic
 -- alignment. For example, @fastGap 2 p@ would squash the events in
@@ -1605,3 +1608,13 @@ spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compress a p) $
         markOut offset (x:xs) = (offset,offset+x):(markOut (offset+x) xs)
         spaceArcs xs = map (\(a,b) -> (a/s,b/s)) $ markOut 0 xs
         s = sum xs
+
+-- | @flatpat@ takes a Pattern of lists and pulls the list elements as
+-- separate Events
+flatpat :: Pattern [a] -> Pattern a
+flatpat p = Pattern $ \a -> (concatMap (\(b,b',xs) -> map (\x -> (b,b',x)) xs) $ arc p a)
+
+-- | @layer@ takes a Pattern of lists and pulls the list elements as
+-- separate Events
+layer :: [a -> Pattern b] -> a -> Pattern b
+layer fs p = stack $ map ($ p) fs
