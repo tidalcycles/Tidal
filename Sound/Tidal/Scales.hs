@@ -154,7 +154,7 @@ diminished2 = [0,2,3,5,6,8,9,11]
 chromatic :: Num a => [a]
 chromatic = [0,1,2,3,4,5,6,7,8,9,10,11]
 
-scaleP :: Num a => Pattern String -> Pattern Int -> Pattern Int
+scaleP :: Pattern String -> Pattern Int -> Pattern Int
 scaleP sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName scaleTable) n) <$> p <*> sp
    where octave s x = x `div` (length s)
          noteInScale s x = (s !!! x) + (12 * octave s x)
