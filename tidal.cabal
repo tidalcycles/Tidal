@@ -37,6 +37,7 @@ library
                        Sound.Tidal.Transition
                        Sound.Tidal.Scales
                        Sound.Tidal.Chords
+                       Sound.Tidal.Sieve
                        Sound.Tidal.Version
                        -- Sound.Tidal.PatternList
 
