@@ -1,5 +1,5 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-module Sound.Tidal.VideoDirt where
+module Video.Tidal.VideoDirt where
 
 import Sound.OSC.FD (Datum)
 import qualified Data.Map as Map
