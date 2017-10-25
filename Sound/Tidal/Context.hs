@@ -10,7 +10,6 @@ import Sound.Tidal.Pattern as C
 -- import Sound.Tidal.PatternList as C
 import Sound.Tidal.Stream as C
 import Sound.Tidal.Dirt as C
-import Sound.Tidal.VideoDirt as C
 import Sound.Tidal.Strategies as C
 import Sound.Tidal.Tempo as C
 import Sound.Tidal.Time as C
@@ -20,4 +19,4 @@ import Sound.Tidal.Transition as C
 import Sound.Tidal.Version as C
 import qualified Sound.Tidal.Scales as Scales
 import qualified Sound.Tidal.Chords as Chords
-
+import Video.Tidal.VideoDirt as C
