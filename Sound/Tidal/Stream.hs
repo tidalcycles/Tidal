@@ -3,6 +3,7 @@
 module Sound.Tidal.Stream where
 
 import Data.Maybe (mapMaybe)
+import Control.Applicative
 import Control.Concurrent (MVar, putMVar, takeMVar, readMVar, swapMVar, newMVar, forkIO, threadDelay)
 import Control.Exception as E
 import Data.Time (getCurrentTime)
