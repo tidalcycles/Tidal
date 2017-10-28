@@ -306,8 +306,20 @@ _scan n = slowcat $ map _run [1 .. n]
 temporalParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 temporalParam f tv p = unwrap $ (\v -> f v p) <$> tv
 
+temporalParam2 :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)
+temporalParam2 f a b p = unwrap $ (\x y -> f x y p) <$> a <*> b
+
+temporalParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
+temporalParam3 f a b c p = unwrap $ (\x y z -> f x y z p) <$> a <*> b <*> c
+
 temporalParam' :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 temporalParam' f tv p = unwrap' $ (\v -> f v p) <$> tv
+
+temporalParam2' :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)
+temporalParam2' f a b p = unwrap' $ (\x y -> f x y p) <$> a <*> b
+
+temporalParam3' :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
+temporalParam3' f a b c p = unwrap' $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 -- | @fast@ (also known as @density@) returns the given pattern with speed
 -- (or density) increased by the given @Time@ factor. Therefore @fast 2 p@
@@ -492,8 +504,11 @@ _every 0 _ p = p
 _every n f p = when ((== 0) . (`mod` n)) f p
 
 -- | @every n o f'@ is like @every n f@ with an offset of @o@ cycles
-every' :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-every' n o f = when ((== o) . (`mod` n)) f
+every' :: Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+every' np op f p = do { n <- np; o <- op; _every' n o f p }
+
+_every' :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_every' n o f = when ((== o) . (`mod` n)) f
 
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
 -- each cycle in @ns@.
