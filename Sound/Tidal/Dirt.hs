@@ -1,11 +1,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module Sound.Tidal.Dirt where
 
-import Sound.OSC.FD (Datum)
-import qualified Data.Map as Map
 import Control.Applicative
-import Control.Concurrent.MVar
---import Visual
 import Data.Colour.SRGB
 import Data.Colour.Names
 import Data.Hashable
@@ -15,13 +11,13 @@ import Data.Fixed
 import Data.Ratio
 import Data.List (elemIndex, sort)
 
-import Sound.Tidal.Stream
-import Sound.Tidal.OscStream
-import Sound.Tidal.Pattern
-import Sound.Tidal.Parse
-import Sound.Tidal.Params
-import Sound.Tidal.Time
-import Sound.Tidal.Tempo
+import Sound.Tidal.Stream (Backend(..), Shape(..), Value(..), ParamPattern(..), state, latency, cpsStamp, params, follow, copyParam, (|*|), (#), (|*|), (|+|), setter)
+import Sound.Tidal.OscStream (TimeStamp(..), OscSlang(..), makeConnection, namedParams, path, timestamp, preamble)
+import Sound.Tidal.Pattern (Pattern(..), envL, rotR, temporalParam, fastcat, atom, spread', overlay, envEq, envEqR, silence, _slow, unwrap, stack, fadeIn', fadeOut')
+import Sound.Tidal.Parse (ColourD(..), p)
+import Sound.Tidal.Params (s_p, orbit_p, n_p, gain, gain_p, loop, sound, end, begin, release_p, hold_p, attack_p, loop_p, unit_p, bandq_p, bandf_p, hresonance_p, hcutoff_p, coarse_p, crush_p, delayfeedback_p, delaytime_p, delay_p, cut_p, kriole_p, shape_p, accelerate_p, resonance_p, cutoff_p, vowel_p, velocity_p, pan_p, speed_p, end_p, begin_p, offset_p)
+import Sound.Tidal.Time (Time(..))
+import Sound.Tidal.Tempo (cpsUtils)
 import Sound.Tidal.Transition (transition, wash)
 import Sound.Tidal.Utils (enumerate, fst')
 
@@ -82,12 +78,6 @@ dirtBackend = do
   s <- makeConnection "127.0.0.1" 7771 dirtSlang
   return $ Backend s (\_ _ _ -> return ())
 
--- dirtstart name = start "127.0.0.1" 7771 dirt
-
-dirtStream = do
-  backend <- dirtBackend
-  stream backend dirt
-
 dirtState = do
   backend <- dirtBackend
   Sound.Tidal.Stream.state backend dirt
@@ -106,19 +96,7 @@ superDirts ports = do (_, getNow) <- cpsUtils
                       states <- mapM (superDirtState) ports
                       return $ map (\state -> (setter state, transition getNow state)) states
 
--- -- disused parameter..
-dirtstream _ = dirtStream
-
--- doubledirt = do remote <- stream "178.77.72.138" 7777 dirt
---                 local <- stream "192.168.0.102" 7771 dirt
---                 return $ \p -> do remote p
---                                   local p
---                                   return ()
-
-
 dirtToColour :: ParamPattern -> Pattern ColourD
---dirtToColour p = s
---  where s = fmap (\x -> maybe black (datumToColour) (Map.lookup (param dirt "s") x)) p
 dirtToColour = fmap (stringToColour . show)
 
 showToColour :: Show a => a -> ColourD
@@ -133,19 +111,6 @@ stringToColour s = sRGB (r/256) (g/256) (b/256)
         r = fromIntegral $ (i .&. 0xFF0000) `shiftR` 16;
         g = fromIntegral $ (i .&. 0x00FF00) `shiftR` 8;
         b = fromIntegral $ (i .&. 0x0000FF);
-
-{-
-visualcallback :: IO (ParamPattern -> IO ())
-visualcallback = do t <- ticker
-                    mv <- startVis t
-                    let f p = do let p' = dirtToColour p
-                                 swapMVar mv p'
-                                 return ()
-                    return f
--}
-
---dirtyvisualstream name = do cb <- visualcallback
---                            streamcallback cb "127.0.0.1" "127.0.0.1" name "127.0.0.1" 7771 dirt
 
 pick :: String -> Int -> String
 pick name n = name ++ ":" ++ (show n)
@@ -198,20 +163,14 @@ d1 $ slow 32 $ striate' 32 (1/16) $ sound "bev"
 Note that `striate` uses the `begin` and `end` parameters
 internally. This means that if you're using `striate` (or `striate'`)
 you probably shouldn't also specify `begin` or `end`. -}
-striate' :: Pattern Int -> Pattern Double -> ParamPattern -> ParamPattern
-striate' = temporalParam2 _striate'
-
-_striate' :: Int -> Double -> ParamPattern -> ParamPattern
-_striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+striate' :: Int -> Double -> ParamPattern -> ParamPattern
+striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (atom (slot * i) :: Pattern Double) # end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
 {- | like `striate`, but with an offset to the begin and end values -}
-striateO :: Pattern Int -> Pattern Double -> ParamPattern -> ParamPattern
-striateO = temporalParam2 _striateO
-
-_striateO :: Int -> Double -> ParamPattern -> ParamPattern
-_striateO n o p = _striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
+striateO :: Int -> Double -> ParamPattern -> ParamPattern
+striateO n o p = _striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
 
 {- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
 The primed version is just like `striate'`, where the loop count is the third argument. For example:
@@ -222,15 +181,9 @@ d1 $ striateL' 3 0.125 4 $ sound "feel sn:2"
 
 Like `striate`, these use the `begin` and `end` parameters internally, as well as the `loop` parameter for these versions.
 -}
-striateL :: Pattern Int -> Pattern Int -> ParamPattern -> ParamPattern
-striateL = temporalParam2 _striateL
-
-striateL' :: Pattern Int -> Pattern Double -> Pattern Int -> ParamPattern -> ParamPattern
-striateL' = temporalParam3 _striateL'
-
-_striateL :: Int -> Int -> ParamPattern -> ParamPattern
-_striateL n l p = _striate n p # loop (atom $ fromIntegral l)
-_striateL' n f l p = _striate' n f p # loop (atom $ fromIntegral l)
+striateL :: Int -> Int -> ParamPattern -> ParamPattern
+striateL n l p = _striate n p # loop (atom $ fromIntegral l)
+striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
 
 metronome = _slow 2 $ sound (p "[odx, [hh]*8]")
 
@@ -313,7 +266,7 @@ d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 -}
 
 stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ParamPattern -> ParamPattern
-stut = temporalParam3 _stut
+stut n g t p = unwrap $ (\a b c -> _stut a b c p) <$> n <*> g <*> t
 
 _stut :: Integer -> Double -> Rational -> ParamPattern -> ParamPattern
 _stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) `rotR` (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))

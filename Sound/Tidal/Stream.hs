@@ -1,24 +1,22 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, RankNTypes, NoMonomorphismRestriction, DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances, NoMonomorphismRestriction #-}
 
 module Sound.Tidal.Stream where
 
-import Data.Maybe
+import Data.Maybe (mapMaybe)
 import Control.Applicative
-import Control.Concurrent
-import Control.Concurrent.MVar
+import Control.Concurrent (MVar, putMVar, takeMVar, readMVar, swapMVar, newMVar, forkIO, threadDelay)
 import Control.Exception as E
 import Data.Time (getCurrentTime)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
-import Data.Ratio
-import Data.Typeable
-import Sound.Tidal.Pattern
+import Data.Ratio ((%))
+import Data.Typeable (Typeable(..))
+import Sound.Tidal.Pattern (Pattern(..), filterJust, seqToRelOnsetDeltas, silence)
 import qualified Sound.Tidal.Parse as P
 import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
-import Sound.Tidal.Utils
 import qualified Sound.Tidal.Time as T
-
 import qualified Data.Map.Strict as Map
 
+-- | OscStream.hs.makeConnection clarifies ToMessageFunc
 type ToMessageFunc = Shape -> Tempo -> Int -> (Double, Double, ParamMap) -> Maybe (IO ())
 
 data Backend a = Backend {
@@ -125,10 +123,11 @@ applyShape' :: Shape -> ParamMap -> Maybe ParamMap
 applyShape' s m | hasRequired s m = Just $ Map.union m (defaultMap s)
                 | otherwise = Nothing
 
-start :: Backend a -> Shape -> IO (MVar (ParamPattern))
-start backend shape
+-- PITFALL: jbb-chosen name, maybe wrong
+startBackend :: Backend a -> Shape -> IO (MVar (ParamPattern))
+startBackend backend shape
   = do patternM <- newMVar silence
-       let ot = (onTick backend shape patternM) :: Tempo -> Int -> IO ()
+       let ot = onTick backend shape patternM :: Tempo -> Int -> IO ()
        forkIO $ clockedTick ticksPerCycle ot
        return patternM
 
@@ -139,19 +138,6 @@ state backend shape
        let ot = (onTick' backend shape patternsM) :: Tempo -> Int -> IO ()
        forkIO $ clockedTick ticksPerCycle ot
        return patternsM
-
-stream :: Backend a -> Shape -> IO (ParamPattern -> IO ())
-stream backend shape
-  = do patternM <- start backend shape
-       return $ \p -> do swapMVar patternM p
-                         return ()
-
-streamcallback :: (ParamPattern -> IO ()) -> Backend a -> Shape -> IO (ParamPattern -> IO ())
-streamcallback callback backend shape
-  = do f <- stream backend shape
-       let f' p = do callback p
-                     f p
-       return f'
 
 onTick :: Backend a -> Shape -> MVar (ParamPattern) -> Tempo -> Int -> IO ()
 onTick backend shape patternM change ticks
