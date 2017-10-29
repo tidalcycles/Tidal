@@ -6,6 +6,7 @@ import Data.Maybe (mapMaybe)
 import Control.Applicative
 import Control.Concurrent (MVar, putMVar, takeMVar, readMVar, swapMVar, newMVar, forkIO, threadDelay)
 import Control.Exception as E
+import qualified Data.Set as Set
 import Data.Time (getCurrentTime)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Data.Ratio ((%))
@@ -99,8 +100,8 @@ required = filter (not . hasDefault) . params
 hasRequired :: Shape -> ParamMap -> Bool
 hasRequired s m = isSubset (required s) (Map.keys m)
 
-isSubset :: (Eq a) => [a] -> [a] -> Bool
-isSubset xs ys = all (\x -> elem x ys) xs
+isSubset :: (Ord a) => [a] -> [a] -> Bool
+isSubset as bs = Set.isSubsetOf (Set.fromList as) (Set.fromList bs)
 
 
 doAt t action = do _ <- forkIO $ do
