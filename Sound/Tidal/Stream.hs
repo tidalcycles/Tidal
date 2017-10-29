@@ -2,21 +2,18 @@
 
 module Sound.Tidal.Stream where
 
-import Data.Maybe
+import Data.Maybe (mapMaybe)
 import Control.Applicative
-import Control.Concurrent
-import Control.Concurrent.MVar
+import Control.Concurrent (MVar, putMVar, takeMVar, readMVar, swapMVar, newMVar, forkIO, threadDelay)
 import Control.Exception as E
 import Data.Time (getCurrentTime)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
-import Data.Ratio
-import Data.Typeable
-import Sound.Tidal.Pattern
+import Data.Ratio ((%))
+import Data.Typeable (Typeable(..))
+import Sound.Tidal.Pattern (Pattern(..), filterJust, seqToRelOnsetDeltas, silence)
 import qualified Sound.Tidal.Parse as P
 import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
-import Sound.Tidal.Utils
 import qualified Sound.Tidal.Time as T
-
 import qualified Data.Map.Strict as Map
 
 type ToMessageFunc = Shape -> Tempo -> Int -> (Double, Double, ParamMap) -> Maybe (IO ())
