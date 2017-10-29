@@ -1,14 +1,14 @@
 module Sound.Tidal.OscStream where
 
 import qualified Data.Map as Map
-import Data.Maybe
+import Data.Maybe (catMaybes)
 import Sound.Tidal.Tempo (Tempo, cps)
-import Sound.Tidal.Stream
-import Sound.Tidal.Utils
+import Sound.Tidal.Stream (Shape(..), Param(..), ToMessageFunc(..), ParamMap(..), Value(..), applyShape', logicalOnset', ticksPerCycle, doAt)
+import Sound.Tidal.Utils (mergelists)
 import GHC.Float (float2Double, double2Float)
-import Sound.OSC.FD
-import Sound.OSC.Datum
-import Sound.Tidal.Params
+import Sound.OSC.FD (Datum(Float), UDP, Bundle(..), Message(..)
+                    , sendOSC, openUDP, string, float, int32, ut_to_ntpr)
+import Sound.Tidal.Params (nudge_p)
 
 data TimeStamp = BundleStamp | MessageStamp | NoStamp
  deriving Eq
