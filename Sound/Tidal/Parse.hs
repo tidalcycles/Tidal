@@ -43,7 +43,7 @@ instance Parseable a => Monoid (TPat a) where
    mempty = TPat_Silence
    mappend = TPat_Overlay
 
-toPat :: Parseable a => TPat a -> Pattern a
+toPat :: Enumerable a => TPat a -> Pattern a
 toPat = \case
    TPat_Atom x -> atom x
    TPat_Density t x -> _density t $ toPat x
@@ -67,41 +67,49 @@ durations ((TPat_Elongate n):xs) = (n, TPat_Silence):(durations xs)
 durations (a:(TPat_Elongate n):xs) = (n+1,a):(durations xs)
 durations (a:xs) = (1,a):(durations xs)
 
-p :: Parseable a => String -> Pattern a
+p :: (Enumerable a, Parseable a) => String -> Pattern a
 p = toPat . parseTPat
 
 class Parseable a where
   parseTPat :: String -> TPat a
+
+class Enumerable a where
   fromTo :: a -> a -> Pattern a
   fromThenTo :: a -> a -> a -> Pattern a
 
 instance Parseable Double where
   parseTPat = parseRhythm pDouble
+instance Enumerable Double where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable String where
   parseTPat = parseRhythm pVocable
+instance Enumerable String where
   fromTo a b = listToPat [a,b]
   fromThenTo a b c = listToPat [a,b,c]
 
 instance Parseable Bool where
   parseTPat = parseRhythm pBool
+instance Enumerable Bool where
   fromTo a b = listToPat [a,b]
   fromThenTo a b c = listToPat [a,b,c]
 
 instance Parseable Int where
   parseTPat = parseRhythm pIntegral
+instance Enumerable Int where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable Integer where
   parseTPat s = parseRhythm pIntegral s
+instance Enumerable Integer where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable Rational where
   parseTPat = parseRhythm pRational
+instance Enumerable Rational where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
@@ -115,10 +123,11 @@ type ColourD = Colour Double
 
 instance Parseable ColourD where
   parseTPat = parseRhythm pColour
+instance Enumerable ColourD where
   fromTo a b = listToPat [a,b]
   fromThenTo a b c = listToPat [a,b,c]
 
-instance (Parseable a) => IsString (Pattern a) where
+instance (Enumerable a, Parseable a) => IsString (Pattern a) where
   fromString = toPat . parseTPat
 
 --instance (Parseable a, Pattern p) => IsString (p a) where
@@ -166,7 +175,7 @@ intOrFloat =  do s   <- sign
                             Left  x -> Left  (applySign s x)
                         )
 
-r :: Parseable a => String -> Pattern a -> IO (Pattern a)
+r :: (Enumerable a, Parseable a) => String -> Pattern a -> IO (Pattern a)
 r s orig = do E.handle 
                 (\err -> do putStrLn (show (err :: E.SomeException))
                             return orig 
