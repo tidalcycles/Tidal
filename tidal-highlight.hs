@@ -9,6 +9,10 @@ see function main below.
 The input text-area contains a Haskell expression  x  of type ParamPattern.
 This  x  will be evaluated, and "d1" will be applied to it.
 
+Note - evaluation uses the GHC API via "hint",
+and this needs the modules of tidal installed *globally*
+(cabal install --global), see https://github.com/mvdan/hint/issues/44
+
 Also,  x  will be parsed, and printed in such a way
 that the location of all strings in that expression is known,
 and locations can be highlighted.
@@ -28,6 +32,7 @@ import Control.Monad (void)
 import System.IO
 import qualified Language.Haskell.Interpreter as LHI
 import qualified Sound.Tidal.Context as STC
+import qualified Language.Haskell.Exts as LHE
 
 main :: IO()
 main = do  
@@ -50,23 +55,28 @@ setup d1 window = void $ do
 
   on UI.click submit $ \ _ -> do
     contents <- get value input
-    res <- liftIO $ do
-      hPutStrLn stderr contents
-      LHI.runInterpreter $ do
-        LHI.setImports [ "Sound.Tidal.Context", "Data.Map" ]
-        LHI.set [ LHI.languageExtensions LHI.:= [ LHI.OverloadedStrings ] ]
-        LHI.interpret contents (LHI.as :: STC.ParamPattern)
-    case res of
-      Right pp -> do
-        liftIO $ do
-          hPutStrLn stderr $ show pp
-          d1 pp
-        element output # set text contents
+    
+    case LHE.parseExp contents of
+      LHE.ParseFailed srclog msg -> do
+        void $ element errors # set text msg
+      LHE.ParseOk e -> do
         element errors # set text ""
-      Left  err -> do
-        liftIO $ do
-          hPutStrLn stderr $ show err
-        element errors # set text ( show err )
+        element output # set text (show e)
+        res <- liftIO $ do
+          hPutStrLn stderr contents
+          LHI.runInterpreter $ do
+            LHI.setImports [ "Sound.Tidal.Context", "Data.Map" ]
+            LHI.set [ LHI.languageExtensions LHI.:= [ LHI.OverloadedStrings ] ]
+            LHI.interpret contents (LHI.as :: STC.ParamPattern)
+        case res of
+          Right pp -> do
+            liftIO $ do
+              hPutStrLn stderr $ show pp
+              d1 pp
+          Left  err -> do
+            element errors # set text ( show err )
+            liftIO $ do
+              hPutStrLn stderr $ show err
   
   getBody window #+
     [ UI.h1 #+ [ string "tidal with live highlighting" ]

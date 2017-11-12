@@ -61,7 +61,7 @@ source-repository head
 
 executable tidal-highlight
  main-is: tidal-highlight.hs
- build-depends: base, tidal, threepenny-gui, hint
+ build-depends: base, tidal, threepenny-gui, hint, haskell-src-exts
   
 test-suite test
   default-language:
