@@ -1,5 +1,13 @@
-flags: {}
+resolver: nightly-2017-11-10
+
 packages:
-- '.'
-extra-deps:
-resolver: lts-9.6
+- .
+
+extra-deps: []
+
+flags: {}
+
+extra-package-dbs: []
+
+system-ghc: true
+compiler-check: newer-minor
