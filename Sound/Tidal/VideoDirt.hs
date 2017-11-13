@@ -1,5 +1,5 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
-module Video.Tidal.VideoDirt where
+module VideoDirt where
 
 import Sound.OSC.FD (Datum)
 import qualified Data.Map as Map
@@ -24,9 +24,17 @@ import Sound.Tidal.Time
 import Sound.Tidal.Tempo
 import Sound.Tidal.Transition (transition, wash)
 import Sound.Tidal.Utils (enumerate)
+import Sound.Tidal.Dirt
+
+(xpos, xpos_p)            = pF "xpos"       (Just 0)
+(ypos, ypos_p)            = pF "ypos"       (Just 0)
+(zpos, zpos_p)            = pF "zpos"       (Just 0)
+(mirror, mirror_p)        = pI "mirror"     (Just 0)
+(opacity, opacity_p)      = pF "opacity"    (Just 1)
+(blendmode, blendmode_p)  = pI "blendmode"  (Just 0)
 
 videoDirt :: Shape
-videodirt = Shape {   params = [ s_p,
+videoDirt = Shape {   params = [ s_p,
                             n_p,
                             begin_p,
                             end_p,
@@ -42,51 +50,22 @@ videodirt = Shape {   params = [ s_p,
                  latency = 0.3
                 }
 
-videoDirtSlang = OscSlang {
-  path = "/playVideo",
-  timestamp = MessageStamp,
-  namedParams = False,
-  preamble = []
-  }
+videoDirtSlang = dirtSlang { timestamp = BundleStamp, path = "/playVideo", namedParams = True }
 
-videoDirtBackend port = do
-  s <- makeConnection "127.0.0.1" port videoDirtSlang
+videoDirtBackend = do
+  s <- makeConnection "127.0.0.1" 7772 videoDirtSlang
   return $ Backend s (\_ _ _ -> return ())
 
-videoDirtState port = do
-  backend <- videoDirtBackend port
-  Sound.Tidal.Stream.state backend videodirt
+videoDirtStream = do
+  backend <- videoDirtBackend
+  stream backend videoDirt
 
+videoDirtState = do
+  backend <- videoDirtBackend
+  Sound.Tidal.Stream.state backend videoDirt
 
 videoDirtSetters :: IO Time -> IO (ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())
-videoDirtSetters getNow = do ds <- videoDirtState 57120
-                             return (setter ds, transition getNow ds)
+videoDirtSetters getNow = do
+                    ds <- videoDirtState
+                    return (setter ds, transition getNow ds)
 
-
-videoDirts :: [Int]  -> IO [(ParamPattern -> IO (), (Time -> [ParamPattern] -> ParamPattern) -> ParamPattern -> IO ())]
-videoDirts ports = do (_, getNow) <- cpsUtils
-                      states <- mapM (videoDirtState) ports
-                      return $ map (\state -> (setter state, transition getNow state)) states
-
--- -- disused parameter..
-dirtstream _ = dirtStream
-
-videoDirtToColour :: ParamPattern -> Pattern ColourD
-videoDirtToColour p = s
-  where s = fmap (\x -> maybe black (datumToColour) (Map.lookup (param videodirt "s") x)) p
-
-showToColour :: Show a => a -> ColourD
-showToColour = stringToColour . show
-
-datumToColour :: Value -> ColourD
-datumToColour = showToColour
-
-stringToColour :: String -> ColourD
-stringToColour s = sRGB (r/256) (g/256) (b/256)
-  where i = (hash s) `mod` 16777216
-        r = fromIntegral $ (i .&. 0xFF0000) `shiftR` 16;
-        g = fromIntegral $ (i .&. 0x00FF00) `shiftR` 8;
-        b = fromIntegral $ (i .&. 0x0000FF);
-
-pick :: String -> Int -> String
-pick name n = name ++ ":" ++ (show n)
