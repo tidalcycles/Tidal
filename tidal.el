@@ -131,19 +131,18 @@
   (kill-buffer tidal-buffer)
   (delete-other-windows))
 
-
-(defun chunk-string (n s)
-  "Split a string into chunks of 'n' characters."
+(defun tidal-chunk-string (n s)
+  "Split a string S into chunks of N characters."
   (let* ((l (length s))
          (m (min l n))
          (c (substring s 0 m)))
     (if (<= l n)
         (list c)
-      (cons c (chunk-string n (substring s n))))))
+      (cons c (tidal-chunk-string n (substring s n))))))
 
 (defun tidal-send-string (s)
   (if (comint-check-proc tidal-buffer)
-      (let ((cs (chunk-string 64 (concat s "\n"))))
+      (let ((cs (tidal-chunk-string 64 (concat s "\n"))))
         (mapcar (lambda (c) (comint-send-string tidal-buffer c)) cs))
     (error "no tidal process running?")))
 
