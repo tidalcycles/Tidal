@@ -458,6 +458,7 @@
     (tidal-mode-menu map)
     (setq tidal-mode-map map)))
 
+;;;###autoload
 (define-derived-mode
   literate-tidal-mode
   tidal-mode
@@ -469,9 +470,12 @@
   (setq haskell-literate 'bird)
   (turn-on-font-lock))
 
+;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.ltidal$" . literate-tidal-mode))
-;(add-to-list 'load-path "/usr/share/emacs/site-lisp/haskell-mode/") ;required by olig1905 on linux
-;(require 'haskell-mode) ;required by olig1905 on linux
+;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/haskell-mode/") ;required by olig1905 on linux
+;;(require 'haskell-mode) ;required by olig1905 on linux
+
+;;;###autoload
 (define-derived-mode
   tidal-mode
   haskell-mode
@@ -482,6 +486,7 @@
   (setq tidal-literate-p nil)
   (turn-on-font-lock))
 
+;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.tidal$" . tidal-mode))
 
 (provide 'tidal)
