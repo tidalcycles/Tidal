@@ -58,6 +58,9 @@
   t
   "*Flag to indicate if we are in literate mode (default=t).")
 
+(defvar tidal-modules nil
+  "Additional module imports.  See `tidal-run-region'.")
+
 (make-variable-buffer-local 'tidal-literate-p)
 
 (defun tidal-unlit (s)
