@@ -131,15 +131,6 @@
   (kill-buffer tidal-buffer)
   (delete-other-windows))
 
-(defun tidal-help ()
-  "Lookup up the name at point in the Help files."
-  (interactive)
-  (mapc (lambda (filename)
-	  (find-file-other-window filename))
-	(find-lisp-find-files tidal-help-directory
-			      (concat "^"
-				      (thing-at-point 'symbol)
-				      "\\.help\\.lhs"))))
 
 (defun chunk-string (n s)
   "Split a string into chunks of 'n' characters."
@@ -399,7 +390,6 @@
   (define-key map [?\C-c ?\C-l] 'tidal-load-buffer)
   (define-key map [?\C-c ?\C-i] 'tidal-interrupt-haskell)
   (define-key map [?\C-c ?\C-m] 'tidal-run-main)
-  (define-key map [?\C-c ?\C-h] 'tidal-help)
   (define-key map [?\C-c ?\C-1] 'tidal-run-d1)
   (define-key map [?\C-c ?\C-2] 'tidal-run-d2)
   (define-key map [?\C-c ?\C-3] 'tidal-run-d3)
@@ -431,7 +421,6 @@
   (local-set-key [?\C-c ?\C-l] 'tidal-load-buffer)
   (local-set-key [?\C-c ?\C-i] 'tidal-interrupt-haskell)
   (local-set-key [?\C-c ?\C-m] 'tidal-run-main)
-  (local-set-key [?\C-c ?\C-h] 'tidal-help)
   (local-set-key [?\C-c ?\C-1] 'tidal-run-d1)
   (local-set-key [?\C-c ?\C-2] 'tidal-run-d2)
   (local-set-key [?\C-c ?\C-3] 'tidal-run-d3)
