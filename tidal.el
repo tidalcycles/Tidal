@@ -1,5 +1,28 @@
-;; tidal.el - (c) alex@slab.org, 20012, based heavily on...
-;; hsc3.el - (c) rohan drape, 2006-2008
+;;; tidal.el --- Interact with TidalCycles for live coding patterns  -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2012  alex@slab.org
+;; Copyright (C) 2006-2008  rohan drape (hsc3.el)
+
+;; Author: alex@slab.org
+;; Homepage: https://github.com/tidalcycles/Tidal
+;; Version: 0
+;; Keywords: tools
+;; Package-Requires: ((haskell-mode "16") (emacs "24"))
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
 
 ;; notes from hsc3:
 ;; This mode is implemented as a derivation of `haskell' mode,
@@ -8,11 +31,15 @@
 ;; point acquisition is courtesy `thingatpt'.  The directory search
 ;; facilities are courtesy `find-lisp'.
 
+;;; Code:
+
+
 (require 'scheme)
 (require 'comint)
 (require 'thingatpt)
 (require 'find-lisp)
 (require 'pulse)
+(require 'haskell-mode)
 
 (defvar tidal-buffer
   "*tidal*"
@@ -490,3 +517,4 @@
 (add-to-list 'auto-mode-alist '("\\.tidal$" . tidal-mode))
 
 (provide 'tidal)
+;;; tidal.el ends here
