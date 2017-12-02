@@ -61,12 +61,12 @@
 (make-variable-buffer-local 'tidal-literate-p)
 
 (defun tidal-unlit (s)
-  "Remove bird literate marks"
+  "Remove bird literate marks in S."
   (replace-regexp-in-string "^> " "" s))
 
 (defun tidal-intersperse (e l)
-  (if (null l)
-      '()
+  "Insert E between every element of list L."
+  (when l
     (cons e (cons (car l) (tidal-intersperse e (cdr l))))))
 
 (defun tidal-start-haskell ()
@@ -478,8 +478,7 @@
   (define-key map [menu-bar tidal haskell start-haskell]
     '("Start haskell" . tidal-start-haskell)))
 
-(if tidal-mode-map
-    ()
+(unless tidal-mode-map
   (let ((map (make-sparse-keymap "Haskell-Tidal")))
     (tidal-mode-keybindings map)
     (tidal-mode-menu map)
