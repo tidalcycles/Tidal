@@ -179,7 +179,7 @@
 	       s)))
     (tidal-send-string s*))
   (pulse-momentary-highlight-one-line (point))
-  (next-line)
+  (forward-line)
   )
 
 (defun tidal-eval-multiple-lines ()
