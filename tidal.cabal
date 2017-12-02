@@ -46,7 +46,7 @@ library
     , containers
     , hashable
     , colour
-    , hosc > 0.13
+    , hosc > 0.13, hosc <= 0.15
     , text
     , mersenne-random-pure64
     , time
