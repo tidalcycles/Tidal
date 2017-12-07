@@ -1,10 +1,10 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module Sound.Tidal.Dirt where
 
-import Sound.OSC.FD (Datum)
-import qualified Data.Map as Map
+--import Sound.OSC.FD (Datum)
+--import qualified Data.Map as Map
 import Control.Applicative
-import Control.Concurrent.MVar
+--import Control.Concurrent.MVar
 --import Visual
 import Data.Colour.SRGB
 import Data.Colour.Names
@@ -15,13 +15,13 @@ import Data.Fixed
 import Data.Ratio
 import Data.List (elemIndex, sort)
 
-import Sound.Tidal.Stream
-import Sound.Tidal.OscStream
-import Sound.Tidal.Pattern
-import Sound.Tidal.Parse
-import Sound.Tidal.Params
-import Sound.Tidal.Time
-import Sound.Tidal.Tempo
+import Sound.Tidal.Stream (Backend(..), Shape(..), Value(..), ParamPattern(..), state, latency, cpsStamp, params, follow, copyParam, (|*|), (#), (|*|), (|+|), setter, stream)
+import Sound.Tidal.OscStream (TimeStamp(..), OscSlang(..), makeConnection, namedParams, path, timestamp, preamble)
+import Sound.Tidal.Pattern (Pattern(..), envL, rotR, temporalParam, fastcat, atom, spread', overlay, envEq, envEqR, silence, _slow, unwrap, stack, fadeIn', fadeOut')
+import Sound.Tidal.Parse (ColourD(..), p)
+import Sound.Tidal.Params (s_p, orbit_p, n_p, gain, gain_p, loop, sound, end, begin, release_p, hold_p, attack_p, loop_p, unit_p, bandq_p, bandf_p, hresonance_p, hcutoff_p, coarse_p, crush_p, delayfeedback_p, delaytime_p, delay_p, cut_p, kriole_p, shape_p, accelerate_p, resonance_p, cutoff_p, vowel_p, velocity_p, pan_p, speed_p, end_p, begin_p, offset_p)
+import Sound.Tidal.Time (Time(..))
+import Sound.Tidal.Tempo (cpsUtils)
 import Sound.Tidal.Transition (transition, wash)
 import Sound.Tidal.Utils (enumerate, fst')
 
