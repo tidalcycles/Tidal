@@ -1362,7 +1362,7 @@ randStruct n = splitQueries $ Pattern f
                          ) $ enumerate $ thd' $ head $ arc (randArcs n) (sam s, nextSam s)
 
 substruct' :: Pattern Int -> Pattern a -> Pattern a
-substruct' s p = Pattern $ \a -> concatMap (\(a', _, i) -> arc (compressTo a' (inside (1/toRational(length (arc s (sam (fst a), nextSam (fst a))))) (rotR (toRational i)) p)) a') (arc s a)
+substruct' s p = Pattern $ \a -> concatMap (\(a', _, i) -> arc (compressTo a' (inside (pure $ 1/toRational(length (arc s (sam (fst a), nextSam (fst a))))) (rotR (toRational i)) p)) a') (arc s a)
 
 -- | @stripe n p@: repeats pattern @p@, @n@ times per cycle. So
 -- similar to @fast@, but with random durations. The repetitions will
@@ -1510,10 +1510,10 @@ chunk' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
 runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 runWith' = chunk'
 
-inside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
-inside n f p = _density n $ f (_slow n p)
+inside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
+inside n f p = density n $ f (slow n p)
 
-outside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
+outside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 outside n = inside (1/n)
 
 loopFirst :: Pattern a -> Pattern a
@@ -1522,11 +1522,11 @@ loopFirst p = splitQueries $ Pattern f
           where minus = mapArc (subtract (sam s))
                 plus = mapArc (+ (sam s))
 
-timeLoop :: Time -> Pattern a -> Pattern a
+timeLoop :: Pattern Time -> Pattern a -> Pattern a
 timeLoop n = outside n loopFirst
 
 seqPLoop :: [(Time, Time, Pattern a)] -> Pattern a
-seqPLoop ps = timeLoop (maxT - minT) $ minT `rotL` seqP ps
+seqPLoop ps = timeLoop (pure $ maxT - minT) $ minT `rotL` seqP ps
   where minT = minimum $ map fst' ps
         maxT = maximum $ map snd' ps
 
@@ -1548,11 +1548,11 @@ toScale = toScale' 12
 the second half of each slice by `x` fraction of a slice . @swing@ is an alias
 for `swingBy (1%3)`
 -}
-swingBy::Time -> Time -> Pattern a -> Pattern a
-swingBy x n = inside n (within (0.5,1) (x `rotR`))
+swingBy :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
+swingBy x n = inside n (within (0.5,1) (x ~>))
 
-swing :: Time -> Pattern a -> Pattern a
-swing = swingBy (1%3)
+swing :: Pattern Time -> Pattern a -> Pattern a
+swing = swingBy (pure $ 1%3)
 
 {- | `cycleChoose` is like `choose` but only picks a new item from the list
 once each cycle -}
@@ -1606,7 +1606,7 @@ ur' t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . spl
         adjust (a, (p, f)) = f a p
         transform (x:_) a = transform' x a
         transform _ _ = id
-        transform' str (s,e) p = s `rotR` (inside (1/(e-s)) (matchF str) p)
+        transform' str (s,e) p = s `rotR` (inside (pure $ 1/(e-s)) (matchF str) p)
         matchF str = fromMaybe id $ lookup str fs
 
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
