@@ -1633,3 +1633,31 @@ flatpat p = Pattern $ \a -> (concatMap (\(b,b',xs) -> map (\x -> (b,b',x)) xs) $
 -- separate Events
 layer :: [a -> Pattern b] -> a -> Pattern b
 layer fs p = stack $ map ($ p) fs
+
+breakUp :: Pattern a -> Pattern a
+breakUp p = Pattern $ \a -> munge $ arc p a
+  where munge es = concatMap spreadOut (groupBy (\a b -> fst' a == fst' b) es)
+        spreadOut xs = catMaybes $ map (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
+        shiftIt n d ((s,e), a', v) = do a'' <- subArc (newS, newE) a'
+                                        return ((newS, newE), a'', v)
+          where newS = s + (dur*(fromIntegral n))
+                newE = newS + dur
+                dur = (e - s) / (fromIntegral d)
+
+fill :: Pattern a -> Pattern a -> Pattern a
+fill p' p = struct (splitQueries $ Pattern (f p)) p'
+  where
+    f p (s,e) = removeTolerance (s,e) $ invert (s-tolerance, e+tolerance) $ arc p (s-tolerance, e+tolerance)
+    invert (s,e) es = map arcToEvent $ foldr remove [(s,e)] (map snd' es)
+    remove (s,e) xs = concatMap (remove' (s, e)) xs
+    remove' (s,e) (s',e') | s > s' && e < e' = [(s',s),(e,e')] -- inside
+                          | s > s' && s < e' = [(s',s)] -- cut off right
+                          | e > s' && e < e' = [(e,e')] -- cut off left
+                          | s <= s' && e >= e' = [] -- swallow
+                          | otherwise = [(s',e')] -- miss
+    arcToEvent a = (a,a,"x")
+    removeTolerance (s,e) es = concatMap (expand) $ mapSnds' f es
+      where f (a) = concatMap (remove' (e,e+tolerance)) $ remove' (s-tolerance,s) a
+            expand (a,xs,c) = map (\x -> (a,x,c)) xs
+    tolerance = 0.01
+
