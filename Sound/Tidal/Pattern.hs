@@ -1,4 +1,3 @@
-
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-name-shadowing #-}
 
@@ -1662,4 +1661,3 @@ fill p' p = struct (splitQueries $ Pattern (f p)) p'
       where f (a) = concatMap (remove' (e,e+tolerance)) $ remove' (s-tolerance,s) a
             expand (a,xs,c) = map (\x -> (a,x,c)) xs
     tolerance = 0.01
-

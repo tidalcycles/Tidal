@@ -1,5 +1,28 @@
-;; tidal.el - (c) alex@slab.org, 20012, based heavily on...
-;; hsc3.el - (c) rohan drape, 2006-2008
+;;; tidal.el --- Interact with TidalCycles for live coding patterns  -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2012  alex@slab.org
+;; Copyright (C) 2006-2008  rohan drape (hsc3.el)
+
+;; Author: alex@slab.org
+;; Homepage: https://github.com/tidalcycles/Tidal
+;; Version: 0
+;; Keywords: tools
+;; Package-Requires: ((haskell-mode "16") (emacs "24"))
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
 
 ;; notes from hsc3:
 ;; This mode is implemented as a derivation of `haskell' mode,
@@ -8,11 +31,15 @@
 ;; point acquisition is courtesy `thingatpt'.  The directory search
 ;; facilities are courtesy `find-lisp'.
 
+;;; Code:
+
+
 (require 'scheme)
 (require 'comint)
 (require 'thingatpt)
 (require 'find-lisp)
 (require 'pulse)
+(require 'haskell-mode)
 
 (defvar tidal-buffer
   "*tidal*"
@@ -31,15 +58,18 @@
   t
   "*Flag to indicate if we are in literate mode (default=t).")
 
+(defvar tidal-modules nil
+  "Additional module imports.  See `tidal-run-region'.")
+
 (make-variable-buffer-local 'tidal-literate-p)
 
 (defun tidal-unlit (s)
-  "Remove bird literate marks"
+  "Remove bird literate marks in S."
   (replace-regexp-in-string "^> " "" s))
 
 (defun tidal-intersperse (e l)
-  (if (null l)
-      '()
+  "Insert E between every element of list L."
+  (when l
     (cons e (cons (car l) (tidal-intersperse e (cdr l))))))
 
 (defun tidal-start-haskell ()
@@ -104,28 +134,18 @@
   (kill-buffer tidal-buffer)
   (delete-other-windows))
 
-(defun tidal-help ()
-  "Lookup up the name at point in the Help files."
-  (interactive)
-  (mapc (lambda (filename)
-	  (find-file-other-window filename))
-	(find-lisp-find-files tidal-help-directory
-			      (concat "^"
-				      (thing-at-point 'symbol)
-				      "\\.help\\.lhs"))))
-
-(defun chunk-string (n s)
-  "Split a string into chunks of 'n' characters."
+(defun tidal-chunk-string (n s)
+  "Split a string S into chunks of N characters."
   (let* ((l (length s))
          (m (min l n))
          (c (substring s 0 m)))
     (if (<= l n)
         (list c)
-      (cons c (chunk-string n (substring s n))))))
+      (cons c (tidal-chunk-string n (substring s n))))))
 
 (defun tidal-send-string (s)
   (if (comint-check-proc tidal-buffer)
-      (let ((cs (chunk-string 64 (concat s "\n"))))
+      (let ((cs (tidal-chunk-string 64 (concat s "\n"))))
         (mapcar (lambda (c) (comint-send-string tidal-buffer c)) cs))
     (error "no tidal process running?")))
 
@@ -161,7 +181,7 @@
 	       s)))
     (tidal-send-string s*))
   (pulse-momentary-highlight-one-line (point))
-  (next-line)
+  (forward-line)
   )
 
 (defun tidal-eval-multiple-lines ()
@@ -372,7 +392,6 @@
   (define-key map [?\C-c ?\C-l] 'tidal-load-buffer)
   (define-key map [?\C-c ?\C-i] 'tidal-interrupt-haskell)
   (define-key map [?\C-c ?\C-m] 'tidal-run-main)
-  (define-key map [?\C-c ?\C-h] 'tidal-help)
   (define-key map [?\C-c ?\C-1] 'tidal-run-d1)
   (define-key map [?\C-c ?\C-2] 'tidal-run-d2)
   (define-key map [?\C-c ?\C-3] 'tidal-run-d3)
@@ -404,7 +423,6 @@
   (local-set-key [?\C-c ?\C-l] 'tidal-load-buffer)
   (local-set-key [?\C-c ?\C-i] 'tidal-interrupt-haskell)
   (local-set-key [?\C-c ?\C-m] 'tidal-run-main)
-  (local-set-key [?\C-c ?\C-h] 'tidal-help)
   (local-set-key [?\C-c ?\C-1] 'tidal-run-d1)
   (local-set-key [?\C-c ?\C-2] 'tidal-run-d2)
   (local-set-key [?\C-c ?\C-3] 'tidal-run-d3)
@@ -451,13 +469,13 @@
   (define-key map [menu-bar tidal haskell start-haskell]
     '("Start haskell" . tidal-start-haskell)))
 
-(if tidal-mode-map
-    ()
+(unless tidal-mode-map
   (let ((map (make-sparse-keymap "Haskell-Tidal")))
     (tidal-mode-keybindings map)
     (tidal-mode-menu map)
     (setq tidal-mode-map map)))
 
+;;;###autoload
 (define-derived-mode
   literate-tidal-mode
   tidal-mode
@@ -469,9 +487,12 @@
   (setq haskell-literate 'bird)
   (turn-on-font-lock))
 
+;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.ltidal$" . literate-tidal-mode))
-;(add-to-list 'load-path "/usr/share/emacs/site-lisp/haskell-mode/") ;required by olig1905 on linux
-;(require 'haskell-mode) ;required by olig1905 on linux
+;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/haskell-mode/") ;required by olig1905 on linux
+;;(require 'haskell-mode) ;required by olig1905 on linux
+
+;;;###autoload
 (define-derived-mode
   tidal-mode
   haskell-mode
@@ -482,6 +503,8 @@
   (setq tidal-literate-p nil)
   (turn-on-font-lock))
 
+;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.tidal$" . tidal-mode))
 
 (provide 'tidal)
+;;; tidal.el ends here

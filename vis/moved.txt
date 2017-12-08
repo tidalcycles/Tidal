@@ -1,3 +1,0 @@
-This package has moved to its own repository:
-  https://github.com/tidalcycles/tidal-vis
-
