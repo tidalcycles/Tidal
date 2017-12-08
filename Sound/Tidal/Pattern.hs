@@ -305,8 +305,20 @@ _scan n = slowcat $ map _run [1 .. n]
 temporalParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 temporalParam f tv p = unwrap $ (\v -> f v p) <$> tv
 
+temporalParam2 :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)
+temporalParam2 f a b p = unwrap $ (\x y -> f x y p) <$> a <*> b
+
+temporalParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
+temporalParam3 f a b c p = unwrap $ (\x y z -> f x y z p) <$> a <*> b <*> c
+
 temporalParam' :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 temporalParam' f tv p = unwrap' $ (\v -> f v p) <$> tv
+
+temporalParam2' :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)
+temporalParam2' f a b p = unwrap' $ (\x y -> f x y p) <$> a <*> b
+
+temporalParam3' :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
+temporalParam3' f a b c p = unwrap' $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 -- | @fast@ (also known as @density@) returns the given pattern with speed
 -- (or density) increased by the given @Time@ factor. Therefore @fast 2 p@
@@ -327,7 +339,9 @@ density :: Pattern Time -> Pattern a -> Pattern a
 density = fast
 
 _density :: Time -> Pattern a -> Pattern a
-_density r p = withResultTime (/ r) $ withQueryTime (* r) p
+_density r p | r == 0 = silence
+             | r < 0 = rev $ _density (0-r) p
+             | otherwise = withResultTime (/ r) $ withQueryTime (* r) p
 
 -- | @fastGap@ (also known as @densityGap@ is similar to @fast@ but maintains its cyclic
 -- alignment. For example, @fastGap 2 p@ would squash the events in
@@ -489,8 +503,11 @@ _every 0 _ p = p
 _every n f p = when ((== 0) . (`mod` n)) f p
 
 -- | @every n o f'@ is like @every n f@ with an offset of @o@ cycles
-every' :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-every' n o f = when ((== o) . (`mod` n)) f
+every' :: Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+every' np op f p = do { n <- np; o <- op; _every' n o f p }
+
+_every' :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_every' n o f = when ((== o) . (`mod` n)) f
 
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
 -- each cycle in @ns@.
@@ -1344,7 +1361,7 @@ randStruct n = splitQueries $ Pattern f
                          ) $ enumerate $ thd' $ head $ arc (randArcs n) (sam s, nextSam s)
 
 substruct' :: Pattern Int -> Pattern a -> Pattern a
-substruct' s p = Pattern $ \a -> concatMap (\(a', _, i) -> arc (compressTo a' (inside (1/toRational(length (arc s (sam (fst a), nextSam (fst a))))) (rotR (toRational i)) p)) a') (arc s a)
+substruct' s p = Pattern $ \a -> concatMap (\(a', _, i) -> arc (compressTo a' (inside (pure $ 1/toRational(length (arc s (sam (fst a), nextSam (fst a))))) (rotR (toRational i)) p)) a') (arc s a)
 
 -- | @stripe n p@: repeats pattern @p@, @n@ times per cycle. So
 -- similar to @fast@, but with random durations. The repetitions will
@@ -1492,10 +1509,10 @@ chunk' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
 runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 runWith' = chunk'
 
-inside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
-inside n f p = _density n $ f (_slow n p)
+inside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
+inside n f p = density n $ f (slow n p)
 
-outside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
+outside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 outside n = inside (1/n)
 
 loopFirst :: Pattern a -> Pattern a
@@ -1504,11 +1521,11 @@ loopFirst p = splitQueries $ Pattern f
           where minus = mapArc (subtract (sam s))
                 plus = mapArc (+ (sam s))
 
-timeLoop :: Time -> Pattern a -> Pattern a
+timeLoop :: Pattern Time -> Pattern a -> Pattern a
 timeLoop n = outside n loopFirst
 
 seqPLoop :: [(Time, Time, Pattern a)] -> Pattern a
-seqPLoop ps = timeLoop (maxT - minT) $ minT `rotL` seqP ps
+seqPLoop ps = timeLoop (pure $ maxT - minT) $ minT `rotL` seqP ps
   where minT = minimum $ map fst' ps
         maxT = maximum $ map snd' ps
 
@@ -1530,11 +1547,11 @@ toScale = toScale' 12
 the second half of each slice by `x` fraction of a slice . @swing@ is an alias
 for `swingBy (1%3)`
 -}
-swingBy::Time -> Time -> Pattern a -> Pattern a
-swingBy x n = inside n (within (0.5,1) (x `rotR`))
+swingBy :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
+swingBy x n = inside n (within (0.5,1) (x ~>))
 
-swing :: Time -> Pattern a -> Pattern a
-swing = swingBy (1%3)
+swing :: Pattern Time -> Pattern a -> Pattern a
+swing = swingBy (pure $ 1%3)
 
 {- | `cycleChoose` is like `choose` but only picks a new item from the list
 once each cycle -}
@@ -1588,7 +1605,7 @@ ur' t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . spl
         adjust (a, (p, f)) = f a p
         transform (x:_) a = transform' x a
         transform _ _ = id
-        transform' str (s,e) p = s `rotR` (inside (1/(e-s)) (matchF str) p)
+        transform' str (s,e) p = s `rotR` (inside (pure $ 1/(e-s)) (matchF str) p)
         matchF str = fromMaybe id $ lookup str fs
 
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
@@ -1605,3 +1622,42 @@ spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compress a p) $
         markOut offset (x:xs) = (offset,offset+x):(markOut (offset+x) xs)
         spaceArcs xs = map (\(a,b) -> (a/s,b/s)) $ markOut 0 xs
         s = sum xs
+
+-- | @flatpat@ takes a Pattern of lists and pulls the list elements as
+-- separate Events
+flatpat :: Pattern [a] -> Pattern a
+flatpat p = Pattern $ \a -> (concatMap (\(b,b',xs) -> map (\x -> (b,b',x)) xs) $ arc p a)
+
+-- | @layer@ takes a Pattern of lists and pulls the list elements as
+-- separate Events
+layer :: [a -> Pattern b] -> a -> Pattern b
+layer fs p = stack $ map ($ p) fs
+
+-- | @breakUp@ finds events that share the same timespan, and spreads them out during that timespan, so for example @breakUp "[bd,sn]"@ gets turned into @"bd sn"@
+breakUp :: Pattern a -> Pattern a
+breakUp p = Pattern $ \a -> munge $ arc p a
+  where munge es = concatMap spreadOut (groupBy (\a b -> fst' a == fst' b) es)
+        spreadOut xs = catMaybes $ map (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
+        shiftIt n d ((s,e), a', v) = do a'' <- subArc (newS, newE) a'
+                                        return ((newS, newE), a'', v)
+          where newS = s + (dur*(fromIntegral n))
+                newE = newS + dur
+                dur = (e - s) / (fromIntegral d)
+
+-- | @fill@ 'fills in' gaps in one pattern with events from another. For example @fill "bd" "cp ~ cp"@ would result in the equivalent of `"~ bd ~"`. This only finds gaps in a resulting pattern, in other words @"[bd ~, sn]"@ doesn't contain any gaps (because @sn@ covers it all), and @"bd ~ ~ sn"@ only contains a single gap that bridges two steps.
+fill :: Pattern a -> Pattern a -> Pattern a
+fill p' p = struct (splitQueries $ Pattern (f p)) p'
+  where
+    f p (s,e) = removeTolerance (s,e) $ invert (s-tolerance, e+tolerance) $ arc p (s-tolerance, e+tolerance)
+    invert (s,e) es = map arcToEvent $ foldr remove [(s,e)] (map snd' es)
+    remove (s,e) xs = concatMap (remove' (s, e)) xs
+    remove' (s,e) (s',e') | s > s' && e < e' = [(s',s),(e,e')] -- inside
+                          | s > s' && s < e' = [(s',s)] -- cut off right
+                          | e > s' && e < e' = [(e,e')] -- cut off left
+                          | s <= s' && e >= e' = [] -- swallow
+                          | otherwise = [(s',e')] -- miss
+    arcToEvent a = (a,a,"x")
+    removeTolerance (s,e) es = concatMap (expand) $ mapSnds' f es
+      where f (a) = concatMap (remove' (e,e+tolerance)) $ remove' (s-tolerance,s) a
+            expand (a,xs,c) = map (\x -> (a,x,c)) xs
+    tolerance = 0.01

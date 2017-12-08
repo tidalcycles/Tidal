@@ -37,6 +37,7 @@ library
                        Sound.Tidal.Transition
                        Sound.Tidal.Scales
                        Sound.Tidal.Chords
+                       Sound.Tidal.Sieve
                        Sound.Tidal.Version
                        -- Sound.Tidal.PatternList
 
@@ -45,7 +46,7 @@ library
     , containers
     , hashable
     , colour
-    , hosc > 0.13
+    , hosc > 0.13, hosc <= 0.15
     , text
     , mersenne-random-pure64
     , time
