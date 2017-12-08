@@ -8,6 +8,11 @@
 * Added `stripe` which repeats a pattern a given number of times per
   cycle, with random but contiguous durations.
 * Added continuous function `cosine`
+* Turned more pattern transformation parameters into patterns - spread', striateX, every', inside, outside, swing
+* Added experimental datatype for Xenakis sieves
+* Correctly parse negative rationals
+* Added `breakUp` that finds events that share the same timespan, and spreads them out during that timespan, so for example (breakUp "[bd,sn]") gets turned into the "bd sn"
+* Added `fill` which 'fills in' gaps in one pattern with events from another. 
 
 ## 0.9.4
 
