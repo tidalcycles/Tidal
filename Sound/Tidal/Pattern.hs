@@ -1634,6 +1634,7 @@ flatpat p = Pattern $ \a -> (concatMap (\(b,b',xs) -> map (\x -> (b,b',x)) xs) $
 layer :: [a -> Pattern b] -> a -> Pattern b
 layer fs p = stack $ map ($ p) fs
 
+-- | @breakUp@ finds events that share the same timespan, and spreads them out during that timespan, so for example @breakUp "[bd,sn]"@ gets turned into @"bd sn"@
 breakUp :: Pattern a -> Pattern a
 breakUp p = Pattern $ \a -> munge $ arc p a
   where munge es = concatMap spreadOut (groupBy (\a b -> fst' a == fst' b) es)
@@ -1644,6 +1645,7 @@ breakUp p = Pattern $ \a -> munge $ arc p a
                 newE = newS + dur
                 dur = (e - s) / (fromIntegral d)
 
+-- | @fill@ 'fills in' gaps in one pattern with events from another. For example @fill "bd" "cp ~ cp"@ would result in the equivalent of `"~ bd ~"`. This only finds gaps in a resulting pattern, in other words @"[bd ~, sn]"@ doesn't contain any gaps (because @sn@ covers it all), and @"bd ~ ~ sn"@ only contains a single gap that bridges two steps.
 fill :: Pattern a -> Pattern a -> Pattern a
 fill p' p = struct (splitQueries $ Pattern (f p)) p'
   where
