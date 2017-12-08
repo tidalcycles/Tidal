@@ -98,14 +98,6 @@ m13 = [0,3,7,10,14,17,21]
 chordate :: Num b => [[b]] -> b -> Int -> [b]
 chordate cs m n = map (+m) $ cs!!n
 
--- | @flatpat@ takes a Pattern of lists and pulls the list elements as
--- separate Events
-flatpat :: Pattern [a] -> Pattern a
-flatpat p = stack [unMaybe $ fmap (`maybeInd` i) p | i <- [0..9]]
-  where maybeInd xs i | i < length xs = Just $ xs!!i
-                      | otherwise = Nothing
-        unMaybe = (fromJust <$>) . filterValues isJust
-
 -- | @enchord chords pn pc@ turns every note in the note pattern @pn@ into
 -- a chord, selecting from the chord lists @chords@ using the index pattern
 -- @pc@.  For example, @Chords.enchord [Chords.major Chords.minor] "c g" "0 1"@
