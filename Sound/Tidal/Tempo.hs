@@ -20,6 +20,7 @@ import Safe (readNote)
 import System.Environment (lookupEnv)
 import qualified System.IO.Error as Error
 import GHC.Conc.Sync (ThreadId)
+import Sound.OSC.Datum.Datem
 import Sound.OSC.FD
 
 import Sound.Tidal.Utils
