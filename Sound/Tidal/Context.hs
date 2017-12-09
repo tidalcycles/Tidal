@@ -20,4 +20,4 @@ import Sound.Tidal.Transition as C
 import Sound.Tidal.Version as C
 import qualified Sound.Tidal.Scales as Scales
 import qualified Sound.Tidal.Chords as Chords
-
+import Video.Tidal.VideoDirt as C
