@@ -104,3 +104,58 @@ chordate cs m n = map (+m) $ cs!!n
 -- will create a pattern of a C-major chord followed by a G-minor chord.
 enchord :: Num a => [[a]] -> Pattern a -> Pattern Int -> Pattern a
 enchord chords pn pc = flatpat $ (chordate chords) <$> pn <*> pc
+
+chordTable :: Num a => [(String, [a])]
+chordTable = [("major", major),
+              ("minor", minor),
+              ("major7", major7),
+              ("dom7", dom7),
+              ("minor7", minor7),
+              ("aug", aug),
+              ("dim", dim),
+              ("dim7", dim7),
+              ("one", one),
+              ("five", five),
+              ("plus", plus),
+              ("sharp5", sharp5),
+              ("msharp5", msharp5),
+              ("sus2", sus2),
+              ("sus4", sus4),
+              ("six", six),
+              ("m6", m6),
+              ("sevenSus2", sevenSus2),
+              ("sevenSus4", sevenSus4),
+              ("sevenFlat5", sevenFlat5),
+              ("m7flat5", m7flat5),
+              ("sevenSharp5", sevenSharp5),
+              ("m7sharp5", m7sharp5),
+              ("nine", nine),
+              ("m9", m9),
+              ("m7sharp9", m7sharp9),
+              ("maj9", maj9),
+              ("nineSus4", nineSus4),
+              ("sixby9", sixby9),
+              ("m6by9", m6by9),
+              ("sevenFlat9", sevenFlat9),
+              ("m7flat9", m7flat9),
+              ("sevenFlat10", sevenFlat10),
+              ("nineSharp5", nineSharp5),
+              ("m9sharp5", m9sharp5),
+              ("sevenSharp5flat9", sevenSharp5flat9),
+              ("m7sharp5flat9", m7sharp5flat9),
+              ("eleven", eleven),
+              ("m11", m11),
+              ("maj11", maj11),
+              ("evelenSharp", evelenSharp),
+              ("m11sharp", m11sharp),
+              ("thirteen", thirteen),
+              ("m13", m13)
+             ]
+
+chordL :: Num a => Pattern String -> Pattern [a]
+chordL p = (\name -> fromMaybe [] $ lookup name chordTable) <$> p
+
+-- | @chord p@ turns a pattern of chord names into a pattern of
+-- numbers, representing note value offsets for the chords
+chord :: Num a => Pattern String -> Pattern a
+chord p = flatpat $ chordL p
