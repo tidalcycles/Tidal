@@ -1,7 +1,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module Sound.Tidal.Dirt where
 
-import Sound.OSC.FD (Datum)
+import Sound.OSC.Datum (Datum)
 import qualified Data.Map as Map
 import Control.Applicative
 import Control.Concurrent.MVar
