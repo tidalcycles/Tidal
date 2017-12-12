@@ -1,5 +1,11 @@
 # TidalCycles log of changes
 
+## 0.96
+
+### Enhancements
+
+* Added `chord` for chord patterns and `scaleP` for scale patterns
+
 ## 0.9.5
 
 ### Enhancements
