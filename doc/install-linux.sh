@@ -4,7 +4,7 @@ echo -e "\n[ Welcome to the TidalCycles linux install script. It will probably o
 
 echo -e "\n[ Installing dependencies.. ]"
 sudo apt-get update
-sudo apt-get -y install build-essential git qjackctl cabal-install zlib1g-dev libportmidi-dev libasound2-dev
+sudo apt-get -y install build-essential git qjackctl cabal-install zlib1g-dev libportmidi-dev libasound2-dev haskell-stack
 
 mkdir ~/tidal-tmp
 
