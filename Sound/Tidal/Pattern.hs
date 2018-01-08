@@ -1583,21 +1583,8 @@ scramble::Int -> Pattern a -> Pattern a
 scramble n = fit' 1 n (_run n) (_density (fromIntegral n) $
   liftA2 (+) (pure 0) $ irand n)
 
-ur :: Time -> Pattern String -> [Pattern a] -> Pattern a
-ur t outer_p ps = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
-  where split s = wordsBy (==':') s
-        getPat (n:xs) = (ps' !!! read n, transform xs)
-        ps' = map (_density t) ps
-        adjust (a, (p, f)) = f a p
-        transform (x:_) a = transform' x a
-        transform _ _ = id
-        transform' "in" (s,e) p = twiddle (fadeIn) (s,e) p
-        transform' "out" (s,e) p = twiddle (fadeOut) (s,e) p
-        transform' _ _ p = p
-        twiddle f (s,e) p = s `rotR` (f (e-s) p)
-
-ur' :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
-ur' t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
+ur :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
+ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
   where split s = wordsBy (==':') s
         getPat (s:xs) = (match s, transform xs)
         match s = fromMaybe silence $ lookup s ps'
