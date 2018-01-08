@@ -359,3 +359,22 @@ drumN "cl"  = 75
 drumN "ag"  = 67
 drumN "cr"  = 49
 drumN _ = 0
+
+
+-- SuperDirt MIDI Params
+
+(array, array_p) = pF "array" Nothing
+(midichan, midichan_p) = pF "midichan" Nothing
+(control, control_p) = pF "control" Nothing
+ctl = control
+(ctlNum, ctlNum_p) = pF "ctlNum" Nothing
+(frameRate, frameRate_p) = pF "frameRate" Nothing
+(frames, frames_p) = pF "frames" Nothing
+(hours, hours_p) = pF "hours" Nothing
+(midicmd, midicmd_p) = pS "midicmd" Nothing
+(minutes, minutes_p) = pF "minutes" Nothing
+(progNum, progNum_p) = pF "progNum" Nothing
+(seconds, seconds_p) = pF "seconds" Nothing
+(songPtr, songPtr_p) = pF "songPtr" Nothing
+(uid, uid_p) = pF "uid" Nothing
+(val, val_p) = pF "val" Nothing
