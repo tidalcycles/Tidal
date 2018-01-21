@@ -33,7 +33,7 @@ time of writing, 1.0-dev). To make a contribution, you could:
 * Make a pull request
 
 Others may then review and comment on your pull request. Please do say
-when you think it's ready to be accepted to make sure it's being
+when you think it's ready to be accepted to make sure it's not being
 overlooked.
 
 # Workflow
