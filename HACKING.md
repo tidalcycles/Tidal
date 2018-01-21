@@ -23,7 +23,7 @@ The main repository is maintained on github:
 The SuperDirt repository is here:
   https://github.com/musikinformatik/SuperDirt
 
-In both bases the 'master' branch contains the current release. Active
+In both cases the 'master' branch contains the current release. Active
 development takes place on a branch called VERSION-NUMBER-dev (at the
 time of writing, 1.0-dev). To make a contribution, you could:
 
@@ -31,6 +31,10 @@ time of writing, 1.0-dev). To make a contribution, you could:
 * Make and test a change
 * Keep your fork up to date with the master
 * Make a pull request
+
+Others may then review and comment on your pull request. Please do say
+when you think it's ready to be accepted to make sure it's being
+overlooked.
 
 # Workflow
 
