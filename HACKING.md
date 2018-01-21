@@ -32,6 +32,24 @@ time of writing, 1.0-dev). To make a contribution, you could:
 * Keep your fork up to date with the master
 * Make a pull request
 
+# Workflow
+
+You can accomplish a lot within a normal tidal buffer in e.g. atom,
+emacs or vim, by defining and testing functions using `let`.
+
+For making a change to Tidal itself, take a fork of the code and
+switch to the active branch:
+
+```
+git clone https://github.com/tidalcycles/Tidal.git
+cd Tidal
+git checkout 1.0-dev
+```
+
+Then make a change and install it by running a bare `cabal install`
+from within the Tidal folder. You'll need to restart the interpreter
+within your editor to pick up the new version.
+
 # A process for making a release
 
 We haven't documented a clear process for this, but we'd like to
