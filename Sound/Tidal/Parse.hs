@@ -23,8 +23,8 @@ import Sound.Tidal.Time (Arc, Time)
 -- | AST representation of patterns
 
 data TPat a = TPat_Atom a
-            | TPat_Density Time (TPat a)
-            | TPat_Slow Time (TPat a)
+            | TPat_Density (TPat Time) (TPat a)
+            | TPat_Slow (TPat Time) (TPat a)
             | TPat_Zoom Arc (TPat a)
             | TPat_DegradeBy Double (TPat a)
             | TPat_Silence
@@ -46,8 +46,8 @@ instance Parseable a => Monoid (TPat a) where
 toPat :: Parseable a => TPat a -> Pattern a
 toPat = \case
    TPat_Atom x -> atom x
-   TPat_Density t x -> _density t $ toPat x
-   TPat_Slow t x -> _slow t $ toPat x
+   TPat_Density t x -> density (toPat t) $ toPat x
+   TPat_Slow t x -> slow (toPat t) $ toPat x
    TPat_Zoom arc x -> zoom arc $ toPat x
    TPat_DegradeBy amt x -> _degradeBy amt $ toPat x
    TPat_Silence -> silence
@@ -253,7 +253,7 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
                 spaces
                 pMult $ mconcat $ scale (Just 1) ps
   where scale _ [] = []
-        scale base (ps@((n,_):_)) = map (\(n',p) -> TPat_Density (fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
+        scale base (ps@((n,_):_)) = map (\(n',p) -> TPat_Density (TPat_Atom $ fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
 
 pString :: Parser (String)
 pString = do c <- (letter <|> oneOf "0123456789") <?> "charnum"
@@ -322,12 +322,12 @@ pColour = do name <- many1 letter <?> "colour name"
 pMult :: Parseable a => TPat a -> Parser (TPat a)
 pMult thing = do char '*'
                  spaces
-                 r <- pRatio
+                 r <- (pRational <|> pPolyIn pRational  <|> pPolyOut pRational)
                  return $ TPat_Density r thing
               <|>
               do char '/'
                  spaces
-                 r <- pRatio
+                 r <- (pRational <|> pPolyIn pRational  <|> pPolyOut pRational)
                  return $ TPat_Slow r thing
               <|>
               return thing
