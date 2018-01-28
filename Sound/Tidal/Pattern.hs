@@ -1148,6 +1148,16 @@ e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)
 e' :: Int -> Int -> Pattern a -> Pattern a
 e' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
+distrib :: [Int] -> Pattern a -> Pattern a
+distrib xs p = boolsToPat (foldr (distrib') (replicate (head $ reverse xs) True) (reverse $ layers xs)) p
+  where
+    distrib' :: [Bool] -> [Bool] -> [Bool]
+    distrib' [] _ = []
+    distrib' (_:a) [] = False:(distrib' a [])
+    distrib' (True:a) (x:b) = x:(distrib' a b)
+    distrib' (False:a) (b) = False:(distrib' a b)
+    layers = map bjorklund . (zip<*>tail)
+    boolsToPat p p' = (flip const) <$> (filterValues (== True) $ listToPat $ p) <*> p'
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
