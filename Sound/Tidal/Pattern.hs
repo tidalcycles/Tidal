@@ -1159,6 +1159,19 @@ distrib xs p = boolsToPat (foldr (distrib') (replicate (head $ reverse xs) True)
     layers = map bjorklund . (zip<*>tail)
     boolsToPat p p' = (flip const) <$> (filterValues (== True) $ listToPat $ p) <*> p'
 
+{- | `einv` fills in the blanks left by `e`
+ -
+ @e 3 8 "x"@ -> @"x ~ ~ x ~ ~ x ~"@
+
+ @einv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
+-}
+einv :: Int -> Int -> Pattern a -> Pattern a
+einv n k p = (flip const) <$> (filterValues (== False) $ listToPat $ bjorklund (n,k)) <*> p
+
+{- | `efull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
+efull :: Int -> Int -> Pattern a -> Pattern a -> Pattern a
+efull n k pa pb = stack [ e n k pa, einv n k pb ]
+
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
   where zoom' sz start = zoom (start, start+sz)
