@@ -1,10 +1,11 @@
 # TidalCycles log of changes
 
-## 0.96
+## 0.9.6
 
 ### Enhancements
 
 * Added `chord` for chord patterns and `scaleP` for scale patterns
+* The `n` pattern parameter is now floating point
 
 ## 0.9.5
 
