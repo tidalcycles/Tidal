@@ -1558,12 +1558,12 @@ into the pattern `"0 4 7 12"`.  It assumes your scale fits within an octave;
 to change this use `toScale' size`.  Example:
 `toScale' 24 [0,4,7,10,14,17] (run 8)` turns into `"0 4 7 10 14 17 24 28"`
 -}
-toScale' :: Int -> [Int] -> Pattern Int -> Pattern Int
+toScale' :: Num a => Int -> [a] -> Pattern Int -> Pattern a
 toScale' o s = fmap noteInScale
   where octave x = x `div` length s
-        noteInScale x = (s !!! x) + o * octave x
+        noteInScale x = (s !!! x) + (fromIntegral $ o * octave x)
 
-toScale :: [Int] -> Pattern Int -> Pattern Int
+toScale :: Num a => [a] -> Pattern Int -> Pattern a
 toScale = toScale' 12
 
 {- | `swingBy x n` divides a cycle into `n` slices and delays the notes in
