@@ -442,7 +442,7 @@ rev :: Pattern a -> Pattern a
 rev p = splitQueries $ Pattern $ \a -> map makeWholeAbsolute $ mapSnds' (mirrorArc (mid a)) $ map makeWholeRelative (arc p (mirrorArc (mid a) a))
   where makeWholeRelative ((s,e), part@(s',e'), v) = ((s'-s, e-e'), part, v)
         makeWholeAbsolute ((s,e), part@(s',e'), v) = ((s'-e,e'+s), part, v)
-        mid (s,e) = (sam s) + 0.5
+        mid (s,_) = (sam s) + 0.5
 
 -- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
 -- the pattern alternates between forwards and backwards.
@@ -1281,9 +1281,6 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 
 discretise :: Time -> Pattern a -> Pattern a
 discretise n p = (_density n $ atom (id)) <*> p
-
-discretise' = discretise
-_discretise = discretise
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
