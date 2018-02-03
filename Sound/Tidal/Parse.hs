@@ -158,12 +158,12 @@ sign  =  do char '-'
                 return Positive
          <|> return Positive
 
-intOrFloat :: Parser (Either Integer Double)
+intOrFloat :: Parser Double
 intOrFloat =  do s   <- sign
                  num <- naturalOrFloat
                  return (case num of
-                            Right x -> Right (applySign s x)
-                            Left  x -> Left  (applySign s x)
+                            Right x -> applySign s x
+                            Left  x -> fromIntegral $ applySign s x
                         )
 
 r :: Parseable a => String -> Pattern a -> IO (Pattern a)
@@ -265,8 +265,7 @@ pVocable = do v <- pString
               return $ TPat_Atom v
 
 pDouble :: Parser (TPat Double)
-pDouble = do nf <- intOrFloat <?> "float"
-             let f = either fromIntegral id nf
+pDouble = do f <- choice [intOrFloat, parseNote] <?> "float"
              return $ TPat_Atom f
 
 pBool :: Parser (TPat Bool)
@@ -276,7 +275,7 @@ pBool = do oneOf "t1"
         do oneOf "f0"
            return $ TPat_Atom False
 
-parseIntNote :: Integral i => Parser i
+parseIntNote  :: Integral i => Parser i
 parseIntNote = do s <- sign
                   i <- choice [integer, parseNote]
                   return $ applySign s $ fromIntegral i
@@ -289,7 +288,7 @@ parseInt = do s <- sign
 pIntegral :: Parseable a => Integral a => Parser (TPat a)
 pIntegral = TPat_Atom <$> parseIntNote
 
-parseNote :: Integral a => Parser a
+parseNote :: Num a => Parser a
 parseNote = do n <- notenum
                modifiers <- many noteModifier
                octave <- option 5 natural
@@ -311,7 +310,7 @@ parseNote = do n <- notenum
                                char 'n' >> return 0
                               ]
 
-fromNote :: Integral c => Pattern String -> Pattern c
+fromNote :: Num a => Pattern String -> Pattern a
 fromNote p = (\s -> either (const 0) id $ parse parseNote "" s) <$> p
 
 pColour :: Parser (TPat ColourD)
