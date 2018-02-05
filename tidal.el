@@ -50,7 +50,7 @@
   "*The haskell interpeter to use (default=ghci).")
 
 (defvar tidal-interpreter-version
-  (substring (shell-command-to-string (concatenate 'string  tidal-interpreter " --numeric-version")) 0 -1)
+  (substring (shell-command-to-string (concat tidal-interpreter " --numeric-version")) 0 -1)
   "*The version of tidal interpreter as a string.")
 
 (defvar tidal-interpreter-arguments
