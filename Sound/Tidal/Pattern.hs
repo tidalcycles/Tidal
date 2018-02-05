@@ -1279,7 +1279,7 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -- events per cycle. Useful for turning a continuous pattern into a
 -- discrete one.
 discretise :: Pattern Time -> Pattern a -> Pattern a
-discretise = temporalParam _discretise
+discretise n p = (density n $ atom (id)) <*> p
 
 _discretise :: Time -> Pattern a -> Pattern a
 _discretise n p = (_density n $ atom (id)) <*> p
