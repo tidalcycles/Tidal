@@ -342,10 +342,10 @@ vco  = vcoegint
 voi  = voice
 
 midinote :: Pattern Double -> ParamPattern
-midinote = n . ((subtract 60) <$>)
+midinote = note . ((subtract 60) <$>)
 
 drum :: Pattern String -> ParamPattern
-drum = midinote . (drumN <$>)
+drum = n . ((subtract 60) . drumN <$>)
 
 drumN :: Num a => String -> a
 drumN "bd"  = 36
