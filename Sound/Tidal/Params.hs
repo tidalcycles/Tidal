@@ -176,6 +176,7 @@ Using `cut "0"` is effectively _no_ cutgroup.
 (lsnare, lsnare_p)               = pF "lsnare" (Just 0)
 -- | specifies the sample or note number to be used
 (n, n_p)                         = pF "n" (Just 0)
+(note, note_p)                   = pF "note" (Just 0)
 {- |
 Pushes things forward (or backwards within built-in latency) in time. Allows for nice things like _swing_ feeling:
 
@@ -340,8 +341,7 @@ vcf  = vcfegint
 vco  = vcoegint
 voi  = voice
 
-note, midinote :: Pattern Double -> ParamPattern
-note = n
+midinote :: Pattern Double -> ParamPattern
 midinote = n . ((subtract 60) <$>)
 
 drum :: Pattern String -> ParamPattern
