@@ -66,7 +66,7 @@ pS name defaultV = (make' VS param, param)
 (attack, attack_p)               = pF "attack" (Just (-1))
 -- | a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
 (bandf, bandf_p)                 = pF "bandf" (Just 0)
--- | a pattern of numbers from 0 to 1. Sets the q-factor of the band-pass filter.
+-- | a pattern of numbers from 0 to 1. Sets the q-factor of the band-pass filter.y
 (bandq, bandq_p)                 = pF "bandq" (Just 0)
 {- | a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample.
 
@@ -366,12 +366,20 @@ drumN _ = 0
 (array, array_p) = pF "array" Nothing
 (midichan, midichan_p) = pF "midichan" Nothing
 (control, control_p) = pF "control" Nothing
-ctl = control
+
+(ccn, ccn_p) = pF "ccn" Nothing
+(ccv, ccv_p) = pF "ccv" Nothing
+cc = grp [ccn_p, ccv_p]
+
 (ctlNum, ctlNum_p) = pF "ctlNum" Nothing
+
 (frameRate, frameRate_p) = pF "frameRate" Nothing
 (frames, frames_p) = pF "frames" Nothing
 (hours, hours_p) = pF "hours" Nothing
+
 (midicmd, midicmd_p) = pS "midicmd" Nothing
+command = midicmd
+
 (minutes, minutes_p) = pF "minutes" Nothing
 (progNum, progNum_p) = pF "progNum" Nothing
 (seconds, seconds_p) = pF "seconds" Nothing
