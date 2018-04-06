@@ -9,7 +9,7 @@ import Data.List
 import Data.Ord
 
 import Sound.Tidal.Context
-pp
+
 main = defaultMain tests
 
 tests :: TestTree
