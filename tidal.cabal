@@ -1,5 +1,5 @@
 name:                tidal
-version:             0.9.6
+version:             0.9.7
 synopsis:            Pattern language for improvised music
 -- description:
 homepage:            http://tidalcycles.org/
@@ -55,6 +55,9 @@ library
     , websockets > 0.8
     , mtl >= 2.1
 
+  if !impl(ghc >= 8.0)
+    build-depends: semigroups == 0.18.*
+
 source-repository head
   type:     git
   location: https://github.com/tidalcycles/Tidal
@@ -70,6 +73,6 @@ test-suite test
     test.hs
   build-depends:
       base >= 4 && < 5
-              , tasty >= 0.11
+              , tasty 
               , tasty-hunit
     , tidal
