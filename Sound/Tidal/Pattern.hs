@@ -1282,8 +1282,11 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -- | @discretise n p@: 'samples' the pattern @p@ at a rate of @n@
 -- events per cycle. Useful for turning a continuous pattern into a
 -- discrete one.
-discretise :: Pattern Time -> Pattern a -> Pattern a
-discretise n p = (density n $ atom (id)) <*> p
+discretise :: Time -> Pattern a -> Pattern a
+discretise = _discretise
+
+discretise' :: Pattern Time -> Pattern a -> Pattern a
+discretise' n p = (density n $ atom (id)) <*> p
 
 _discretise :: Time -> Pattern a -> Pattern a
 _discretise n p = (_density n $ atom (id)) <*> p
@@ -1291,7 +1294,7 @@ _discretise n p = (_density n $ atom (id)) <*> p
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' (rotL) (discretise 1 $ ((%1) . fromIntegral) <$> (irand (length ps) :: Pattern Int)) (slowcat ps)
+randcat ps = spread' (rotL) (_discretise 1 $ ((%1) . fromIntegral) <$> (irand (length ps) :: Pattern Int)) (slowcat ps)
 
 -- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
@@ -1343,7 +1346,7 @@ fit perCycle xs p = (xs !!!) <$> (Pattern $ \a -> map ((\e -> (mapThd' (+ (cycle
   where cyclePos perCycle e = perCycle * (floor $ eventStart e)
 
 permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
-permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (discretise 1 p)
+permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (_discretise 1 p)
       where ps = permsort (length things) steps
             deviance avg xs = sum $ map (abs . (avg-) . fromIntegral) xs
             permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total / (fromIntegral n :: Double)) x)) $ perms n total
