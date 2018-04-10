@@ -12,7 +12,7 @@ Copyright:           (c) Tidal contributors, 2017
 category:            Sound
 build-type:          Simple
 cabal-version:       >=1.10
-tested-with:         GHC == 7.10.3, GHC == 8.0.1
+tested-with:         GHC == 7.10.3, GHC == 8.0.1, GHC == 8.4.1
 
 Extra-source-files: README.md CHANGELOG.md tidal.el doc/tidal.md
 
