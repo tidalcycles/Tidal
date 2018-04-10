@@ -12,6 +12,7 @@ import Data.Colour.Names
 import Data.Colour.SRGB
 import GHC.Exts( IsString(..) )
 import Data.Monoid
+import qualified Data.Semigroup as Sem
 import Control.Exception as E
 import Control.Applicative ((<$>), (<*>), pure)
 import Data.Maybe
@@ -23,8 +24,8 @@ import Sound.Tidal.Time (Arc, Time)
 -- | AST representation of patterns
 
 data TPat a = TPat_Atom a
-            | TPat_Density Time (TPat a)
-            | TPat_Slow Time (TPat a)
+            | TPat_Density (TPat Time) (TPat a)
+            | TPat_Slow (TPat Time) (TPat a)
             | TPat_Zoom Arc (TPat a)
             | TPat_DegradeBy Double (TPat a)
             | TPat_Silence
@@ -39,15 +40,18 @@ data TPat a = TPat_Atom a
             | TPat_pE (TPat Int) (TPat Int) (TPat Integer) (TPat a)
             deriving (Show)
 
+instance Sem.Semigroup (TPat a) where
+  (<>) = TPat_Overlay
+
 instance Parseable a => Monoid (TPat a) where
    mempty = TPat_Silence
-   mappend = TPat_Overlay
+   mappend = (<>)
 
-toPat :: Parseable a => TPat a -> Pattern a
+toPat :: Enumerable a => TPat a -> Pattern a
 toPat = \case
    TPat_Atom x -> atom x
-   TPat_Density t x -> _density t $ toPat x
-   TPat_Slow t x -> _slow t $ toPat x
+   TPat_Density t x -> density (toPat t) $ toPat x
+   TPat_Slow t x -> slow (toPat t) $ toPat x
    TPat_Zoom arc x -> zoom arc $ toPat x
    TPat_DegradeBy amt x -> _degradeBy amt $ toPat x
    TPat_Silence -> silence
@@ -67,41 +71,49 @@ durations ((TPat_Elongate n):xs) = (n, TPat_Silence):(durations xs)
 durations (a:(TPat_Elongate n):xs) = (n+1,a):(durations xs)
 durations (a:xs) = (1,a):(durations xs)
 
-p :: Parseable a => String -> Pattern a
+p :: (Enumerable a, Parseable a) => String -> Pattern a
 p = toPat . parseTPat
 
 class Parseable a where
   parseTPat :: String -> TPat a
+
+class Enumerable a where
   fromTo :: a -> a -> Pattern a
   fromThenTo :: a -> a -> a -> Pattern a
 
 instance Parseable Double where
   parseTPat = parseRhythm pDouble
+instance Enumerable Double where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable String where
   parseTPat = parseRhythm pVocable
+instance Enumerable String where
   fromTo a b = listToPat [a,b]
   fromThenTo a b c = listToPat [a,b,c]
 
 instance Parseable Bool where
   parseTPat = parseRhythm pBool
+instance Enumerable Bool where
   fromTo a b = listToPat [a,b]
   fromThenTo a b c = listToPat [a,b,c]
 
 instance Parseable Int where
   parseTPat = parseRhythm pIntegral
+instance Enumerable Int where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable Integer where
   parseTPat s = parseRhythm pIntegral s
+instance Enumerable Integer where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable Rational where
   parseTPat = parseRhythm pRational
+instance Enumerable Rational where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
@@ -115,10 +127,11 @@ type ColourD = Colour Double
 
 instance Parseable ColourD where
   parseTPat = parseRhythm pColour
+instance Enumerable ColourD where
   fromTo a b = listToPat [a,b]
   fromThenTo a b c = listToPat [a,b,c]
 
-instance (Parseable a) => IsString (Pattern a) where
+instance (Enumerable a, Parseable a) => IsString (Pattern a) where
   fromString = toPat . parseTPat
 
 --instance (Parseable a, Pattern p) => IsString (p a) where
@@ -158,15 +171,15 @@ sign  =  do char '-'
                 return Positive
          <|> return Positive
 
-intOrFloat :: Parser (Either Integer Double)
+intOrFloat :: Parser Double
 intOrFloat =  do s   <- sign
                  num <- naturalOrFloat
                  return (case num of
-                            Right x -> Right (applySign s x)
-                            Left  x -> Left  (applySign s x)
+                            Right x -> applySign s x
+                            Left  x -> fromIntegral $ applySign s x
                         )
 
-r :: Parseable a => String -> Pattern a -> IO (Pattern a)
+r :: (Enumerable a, Parseable a) => String -> Pattern a -> IO (Pattern a)
 r s orig = do E.handle 
                 (\err -> do putStrLn (show (err :: E.SomeException))
                             return orig 
@@ -253,7 +266,7 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
                 spaces
                 pMult $ mconcat $ scale (Just 1) ps
   where scale _ [] = []
-        scale base (ps@((n,_):_)) = map (\(n',p) -> TPat_Density (fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
+        scale base (ps@((n,_):_)) = map (\(n',p) -> TPat_Density (TPat_Atom $ fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
 
 pString :: Parser (String)
 pString = do c <- (letter <|> oneOf "0123456789") <?> "charnum"
@@ -265,8 +278,7 @@ pVocable = do v <- pString
               return $ TPat_Atom v
 
 pDouble :: Parser (TPat Double)
-pDouble = do nf <- intOrFloat <?> "float"
-             let f = either fromIntegral id nf
+pDouble = do f <- choice [intOrFloat, parseNote] <?> "float"
              return $ TPat_Atom f
 
 pBool :: Parser (TPat Bool)
@@ -276,7 +288,7 @@ pBool = do oneOf "t1"
         do oneOf "f0"
            return $ TPat_Atom False
 
-parseIntNote :: Integral i => Parser i
+parseIntNote  :: Integral i => Parser i
 parseIntNote = do s <- sign
                   i <- choice [integer, parseNote]
                   return $ applySign s $ fromIntegral i
@@ -289,7 +301,7 @@ parseInt = do s <- sign
 pIntegral :: Parseable a => Integral a => Parser (TPat a)
 pIntegral = TPat_Atom <$> parseIntNote
 
-parseNote :: Integral a => Parser a
+parseNote :: Num a => Parser a
 parseNote = do n <- notenum
                modifiers <- many noteModifier
                octave <- option 5 natural
@@ -311,7 +323,7 @@ parseNote = do n <- notenum
                                char 'n' >> return 0
                               ]
 
-fromNote :: Integral c => Pattern String -> Pattern c
+fromNote :: Num a => Pattern String -> Pattern a
 fromNote p = (\s -> either (const 0) id $ parse parseNote "" s) <$> p
 
 pColour :: Parser (TPat ColourD)
@@ -322,12 +334,12 @@ pColour = do name <- many1 letter <?> "colour name"
 pMult :: Parseable a => TPat a -> Parser (TPat a)
 pMult thing = do char '*'
                  spaces
-                 r <- pRatio
+                 r <- (pRational <|> pPolyIn pRational  <|> pPolyOut pRational)
                  return $ TPat_Density r thing
               <|>
               do char '/'
                  spaces
-                 r <- pRatio
+                 r <- (pRational <|> pPolyIn pRational  <|> pPolyOut pRational)
                  return $ TPat_Slow r thing
               <|>
               return thing

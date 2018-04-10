@@ -13,8 +13,8 @@ import Sound.Tidal.Context
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests" [basic1,
-                           patternsOfPatterns
+tests = testGroup "Tests" [basic1
+                           -- patternsOfPatterns
                           ]
 
 basic1 = testGroup "fast / slow"

@@ -1,19 +1,25 @@
 #!/bin/bash
 
-echo -e "\n[ Welcome to the TidalCycles linux install script. This is known to\n  work on Ubuntu 17.04. It will probably only work with\n  linux distributions that have supercollider 1.3.7 or later. ]"
+echo -e "\n[ Welcome to the TidalCycles linux install script. It will probably only work with debian based linux distributions such as Ubuntu. ]"
 
 echo -e "\n[ Installing dependencies.. ]"
-#sudo apt-get update
-#sudo apt-get install build-essential git qjackctl cabal-install zlib1g-dev libportmidi-dev libasound2-dev
+sudo apt-get update
+sudo apt-get -y install build-essential git qjackctl cabal-install zlib1g-dev libportmidi-dev libasound2-dev haskell-stack
+
+mkdir ~/tidal-tmp
 
 echo -e "\n[ Testing supercollider version ]"
 if (apt-cache policy supercollider|grep Candidate|grep -q 3.6.6); then
     echo -e "\n[ Old supercollider version found.. Compiling ]"
+    cd ~/tidal-tmp
+    git clone https://github.com/lvm/build-supercollider
+    cd build-supercollider
+    ./build-supercollider.sh
+    ./build-sc3-plugins.sh
 else
     echo -e "\n[ Installing distro version of supercollider ]"
     sudo apt-get install supercollider sc3-plugins
 fi
-exit
    
 echo -e "\n[ Adding user to the 'audio' group ]"
 sudo adduser $USER audio
@@ -24,7 +30,7 @@ else
    echo -e "\n[ Installing atom ]"
    wget --output-document=/tmp/atom.deb http://atom.io/download/deb
    sudo dpkg -i /tmp/atom.deb
-   sudo apt --fix-broken install -y
+   sudo apt-get --fix-broken install -y
 fi
 
 echo -e "\n[ Changing the default ghci path to stack ghci ]"

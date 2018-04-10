@@ -49,6 +49,10 @@
   "ghci"
   "*The haskell interpeter to use (default=ghci).")
 
+(defvar tidal-interpreter-version
+  (substring (shell-command-to-string (concat tidal-interpreter " --numeric-version")) 0 -1)
+  "*The version of tidal interpreter as a string.")
+
 (defvar tidal-interpreter-arguments
   (list "-XOverloadedStrings"
         )
@@ -85,7 +89,9 @@
      tidal-interpreter-arguments)
     (tidal-see-output))
   (tidal-send-string ":set prompt \"\"")
-  (tidal-send-string ":set prompt2 \"\"")
+  (if (string< tidal-interpreter-version "8.2.0")
+      (tidal-send-string ":set prompt2 \"\"")
+    (tidal-send-string ":set prompt-cont \"\""))
   (tidal-send-string ":module Sound.Tidal.Context")
   (tidal-send-string "import qualified Sound.Tidal.Scales as Scales")
   (tidal-send-string "import qualified Sound.Tidal.Chords as Chords")

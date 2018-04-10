@@ -1,10 +1,19 @@
 # TidalCycles log of changes
 
-## 0.96
+## 0.9.7
+
+### Enhancements
+
+* The `note` pattern parameter is no longer an alias for `midinote`,
+  but an independent parameter for supercollider to handle (in a manner
+  similar to `up`)
+  
+## 0.9.6
 
 ### Enhancements
 
 * Added `chord` for chord patterns and `scaleP` for scale patterns
+* The `n` pattern parameter is now floating point
 
 ## 0.9.5
 

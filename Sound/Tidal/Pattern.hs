@@ -23,6 +23,7 @@ import Sound.Tidal.Bjorklund
 
 import Text.Show.Functions ()
 import qualified Control.Exception as E
+import qualified Data.Semigroup as Sem
 
 -- | The pattern datatype, a function from a time @Arc@ to @Event@
 -- values. For discrete patterns, this returns the events which are
@@ -161,11 +162,14 @@ instance Applicative Pattern where
                  (xs (s',e'))
                 )
 
+-- | @mappend@ a.k.a. @<>@ is a synonym for @overlay@.
+instance Sem.Semigroup (Pattern a) where
+  (<>) = overlay
+
 -- | @mempty@ is a synonym for @silence@.
--- | @mappend@ is a synonym for @overlay@.
 instance Monoid (Pattern a) where
-    mempty = silence
-    mappend = overlay
+  mempty = silence
+  mappend = (<>)
 
 instance Monad Pattern where
   return = pure
@@ -442,7 +446,7 @@ rev :: Pattern a -> Pattern a
 rev p = splitQueries $ Pattern $ \a -> map makeWholeAbsolute $ mapSnds' (mirrorArc (mid a)) $ map makeWholeRelative (arc p (mirrorArc (mid a) a))
   where makeWholeRelative ((s,e), part@(s',e'), v) = ((s'-s, e-e'), part, v)
         makeWholeAbsolute ((s,e), part@(s',e'), v) = ((s'-e,e'+s), part, v)
-        mid (s,e) = (sam s) + 0.5
+        mid (s,_) = (sam s) + 0.5
 
 -- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
 -- the pattern alternates between forwards and backwards.
@@ -734,7 +738,7 @@ spread' f vpat pat = vpat >>= \v -> f v pat
 shorter alias `spreadr`.
 -}
 spreadChoose :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
-spreadChoose f vs p = do v <- discretise 1 (choose vs)
+spreadChoose f vs p = do v <- _discretise 1 (choose vs)
                          f v p
 
 spreadr :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
@@ -1148,6 +1152,29 @@ e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)
 e' :: Int -> Int -> Pattern a -> Pattern a
 e' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
+distrib :: [Int] -> Pattern a -> Pattern a
+distrib xs p = boolsToPat (foldr (distrib') (replicate (head $ reverse xs) True) (reverse $ layers xs)) p
+  where
+    distrib' :: [Bool] -> [Bool] -> [Bool]
+    distrib' [] _ = []
+    distrib' (_:a) [] = False:(distrib' a [])
+    distrib' (True:a) (x:b) = x:(distrib' a b)
+    distrib' (False:a) (b) = False:(distrib' a b)
+    layers = map bjorklund . (zip<*>tail)
+    boolsToPat p p' = (flip const) <$> (filterValues (== True) $ listToPat $ p) <*> p'
+
+{- | `einv` fills in the blanks left by `e`
+ -
+ @e 3 8 "x"@ -> @"x ~ ~ x ~ ~ x ~"@
+
+ @einv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
+-}
+einv :: Int -> Int -> Pattern a -> Pattern a
+einv n k p = (flip const) <$> (filterValues (== False) $ listToPat $ bjorklund (n,k)) <*> p
+
+{- | `efull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
+efull :: Int -> Int -> Pattern a -> Pattern a -> Pattern a
+efull n k pa pb = stack [ e n k pa, einv n k pb ]
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
@@ -1255,17 +1282,19 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -- | @discretise n p@: 'samples' the pattern @p@ at a rate of @n@
 -- events per cycle. Useful for turning a continuous pattern into a
 -- discrete one.
-
 discretise :: Time -> Pattern a -> Pattern a
-discretise n p = (_density n $ atom (id)) <*> p
+discretise = _discretise
 
-discretise' = discretise
-_discretise = discretise
+discretise' :: Pattern Time -> Pattern a -> Pattern a
+discretise' n p = (density n $ atom (id)) <*> p
+
+_discretise :: Time -> Pattern a -> Pattern a
+_discretise n p = (_density n $ atom (id)) <*> p
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' (rotL) (discretise 1 $ ((%1) . fromIntegral) <$> (irand (length ps) :: Pattern Int)) (slowcat ps)
+randcat ps = spread' (rotL) (_discretise 1 $ ((%1) . fromIntegral) <$> (irand (length ps) :: Pattern Int)) (slowcat ps)
 
 -- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
@@ -1317,7 +1346,7 @@ fit perCycle xs p = (xs !!!) <$> (Pattern $ \a -> map ((\e -> (mapThd' (+ (cycle
   where cyclePos perCycle e = perCycle * (floor $ eventStart e)
 
 permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
-permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (discretise 1 p)
+permstep steps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (_discretise 1 p)
       where ps = permsort (length things) steps
             deviance avg xs = sum $ map (abs . (avg-) . fromIntegral) xs
             permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total / (fromIntegral n :: Double)) x)) $ perms n total
@@ -1348,10 +1377,11 @@ randArcs n =
        where pairUp [] = []
              pairUp xs = (0,head xs):(pairUp' xs)
              pairUp' [] = []
-             pairUp' (a:[]) = []
-             pairUp' (a:b:[]) = [(a,1)]
+             pairUp' (_:[]) = []
+             pairUp' (a:_:[]) = [(a,1)]
              pairUp' (a:b:xs) = (a,b):(pairUp' (b:xs))
 
+randStruct :: Int -> Pattern Int
 randStruct n = splitQueries $ Pattern f
   where f (s,e) = mapSnds' fromJust $ filter (\(_,x,_) -> isJust x) $ as
           where as = map (\(n, (s',e')) -> ((s' + sam s, e' + sam s),
@@ -1535,12 +1565,12 @@ into the pattern `"0 4 7 12"`.  It assumes your scale fits within an octave;
 to change this use `toScale' size`.  Example:
 `toScale' 24 [0,4,7,10,14,17] (run 8)` turns into `"0 4 7 10 14 17 24 28"`
 -}
-toScale' :: Int -> [Int] -> Pattern Int -> Pattern Int
+toScale' :: Num a => Int -> [a] -> Pattern Int -> Pattern a
 toScale' o s = fmap noteInScale
   where octave x = x `div` length s
-        noteInScale x = (s !!! x) + o * octave x
+        noteInScale x = (s !!! x) + (fromIntegral $ o * octave x)
 
-toScale :: [Int] -> Pattern Int -> Pattern Int
+toScale :: Num a => [a] -> Pattern Int -> Pattern a
 toScale = toScale' 12
 
 {- | `swingBy x n` divides a cycle into `n` slices and delays the notes in
@@ -1583,21 +1613,8 @@ scramble::Int -> Pattern a -> Pattern a
 scramble n = fit' 1 n (_run n) (_density (fromIntegral n) $
   liftA2 (+) (pure 0) $ irand n)
 
-ur :: Time -> Pattern String -> [Pattern a] -> Pattern a
-ur t outer_p ps = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
-  where split s = wordsBy (==':') s
-        getPat (n:xs) = (ps' !!! read n, transform xs)
-        ps' = map (_density t) ps
-        adjust (a, (p, f)) = f a p
-        transform (x:_) a = transform' x a
-        transform _ _ = id
-        transform' "in" (s,e) p = twiddle (fadeIn) (s,e) p
-        transform' "out" (s,e) p = twiddle (fadeOut) (s,e) p
-        transform' _ _ p = p
-        twiddle f (s,e) p = s `rotR` (f (e-s) p)
-
-ur' :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
-ur' t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
+ur :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
+ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
   where split s = wordsBy (==':') s
         getPat (s:xs) = (match s, transform xs)
         match s = fromMaybe silence $ lookup s ps'

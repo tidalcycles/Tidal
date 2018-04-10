@@ -66,7 +66,7 @@ pS name defaultV = (make' VS param, param)
 (attack, attack_p)               = pF "attack" (Just (-1))
 -- | a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
 (bandf, bandf_p)                 = pF "bandf" (Just 0)
--- | a pattern of numbers from 0 to 1. Sets the q-factor of the band-pass filter.
+-- | a pattern of numbers from 0 to 1. Sets the q-factor of the band-pass filter.y
 (bandq, bandq_p)                 = pF "bandq" (Just 0)
 {- | a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample.
 
@@ -174,8 +174,9 @@ Using `cut "0"` is effectively _no_ cutgroup.
 (loop, loop_p)                   = pF "loop" (Just 1)
 (lophat, lophat_p)               = pF "lophat" (Just 0)
 (lsnare, lsnare_p)               = pF "lsnare" (Just 0)
--- | specifies the sample variation to be used
-(n, n_p)                         = pI "n" (Just 0)
+-- | specifies the sample or note number to be used
+(n, n_p)                         = pF "n" (Just 0)
+(note, note_p)                   = pF "note" (Just 0)
 {- |
 Pushes things forward (or backwards within built-in latency) in time. Allows for nice things like _swing_ feeling:
 
@@ -340,14 +341,13 @@ vcf  = vcfegint
 vco  = vcoegint
 voi  = voice
 
-note, midinote :: Pattern Int -> ParamPattern
-note = n
-midinote = n . ((subtract 60) <$>)
+midinote :: Pattern Double -> ParamPattern
+midinote = note . ((subtract 60) <$>)
 
 drum :: Pattern String -> ParamPattern
-drum = midinote . (drumN <$>)
+drum = n . ((subtract 60) . drumN <$>)
 
-drumN :: String -> Int
+drumN :: Num a => String -> a
 drumN "bd"  = 36
 drumN "sn"  = 38
 drumN "lt"  = 43
@@ -359,3 +359,30 @@ drumN "cl"  = 75
 drumN "ag"  = 67
 drumN "cr"  = 49
 drumN _ = 0
+
+
+-- SuperDirt MIDI Params
+
+(array, array_p) = pF "array" Nothing
+(midichan, midichan_p) = pF "midichan" Nothing
+(control, control_p) = pF "control" Nothing
+
+(ccn, ccn_p) = pF "ccn" Nothing
+(ccv, ccv_p) = pF "ccv" Nothing
+cc = grp [ccn_p, ccv_p]
+
+(ctlNum, ctlNum_p) = pF "ctlNum" Nothing
+
+(frameRate, frameRate_p) = pF "frameRate" Nothing
+(frames, frames_p) = pF "frames" Nothing
+(hours, hours_p) = pF "hours" Nothing
+
+(midicmd, midicmd_p) = pS "midicmd" Nothing
+command = midicmd
+
+(minutes, minutes_p) = pF "minutes" Nothing
+(progNum, progNum_p) = pF "progNum" Nothing
+(seconds, seconds_p) = pF "seconds" Nothing
+(songPtr, songPtr_p) = pF "songPtr" Nothing
+(uid, uid_p) = pF "uid" Nothing
+(val, val_p) = pF "val" Nothing
