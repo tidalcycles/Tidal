@@ -12,7 +12,7 @@ import Data.Colour.Names
 import Data.Colour.SRGB
 import GHC.Exts( IsString(..) )
 import Data.Monoid
-import qualified Data.Semigroup as Sem
+-- import qualified Data.Semigroup as Sem
 import Control.Exception as E
 import Control.Applicative ((<$>), (<*>), pure)
 import Data.Maybe
@@ -40,12 +40,12 @@ data TPat a = TPat_Atom a
             | TPat_pE (TPat Int) (TPat Int) (TPat Integer) (TPat a)
             deriving (Show)
 
-instance Sem.Semigroup (TPat a) where
-  (<>) = TPat_Overlay
+--instance Sem.Semigroup (TPat a) where
+--  (<>) = TPat_Overlay
 
 instance Parseable a => Monoid (TPat a) where
    mempty = TPat_Silence
-   mappend = (<>)
+   mappend = TPat_Overlay
 
 toPat :: Enumerable a => TPat a -> Pattern a
 toPat = \case

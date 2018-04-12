@@ -23,7 +23,7 @@ import Sound.Tidal.Bjorklund
 
 import Text.Show.Functions ()
 import qualified Control.Exception as E
-import qualified Data.Semigroup as Sem
+--import qualified Data.Semigroup as Sem
 
 -- | The pattern datatype, a function from a time @Arc@ to @Event@
 -- values. For discrete patterns, this returns the events which are
@@ -162,14 +162,14 @@ instance Applicative Pattern where
                  (xs (s',e'))
                 )
 
--- | @mappend@ a.k.a. @<>@ is a synonym for @overlay@.
-instance Sem.Semigroup (Pattern a) where
-  (<>) = overlay
+---- | @mappend@ a.k.a. @<>@ is a synonym for @overlay@.
+--instance Sem.Semigroup (Pattern a) where
+--  (<>) = overlay
 
 -- | @mempty@ is a synonym for @silence@.
 instance Monoid (Pattern a) where
   mempty = silence
-  mappend = (<>)
+  mappend = overlay
 
 instance Monad Pattern where
   return = pure
