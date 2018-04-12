@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleInstances, CPP #-}
 {-# LANGUAGE LambdaCase #-}
 
 module Sound.Tidal.Parse where
@@ -21,6 +21,10 @@ import Data.List
 import Sound.Tidal.Pattern
 import Sound.Tidal.Time (Arc, Time)
 
+#ifdef TIDAL_SEMIGROUP
+import qualified Data.Semigroup as Sem
+#endif
+
 -- | AST representation of patterns
 
 data TPat a = TPat_Atom a
@@ -40,12 +44,18 @@ data TPat a = TPat_Atom a
             | TPat_pE (TPat Int) (TPat Int) (TPat Integer) (TPat a)
             deriving (Show)
 
---instance Sem.Semigroup (TPat a) where
---  (<>) = TPat_Overlay
+#ifdef TIDAL_SEMIGROUP
+instance Sem.Semigroup (TPat a) where
+  (<>) = TPat_Overlay
 
 instance Parseable a => Monoid (TPat a) where
    mempty = TPat_Silence
+   mappend = (<>)
+#else
+instance Parseable a => Monoid (TPat a) where
+   mempty = TPat_Silence
    mappend = TPat_Overlay
+#endif
 
 toPat :: Enumerable a => TPat a -> Pattern a
 toPat = \case
