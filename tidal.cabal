@@ -12,13 +12,16 @@ Copyright:           (c) Tidal contributors, 2017
 category:            Sound
 build-type:          Simple
 cabal-version:       >=1.10
-tested-with:         GHC == 7.10.3, GHC == 8.0.1, GHC == 8.4.1
+tested-with:         GHC == 7.10.3, GHC == 8.0.1
 
 Extra-source-files: README.md CHANGELOG.md tidal.el doc/tidal.md
 
 Description: Tidal is a domain specific language for live coding pattern.
 
 library
+  if impl(ghc == 8.4.1)
+    cpp-options: -DTIDAL_SEMIGROUP
+
   default-language:    Haskell2010
 
   Exposed-modules:     Sound.Tidal.Bjorklund
@@ -55,7 +58,7 @@ library
     , websockets > 0.8
     , mtl >= 2.1
 
-  if !impl(ghc >= 8.0)
+  if !impl(ghc >= 8.4.1)
     build-depends: semigroups == 0.18.*
 
 source-repository head

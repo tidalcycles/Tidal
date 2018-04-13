@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, CPP #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-name-shadowing #-}
 
 module Sound.Tidal.Pattern where
@@ -23,7 +23,10 @@ import Sound.Tidal.Bjorklund
 
 import Text.Show.Functions ()
 import qualified Control.Exception as E
+
+#ifdef TIDAL_SEMIGROUP
 import qualified Data.Semigroup as Sem
+#endif
 
 -- | The pattern datatype, a function from a time @Arc@ to @Event@
 -- values. For discrete patterns, this returns the events which are
@@ -162,14 +165,21 @@ instance Applicative Pattern where
                  (xs (s',e'))
                 )
 
+#ifdef TIDAL_SEMIGROUP
 -- | @mappend@ a.k.a. @<>@ is a synonym for @overlay@.
 instance Sem.Semigroup (Pattern a) where
   (<>) = overlay
 
--- | @mempty@ is a synonym for @silence@.
 instance Monoid (Pattern a) where
   mempty = silence
   mappend = (<>)
+
+#else
+-- | @mempty@ is a synonym for @silence@.
+instance Monoid (Pattern a) where
+  mempty = silence
+  mappend = overlay
+#endif
 
 instance Monad Pattern where
   return = pure
