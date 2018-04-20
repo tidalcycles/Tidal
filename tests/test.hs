@@ -13,7 +13,8 @@ import Sound.Tidal.Context
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests" [basic1
+tests = testGroup "Tests" [basic1,
+                           parser1
                            -- patternsOfPatterns
                           ]
 
@@ -21,7 +22,12 @@ basic1 = testGroup "fast / slow"
          [
            testCase "silence" $ same16 (fast 1.1 silence) (silence :: Pattern Double),
            testCase "fast" $ same16  silence (silence :: Pattern Double),
-           testCase "fast" $ same16 "bd*128" (rep 128 "bd")
+           testCase "fast2" $ same16 "bd*128" (rep 128 "bd")
+         ]
+
+parser1 = testGroup "subpatterns"
+         [
+           testCase "square" $ same16 ("bd sn" :: Pattern String) ("[bd sn]" :: Pattern String)
          ]
 
 patternsOfPatterns =
