@@ -1166,8 +1166,13 @@ e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)
 e' :: Int -> Int -> Pattern a -> Pattern a
 e' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
-distrib :: [Int] -> Pattern a -> Pattern a
-distrib xs p = boolsToPat (foldr (distrib') (replicate (head $ reverse xs) True) (reverse $ layers xs)) p
+
+distrib :: [Pattern Int] -> Pattern a -> Pattern a
+distrib steps p = do steps' <- sequence steps
+                     _distrib steps' p
+
+_distrib :: [Int] -> Pattern a -> Pattern a
+_distrib xs p = boolsToPat (foldr (distrib') (replicate (head $ reverse xs) True) (reverse $ layers xs)) p
   where
     distrib' :: [Bool] -> [Bool] -> [Bool]
     distrib' [] _ = []
