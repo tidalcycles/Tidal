@@ -1160,11 +1160,17 @@ including rotation in some cases.
 - (13,24,5) : Another rhythm necklace of the Aka Pygmies of the upper Sangha.
 @
 -}
-e :: Int -> Int -> Pattern a -> Pattern a
-e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)) <*> p
+e :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+e = temporalParam2 _e
 
-e' :: Int -> Int -> Pattern a -> Pattern a
-e' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
+_e :: Int -> Int -> Pattern a -> Pattern a
+_e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)) <*> p
+
+e' :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+e' = temporalParam2 _e'
+
+_e' :: Int -> Int -> Pattern a -> Pattern a
+_e' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
 distrib :: [Int] -> Pattern a -> Pattern a
 distrib xs p = boolsToPat (foldr (distrib') (replicate (head $ reverse xs) True) (reverse $ layers xs)) p
@@ -1183,11 +1189,14 @@ distrib xs p = boolsToPat (foldr (distrib') (replicate (head $ reverse xs) True)
 
  @einv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
 -}
-einv :: Int -> Int -> Pattern a -> Pattern a
-einv n k p = (flip const) <$> (filterValues (== False) $ listToPat $ bjorklund (n,k)) <*> p
+einv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+einv = temporalParam2 _einv
+
+_einv :: Int -> Int -> Pattern a -> Pattern a
+_einv n k p = (flip const) <$> (filterValues (== False) $ listToPat $ bjorklund (n,k)) <*> p
 
 {- | `efull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
-efull :: Int -> Int -> Pattern a -> Pattern a -> Pattern a
+efull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
 efull n k pa pb = stack [ e n k pa, einv n k pb ]
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c

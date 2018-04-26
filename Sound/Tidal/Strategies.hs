@@ -285,7 +285,7 @@ normEv ev@(_, (s,e), _) ev'@(_, (s',e'), _)
 
 
 en :: [(Int, Int)] -> Pattern String -> Pattern String
-en ns p = stack $ map (\(i, (k, n)) -> e k n (samples p (pure i))) $ enumerate ns
+en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate ns
 
 {- |
 `weave` applies a function smoothly over an array of different patterns. It uses an `OscPattern` to
