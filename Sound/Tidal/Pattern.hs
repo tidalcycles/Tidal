@@ -4,7 +4,7 @@
 module Sound.Tidal.Pattern where
 
 import Control.Applicative
-import Data.Monoid
+-- import Data.Monoid
 import Data.Fixed
 import Data.List
 import Data.Maybe
@@ -24,9 +24,11 @@ import Sound.Tidal.Bjorklund
 import Text.Show.Functions ()
 import qualified Control.Exception as E
 
+{-
 #ifdef TIDAL_SEMIGROUP
 import qualified Data.Semigroup as Sem
 #endif
+-}
 
 -- | The pattern datatype, a function from a time @Arc@ to @Event@
 -- values. For discrete patterns, this returns the events which are
@@ -165,6 +167,7 @@ instance Applicative Pattern where
                  (xs (s',e'))
                 )
 
+{-
 #ifdef TIDAL_SEMIGROUP
 -- | @mappend@ a.k.a. @<>@ is a synonym for @overlay@.
 instance Sem.Semigroup (Pattern a) where
@@ -180,6 +183,7 @@ instance Monoid (Pattern a) where
   mempty = silence
   mappend = overlay
 #endif
+-}
 
 instance Monad Pattern where
   return = pure
@@ -1162,8 +1166,13 @@ e n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)
 e' :: Int -> Int -> Pattern a -> Pattern a
 e' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
-distrib :: [Int] -> Pattern a -> Pattern a
-distrib xs p = boolsToPat (foldr (distrib') (replicate (head $ reverse xs) True) (reverse $ layers xs)) p
+
+distrib :: [Pattern Int] -> Pattern a -> Pattern a
+distrib steps p = do steps' <- sequence steps
+                     _distrib steps' p
+
+_distrib :: [Int] -> Pattern a -> Pattern a
+_distrib xs p = boolsToPat (foldr (distrib') (replicate (head $ reverse xs) True) (reverse $ layers xs)) p
   where
     distrib' :: [Bool] -> [Bool] -> [Bool]
     distrib' [] _ = []

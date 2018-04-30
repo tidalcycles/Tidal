@@ -75,7 +75,7 @@ d1 $ stack [
 @
 
 -}
-jux' fs p = stack $ map (\n -> ((fs !! n) p) # pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
+jux' fs p = stack $ map (\n -> ((fs !! n) p) |+| pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
   where l = length fs
 
 -- | Multichannel variant of `jux`, _not sure what it does_

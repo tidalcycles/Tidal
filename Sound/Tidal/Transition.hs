@@ -39,10 +39,11 @@ superwash :: (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Time -> Tim
 superwash _ _ _ _ _ _ [] = silence
 superwash _ _ _ _ _ _ (p:[]) = p
 superwash fout fin delay durin durout now (p:p':_) =
-   (playWhen (< (now + delay)) p') <>
-   (playWhen (between (now + delay) (now + delay + durin)) $ fout p') <>
-   (playWhen (between (now + delay + durin) (now + delay + durin + durout)) $ fin p) <>
-   (playWhen (>= (now + delay + durin + durout)) $ p)
+   stack [(playWhen (< (now + delay)) p'),
+          (playWhen (between (now + delay) (now + delay + durin)) $ fout p'),
+          (playWhen (between (now + delay + durin) (now + delay + durin + durout)) $ fin p),
+          (playWhen (>= (now + delay + durin + durout)) $ p)
+         ]
  where
    between lo hi x = (x >= lo) && (x < hi)
 

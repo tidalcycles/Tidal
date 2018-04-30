@@ -11,7 +11,7 @@ import Data.Colour
 import Data.Colour.Names
 import Data.Colour.SRGB
 import GHC.Exts( IsString(..) )
-import Data.Monoid
+-- import Data.Monoid
 -- import qualified Data.Semigroup as Sem
 import Control.Exception as E
 import Control.Applicative ((<$>), (<*>), pure)
@@ -21,9 +21,11 @@ import Data.List
 import Sound.Tidal.Pattern
 import Sound.Tidal.Time (Arc, Time)
 
+{-
 #ifdef TIDAL_SEMIGROUP
 import qualified Data.Semigroup as Sem
 #endif
+-}
 
 -- | AST representation of patterns
 
@@ -44,6 +46,7 @@ data TPat a = TPat_Atom a
             | TPat_pE (TPat Int) (TPat Int) (TPat Integer) (TPat a)
             deriving (Show)
 
+{-
 #ifdef TIDAL_SEMIGROUP
 instance Sem.Semigroup (TPat a) where
   (<>) = TPat_Overlay
@@ -56,6 +59,7 @@ instance Parseable a => Monoid (TPat a) where
    mempty = TPat_Silence
    mappend = TPat_Overlay
 #endif
+-}
 
 toPat :: Enumerable a => TPat a -> Pattern a
 toPat = \case
@@ -260,7 +264,7 @@ pPart f = do part <- pSingle f <|> pPolyIn f <|> pPolyOut f
 pPolyIn :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 pPolyIn f = do ps <- brackets (pSequence f `sepBy` symbol ",")
                spaces
-               pMult $ mconcat ps
+               pMult $ foldr TPat_Overlay TPat_Silence ps
 
 pPolyOut :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
@@ -270,11 +274,11 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
                            i <- integer <?> "integer"
                            return $ Just (fromIntegral i)
                         <|> return Nothing
-                pMult $ mconcat $ scale base ps
+                pMult $ foldr TPat_Overlay TPat_Silence $ scale base ps
              <|>
              do ps <- angles (pSequenceN f `sepBy` symbol ",")
                 spaces
-                pMult $ mconcat $ scale (Just 1) ps
+                pMult $ foldr TPat_Overlay TPat_Silence $ scale (Just 1) ps
   where scale _ [] = []
         scale base (ps@((n,_):_)) = map (\(n',p) -> TPat_Density (TPat_Atom $ fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
 
