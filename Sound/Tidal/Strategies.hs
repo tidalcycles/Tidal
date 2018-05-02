@@ -369,14 +369,21 @@ ghost'' a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR
 ghost' a p = ghost'' 0.125 ((|*| gain (pure 0.7)) . (|=| end (pure 0.2)) . (|*| speed (pure 1.25))) p
 ghost p = ghost' 0.125 p 
 
-slice :: Int -> Int -> ParamPattern -> ParamPattern
-slice i n p = 
+
+slice :: Pattern Int -> Pattern Int -> ParamPattern -> ParamPattern
+slice pi pn p = begin b # end e # p
+  where b = (\i n -> (div' i n)) <$> pi <*> pn
+        e = (\i n -> (div' i n) + (div' 1 n)) <$> pi <*> pn
+        div' a b = fromIntegral (a `mod` b) / fromIntegral b
+
+_slice :: Int -> Int -> ParamPattern -> ParamPattern
+_slice i n p = 
       p
       # begin (pure $ fromIntegral i / fromIntegral n)
       # end (pure $ fromIntegral (i+1) / fromIntegral n)
 
 randslice :: Int -> ParamPattern -> ParamPattern
-randslice n p = unwrap $ (\i -> slice i n p) <$> irand n
+randslice n p = unwrap $ (\i -> _slice i n p) <$> irand n
 
 {- |
 `loopAt` makes a sample fit the given number of cycles. Internally, it
