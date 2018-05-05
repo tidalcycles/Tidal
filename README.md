@@ -5,7 +5,7 @@ Tidal [![Build Status](https://travis-ci.org/tidalcycles/Tidal.svg?branch=1.0-de
 Language for live coding of pattern
 
 For documentation, mailing list and more info see here:
-  http://tidal.lurk.org/
+  https://tidalcycles.org/
 
 (c) Alex McLean and contributors, 2016
 
