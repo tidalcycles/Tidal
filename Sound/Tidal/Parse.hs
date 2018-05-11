@@ -74,7 +74,7 @@ toPat = \case
    TPat_Overlay x0 x1 -> overlay (toPat x0) (toPat x1)
    TPat_ShiftL t x -> t `rotL` toPat x
    TPat_pE n k s thing ->
-      unwrap $ eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
+      unwrap $ _eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
    TPat_EnumFromTo a b -> unwrap $ fromTo <$> (toPat a) <*> (toPat b)
    -- TPat_EnumFromThenTo a b c -> unwrap $ fromThenTo <$> (toPat a) <*> (toPat b) <*> (toPat c)
@@ -382,8 +382,11 @@ pE thing = do (n,k,s) <- parens (pair)
                         <|> return (TPat_Atom 0)
                    return (a, b, c)
 
-eoff :: Int -> Int -> Integer -> Pattern a -> Pattern a
-eoff n k s p = ((s%(fromIntegral k)) `rotL`) (e n k p)
+eoff :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern a -> Pattern a
+eoff = temporalParam3 _eoff
+
+_eoff :: Int -> Int -> Integer -> Pattern a -> Pattern a
+_eoff n k s p = ((s%(fromIntegral k)) `rotL`) (_e n k p)
    -- TPat_ShiftL (s%(fromIntegral k)) (TPat_E n k p)
 
 pReplicate :: Parseable a => TPat a -> Parser [TPat a]
