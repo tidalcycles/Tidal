@@ -95,7 +95,7 @@ d1 $ juxBy 0.5 (density 2) $ sound "bd sn:1"
 In the above, the two versions of the pattern would be panned at 0.25
 and 0.75, rather than 0 and 1.
 -}
-juxBy n f p = stack [p |+| pan (0.5 - (n/2)), f $ p |+| pan (0.5 + (n/2))]
+juxBy n f p = stack [p |+| pan 0.5 |-| pan (n/2), f $ p |+| pan 0.5 |+| pan (n/2)]
 
 {- | Smash is a combination of `spread` and `striate` - it cuts the samples
 into the given number of bits, and then cuts between playing the loop
