@@ -1706,3 +1706,9 @@ fill p' p = struct (splitQueries $ Pattern (f p)) p'
       where f (a) = concatMap (remove' (e,e+tolerance)) $ remove' (s-tolerance,s) a
             expand (a,xs,c) = map (\x -> (a,x,c)) xs
     tolerance = 0.01
+
+ply :: Pattern Int -> Pattern a -> Pattern a
+ply = temporalParam _ply
+
+_ply :: Int -> Pattern a -> Pattern a
+_ply n p = breakUp $ stack (replicate n p)
