@@ -32,6 +32,3 @@ higher = (|*| speed 1.5)
 lower :: ParamPattern -> ParamPattern
 lower = (|*| speed 0.75)
 
-jump :: ParamPattern -> ParamPattern
-jump = (0.25 <~)
-
