@@ -42,6 +42,7 @@ library
                        Sound.Tidal.Chords
                        Sound.Tidal.Sieve
                        Sound.Tidal.Version
+                       Sound.Tidal.Simple
                        -- Sound.Tidal.PatternList
 
   Build-depends:
