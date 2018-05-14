@@ -967,6 +967,9 @@ somecyclesBy = someCyclesBy
 someCycles :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 someCycles = someCyclesBy 0.5
 
+somecycles :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+somecycles = someCycles
+
 {- | `degrade` randomly removes events from a pattern 50% of the time:
 
 @
