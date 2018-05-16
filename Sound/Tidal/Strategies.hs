@@ -330,7 +330,7 @@ interlace a b = weave 16 (shape $ ((* 0.9) <$> sinewave1)) [a, b]
 step :: String -> String -> Pattern String
 step s steps = fastcat $ map f steps
     where f c | c == 'x' = atom s
-              | c >= '0' && c <= '9' = atom $ s ++ ":" ++ [c]
+              | Char.isDigit c = atom $ s ++ ":" ++ [c]
               | otherwise = silence
 
 steps :: [(String, String)] -> Pattern String
@@ -339,8 +339,8 @@ steps = stack . map (\(a,b) -> step a b)
 -- | like `step`, but allows you to specify an array of strings to use for 0,1,2...
 step' :: [String] -> String -> Pattern String
 step' ss steps = fastcat $ map f steps
-    where f c | c == 'x' = atom $ ss!!0
-              | c >= '0' && c <= '9' = atom $ ss!!(Char.digitToInt c)
+    where f c | c == 'x' = atom $ head ss
+              | Char.isDigit c = atom $ ss!!(Char.digitToInt c)
               | otherwise = silence
 
 off :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
