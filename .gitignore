@@ -1,3 +1,5 @@
+# -*- mode: gitignore; -*-
+
 .cabal-sandbox
 cabal.sandbox.config
 dist
@@ -5,3 +7,9 @@ cabal
 *.o
 *.hi
 .stack-work
+
+# text editor temp files
+*~
+\#*\#
+.\#*
+
