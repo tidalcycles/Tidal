@@ -1710,8 +1710,16 @@ fill p' p = struct (splitQueries $ Pattern (f p)) p'
             expand (a,xs,c) = map (\x -> (a,x,c)) xs
     tolerance = 0.01
 
+-- Repeats each event @n@ times within its arc
 ply :: Pattern Int -> Pattern a -> Pattern a
 ply = temporalParam _ply
 
 _ply :: Int -> Pattern a -> Pattern a
 _ply n p = breakUp $ stack (replicate n p)
+
+-- Uses the first (binary) pattern to switch between the following two
+-- patterns. 
+sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
+sew stitch p1 p2 = overlay (const <$> p1 <*> a) (const <$> p2 <*> b)
+  where a = filterValues (id) stitch
+        b = filterValues (not . id) stitch
