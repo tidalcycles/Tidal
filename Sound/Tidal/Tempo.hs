@@ -70,26 +70,26 @@ readTempo :: String -> Tempo
 readTempo x = Tempo (read a) (read b) (read c) (read d) (read e)
   where (a:b:c:d:e:_) = wordsBy (== ',') x
 
+-- given a Tempo and a cycle position (aka "a beat")
+-- returns the POSIX time of that cycle position (aka beat)
 logicalTime :: Tempo -> Double -> Double
 logicalTime t b = changeT + timeDelta
   where beatDelta = b - (beat t)
         timeDelta = beatDelta / (cps t)
         changeT = realToFrac $ utcTimeToPOSIXSeconds $ at t
 
-tempoMVar :: IO (MVar (Tempo))
-tempoMVar = do now <- getCurrentTime
-               l <- getLatency
-               mv <- newMVar (Tempo now 0 0.5 False l)
-               forkIO $ clocked $ f mv
-               return mv
-  where f mv change _ = do swapMVar mv change
-                           return ()
 
+-- beatNow: accesses a clock and returns the time now in terms of
+-- beats relative to metrical grid of a given Tempo
 beatNow :: Tempo -> IO (Double)
 beatNow t = do now <- getCurrentTime
                let delta = realToFrac $ diffUTCTime now (at t)
-               let beatDelta = cps t * delta               
+               let beatDelta = cps t * delta
                return $ beat t + beatDelta
+
+-- getCurrentBeat: given current Tempo grid, gets the current beat
+getCurrentBeat :: MVar Tempo -> IO Rational
+getCurrentBeat t = (readMVar t) >>= (beatNow) >>= (return . toRational)
 
 clientApp :: MVar Tempo -> MVar Double -> MVar Double -> WS.ClientApp ()
 clientApp mTempo mCps mNudge conn = do
@@ -120,12 +120,12 @@ sendNudge conn mNudge = forever $ do nudge <- takeMVar mNudge
                                      WS.sendTextData conn (T.pack m)
 
 connectClient :: Bool -> String -> MVar Tempo -> MVar Double -> MVar Double -> IO ()
-connectClient secondTry ip mTempo mCps mNudge = do 
+connectClient secondTry ip mTempo mCps mNudge = do
   let errMsg = "Failed to connect to tidal server. Try specifying a " ++
                "different port (default is 9160) setting the " ++
                "environment variable TIDAL_TEMPO_PORT"
   serverPort <- getServerPort
-  WS.runClient ip serverPort "/tempo" (clientApp mTempo mCps mNudge) `E.catch` 
+  WS.runClient ip serverPort "/tempo" (clientApp mTempo mCps mNudge) `E.catch`
     \(_ :: E.SomeException) -> do
       case secondTry of
         True -> error errMsg
@@ -138,11 +138,11 @@ connectClient secondTry ip mTempo mCps mNudge = do
               connectClient True ip mTempo mCps mNudge
 
 runClient :: IO ((MVar Tempo, MVar Double, MVar Double))
-runClient = 
+runClient =
   do clockip <- getClockIp
-     mTempo <- newEmptyMVar 
-     mCps <- newEmptyMVar 
-     mNudge <- newEmptyMVar 
+     mTempo <- newEmptyMVar
+     mCps <- newEmptyMVar
+     mNudge <- newEmptyMVar
      forkIO $ connectClient False clockip mTempo mCps mNudge
      return (mTempo, mCps, mNudge)
 
@@ -166,11 +166,12 @@ bpsUtils = cpsUtils
 cpsSetter :: IO (Double -> IO ())
 cpsSetter = do (f, _) <- cpsUtils
                return f
+
 clocked :: (Tempo -> Int -> IO ()) -> IO ()
 clocked = clockedTick 1
                          
 clockedTick :: Int -> (Tempo -> Int -> IO ()) -> IO ()
-clockedTick tpb callback = 
+clockedTick tpb callback =
   do (mTempo, _, mCps) <- runClient
      t <- readMVar mTempo
      now <- getCurrentTime
@@ -180,7 +181,7 @@ clockedTick tpb callback =
          nextTick = ceiling (nowBeat * (fromIntegral tpb))
          -- next4 = nextBeat + (4 - (nextBeat `mod` 4))
      loop mTempo nextTick
-  where loop mTempo tick = 
+  where loop mTempo tick =
           do tempo <- readMVar mTempo
              tick' <- doTick tempo tick
              loop mTempo tick'
@@ -214,7 +215,7 @@ updateTempo t cps'
     -- unpause
     do now <- getCurrentTime
        return $ t {at = addUTCTime (realToFrac $ clockLatency t) now, cps = cps', paused = False}
-  | otherwise = 
+  | otherwise =
     do now <- getCurrentTime
        let delta = realToFrac $ diffUTCTime now (at t)
            beat' = (beat t) + ((cps t) * delta)
@@ -304,14 +305,13 @@ serverLoop conn tempoState serverState clientState = E.handle catchDisconnect $
     serverAct (T.unpack msg) mode tempoState clientState
     -- 
     --tempo <- liftIO $ readMVar tempoState
-    -- liftIO $ readMVar clientState >>= broadcast (T.pack $ show tempo) 
+    -- liftIO $ readMVar clientState >>= broadcast (T.pack $ show tempo)
   where
     catchDisconnect e = case E.fromException e of
         Just WS.ConnectionClosed -> liftIO $ modifyMVar_ clientState $ \s -> do
             let s' = removeClient conn s
             return s'
         _ -> return ()
-
 
 serverAct :: String -> ServerMode -> MVar Tempo -> MVar ClientState -> IO ()
 serverAct ('c':'p':'s':' ':n) mode tempoState clientState = setCps (read n) mode tempoState clientState
@@ -339,5 +339,3 @@ setNudge n Master tempoState clientState = do tempo <- takeMVar tempoState
                                               return ()
                                               
 setNudge n (Slave sock) tempoState clientState = sendOSC sock $ Message "/nudge" [Float (realToFrac n)]
-
-  

@@ -55,7 +55,8 @@ dirt = Shape {   params = [ s_p,
                             n_p,
                             attack_p,
                             hold_p,
-                            release_p
+                            release_p,
+                            orbit_p
                           ],
                  cpsStamp = True,
                  latency = 0.3

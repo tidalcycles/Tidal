@@ -17,10 +17,11 @@ import Sound.Tidal.Sieve as C
 import Sound.Tidal.SuperCollider as C
 import Sound.Tidal.Params as C
 import Sound.Tidal.Transition as C
+import Sound.Tidal.EspGrid as C
+import Sound.Tidal.MultiMode as C
 import Sound.Tidal.Version as C
 import Sound.Tidal.Chords as C (chord)
 import Sound.Tidal.Scales as C (scaleP)
 
 import qualified Sound.Tidal.Scales as C.Scales
 import qualified Sound.Tidal.Chords as C.Chords
-
