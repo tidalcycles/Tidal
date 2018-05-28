@@ -38,6 +38,8 @@ library
                        Sound.Tidal.SuperCollider
                        Sound.Tidal.Params
                        Sound.Tidal.Transition
+                       Sound.Tidal.EspGrid
+                       Sound.Tidal.MultiMode
                        Sound.Tidal.Scales
                        Sound.Tidal.Chords
                        Sound.Tidal.Sieve
@@ -58,6 +60,7 @@ library
     , safe
     , websockets > 0.8
     , mtl >= 2.1
+    , monad-loops
 
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups == 0.18.*

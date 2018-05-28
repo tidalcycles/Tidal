@@ -13,7 +13,7 @@ import Data.Ratio
 import Data.Typeable
 import Sound.Tidal.Pattern
 import qualified Sound.Tidal.Parse as P
-import Sound.Tidal.Tempo (Tempo, logicalTime, clocked,clockedTick,cps)
+import Sound.Tidal.Tempo (Tempo, logicalTime, clockedTick,cps)
 import Sound.Tidal.Utils
 import qualified Sound.Tidal.Time as T
 import System.IO (stderr, hPutStrLn)
@@ -327,4 +327,3 @@ coerce par@(F _ _) p = (Map.update f par) <$> p
   where f (VS s) = Just (VF $ read s)
         f (VI i) = Just (VF $ fromIntegral i)
         f (VF f) = Just (VF f)
-
