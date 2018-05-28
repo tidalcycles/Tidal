@@ -1,56 +1,80 @@
-#!/usr/bin/env bash
-set -e
+#!/bin/bash
 
-# This script installs tidal.
-# It will get all its dependencies and put
-# files into ~/tidal and a start script on the
-# Desktop.
-#
-# This script has been tested with Ubuntu 13.10
-# and Debian.
+echo -e "\n[ Welcome to the TidalCycles linux install script. It will probably only work with debian based linux distributions such as Ubuntu. ]"
 
-# prepare system
-mkdir -p ~/tidal
-cd ~/tidal
-sudo apt-get -y install build-essential libsndfile1-dev libsamplerate0-dev \
-    liblo-dev libjack-jackd2-dev qjackctl jackd git \
-    ghc zlib1g-dev cabal-install \
-    emacs24 haskell-mode libportmidi-dev
+echo -e "\n[ Installing dependencies.. ]"
+sudo apt-get update
+sudo apt-get -y install build-essential git qjackctl cabal-install zlib1g-dev libportmidi-dev libasound2-dev haskell-stack
 
-# install Dirt
-if [ -d "Dirt" ]; then
-	cd Dirt
-	if [ ! -d ".git" ]; then
-		>&2 echo "no git repository for 'Dirt' ... don't know what to do"
-		exit 1
-	fi
-	git pull
+mkdir ~/tidal-tmp
+
+echo -e "\n[ Testing supercollider version ]"
+if (apt-cache policy supercollider|grep Candidate|grep -q 3.6.6); then
+    echo -e "\n[ Old supercollider version found.. Compiling ]"
+    cd ~/tidal-tmp
+    git clone https://github.com/lvm/build-supercollider
+    cd build-supercollider
+    ./build-supercollider.sh
+    ./build-sc3-plugins.sh
 else
-	git clone --recursive https://github.com/yaxu/Dirt.git
-	cd Dirt
+    echo -e "\n[ Installing distro version of supercollider ]"
+    sudo apt-get install supercollider sc3-plugins
 fi
-make clean; make
-
-# actually install tidal
-cabal update
-cabal install cabal
-cabal install tidal
-
-# configure Emacs
-mkdir -p ~/tidal/emacs
-rm -f ~/tidal/emacs/tidal.el
-wget -O ~/tidal/emacs/tidal.el https://raw.githubusercontent.com/yaxu/Tidal/master/tidal.el
-touch ~/.emacs
-if [ `grep "(add-to-list 'load-path \"~/tidal/emacs\")" ~/.emacs | wc -l` -ne 1 ]; then
-	echo "(add-to-list 'load-path \"~/tidal/emacs\")" >> ~/.emacs
-fi
-if [ `grep "(require 'tidal)" ~/.emacs | wc -l` -ne 1 ]; then
-	echo "(require 'tidal)" >> ~/.emacs
-fi
+   
+echo -e "\n[ Adding user to the 'audio' group ]"
 sudo adduser $USER audio
 
-# put starter on th desktop
-cd ~/Desktop
-rm -f start-tidal
-wget http://yaxu.org/tmp/start-tidal
-chmod u+x start-tidal
+if [ -e /usr/bin/atom ]; then
+   echo -e "\n[ Atom already installed ]"
+else
+   echo -e "\n[ Installing atom ]"
+   wget --output-document=/tmp/atom.deb http://atom.io/download/deb
+   sudo dpkg -i /tmp/atom.deb
+   sudo apt-get --fix-broken install -y
+fi
+
+echo -e "\n[ Changing the default ghci path to stack ghci ]"
+
+echo -e "\n[ Installing/updating atom tidalcycles package ]"
+apm install tidalcycles
+
+echo -e "\n[ Setting default ghci path to use stack ]"
+perl -p -i.bak -e 's/default: "ghci"/default: "stack ghci"/' ~/.atom/packages/tidalcycles/lib/tidalcycles.js
+
+echo -e "\n[ Installing/updating the tidal pattern engine ]"
+stack setup
+stack install tidal
+
+mkdir -p ~/.local/share/SuperCollider/downloaded-quarks/
+cd ~/.local/share/SuperCollider/downloaded-quarks/
+if [ -d ./SuperDirt ]; then
+    echo -e "\n[ Updating SuperDirt ]"
+    cd SuperDirt
+    git pull
+    cd -
+else
+    echo -e "\n[ Installing SuperDirt quark ]"
+    git clone https://github.com/musikinformatik/SuperDirt.git
+fi
+
+if [ -d ./Vowel ]; then
+    echo -e "\n[ Updating Vowel quark ]"
+    cd Vowel
+    git pull
+    cd -
+else
+    echo -e "\n[ Installing Vowel quark ]"
+    git clone https://github.com/supercollider-quarks/Vowel.git
+fi
+
+if [ -d ./Dirt-Samples ]; then
+    echo -e "\n[ Updating Dirt-Samples quark ]"
+    cd Dirt-Samples
+    git pull
+    cd -
+else
+    echo -e "\n[ Installing Dirt-Samples quark, this may take a little while ]"
+    git clone https://github.com/tidalcycles/Dirt-Samples.git
+fi
+
+echo -e "\n\nInstall process complete! It is a good idea to reboot now."

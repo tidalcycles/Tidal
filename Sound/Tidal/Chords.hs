@@ -4,93 +4,93 @@ import Sound.Tidal.Pattern
 import Data.Maybe
 import Control.Applicative
 
-major :: [Int]
+major :: Num a => [a]
 major = [0,4,7]
-minor :: [Int]
+minor :: Num a => [a]
 minor = [0,3,7]
-major7 :: [Int]
+major7 :: Num a => [a]
 major7 = [0,4,7,11]
-dom7 :: [Int]
+dom7 :: Num a => [a]
 dom7 = [0,4,7,10]
-minor7 :: [Int]
+minor7 :: Num a => [a]
 minor7 = [0,3,7,10]
-aug :: [Int]
+aug :: Num a => [a]
 aug = [0,4,8]
-dim :: [Int]
+dim :: Num a => [a]
 dim = [0,3,6]
-dim7 :: [Int]
+dim7 :: Num a => [a]
 dim7 = [0,3,6,9]
-one :: [Int]
+one :: Num a => [a]
 one = [0]
-five :: [Int]
+five :: Num a => [a]
 five = [0,7]
-plus :: [Int]
+plus :: Num a => [a]
 plus = [0,4,8]
-sharp5 :: [Int]
+sharp5 :: Num a => [a]
 sharp5 = [0,4,8]
-msharp5 :: [Int]
+msharp5 :: Num a => [a]
 msharp5 = [0,3,8]
-sus2 :: [Int]
+sus2 :: Num a => [a]
 sus2 = [0,2,7]
-sus4 :: [Int]
+sus4 :: Num a => [a]
 sus4 = [0,5,7]
-six :: [Int]
+six :: Num a => [a]
 six = [0,4,7,9]
-m6 :: [Int]
+m6 :: Num a => [a]
 m6 = [0,3,7,9]
-sevenSus2 :: [Int]
+sevenSus2 :: Num a => [a]
 sevenSus2 = [0,2,7,10]
-sevenSus4 :: [Int]
+sevenSus4 :: Num a => [a]
 sevenSus4 = [0,5,7,10]
-sevenFlat5 :: [Int]
+sevenFlat5 :: Num a => [a]
 sevenFlat5 = [0,4,6,10]
-m7flat5 :: [Int]
+m7flat5 :: Num a => [a]
 m7flat5 = [0,3,6,10]
-sevenSharp5 :: [Int]
+sevenSharp5 :: Num a => [a]
 sevenSharp5 = [0,4,8,10]
-m7sharp5 :: [Int]
+m7sharp5 :: Num a => [a]
 m7sharp5 = [0,3,8,10]
-nine :: [Int]
+nine :: Num a => [a]
 nine = [0,4,7,10,14]
-m9 :: [Int]
+m9 :: Num a => [a]
 m9 = [0,3,7,10,14]
-m7sharp9 :: [Int]
+m7sharp9 :: Num a => [a]
 m7sharp9 = [0,3,7,10,14]
-maj9 :: [Int]
+maj9 :: Num a => [a]
 maj9 = [0,4,7,11,14]
-nineSus4 :: [Int]
+nineSus4 :: Num a => [a]
 nineSus4 = [0,5,7,10,14]
-sixby9 :: [Int]
+sixby9 :: Num a => [a]
 sixby9 = [0,4,7,9,14]
-m6by9 :: [Int]
+m6by9 :: Num a => [a]
 m6by9 = [0,3,9,7,14]
-sevenFlat9 :: [Int]
+sevenFlat9 :: Num a => [a]
 sevenFlat9 = [0,4,7,10,13]
-m7flat9 :: [Int]
+m7flat9 :: Num a => [a]
 m7flat9 = [0,3,7,10,13]
-sevenFlat10 :: [Int]
+sevenFlat10 :: Num a => [a]
 sevenFlat10 = [0,4,7,10,15]
-nineSharp5 :: [Int]
+nineSharp5 :: Num a => [a]
 nineSharp5 = [0,1,13]
-m9sharp5 :: [Int]
+m9sharp5 :: Num a => [a]
 m9sharp5 = [0,1,14]
-sevenSharp5flat9 :: [Int]
+sevenSharp5flat9 :: Num a => [a]
 sevenSharp5flat9 = [0,4,8,10,13]
-m7sharp5flat9 :: [Int]
+m7sharp5flat9 :: Num a => [a]
 m7sharp5flat9 = [0,3,8,10,13]
-eleven :: [Int]
+eleven :: Num a => [a]
 eleven = [0,4,7,10,14,17]
-m11 :: [Int]
+m11 :: Num a => [a]
 m11 = [0,3,7,10,14,17]
-maj11 :: [Int]
+maj11 :: Num a => [a]
 maj11 = [0,4,7,11,14,17]
-evelenSharp :: [Int]
+evelenSharp :: Num a => [a]
 evelenSharp = [0,4,7,10,14,18]
-m11sharp :: [Int]
+m11sharp :: Num a => [a]
 m11sharp = [0,3,7,10,14,18]
-thirteen :: [Int]
+thirteen :: Num a => [a]
 thirteen = [0,4,7,10,14,17,21]
-m13 :: [Int]
+m13 :: Num a => [a]
 m13 = [0,3,7,10,14,17,21]
 
 -- | @chordate cs m n@ selects the @n@th "chord" (a chord is a list of Ints)
@@ -98,17 +98,64 @@ m13 = [0,3,7,10,14,17,21]
 chordate :: Num b => [[b]] -> b -> Int -> [b]
 chordate cs m n = map (+m) $ cs!!n
 
--- | @flatpat@ takes a Pattern of lists and pulls the list elements as
--- separate Events
-flatpat :: Pattern [a] -> Pattern a
-flatpat p = stack [unMaybe $ fmap (`maybeInd` i) p | i <- [0..9]]
-  where maybeInd xs i | i < length xs = Just $ xs!!i
-                      | otherwise = Nothing
-        unMaybe = (fromJust <$>) . filterValues isJust
-
 -- | @enchord chords pn pc@ turns every note in the note pattern @pn@ into
 -- a chord, selecting from the chord lists @chords@ using the index pattern
 -- @pc@.  For example, @Chords.enchord [Chords.major Chords.minor] "c g" "0 1"@
 -- will create a pattern of a C-major chord followed by a G-minor chord.
 enchord :: Num a => [[a]] -> Pattern a -> Pattern Int -> Pattern a
 enchord chords pn pc = flatpat $ (chordate chords) <$> pn <*> pc
+
+chordTable :: Num a => [(String, [a])]
+chordTable = [("major", major),
+              ("minor", minor),
+              ("major7", major7),
+              ("dom7", dom7),
+              ("minor7", minor7),
+              ("aug", aug),
+              ("dim", dim),
+              ("dim7", dim7),
+              ("one", one),
+              ("five", five),
+              ("plus", plus),
+              ("sharp5", sharp5),
+              ("msharp5", msharp5),
+              ("sus2", sus2),
+              ("sus4", sus4),
+              ("six", six),
+              ("m6", m6),
+              ("sevenSus2", sevenSus2),
+              ("sevenSus4", sevenSus4),
+              ("sevenFlat5", sevenFlat5),
+              ("m7flat5", m7flat5),
+              ("sevenSharp5", sevenSharp5),
+              ("m7sharp5", m7sharp5),
+              ("nine", nine),
+              ("m9", m9),
+              ("m7sharp9", m7sharp9),
+              ("maj9", maj9),
+              ("nineSus4", nineSus4),
+              ("sixby9", sixby9),
+              ("m6by9", m6by9),
+              ("sevenFlat9", sevenFlat9),
+              ("m7flat9", m7flat9),
+              ("sevenFlat10", sevenFlat10),
+              ("nineSharp5", nineSharp5),
+              ("m9sharp5", m9sharp5),
+              ("sevenSharp5flat9", sevenSharp5flat9),
+              ("m7sharp5flat9", m7sharp5flat9),
+              ("eleven", eleven),
+              ("m11", m11),
+              ("maj11", maj11),
+              ("evelenSharp", evelenSharp),
+              ("m11sharp", m11sharp),
+              ("thirteen", thirteen),
+              ("m13", m13)
+             ]
+
+chordL :: Num a => Pattern String -> Pattern [a]
+chordL p = (\name -> fromMaybe [] $ lookup name chordTable) <$> p
+
+-- | @chord p@ turns a pattern of chord names into a pattern of
+-- numbers, representing note value offsets for the chords
+chord :: Num a => Pattern String -> Pattern a
+chord p = flatpat $ chordL p

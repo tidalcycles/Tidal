@@ -76,9 +76,9 @@ mapCycle :: (Time -> Time) -> Arc -> Arc
 mapCycle f (s,e) = (sam' + (f $ s - sam'), sam' + (f $ e - sam'))
          where sam' = sam s
 
--- | Returns the `mirror image' of an @Arc@, used by @Sound.Tidal.Pattern.rev@.
-mirrorArc :: Arc -> Arc
-mirrorArc (s, e) = (sam s + (nextSam s - e), nextSam s - (s - sam s))
+-- | Returns the `mirror image' of an @Arc@ around the given point intime, used by @Sound.Tidal.Pattern.rev@.
+mirrorArc :: Time -> Arc -> Arc
+mirrorArc mid (s, e) = (mid - (e-mid), mid+(mid-s))
 
 -- | The start time of the given @Event@
 eventStart :: Event a -> Time

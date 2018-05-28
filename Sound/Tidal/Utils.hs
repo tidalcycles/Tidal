@@ -97,3 +97,8 @@ mergelists (x:xs) (y:ys) = x : y : mergelists xs ys
 -}
 (!!!) :: [a] -> Int -> a
 (!!!) xs n = xs !! (n `mod` length xs)
+
+accumulate :: Num t => [t] -> [t]
+accumulate = accumulate' 0
+  where accumulate' _ [] = []
+        accumulate' n (a:xs) = (n+a):(accumulate' (n+a) xs)

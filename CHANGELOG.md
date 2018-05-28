@@ -1,5 +1,34 @@
 # TidalCycles log of changes
 
+## 0.9.7
+
+### Enhancements
+
+* The `note` pattern parameter is no longer an alias for `midinote`,
+  but an independent parameter for supercollider to handle (in a manner
+  similar to `up`)
+  
+## 0.9.6
+
+### Enhancements
+
+* Added `chord` for chord patterns and `scaleP` for scale patterns
+* The `n` pattern parameter is now floating point
+
+## 0.9.5
+
+### Enhancements
+
+* Added `hurry` which both speeds up the sound and the pattern by the given amount.
+* Added `stripe` which repeats a pattern a given number of times per
+  cycle, with random but contiguous durations.
+* Added continuous function `cosine`
+* Turned more pattern transformation parameters into patterns - spread', striateX, every', inside, outside, swing
+* Added experimental datatype for Xenakis sieves
+* Correctly parse negative rationals
+* Added `breakUp` that finds events that share the same timespan, and spreads them out during that timespan, so for example (breakUp "[bd,sn]") gets turned into the "bd sn"
+* Added `fill` which 'fills in' gaps in one pattern with events from another. 
+
 ## 0.9.4
 
 ### Fixes

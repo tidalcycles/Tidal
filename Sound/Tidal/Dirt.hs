@@ -1,7 +1,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 module Sound.Tidal.Dirt where
 
-import Sound.OSC.FD (Datum)
+import Sound.OSC.Datum (Datum)
 import qualified Data.Map as Map
 import Control.Applicative
 import Control.Concurrent.MVar
@@ -13,7 +13,7 @@ import Data.Bits
 import Data.Maybe
 import Data.Fixed
 import Data.Ratio
-import Data.List (elemIndex)
+import Data.List (elemIndex, sort)
 
 import Sound.Tidal.Stream
 import Sound.Tidal.OscStream
@@ -23,7 +23,7 @@ import Sound.Tidal.Params
 import Sound.Tidal.Time
 import Sound.Tidal.Tempo
 import Sound.Tidal.Transition (transition, wash)
-import Sound.Tidal.Utils (enumerate)
+import Sound.Tidal.Utils (enumerate, fst')
 
 dirt :: Shape
 dirt = Shape {   params = [ s_p,
@@ -55,7 +55,8 @@ dirt = Shape {   params = [ s_p,
                             n_p,
                             attack_p,
                             hold_p,
-                            release_p
+                            release_p,
+                            orbit_p
                           ],
                  cpsStamp = True,
                  latency = 0.3
@@ -117,8 +118,9 @@ dirtstream _ = dirtStream
 
 
 dirtToColour :: ParamPattern -> Pattern ColourD
-dirtToColour p = s
-  where s = fmap (\x -> maybe black (datumToColour) (Map.lookup (param dirt "s") x)) p
+--dirtToColour p = s
+--  where s = fmap (\x -> maybe black (datumToColour) (Map.lookup (param dirt "s") x)) p
+dirtToColour = fmap (stringToColour . show)
 
 showToColour :: Show a => a -> ColourD
 showToColour = stringToColour . show
@@ -197,14 +199,20 @@ d1 $ slow 32 $ striate' 32 (1/16) $ sound "bev"
 Note that `striate` uses the `begin` and `end` parameters
 internally. This means that if you're using `striate` (or `striate'`)
 you probably shouldn't also specify `begin` or `end`. -}
-striate' :: Int -> Double -> ParamPattern -> ParamPattern
-striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
+striate' :: Pattern Int -> Pattern Double -> ParamPattern -> ParamPattern
+striate' = temporalParam2 _striate'
+
+_striate' :: Int -> Double -> ParamPattern -> ParamPattern
+_striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (atom (slot * i) :: Pattern Double) # end (atom ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
 {- | like `striate`, but with an offset to the begin and end values -}
-striateO :: Int -> Double -> ParamPattern -> ParamPattern
-striateO n o p = _striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
+striateO :: Pattern Int -> Pattern Double -> ParamPattern -> ParamPattern
+striateO = temporalParam2 _striateO
+
+_striateO :: Int -> Double -> ParamPattern -> ParamPattern
+_striateO n o p = _striate n p |+| begin (atom o :: Pattern Double) |+| end (atom o :: Pattern Double)
 
 {- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
 The primed version is just like `striate'`, where the loop count is the third argument. For example:
@@ -215,9 +223,15 @@ d1 $ striateL' 3 0.125 4 $ sound "feel sn:2"
 
 Like `striate`, these use the `begin` and `end` parameters internally, as well as the `loop` parameter for these versions.
 -}
-striateL :: Int -> Int -> ParamPattern -> ParamPattern
-striateL n l p = _striate n p # loop (atom $ fromIntegral l)
-striateL' n f l p = striate' n f p # loop (atom $ fromIntegral l)
+striateL :: Pattern Int -> Pattern Int -> ParamPattern -> ParamPattern
+striateL = temporalParam2 _striateL
+
+striateL' :: Pattern Int -> Pattern Double -> Pattern Int -> ParamPattern -> ParamPattern
+striateL' = temporalParam3 _striateL'
+
+_striateL :: Int -> Int -> ParamPattern -> ParamPattern
+_striateL n l p = _striate n p # loop (atom $ fromIntegral l)
+_striateL' n f l p = _striate' n f p # loop (atom $ fromIntegral l)
 
 metronome = _slow 2 $ sound (p "[odx, [hh]*8]")
 
@@ -300,7 +314,7 @@ d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
 -}
 
 stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ParamPattern -> ParamPattern
-stut n g t p = unwrap $ (\a b c -> _stut a b c p) <$> n <*> g <*> t
+stut = temporalParam3 _stut
 
 _stut :: Integer -> Double -> Rational -> ParamPattern -> ParamPattern
 _stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) `rotR` (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
@@ -315,9 +329,41 @@ d1 $ stut' 2 (1%3) (# vowel "{a e i o u}%2") $ sound "bd sn"
 
 In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has the @vowel@ filter applied.
 -}
-stut' :: Integer -> Time -> (ParamPattern -> ParamPattern) -> ParamPattern -> ParamPattern
-stut' steps steptime f p | steps <= 0 = p
-                         | otherwise = overlay (f (steptime `rotR` stut' (steps-1) steptime f p)) p
+stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stut' n t f p = unwrap $ (\a b -> _stut' a b f p) <$> n <*> t
+
+_stut' :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_stut' steps steptime f p | steps <= 0 = p
+                         | otherwise = overlay (f (steptime `rotR` _stut' (steps-1) steptime f p)) p
+
+{- | @durPattern@ takes a pattern and returns the length of events in that
+pattern as a new pattern.  For example the result of `durPattern "[a ~] b"`
+would be `"[0.25 ~] 0.5"`.
+-}
+
+durPattern :: Pattern a -> Pattern Time
+durPattern p = Pattern $ \a -> map eventLengthEvent $ arc p a
+  where eventLengthEvent (a1@(s1,e1), a2, x) = (a1, a2, e1-s1)
+
+{- | @durPattern'@ is similar to @durPattern@, but does some lookahead to try
+to find the length of time to the *next* event. For example, the result of
+`durPattern' "[a ~] b"` would be `"[0.5 ~] 0.5"`.
+-}
+
+durPattern' :: Pattern a -> Pattern Time
+durPattern' p = Pattern $ \a@(s,e) -> map (eventDurToNext (arc p (s,e+1))) (arc p a)
+      where eventDurToNext evs ev@(a1,a2,x) = (a1, a2, (nextNum (t ev) (mt evs)) - (t ev))
+            t = fst . fst'
+            mt = (map fst) . (map fst')
+            nextNum a = head . sort . filter (\x -> x >a)
+
+{- | @stutx@ is like @stut'@ but will limit the number of repeats using the 
+duration of the original sound.  This usually prevents overlapping "stutters"
+from subsequent sounds.
+-}
+
+stutx :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stutx n t f p = stut' (liftA2 min n (fmap floor $ durPattern' p / (t+0.001))) t f p
 
 {-| same as `anticipate` though it allows you to specify the number of cycles until dropping to the new pattern, e.g.:
 

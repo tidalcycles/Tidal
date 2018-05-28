@@ -5,7 +5,7 @@ module Sound.Tidal.SuperCollider where
 import Sound.Tidal.Stream
 import Sound.Tidal.Pattern
 import Sound.Tidal.Parse
-import Sound.OSC.FD
+import Sound.OSC.Datum
 import Sound.Tidal.OscStream
 
 supercollider :: [Param] -> Double -> Shape

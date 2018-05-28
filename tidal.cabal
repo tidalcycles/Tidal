@@ -1,5 +1,5 @@
 name:                tidal
-version:             0.9.4
+version:             0.9.10
 synopsis:            Pattern language for improvised music
 -- description:
 homepage:            http://tidalcycles.org/
@@ -12,13 +12,16 @@ Copyright:           (c) Tidal contributors, 2017
 category:            Sound
 build-type:          Simple
 cabal-version:       >=1.10
-tested-with:         GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1
+tested-with:         GHC == 7.10.3, GHC == 8.0.1, GHC == 8.4.1
 
-Extra-source-files: README.md tidal.el doc/tidal.md
+Extra-source-files: README.md CHANGELOG.md tidal.el doc/tidal.md
 
 Description: Tidal is a domain specific language for live coding pattern.
 
 library
+  if impl(ghc == 8.4.1)
+    cpp-options: -DTIDAL_SEMIGROUP
+
   default-language:    Haskell2010
 
   Exposed-modules:     Sound.Tidal.Bjorklund
@@ -39,7 +42,9 @@ library
                        Sound.Tidal.MultiMode
                        Sound.Tidal.Scales
                        Sound.Tidal.Chords
+                       Sound.Tidal.Sieve
                        Sound.Tidal.Version
+                       Sound.Tidal.Simple
                        -- Sound.Tidal.PatternList
 
   Build-depends:
@@ -47,7 +52,7 @@ library
     , containers
     , hashable
     , colour
-    , hosc > 0.13
+    , hosc >= 0.16
     , text
     , mersenne-random-pure64
     , time
@@ -56,6 +61,9 @@ library
     , websockets > 0.8
     , mtl >= 2.1
     , monad-loops
+
+  if !impl(ghc >= 8.4.1)
+    build-depends: semigroups == 0.18.*
 
 source-repository head
   type:     git
@@ -72,6 +80,6 @@ test-suite test
     test.hs
   build-depends:
       base >= 4 && < 5
-              , tasty >= 0.11
+              , tasty 
               , tasty-hunit
     , tidal

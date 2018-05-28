@@ -16,6 +16,7 @@ import qualified Sound.Tidal.Parse as P
 import Sound.Tidal.Tempo (Tempo, logicalTime, clockedTick,cps)
 import Sound.Tidal.Utils
 import qualified Sound.Tidal.Time as T
+import System.IO (stderr, hPutStrLn)
 
 import qualified Data.Map.Strict as Map
 
@@ -162,7 +163,7 @@ onTick backend shape patternM change ticks
            messages = mapMaybe
                       (toMessage backend shape change ticks)
                       (seqToRelOnsetDeltas (a, b) p)
-       E.catch (sequence_ messages) (\msg -> putStrLn $ "oops " ++ show (msg :: E.SomeException))
+       E.catch (sequence_ messages) (\msg -> hPutStrLn stderr $ "failed " ++ show (msg :: E.SomeException))
        flush backend shape change ticks
        return ()
 

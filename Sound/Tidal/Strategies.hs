@@ -51,7 +51,7 @@ juxcut f p = stack [p     # pan (pure 0) # cut (pure (-1)),
 
 juxcut' fs p = stack $ map (\n -> ((fs !! n) p |+| cut (pure $ 1-n)) # pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
   where l = length fs
- 
+
 {- | In addition to `jux`, `jux'` allows using a list of pattern transform. resulting patterns from each transformation will be spread via pan from left to right.
 
 For example:
@@ -65,17 +65,17 @@ will put `iter 4` of the pattern to the far left and `palindrome` to the far rig
 One could also write:
 
 @
-d1 $ stack [  
-    iter 4 $ sound "bd sn" # pan "0",  
-    chop 16 $ sound "bd sn" # pan "0.25",  
-    sound "bd sn" # pan "0.5",  
-    rev $ sound "bd sn" # pan "0.75",  
-    palindrome $ sound "bd sn" # pan "1",  
-    ]  
+d1 $ stack [
+    iter 4 $ sound "bd sn" # pan "0",
+    chop 16 $ sound "bd sn" # pan "0.25",
+    sound "bd sn" # pan "0.5",
+    rev $ sound "bd sn" # pan "0.75",
+    palindrome $ sound "bd sn" # pan "1",
+    ]
 @
 
 -}
-jux' fs p = stack $ map (\n -> ((fs !! n) p) # pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
+jux' fs p = stack $ map (\n -> ((fs !! n) p) |+| pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
   where l = length fs
 
 -- | Multichannel variant of `jux`, _not sure what it does_
@@ -95,7 +95,7 @@ d1 $ juxBy 0.5 (density 2) $ sound "bd sn:1"
 In the above, the two versions of the pattern would be panned at 0.25
 and 0.75, rather than 0 and 1.
 -}
-juxBy n f p = stack [p |+| pan (pure $ 0.5 - (n/2)), f $ p |+| pan (pure $ 0.5 + (n/2))]
+juxBy n f p = stack [p |+| pan 0.5 |-| pan (n/2), f $ p |+| pan 0.5 |+| pan (n/2)]
 
 {- | Smash is a combination of `spread` and `striate` - it cuts the samples
 into the given number of bits, and then cuts between playing the loop
@@ -285,7 +285,7 @@ normEv ev@(_, (s,e), _) ev'@(_, (s',e'), _)
 
 
 en :: [(Int, Int)] -> Pattern String -> Pattern String
-en ns p = stack $ map (\(i, (k, n)) -> e k n (samples p (pure i))) $ enumerate ns
+en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate ns
 
 {- |
 `weave` applies a function smoothly over an array of different patterns. It uses an `OscPattern` to
@@ -310,7 +310,7 @@ weave' t p fs | l == 0 = silence
               | otherwise = _slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) `rotL` (_density t $ f (_slow t p))) (zip [0 ..] fs)
   where l = fromIntegral $ length fs
 
-{- | 
+{- |
 (A function that takes two OscPatterns, and blends them together into
 a new OscPattern. An OscPattern is basically a pattern of messages to
 a synthesiser.)
@@ -330,7 +330,7 @@ interlace a b = weave 16 (shape $ ((* 0.9) <$> sinewave1)) [a, b]
 step :: String -> String -> Pattern String
 step s steps = fastcat $ map f steps
     where f c | c == 'x' = atom s
-              | c >= '0' && c <= '9' = atom $ s ++ ":" ++ [c]
+              | Char.isDigit c = atom $ s ++ ":" ++ [c]
               | otherwise = silence
 
 steps :: [(String, String)] -> Pattern String
@@ -339,8 +339,8 @@ steps = stack . map (\(a,b) -> step a b)
 -- | like `step`, but allows you to specify an array of strings to use for 0,1,2...
 step' :: [String] -> String -> Pattern String
 step' ss steps = fastcat $ map f steps
-    where f c | c == 'x' = atom $ ss!!0
-              | c >= '0' && c <= '9' = atom $ ss!!(Char.digitToInt c)
+    where f c | c == 'x' = atom $ head ss
+              | Char.isDigit c = atom $ ss!!(Char.digitToInt c)
               | otherwise = silence
 
 off :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
@@ -367,16 +367,23 @@ up = speed . ((1.059466**) <$>)
 
 ghost'' a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) $ p
 ghost' a p = ghost'' 0.125 ((|*| gain (pure 0.7)) . (|=| end (pure 0.2)) . (|*| speed (pure 1.25))) p
-ghost p = ghost' 0.125 p 
+ghost p = ghost' 0.125 p
 
-slice :: Int -> Int -> ParamPattern -> ParamPattern
-slice i n p = 
+
+slice :: Pattern Int -> Pattern Int -> ParamPattern -> ParamPattern
+slice pi pn p = begin b # end e # p
+  where b = (\i n -> (div' i n)) <$> pi <*> pn
+        e = (\i n -> (div' i n) + (div' 1 n)) <$> pi <*> pn
+        div' a b = fromIntegral (a `mod` b) / fromIntegral b
+
+_slice :: Int -> Int -> ParamPattern -> ParamPattern
+_slice i n p =
       p
       # begin (pure $ fromIntegral i / fromIntegral n)
       # end (pure $ fromIntegral (i+1) / fromIntegral n)
 
 randslice :: Int -> ParamPattern -> ParamPattern
-randslice n p = unwrap $ (\i -> slice i n p) <$> irand n
+randslice n p = unwrap $ (\i -> _slice i n p) <$> irand n
 
 {- |
 `loopAt` makes a sample fit the given number of cycles. Internally, it
@@ -387,7 +394,7 @@ the `density` of the pattern to match.
 @
 d1 $ loopAt 4 $ sound "breaks125"
 d1 $ juxBy 0.6 (|*| speed "2") $ slowspread (loopAt) [4,6,2,3] $ chop 12 $ sound "fm:14"
-@ 
+@
 -}
 loopAt :: Pattern Time -> ParamPattern -> ParamPattern
 loopAt n p = slow n p |*| speed (fromRational <$> (1/n)) # unit (pure "c")
@@ -401,7 +408,7 @@ loopAt n p = slow n p |*| speed (fromRational <$> (1/n)) # unit (pure "c")
 tabby n p p' = stack [maskedWarp n p,
                       maskedWeft n p'
                      ]
-  where             
+  where
     weft n = concatMap (\x -> [[0..n-1],(reverse [0..n-1])]) [0 .. (n `div` 2) - 1]
     warp = transpose . weft
     thread xs n p = _slow (n%1) $ fastcat $ map (\i -> zoom (i%n,(i+1)%n) p) (concat xs)
@@ -409,3 +416,6 @@ tabby n p p' = stack [maskedWarp n p,
     warpP n p = thread (warp n) n p
     maskedWeft n p = Sound.Tidal.Pattern.mask (every 2 rev $ _density ((n)%2) "~ 1" :: Pattern Int) $ weftP n p
     maskedWarp n p = mask (every 2 rev $ _density ((n)%2) "1 ~" :: Pattern Int) $ warpP n p
+
+hurry :: Pattern Rational -> ParamPattern -> ParamPattern
+hurry x = (|*| speed (fromRational <$> x)) . fast x
