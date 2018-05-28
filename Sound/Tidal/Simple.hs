@@ -14,8 +14,8 @@ louder = (|*| gain 1.2)
 quieter :: ParamPattern -> ParamPattern
 quieter = (|*| gain 0.8)
 
-silent :: ParamPattern -> ParamPattern
-silent = const silence
+mute :: ParamPattern -> ParamPattern
+mute = const silence
 
 jump :: ParamPattern -> ParamPattern
 jump = (0.25 <~)
@@ -32,3 +32,8 @@ higher = (|*| speed 1.5)
 lower :: ParamPattern -> ParamPattern
 lower = (|*| speed 0.75)
 
+faster :: ParamPattern -> ParamPattern
+faster = hurry 2
+
+slower :: ParamPattern -> ParamPattern
+slower = hurry 0.5
