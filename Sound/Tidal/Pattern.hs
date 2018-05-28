@@ -14,7 +14,7 @@ import Data.Ratio
 import Data.Typeable
 import Data.Function
 import System.Random.Mersenne.Pure64
--- import Data.Char
+import Data.Char (digitToInt)
 import qualified Data.Text as T
 
 import Sound.Tidal.Time
@@ -1469,6 +1469,11 @@ lindenmayer _ _ [] = []
 lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r)
                          ++ (lindenmayer 1 r cs)
 lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
+
+{- | @lindenmayerI@ converts the resulting string into a a list of integers
+with @fromIntegral@ applied (so they can be used seamlessly where floats or
+rationals are required) -}
+lindenmayerI n r s = fmap fromIntegral $ fmap digitToInt $ lindenmayer n r s
 
 -- support for fit'
 unwrap' :: Pattern (Pattern a) -> Pattern a
