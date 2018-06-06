@@ -539,92 +539,75 @@ sig f = Pattern f'
   where f' (s,e) | s > e = []
                  | otherwise = [((s,e), (s,e), f s)]
 
--- | @sinewave@ returns a @Pattern@ of continuous @Double@ values following a
+-- | @sinewave@ returns a @Pattern@ of continuous @Fractional@ values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
-sinewave :: Pattern Double
-sinewave = sig $ \t -> ((sin $ pi * 2 * (fromRational t)) + 1) / 2
+sinewave :: Fractional a => Pattern a
+sinewave = sig $ \t -> ((sin_rat $ pi * 2 * (fromRational t)) + 1) / 2
+  where sin_rat = fromRational . toRational . sin
 
 -- | @sine@ is a synonym for @sinewave@.
-sine :: Pattern Double
+sine :: Fractional a => Pattern a
 sine = sinewave
 
 -- | @sine@ is a synonym for @0.25 ~> sine@.
-cosine :: Pattern Double
+cosine :: Fractional a => Pattern a
 cosine = 0.25 ~> sine
-
--- | @sinerat@ is equivalent to @sinewave@ for @Rational@ values,
--- suitable for use as @Time@ offsets.
-sinerat :: Pattern Rational
-sinerat = fmap toRational sine
-
--- | @ratsine@ is a synonym for @sinerat@.
-ratsine :: Pattern Rational
-ratsine = sinerat
 
 -- | @sineAmp d@ returns @sinewave@ with its amplitude offset by @d@.
 -- Deprecated, as these days you can simply do e.g. (sine + 0.5)
-sineAmp :: Double -> Pattern Double
+sineAmp :: Fractional a => a -> Pattern a
 sineAmp offset = (+ offset) <$> sinewave1
 
 -- | @sawwave@ is the equivalent of @sinewave@ for (ascending) sawtooth waves.
-sawwave :: Pattern Double
+sawwave :: (Fractional a, Real a) => Pattern a
 sawwave = sig $ \t -> mod' (fromRational t) 1
 
 -- | @saw@ is a synonym for @sawwave@.
-saw :: Pattern Double
+saw :: (Fractional a, Real a) => Pattern a
 saw = sawwave
 
--- | @sawrat@ is the same as @sawwave@ but returns @Rational@ values
--- suitable for use as @Time@ offsets.
-sawrat :: Pattern Rational
-sawrat = fmap toRational saw
-
 -- | @triwave@ is the equivalent of @sinewave@ for triangular waves.
-triwave :: Pattern Double
+triwave :: (Fractional a, Real a) => Pattern a
 triwave = append sawwave1 (rev sawwave1)
 
 -- | @tri@ is a synonym for @triwave@.
-tri :: Pattern Double
+tri :: (Fractional a, Real a) => Pattern a
 tri = triwave
 
--- | @trirat@ is the same as @triwave@ but returns @Rational@ values
--- suitable for use as @Time@ offsets.
-trirat :: Pattern Rational
-trirat = fmap toRational tri
-
 -- | @squarewave1@ is the equivalent of @sinewave@ for square waves.
-squarewave :: Pattern Double
+squarewave :: (Fractional a, Real a) => Pattern a
 squarewave = sig $
              \t -> fromIntegral $ ((floor $ (mod' (fromRational t :: Double) 1) * 2) :: Integer)
 
 -- | @square@ is a synonym for @squarewave@.
-square :: Pattern Double
+square :: (Fractional a, Real a) => Pattern a
 square = squarewave
 
 -- deprecated..
-sinewave1 :: Pattern Double
+sinewave1 :: Fractional a => Pattern a
 sinewave1 = sinewave
-sine1 :: Pattern Double
+sine1 :: Fractional a => Pattern a
 sine1 = sinewave
-sinerat1 :: Pattern Rational
-sinerat1 = sinerat
-sineAmp1 :: Double -> Pattern Double
+sinerat = sine
+ratsine = sine
+sinerat1 = sine
+sineAmp1 :: Fractional a => a -> Pattern a
 sineAmp1 = sineAmp
-sawwave1 :: Pattern Double
+sawwave1 :: (Fractional a, Real a) => Pattern a
 sawwave1 = sawwave
-saw1 :: Pattern Double
+saw1 :: (Fractional a, Real a) => Pattern a
 saw1 = sawwave
-sawrat1 :: Pattern Rational
-sawrat1 = sawrat
-triwave1 :: Pattern Double
+sawrat = saw
+sawrat1 = saw
+triwave1 :: (Fractional a, Real a) => Pattern a
 triwave1 = triwave
-tri1 :: Pattern Double
+tri1 :: (Fractional a, Real a) => Pattern a
 tri1 = triwave
-trirat1 :: Pattern Rational
-trirat1 = trirat
-squarewave1 :: Pattern Double
+trirat = tri
+trirat1 = tri
+squarewave1 :: (Fractional a, Real a) => Pattern a
 squarewave1 = squarewave
-square1 :: Pattern Double
+square1 :: (Fractional a, Real a) => Pattern a
 square1 = square
 
 -- | @envL@ is a @Pattern@ of continuous @Double@ values, representing
