@@ -1116,6 +1116,44 @@ within (s,e) f p = stack [playWhen (\t -> cyclePos t >= s && cyclePos t < e) $ f
                           playWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p
                          ]
 
+{- |
+For many cases, @within'@ will function exactly as within.  
+The difference between the two occurs when applying functions like 'fast' or '<~'. 
+within applies the function to the whole cycle first then keeps notes only in the specified interval. 
+within', however, only sees the notes in the specified interval to which it then applies the function.  
+
+For example, whereas using the standard version of within
+
+@
+d1 $ within (0, 0.25) (fast 2) $ sound "bd hh cp sd"
+@
+
+sounds like:
+
+@
+d1 $ sound "[bd hh] hh cp sd"
+@
+
+using this alternative version, within'
+
+@
+d1 $ within' (0, 0.25) (fast 2) $ sound "bd hh cp sd"
+@
+
+sounds like: 
+
+@
+d1 $ sound "[bd bd] hh cp sd"
+@
+
+-}
+
+within' :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+within' (s,e) f p = stack [playWhen (\t -> cyclePos t >= s && cyclePos t < e) $ compress (s,e) $ f $ zoom (s,e) $ p, 
+                           playWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p 
+                          ]
+
+
 revArc :: Arc -> Pattern a -> Pattern a
 revArc a = within a rev
 
