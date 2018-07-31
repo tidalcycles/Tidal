@@ -159,3 +159,8 @@ chordL p = (\name -> fromMaybe [] $ lookup name chordTable) <$> p
 -- numbers, representing note value offsets for the chords
 chord :: Num a => Pattern String -> Pattern a
 chord p = flatpat $ chordL p
+
+-- | @arpg p@ turns a pattern of chord names into a pattern of arpeggios
+-- of the those chords respectively
+arpg :: Num a => Pattern String -> Pattern a
+arpg p = breakUp $ chord p
