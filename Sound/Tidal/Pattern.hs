@@ -1118,9 +1118,10 @@ within (s,e) f p = stack [playWhen (\t -> cyclePos t >= s && cyclePos t < e) $ f
 
 {- |
 For many cases, @within'@ will function exactly as within.  
-The difference between the two occurs when applying functions like 'fast' or '<~'. 
-within applies the function to the whole cycle first then keeps notes only in the specified interval. 
-within', however, only sees the notes in the specified interval to which it then applies the function.  
+The difference between the two occurs when applying functions that change the timing of notes such as 'fast' or '<~'. 
+within first applies the function to all notes in the cycle, then keeps the results in the specified interval, and then combines it with the old cycle (an "apply split combine" paradigm). 
+within' first keeps notes in the specified interval, then applies the function to these notes, and then combines it with the old cycle (a "split apply combine" paradigm).
+
 
 For example, whereas using the standard version of within
 
