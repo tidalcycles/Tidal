@@ -1,5 +1,20 @@
 # TidalCycles log of changes
 
+## 0.9.10 (and earlier missing versions from this log)
+
+* arpg, a function to arpeggiate
+* within', an alternate within with a different approach to time, following discussion here https://github.com/tidalcycles/Tidal/issues/313
+* sine et al are now generalised so can be used as double or rational patterns
+* New Sound.Tidal.Simple module with a range of simple transformations (faster, slower, higher, lower, mute, etc)
+* slice upgraded to take a pattern of slice indexes
+* espgrid support
+* lindenmayerI
+* sew function, for binary switching between two patterns
+* somecycles alias for someCycles
+* ply function, for repeating each event in a pattern a given number
+  of times within their original timespan
+* patternify juxBy, e, e', einv, efull, eoff
+
 ## 0.9.7
 
 ### Enhancements
