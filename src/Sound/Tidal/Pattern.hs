@@ -91,14 +91,6 @@ joinPattern pp = Pattern f
                                                     p <- subSpan oPart iPart
                                                     return ((w,p),v)
 
-{-
-joinPattern :: Pattern (Pattern a) -> Pattern a
-joinPattern pp = Pattern f
-  where f span = concatMap (\((whole, part), p) -> mapMaybe (munge whole) $ query p span) (query pp span)
-        munge outerWhole ((innerWhole,innerPart),v) =
-          do part' <- subSpan outerWhole innerPart
-             return ((innerWhole,part'),v)
--}
 ------------------------------------------------------------------------
 -- Internal functions
 
