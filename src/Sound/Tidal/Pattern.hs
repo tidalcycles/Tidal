@@ -313,7 +313,7 @@ rotR t = rotL (0-t)
 (~>) = temporalParam rotR
 
 -- | Speed up a pattern by the given factor
-fast = (>>= _fast)
+fast tp = temporalParam _fast
 _fast :: Time -> Pattern a -> Pattern a
 _fast r p | r == 0 = silence
           | r < 0 = rev $ _fast (0-r) p
@@ -382,8 +382,8 @@ filterJust p = fromJust <$> (filterValues (isJust) p)
 
 -- Temporal parameter helpers
 
-temporalParam :: (Time -> a) -> (a -> Time -> b) -> Time -> b
-temporalParam = (>>=)
+temporalParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
+temporalParam f tv p = joinPattern $ (`f` p) <$> tv
 
 temporalParam2 :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)
 temporalParam2 f a b p = joinPattern $ (\x y -> f x y p) <$> a <*> b
