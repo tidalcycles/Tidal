@@ -31,6 +31,55 @@ main = hspec $ do
                                                 (((1,2),(1,1.25)),0)
                                                ]
 
+  describe "Sound.Tidal.Pattern.append" $ do
+    it "can switch between the cycles from two atoms" $ do
+      (query (append (atom "a") (atom "b")) (0,5)) `shouldBe` [(((0,1), (0,1)), "a"),
+                                                               (((1,2), (1,2)), "b"),
+                                                               (((2,3), (2,3)), "a"),
+                                                               (((3,4), (3,4)), "b"),
+                                                               (((4,5), (4,5)), "a")
+                                                              ]
+
+  describe "Sound.Tidal.Pattern.cat" $ do
+    it "can switch between the cycles from three atoms" $ do
+      query (cat [atom "a", atom "b", atom "c"]) (0,5) `shouldBe` [(((0,1), (0,1)), "a"),
+                                                                   (((1,2), (1,2)), "b"),
+                                                                   (((2,3), (2,3)), "c"),
+                                                                   (((3,4), (3,4)), "a"),
+                                                                   (((4,5), (4,5)), "b")
+                                                                  ]
+
+  describe "Sound.Tidal.Pattern.fastCat" $ do
+    it "can switch between the cycles from three atoms inside one cycle" $ do
+      query (fastCat [atom "a", atom "b", atom "c"]) (0,5/3) `shouldBe` [(((0,1/3),   (0,1/3)),   "a"),
+                                                                         (((1/3,2/3), (1/3,2/3)), "b"),
+                                                                         (((2/3,1),   (2/3,1)),   "c"),
+                                                                         (((1,4/3),   (1,4/3)),   "a"),
+                                                                         (((4/3,5/3), (4/3,5/3)), "b")
+                                                                        ]
+  describe "Sound.Tidal.Pattern.<*>" $ do
+    it "can apply a pattern of values to a pattern of values" $ do
+      query ((atom (+1)) <*> (atom 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4)]
+    it "can take structure from the left" $ do
+      query ((fastCat [atom (+1), atom (+2)]) <*> (atom 3)) (0,1) `shouldBe` [(((0,0.5), (0,0.5)), 4),
+                                                                              (((0.5,1), (0.5,1)), 5)
+                                                                             ]
+    it "can take structure from the right" $ do
+      query (atom (+1) <*> (fastCat [atom 7, atom 8])) (0,1) `shouldBe` [(((0,0.5), (0,0.5)), 8),
+                                                                         (((0.5,1), (0.5,1)), 9)
+                                                                        ]
+    it "can take structure from the both sides" $ do
+      query ((fastCat [atom (+1), atom (+2)]) <*> (fastCat [atom 7, atom 8])) (0,1)
+        `shouldBe` [(((0,0.5), (0,0.5)), 8),
+                    (((0.5,1), (0.5,1)), 10)
+                   ]
+      query ((fastCat [atom (+1), atom (+2), atom (+3)]) <*> (fastCat [atom 7, atom 8])) (0,1)
+        `shouldBe` [(((0 % 1,1 % 3),(0 % 1,1 % 3)),8),
+                    (((1 % 3,1 % 2),(1 % 3,1 % 2)),9),
+                    (((1 % 2,2 % 3),(1 % 2,2 % 3)),10),
+                    (((2 % 3,1 % 1),(2 % 3,1 % 1)),11)
+                   ]
+
 {-
   describe "Sound.Tidal.Pattern.eventL" $ do
     it "succeeds if the first event 'whole' is shorter" $ do
