@@ -78,18 +78,18 @@ instance Monad Pattern where
 -- | Turns a pattern of patterns into a single pattern.
 -- formerly known as unwrap
 --
--- 1/ For query @span@, get the events from the outer pattern (pp)
--- 2/ The 'whole' of the outer event represents one cycle of the inner pattern, use compress to make that so
--- 3/ Query the compressed inner pattern using the 'part' of the outer
--- pattern, to get the events from that inner pattern
--- 4/ Concatenate all the events together
---
--- take a pattern of values, and a function that turns one of those values into another pattern
--- (>>=) :: Pattern a -> (a -> Pattern b) -> Pattern b
+-- 1/ For query @span@, get the events from the outer pattern @pp@
+-- 2/ Query the inner pattern using the 'part' of the outer
+-- 3/ For each inner event, set the whole and part to be the intersection
+--    of the outer whole and part, respectively
+-- 4/ Concatenate all the events together (discarding wholes/parts that didn't intersect)
 
 joinPattern :: Pattern (Pattern a) -> Pattern a
 joinPattern pp = Pattern f
-  where f span = concatMap (\((whole, part), p) -> query (compress whole p) part) (query pp span)
+  where f span = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p part) (query pp span)
+        munge oWhole oPart ((iWhole, iPart),v) = do w <- subSpan oWhole iWhole
+                                                    p <- subSpan oPart iPart
+                                                    return ((w,p),v)
 
 {-
 joinPattern :: Pattern (Pattern a) -> Pattern a
@@ -360,13 +360,16 @@ zoom (s,e) p = splitQueries $ withResultSpan (mapCycle ((/d) . (subtract s))) $ 
 -- | @fastGap@ is similar to @fast@ but maintains its cyclic
 -- alignment. For example, @fastGap 2 p@ would squash the events in
 -- pattern @p@ into the first half of each cycle (and the second
--- halves would be empty).
+-- halves would be empty). The factor should be at least 1
 fastGap :: Time -> Pattern a -> Pattern a
 fastGap 0 _ = silence
-fastGap r p = splitQueries $ withResultSpan (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> query p $ mapBoth (\t -> sam t + (min 1 (r * cyclePos t))) a)
+fastGap r p = splitQueries $ withResultSpan (\(s,e) -> (sam s + ((s - sam s)/r'), (sam s + ((e - sam s)/r')))) $ Pattern (\a -> query p $ mapBoth (\t -> sam t + (min 1 (r' * cyclePos t))) a)
+  where r' = max r 1
 
 compress :: Span -> Pattern a -> Pattern a
 compress (s,e) p | s >= e = silence
+                 | s > 1 || e > 1 = silence
+                 | s < 0 || e < 0 = silence
                  | otherwise = s `rotR` fastGap (1/(e-s)) p
 
 -- | Event filters

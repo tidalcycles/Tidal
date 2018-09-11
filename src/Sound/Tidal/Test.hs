@@ -131,21 +131,51 @@ main = hspec $ do
       (query (rev $ rev x) (0,5)) `shouldBe` (query x (0,5))
 
 
+  describe "Sound.Tidal.Pattern.compress" $ do
+    it "squashes cycles to the start of a cycle" $ do
+      let p = compress (0, 0.5) $ fastCat [atom 7, atom 8]
+      (query p (0,1)) `shouldBe` [(((0,0.25),  (0,0.25)),   7),
+                                  (((0.25,0.5),(0.25,0.5)), 8)
+                                 ]
+    it "squashes cycles to the end of a cycle" $ do
+      let p = compress (0.5,1) $ fastCat [atom 7, atom 8]
+      (query p (0,1)) `shouldBe` [(((0.5,0.75),  (0.5,0.75)), 7),
+                                  (((0.75,1),    (0.75,1)),   8)
+                                 ]
+    it "squashes cycles to the middle of a cycle" $ do
+      let p = compress (0.25,0.75) $ fastCat [atom 7, atom 8]
+      (query p (0,1)) `shouldBe` [(((0.25,0.5),  (0.25,0.5)), 7),
+                                  (((0.5,0.75),  (0.5,0.75)), 8)
+                                 ]
+
+  describe "Sound.Tidal.Pattern.joinPattern" $ do
+    it "preserves inner structure" $ do
+      (query (joinPattern $ atom (fastCat [atom "a", atom "b"])) (0,1))
+        `shouldBe` (query (fastCat [atom "a", atom "b"]) (0,1))
+      (query (joinPattern $ atom (fastCat [atom "a", atom "b", fastCat [atom "c", atom "d"]])) (0,1))
+        `shouldBe` (query (fastCat [atom "a", atom "b", fastCat [atom "c", atom "d"]]) (0,1))
+    it "preserves outer structure" $ do
+      (query (joinPattern $ fastCat [atom $ atom "a", atom $ atom "b"]) (0,1))
+        `shouldBe` (query (fastCat [atom "a", atom "b"]) (0,1))
+      (query (joinPattern $ fastCat [atom $ atom "a", atom $ atom "b", fastCat [atom $ atom "c", atom $ atom "d"]]) (0,1))
+        `shouldBe` (query (fastCat [atom "a", atom "b", fastCat [atom "c", atom "d"]]) (0,1))
+
   describe "Sound.Tidal.Pattern.>>=" $ do
     it "can apply functions to patterns" $ do
-      let p = fastCat [fastCat [atom 7, atom 8], atom 9]
+      let p = fastCat [atom 7, atom 8]
           p' = do x <- p
                   return $ x + 1
       (query p' (0,1)) `shouldBe` (query ((+1) <$> p) (0,1))
 
     it "can add two patterns together" $ do
-      let p1 = fastCat [fastCat [atom 7, atom 8], atom 9]
-          p2 = fastCat [atom 4, atom 5, atom 6]
+      let p1 = fastCat [atom 7, atom 8, atom 9]
+          p2 = fastCat [atom 4, fastCat [atom 5, atom 6]]
           p' = do x <- p1
                   y <- p2
                   return $ x + y
-      (query p' (0,1)) `shouldBe` (query ((+) <$> p1 <*> p2) (0,1))
+      (sort $ query p' (0,1)) `shouldBe` (sort $ query ((+) <$> p1 <*> p2) (0,1))
 
     it "returns the original if you reverse it twice" $ do
       let x = fastCat [fastCat [atom 7, atom 8], atom 9]
       (query (rev $ rev x) (0,5)) `shouldBe` (query x (0,5))
+
