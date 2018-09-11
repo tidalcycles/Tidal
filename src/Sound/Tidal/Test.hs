@@ -95,7 +95,7 @@ main = hspec $ do
 
     it "obeys pure (.) <*> u <*> v <*> w = u <*> (v <*> w)" $ do
       let u = fastCat [atom (+7), atom (+8)]
-          v = fastCat [atom (+3), atom (+4)]
+          v = fastCat [atom (+3), atom (+4), atom (+5)]
           w = fastCat [atom 1, atom 2]
       query (pure (.) <*> u <*> v <*> w) (0,5) `shouldBe` query (u <*> (v <*> w)) (0,5)
           
