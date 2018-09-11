@@ -43,29 +43,6 @@ instance Functor Pattern where
 
 instance Applicative Pattern where
   pure = atom
-{-
-  -- | Takes a pattern of values and applies them to a pattern of
-  -- functions, where the 'smallest' events give the resulting
-  -- structure.
-  -- Step 1: Matches the *onsets* of the events on the right that fit
-  --   inside the whole *spans* of the events on the left. It takes
-  --   the structure from the right, but filters out events on the
-  --   right that are longer than their matched events on the left. Applies
-  --   the values to their functions.
-  -- Step 2: Vice-versa (i.e., doing the same as above, but
-  --   with left and right swapped)
-  -- Step 3: Append the list of events from step 2, to those from step 1
-  pf <*> px = Pattern $ \a -> (concatMap applyX $ query pf a) ++ (concatMap applyToF $ query px a)
-    where
-      applyX event@(((ws,_),_),f) =
-        map (\(_,x) -> (fst event, f x)) $ filter (eventLE event) $ query px (ws,ws)
-      applyToF event@(((ws,_),_),x) =
-        map (\(_,f) -> (fst event, f x)) $ filter (eventL event) $ query pf (ws,ws)
-      eventL :: Event a -> Event b -> Bool
-      eventL e e' = (delta $ eventWhole e) < (delta $ eventWhole e')
-      eventLE :: Event a -> Event b -> Bool
-      eventLE e e' = (delta $ eventWhole e) <= (delta $ eventWhole e')
--}
 
   -- for the part of each event in pf
   -- - get matching events px matching the span
@@ -98,6 +75,7 @@ instance Monad Pattern where
   return = atom
   p >>= f = unwrap (f <$> p)
 
+-- (This version of unwrap probably needs to change..)
 -- | Turns a pattern of patterns into a single pattern, like this:
 -- 1/ For query @span@, get the events from the outer pattern
 -- 2/ For each event, get the 'whole' timespan and internal pattern,
@@ -108,7 +86,7 @@ instance Monad Pattern where
 --  b/ Keep the new whole as the inner whole
 -- 4/ concatenate all the inner events together
 --
--- This is actually @join@.. Probably better to define bind (@>>=@) rather than join?
+-- This is actually @join@! Probably better to define bind (@>>=@) rather than join?
 -- (>>=) :: Pattern a -> (a -> Pattern b) -> Pattern b
 -- join x = x >>= id
 
@@ -257,8 +235,7 @@ envEq = sig $ \t -> sqrt (sin (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
 envEqR :: Pattern Double
 envEqR = sig $ \t -> sqrt (cos (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
 
-
--- Simple ways to combine functions
+-- Simple ways to combine patterns
 
 -- | Alternate between cycles of the two given patterns
 append a b = cat [a,b]
