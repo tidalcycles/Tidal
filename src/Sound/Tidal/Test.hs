@@ -1,4 +1,4 @@
-module Test where
+module Sound.Tidal.Test where
 
 import Test.Hspec
 import Test.QuickCheck
@@ -49,4 +49,5 @@ main = hspec $ do
       spanCycles (0,1.1) `shouldBe` [(0,1),(1,1.1)]
       spanCycles (1,2.1) `shouldBe` [(1,2),(2,2.1)]
       spanCycles (3 + (1%3),5.1) `shouldBe` [(3+(1%3),4),(4,5),(5,5.1)]
+
 
