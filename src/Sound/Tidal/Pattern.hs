@@ -199,7 +199,7 @@ sine = sig $ \t -> ((sin_rat $ pi * 2 * (fromRational t)) + 1) / 2
 
 -- | @cosine@ is a synonym for @0.25 ~> sine@.
 cosine :: Fractional a => Pattern a
-cosine = 0.25 ~> sine
+cosine = 0.25 `rotR` sine
 
 -- | @saw@ is the equivalent of @sine@ for (ascending) sawtooth waves.
 saw :: (Fractional a, Real a) => Pattern a
@@ -260,13 +260,13 @@ slowcat = slowCat
 slowAppend = append
 
 -- | Like @append@, but twice as fast
-fastAppend a b = fast 2 $ append a b
+fastAppend a b = _fast 2 $ append a b
 
 -- | The same as @cat@, but speeds up the result by the number of
 -- patterns there are, so the cycles from each are squashed to fit a
 -- single cycle.
 fastCat :: [Pattern a] -> Pattern a
-fastCat ps = fast (toTime $ length ps) $ cat ps
+fastCat ps = _fast (toTime $ length ps) $ cat ps
 fastcat = fastCat
 
 -- Ways to construct patterns
@@ -287,12 +287,14 @@ fromMaybes = fastcat . map f
         f (Just x) = atom x
 
 -- | A pattern of whole numbers from 0 to the given number, in a single cycle.
-run :: (Enum a, Num a) => a -> Pattern a
-run n = fromList [0 .. n-1]
+run = (>>= _run)
+_run :: (Enum a, Num a) => a -> Pattern a
+_run n = fromList [0 .. n-1]
 
 -- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
-scan :: (Enum a, Num a) => a -> Pattern a
-scan n = slowcat $ map run [1 .. n]
+scan = (>>= _scan)
+_scan :: (Enum a, Num a) => a -> Pattern a
+_scan n = slowcat $ map _run [1 .. n]
 
 -- Functions for manipulating time
 
@@ -301,24 +303,26 @@ rotL :: Time -> Pattern a -> Pattern a
 rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 
 -- | Infix alias for @rotL@
-(<~) = rotL
+(<~) = temporalParam rotL
 
 -- | Shifts a pattern forward in time by the given amount, expressed in cycles
 rotR :: Time -> Pattern a -> Pattern a
 rotR t = rotL (0-t)
 
 -- | Infix alias for @rotR@
-(~>) = rotR
+(~>) = temporalParam rotR
 
 -- | Speed up a pattern by the given factor
-fast :: Time -> Pattern a -> Pattern a
-fast r p | r == 0 = silence
-         -- | r < 0 = rev $ fast (0-r) p
-         | otherwise = withResultTime (/ r) $ withQueryTime (* r) p
+fast = (>>= _fast)
+_fast :: Time -> Pattern a -> Pattern a
+_fast r p | r == 0 = silence
+          | r < 0 = rev $ _fast (0-r) p
+          | otherwise = withResultTime (/ r) $ withQueryTime (* r) p
 
 -- | Slow down a pattern by the given factor
-slow :: Time -> Pattern a -> Pattern a
-slow r p = fast (1/r) p
+slow = temporalParam _slow
+_slow :: Time -> Pattern a -> Pattern a
+_slow r p = _fast (1/r) p
 
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
@@ -353,16 +357,17 @@ zoom (s,e) p = splitQueries $ withResultSpan (mapCycle ((/d) . (subtract s))) $ 
 -- alignment. For example, @fastGap 2 p@ would squash the events in
 -- pattern @p@ into the first half of each cycle (and the second
 -- halves would be empty). The factor should be at least 1
-fastGap :: Time -> Pattern a -> Pattern a
-fastGap 0 _ = silence
-fastGap r p = splitQueries $ withResultSpan (\(s,e) -> (sam s + ((s - sam s)/r'), (sam s + ((e - sam s)/r')))) $ Pattern (\a -> query p $ mapBoth (\t -> sam t + (min 1 (r' * cyclePos t))) a)
+fastGap = temporalParam _fastGap
+_fastGap :: Time -> Pattern a -> Pattern a
+_fastGap 0 _ = silence
+_fastGap r p = splitQueries $ withResultSpan (\(s,e) -> (sam s + ((s - sam s)/r'), (sam s + ((e - sam s)/r')))) $ Pattern (\a -> query p $ mapBoth (\t -> sam t + (min 1 (r' * cyclePos t))) a)
   where r' = max r 1
 
 compress :: Span -> Pattern a -> Pattern a
 compress (s,e) p | s >= e = silence
                  | s > 1 || e > 1 = silence
                  | s < 0 || e < 0 = silence
-                 | otherwise = s `rotR` fastGap (1/(e-s)) p
+                 | otherwise = s `rotR` _fastGap (1/(e-s)) p
 
 -- | Event filters
 
@@ -374,6 +379,17 @@ filterValues f (Pattern x) = Pattern $ (filter (f . snd)) . x
 -- dropping the events of @Nothing@.
 filterJust :: Pattern (Maybe a) -> Pattern a
 filterJust p = fromJust <$> (filterValues (isJust) p)
+
+-- Temporal parameter helpers
+
+temporalParam :: (Time -> a) -> (a -> Time -> b) -> Time -> b
+temporalParam = (>>=)
+
+temporalParam2 :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)
+temporalParam2 f a b p = joinPattern $ (\x y -> f x y p) <$> a <*> b
+
+temporalParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
+temporalParam3 f a b c p = joinPattern $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 --eoff :: Int -> Int -> Integer -> Pattern a -> Pattern a
 --eoff n k s p = ((s%(fromIntegral k)) `rotL`) (_e n k p)
