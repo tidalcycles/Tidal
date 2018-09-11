@@ -175,7 +175,15 @@ main = hspec $ do
                   return $ x + y
       (sort $ query p' (0,1)) `shouldBe` (sort $ query ((+) <$> p1 <*> p2) (0,1))
 
-    it "returns the original if you reverse it twice" $ do
-      let x = fastCat [fastCat [atom 7, atom 8], atom 9]
-      (query (rev $ rev x) (0,5)) `shouldBe` (query x (0,5))
+    it "conforms to (return v) >>= f = f v" $ do
+      let f x = pure $ x + 10
+          v = 5
+      compareP 5 ((return v) >>= f) (f v)
+    it "conforms to m >>= return ≡ m" $ do
+      let m = fastCat [atom "a", fastCat [atom "b", atom "c"]]
+      compareP 5 (m >>= return) m
+    -- if "conforms to (m >>= f) >>= g ≡ m >>= ( \x -> (f x >>= g) )"
+       
 
+
+compareP n p p' = (sort $ query p (0,n)) == (sort $ query p' (0,n))
