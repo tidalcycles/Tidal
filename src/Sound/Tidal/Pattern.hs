@@ -87,7 +87,10 @@ instance Monad Pattern where
 -- 4/ concatenate all the inner events together
 --
 -- This is actually @join@! Probably better to define bind (@>>=@) rather than join?
+
+-- take a pattern of values, and a function that turns one of those values into another pattern
 -- (>>=) :: Pattern a -> (a -> Pattern b) -> Pattern b
+
 -- join x = x >>= id
 
 unwrap :: Pattern (Pattern a) -> Pattern a
