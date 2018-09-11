@@ -79,7 +79,26 @@ main = hspec $ do
                     (((1 % 2,2 % 3),(1 % 2,2 % 3)),10),
                     (((2 % 3,1 % 1),(2 % 3,1 % 1)),11)
                    ]
+    it "obeys pure id <*> v = v" $ do
+      let v = fastCat [fastCat [atom 7, atom 8], atom 9]
+      query ((pure id <*> v)) (0,5) `shouldBe` query v (0,5)
 
+    it "obeys pure f <*> pure x = pure (f x)" $ do
+      let f = (+3)
+          x = 7
+      query (pure f <*> pure x) (0,5) `shouldBe` query (pure (f x)) (0,5)
+
+    it "obeys u <*> pure y = pure ($ y) <*> u" $ do
+      let u = fastCat [atom (+7), atom (+8)]
+          y = 6
+      query (u <*> pure y) (0,5) `shouldBe` query (pure ($ y) <*> u) (0,5)
+
+    it "obeys pure (.) <*> u <*> v <*> w = u <*> (v <*> w)" $ do
+      let u = fastCat [atom (+7), atom (+8)]
+          v = fastCat [atom (+3), atom (+4)]
+          w = fastCat [atom 1, atom 2]
+      query (pure (.) <*> u <*> v <*> w) (0,5) `shouldBe` query (u <*> (v <*> w)) (0,5)
+          
 {-
   describe "Sound.Tidal.Pattern.eventL" $ do
     it "succeeds if the first event 'whole' is shorter" $ do
