@@ -287,11 +287,13 @@ fromMaybes = fastcat . map f
         f (Just x) = atom x
 
 -- | A pattern of whole numbers from 0 to the given number, in a single cycle.
+run :: (Enum a, Num a) => Pattern a -> Pattern a
 run = (>>= _run)
 _run :: (Enum a, Num a) => a -> Pattern a
 _run n = fromList [0 .. n-1]
 
 -- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
+scan :: (Enum a, Num a) => Pattern a -> Pattern a
 scan = (>>= _scan)
 _scan :: (Enum a, Num a) => a -> Pattern a
 _scan n = slowcat $ map _run [1 .. n]
@@ -303,6 +305,7 @@ rotL :: Time -> Pattern a -> Pattern a
 rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 
 -- | Infix alias for @rotL@
+(<~) :: Pattern Time -> Pattern a -> Pattern a
 (<~) = temporalParam rotL
 
 -- | Shifts a pattern forward in time by the given amount, expressed in cycles
@@ -310,16 +313,19 @@ rotR :: Time -> Pattern a -> Pattern a
 rotR t = rotL (0-t)
 
 -- | Infix alias for @rotR@
+(~>) :: Pattern Time -> Pattern a -> Pattern a
 (~>) = temporalParam rotR
 
 -- | Speed up a pattern by the given factor
-fast tp = temporalParam _fast
+fast :: Pattern Time -> Pattern a -> Pattern a
+fast = temporalParam _fast
 _fast :: Time -> Pattern a -> Pattern a
 _fast r p | r == 0 = silence
           | r < 0 = rev $ _fast (0-r) p
           | otherwise = withResultTime (/ r) $ withQueryTime (* r) p
 
 -- | Slow down a pattern by the given factor
+slow :: Pattern Time -> Pattern a -> Pattern a
 slow = temporalParam _slow
 _slow :: Time -> Pattern a -> Pattern a
 _slow r p = _fast (1/r) p
@@ -357,6 +363,7 @@ zoom (s,e) p = splitQueries $ withResultSpan (mapCycle ((/d) . (subtract s))) $ 
 -- alignment. For example, @fastGap 2 p@ would squash the events in
 -- pattern @p@ into the first half of each cycle (and the second
 -- halves would be empty). The factor should be at least 1
+fastGap :: Pattern Time -> Pattern a -> Pattern a
 fastGap = temporalParam _fastGap
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = silence
