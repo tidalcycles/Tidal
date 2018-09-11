@@ -73,32 +73,32 @@ pf *> px = Pattern $ \a -> concatMap applyToF $ query px a
 
 instance Monad Pattern where
   return = atom
-  p >>= f = unwrap (f <$> p)
+  p >>= f = joinPattern (f <$> p)
 
--- (This version of unwrap probably needs to change..)
--- | Turns a pattern of patterns into a single pattern, like this:
--- 1/ For query @span@, get the events from the outer pattern
--- 2/ For each event, get the 'whole' timespan and internal pattern,
--- querying it with the same @span@
--- 3/ Munge each of the resulting inner events using the 'whole'
--- timespan of the outer event, as follows
---  a/ Get the new part as the intersection of the outer whole and inner part
---  b/ Keep the new whole as the inner whole
--- 4/ concatenate all the inner events together
+-- | Turns a pattern of patterns into a single pattern.
+-- formerly known as unwrap
 --
--- This is actually @join@! Probably better to define bind (@>>=@) rather than join?
-
+-- 1/ For query @span@, get the events from the outer pattern (pp)
+-- 2/ The 'whole' of the outer event represents one cycle of the inner pattern, use compress to make that so
+-- 3/ Query the compressed inner pattern using the 'part' of the outer
+-- pattern, to get the events from that inner pattern
+-- 4/ Concatenate all the events together
+--
 -- take a pattern of values, and a function that turns one of those values into another pattern
 -- (>>=) :: Pattern a -> (a -> Pattern b) -> Pattern b
 
--- join x = x >>= id
+joinPattern :: Pattern (Pattern a) -> Pattern a
+joinPattern pp = Pattern f
+  where f span = concatMap (\((whole, part), p) -> query (compress whole p) part) (query pp span)
 
-unwrap :: Pattern (Pattern a) -> Pattern a
-unwrap p = Pattern $ \span -> concatMap (\((whole, _), p') -> mapMaybe (munge whole) $ query p' span) (query p span)
-  where munge outerWhole ((innerWhole,innerPart),v) =
+{-
+joinPattern :: Pattern (Pattern a) -> Pattern a
+joinPattern pp = Pattern f
+  where f span = concatMap (\((whole, part), p) -> mapMaybe (munge whole) $ query p span) (query pp span)
+        munge outerWhole ((innerWhole,innerPart),v) =
           do part' <- subSpan outerWhole innerPart
              return ((innerWhole,part'),v)
-
+-}
 ------------------------------------------------------------------------
 -- Internal functions
 
@@ -140,6 +140,10 @@ toTime = toRational
 -- | The end point of the current cycle (and starting point of the next cycle)
 nextSam :: Time -> Time
 nextSam = (1+) . sam
+
+-- | The position of a time value relative to the start of its cycle.
+cyclePos :: Time -> Time
+cyclePos t = t - sam t
 
 -- | @subSpan i j@ is the timespan that is the intersection of @i@ and @j@.
 subSpan :: Span -> Span -> Maybe Span
@@ -352,6 +356,18 @@ d1 $ sound "hh*3 [sn bd]*2"
 zoom :: Span -> Pattern a -> Pattern a
 zoom (s,e) p = splitQueries $ withResultSpan (mapCycle ((/d) . (subtract s))) $ withQuerySpan (mapCycle ((+s) . (*d))) p
      where d = e-s
+
+-- | @fastGap@ is similar to @fast@ but maintains its cyclic
+-- alignment. For example, @fastGap 2 p@ would squash the events in
+-- pattern @p@ into the first half of each cycle (and the second
+-- halves would be empty).
+fastGap :: Time -> Pattern a -> Pattern a
+fastGap 0 _ = silence
+fastGap r p = splitQueries $ withResultSpan (\(s,e) -> (sam s + ((s - sam s)/r), (sam s + ((e - sam s)/r)))) $ Pattern (\a -> query p $ mapBoth (\t -> sam t + (min 1 (r * cyclePos t))) a)
+
+compress :: Span -> Pattern a -> Pattern a
+compress (s,e) p | s >= e = silence
+                 | otherwise = s `rotR` fastGap (1/(e-s)) p
 
 -- | Event filters
 

@@ -6,6 +6,7 @@ import Control.Exception (evaluate)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
 import Data.Ratio
+import Data.List (sort)
 
 main :: IO ()
 main = hspec $ do
@@ -118,4 +119,33 @@ main = hspec $ do
       spanCycles (1,2.1) `shouldBe` [(1,2),(2,2.1)]
       spanCycles (3 + (1%3),5.1) `shouldBe` [(3+(1%3),4),(4,5),(5,5.1)]
 
+  describe "Sound.Tidal.Pattern.rev" $ do
+    it "mirrors events" $ do
+      let forward = fastCat [fastCat [atom 7, atom 8], atom 9]
+          backward = fastCat [atom 9, fastCat [atom 8, atom 7]]
+      -- sort the events into time order to compare them
+      (sort $ query (rev forward) (0,1)) `shouldBe` (sort $ query (backward) (0,1))
 
+    it "returns the original if you reverse it twice" $ do
+      let x = fastCat [fastCat [atom 7, atom 8], atom 9]
+      (query (rev $ rev x) (0,5)) `shouldBe` (query x (0,5))
+
+
+  describe "Sound.Tidal.Pattern.>>=" $ do
+    it "can apply functions to patterns" $ do
+      let p = fastCat [fastCat [atom 7, atom 8], atom 9]
+          p' = do x <- p
+                  return $ x + 1
+      (query p' (0,1)) `shouldBe` (query ((+1) <$> p) (0,1))
+
+    it "can add two patterns together" $ do
+      let p1 = fastCat [fastCat [atom 7, atom 8], atom 9]
+          p2 = fastCat [atom 4, atom 5, atom 6]
+          p' = do x <- p1
+                  y <- p2
+                  return $ x + y
+      (query p' (0,1)) `shouldBe` (query ((+) <$> p1 <*> p2) (0,1))
+
+    it "returns the original if you reverse it twice" $ do
+      let x = fastCat [fastCat [atom 7, atom 8], atom 9]
+      (query (rev $ rev x) (0,5)) `shouldBe` (query x (0,5))
