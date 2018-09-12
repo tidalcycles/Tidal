@@ -1,34 +1,31 @@
-module Sound.Tidal.Test where
-
-import Test.Hspec
-import Test.QuickCheck
-import Control.Exception (evaluate)
-import Sound.Tidal.Pattern
-import Sound.Tidal.Utils
+import Test.Microspec
 import Data.Ratio
 import Data.List (sort)
 
+import Sound.Tidal.Pattern
+import Sound.Tidal.Utils
+
 main :: IO ()
-main = hspec $ do
+main = microspec $ do
   describe "Sound.Tidal.Pattern.eventWhole" $ do
     it "returns the first element of a tuple inside the first element of a tuple" $ do
-      property $ (1,2) == eventWhole (((1,2),(3,4)), 5)
+      property $ (1,2) === eventWhole (((1,2),(3,4)), 5)
 
   describe "Sound.Tidal.Pattern.eventPart" $ do
     it "returns the second element of a tuple inside the first element of a tuple" $ do
-      property $ (3,4) == eventPart (((1,2),(3,4)), 5)
+      property $ (3,4) === eventPart (((1,2),(3,4)), 5)
 
   describe "Sound.Tidal.Utils.delta" $ do
     it "subtracts the second element of a tuple from the first" $ do
-      property $ delta (3,10) == 7
+      property $ delta (3,10) === 7
 
   describe "Sound.Tidal.Pattern.atom" $ do
     it "fills a whole cycle" $ do
-      property $ query (atom 0) (0,1) == [(((0,1),(0,1)),0)]
+      property $ query (atom 0) (0,1) === [(((0,1),(0,1)),0)]
     it "returns the part of an atom that you ask for, preserving the whole" $ do
-      property $ query (atom 0) (0.25,0.75) == [(((0,1),(0.25,0.75)),0)]
+      property $ query (atom 0) (0.25,0.75) === [(((0,1),(0.25,0.75)),0)]
     it "gives correct fragments when you go over cycle boundaries" $ do
-      property $ query (atom 0) (0.25,1.25) == [(((0,1),(0.25,1)),0),
+      property $ query (atom 0) (0.25,1.25) === [(((0,1),(0.25,1)),0),
                                                 (((1,2),(1,1.25)),0)
                                                ]
 
@@ -70,11 +67,13 @@ main = hspec $ do
                                                                          (((0.5,1), (0.5,1)), 9)
                                                                         ]
     it "can take structure from the both sides" $ do
-      query ((fastCat [atom (+1), atom (+2)]) <*> (fastCat [atom 7, atom 8])) (0,1)
+      it "one" $
+        query ((fastCat [atom (+1), atom (+2)]) <*> (fastCat [atom 7, atom 8])) (0,1)
         `shouldBe` [(((0,0.5), (0,0.5)), 8),
                     (((0.5,1), (0.5,1)), 10)
                    ]
-      query ((fastCat [atom (+1), atom (+2), atom (+3)]) <*> (fastCat [atom 7, atom 8])) (0,1)
+      it "two" $
+        query ((fastCat [atom (+1), atom (+2), atom (+3)]) <*> (fastCat [atom 7, atom 8])) (0,1)
         `shouldBe` [(((0 % 1,1 % 3),(0 % 1,1 % 3)),8),
                     (((1 % 3,1 % 2),(1 % 3,1 % 2)),9),
                     (((1 % 2,2 % 3),(1 % 2,2 % 3)),10),
@@ -112,12 +111,13 @@ main = hspec $ do
 
   describe "Sound.Tidal.Pattern.spanCycles" $ do
     it "leaves a unit cycle intact" $ do
-      spanCycles (0,1) `shouldBe` [(0,1)]
-      spanCycles (3,4) `shouldBe` [(3,4)]
+      it "(0,1)" $ spanCycles (0,1) `shouldBe` [(0,1)]
+      it "(3,4)" $ spanCycles (3,4) `shouldBe` [(3,4)]
     it "splits a cycle at cycle boundaries" $ do
-      spanCycles (0,1.1) `shouldBe` [(0,1),(1,1.1)]
-      spanCycles (1,2.1) `shouldBe` [(1,2),(2,2.1)]
-      spanCycles (3 + (1%3),5.1) `shouldBe` [(3+(1%3),4),(4,5),(5,5.1)]
+      it "(0,1.1)" $ spanCycles (0,1.1) `shouldBe` [(0,1),(1,1.1)]
+      it "(1,2,1)" $ spanCycles (1,2.1) `shouldBe` [(1,2),(2,2.1)]
+      it "(3 + (1%3),5.1)" $
+         spanCycles (3 + (1%3),5.1) `shouldBe` [(3+(1%3),4),(4,5),(5,5.1)]
 
   describe "Sound.Tidal.Pattern.rev" $ do
     it "mirrors events" $ do
@@ -150,14 +150,18 @@ main = hspec $ do
 
   describe "Sound.Tidal.Pattern.joinPattern" $ do
     it "preserves inner structure" $ do
-      (query (joinPattern $ atom (fastCat [atom "a", atom "b"])) (0,1))
+      it "one" $
+        (query (joinPattern $ atom (fastCat [atom "a", atom "b"])) (0,1))
         `shouldBe` (query (fastCat [atom "a", atom "b"]) (0,1))
-      (query (joinPattern $ atom (fastCat [atom "a", atom "b", fastCat [atom "c", atom "d"]])) (0,1))
+      it "two" $
+        (query (joinPattern $ atom (fastCat [atom "a", atom "b", fastCat [atom "c", atom "d"]])) (0,1))
         `shouldBe` (query (fastCat [atom "a", atom "b", fastCat [atom "c", atom "d"]]) (0,1))
     it "preserves outer structure" $ do
-      (query (joinPattern $ fastCat [atom $ atom "a", atom $ atom "b"]) (0,1))
+      it "one" $
+        (query (joinPattern $ fastCat [atom $ atom "a", atom $ atom "b"]) (0,1))
         `shouldBe` (query (fastCat [atom "a", atom "b"]) (0,1))
-      (query (joinPattern $ fastCat [atom $ atom "a", atom $ atom "b", fastCat [atom $ atom "c", atom $ atom "d"]]) (0,1))
+      it "two" $
+        (query (joinPattern $ fastCat [atom $ atom "a", atom $ atom "b", fastCat [atom $ atom "c", atom $ atom "d"]]) (0,1))
         `shouldBe` (query (fastCat [atom "a", atom "b", fastCat [atom "c", atom "d"]]) (0,1))
 
   describe "Sound.Tidal.Pattern.>>=" $ do
@@ -186,4 +190,5 @@ main = hspec $ do
        
 
 
-compareP n p p' = (sort $ query p (0,n)) == (sort $ query p' (0,n))
+compareP n p p' = (sort $ query p (0,n)) === (sort $ query p' (0,n))
+
