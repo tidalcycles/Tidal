@@ -48,24 +48,18 @@ library
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups == 0.18.*
 
-test-suite spec
+test-suite tests
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Test.hs
   hs-source-dirs:
       test
-  ghc-options: -Wall
+  ghc-options: -Wall -fhpc
   build-depends:
                 base ==4.*
-              , hspec ==2.*
+              , microspec >= 0.2.0.1
               , tidal
-              , QuickCheck
-  other-modules:
-                Sound.Tidal.Pattern
-                Sound.Tidal.Utils
-                Sound.Tidal.PatternSpec
-                
+
   default-language: Haskell2010
-  build-tool-depends: hspec-discover:hspec-discover == 2.*
 
 source-repository head
   type:     git
