@@ -78,6 +78,18 @@ main = microspec $ do
       it "1/3" $
         query (fastCat [pure "a", pure "b"]) (1%3,1%3)
           `shouldBe` [(((0,0.5), (1%3,1%3)), "a")]
+
+  describe "Sound.Tidal.Pattern._fastGap" $ do
+    it "copes with cross-cycle queries" $ do
+      (query(_fastGap 2 $ fastCat [pure "a", pure "b"]) (0.5,1.5))
+        `shouldBe`
+        [(((1 % 1,5 % 4),(1 % 1,5 % 4)),"a"),
+         (((5 % 4,3 % 2),(5 % 4,3 % 2)),"b")
+        ]
+    it "does not return events outside of the query" $ do
+      (query(_fastGap 2 $ fastCat [pure "a", pure "b"]) (0.5,0.9))
+        `shouldBe` []
+
   describe "Sound.Tidal.Pattern.<*>" $ do
     it "can apply a pattern of values to a pattern of values" $ do
       query ((atom (+1)) <*> (atom 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
