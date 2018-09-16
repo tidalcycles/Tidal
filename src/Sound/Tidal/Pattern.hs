@@ -2,6 +2,7 @@ module Sound.Tidal.Pattern where
 
 import Prelude hiding ((<*), (*>))
 import Data.Ratio
+import qualified Data.Map.Strict as Map
 import Control.Applicative ((<*>), Applicative)
 import Data.Maybe (mapMaybe)
 import Data.Fixed (mod')
@@ -30,6 +31,8 @@ type Query a = (Span -> [Event a])
 
 -- | A datatype that's basically a query. At least for now.
 data Pattern a = Pattern {query :: Query a}
+
+type PatternMap a b = Pattern (Map.Map a b)
 
 ------------------------------------------------------------------------
 -- * Instances
@@ -132,7 +135,7 @@ mapCycle f (s,e) = (sam' + (f $ s - sam'), sam' + (f $ e - sam'))
 -- combined. Being able to assume queries don't span cycles often
 -- makes transformations easier to specify.
 splitQueries :: Pattern a -> Pattern a
-splitQueries p = Pattern $ \a -> concatMap (query p) $ spanCycles a
+splitQueries p = Pattern $ \a -> concatMap (query p) $ spanCyclesZW a
 
 -- | The 'sam' (start of cycle) for the given time value
 sam :: Time -> Time
@@ -425,11 +428,31 @@ fastGap :: Pattern Time -> Pattern a -> Pattern a
 fastGap = temporalParam _fastGap
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = silence
-_fastGap r p = splitQueries $ withResultSpan (\(s,e) -> (sam s + ((s - sam s)/r'), (sam s + ((e - sam s)/r')))) $ Pattern (\a -> query p $ mapBoth (\t -> sam t + (min 1 (r' * cyclePos t))) a)
+_fastGap r p = splitQueries $ 
+  withResultSpan (\(s,e) -> (sam s + ((s - sam s)/r'),
+                             sam s + ((e - sam s)/r')
+                            )
+                 ) $ Pattern f
   where r' = max r 1
+        -- zero width queries of the next sam should return zero in this case..
+        f a | fst a' == nextSam (fst a) = []
+            | otherwise = query p a'
+              where mungeQuery t = sam t + (min 1 $ r' * cyclePos t)
+                    a' = mapBoth mungeQuery a
+
+
+{-
+|a b c d |
+|abcd    |
+|    |
+
+0.25,0.5
+0.5,1
+
+-}
 
 compress :: Span -> Pattern a -> Pattern a
-compress (s,e) p | s >= e = silence
+compress (s,e) p | s > e = silence
                  | s > 1 || e > 1 = silence
                  | s < 0 || e < 0 = silence
                  | otherwise = s `rotR` _fastGap (1/(e-s)) p
