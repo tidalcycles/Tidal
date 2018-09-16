@@ -82,6 +82,8 @@ pf *> px = Pattern f
               (\(_, f) -> ((xWhole, xPart), f x)) $
               query pf (fst xWhole, fst xWhole)
 
+infixl 4 <*, *>
+
 instance Monad Pattern where
   return = atom
   p >>= f = joinPattern (f <$> p)
@@ -216,6 +218,57 @@ temporalParam3 f a b c p = joinPattern $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 ------------------------------------------------------------------------
 -- * UI
+
+-- ** Pattern algebra
+
+(|+|) :: (Applicative a, Num b) => a b -> a b -> a b
+a |+| b = (+) <$> a <*> b
+(|+ ) :: Num a => Pattern a -> Pattern a -> Pattern a
+a |+  b = (+) <$> a <* b
+( +|) :: Num a => Pattern a -> Pattern a -> Pattern a
+a  +| b = (+) <$> a *> b
+
+(|/|) :: (Applicative a, Fractional b) => a b -> a b -> a b
+a |/| b = (/) <$> a <*> b
+(|/ ) :: Fractional a => Pattern a -> Pattern a -> Pattern a
+a |/  b = (/) <$> a <* b
+( /|) :: Fractional a => Pattern a -> Pattern a -> Pattern a
+a  /| b = (/) <$> a *> b
+
+(|*|) :: (Applicative a, Num b) => a b -> a b -> a b
+a |*| b = (*) <$> a <*> b
+(|* ) :: Num a => Pattern a -> Pattern a -> Pattern a
+a |*  b = (*) <$> a <* b
+( *|) :: Num a => Pattern a -> Pattern a -> Pattern a
+a  *| b = (*) <$> a *> b
+
+(|-|) :: (Applicative a, Num b) => a b -> a b -> a b
+a |-| b = (-) <$> a <*> b
+(|- ) :: Num a => Pattern a -> Pattern a -> Pattern a
+a |-  b = (-) <$> a <* b
+( -|) :: Num a => Pattern a -> Pattern a -> Pattern a
+a  -| b = (-) <$> a *> b
+
+(|%|) :: (Applicative a, Real b) => a b -> a b -> a b
+a |%| b = mod' <$> a <*> b
+(|% ) :: Real a => Pattern a -> Pattern a -> Pattern a
+a |%  b = mod' <$> a <* b
+( %|) :: Real a => Pattern a -> Pattern a -> Pattern a
+a  %| b = mod' <$> a *> b
+
+(|>|) :: (Applicative a) => a b -> a b -> a b
+a |>| b = (flip const) <$> a <*> b
+(|> ) :: Pattern a -> Pattern a -> Pattern a
+a |>  b = (flip const) <$> a <* b
+( >|) :: Pattern a -> Pattern a -> Pattern a
+a  >| b = (flip const) <$> a *> b
+
+(|<|) :: (Applicative a) => a b -> a b -> a b
+a |<| b = const <$> a <*> b
+(|< ) :: Pattern a -> Pattern a -> Pattern a
+a |<  b = const <$> a <* b
+( <|) :: Pattern a -> Pattern a -> Pattern a
+a  <| b = const <$> a *> b
 
 -- ** Elemental patterns
 
@@ -439,17 +492,6 @@ _fastGap r p = splitQueries $
             | otherwise = query p a'
               where mungeQuery t = sam t + (min 1 $ r' * cyclePos t)
                     a' = mapBoth mungeQuery a
-
-
-{-
-|a b c d |
-|abcd    |
-|    |
-
-0.25,0.5
-0.5,1
-
--}
 
 compress :: Span -> Pattern a -> Pattern a
 compress (s,e) p | s > e = silence
