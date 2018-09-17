@@ -22,6 +22,7 @@ library
   if impl(ghc == 8.4.1)
     cpp-options: -DTIDAL_SEMIGROUP
 
+  ghc-options: -Wall 
   hs-source-dirs:
                  src
                         
