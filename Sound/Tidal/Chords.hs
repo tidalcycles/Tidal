@@ -1,6 +1,9 @@
 module Sound.Tidal.Chords where
 
 import Sound.Tidal.Pattern
+import Sound.Tidal.Stream (ParamMap, ParamPattern)
+import Sound.Tidal.Params (n)
+import Sound.Tidal.Time (Arc)
 import Data.Maybe
 import Control.Applicative
 
