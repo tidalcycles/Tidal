@@ -19,11 +19,11 @@ type Time = Rational
 -- | A time arc (start and end)
 type Arc = (Time, Time)
 
--- | The second timearc (the part) should be equal to or fit inside the
+-- | The second timespan (the part) should be equal to or fit inside the
 -- first one (the whole that it's a part of)
 type Part = (Arc, Arc)
 
--- | An event is a value that's active during a timearc
+-- | An event is a value that's active during a timespan
 type Event a = (Part, a)
 
 -- | A function that represents events taking place over time
@@ -54,9 +54,9 @@ instance Applicative Pattern where
             where
               match ((fWhole, fPart), f) =
                 map
-                (\((xWhole, xPart),x) -> do w <- subArc fWhole xWhole
-                                            p <- subArc fPart xPart
-                                            return ((w,p),f x)
+                (\((xWhole, xPart),x) -> do whole' <- subArc fWhole xWhole
+                                            part' <- subArc fPart xPart
+                                            return ((whole', part'), f x)
                 )
                 (query px fPart)
 
@@ -87,7 +87,7 @@ instance Monad Pattern where
   p >>= f = unwrap (f <$> p)
 
 -- | Turns a pattern of patterns into a single pattern.
--- (formerly known as unwrap)
+-- (this is actually 'join')
 --
 -- 1/ For query 'arc', get the events from the outer pattern @pp@
 -- 2/ Query the inner pattern using the 'part' of the outer
@@ -102,8 +102,8 @@ unwrap pp = Pattern q
                                                     p <- subArc oPart iPart
                                                     return ((w,p),v)
 
--- | Like @unwrap@, but cycles of the inner patterns are
--- compressed to fit the timearc of the outer whole
+-- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
+-- timespan of the outer whole
 unwrap' :: Pattern (Pattern a) -> Pattern a
 unwrap' pp = Pattern q
   where q arc = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query (compress whole p) part) (query pp arc)
@@ -119,11 +119,11 @@ unwrap' pp = Pattern $ \a -> arc (stack $ map scalep (arc pp a)) a
 ------------------------------------------------------------------------
 -- * Internal functions
 
--- | Get the timearc of an event's 'whole'
+-- | Get the timespan of an event's 'whole'
 eventWhole :: Event a -> Arc
 eventWhole = fst . fst
 
--- | Get the timearc of an event's 'part'
+-- | Get the timespan of an event's 'part'
 eventPart :: Event a -> Arc
 eventPart = snd . fst
 
@@ -167,7 +167,7 @@ nextSam = (1+) . sam
 cyclePos :: Time -> Time
 cyclePos t = t - sam t
 
--- | @subArc i j@ is the timearc that is the intersection of @i@ and @j@.
+-- | @subArc i j@ is the timespan that is the intersection of @i@ and @j@.
 subArc :: Arc -> Arc -> Maybe Arc
 subArc (s, e) (s',e') | s'' < e'' = Just (s'', e'')
                       | otherwise = Nothing
@@ -188,16 +188,16 @@ cyclesInArc (s,e) | s > e = []
 cycleArcsInArc :: Arc -> [Arc]
 cycleArcsInArc = map (timeToCycleArc . (toTime :: Int -> Time)) . cyclesInArc
 
--- | Apply a function to the timearcs (both whole and parts) of the result
+-- | Apply a function to the timespans (both whole and parts) of the result
 withResultArc :: (Arc -> Arc) -> Pattern a -> Pattern a
 withResultArc f p = Pattern $ \a -> map (mapFst (mapBoth f)) $ query p a
 
--- | Apply a function to the time (both start and end of the timearcs
+-- | Apply a function to the time (both start and end of the timespans
 -- of both whole and parts) of the result
 withResultTime :: (Time -> Time) -> Pattern a -> Pattern a
 withResultTime = withResultArc . mapBoth
 
--- | Apply a function to the timearc of the query
+-- | Apply a function to the timespan of the query
 withQueryArc :: (Arc -> Arc) -> Pattern a -> Pattern a
 withQueryArc f p = Pattern $ \a -> query p (f a)
 
