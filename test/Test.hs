@@ -159,15 +159,15 @@ main = microspec $ do
       property $ not $ eventL (((0,0),(0,1)),"x") (((0,0),(0,0.5)),"x")
 -}
 
-  describe "Sound.Tidal.Pattern.spanCycles" $ do
+  describe "Sound.Tidal.Pattern.arcCycles" $ do
     it "leaves a unit cycle intact" $ do
-      it "(0,1)" $ spanCycles (0,1) `shouldBe` [(0,1)]
-      it "(3,4)" $ spanCycles (3,4) `shouldBe` [(3,4)]
+      it "(0,1)" $ arcCycles (0,1) `shouldBe` [(0,1)]
+      it "(3,4)" $ arcCycles (3,4) `shouldBe` [(3,4)]
     it "splits a cycle at cycle boundaries" $ do
-      it "(0,1.1)" $ spanCycles (0,1.1) `shouldBe` [(0,1),(1,1.1)]
-      it "(1,2,1)" $ spanCycles (1,2.1) `shouldBe` [(1,2),(2,2.1)]
+      it "(0,1.1)" $ arcCycles (0,1.1) `shouldBe` [(0,1),(1,1.1)]
+      it "(1,2,1)" $ arcCycles (1,2.1) `shouldBe` [(1,2),(2,2.1)]
       it "(3 + (1%3),5.1)" $
-         spanCycles (3 + (1%3),5.1) `shouldBe` [(3+(1%3),4),(4,5),(5,5.1)]
+         arcCycles (3 + (1%3),5.1) `shouldBe` [(3+(1%3),4),(4,5),(5,5.1)]
 
   describe "Sound.Tidal.Pattern.rev" $ do
     it "mirrors events" $ do
@@ -198,36 +198,36 @@ main = microspec $ do
                                   (((0.5,0.75),  (0.5,0.75)), 8)
                                  ]
 
-  describe "Sound.Tidal.Pattern.joinPattern" $ do
+  describe "Sound.Tidal.Pattern.unwrap" $ do
     it "preserves inner structure" $ do
       it "one" $
-        (query (joinPattern $ pure (fastCat [pure "a", pure "b"])) (0,1))
+        (query (unwrap $ pure (fastCat [pure "a", pure "b"])) (0,1))
         `shouldBe` (query (fastCat [pure "a", pure "b"]) (0,1))
       it "two" $
-        (query (joinPattern $ pure (fastCat [pure "a", pure "b", fastCat [pure "c", pure "d"]])) (0,1))
+        (query (unwrap $ pure (fastCat [pure "a", pure "b", fastCat [pure "c", pure "d"]])) (0,1))
         `shouldBe` (query (fastCat [pure "a", pure "b", fastCat [pure "c", pure "d"]]) (0,1))
     it "preserves outer structure" $ do
       it "one" $
-        (query (joinPattern $ fastCat [pure $ pure "a", pure $ pure "b"]) (0,1))
+        (query (unwrap $ fastCat [pure $ pure "a", pure $ pure "b"]) (0,1))
         `shouldBe` (query (fastCat [pure "a", pure "b"]) (0,1))
       it "two" $
-        (query (joinPattern $ fastCat [pure $ pure "a", pure $ pure "b", fastCat [pure $ pure "c", pure $ pure "d"]]) (0,1))
+        (query (unwrap $ fastCat [pure $ pure "a", pure $ pure "b", fastCat [pure $ pure "c", pure $ pure "d"]]) (0,1))
         `shouldBe` (query (fastCat [pure "a", pure "b", fastCat [pure "c", pure "d"]]) (0,1))
-    it "copes with inner events cut into parts, preserving original whole" $ do
+    it "gives events whole/part timespans that are an intersection of that of inner and outer events" $ do
       let a = fastCat [pure "a", pure "b"]
           b = fastCat [pure "c", pure "d", pure "e"]
           pp = fastCat [pure a, pure b]
-      query (joinPattern pp) (0,1)
+      query (unwrap pp) (0,1)
         `shouldBe` [(((0 % 1,1 % 2),(0 % 1,1 % 2)),"a"),
-                    (((1 % 3,2 % 3),(1 % 2,2 % 3)),"d"),
+                    (((1 % 2,2 % 3),(1 % 2,2 % 3)),"d"),
                     (((2 % 3,1 % 1),(2 % 3,1 % 1)),"e")
                    ]
-  describe "Sound.Tidal.Pattern.joinPattern'" $ do
-    it "compresses cycles to fit outer 'whole' timespan of event" $ do
+  describe "Sound.Tidal.Pattern.unwrap'" $ do
+    it "compresses cycles to fit outer 'whole' timearc of event" $ do
       let a = fastCat [pure "a", pure "b"]
           b = fastCat [pure "c", pure "d", pure "e"]
           pp = fastCat [pure a, pure b]
-      query (joinPattern' pp) (0,1)
+      query (unwrap' pp) (0,1)
         `shouldBe` [(((0 % 1,1 % 4),(0 % 1,1 % 4)),"a"),
                     (((1 % 4,1 % 2),(1 % 4,1 % 2)),"b"),
                     (((1 % 2,2 % 3),(1 % 2,2 % 3)),"c"),
@@ -256,7 +256,7 @@ main = microspec $ do
       compareP 5 ((return v) >>= f) (f v)
     it "conforms to m >>= return ≡ m" $ do
       let m = fastCat [pure "a", fastCat [pure "b", pure "c"]]
-      compareP 5 (m >>= return) m
+      compareP 1 (m >>= return) m
     -- if "conforms to (m >>= f) >>= g ≡ m >>= ( \x -> (f x >>= g) )"
        
 
