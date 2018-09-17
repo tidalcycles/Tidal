@@ -1,12 +1,12 @@
 module Sound.Tidal.Pattern where
 
 import Prelude hiding ((<*), (*>))
-import Data.Ratio
 import qualified Data.Map.Strict as Map
-import Control.Applicative ((<*>), Applicative)
-import Data.Maybe (mapMaybe)
 import Data.Fixed (mod')
 import Data.Maybe (isJust, fromJust, catMaybes)
+-- import Data.Ratio
+-- import Control.Applicative ((<*>), Applicative)
+-- import Data.Maybe (mapMaybe)
 
 import Sound.Tidal.Utils
 
@@ -37,16 +37,14 @@ type PatternMap a b = Pattern (Map.Map a b)
 ------------------------------------------------------------------------
 -- * Instances
 
--- | Repeat the given value once per cycle, forever
-atom v = Pattern $ \(s,e) -> map (\(s',e') -> (constrain (s,e) (s',e'),v)) $ cycleSpansInSpan (s,e)
-    where constrain (s,e) (s',e') = ((s',e'), (max s s', min e e'))
-
 instance Functor Pattern where
   -- | apply a function to all the values in a pattern
   fmap f = Pattern . (fmap (fmap (fmap f))) . query
 
 instance Applicative Pattern where
-  pure = atom
+  -- | Repeat the given value once per cycle, forever
+  pure v = Pattern $ \(s,e) -> map (\(s',e') -> (constrain (s,e) (s',e'),v)) $ cycleSpansInSpan (s,e)
+    where constrain (s,e) (s',e') = ((s',e'), (max s s', min e e'))
 
   -- for the part of each event in pf
   -- - get matching events px matching the span
@@ -85,7 +83,7 @@ pf *> px = Pattern f
 infixl 4 <*, *>
 
 instance Monad Pattern where
-  return = atom
+  return = pure
   p >>= f = joinPattern (f <$> p)
 
 -- | Turns a pattern of patterns into a single pattern.
@@ -103,6 +101,20 @@ joinPattern pp = Pattern f
         munge oWhole oPart ((iWhole, iPart),v) = do w <- subSpan oWhole iWhole
                                                     p <- subSpan oPart iPart
                                                     return ((w,p),v)
+
+-- | Like @joinPattern@, but cycles of the inner patterns are
+-- compressed to fit the timespan of the outer whole
+joinPattern' :: Pattern (Pattern a) -> Pattern a
+joinPattern' pp = Pattern f
+  where f span = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query (compress whole p) part) (query pp span)
+        munge oWhole oPart ((iWhole, iPart),v) = do whole' <- subSpan oWhole iWhole
+                                                    part' <- subSpan oPart iPart
+                                                    return ((whole',part'),v)
+{-
+unwrap' :: Pattern (Pattern a) -> Pattern a
+unwrap' pp = Pattern $ \a -> span (stack $ map scalep (arc pp a)) a
+  where scalep ((whole, part),p) = compress whole p
+-}
 
 ------------------------------------------------------------------------
 -- * Internal functions
@@ -330,7 +342,7 @@ envEqR = sig $ \t -> sqrt (cos (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
 
 -- | Turns a list of values into a pattern, playing through them once per cycle.
 fromList :: [a] -> Pattern a
-fromList = fastCat . map atom
+fromList = fastCat . map pure
 
 -- | A synonym for 'fromList'
 listToPat = fromList
@@ -341,7 +353,7 @@ listToPat = fromList
 fromMaybes :: [Maybe a] -> Pattern a
 fromMaybes = fastcat . map f
   where f Nothing = silence
-        f (Just x) = atom x
+        f (Just x) = pure x
 
 -- | A pattern of whole numbers from 0 to the given number, in a single cycle.
 run :: (Enum a, Num a) => Pattern a -> Pattern a

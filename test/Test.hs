@@ -22,13 +22,13 @@ main = microspec $ do
     it "subtracts the second element of a tuple from the first" $ do
       property $ delta (3,10) === (7 :: Int)
 
-  describe "Sound.Tidal.Pattern.atom" $ do
+  describe "Sound.Tidal.Pattern.pure" $ do
     it "fills a whole cycle" $ do
-      property $ query (atom 0) (0,1) === [(((0,1),(0,1)),0 :: Int)]
-    it "returns the part of an atom that you ask for, preserving the whole" $ do
-      property $ query (atom 0) (0.25,0.75) === [(((0,1),(0.25,0.75)),0 :: Int)]
+      property $ query (pure 0) (0,1) === [(((0,1),(0,1)),0 :: Int)]
+    it "returns the part of an pure that you ask for, preserving the whole" $ do
+      property $ query (pure 0) (0.25,0.75) === [(((0,1),(0.25,0.75)),0 :: Int)]
     it "gives correct fragments when you go over cycle boundaries" $ do
-      property $ query (atom 0) (0.25,1.25) === [(((0,1),(0.25,1)),0 :: Int),
+      property $ query (pure 0) (0.25,1.25) === [(((0,1),(0.25,1)),0 :: Int),
                                                 (((1,2),(1,1.25)),0)
                                                ]
     it "works with zero-length queries" $ do
@@ -40,8 +40,8 @@ main = microspec $ do
           `shouldBe` [(((0,1), (1%3,1%3)), "a")]
 
   describe "Sound.Tidal.Pattern.append" $ do
-    it "can switch between the cycles from two atoms" $ do
-      (query (append (atom "a") (atom "b")) (0,5)) `shouldBe` [(((0,1), (0,1)), "a"),
+    it "can switch between the cycles from two pures" $ do
+      (query (append (pure "a") (pure "b")) (0,5)) `shouldBe` [(((0,1), (0,1)), "a"),
                                                                (((1,2), (1,2)), "b"),
                                                                (((2,3), (2,3)), "a"),
                                                                (((3,4), (3,4)), "b"),
@@ -49,8 +49,8 @@ main = microspec $ do
                                                               ]
 
   describe "Sound.Tidal.Pattern.cat" $ do
-    it "can switch between the cycles from three atoms" $ do
-      query (cat [atom "a", atom "b", atom "c"]) (0,5) `shouldBe` [(((0,1), (0,1)), "a"),
+    it "can switch between the cycles from three pures" $ do
+      query (cat [pure "a", pure "b", pure "c"]) (0,5) `shouldBe` [(((0,1), (0,1)), "a"),
                                                                    (((1,2), (1,2)), "b"),
                                                                    (((2,3), (2,3)), "c"),
                                                                    (((3,4), (3,4)), "a"),
@@ -58,13 +58,13 @@ main = microspec $ do
                                                                   ]
 
   describe "Sound.Tidal.Pattern.fastCat" $ do
-    it "can switch between the cycles from three atoms inside one cycle" $ do
-      it "1" $ query (fastCat [atom "a", atom "b", atom "c"]) (0,1)
+    it "can switch between the cycles from three pures inside one cycle" $ do
+      it "1" $ query (fastCat [pure "a", pure "b", pure "c"]) (0,1)
         `shouldBe` [(((0,1/3),   (0,1/3)),   "a"),
                     (((1/3,2/3), (1/3,2/3)), "b"),
                     (((2/3,1),   (2/3,1)),   "c")
                    ]
-      it "5/3" $ query (fastCat [atom "a", atom "b", atom "c"]) (0,5/3)
+      it "5/3" $ query (fastCat [pure "a", pure "b", pure "c"]) (0,5/3)
         `shouldBe` [(((0,1/3),   (0,1/3)),   "a"),
                     (((1/3,2/3), (1/3,2/3)), "b"),
                     (((2/3,1),   (2/3,1)),   "c"),
@@ -92,30 +92,30 @@ main = microspec $ do
 
   describe "Sound.Tidal.Pattern.<*>" $ do
     it "can apply a pattern of values to a pattern of values" $ do
-      query ((atom (+1)) <*> (atom 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
+      query ((pure (+1)) <*> (pure 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
     it "can take structure from the left" $ do
-      query ((fastCat [atom (+1), atom (+2)]) <*> (atom 3)) (0,1) `shouldBe` [(((0,0.5), (0,0.5)), 4 :: Int),
+      query ((fastCat [pure (+1), pure (+2)]) <*> (pure 3)) (0,1) `shouldBe` [(((0,0.5), (0,0.5)), 4 :: Int),
                                                                               (((0.5,1), (0.5,1)), 5)
                                                                              ]
     it "can take structure from the right" $ do
-      query (atom (+1) <*> (fastCat [atom 7, atom 8])) (0,1) `shouldBe` [(((0,0.5), (0,0.5)), 8 :: Int),
+      query (pure (+1) <*> (fastCat [pure 7, pure 8])) (0,1) `shouldBe` [(((0,0.5), (0,0.5)), 8 :: Int),
                                                                          (((0.5,1), (0.5,1)), 9)
                                                                         ]
     it "can take structure from the both sides" $ do
       it "one" $
-        query ((fastCat [atom (+1), atom (+2)]) <*> (fastCat [atom 7, atom 8])) (0,1)
+        query ((fastCat [pure (+1), pure (+2)]) <*> (fastCat [pure 7, pure 8])) (0,1)
         `shouldBe` [(((0,0.5), (0,0.5)), 8 :: Int),
                     (((0.5,1), (0.5,1)), 10)
                    ]
       it "two" $
-        query ((fastCat [atom (+1), atom (+2), atom (+3)]) <*> (fastCat [atom 7, atom 8])) (0,1)
+        query ((fastCat [pure (+1), pure (+2), pure (+3)]) <*> (fastCat [pure 7, pure 8])) (0,1)
         `shouldBe` [(((0 % 1,1 % 3),(0 % 1,1 % 3)),8 :: Int),
                     (((1 % 3,1 % 2),(1 % 3,1 % 2)),9),
                     (((1 % 2,2 % 3),(1 % 2,2 % 3)),10),
                     (((2 % 3,1 % 1),(2 % 3,1 % 1)),11)
                    ]
     it "obeys pure id <*> v = v" $ do
-      let v = (fastCat [fastCat [atom 7, atom 8], atom 9]) :: Pattern Int
+      let v = (fastCat [fastCat [pure 7, pure 8], pure 9]) :: Pattern Int
       query ((pure id <*> v)) (0,5) `shouldBe` query v (0,5)
 
     it "obeys pure f <*> pure x = pure (f x)" $ do
@@ -124,28 +124,28 @@ main = microspec $ do
       query (pure f <*> pure x) (0,5) `shouldBe` query (pure (f x)) (0,5)
 
     it "obeys u <*> pure y = pure ($ y) <*> u" $ do
-      let u = fastCat [atom (+7), atom (+8)]
+      let u = fastCat [pure (+7), pure (+8)]
           y = 6 :: Int
       query (u <*> pure y) (0,5) `shouldBe` query (pure ($ y) <*> u) (0,5)
 
     it "obeys pure (.) <*> u <*> v <*> w = u <*> (v <*> w)" $ do
-      let u = (fastCat [atom (+7), atom (+8)]) :: Pattern (Int -> Int)
-          v = fastCat [atom (+3), atom (+4), atom (+5)]
-          w = fastCat [atom 1, atom 2]
+      let u = (fastCat [pure (+7), pure (+8)]) :: Pattern (Int -> Int)
+          v = fastCat [pure (+3), pure (+4), pure (+5)]
+          w = fastCat [pure 1, pure 2]
       query (pure (.) <*> u <*> v <*> w) (0,5) `shouldBe` query (u <*> (v <*> w)) (0,5)
 
   describe "Sound.Tidal.Pattern.<*" $ do
     it "can apply a pattern of values to a pattern of functions" $ do
-      query ((atom (+1)) <* (atom 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
+      query ((pure (+1)) <* (pure 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
     it "doesn't take structure from the right" $ do
-      query (atom (+1) <* (fastCat [atom 7, atom 8])) (0,1)
+      query (pure (+1) <* (fastCat [pure 7, pure 8])) (0,1)
         `shouldBe` [(((0,1), (0,1)), 8 :: Int)]
 
   describe "Sound.Tidal.Pattern.*>" $ do
     it "can apply a pattern of values to a pattern of functions" $ do
-      query ((atom (+1)) *> (atom 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
+      query ((pure (+1)) *> (pure 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
     it "doesn't take structure from the left" $ do
-      query (atom (+1) *> (fastCat [atom 7, atom 8])) (0,1)
+      query (pure (+1) *> (fastCat [pure 7, pure 8])) (0,1)
         `shouldBe` [(((0,0.5), (0,0.5)), 8 :: Int),
                     (((0.5,1), (0.5,1)), 9 :: Int)
                    ]
@@ -171,29 +171,29 @@ main = microspec $ do
 
   describe "Sound.Tidal.Pattern.rev" $ do
     it "mirrors events" $ do
-      let forward = fastCat [fastCat [atom 7, atom 8], atom 9] :: Pattern Int
-          backward = fastCat [atom 9, fastCat [atom 8, atom 7]]
+      let forward = fastCat [fastCat [pure 7, pure 8], pure 9] :: Pattern Int
+          backward = fastCat [pure 9, fastCat [pure 8, pure 7]]
       -- sort the events into time order to compare them
       (sort $ query (rev forward) (0,1)) `shouldBe` (sort $ query (backward) (0,1))
 
     it "returns the original if you reverse it twice" $ do
-      let x = fastCat [fastCat [atom 7, atom 8], atom 9] :: Pattern Int
+      let x = fastCat [fastCat [pure 7, pure 8], pure 9] :: Pattern Int
       (query (rev $ rev x) (0,5)) `shouldBe` (query x (0,5))
 
 
   describe "Sound.Tidal.Pattern.compress" $ do
     it "squashes cycles to the start of a cycle" $ do
-      let p = compress (0, 0.5) $ fastCat [atom 7, atom 8] :: Pattern Int
+      let p = compress (0, 0.5) $ fastCat [pure 7, pure 8] :: Pattern Int
       (query p (0,1)) `shouldBe` [(((0,0.25),  (0,0.25)),   7),
                                   (((0.25,0.5),(0.25,0.5)), 8)
                                  ]
     it "squashes cycles to the end of a cycle" $ do
-      let p = compress (0.5,1) $ fastCat [atom 7, atom 8] :: Pattern Int
+      let p = compress (0.5,1) $ fastCat [pure 7, pure 8] :: Pattern Int
       (query p (0,1)) `shouldBe` [(((0.5,0.75),  (0.5,0.75)), 7 :: Int),
                                   (((0.75,1),    (0.75,1)),   8)
                                  ]
     it "squashes cycles to the middle of a cycle" $ do
-      let p = compress (0.25,0.75) $ fastCat [atom 7, atom 8]
+      let p = compress (0.25,0.75) $ fastCat [pure 7, pure 8]
       (query p (0,1)) `shouldBe` [(((0.25,0.5),  (0.25,0.5)), 7 :: Int),
                                   (((0.5,0.75),  (0.5,0.75)), 8)
                                  ]
@@ -201,29 +201,50 @@ main = microspec $ do
   describe "Sound.Tidal.Pattern.joinPattern" $ do
     it "preserves inner structure" $ do
       it "one" $
-        (query (joinPattern $ atom (fastCat [atom "a", atom "b"])) (0,1))
-        `shouldBe` (query (fastCat [atom "a", atom "b"]) (0,1))
+        (query (joinPattern $ pure (fastCat [pure "a", pure "b"])) (0,1))
+        `shouldBe` (query (fastCat [pure "a", pure "b"]) (0,1))
       it "two" $
-        (query (joinPattern $ atom (fastCat [atom "a", atom "b", fastCat [atom "c", atom "d"]])) (0,1))
-        `shouldBe` (query (fastCat [atom "a", atom "b", fastCat [atom "c", atom "d"]]) (0,1))
+        (query (joinPattern $ pure (fastCat [pure "a", pure "b", fastCat [pure "c", pure "d"]])) (0,1))
+        `shouldBe` (query (fastCat [pure "a", pure "b", fastCat [pure "c", pure "d"]]) (0,1))
     it "preserves outer structure" $ do
       it "one" $
-        (query (joinPattern $ fastCat [atom $ atom "a", atom $ atom "b"]) (0,1))
-        `shouldBe` (query (fastCat [atom "a", atom "b"]) (0,1))
+        (query (joinPattern $ fastCat [pure $ pure "a", pure $ pure "b"]) (0,1))
+        `shouldBe` (query (fastCat [pure "a", pure "b"]) (0,1))
       it "two" $
-        (query (joinPattern $ fastCat [atom $ atom "a", atom $ atom "b", fastCat [atom $ atom "c", atom $ atom "d"]]) (0,1))
-        `shouldBe` (query (fastCat [atom "a", atom "b", fastCat [atom "c", atom "d"]]) (0,1))
+        (query (joinPattern $ fastCat [pure $ pure "a", pure $ pure "b", fastCat [pure $ pure "c", pure $ pure "d"]]) (0,1))
+        `shouldBe` (query (fastCat [pure "a", pure "b", fastCat [pure "c", pure "d"]]) (0,1))
+    it "copes with inner events cut into parts, preserving original whole" $ do
+      let a = fastCat [pure "a", pure "b"]
+          b = fastCat [pure "c", pure "d", pure "e"]
+          pp = fastCat [pure a, pure b]
+      query (joinPattern pp) (0,1)
+        `shouldBe` [(((0 % 1,1 % 2),(0 % 1,1 % 2)),"a"),
+                    (((1 % 3,2 % 3),(1 % 2,2 % 3)),"d"),
+                    (((2 % 3,1 % 1),(2 % 3,1 % 1)),"e")
+                   ]
+  describe "Sound.Tidal.Pattern.joinPattern'" $ do
+    it "compresses cycles to fit outer 'whole' timespan of event" $ do
+      let a = fastCat [pure "a", pure "b"]
+          b = fastCat [pure "c", pure "d", pure "e"]
+          pp = fastCat [pure a, pure b]
+      query (joinPattern' pp) (0,1)
+        `shouldBe` [(((0 % 1,1 % 4),(0 % 1,1 % 4)),"a"),
+                    (((1 % 4,1 % 2),(1 % 4,1 % 2)),"b"),
+                    (((1 % 2,2 % 3),(1 % 2,2 % 3)),"c"),
+                    (((2 % 3,5 % 6),(2 % 3,5 % 6)),"d"),
+                    (((5 % 6,1 % 1),(5 % 6,1 % 1)),"e")
+                   ]
 
   describe "Sound.Tidal.Pattern.>>=" $ do
     it "can apply functions to patterns" $ do
-      let p = fastCat [atom 7, atom 8] :: Pattern Int
+      let p = fastCat [pure 7, pure 8] :: Pattern Int
           p' = do x <- p
                   return $ x + 1
       (query p' (0,1)) `shouldBe` (query ((+1) <$> p) (0,1))
 
     it "can add two patterns together" $ do
-      let p1 = fastCat [atom 7, atom 8, atom 9] :: Pattern Int
-          p2 = fastCat [atom 4, fastCat [atom 5, atom 6]]
+      let p1 = fastCat [pure 7, pure 8, pure 9] :: Pattern Int
+          p2 = fastCat [pure 4, fastCat [pure 5, pure 6]]
           p' = do x <- p1
                   y <- p2
                   return $ x + y
@@ -234,7 +255,7 @@ main = microspec $ do
           v = 5 :: Int
       compareP 5 ((return v) >>= f) (f v)
     it "conforms to m >>= return ≡ m" $ do
-      let m = fastCat [atom "a", fastCat [atom "b", atom "c"]]
+      let m = fastCat [pure "a", fastCat [pure "b", pure "c"]]
       compareP 5 (m >>= return) m
     -- if "conforms to (m >>= f) >>= g ≡ m >>= ( \x -> (f x >>= g) )"
        
