@@ -57,10 +57,10 @@ instance Applicative Pattern where
               match ((fWhole, fPart), f) =
                 map
                 (\((xWhole, xPart),x) ->
-                    do part' <- subArc fPart xPart
-                       xWhole' <- xWhole
-                       whole' <- maybe (Just part') (subArc xWhole') fWhole
-                       return ((Just whole', part'), f x)
+                      do part' <- subArc fPart xPart
+                         let xWhole' = fromMaybe xPart xWhole
+                         whole' <- maybe (Just part') (subArc xWhole') fWhole
+                         return ((Just whole', part'), f x)
                 )
                 (query px fPart)
 
@@ -74,7 +74,7 @@ pf <* px = Pattern q
               (\(_, x) -> ((fWhole, fPart), f x)) $
               query px $ xQuery fWhole
             xQuery Nothing = arc -- for continuous events, use the original query
-            xQuery (Just (s,e)) = (s,s) -- for discrete ones, match with the onset
+            xQuery (Just (s,_)) = (s,s) -- for discrete ones, match with the onset
 
 -- | Like <*>, but the structure only comes from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
@@ -86,7 +86,7 @@ pf *> px = Pattern q
               (\(_, f) -> ((xWhole, xPart), f x)) $
               query pf $ xQuery xWhole
             xQuery Nothing = arc -- for continuous events, use the original query
-            xQuery (Just (s,e)) = (s,s) -- for discrete ones, match with the onset
+            xQuery (Just (s,_)) = (s,s) -- for discrete ones, match with the onset
 
 infixl 4 <*, *>
 
@@ -213,6 +213,9 @@ eventWhole = fst . fst
 -- | Get the timespan of an event's 'part'
 eventPart :: Event a -> Arc
 eventPart = snd . fst
+
+eventValue :: Event a -> a
+eventValue = snd
 
 -- | Splits the given 'Arc' into a list of 'Arc's, at cycle boundaries.
 arcCycles :: Arc -> [Arc]
