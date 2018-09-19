@@ -1,5 +1,8 @@
 module Sound.Tidal.Utils where
 
+mapWholePart :: (a -> a) -> (Maybe a,a) -> (Maybe a,a)
+mapWholePart f (a,b) = (f <$> a, f b)
+
 mapBoth :: (a -> a) -> (a,a) -> (a,a)
 mapBoth f (a,b) = (f a, f b)
 

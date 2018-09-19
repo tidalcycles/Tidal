@@ -12,11 +12,11 @@ main :: IO ()
 main = microspec $ do
   describe "Sound.Tidal.Pattern.eventWhole" $ do
     it "returns the first element of a tuple inside the first element of a tuple" $ do
-      property $ (1,2) === eventWhole (((1,2),(3,4)), 5 :: Int)
+      property $ Just (1,2) === eventWhole ((Just (1,2),(3,4)), 5 :: Int)
 
   describe "Sound.Tidal.Pattern.eventPart" $ do
     it "returns the second element of a tuple inside the first element of a tuple" $ do
-      property $ (3,4) === eventPart (((1,2),(3,4)), 5 :: Int)
+      property $ (3,4) === eventPart ((Just (1,2),(3,4)), 5 :: Int)
 
   describe "Sound.Tidal.Utils.delta" $ do
     it "subtracts the second element of a tuple from the first" $ do
@@ -24,67 +24,67 @@ main = microspec $ do
 
   describe "Sound.Tidal.Pattern.pure" $ do
     it "fills a whole cycle" $ do
-      property $ query (pure 0) (0,1) === [(((0,1),(0,1)),0 :: Int)]
+      property $ query (pure 0) (0,1) === [((Just (0,1),(0,1)),0 :: Int)]
     it "returns the part of an pure that you ask for, preserving the whole" $ do
-      property $ query (pure 0) (0.25,0.75) === [(((0,1),(0.25,0.75)),0 :: Int)]
+      property $ query (pure 0) (0.25,0.75) === [((Just (0,1),(0.25,0.75)),0 :: Int)]
     it "gives correct fragments when you go over cycle boundaries" $ do
-      property $ query (pure 0) (0.25,1.25) === [(((0,1),(0.25,1)),0 :: Int),
-                                                (((1,2),(1,1.25)),0)
+      property $ query (pure 0) (0.25,1.25) === [((Just (0,1),(0.25,1)),0 :: Int),
+                                                ((Just (1,2),(1,1.25)),0)
                                                ]
     it "works with zero-length queries" $ do
       it "0" $
         query (pure "a") (0,0)
-          `shouldBe` [(((0,1), (0,0)), "a")]
+          `shouldBe` [((Just (0,1), (0,0)), "a")]
       it "1/3" $
         query (pure "a") (1%3,1%3)
-          `shouldBe` [(((0,1), (1%3,1%3)), "a")]
+          `shouldBe` [((Just (0,1), (1%3,1%3)), "a")]
 
   describe "Sound.Tidal.Pattern.append" $ do
     it "can switch between the cycles from two pures" $ do
-      (query (append (pure "a") (pure "b")) (0,5)) `shouldBe` [(((0,1), (0,1)), "a"),
-                                                               (((1,2), (1,2)), "b"),
-                                                               (((2,3), (2,3)), "a"),
-                                                               (((3,4), (3,4)), "b"),
-                                                               (((4,5), (4,5)), "a")
+      (query (append (pure "a") (pure "b")) (0,5)) `shouldBe` [((Just (0,1), (0,1)), "a"),
+                                                               ((Just (1,2), (1,2)), "b"),
+                                                               ((Just (2,3), (2,3)), "a"),
+                                                               ((Just (3,4), (3,4)), "b"),
+                                                               ((Just (4,5), (4,5)), "a")
                                                               ]
 
   describe "Sound.Tidal.Pattern.cat" $ do
     it "can switch between the cycles from three pures" $ do
-      query (cat [pure "a", pure "b", pure "c"]) (0,5) `shouldBe` [(((0,1), (0,1)), "a"),
-                                                                   (((1,2), (1,2)), "b"),
-                                                                   (((2,3), (2,3)), "c"),
-                                                                   (((3,4), (3,4)), "a"),
-                                                                   (((4,5), (4,5)), "b")
+      query (cat [pure "a", pure "b", pure "c"]) (0,5) `shouldBe` [((Just (0,1), (0,1)), "a"),
+                                                                   ((Just (1,2), (1,2)), "b"),
+                                                                   ((Just (2,3), (2,3)), "c"),
+                                                                   ((Just (3,4), (3,4)), "a"),
+                                                                   ((Just (4,5), (4,5)), "b")
                                                                   ]
 
   describe "Sound.Tidal.Pattern.fastCat" $ do
     it "can switch between the cycles from three pures inside one cycle" $ do
       it "1" $ query (fastCat [pure "a", pure "b", pure "c"]) (0,1)
-        `shouldBe` [(((0,1/3),   (0,1/3)),   "a"),
-                    (((1/3,2/3), (1/3,2/3)), "b"),
-                    (((2/3,1),   (2/3,1)),   "c")
+        `shouldBe` [((Just (0,1/3),   (0,1/3)),   "a"),
+                    ((Just (1/3,2/3), (1/3,2/3)), "b"),
+                    ((Just (2/3,1),   (2/3,1)),   "c")
                    ]
       it "5/3" $ query (fastCat [pure "a", pure "b", pure "c"]) (0,5/3)
-        `shouldBe` [(((0,1/3),   (0,1/3)),   "a"),
-                    (((1/3,2/3), (1/3,2/3)), "b"),
-                    (((2/3,1),   (2/3,1)),   "c"),
-                    (((1,4/3),   (1,4/3)),   "a"),
-                    (((4/3,5/3), (4/3,5/3)), "b")
+        `shouldBe` [((Just (0,1/3),   (0,1/3)),   "a"),
+                    ((Just (1/3,2/3), (1/3,2/3)), "b"),
+                    ((Just (2/3,1),   (2/3,1)),   "c"),
+                    ((Just (1,4/3),   (1,4/3)),   "a"),
+                    ((Just (4/3,5/3), (4/3,5/3)), "b")
                    ]
     it "works with zero-length queries" $ do
       it "0" $
         query (fastCat [pure "a", pure "b"]) (0,0)
-          `shouldBe` [(((0,0.5), (0,0)), "a")]
+          `shouldBe` [((Just (0,0.5), (0,0)), "a")]
       it "1/3" $
         query (fastCat [pure "a", pure "b"]) (1%3,1%3)
-          `shouldBe` [(((0,0.5), (1%3,1%3)), "a")]
+          `shouldBe` [((Just (0,0.5), (1%3,1%3)), "a")]
 
   describe "Sound.Tidal.Pattern._fastGap" $ do
     it "copes with cross-cycle queries" $ do
       (query(_fastGap 2 $ fastCat [pure "a", pure "b"]) (0.5,1.5))
         `shouldBe`
-        [(((1 % 1,5 % 4),(1 % 1,5 % 4)),"a"),
-         (((5 % 4,3 % 2),(5 % 4,3 % 2)),"b")
+        [((Just (1 % 1,5 % 4),(1 % 1,5 % 4)),"a"),
+         ((Just (5 % 4,3 % 2),(5 % 4,3 % 2)),"b")
         ]
     it "does not return events outside of the query" $ do
       (query(_fastGap 2 $ fastCat [pure "a", pure "b"]) (0.5,0.9))
@@ -92,27 +92,27 @@ main = microspec $ do
 
   describe "Sound.Tidal.Pattern.<*>" $ do
     it "can apply a pattern of values to a pattern of values" $ do
-      query ((pure (+1)) <*> (pure 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
+      query ((pure (+1)) <*> (pure 3)) (0,1) `shouldBe` [((Just (0,1), (0,1)), 4  :: Int)]
     it "can take structure from the left" $ do
-      query ((fastCat [pure (+1), pure (+2)]) <*> (pure 3)) (0,1) `shouldBe` [(((0,0.5), (0,0.5)), 4 :: Int),
-                                                                              (((0.5,1), (0.5,1)), 5)
+      query ((fastCat [pure (+1), pure (+2)]) <*> (pure 3)) (0,1) `shouldBe` [((Just (0,0.5), (0,0.5)), 4 :: Int),
+                                                                              ((Just (0.5,1), (0.5,1)), 5)
                                                                              ]
     it "can take structure from the right" $ do
-      query (pure (+1) <*> (fastCat [pure 7, pure 8])) (0,1) `shouldBe` [(((0,0.5), (0,0.5)), 8 :: Int),
-                                                                         (((0.5,1), (0.5,1)), 9)
+      query (pure (+1) <*> (fastCat [pure 7, pure 8])) (0,1) `shouldBe` [((Just (0,0.5), (0,0.5)), 8 :: Int),
+                                                                         ((Just (0.5,1), (0.5,1)), 9)
                                                                         ]
     it "can take structure from the both sides" $ do
       it "one" $
         query ((fastCat [pure (+1), pure (+2)]) <*> (fastCat [pure 7, pure 8])) (0,1)
-        `shouldBe` [(((0,0.5), (0,0.5)), 8 :: Int),
-                    (((0.5,1), (0.5,1)), 10)
+        `shouldBe` [((Just (0,0.5), (0,0.5)), 8 :: Int),
+                    ((Just (0.5,1), (0.5,1)), 10)
                    ]
       it "two" $
         query ((fastCat [pure (+1), pure (+2), pure (+3)]) <*> (fastCat [pure 7, pure 8])) (0,1)
-        `shouldBe` [(((0 % 1,1 % 3),(0 % 1,1 % 3)),8 :: Int),
-                    (((1 % 3,1 % 2),(1 % 3,1 % 2)),9),
-                    (((1 % 2,2 % 3),(1 % 2,2 % 3)),10),
-                    (((2 % 3,1 % 1),(2 % 3,1 % 1)),11)
+        `shouldBe` [((Just (0 % 1,1 % 3),(0 % 1,1 % 3)),8 :: Int),
+                    ((Just (1 % 3,1 % 2),(1 % 3,1 % 2)),9),
+                    ((Just (1 % 2,2 % 3),(1 % 2,2 % 3)),10),
+                    ((Just (2 % 3,1 % 1),(2 % 3,1 % 1)),11)
                    ]
     it "obeys pure id <*> v = v" $ do
       let v = (fastCat [fastCat [pure 7, pure 8], pure 9]) :: Pattern Int
@@ -136,18 +136,18 @@ main = microspec $ do
 
   describe "Sound.Tidal.Pattern.<*" $ do
     it "can apply a pattern of values to a pattern of functions" $ do
-      query ((pure (+1)) <* (pure 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
+      query ((pure (+1)) <* (pure 3)) (0,1) `shouldBe` [((Just (0,1), (0,1)), 4  :: Int)]
     it "doesn't take structure from the right" $ do
       query (pure (+1) <* (fastCat [pure 7, pure 8])) (0,1)
-        `shouldBe` [(((0,1), (0,1)), 8 :: Int)]
+        `shouldBe` [((Just (0,1), (0,1)), 8 :: Int)]
 
   describe "Sound.Tidal.Pattern.*>" $ do
     it "can apply a pattern of values to a pattern of functions" $ do
-      query ((pure (+1)) *> (pure 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
+      query ((pure (+1)) *> (pure 3)) (0,1) `shouldBe` [((Just (0,1), (0,1)), 4  :: Int)]
     it "doesn't take structure from the left" $ do
       query (pure (+1) *> (fastCat [pure 7, pure 8])) (0,1)
-        `shouldBe` [(((0,0.5), (0,0.5)), 8 :: Int),
-                    (((0.5,1), (0.5,1)), 9 :: Int)
+        `shouldBe` [((Just (0,0.5), (0,0.5)), 8 :: Int),
+                    ((Just (0.5,1), (0.5,1)), 9 :: Int)
                    ]
 {-
   describe "Sound.Tidal.Pattern.eventL" $ do
@@ -184,18 +184,18 @@ main = microspec $ do
   describe "Sound.Tidal.Pattern.compress" $ do
     it "squashes cycles to the start of a cycle" $ do
       let p = compress (0, 0.5) $ fastCat [pure 7, pure 8] :: Pattern Int
-      (query p (0,1)) `shouldBe` [(((0,0.25),  (0,0.25)),   7),
-                                  (((0.25,0.5),(0.25,0.5)), 8)
+      (query p (0,1)) `shouldBe` [((Just (0,0.25),  (0,0.25)),   7),
+                                  ((Just (0.25,0.5),(0.25,0.5)), 8)
                                  ]
     it "squashes cycles to the end of a cycle" $ do
       let p = compress (0.5,1) $ fastCat [pure 7, pure 8] :: Pattern Int
-      (query p (0,1)) `shouldBe` [(((0.5,0.75),  (0.5,0.75)), 7 :: Int),
-                                  (((0.75,1),    (0.75,1)),   8)
+      (query p (0,1)) `shouldBe` [((Just (0.5,0.75),  (0.5,0.75)), 7 :: Int),
+                                  ((Just (0.75,1),    (0.75,1)),   8)
                                  ]
     it "squashes cycles to the middle of a cycle" $ do
       let p = compress (0.25,0.75) $ fastCat [pure 7, pure 8]
-      (query p (0,1)) `shouldBe` [(((0.25,0.5),  (0.25,0.5)), 7 :: Int),
-                                  (((0.5,0.75),  (0.5,0.75)), 8)
+      (query p (0,1)) `shouldBe` [((Just (0.25,0.5),  (0.25,0.5)), 7 :: Int),
+                                  ((Just (0.5,0.75),  (0.5,0.75)), 8)
                                  ]
 
   describe "Sound.Tidal.Pattern.unwrap" $ do
@@ -218,9 +218,9 @@ main = microspec $ do
           b = fastCat [pure "c", pure "d", pure "e"]
           pp = fastCat [pure a, pure b]
       query (unwrap pp) (0,1)
-        `shouldBe` [(((0 % 1,1 % 2),(0 % 1,1 % 2)),"a"),
-                    (((1 % 2,2 % 3),(1 % 2,2 % 3)),"d"),
-                    (((2 % 3,1 % 1),(2 % 3,1 % 1)),"e")
+        `shouldBe` [((Just (0 % 1,1 % 2),(0 % 1,1 % 2)),"a"),
+                    ((Just (1 % 2,2 % 3),(1 % 2,2 % 3)),"d"),
+                    ((Just (2 % 3,1 % 1),(2 % 3,1 % 1)),"e")
                    ]
   describe "Sound.Tidal.Pattern.unwrap'" $ do
     it "compresses cycles to fit outer 'whole' timearc of event" $ do
@@ -228,11 +228,11 @@ main = microspec $ do
           b = fastCat [pure "c", pure "d", pure "e"]
           pp = fastCat [pure a, pure b]
       query (unwrap' pp) (0,1)
-        `shouldBe` [(((0 % 1,1 % 4),(0 % 1,1 % 4)),"a"),
-                    (((1 % 4,1 % 2),(1 % 4,1 % 2)),"b"),
-                    (((1 % 2,2 % 3),(1 % 2,2 % 3)),"c"),
-                    (((2 % 3,5 % 6),(2 % 3,5 % 6)),"d"),
-                    (((5 % 6,1 % 1),(5 % 6,1 % 1)),"e")
+        `shouldBe` [((Just (0 % 1,1 % 4),(0 % 1,1 % 4)),"a"),
+                    ((Just (1 % 4,1 % 2),(1 % 4,1 % 2)),"b"),
+                    ((Just (1 % 2,2 % 3),(1 % 2,2 % 3)),"c"),
+                    ((Just (2 % 3,5 % 6),(2 % 3,5 % 6)),"d"),
+                    ((Just (5 % 6,1 % 1),(5 % 6,1 % 1)),"e")
                    ]
 
   describe "Sound.Tidal.Pattern.>>=" $ do

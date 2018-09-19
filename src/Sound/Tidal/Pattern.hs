@@ -3,9 +3,9 @@ module Sound.Tidal.Pattern where
 import Prelude hiding ((<*), (*>))
 import qualified Data.Map.Strict as Map
 import Data.Fixed (mod')
-import Data.Maybe (isJust, fromJust, catMaybes)
+import Data.Maybe (isJust, fromJust, catMaybes, fromMaybe)
 -- import Data.Ratio
--- import Control.Applicative ((<*>), Applicative)
+import Control.Applicative (liftA2)
 -- import Data.Maybe (mapMaybe)
 
 import Sound.Tidal.Utils
@@ -19,9 +19,10 @@ type Time = Rational
 -- | A time arc (start and end)
 type Arc = (Time, Time)
 
--- | The second timespan (the part) should be equal to or fit inside the
--- first one (the whole that it's a part of)
-type Part = (Arc, Arc)
+-- | The second art (the part) should be equal to or fit inside the
+-- first one (the whole that it's a part of). Patterns that are
+-- continuous don't have a 'whole'.
+type Part = (Maybe Arc, Arc)
 
 -- | An event is a value that's active during a timespan
 type Event a = (Part, a)
@@ -44,19 +45,22 @@ instance Functor Pattern where
 instance Applicative Pattern where
   -- | Repeat the given value once per cycle, forever
   pure v = Pattern $ \(s,e) -> map (\(s',e') -> (constrain (s,e) (s',e'),v)) $ cycleArcsInArc (s,e)
-    where constrain (s,e) (s',e') = ((s',e'), (max s s', min e e'))
+    where constrain (s,e) (s',e') = (Just (s',e'), (max s s', min e e'))
 
   -- for the part of each event in pf
   -- - get matching events px matching the arc
   -- - for both whole and part, take the intersection of pf and px
+  -- - (if the event is continuous, just take the part)
   pf <*> px = Pattern q
     where q arc = catMaybes $ concat $ map match $ query pf arc
             where
               match ((fWhole, fPart), f) =
                 map
-                (\((xWhole, xPart),x) -> do whole' <- subArc fWhole xWhole
-                                            part' <- subArc fPart xPart
-                                            return ((whole', part'), f x)
+                (\((xWhole, xPart),x) ->
+                    do part' <- subArc fPart xPart
+                       xWhole' <- xWhole
+                       whole' <- maybe (Just part') (subArc xWhole') fWhole
+                       return ((Just whole', part'), f x)
                 )
                 (query px fPart)
 
@@ -68,7 +72,9 @@ pf <* px = Pattern q
             match ((fWhole, fPart), f) =
               map
               (\(_, x) -> ((fWhole, fPart), f x)) $
-              query px (fst fWhole, fst fWhole)
+              query px $ xQuery fWhole
+            xQuery Nothing = arc -- for continuous events, use the original query
+            xQuery (Just (s,e)) = (s,s) -- for discrete ones, match with the onset
 
 -- | Like <*>, but the structure only comes from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
@@ -78,7 +84,9 @@ pf *> px = Pattern q
             match ((xWhole, xPart), x) =
               map
               (\(_, f) -> ((xWhole, xPart), f x)) $
-              query pf (fst xWhole, fst xWhole)
+              query pf $ xQuery xWhole
+            xQuery Nothing = arc -- for continuous events, use the original query
+            xQuery (Just (s,e)) = (s,s) -- for discrete ones, match with the onset
 
 infixl 4 <*, *>
 
@@ -98,29 +106,108 @@ instance Monad Pattern where
 unwrap :: Pattern (Pattern a) -> Pattern a
 unwrap pp = Pattern q
   where q arc = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p part) (query pp arc)
-        munge oWhole oPart ((iWhole, iPart),v) = do w <- subArc oWhole iWhole
+        munge oWhole oPart ((iWhole, iPart),v) = do w <- maybeSubArc oWhole iWhole
                                                     p <- subArc oPart iPart
                                                     return ((w,p),v)
 
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
--- timespan of the outer whole
+-- timespan of the outer whole (or the original query if it's a continuous pattern?)
 unwrap' :: Pattern (Pattern a) -> Pattern a
 unwrap' pp = Pattern q
-  where q arc = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query (compress whole p) part) (query pp arc)
-        munge oWhole oPart ((iWhole, iPart),v) = do whole' <- subArc oWhole iWhole
+  where q arc = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query (compress (fromMaybe arc whole) p) part) (query pp arc)
+        munge oWhole oPart ((iWhole, iPart),v) = do whole' <- maybeSubArc oWhole iWhole
                                                     part' <- subArc oPart iPart
                                                     return ((whole',part'),v)
-{-
-unwrap' :: Pattern (Pattern a) -> Pattern a
-unwrap' pp = Pattern $ \a -> arc (stack $ map scalep (arc pp a)) a
-  where scalep ((whole, part),p) = compress whole p
--}
+noOv :: String -> a
+noOv meth = error $ meth ++ ": not supported for patterns"
+
+instance Eq (Pattern a) where
+  (==) = noOv "(==)"
+
+instance Ord a => Ord (Pattern a) where
+  min = liftA2 min
+  max = liftA2 max
+  compare = noOv "compare"
+  (<=) = noOv "(<=)"
+
+instance Num a => Num (Pattern a) where
+  negate      = fmap negate
+  (+)         = liftA2 (+)
+  (*)         = liftA2 (*)
+  fromInteger = pure . fromInteger
+  abs         = fmap abs
+  signum      = fmap signum
+
+instance Enum a => Enum (Pattern a) where
+  succ           = fmap succ
+  pred           = fmap pred
+  toEnum         = pure . toEnum
+  fromEnum       = noOv "fromEnum"
+  enumFrom       = noOv "enumFrom"
+  enumFromThen   = noOv "enumFromThen"
+  enumFromTo     = noOv "enumFromTo"
+  enumFromThenTo = noOv "enumFromThenTo"
+
+instance (Num a, Ord a) => Real (Pattern a) where
+  toRational = noOv "toRational"
+
+instance (Integral a) => Integral (Pattern a) where
+  quot          = liftA2 quot
+  rem           = liftA2 rem
+  div           = liftA2 div
+  mod           = liftA2 mod
+  toInteger     = noOv "toInteger"
+  x `quotRem` y = (x `quot` y, x `rem` y)
+  x `divMod`  y = (x `div`  y, x `mod` y)
+
+instance (Fractional a) => Fractional (Pattern a) where
+  recip        = fmap recip
+  fromRational = pure . fromRational
+
+instance (Floating a) => Floating (Pattern a) where
+  pi    = pure pi
+  sqrt  = fmap sqrt
+  exp   = fmap exp
+  log   = fmap log
+  sin   = fmap sin
+  cos   = fmap cos
+  asin  = fmap asin
+  atan  = fmap atan
+  acos  = fmap acos
+  sinh  = fmap sinh
+  cosh  = fmap cosh
+  asinh = fmap asinh
+  atanh = fmap atanh
+  acosh = fmap acosh
+
+instance (RealFrac a) => RealFrac (Pattern a) where
+  properFraction = noOv "properFraction"
+  truncate       = noOv "truncate"
+  round          = noOv "round"
+  ceiling        = noOv "ceiling"
+  floor          = noOv "floor"
+
+instance (RealFloat a) => RealFloat (Pattern a) where
+  floatRadix     = noOv "floatRadix"
+  floatDigits    = noOv "floatDigits"
+  floatRange     = noOv "floatRange"
+  decodeFloat    = noOv "decodeFloat"
+  encodeFloat    = ((.).(.)) pure encodeFloat
+  exponent       = noOv "exponent"
+  significand    = noOv "significand"
+  scaleFloat n   = fmap (scaleFloat n)
+  isNaN          = noOv "isNaN"
+  isInfinite     = noOv "isInfinite"
+  isDenormalized = noOv "isDenormalized"
+  isNegativeZero = noOv "isNegativeZero"
+  isIEEE         = noOv "isIEEE"
+  atan2          = liftA2 atan2
 
 ------------------------------------------------------------------------
 -- * Internal functions
 
 -- | Get the timespan of an event's 'whole'
-eventWhole :: Event a -> Arc
+eventWhole :: Event a -> Maybe Arc
 eventWhole = fst . fst
 
 -- | Get the timespan of an event's 'part'
@@ -174,6 +261,10 @@ subArc (s, e) (s',e') | s'' < e'' = Just (s'', e'')
   where s'' = max s s'
         e'' = min e e'
 
+maybeSubArc :: Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)
+maybeSubArc (Just a) (Just b) = Just $ subArc a b
+maybeSubArc _ _ = Nothing
+
 -- | The arc of the whole cycle that the given time value falls within
 timeToCycleArc :: Time -> Arc
 timeToCycleArc t = (sam t, (sam t) + 1)
@@ -188,9 +279,9 @@ cyclesInArc (s,e) | s > e = []
 cycleArcsInArc :: Arc -> [Arc]
 cycleArcsInArc = map (timeToCycleArc . (toTime :: Int -> Time)) . cyclesInArc
 
--- | Apply a function to the timespans (both whole and parts) of the result
+-- | Apply a function to the arcs/timespans (both whole and parts) of the result
 withResultArc :: (Arc -> Arc) -> Pattern a -> Pattern a
-withResultArc f p = Pattern $ \a -> map (mapFst (mapBoth f)) $ query p a
+withResultArc f p = Pattern $ \a -> map (mapFst (mapWholePart f)) $ query p a
 
 -- | Apply a function to the time (both start and end of the timespans
 -- of both whole and parts) of the result
@@ -292,8 +383,7 @@ silence = Pattern $ const []
 sig :: (Time -> a) -> Pattern a
 sig f = Pattern q
   where q (s,e) | s > e = []
-                -- experiment - what if all signals have a 'whole' starting at -1? So no onsets..
-                | otherwise = [(((-1,e), (s,e)), f s)]
+                | otherwise = [((Nothing, (s,e)), f s)]
 
 -- | @sine@ returns a 'Pattern' of continuous 'Fractional' values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
@@ -469,8 +559,10 @@ sparsity = slow
 -- reversed (or mirrored).
 rev :: Pattern a -> Pattern a
 rev p = splitQueries $ Pattern $ \a -> map makeWholeAbsolute $ mapParts (mirrorArc (mid a)) $ map makeWholeRelative (query p (mirrorArc (mid a) a))
-  where makeWholeRelative (((s,e), part@(s',e')), v) = (((s'-s, e-e'), part), v)
-        makeWholeAbsolute (((s,e), part@(s',e')), v) = (((s'-e, e'+s), part), v)
+  where makeWholeRelative ((Just (s,e), part@(s',e')), v) = ((Just (s'-s, e-e'), part), v)
+        makeWholeRelative a = a -- leave continuous events as-is
+        makeWholeAbsolute ((Just (s,e), part@(s',e')), v) = ((Just (s'-e, e'+s), part), v)
+        makeWholeAbsolute a = a -- leave continuous events as-is
         mid (s,_) = (sam s) + 0.5
         mapParts f es = map (mapFst (mapSnd f)) es
         -- | Returns the `mirror image' of a 'Arc' around the given point in time
