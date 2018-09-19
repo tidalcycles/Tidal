@@ -248,7 +248,7 @@ main = microspec $ do
           p' = do x <- p1
                   y <- p2
                   return $ x + y
-      (sort $ query p' (0,1)) `shouldBe` (sort $ query ((+) <$> p1 <*> p2) (0,1))
+      compareP 1 p' ((+) <$> p1 <*> p2)
 
     it "conforms to (return v) >>= f = f v" $ do
       let f x = pure $ x + 10
@@ -259,6 +259,24 @@ main = microspec $ do
       compareP 1 (m >>= return) m
     -- if "conforms to (m >>= f) >>= g ≡ m >>= ( \x -> (f x >>= g) )"
        
+  describe "Sound.Tidal.Pattern.saw" $ do
+    it "goes from 0 up to 1 every cycle" $ do
+      it "0" $
+        (query saw (0,1))    `shouldBe` [((Nothing, (0,1)),    0 :: Float)]
+      it "0.25" $
+        (query saw (0.25,1)) `shouldBe` [((Nothing, (0.25,1)), 0.25 :: Float)]
+      it "0.5" $
+        (query saw (0.5,1))  `shouldBe` [((Nothing, (0.5,1) ), 0.5 :: Float)]
+      it "0.75" $
+        (query saw (0.75,1)) `shouldBe` [((Nothing, (0.75,1)), 0.75 :: Float)]
+    it "can be added to" $ do
+      (map eventValue $ query ((+1) <$> saw) (0.5,1)) `shouldBe` [1.5 :: Float]
+    it "works on the left of <*>" $ do
+      (query ((+) <$> saw <*> pure 3) (0,1))
+        `shouldBe` [((Just (0,1), (0,1)), 3 :: Float)]
+    it "works on the right of <*>" $ do
+      (query (pure (+3) <*> saw) (0,1))
+        `shouldBe` [((Just (0,1), (0,1)), 3 :: Float)]
 
 compareP :: (Ord a, Show a) => Time -> Pattern a -> Pattern a -> Property
 compareP n p p' = (sort $ query p (0,n)) === (sort $ query p' (0,n))
