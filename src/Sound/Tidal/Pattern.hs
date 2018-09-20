@@ -3,7 +3,7 @@ module Sound.Tidal.Pattern where
 import Prelude hiding ((<*), (*>))
 import qualified Data.Map.Strict as Map
 import Data.Fixed (mod')
-import Data.Maybe (isJust, fromJust, catMaybes, fromMaybe)
+import Data.Maybe (isJust, isNothing, fromJust, catMaybes, fromMaybe)
 -- import Data.Ratio
 import Control.Applicative (liftA2)
 -- import Data.Maybe (mapMaybe)
@@ -216,6 +216,12 @@ eventPart = snd . fst
 
 eventValue :: Event a -> a
 eventValue = snd
+
+isDiscrete :: Event a -> Bool
+isDiscrete = isJust . eventWhole
+
+isContinuous :: Event a -> Bool
+isContinuous = isNothing . eventWhole
 
 -- | Splits the given 'Arc' into a list of 'Arc's, at cycle boundaries.
 arcCycles :: Arc -> [Arc]
