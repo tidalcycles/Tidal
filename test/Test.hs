@@ -262,31 +262,31 @@ main = microspec $ do
   describe "Sound.Tidal.Pattern.saw" $ do
     it "goes from 0 up to 1 every cycle" $ do
       it "0" $
-        (query saw (0,1))    `shouldBe` [((Nothing, (0,1)),    0 :: Float)]
+        (query saw (0,0))    `shouldBe` [((Nothing, (0,0)),    0 :: Float)]
       it "0.25" $
-        (query saw (0.25,1)) `shouldBe` [((Nothing, (0.25,1)), 0.25 :: Float)]
+        (query saw (0.25,0.25)) `shouldBe` [((Nothing, (0.25,0.25)), 0.25 :: Float)]
       it "0.5" $
-        (query saw (0.5,1))  `shouldBe` [((Nothing, (0.5,1) ), 0.5 :: Float)]
+        (query saw (0.5,0.5))  `shouldBe` [((Nothing, (0.5,0.5) ), 0.5 :: Float)]
       it "0.75" $
-        (query saw (0.75,1)) `shouldBe` [((Nothing, (0.75,1)), 0.75 :: Float)]
+        (query saw (0.75,0.75)) `shouldBe` [((Nothing, (0.75,0.75)), 0.75 :: Float)]
     it "can be added to" $ do
-      (map eventValue $ query ((+1) <$> saw) (0.5,1)) `shouldBe` [1.5 :: Float]
+      (map eventValue $ query ((+1) <$> saw) (0.5,0.5)) `shouldBe` [1.5 :: Float]
     it "works on the left of <*>" $ do
       (query ((+) <$> saw <*> pure 3) (0,1))
-        `shouldBe` [((Just (0,1), (0,1)), 3 :: Float)]
+        `shouldBe` [((Just (0,1), (0,1)), 3.5 :: Float)]
     it "works on the right of <*>" $ do
       (query (pure (+3) <*> saw) (0,1))
-        `shouldBe` [((Just (0,1), (0,1)), 3 :: Float)]
+        `shouldBe` [((Just (0,1), (0,1)), 3.5 :: Float)]
     it "can be reversed" $ do
       it "works with whole cycles" $
         (query (rev saw) (0,1))
-          `shouldBe` [((Nothing, (0,1)), 1 :: Float)]
+          `shouldBe` [((Nothing, (0,1)), 0.5 :: Float)]
       it "works with half cycles" $
         (query (rev saw) (0,0.5))
-          `shouldBe` [((Nothing, (0,0.5)), 1 :: Float)]
-      it "works with inset half cycles" $
-        (query (rev saw) (0.25,0.75))
-          `shouldBe` [((Nothing, (0.25,0.75)), 0.75 :: Float)]
+          `shouldBe` [((Nothing, (0,0.5)), 0.75 :: Float)]
+      it "works with inset points" $
+        (query (rev saw) (0.25,0.25))
+          `shouldBe` [((Nothing, (0.25,0.25)), 0.75 :: Float)]
     
 compareP :: (Ord a, Show a) => Time -> Pattern a -> Pattern a -> Property
 compareP n p p' = (sort $ query p (0,n)) === (sort $ query p' (0,n))

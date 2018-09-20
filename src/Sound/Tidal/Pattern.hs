@@ -386,7 +386,7 @@ silence = Pattern $ const []
 sig :: (Time -> a) -> Pattern a
 sig f = Pattern q
   where q (s,e) | s > e = []
-                | otherwise = [((Nothing, (s,e)), f s)]
+                | otherwise = [((Nothing, (s,e)), f (s+((e-s)/2)))]
 
 -- | @sine@ returns a 'Pattern' of continuous 'Fractional' values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
