@@ -277,7 +277,17 @@ main = microspec $ do
     it "works on the right of <*>" $ do
       (query (pure (+3) <*> saw) (0,1))
         `shouldBe` [((Just (0,1), (0,1)), 3 :: Float)]
-
+    it "can be reversed" $ do
+      it "works with whole cycles" $
+        (query (rev saw) (0,1))
+          `shouldBe` [((Nothing, (0,1)), 1 :: Float)]
+      it "works with half cycles" $
+        (query (rev saw) (0,0.5))
+          `shouldBe` [((Nothing, (0,0.5)), 1 :: Float)]
+      it "works with inset half cycles" $
+        (query (rev saw) (0.25,0.75))
+          `shouldBe` [((Nothing, (0.25,0.75)), 0.75 :: Float)]
+    
 compareP :: (Ord a, Show a) => Time -> Pattern a -> Pattern a -> Property
 compareP n p p' = (sort $ query p (0,n)) === (sort $ query p' (0,n))
 
