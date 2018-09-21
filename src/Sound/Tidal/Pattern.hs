@@ -472,6 +472,10 @@ cosine = 0.25 `rotR` sine
 saw :: (Fractional a, Real a) => Pattern a
 saw = sig $ \t -> mod' (fromRational t) 1
 
+-- | @isaw@ is the equivalent of 'sine' for inverse (descending) sawtooth waves.
+isaw :: (Fractional a, Real a) => Pattern a
+isaw = (1-) <$> saw
+
 -- | @tri@ is the equivalent of 'sine' for triangular waves.
 tri :: (Fractional a, Real a) => Pattern a
 tri = append saw (rev saw)
