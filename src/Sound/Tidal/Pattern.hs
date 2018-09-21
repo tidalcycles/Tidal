@@ -19,10 +19,9 @@ type Time = Rational
 -- | A time arc (start and end)
 type Arc = (Time, Time)
 
--- | The second art (the part) should be equal to or fit inside the
--- first one (the whole that it's a part of). Patterns that are
--- continuous don't have a 'whole'.
-type Part = (Maybe Arc, Arc)
+-- | The second arc (the part) should be equal to or fit inside the
+-- first one (the whole that it's a part of).
+type Part = (Arc, Arc)
 
 -- | An event is a value that's active during a timespan
 type Event a = (Part, a)
@@ -30,8 +29,13 @@ type Event a = (Part, a)
 -- | A function that represents events taking place over time
 type Query a = (Arc -> [Event a])
 
--- | A datatype that's basically a query. At least for now.
-data Pattern a = Pattern {query :: Query a}
+-- | Also known as Continuous vs Discrete/Amorphous vs Pulsating etc.
+data Nature = Analog | Digital
+            deriving Eq
+
+-- | A datatype that's basically a query, plus a hint about whether its events
+-- are Analogue or Digital by nature
+data Pattern a = Pattern {nature :: Nature, query :: Query a}
 
 type PatternMap a b = Pattern (Map.Map a b)
 
@@ -40,18 +44,19 @@ type PatternMap a b = Pattern (Map.Map a b)
 
 instance Functor Pattern where
   -- | apply a function to all the values in a pattern
-  fmap f = Pattern . (fmap (fmap (fmap f))) . query
+  fmap f p = p {query = (fmap (fmap f)) . query p}
 
 instance Applicative Pattern where
   -- | Repeat the given value once per cycle, forever
-  pure v = Pattern $ \(s,e) -> map (\(s',e') -> (constrain (s,e) (s',e'),v)) $ cycleArcsInArc (s,e)
-    where constrain (s,e) (s',e') = (Just (s',e'), (max s s', min e e'))
+  pure v = Pattern Digital $ \(s,e) -> map (\(s',e') -> (constrain (s,e) (s',e'),v)) $ cycleArcsInArc (s,e)
+    where constrain (s,e) (s',e') = ((s',e'), (max s s', min e e'))
 
   -- for the part of each event in pf
   -- - get matching events px matching the arc
   -- - for both whole and part, take the intersection of pf and px
   -- - (if the event is continuous, just take the part)
-  pf <*> px = Pattern q
+{-
+pf <*> px = Pattern q
     where q arc = catMaybes $ concat $ map match $ query pf arc
             where
               match ((fWhole, fPart), f) =
@@ -63,30 +68,82 @@ instance Applicative Pattern where
                          return ((Just whole', part'), f x)
                 )
                 (query px fPart)
+-}
+
+  (<*>) pf@(Pattern Digital _) px@(Pattern Digital _) = Pattern Digital q
+    where q a = catMaybes $ concat $ map match $ query pf a
+            where
+              match ((fWhole, fPart), f) =
+                map
+                (\((xWhole, xPart),x) ->
+                  do whole' <- subArc xWhole fWhole
+                     part' <- subArc fPart xPart
+                     return ((whole', part'), f x)
+                )
+                (query px fPart)
+  (<*>) pf@(Pattern Digital _) px@(Pattern Analog _) = Pattern Digital q
+    where q a = concatMap match $ query pf a
+            where
+              match ((fWhole, fPart), f) =
+                map
+                (\(_ ,x) -> ((fWhole, fPart), f x))
+                (query px (fst fPart, fst fPart))
+
+  (<*>) pf@(Pattern Analog _) px@(Pattern Digital _) = Pattern Digital q
+    where q a = concatMap match $ query px a
+            where
+              match ((xWhole, xPart), x) =
+                map
+                (\(_ ,f) -> ((xWhole, xPart), f x))
+                (query pf (fst xPart, fst xPart))
+                
+  (<*>) pf px = Pattern Analog q
+    where q a = concatMap match $ query pf a
+            where
+              match (_, f) =
+                map
+                (\(_ ,x) -> ((a,a), f x))
+                (query px a)
 
 -- | Like <*>, but the structure only comes from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-pf <* px = Pattern q
-  where q arc = concatMap match $ query pf arc
-          where
+(<*) pf@(Pattern Digital _) px = Pattern Digital q
+  where q a = concatMap match $ query pf a
+         where
             match ((fWhole, fPart), f) =
               map
               (\(_, x) -> ((fWhole, fPart), f x)) $
               query px $ xQuery fWhole
-            xQuery Nothing = arc -- for continuous events, use the original query
-            xQuery (Just (s,_)) = (s,s) -- for discrete ones, match with the onset
+            xQuery ((s,_)) = (s,s) -- for discrete events, match with the onset
+            
+
+pf <* px = Pattern Analog q
+  where q a = concatMap match $ query pf a
+          where
+            match ((fWhole, fPart), f) =
+              map
+              (\(_, x) -> ((fWhole, fPart), f x)) $
+              query px a -- for continuous events, use the original query
 
 -- | Like <*>, but the structure only comes from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-pf *> px = Pattern q
-  where q arc = concatMap match $ query px arc
+(*>) pf px@(Pattern Digital _) = Pattern Digital q
+  where q a = concatMap match $ query px a
+         where
+            match ((xWhole, xPart), x) =
+              map
+              (\(_, f) -> ((xWhole, xPart), f x)) $
+              query pf $ fQuery xWhole
+            fQuery ((s,_)) = (s,s) -- for discrete events, match with the onset
+            
+
+pf *> px = Pattern Analog q
+  where q a = concatMap match $ query px a
           where
             match ((xWhole, xPart), x) =
               map
               (\(_, f) -> ((xWhole, xPart), f x)) $
-              query pf $ xQuery xWhole
-            xQuery Nothing = arc -- for continuous events, use the original query
-            xQuery (Just (s,_)) = (s,s) -- for discrete ones, match with the onset
+              query pf a -- for continuous events, use the original query
 
 infixl 4 <*, *>
 
@@ -102,22 +159,26 @@ instance Monad Pattern where
 -- 3/ For each inner event, set the whole and part to be the intersection
 --    of the outer whole and part, respectively
 -- 4/ Concatenate all the events together (discarding wholes/parts that didn't intersect)
+--
+-- TODO - what is a continuous pattern contains a discrete one, or vice-versa?
 
 unwrap :: Pattern (Pattern a) -> Pattern a
-unwrap pp = Pattern q
+unwrap pp = pp {query = q}
   where q arc = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p part) (query pp arc)
-        munge oWhole oPart ((iWhole, iPart),v) = do w <- maybeSubArc oWhole iWhole
+        munge oWhole oPart ((iWhole, iPart),v) = do w <- subArc oWhole iWhole
                                                     p <- subArc oPart iPart
                                                     return ((w,p),v)
 
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
 -- timespan of the outer whole (or the original query if it's a continuous pattern?)
+-- TODO - what is a continuous pattern contains a discrete one, or vice-versa?
 unwrap' :: Pattern (Pattern a) -> Pattern a
-unwrap' pp = Pattern q
-  where q arc = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query (compress (fromMaybe arc whole) p) part) (query pp arc)
-        munge oWhole oPart ((iWhole, iPart),v) = do whole' <- maybeSubArc oWhole iWhole
+unwrap' pp = pp {query = q}
+  where q arc = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query (compress whole p) part) (query pp arc)
+        munge oWhole oPart ((iWhole, iPart),v) = do whole' <- subArc oWhole iWhole
                                                     part' <- subArc oPart iPart
                                                     return ((whole',part'),v)
+
 noOv :: String -> a
 noOv meth = error $ meth ++ ": not supported for patterns"
 
@@ -207,7 +268,7 @@ instance (RealFloat a) => RealFloat (Pattern a) where
 -- * Internal functions
 
 -- | Get the timespan of an event's 'whole'
-eventWhole :: Event a -> Maybe Arc
+eventWhole :: Event a -> Arc
 eventWhole = fst . fst
 
 -- | Get the timespan of an event's 'part'
@@ -217,11 +278,11 @@ eventPart = snd . fst
 eventValue :: Event a -> a
 eventValue = snd
 
-isDiscrete :: Event a -> Bool
-isDiscrete = isJust . eventWhole
+isDigital :: Pattern a -> Bool
+isDigital = (== Digital) . nature
 
-isContinuous :: Event a -> Bool
-isContinuous = isNothing . eventWhole
+isAnalog :: Pattern a -> Bool
+isAnalog = not . isDigital
 
 -- | Splits the given 'Arc' into a list of 'Arc's, at cycle boundaries.
 arcCycles :: Arc -> [Arc]
@@ -245,7 +306,7 @@ mapCycle f (s,e) = (sam' + (f $ s - sam'), sam' + (f $ e - sam'))
 -- combined. Being able to assume queries don't span cycles often
 -- makes transformations easier to specify.
 splitQueries :: Pattern a -> Pattern a
-splitQueries p = Pattern $ \a -> concatMap (query p) $ arcCyclesZW a
+splitQueries p = p {query = \a -> concatMap (query p) $ arcCyclesZW a}
 
 -- | The 'sam' (start of cycle) for the given time value
 sam :: Time -> Time
@@ -270,9 +331,11 @@ subArc (s, e) (s',e') | s'' < e'' = Just (s'', e'')
   where s'' = max s s'
         e'' = min e e'
 
+{-
 maybeSubArc :: Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)
 maybeSubArc (Just a) (Just b) = Just $ subArc a b
 maybeSubArc _ _ = Nothing
+-}
 
 -- | The arc of the whole cycle that the given time value falls within
 timeToCycleArc :: Time -> Arc
@@ -290,7 +353,7 @@ cycleArcsInArc = map (timeToCycleArc . (toTime :: Int -> Time)) . cyclesInArc
 
 -- | Apply a function to the arcs/timespans (both whole and parts) of the result
 withResultArc :: (Arc -> Arc) -> Pattern a -> Pattern a
-withResultArc f p = Pattern $ \a -> map (mapFst (mapWholePart f)) $ query p a
+withResultArc f p = p {query = map (mapFst (mapBoth f)) . query p}
 
 -- | Apply a function to the time (both start and end of the timespans
 -- of both whole and parts) of the result
@@ -299,7 +362,7 @@ withResultTime = withResultArc . mapBoth
 
 -- | Apply a function to the timespan of the query
 withQueryArc :: (Arc -> Arc) -> Pattern a -> Pattern a
-withQueryArc f p = Pattern $ \a -> query p (f a)
+withQueryArc f p = p {query = query p . f}
 
 -- | Apply a function to the time (both start and end) of the query
 withQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
@@ -309,7 +372,7 @@ withQueryTime = withQueryArc . mapBoth
 
 -- | Remove events from patterns that to not meet the given test
 filterValues :: (a -> Bool) -> Pattern a -> Pattern a
-filterValues f (Pattern x) = Pattern $ (filter (f . snd)) . x
+filterValues f p = p {query = (filter (f . snd)) . query p}
 
 -- | Turns a pattern of 'Maybe' values in to a pattern of values,
 -- dropping the events of 'Nothing'.
@@ -332,7 +395,7 @@ temporalParam3 f a b c p = unwrap $ (\x y z -> f x y z p) <$> a <*> b <*> c
 -- * UI
 
 -- ** Pattern algebra
-
+{-
 (|+|) :: (Applicative a, Num b) => a b -> a b -> a b
 a |+| b = (+) <$> a <*> b
 (|+ ) :: Num a => Pattern a -> Pattern a -> Pattern a
@@ -381,18 +444,19 @@ a |<| b = const <$> a <*> b
 a |<  b = const <$> a <* b
 ( <|) :: Pattern a -> Pattern a -> Pattern a
 a  <| b = const <$> a *> b
+-}
 
 -- ** Elemental patterns
 
 -- | An empty pattern
 silence :: Pattern a
-silence = Pattern $ const []
+silence = Pattern {nature = Digital, query = const []}
 
 -- | Takes a function from time to values, and turns it into a 'Pattern'.
 sig :: (Time -> a) -> Pattern a
-sig f = Pattern q
+sig f = Pattern Analog q
   where q (s,e) | s > e = []
-                | otherwise = [((Nothing, (s,e)), f (s+((e-s)/2)))]
+                | otherwise = [(((s,e), (s,e)), f (s+((e-s)/2)))]
 
 -- | @sine@ returns a 'Pattern' of continuous 'Fractional' values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
@@ -477,7 +541,8 @@ append a b = cat [a,b]
 -- in turn, then the second cycle from each, and so on.
 cat :: [Pattern a] -> Pattern a
 cat [] = silence
-cat ps = Pattern q
+-- I *guess* it would be digital..
+cat ps = Pattern Digital q
   where n = length ps
         q a = concatMap f $ arcCyclesZW a
         f a = query (withResultTime (+offset) p) $  mapBoth (subtract offset) a
@@ -512,7 +577,10 @@ fastcat = fastCat
 -- | 'overlay' combines two 'Pattern's into a new pattern, so that
 -- their events are combined over time. 
 overlay :: Pattern a -> Pattern a -> Pattern a
-overlay p p' = Pattern $ \a -> (query p a) ++ (query p' a)
+-- Analog if they're both analog
+overlay p@(Pattern Analog _) p'@(Pattern Analog _) = Pattern Analog $ \a -> (query p a) ++ (query p' a)
+-- Otherwise digital. Won't really work to have a mixture.. Hmm
+overlay p p' = Pattern Digital $ \a -> (query p a) ++ (query p' a)
 
 -- | An infix operator, an alias of overlay
 (<>) :: Pattern a -> Pattern a -> Pattern a
@@ -567,11 +635,9 @@ sparsity = slow
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
 rev :: Pattern a -> Pattern a
-rev p = splitQueries $ Pattern $ \a -> map makeWholeAbsolute $ mapParts (mirrorArc (mid a)) $ map makeWholeRelative (query p (mirrorArc (mid a) a))
-  where makeWholeRelative ((Just (s,e), part@(s',e')), v) = ((Just (s'-s, e-e'), part), v)
-        makeWholeRelative a = a -- leave continuous events as-is
-        makeWholeAbsolute ((Just (s,e), part@(s',e')), v) = ((Just (s'-e, e'+s), part), v)
-        makeWholeAbsolute a = a -- leave continuous events as-is
+rev p = splitQueries $ p {query = \a -> map makeWholeAbsolute $ mapParts (mirrorArc (mid a)) $ map makeWholeRelative (query p (mirrorArc (mid a) a))}
+  where makeWholeRelative (((s,e), part@(s',e')), v) = (((s'-s, e-e'), part), v)
+        makeWholeAbsolute (((s,e), part@(s',e')), v) = (((s'-e, e'+s), part), v)
         mid (s,_) = (sam s) + 0.5
         mapParts f es = map (mapFst (mapSnd f)) es
         -- | Returns the `mirror image' of a 'Arc' around the given point in time
@@ -607,7 +673,7 @@ _fastGap r p = splitQueries $
   withResultArc (\(s,e) -> (sam s + ((s - sam s)/r'),
                              sam s + ((e - sam s)/r')
                             )
-                 ) $ Pattern f
+                 ) $ p {query = f}
   where r' = max r 1
         -- zero width queries of the next sam should return zero in this case..
         f a | fst a' == nextSam (fst a) = []
@@ -643,13 +709,13 @@ striated and the fourteenth and so on. Expect lots of striates after
 cycle number 399.
 -}
 when :: (Int -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
-when test f p = splitQueries $ Pattern apply
+when test f p = splitQueries $ p {query = apply}
   where apply a | test (floor $ fst a) = query (f p) a
                 | otherwise = query p a
 
 -- | Like 'when', but works on continuous time values rather than cycle numbers.
 whenT :: (Time -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
-whenT test f p = splitQueries $ Pattern apply
+whenT test f p = splitQueries $ p {query = apply}
   where apply a | test (fst a) = query (f p) a
                 | otherwise = query p a
 
