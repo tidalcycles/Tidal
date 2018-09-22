@@ -296,10 +296,10 @@ main = microspec $ do
 
   describe "Sound.Tidal.Pattern.temporalParam" $ do
     it "works over two cycles" $
-      comparePD (0,2) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
+      property $ comparePD (0,2) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
     it "works over one cycle" $
-      compareP (0,1) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
+      property $ compareP (0,1) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
     it "works with zero width queries" $
-      compareP (0,0) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
+      property $ compareP (0,0) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
        
     

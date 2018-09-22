@@ -150,7 +150,7 @@ infixl 4 <*, *>
 
 instance Monad Pattern where
   return = pure
-  p >>= f = unwrap (f <$> p)
+  p >>= f = innerJoin (f <$> p)
 
 -- | Turns a pattern of patterns into a single pattern.
 -- (this is actually 'join')
@@ -422,12 +422,12 @@ isAdjacent e e' = (eventWhole e == eventWhole e')
                      )
 
 -- | Compare the events of two patterns using the given arc
-compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
-compareP a p p' = (sort $ query p a) === (sort $ query p' a)
+compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Bool
+compareP a p p' = (sort $ query p a) == (sort $ query p' a)
 
 -- | Like @compareP@, but tries to 'defragment' the events
-comparePD :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
-comparePD a p p' = property $ compareDefrag es es'
+comparePD :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Bool
+comparePD a p p' = compareDefrag es es'
   where es = query p a
         es' = query p' a
 
