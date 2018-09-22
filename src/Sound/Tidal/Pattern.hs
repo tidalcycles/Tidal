@@ -7,6 +7,7 @@ import Data.Maybe (isJust, isNothing, fromJust, catMaybes, fromMaybe)
 -- import Data.Ratio
 import Control.Applicative (liftA2)
 -- import Data.Maybe (mapMaybe)
+import Data.List (delete,findIndex,sort)
 
 import Sound.Tidal.Utils
 
@@ -160,21 +161,46 @@ instance Monad Pattern where
 --    of the outer whole and part, respectively
 -- 4/ Concatenate all the events together (discarding wholes/parts that didn't intersect)
 --
--- TODO - what is a continuous pattern contains a discrete one, or vice-versa?
+-- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 
+{-
 unwrap :: Pattern (Pattern a) -> Pattern a
 unwrap pp = pp {query = q}
-  where q arc = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p part) (query pp arc)
+  where q a = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p part) (query pp a)
         munge oWhole oPart ((iWhole, iPart),v) = do w <- subArc oWhole iWhole
                                                     p <- subArc oPart iPart
                                                     return ((w,p),v)
+-}
+
+unwrap :: Pattern (Pattern a) -> Pattern a
+unwrap = innerJoin
+
+-- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
+-- but structure comes from the inner pattern.
+innerJoin :: Pattern (Pattern a) -> Pattern a
+innerJoin pp = pp {query = q}
+  where q a = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p part) (query pp a)
+          where munge oWhole oPart ((iWhole, iPart),v) = do let w = iWhole
+                                                            p <- subArc a iPart
+                                                            p' <- subArc p a
+                                                            return ((w,p'),v)
+{-
+-- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
+-- but structure comes from the inner pattern.
+outerJoin :: Pattern (Pattern a) -> Pattern a
+outerJoin pp = pp {query = q}
+  where q a = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p part) (query pp a)
+          where munge oWhole oPart ((iWhole, iPart),v) = do let w = iWhole
+                                                            p <- subArc a iPart
+                                                            return ((w,p),v)
+-}
 
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
 -- timespan of the outer whole (or the original query if it's a continuous pattern?)
--- TODO - what is a continuous pattern contains a discrete one, or vice-versa?
+-- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 unwrap' :: Pattern (Pattern a) -> Pattern a
 unwrap' pp = pp {query = q}
-  where q arc = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query (compress whole p) part) (query pp arc)
+  where q a = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query (compress whole p) part) (query pp a)
         munge oWhole oPart ((iWhole, iPart),v) = do whole' <- subArc oWhole iWhole
                                                     part' <- subArc oPart iPart
                                                     return ((whole',part'),v)
@@ -326,7 +352,7 @@ cyclePos t = t - sam t
 
 -- | @subArc i j@ is the timespan that is the intersection of @i@ and @j@.
 subArc :: Arc -> Arc -> Maybe Arc
-subArc (s, e) (s',e') | s'' < e'' = Just (s'', e'')
+subArc (s, e) (s',e') | s'' <= e'' = Just (s'', e'')
                       | otherwise = Nothing
   where s'' = max s s'
         e'' = min e e'
@@ -368,6 +394,43 @@ withQueryArc f p = p {query = query p . f}
 withQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
 withQueryTime = withQueryArc . mapBoth
 
+-- | Compares two lists of events, attempting to combine fragmented events in the process
+-- for a 'truer' compare
+compareDefrag :: (Eq a, Ord a) => [Event a] -> [Event a] -> Bool
+compareDefrag as bs = (sort $ defragParts as) == (sort $ defragParts bs)
+
+-- | Returns a list of events, with any adjacent parts of the same whole combined
+defragParts :: Eq a => [Event a] -> [Event a]
+defragParts [] = []
+defragParts (e:[]) = (e:[])
+defragParts (e:es) | isJust i = defraged:(defragParts (delete e' es))
+                   | otherwise = e:(defragParts es)
+  where i = findIndex (isAdjacent e) es
+        e' = es !! (fromJust i)
+        defraged = ((eventWhole e, part),eventValue e)
+        part = (start,end)
+        start = min (fst $ eventPart e) (fst $ eventPart e')
+        end = max (snd $ eventPart e) (snd $ eventPart e')
+
+-- | Returns 'True' if the two given events are adjacent parts of the same whole
+isAdjacent :: Eq a => Event a -> Event a -> Bool
+isAdjacent e e' = (eventWhole e == eventWhole e')
+                  && (eventValue e == eventValue e')
+                  && (((snd $ eventPart e) == (fst $ eventPart e'))
+                      ||
+                      ((snd $ eventPart e') == (fst $ eventPart e))
+                     )
+
+-- | Compare the events of two patterns using the given arc
+compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
+compareP a p p' = (sort $ query p a) === (sort $ query p' a)
+
+-- | Like @compareP@, but tries to 'defragment' the events
+comparePD :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
+comparePD a p p' = property $ compareDefrag es es'
+  where es = query p a
+        es' = query p' a
+
 -- ** Event filters
 
 -- | Remove events from patterns that to not meet the given test
@@ -382,7 +445,7 @@ filterJust p = fromJust <$> (filterValues (isJust) p)
 -- ** Temporal parameter helpers
 
 temporalParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
-temporalParam f tv p = unwrap $ (`f` p) <$> tv
+temporalParam f tv p = innerJoin $ (`f` p) <$> tv
 
 temporalParam2 :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)
 temporalParam2 f a b p = unwrap $ (\x y -> f x y p) <$> a <*> b
@@ -722,7 +785,6 @@ whenT :: (Time -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
 whenT test f p = splitQueries $ p {query = apply}
   where apply a | test (fst a) = query (f p) a
                 | otherwise = query p a
-
 
 
 --eoff :: Int -> Int -> Integer -> Pattern a -> Pattern a

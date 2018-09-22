@@ -143,7 +143,8 @@ main = microspec $ do
 
   describe "Sound.Tidal.Pattern.*>" $ do
     it "can apply a pattern of values to a pattern of functions" $ do
-      query ((pure (+1)) *> (pure 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
+      it "works within cycles" $ query ((pure (+1)) *> (pure 3)) (0,1) `shouldBe` [(((0,1), (0,1)), 4  :: Int)]
+      it "works across cycles" $ query ((pure (+1)) *> (slow 2 $ pure 3)) (0,1) `shouldBe` [(((0,2), (0,1)), 4  :: Int)]
     it "doesn't take structure from the left" $ do
       query (pure (+1) *> (fastCat [pure 7, pure 8])) (0,1)
         `shouldBe` [(((0,0.5), (0,0.5)), 8 :: Int),
@@ -222,6 +223,7 @@ main = microspec $ do
                     (((1 % 2,2 % 3),(1 % 2,2 % 3)),"d"),
                     (((2 % 3,1 % 1),(2 % 3,1 % 1)),"e")
                    ]
+        
   describe "Sound.Tidal.Pattern.unwrap'" $ do
     it "compresses cycles to fit outer 'whole' timearc of event" $ do
       let a = fastCat [pure "a", pure "b"]
@@ -248,15 +250,15 @@ main = microspec $ do
           p' = do x <- p1
                   y <- p2
                   return $ x + y
-      compareP 1 p' ((+) <$> p1 <*> p2)
+      compareP (0,1) p' ((+) <$> p1 <*> p2)
 
     it "conforms to (return v) >>= f = f v" $ do
       let f x = pure $ x + 10
           v = 5 :: Int
-      compareP 5 ((return v) >>= f) (f v)
+      compareP (0,5) ((return v) >>= f) (f v)
     it "conforms to m >>= return ≡ m" $ do
       let m = fastCat [pure "a", fastCat [pure "b", pure "c"]]
-      compareP 1 (m >>= return) m
+      compareP (0,1) (m >>= return) m
     -- if "conforms to (m >>= f) >>= g ≡ m >>= ( \x -> (f x >>= g) )"
        
   describe "Sound.Tidal.Pattern.saw" $ do
@@ -291,7 +293,13 @@ main = microspec $ do
       it "works with inset points" $
         (query (rev saw) (0.25,0.25))
           `shouldBe` [(((0.25,0.25), (0.25,0.25)), 0.75 :: Float)]
-    
-compareP :: (Ord a, Show a) => Time -> Pattern a -> Pattern a -> Property
-compareP n p p' = (sort $ query p (0,n)) === (sort $ query p' (0,n))
 
+  describe "Sound.Tidal.Pattern.temporalParam" $ do
+    it "works over two cycles" $
+      comparePD (0,2) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
+    it "works over one cycle" $
+      compareP (0,1) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
+    it "works with zero width queries" $
+      compareP (0,0) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
+       
+    
