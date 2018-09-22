@@ -302,4 +302,9 @@ main = microspec $ do
     it "works with zero width queries" $
       property $ compareP (0,0) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
        
-    
+  describe "Sound.Tidal.Pattern.comparePD" $ do
+    it "allows split events to be compared" $
+      property $ comparePD (0,2)
+        (splitQueries $ _slow 2 $ pure "a")
+        (_slow 2 $ pure "a")
+      
