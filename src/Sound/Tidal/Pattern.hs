@@ -150,7 +150,7 @@ infixl 4 <*, *>
 
 instance Monad Pattern where
   return = pure
-  p >>= f = innerJoin (f <$> p)
+  p >>= f = unwrap (f <$> p)
 
 -- | Turns a pattern of patterns into a single pattern.
 -- (this is actually 'join')
@@ -163,20 +163,15 @@ instance Monad Pattern where
 --
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 
-{-
 unwrap :: Pattern (Pattern a) -> Pattern a
 unwrap pp = pp {query = q}
   where q a = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p part) (query pp a)
         munge oWhole oPart ((iWhole, iPart),v) = do w <- subArc oWhole iWhole
                                                     p <- subArc oPart iPart
                                                     return ((w,p),v)
--}
-
-unwrap :: Pattern (Pattern a) -> Pattern a
-unwrap = innerJoin
 
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
--- but structure comes from the inner pattern.
+-- but structure only comes from the inner pattern.
 innerJoin :: Pattern (Pattern a) -> Pattern a
 innerJoin pp = pp {query = q}
   where q a = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p part) (query pp a)
@@ -184,16 +179,16 @@ innerJoin pp = pp {query = q}
                                                             p <- subArc a iPart
                                                             p' <- subArc p a
                                                             return ((w,p'),v)
-{-
+
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
--- but structure comes from the inner pattern.
+-- but structure only comes from the outer pattern.
 outerJoin :: Pattern (Pattern a) -> Pattern a
 outerJoin pp = pp {query = q}
-  where q a = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p part) (query pp a)
-          where munge oWhole oPart ((iWhole, iPart),v) = do let w = iWhole
-                                                            p <- subArc a iPart
+  where q a = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p (fst whole, fst whole)) (query pp a)
+          where munge oWhole oPart ((iWhole, iPart),v) = do let w = oWhole
+                                                            p <- subArc a oPart
                                                             return ((w,p),v)
--}
+
 
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
 -- timespan of the outer whole (or the original query if it's a continuous pattern?)
