@@ -1,5 +1,7 @@
 module Sound.Tidal.Utils where
 
+import Data.List (delete)
+
 mapBoth :: (a -> a) -> (a,a) -> (a,a)
 mapBoth f (a,b) = (f a, f b)
 
@@ -14,3 +16,10 @@ mapSnd f (x,y) = (x,f y)
 
 delta :: Num a => (a, a) -> a
 delta (a,b) = b-a
+
+removeCommon :: Eq a => [a] -> [a] -> ([a],[a])
+removeCommon [] bs = ([],bs)
+removeCommon as [] = (as,[])
+removeCommon (a:as) bs | elem a bs = removeCommon as (delete a bs)
+                       | otherwise = (a:as',bs')
+                           where (as',bs') = removeCommon as bs
