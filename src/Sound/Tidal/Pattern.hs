@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances #-}
+
 module Sound.Tidal.Pattern where
 
 import Prelude hiding ((<*), (*>))
@@ -8,6 +10,8 @@ import Data.Maybe (isJust, isNothing, fromJust, catMaybes, fromMaybe)
 import Control.Applicative (liftA2)
 -- import Data.Maybe (mapMaybe)
 import Data.List (delete,findIndex,sort)
+import Data.Typeable (Typeable)
+import Data.Data (Data, toConstr)
 
 import Sound.Tidal.Utils
 
@@ -38,7 +42,13 @@ data Nature = Analog | Digital
 -- are Analogue or Digital by nature
 data Pattern a = Pattern {nature :: Nature, query :: Query a}
 
-type PatternMap a b = Pattern (Map.Map a b)
+data Value = VS { svalue :: String }
+           | VF { fvalue :: Float }
+           | VI { ivalue :: Int }
+           deriving (Eq,Ord,Typeable,Show,Data)
+
+type ParamMap = Map.Map String Value
+type PatternMap = Pattern ParamMap
 
 ------------------------------------------------------------------------
 -- * Instances
@@ -51,25 +61,6 @@ instance Applicative Pattern where
   -- | Repeat the given value once per cycle, forever
   pure v = Pattern Digital $ \(s,e) -> map (\(s',e') -> (constrain (s,e) (s',e'),v)) $ cycleArcsInArc (s,e)
     where constrain (s,e) (s',e') = ((s',e'), (max s s', min e e'))
-
-  -- for the part of each event in pf
-  -- - get matching events px matching the arc
-  -- - for both whole and part, take the intersection of pf and px
-  -- - (if the event is continuous, just take the part)
-{-
-pf <*> px = Pattern q
-    where q arc = catMaybes $ concat $ map match $ query pf arc
-            where
-              match ((fWhole, fPart), f) =
-                map
-                (\((xWhole, xPart),x) ->
-                      do part' <- subArc fPart xPart
-                         let xWhole' = fromMaybe xPart xWhole
-                         whole' <- maybe (Just part') (subArc xWhole') fWhole
-                         return ((Just whole', part'), f x)
-                )
-                (query px fPart)
--}
 
   (<*>) pf@(Pattern Digital _) px@(Pattern Digital _) = Pattern Digital q
     where q a = catMaybes $ concat $ map match $ query pf a
@@ -285,6 +276,18 @@ instance (RealFloat a) => RealFloat (Pattern a) where
   isIEEE         = noOv "isIEEE"
   atan2          = liftA2 atan2
 
+instance Num (ParamMap) where
+  negate      = ((applyFIS negate negate id) <$>)
+  (+)         = Map.unionWith (fNum2 (+) (+))
+  (*)         = Map.unionWith (fNum2 (*) (*))
+  fromInteger i = Map.singleton "n" $ VI $ fromInteger i
+  signum      = ((applyFIS signum signum id) <$>)
+  abs         = ((applyFIS abs abs id) <$>)
+
+instance Fractional ParamMap where
+  recip        = fmap (applyFIS recip id id)
+  fromRational = Map.singleton "speed" . VF . fromRational
+
 ------------------------------------------------------------------------
 -- * Internal functions
 
@@ -426,6 +429,21 @@ comparePD a p p' = compareDefrag es es'
   where es = query p a
         es' = query p' a
 
+-- | Apply one of three functions to a Value, depending on its type
+applyFIS :: (Float -> Float) -> (Int -> Int) -> (String -> String) -> Value -> Value
+applyFIS f _ _ (VF f') = VF $ f f'
+applyFIS _ f _ (VI i ) = VI $ f i
+applyFIS _ _ f (VS s ) = VS $ f s
+
+-- | Apply one of two functions to a Value, depending on its type (int
+-- or float; strings are ignored)
+fNum2 :: (Int -> Int -> Int) -> (Float -> Float -> Float) -> Value -> Value -> Value
+fNum2 fInt fFloat (VI a) (VI b) = VI $ fInt a b
+fNum2 fInt fFloat (VF a) (VF b) = VF $ fFloat a b
+fNum2 fInt fFloat (VI a) (VF b) = VF $ fFloat (fromIntegral a) b
+fNum2 fInt fFloat (VF a) (VI b) = VF $ fFloat a (fromIntegral b)
+fNum2 _ _ x _ = x
+
 -- ** Event filters
 
 -- | Remove events from patterns that to not meet the given test
@@ -453,7 +471,7 @@ temporalParam3 f a b c p = unwrap $ (\x y z -> f x y z p) <$> a <*> b <*> c
 -- * UI
 
 -- ** Pattern algebra
-{-
+
 (|+|) :: (Applicative a, Num b) => a b -> a b -> a b
 a |+| b = (+) <$> a <*> b
 (|+ ) :: Num a => Pattern a -> Pattern a -> Pattern a
@@ -502,7 +520,6 @@ a |<| b = const <$> a <*> b
 a |<  b = const <$> a <* b
 ( <|) :: Pattern a -> Pattern a -> Pattern a
 a  <| b = const <$> a *> b
--}
 
 -- ** Elemental patterns
 
