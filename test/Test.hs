@@ -7,6 +7,7 @@ import Data.List (sort)
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
+import qualified Data.Map.Strict as Map
 
 main :: IO ()
 main = microspec $ do
@@ -309,3 +310,7 @@ main = microspec $ do
         (splitQueries $ _slow 2 $ pure "a")
         (_slow 2 $ pure "a")
       
+  describe "Sound.Tidal.Pattern.controlI" $ do
+    it "can retrieve values from state" $
+      (query (pure 3 + controlF "hello") $ State (0,1) (Map.singleton "hello" (VF 0.5)))
+      `shouldBe` [(((0 % 1,1 % 1),(0 % 1,1 % 1)),3.5)]

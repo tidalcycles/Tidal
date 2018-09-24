@@ -23,3 +23,8 @@ removeCommon as [] = (as,[])
 removeCommon (a:as) bs | elem a bs = removeCommon as (delete a bs)
                        | otherwise = (a:as',bs')
                            where (as',bs') = removeCommon as bs
+
+readMaybe        :: (Read a) => String -> Maybe a
+readMaybe s      =  case [x | (x,t) <- reads s, ("","") <- lex t] of
+                         [x] -> Just x
+                         _   -> Nothing
