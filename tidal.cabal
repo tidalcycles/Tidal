@@ -58,6 +58,7 @@ test-suite tests
   build-depends:
                 base ==4.*
               , microspec >= 0.2.0.1
+              , containers
               , tidal
 
   default-language: Haskell2010
