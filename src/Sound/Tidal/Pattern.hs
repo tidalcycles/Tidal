@@ -6,12 +6,12 @@ import Prelude hiding ((<*), (*>))
 import qualified Data.Map.Strict as Map
 import Data.Fixed (mod')
 import Data.Maybe (isJust, isNothing, fromJust, catMaybes, fromMaybe)
--- import Data.Ratio
+import Data.Ratio (numerator, denominator)
 import Control.Applicative (liftA2)
--- import Data.Maybe (mapMaybe)
-import Data.List (delete,findIndex,sort)
+import Data.List (delete,findIndex,sort,intercalate)
 import Data.Typeable (Typeable)
 import Data.Data (Data, toConstr)
+import System.Random.Mersenne.Pure64 (randomDouble, pureMT)
 
 import Sound.Tidal.Utils
 
@@ -49,7 +49,7 @@ data Pattern a = Pattern {nature :: Nature, query :: Query a}
 data Value = VS { svalue :: String }
            | VF { fvalue :: Float }
            | VI { ivalue :: Int }
-           deriving (Eq,Ord,Typeable,Show,Data)
+           deriving (Eq,Ord,Typeable,Data)
 
 type ControlMap = Map.Map String Value
 type PatternMap = Pattern ControlMap
@@ -188,8 +188,8 @@ outerJoin pp = pp {query = q}
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
 -- timespan of the outer whole (or the original query if it's a continuous pattern?)
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
-unwrap' :: Pattern (Pattern a) -> Pattern a
-unwrap' pp = pp {query = q}
+unwrapSqueeze :: Pattern (Pattern a) -> Pattern a
+unwrapSqueeze pp = pp {query = q}
   where q st = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query (compress whole p) st {arc = part}) (query pp st)
         munge oWhole oPart ((iWhole, iPart),v) = do whole' <- subArc oWhole iWhole
                                                     part' <- subArc oPart iPart
@@ -291,6 +291,88 @@ instance Num (ControlMap) where
 instance Fractional ControlMap where
   recip        = fmap (applyFIS recip id id)
   fromRational = Map.singleton "speed" . VF . fromRational
+
+
+instance {-# OVERLAPPING #-} Show Arc where
+  show (s,e) = prettyRat s ++ ">" ++ prettyRat e
+
+instance {-# OVERLAPPING #-} Show Part where
+  show (a@(s,e),(s',e')) = h ++ "(" ++ show (s',e') ++ ")" ++ t
+    where h | s == s' = ""
+            | otherwise = prettyRat s ++ "-"
+          t | e == e' = ""
+            | otherwise = "-" ++ prettyRat e
+
+instance {-# OVERLAPPING #-} Show a => Show (Event a) where
+  show (p,v) = show p ++ "|" ++ show v
+
+showPattern :: Show a => Arc -> Pattern a -> String
+showPattern a p = intercalate "\n" $ map show $ queryArc p a
+
+instance (Show a) => Show (Pattern a) where
+  show p = showPattern (0,1) p
+
+instance Show Value where
+  show (VS s) = ('"':s) ++ "\""
+  show (VI i) = show i
+  show (VF f) = show f ++ "f"
+
+instance {-# OVERLAPPING #-} Show (ControlMap) where
+  show m = intercalate ", " $ map (\(name, value) -> name ++ ": " ++ show value) $ Map.toList m
+
+prettyRat :: Rational -> String
+prettyRat r | unit == 0 && frac > 0 = showFrac (numerator frac) (denominator frac)
+            | otherwise =  show unit ++ showFrac (numerator frac) (denominator frac)
+  where unit = floor r
+        frac = (r - (toRational unit))
+
+showFrac :: Integer -> Integer -> String
+showFrac 0 _ = ""
+showFrac 1 2 = "½"
+showFrac 1 3 = "⅓"
+showFrac 2 3 = "⅔"
+showFrac 1 4 = "¼"
+showFrac 3 4 = "¾"
+showFrac 1 5 = "⅕"
+showFrac 2 5 = "⅖"
+showFrac 3 5 = "⅗"
+showFrac 4 5 = "⅘"
+showFrac 1 6 = "⅙"
+showFrac 5 6 = "⅚"
+showFrac 1 7 = "⅐"
+showFrac 1 8 = "⅛"
+showFrac 3 8 = "⅜"
+showFrac 5 8 = "⅝"
+showFrac 7 8 = "⅞"
+showFrac 1 9 = "⅑"
+showFrac 1 10 = "⅒"
+
+showFrac n d = fromMaybe plain $ do n' <- up n
+                                    d' <- down d
+                                    return $ n' ++ d'
+  where plain = " " ++ show n ++ "/" ++ show d
+        up 1 = Just "¹"
+        up 2 = Just "²"
+        up 3 = Just "³"
+        up 4 = Just "⁴"
+        up 5 = Just "⁵"
+        up 6 = Just "⁶"
+        up 7 = Just "⁷"
+        up 8 = Just "⁸"
+        up 9 = Just "⁹"
+        up 0 = Just "⁰"
+        up x = Nothing
+        down 1 = Just "₁"
+        down 2 = Just "₂"
+        down 3 = Just "₃"
+        down 4 = Just "₄"
+        down 5 = Just "₅"
+        down 6 = Just "₆"
+        down 7 = Just "₇"
+        down 8 = Just "₈"
+        down 9 = Just "₉"
+        down 0 = Just "₀"
+        down x = Nothing
 
 ------------------------------------------------------------------------
 -- * Internal functions
@@ -464,15 +546,17 @@ filterJust p = fromJust <$> (filterValues (isJust) p)
 
 -- ** Temporal parameter helpers
 
-temporalParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
-temporalParam f tv p = innerJoin $ (`f` p) <$> tv
+tParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
+tParam f tv p = innerJoin $ (`f` p) <$> tv
 
-temporalParam2 :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)
-temporalParam2 f a b p = unwrap $ (\x y -> f x y p) <$> a <*> b
+tParam2 :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)
+tParam2 f a b p = innerJoin $ (\x y -> f x y p) <$> a <*> b
 
-temporalParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
-temporalParam3 f a b c p = unwrap $ (\x y z -> f x y z p) <$> a <*> b <*> c
+tParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
+tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
+tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
+tParamSqueeze f tv p = unwrapSqueeze $ (`f` p) <$> tv
 
 ------------------------------------------------------------------------
 -- * UI
@@ -597,7 +681,7 @@ fromList = fastCat . map pure
 listToPat :: [a] -> Pattern a
 listToPat = fromList
 
--- | @fromMaybes@ is similar to 'fromList', but allows values to
+-- | 'fromMaybes; is similar to 'fromList', but allows values to
 -- be optional using the 'Maybe' type, so that 'Nothing' results in
 -- gaps in the pattern.
 fromMaybes :: [Maybe a] -> Pattern a
@@ -608,12 +692,14 @@ fromMaybes = fastcat . map f
 -- | A pattern of whole numbers from 0 to the given number, in a single cycle.
 run :: (Enum a, Num a) => Pattern a -> Pattern a
 run = (>>= _run)
+
 _run :: (Enum a, Num a) => a -> Pattern a
 _run n = fromList [0 .. n-1]
 
 -- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
 scan :: (Enum a, Num a) => Pattern a -> Pattern a
 scan = (>>= _scan)
+
 _scan :: (Enum a, Num a) => a -> Pattern a
 _scan n = slowcat $ map _run [1 .. n]
 
@@ -685,7 +771,7 @@ rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 
 -- | Infix alias for 'rotL'
 (<~) :: Pattern Time -> Pattern a -> Pattern a
-(<~) = temporalParam rotL
+(<~) = tParam rotL
 
 -- | Shifts a pattern forward in time by the given amount, expressed in cycles
 rotR :: Time -> Pattern a -> Pattern a
@@ -693,13 +779,18 @@ rotR t = rotL (0-t)
 
 -- | Infix alias for 'rotR'
 (~>) :: Pattern Time -> Pattern a -> Pattern a
-(~>) = temporalParam rotR
+(~>) = tParam rotR
 
--- | Speed up a pattern by the given factor
+-- | Speed up a pattern by the given time pattern
 fast :: Pattern Time -> Pattern a -> Pattern a
-fast = temporalParam _fast
+fast = tParam _fast
 
--- | An alias for fast
+-- | Slow down a pattern by the factors in the given time pattern, 'squeezing'
+-- the pattern to fit the slot given in the time pattern
+fastSqueeze :: Pattern Time -> Pattern a -> Pattern a
+fastSqueeze = tParamSqueeze _fast
+
+-- | An alias for @fast@
 density :: Pattern Time -> Pattern a -> Pattern a
 density = fast
 
@@ -708,13 +799,18 @@ _fast r p | r == 0 = silence
           | r < 0 = rev $ _fast (0-r) p
           | otherwise = withResultTime (/ r) $ withQueryTime (* r) p
 
--- | Slow down a pattern by the given factor
+-- | Slow down a pattern by the given time pattern
 slow :: Pattern Time -> Pattern a -> Pattern a
-slow = temporalParam _slow
+slow = tParam _slow
 _slow :: Time -> Pattern a -> Pattern a
 _slow r p = _fast (1/r) p
 
--- | An alias for slow
+-- | Slow down a pattern by the factors in the given time pattern, 'squeezing'
+-- the pattern to fit the slot given in the time pattern
+slowSqueeze :: Pattern Time -> Pattern a -> Pattern a
+slowSqueeze = tParamSqueeze _slow
+
+-- | An alias for @slow@
 sparsity :: Pattern Time -> Pattern a -> Pattern a
 sparsity = slow
 
@@ -752,7 +848,7 @@ zoom (s,e) p = splitQueries $ withResultArc (mapCycle ((/d) . (subtract s))) $ w
 -- pattern @p@ into the first half of each cycle (and the second
 -- halves would be empty). The factor should be at least 1
 fastGap :: Pattern Time -> Pattern a -> Pattern a
-fastGap = temporalParam _fastGap
+fastGap = tParam _fastGap
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = silence
 _fastGap r p = splitQueries $ 
@@ -829,8 +925,83 @@ controlS s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
         f a (VF v) = [((a,a),show v)]
         f a (VS v) = [((a,a),v)]
 
+scale :: (Functor f, Num b) => b -> b -> f b -> f b
+scale from to p = ((+ from) . (* (to-from))) <$> p
 
--- TODO
+timeToRand :: RealFrac r => r -> Double
+timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
 
--- spread and friends
+-- | Randomisation
+
+{-|
+
+`rand` generates a continuous pattern of (pseudo-)random, floating point numbers between `0` and `1`.
+
+@
+sound "bd*8" # pan rand
+@
+
+pans bass drums randomly
+
+@
+sound "sn sn ~ sn" # gain rand
+@
+
+makes the snares' randomly loud and quiet.
+
+Numbers coming from this pattern are random, but dependent on time. So if you reset time via `cps (-1)` the random pattern will emit the exact same _random_ numbers again.
+
+In cases where you need two different random patterns, you can shift one of them around to change the time from which the _random_ pattern is read, note the difference:
+
+@
+jux (# gain rand) $ sound "sn sn ~ sn" # gain rand
+@
+
+and with the juxed version shifted backwards for 1024 cycles:
+
+@
+jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
+@
+-}
+
+rand :: Pattern Double
+rand = Pattern Analog (\(State a _) -> [((a, a), timeToRand $ mid a)])
+
+{- | Randomly picks an element from the given list
+
+@
+sound "superpiano(3,8)" # note (choose ["a", "e", "g", "c"])
+@
+
+plays a melody randomly choosing one of the four notes \"a\", \"e\", \"g\", \"c\".
+-}
+choose :: [a] -> Pattern a
+choose = chooseBy rand
+
+chooseBy :: Pattern Double -> [a] -> Pattern a
+chooseBy _ [] = silence
+chooseBy f xs = ((xs !!) . floor) <$> (scale 0 (fromIntegral $ length xs) f)
+
+{- | Like @choose@, but works on an a list of tuples of values and weights
+
+@
+sound "superpiano(3,8)" # note (choose [("a",1), ("e",0.5), ("g",2), ("c",1)])
+@
+
+In the above example, the "a" and "c" notes are twice as likely to
+play as the "e" note, and half as likely to play as the "g" note.
+
+-}
+wchoose :: [(a,Double)] -> Pattern a
+wchoose = wchooseBy rand
+
+wchooseBy :: Pattern Double -> [(a,Double)] -> Pattern a
+wchooseBy f xs = filterJust $ (get xs) <$> scale 0 total f
+  where total = sum $ map snd xs
+        get [] n = Nothing
+        get (x:[]) n = Just $ fst x
+        get (x:xs) n | (n-(snd x)) < 0 = Just $ fst x
+                     | otherwise = get xs (n-(snd x)) 
+
+
 
