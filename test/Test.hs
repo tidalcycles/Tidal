@@ -225,12 +225,12 @@ main = microspec $ do
                     (((2 % 3,1 % 1),(2 % 3,1 % 1)),"e")
                    ]
         
-  describe "Sound.Tidal.Pattern.unwrap'" $ do
+  describe "Sound.Tidal.Pattern.unwrapSqueeze" $ do
     it "compresses cycles to fit outer 'whole' timearc of event" $ do
       let a = fastCat [pure "a", pure "b"]
           b = fastCat [pure "c", pure "d", pure "e"]
           pp = fastCat [pure a, pure b]
-      queryArc (unwrap' pp) (0,1)
+      queryArc (unwrapSqueeze pp) (0,1)
         `shouldBe` [(((0 % 1,1 % 4),(0 % 1,1 % 4)),"a"),
                     (((1 % 4,1 % 2),(1 % 4,1 % 2)),"b"),
                     (((1 % 2,2 % 3),(1 % 2,2 % 3)),"c"),
