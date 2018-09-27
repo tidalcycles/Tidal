@@ -1,16 +1,17 @@
 {-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Sound.Tidal.Pattern where
 
 import Prelude hiding ((<*), (*>))
 import qualified Data.Map.Strict as Map
 import Data.Fixed (mod')
-import Data.Maybe (isJust, isNothing, fromJust, catMaybes, fromMaybe)
+import Data.Maybe (isJust, fromJust, catMaybes, fromMaybe)
 import Data.Ratio (numerator, denominator)
 import Control.Applicative (liftA2)
 import Data.List (delete,findIndex,sort,intercalate)
 import Data.Typeable (Typeable)
-import Data.Data (Data, toConstr)
+import Data.Data (Data) -- toConstr
 import System.Random.Mersenne.Pure64 (randomDouble, pureMT)
 
 import Sound.Tidal.Utils
@@ -169,20 +170,20 @@ unwrap pp = pp {query = q}
 -- but structure only comes from the inner pattern.
 innerJoin :: Pattern (Pattern a) -> Pattern a
 innerJoin pp = pp {query = q}
-  where q st = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p st {arc = part}) (query pp st)
-          where munge oWhole oPart ((iWhole, iPart),v) = do let w = iWhole
-                                                            p <- subArc (arc st) iPart
-                                                            p' <- subArc p (arc st)
-                                                            return ((w,p'),v)
+  where q st = concatMap (\((_, part), p) -> catMaybes $ map munge $ query p st {arc = part}) (query pp st)
+          where munge ((iWhole, iPart),v) = do let w = iWhole
+                                               p <- subArc (arc st) iPart
+                                               p' <- subArc p (arc st)
+                                               return ((w,p'),v)
 
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the outer pattern.
 outerJoin :: Pattern (Pattern a) -> Pattern a
 outerJoin pp = pp {query = q}
   where q st = concatMap (\((whole, part), p) -> catMaybes $ map (munge whole part) $ query p st {arc = (fst whole, fst whole)}) (query pp st)
-          where munge oWhole oPart ((iWhole, iPart),v) = do let w = oWhole
-                                                            p <- subArc (arc st) oPart
-                                                            return ((w,p),v)
+          where munge oWhole oPart (_,v) = do let w = oWhole
+                                              p <- subArc (arc st) oPart
+                                              return ((w,p),v)
 
 
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
@@ -297,7 +298,7 @@ instance {-# OVERLAPPING #-} Show Arc where
   show (s,e) = prettyRat s ++ ">" ++ prettyRat e
 
 instance {-# OVERLAPPING #-} Show Part where
-  show (a@(s,e),(s',e')) = h ++ "(" ++ show (s',e') ++ ")" ++ t
+  show ((s,e),(s',e')) = h ++ "(" ++ show (s',e') ++ ")" ++ t
     where h | s == s' = ""
             | otherwise = prettyRat s ++ "-"
           t | e == e' = ""
@@ -323,7 +324,7 @@ instance {-# OVERLAPPING #-} Show (ControlMap) where
 prettyRat :: Rational -> String
 prettyRat r | unit == 0 && frac > 0 = showFrac (numerator frac) (denominator frac)
             | otherwise =  show unit ++ showFrac (numerator frac) (denominator frac)
-  where unit = floor r
+  where unit = floor r :: Int
         frac = (r - (toRational unit))
 
 showFrac :: Integer -> Integer -> String
@@ -361,7 +362,7 @@ showFrac n d = fromMaybe plain $ do n' <- up n
         up 8 = Just "⁸"
         up 9 = Just "⁹"
         up 0 = Just "⁰"
-        up x = Nothing
+        up _ = Nothing
         down 1 = Just "₁"
         down 2 = Just "₂"
         down 3 = Just "₃"
@@ -372,7 +373,7 @@ showFrac n d = fromMaybe plain $ do n' <- up n
         down 8 = Just "₈"
         down 9 = Just "₉"
         down 0 = Just "₀"
-        down x = Nothing
+        down _ = Nothing
 
 ------------------------------------------------------------------------
 -- * Internal functions
@@ -527,11 +528,11 @@ applyFIS _ _ f (VS s ) = VS $ f s
 -- | Apply one of two functions to a Value, depending on its type (int
 -- or float; strings are ignored)
 fNum2 :: (Int -> Int -> Int) -> (Float -> Float -> Float) -> Value -> Value -> Value
-fNum2 fInt fFloat (VI a) (VI b) = VI $ fInt a b
-fNum2 fInt fFloat (VF a) (VF b) = VF $ fFloat a b
-fNum2 fInt fFloat (VI a) (VF b) = VF $ fFloat (fromIntegral a) b
-fNum2 fInt fFloat (VF a) (VI b) = VF $ fFloat a (fromIntegral b)
-fNum2 _ _ x _ = x
+fNum2 fInt _      (VI a) (VI b) = VI $ fInt a b
+fNum2 _    fFloat (VF a) (VF b) = VF $ fFloat a b
+fNum2 _    fFloat (VI a) (VF b) = VF $ fFloat (fromIntegral a) b
+fNum2 _    fFloat (VF a) (VI b) = VF $ fFloat a (fromIntegral b)
+fNum2 _    _      x      _      = x
 
 -- ** Event filters
 
@@ -817,10 +818,10 @@ sparsity = slow
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
 rev :: Pattern a -> Pattern a
-rev p = splitQueries $ p {query = \st -> map makeWholeAbsolute $ mapParts (mirrorArc (mid $ arc st)) $ map makeWholeRelative (query p st {arc = (mirrorArc (mid $ arc st) (arc st))})}
+rev p = splitQueries $ p {query = \st -> map makeWholeAbsolute $ mapParts (mirrorArc (mid $ arc st)) $ map makeWholeRelative (query p st {arc = (mirrorArc (midCycle $ arc st) (arc st))})}
   where makeWholeRelative (((s,e), part@(s',e')), v) = (((s'-s, e-e'), part), v)
         makeWholeAbsolute (((s,e), part@(s',e')), v) = (((s'-e, e'+s), part), v)
-        mid (s,_) = (sam s) + 0.5
+        midCycle (s,_) = (sam s) + 0.5
         mapParts f es = map (mapFst (mapSnd f)) es
         -- | Returns the `mirror image' of a 'Arc' around the given point in time
         mirrorArc :: Time -> Arc -> Arc
@@ -998,10 +999,10 @@ wchoose = wchooseBy rand
 wchooseBy :: Pattern Double -> [(a,Double)] -> Pattern a
 wchooseBy f xs = filterJust $ (get xs) <$> scale 0 total f
   where total = sum $ map snd xs
-        get [] n = Nothing
-        get (x:[]) n = Just $ fst x
-        get (x:xs) n | (n-(snd x)) < 0 = Just $ fst x
-                     | otherwise = get xs (n-(snd x)) 
+        get [] _ = Nothing
+        get (x:[]) _ = Just $ fst x
+        get (x:xs') n | (n-(snd x)) < 0 = Just $ fst x
+                      | otherwise = get xs' (n-(snd x)) 
 
 
 
