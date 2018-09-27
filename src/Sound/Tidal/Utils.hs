@@ -17,6 +17,10 @@ mapSnd f (x,y) = (x,f y)
 delta :: Num a => (a, a) -> a
 delta (a,b) = b-a
 
+-- | The midpoint of two values
+mid :: Fractional a => (a,a) -> a
+mid (a,b) = a + ((b - a) / 2)
+
 removeCommon :: Eq a => [a] -> [a] -> ([a],[a])
 removeCommon [] bs = ([],bs)
 removeCommon as [] = (as,[])
