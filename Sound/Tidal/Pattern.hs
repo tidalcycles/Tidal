@@ -864,6 +864,31 @@ choose :: [a] -> Pattern a
 choose [] =  E.throw (E.ErrorCall "Empty list. Nothing to choose from.")
 choose xs = (xs !!) <$> (irand $ length xs)
 
+{- | Picks an element from the given weighted list, according to the pattern
+     given 
+
+@
+d1 $ gain "1.2 1 1 1" # s (wchooseBy (slow 4 $ saw) [("bd", 0.49), ("cp", 0.51)])
+@
+
+will play the bass drum sample until the saw increases past 0.49, then play
+the clap sample
+-}
+wchooseBy :: Pattern Double -> [(a,Double)] -> Pattern a
+wchooseBy pat pairs = match <$> pat
+  where
+    match r = values !! ((findIndices (>= r) cweights) !! 0)
+    cweights = scanl1 (+) (map snd pairs)
+    values = map fst pairs
+
+{- |
+Similar to choose, but the list is of pairs where the second element is the
+probability of choosing the first of the pair. Probabilities should add to one
+or the behavior will be unexpected.
+-}
+wchoose :: [(a,Double)] -> Pattern a
+wchoose = wchooseBy rand
+
 {- |
 Similar to `degrade` `degradeBy` allows you to control the percentage of events that
 are removed. For example, to remove events 90% of the time:
