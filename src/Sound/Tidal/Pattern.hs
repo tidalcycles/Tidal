@@ -9,7 +9,7 @@ import Data.Fixed (mod')
 import Data.Maybe (isJust, fromJust, catMaybes, fromMaybe)
 import Data.Ratio (numerator, denominator)
 import Control.Applicative (liftA2)
-import Data.List (delete,findIndex,sort,intercalate)
+import Data.List (delete, findIndex, sort, intercalate, findIndices)
 import Data.Typeable (Typeable)
 import Data.Data (Data) -- toConstr
 import System.Random.Mersenne.Pure64 (randomDouble, pureMT)
@@ -551,10 +551,10 @@ tParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 tParam f tv p = innerJoin $ (`f` p) <$> tv
 
 tParam2 :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)
-tParam2 f a b p = innerJoin $ (\x y -> f x y p) <$> a <*> b
+tParam2 f a b p = unwrap $ (\x y -> f x y p) <$> a <*> b
 
 tParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
-tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
+tParam3 f a b c p = unwrap $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 tParamSqueeze f tv p = unwrapSqueeze $ (`f` p) <$> tv
@@ -818,7 +818,7 @@ sparsity = slow
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
 rev :: Pattern a -> Pattern a
-rev p = splitQueries $ p {query = \st -> map makeWholeAbsolute $ mapParts (mirrorArc (mid $ arc st)) $ map makeWholeRelative (query p st {arc = (mirrorArc (midCycle $ arc st) (arc st))})}
+rev p = splitQueries $ p {query = \st -> map makeWholeAbsolute $ mapParts (mirrorArc (midCycle $ arc st)) $ map makeWholeRelative (query p st {arc = (mirrorArc (midCycle $ arc st) (arc st))})}
   where makeWholeRelative (((s,e), part@(s',e')), v) = (((s'-s, e-e'), part), v)
         makeWholeAbsolute (((s,e), part@(s',e')), v) = (((s'-e, e'+s), part), v)
         midCycle (s,_) = (sam s) + 0.5
@@ -936,7 +936,7 @@ timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
 
 {-|
 
-`rand` generates a continuous pattern of (pseudo-)random, floating point numbers between `0` and `1`.
+`rand` generates a continuous pattern of (pseudo-)random numbers between `0` and `1`.
 
 @
 sound "bd*8" # pan rand
@@ -950,9 +950,14 @@ sound "sn sn ~ sn" # gain rand
 
 makes the snares' randomly loud and quiet.
 
-Numbers coming from this pattern are random, but dependent on time. So if you reset time via `cps (-1)` the random pattern will emit the exact same _random_ numbers again.
+Numbers coming from this pattern are 'seeded' by time. So if you reset
+time (via `cps (-1)`, then `cps 1.1` or whatever cps you want to
+restart with) the random pattern will emit the exact same _random_
+numbers again.
 
-In cases where you need two different random patterns, you can shift one of them around to change the time from which the _random_ pattern is read, note the difference:
+In cases where you need two different random patterns, you can shift
+one of them around to change the time from which the _random_ pattern
+is read, note the difference:
 
 @
 jux (# gain rand) $ sound "sn sn ~ sn" # gain rand
@@ -997,12 +1002,8 @@ wchoose :: [(a,Double)] -> Pattern a
 wchoose = wchooseBy rand
 
 wchooseBy :: Pattern Double -> [(a,Double)] -> Pattern a
-wchooseBy f xs = filterJust $ (get xs) <$> scale 0 total f
-  where total = sum $ map snd xs
-        get [] _ = Nothing
-        get (x:[]) _ = Just $ fst x
-        get (x:xs') n | (n-(snd x)) < 0 = Just $ fst x
-                      | otherwise = get xs' (n-(snd x)) 
-
-
-
+wchooseBy pat pairs = match <$> pat
+  where
+    match r = values !! ((findIndices (> r) cweights) !! 0)
+    cweights = scanl1 (+) (map snd pairs)
+    values = map fst pairs
