@@ -6,23 +6,30 @@ import Data.Maybe (fromMaybe)
 import Safe (readNote)
 import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Control.Concurrent.MVar
+import qualified Sound.Tidal.Pattern as P
 import qualified Sound.OSC.FD as O
 import qualified Network.Socket as N
-import Control.Concurrent (forkIO, ThreadId)
+import Control.Concurrent (forkIO, ThreadId, threadDelay)
 import Control.Monad (forM_, forever, void)
 
 data Tempo = Tempo {at :: O.Time,
-                    cyclePos :: Float,
-                    cps :: Float,
+                    cyclePos :: Double,
+                    cps :: O.Time,
                     paused :: Bool,
-                    nudged :: Float
+                    nudged :: Double
+                   }
+
+data State = State {ticks :: Int,
+                    start :: O.Time,
+                    now :: O.Time,
+                    arc :: P.Arc
                    }
 
 defaultTempo :: IO Tempo
 defaultTempo = do now <- O.time
                   return $ Tempo {at       = now,
                                   cyclePos = 0,
-                                  cps      = 1,
+                                  cps      = 2,
                                   paused   = True,
                                   nudged   = 0
                                  }
@@ -37,26 +44,45 @@ getClockPort =
 
 -- | given a Tempo and a cycle position, returns the POSIX time of
 -- that cycle position
-logicalTime :: Tempo -> Float -> Float
+logicalTime :: Tempo -> Double -> Double
 logicalTime t c = changeT + timeDelta
   where cycleDelta = c - (cyclePos t)
-        timeDelta = cycleDelta / (cps t)
-        changeT = ntpr_to_ut $ at t
+        timeDelta = cycleDelta / (realToFrac $ cps t)
+        changeT = O.ntpr_to_ut $ at t
 
 -- | Returns the time now in terms of
 -- cycles relative to metrical grid of a given Tempo
 cyclesNow :: Tempo -> IO (Double)
-cyclesNow t = do now <- getCurrentTime
-                 let delta = realToFrac $ diffUTCTime now (at t)
-                 let cycleDelta = cps t * delta
+cyclesNow t = do now <- O.time
+                 let delta = now - (at t)
+                     cycleDelta = (realToFrac $ cps t) * delta
                  return $ cyclePos t + cycleDelta
 
 getCurrentCycle :: MVar Tempo -> IO Rational
 getCurrentCycle t = (readMVar t) >>= (cyclesNow) >>= (return . toRational)
 
-clocked :: Rational -> (Tempo -> IO ()) -> IO ()
-clocked tps callback = do sock <- listen
-                          return ()
+tickLength :: O.Time
+tickLength = 0.1
+
+clocked :: (Tempo -> IO ()) -> IO ()
+clocked callback = do (mt, _) <- listen
+                      start <- O.time
+                      let st = State {ticks = 0,
+                                      start = start,
+                                      now = start,
+                                      arc = (0,0)
+                                     }
+                      loop mt st
+  where loop mt st =
+          do now <- O.time
+             t <- readMVar mt
+             let next = (start st + (fromIntegral $ (ticks st)+1) * tickLength) - now
+             putStrLn "tick"
+             putStrLn $ show $ arc st
+             threadDelay (floor $ next * 1000000)
+             let s = snd $ arc st
+                 e = s + (toRational $ tickLength * (cps t))
+             loop mt $ st {ticks = (ticks st) + 1, arc = (s,e)}
 
 listen :: IO (MVar Tempo, ThreadId)
 listen = do udp <- O.udpServer "127.0.0.1" 0
@@ -71,14 +97,15 @@ listen = do udp <- O.udpServer "127.0.0.1" 0
             return (mt, tempoChild)
 
 listenTempo :: O.UDP -> (MVar Tempo) -> IO ()
-listenTempo udp mt = forever $ do ms <- O.recvMessages udp
-                                  mapM_ act Nothing ms
-  where act _ (O.Bundle ts ms) = mapM_ (act (Just ts)) ms
-        act (Just ts) (O.Message "/cps" [O.Float cps']) =
+listenTempo udp mt = forever $ do pkt <- O.recvPacket udp
+                                  act Nothing pkt
+                                  return ()
+  where act _ (O.Packet_Bundle (O.Bundle ts ms)) = mapM_ (act (Just ts) . O.Packet_Message) ms
+        act (Just ts) (O.Packet_Message (O.Message "/cps" [O.Float cps'])) =
           do putStrLn "cps change"
              tempo <- takeMVar mt
-             putMVar mt $ tempo {at = ts, cps = cps'}
-        act _ m = putStrLn $ "Unknown message: " ++ show m
+             putMVar mt $ tempo {at = ts, cps = realToFrac cps'}
+        act _ pkt = putStrLn $ "Unknown packet: " ++ show pkt
 
 {-
 clockedTick :: Int -> (Tempo -> Int -> IO ()) -> IO ()
