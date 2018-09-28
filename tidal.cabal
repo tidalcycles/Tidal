@@ -30,6 +30,7 @@ library
   
   Exposed-modules:     Sound.Tidal.Pattern
                        Sound.Tidal.Utils
+                       Sound.Tidal.Tempo
 
   Build-depends:
       base < 5
@@ -45,6 +46,7 @@ library
     , websockets > 0.8
     , mtl >= 2.1
     , monad-loops
+    , network
               
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups == 0.18.*
