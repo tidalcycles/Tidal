@@ -1133,8 +1133,8 @@ always = id
 {- | @someCyclesBy@ is a cycle-by-cycle version of @sometimesBy@. It has a
 `someCycles = someCyclesBy 0.5` alias -}
 someCyclesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-someCyclesBy x = when (test x)
-  where test x c = (timeToRand (fromIntegral c :: Double)) < x
+someCyclesBy x = when test
+  where test c = (timeToRand (fromIntegral c :: Double)) < x
 
 somecyclesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 somecyclesBy = someCyclesBy
