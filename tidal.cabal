@@ -31,6 +31,8 @@ library
   Exposed-modules:     Sound.Tidal.Pattern
                        Sound.Tidal.Utils
                        Sound.Tidal.Tempo
+                       Sound.Tidal.Stream
+                       Sound.Tidal.Params
 
   Build-depends:
       base < 5
