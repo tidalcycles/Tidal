@@ -616,6 +616,18 @@ a |<  b = const <$> a <* b
 ( <|) :: Pattern a -> Pattern a -> Pattern a
 a  <| b = const <$> a *> b
 
+(</) :: ControlPattern -> ControlPattern -> ControlPattern
+a </ b = (Map.union) <$> a *> b
+
+(/<) :: ControlPattern -> ControlPattern -> ControlPattern
+a /< b = (Map.union) <$> a <* b
+
+(>/) :: ControlPattern -> ControlPattern -> ControlPattern
+a >/ b = (flip Map.union) <$> a <* b
+
+(/>) :: ControlPattern -> ControlPattern -> ControlPattern
+a /> b = (flip Map.union) <$> a <* b
+
 -- ** Elemental patterns
 
 -- | An empty pattern
