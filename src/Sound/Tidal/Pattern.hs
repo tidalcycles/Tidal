@@ -53,7 +53,7 @@ data Value = VS { svalue :: String }
            deriving (Eq,Ord,Typeable,Data)
 
 type ControlMap = Map.Map String Value
-type PatternMap = Pattern ControlMap
+type ControlPattern = Pattern ControlMap
 
 ------------------------------------------------------------------------
 -- * Instances
@@ -391,6 +391,9 @@ eventPart = snd . fst
 
 eventValue :: Event a -> a
 eventValue = snd
+
+eventHasOnset :: Event a -> Bool
+eventHasOnset e = (fst $ eventWhole e) == (fst $ eventPart e)
 
 isDigital :: Pattern a -> Bool
 isDigital = (== Digital) . nature
@@ -1007,3 +1010,13 @@ wchooseBy pat pairs = match <$> pat
     match r = values !! ((findIndices (> r) cweights) !! 0)
     cweights = scanl1 (+) (map snd pairs)
     values = map fst pairs
+
+ci :: String -> Pattern Int -> ControlPattern
+ci name = fmap (Map.singleton name . VI)
+
+cf :: String -> Pattern Float -> ControlPattern
+cf name = fmap (Map.singleton name . VF)
+
+cs :: String -> Pattern String -> ControlPattern
+cs name = fmap (Map.singleton name . VS)
+

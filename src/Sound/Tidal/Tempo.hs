@@ -12,22 +12,22 @@ import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
 import Control.Monad (forM_, forever, void, when)
 
-data Tempo = Tempo {at :: O.Time,
-                    cyclePos :: Rational,
-                    cps :: O.Time,
-                    paused :: Bool,
-                    nudged :: Double
+data Tempo = Tempo {atTime  :: O.Time,
+                    atCycle :: Rational,
+                    cps     :: O.Time,
+                    paused  :: Bool,
+                    nudged  :: Double
                    }
 
-data State = State {ticks :: Int,
-                    start :: O.Time,
-                    now :: O.Time,
-                    arc :: P.Arc
+data State = State {ticks   :: Int,
+                    start   :: O.Time,
+                    nowTime :: O.Time,
+                    nowArc  :: P.Arc
                    }
 
 defaultTempo :: O.Time -> Tempo
-defaultTempo t = Tempo {at       = t,
-                        cyclePos = 0,
+defaultTempo t = Tempo {atTime   = t,
+                        atCycle  = 0,
                         cps      = 2,
                         paused   = True,
                         nudged   = 0
@@ -44,8 +44,8 @@ getClockPort =
 -- | Returns the given time in terms of
 -- cycles relative to metrical grid of a given Tempo
 timeToCycles :: Tempo -> O.Time -> Rational
-timeToCycles tempo t = (cyclePos tempo) + (toRational cycleDelta)
-  where delta = t - (at tempo)
+timeToCycles tempo t = (atCycle tempo) + (toRational cycleDelta)
+  where delta = t - (atTime tempo)
         cycleDelta = (realToFrac $ cps tempo) * delta
 
 {-
@@ -61,18 +61,18 @@ clocked callback = do start <- O.time
                       (mt, _) <- listen start
                       let st = State {ticks = 0,
                                       start = start,
-                                      now = start,
-                                      arc = (0,0)
+                                      nowTime = start,
+                                      nowArc = (0,0)
                                      }
                       loop mt st
   where loop mt st =
-          do putStrLn $ show $ arc st
+          do -- putStrLn $ show $ nowArc st
 
              tempo <- readMVar mt
              let logicalNow = start st + (fromIntegral $ (ticks st)+1) * tickLength
-                 s = snd $ arc st
+                 s = snd $ nowArc st
                  e = timeToCycles tempo logicalNow
-                 st' = st {ticks = (ticks st) + 1, arc = (s,e)}
+                 st' = st {ticks = (ticks st) + 1, nowArc = (s,e)}
              t <- O.time
              when (t < logicalNow) $ threadDelay (floor $ (logicalNow - t) * 1000000)
              callback tempo st'
@@ -95,10 +95,19 @@ listenTempo udp mt = forever $ do pkt <- O.recvPacket udp
                                   act Nothing pkt
                                   return ()
   where act _ (O.Packet_Bundle (O.Bundle ts ms)) = mapM_ (act (Just ts) . O.Packet_Message) ms
-        act (Just ts) (O.Packet_Message (O.Message "/cps" [O.Float cps'])) =
+        act (Just ts) (O.Packet_Message (O.Message "/cps" [O.Float atCycle',
+                                                           O.Float cps',
+                                                           O.Int32 paused'
+                                                          ]
+                                        )
+                      ) =
           do putStrLn "cps change"
              tempo <- takeMVar mt
-             putMVar mt $ tempo {at = ts, cps = realToFrac cps'}
+             putMVar mt $ tempo {atTime = ts,
+                                 atCycle = realToFrac atCycle',
+                                 cps = realToFrac cps',
+                                 paused = (paused' == 1)
+                                }
         act _ pkt = putStrLn $ "Unknown packet: " ++ show pkt
 
 
