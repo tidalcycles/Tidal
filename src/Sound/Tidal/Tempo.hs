@@ -1,16 +1,16 @@
 module Sound.Tidal.Tempo where
 
-import Data.Time (getCurrentTime, UTCTime, NominalDiffTime, diffUTCTime, addUTCTime)
+-- import Data.Time (getCurrentTime, UTCTime, NominalDiffTime, diffUTCTime, addUTCTime)
 import System.Environment (lookupEnv)
 import Data.Maybe (fromMaybe)
 import Safe (readNote)
-import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
+-- import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Control.Concurrent.MVar
 import qualified Sound.Tidal.Pattern as P
 import qualified Sound.OSC.FD as O
 import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
-import Control.Monad (forM_, forever, void, when)
+import Control.Monad (forever, when)
 
 data Tempo = Tempo {atTime  :: O.Time,
                     atCycle :: Rational,
@@ -57,11 +57,11 @@ tickLength :: O.Time
 tickLength = 0.125
 
 clocked :: (Tempo -> State -> IO ()) -> IO ()
-clocked callback = do start <- O.time
-                      (mt, _) <- listen start
+clocked callback = do s <- O.time
+                      (mt, _) <- listen s
                       let st = State {ticks = 0,
-                                      start = start,
-                                      nowTime = start,
+                                      start = s,
+                                      nowTime = s,
                                       nowArc = (0,0)
                                      }
                       loop mt st
@@ -79,16 +79,16 @@ clocked callback = do start <- O.time
              loop mt st'
 
 listen :: O.Time -> IO (MVar Tempo, ThreadId)
-listen start = do udp <- O.udpServer "127.0.0.1" 0
-                  addr <- getClockIp
-                  port <- getClockPort
-                  remote_addr <- N.inet_addr addr
-                  let remote_sockaddr = N.SockAddrInet (fromIntegral port) remote_addr
-                      t = defaultTempo start
-                  O.sendTo udp (O.Message "/hello" [O.int32 1]) remote_sockaddr
-                  mt <- newMVar t
-                  tempoChild <- (forkIO $ listenTempo udp mt)
-                  return (mt, tempoChild)
+listen s = do udp <- O.udpServer "127.0.0.1" 0
+              addr <- getClockIp
+              port <- getClockPort
+              remote_addr <- N.inet_addr addr
+              let remote_sockaddr = N.SockAddrInet (fromIntegral port) remote_addr
+                  t = defaultTempo s
+              O.sendTo udp (O.Message "/hello" [O.int32 (1 :: Int)]) remote_sockaddr
+              mt <- newMVar t
+              tempoChild <- (forkIO $ listenTempo udp mt)
+              return (mt, tempoChild)
 
 listenTempo :: O.UDP -> (MVar Tempo) -> IO ()
 listenTempo udp mt = forever $ do pkt <- O.recvPacket udp
