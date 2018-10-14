@@ -32,3 +32,35 @@ readMaybe        :: (Read a) => String -> Maybe a
 readMaybe s      =  case [x | (x,t) <- reads s, ("","") <- lex t] of
                          [x] -> Just x
                          _   -> Nothing
+
+{- | like `!!` selects @n@th element from xs, but wraps over at the end of @xs@
+
+>>> map ((!!!) [1,3,5]) [0,1,2,3,4,5]
+[1,3,5,1,3,5]
+-}
+(!!!) :: [a] -> Int -> a
+(!!!) xs n = xs !! (n `mod` length xs)
+
+accumulate :: Num t => [t] -> [t]
+accumulate = accumulate' 0
+  where accumulate' _ [] = []
+        accumulate' n (a:xs) = (n+a):(accumulate' (n+a) xs)
+
+{- | enumerate a list of things
+
+>>> enumerate ["foo","bar","baz"]
+[(1,"foo"), (2,"bar"), (3,"baz")]
+-}
+enumerate :: [a] -> [(Int, a)]
+enumerate = zip [0..]
+
+{- | split given list of @a@ by given single a, e.g.
+
+>>> wordsBy (== ':') "bd:3"
+["bd", "3"]
+-}
+wordsBy :: (a -> Bool) -> [a] -> [[a]]
+wordsBy p s = case dropWhile p s of
+   []      -> []
+   s':rest -> (s':w) : wordsBy p (drop 1 s'')
+          where (w, s'') = break p rest
