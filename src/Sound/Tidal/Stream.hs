@@ -20,6 +20,7 @@ data OSCTarget = OSCTarget {address :: String,
                             timestamp :: TimeStamp
                            }
 
+superdirtTarget :: OSCTarget
 superdirtTarget = OSCTarget {address = "127.0.0.1",
                              port = 57120,
                              path = "/play2",
@@ -31,8 +32,8 @@ superdirtTarget = OSCTarget {address = "127.0.0.1",
 
 stream :: OSCTarget -> IO (ControlPattern -> IO (ControlPattern))
 stream target = do u <- O.openUDP (address target) (port target)
-                   mp <- newMVar silence
-                   forkIO $ clocked $ onTick mp target u
+                   mp <- newMVar empty
+                   _ <- ($) forkIO $ clocked $ onTick mp target u
                    return $ swapMVar mp
 
 toDatum :: Value -> O.Datum
