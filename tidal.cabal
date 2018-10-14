@@ -33,6 +33,8 @@ library
                        Sound.Tidal.Tempo
                        Sound.Tidal.Stream
                        Sound.Tidal.Params
+                       Sound.Tidal.Bjorklund
+                       Sound.Tidal.UI
 
   Build-depends:
       base < 5
