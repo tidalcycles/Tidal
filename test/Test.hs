@@ -334,5 +334,13 @@ main = microspec $ do
       `shouldBe` [(((0 % 1,1 % 1),(0 % 1,1 % 1)),3.5)]
 
   describe "Sound.Tidal.UI._chop" $ do
+    it "can chop in two bits" $ do
+      compareP (0,1)
+        (_chop 2 $ s (pure "a"))
+        (begin (fastcat [pure 0, pure 0.5]) # end (fastcat [pure 0.5, pure 1]) # (s (pure "a")))
+    it "be slowed" $ do
+      compareP (0,1)
+        (slow 2 $ _chop 2 $ s (pure "a"))
+        (begin (pure 0) # end (pure 0.5) # (s (pure "a")))
     it "can chop a chop" $
       property $ compareTol (0,1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")
