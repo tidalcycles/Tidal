@@ -8,7 +8,24 @@ import Data.List (sort)
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
 import Sound.Tidal.Utils
+import Sound.Tidal.Params
+
 import qualified Data.Map.Strict as Map
+
+-- | Compare the events of two patterns using the given arc
+compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
+compareP a p p' = (sort $ query p $ State a Map.empty) `shouldBe` (sort $ query p' $ State a Map.empty)
+
+-- | Like @compareP@, but tries to 'defragment' the events
+comparePD :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Bool
+comparePD a p p' = compareDefrag es es'
+  where es = query p (State a Map.empty)
+        es' = query p' (State a Map.empty)
+
+-- | Like @compareP@, but for control patterns, with some tolerance for floating point error
+compareTol :: Arc -> ControlPattern -> ControlPattern -> Bool
+compareTol a p p' = (sort $ queryArc p a) ~== (sort $ queryArc p' a)
+
 
 main :: IO ()
 main = microspec $ do
@@ -315,3 +332,7 @@ main = microspec $ do
     it "can retrieve values from state" $
       (query (pure 3 + controlF "hello") $ State (0,1) (Map.singleton "hello" (VF 0.5)))
       `shouldBe` [(((0 % 1,1 % 1),(0 % 1,1 % 1)),3.5)]
+
+  describe "Sound.Tidal.UI._chop" $ do
+    it "can chop a chop" $
+      property $ compareTol (0,1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")

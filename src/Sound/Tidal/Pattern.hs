@@ -196,6 +196,24 @@ unwrapSqueeze pp = pp {query = q}
 noOv :: String -> a
 noOv meth = error $ meth ++ ": not supported for patterns"
 
+class TolerantEq a where
+   (~==) :: a -> a -> Bool
+
+instance TolerantEq Value where
+         (VS a) ~== (VS b) = a == b
+         (VI a) ~== (VI b) = a == b
+         (VF a) ~== (VF b) = (abs (a - b)) < 0.000001
+         _ ~== _ = False
+
+instance TolerantEq ControlMap where
+  a ~== b = (Map.differenceWith (\a' b' -> if a' ~== b' then Nothing else Just a') a b) == Map.empty
+
+instance TolerantEq (Event ControlMap) where
+  (pt, x) ~== (pt', x') = pt == pt' && x ~== x'
+
+instance TolerantEq a => TolerantEq ([a]) where
+  as ~== bs = (length as == length bs) && (and $ map (\(a,b) -> a ~== b) $ zip as bs)
+
 instance Eq (Pattern a) where
   (==) = noOv "(==)"
 
@@ -544,16 +562,6 @@ isAdjacent e e' = (eventWhole e == eventWhole e')
                       ||
                       ((snd $ eventPart e') == (fst $ eventPart e))
                      )
-
--- | Compare the events of two patterns using the given arc
-compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Bool
-compareP a p p' = (sort $ query p $ State a Map.empty) == (sort $ query p' $ State a Map.empty)
-
--- | Like @compareP@, but tries to 'defragment' the events
-comparePD :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Bool
-comparePD a p p' = compareDefrag es es'
-  where es = query p (State a Map.empty)
-        es' = query p' (State a Map.empty)
 
 -- | Apply one of three functions to a Value, depending on its type
 applyFIS :: (Float -> Float) -> (Int -> Int) -> (String -> String) -> Value -> Value
