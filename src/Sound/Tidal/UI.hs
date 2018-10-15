@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+
 module Sound.Tidal.UI where
 
 import Prelude hiding ((<*), (*>))
@@ -24,6 +26,17 @@ import Sound.Tidal.Utils
 -- * UI
 
 -- ** Pattern algebra
+
+-- class for types that support a left-biased union
+class Unionable a where
+  union :: a -> a -> a
+
+-- default union is just to take the left hand side..
+instance Unionable a where
+  union = const
+
+instance {-# OVERLAPPING #-} Unionable ControlMap where
+  union = Map.union
 
 (|+|) :: (Applicative a, Num b) => a b -> a b -> a b
 a |+| b = (+) <$> a <*> b
@@ -60,34 +73,23 @@ a |%  b = mod' <$> a <* b
 ( %|) :: Real a => Pattern a -> Pattern a -> Pattern a
 a  %| b = mod' <$> a *> b
 
-(|>|) :: (Applicative a) => a b -> a b -> a b
-a |>| b = (flip const) <$> a <*> b
-(|> ) :: Pattern a -> Pattern a -> Pattern a
-a |>  b = (flip const) <$> a <* b
-( >|) :: Pattern a -> Pattern a -> Pattern a
-a  >| b = (flip const) <$> a *> b
+(|>|) :: (Applicative a, Unionable b) => a b -> a b -> a b
+a |>| b = (flip union) <$> a <*> b
+(|> ) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+a |>  b = (flip union) <$> a <* b
+( >|) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+a  >| b = (flip union) <$> a *> b
 
-(|<|) :: (Applicative a) => a b -> a b -> a b
-a |<| b = const <$> a <*> b
-(|< ) :: Pattern a -> Pattern a -> Pattern a
-a |<  b = const <$> a <* b
-( <|) :: Pattern a -> Pattern a -> Pattern a
-a  <| b = const <$> a *> b
+(|<|) :: (Applicative a, Unionable b) => a b -> a b -> a b
+a |<| b = union <$> a <*> b
+(|< ) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+a |<  b = union <$> a <* b
+( <|) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+a  <| b = union <$> a *> b
 
-(#) :: Pattern b -> Pattern b -> Pattern b
+-- Backward compatibility - structure from left, values from right.
+(#) :: Unionable b => Pattern b -> Pattern b -> Pattern b
 (#) = (|>)
-
-(</) :: ControlPattern -> ControlPattern -> ControlPattern
-a </ b = (Map.union) <$> a *> b
-
-(/<) :: ControlPattern -> ControlPattern -> ControlPattern
-a /< b = (Map.union) <$> a <* b
-
-(>/) :: ControlPattern -> ControlPattern -> ControlPattern
-a >/ b = (flip Map.union) <$> a <* b
-
-(/>) :: ControlPattern -> ControlPattern -> ControlPattern
-a /> b = (flip Map.union) <$> a <* b
 
 -- ** Elemental patterns
 
