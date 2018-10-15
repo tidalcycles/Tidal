@@ -6,6 +6,7 @@ import Data.Ratio
 import Data.List (sort)
 
 import Sound.Tidal.Pattern
+import Sound.Tidal.UI
 import Sound.Tidal.Utils
 import qualified Data.Map.Strict as Map
 
