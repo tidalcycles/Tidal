@@ -28,13 +28,14 @@ library
                         
   default-language:    Haskell2010
   
-  Exposed-modules:     Sound.Tidal.Pattern
-                       Sound.Tidal.Utils
-                       Sound.Tidal.Tempo
-                       Sound.Tidal.Stream
+  Exposed-modules:     Sound.Tidal.Bjorklund
                        Sound.Tidal.Params
-                       Sound.Tidal.Bjorklund
+                       Sound.Tidal.Parse
+                       Sound.Tidal.Pattern
+                       Sound.Tidal.Stream
+                       Sound.Tidal.Tempo
                        Sound.Tidal.UI
+                       Sound.Tidal.Utils
 
   Build-depends:
       base < 5
