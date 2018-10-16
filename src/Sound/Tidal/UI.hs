@@ -1789,24 +1789,25 @@ d1 $ chop 256 $ sound "bd*4 [sn cp] [hh future]*2 [cp feel]"
 chop :: Pattern Int -> ControlPattern -> ControlPattern
 chop = tParam _chop
 
--- for each part,
--- cut whole into n bits, and number them
--- each bit is a new whole, with part that's the intersection of old part and new whole
--- (discard new parts that don't intersect with the old part)
--- begin set to i/n, end set to i+1/n
--- if the old event had a begin and end, then multiply the new begin and end values by the old difference (end-begin), and add the old begin
 
 chopArc :: Arc -> Int -> [Arc]
 chopArc (s, e) n = map (\i -> ((s + (e-s)*(fromIntegral i/fromIntegral n)), s + (e-s)*((fromIntegral $ i+1)/fromIntegral n))) [0 .. n-1]
 
 _chop :: Int -> ControlPattern -> ControlPattern
 _chop n p = withEvents (concatMap chopEvent) p
-  where chopEvent :: Event ControlMap -> [Event ControlMap]
-        chopEvent ((whole,part), v) = map (\a -> chomp part v (length $ chopArc whole n) a) $ numberedArcs part $ chopArc whole n
+  where -- for each part,
+        chopEvent :: Event ControlMap -> [Event ControlMap]
+        chopEvent ((whole,part), v) = map (\a -> chomp part v (length $ chopArc whole n) a) $ arcs whole part
+        -- cut whole into n bits, and number them
+        arcs whole part = numberedArcs part $ chopArc whole n
+        -- each bit is a new whole, with part that's the intersection of old part and new whole
+        -- (discard new parts that don't intersect with the old part)
         numberedArcs :: Arc -> [Arc] -> [(Int, Part)]
         numberedArcs part as = map ((fromJust <$>) <$>) $ filter (isJust . snd . snd) $ enumerate $ map (\a -> (a, subArc part a)) as
-        -- constrainArc :: Arc -> Arc -> Arc
-        -- constrainArc (s,e) (s',e') = ((s',e'), (max s s', min e e'))
+        -- begin set to i/n, end set to i+1/n
+        -- if the old event had a begin and end, then multiply the new
+        -- begin and end values by the old difference (end-begin), and
+        -- add the old begin
         chomp :: Arc -> ControlMap -> Int -> (Int, Part) -> Event ControlMap
         chomp part v n (i, pt) = (pt,
                                   Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v
