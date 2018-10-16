@@ -106,7 +106,7 @@ sig f = Pattern Analog q
 -- | @sine@ returns a 'Pattern' of continuous 'Fractional' values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
 sine :: Fractional a => Pattern a
-sine = sig $ \t -> ((sin_rat $ (pi :: Float) * 2 * (fromRational t)) + 1) / 2
+sine = sig $ \t -> ((sin_rat $ (pi :: Double) * 2 * (fromRational t)) + 1) / 2
   where sin_rat = fromRational . toRational . sin
 
 -- | @cosine@ is a synonym for @0.25 ~> sine@.
@@ -224,6 +224,14 @@ fastCat ps = _fast (toTime $ length ps) $ cat ps
 
 fastcat :: [Pattern a] -> Pattern a
 fastcat = fastCat
+
+-- | Similar to @fastCat@, but each pattern is given a relative duration
+timeCat :: [(Time, Pattern a)] -> Pattern a
+timeCat tps = stack $ map (\(s,e,p) -> compress (s/total, e/total) p) $ arrange 0 tps
+    where total = sum $ map fst tps
+          arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
+          arrange _ [] = []
+          arrange t ((t',p):tps) = (t,t+t',p):(arrange (t+t') tps)
 
 -- | 'overlay' combines two 'Pattern's into a new pattern, so that
 -- their events are combined over time. 
@@ -397,7 +405,7 @@ controlI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
         f a (VF v) = [((a,a),floor v)]
         f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
 
-controlF :: String -> Pattern Float
+controlF :: String -> Pattern Double
 controlF s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
   where f a (VI v) = [((a,a),fromIntegral v)]
         f a (VF v) = [((a,a),v)]
@@ -1861,13 +1869,12 @@ _striate :: Int -> ControlPattern -> ControlPattern
 _striate n p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = (mergePlayRange ((fromIntegral i / fromIntegral n), (fromIntegral (i+1) / fromIntegral n))) <$> p
 
-mergePlayRange :: (Float, Float) -> ControlMap -> ControlMap
+mergePlayRange :: (Double, Double) -> ControlMap -> ControlMap
 mergePlayRange (b,e) cm = Map.insert "begin" (VF $ (b*d')+b') $ Map.insert "end" (VF $ (e*d')+b') $ cm
   where b' = fromMaybe 0 $ Map.lookup "begin" cm >>= getF
         e' = fromMaybe 1 $ Map.lookup "end" cm >>= getF
         d' = e' - b'
 
-{-
 
 {-|
 The `striate'` function is a variant of `striate` with an extra
@@ -1892,6 +1899,7 @@ _striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (pure (slot * i) :: Pattern Double) # end (pure ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
+{-
 {- | like `striate`, but with an offset to the begin and end values -}
 striateO :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
 striateO = tParam2 _striateO

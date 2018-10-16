@@ -46,7 +46,7 @@ data Nature = Analog | Digital
 data Pattern a = Pattern {nature :: Nature, query :: Query a}
 
 data Value = VS { svalue :: String }
-           | VF { fvalue :: Float }
+           | VF { fvalue :: Double }
            | VI { ivalue :: Int }
            deriving (Eq,Ord,Typeable,Data)
 
@@ -563,14 +563,14 @@ isAdjacent e e' = (eventWhole e == eventWhole e')
                      )
 
 -- | Apply one of three functions to a Value, depending on its type
-applyFIS :: (Float -> Float) -> (Int -> Int) -> (String -> String) -> Value -> Value
+applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value -> Value
 applyFIS f _ _ (VF f') = VF $ f f'
 applyFIS _ f _ (VI i ) = VI $ f i
 applyFIS _ _ f (VS s ) = VS $ f s
 
 -- | Apply one of two functions to a Value, depending on its type (int
 -- or float; strings are ignored)
-fNum2 :: (Int -> Int -> Int) -> (Float -> Float -> Float) -> Value -> Value -> Value
+fNum2 :: (Int -> Int -> Int) -> (Double -> Double -> Double) -> Value -> Value -> Value
 fNum2 fInt _      (VI a) (VI b) = VI $ fInt a b
 fNum2 _    fFloat (VF a) (VF b) = VF $ fFloat a b
 fNum2 _    fFloat (VI a) (VF b) = VF $ fFloat (fromIntegral a) b
@@ -581,7 +581,7 @@ getI :: Value -> Maybe Int
 getI (VI i) = Just i
 getI _  = Nothing
 
-getF :: Value -> Maybe Float
+getF :: Value -> Maybe Double
 getF (VF f) = Just f
 getF _  = Nothing
 
