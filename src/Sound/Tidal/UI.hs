@@ -1789,7 +1789,6 @@ d1 $ chop 256 $ sound "bd*4 [sn cp] [hh future]*2 [cp feel]"
 chop :: Pattern Int -> ControlPattern -> ControlPattern
 chop = tParam _chop
 
-
 chopArc :: Arc -> Int -> [Arc]
 chopArc (s, e) n = map (\i -> ((s + (e-s)*(fromIntegral i/fromIntegral n)), s + (e-s)*((fromIntegral $ i+1)/fromIntegral n))) [0 .. n-1]
 
@@ -1821,6 +1820,15 @@ _chop n p = withEvents (concatMap chopEvent) p
                 e' = (((fromIntegral $ i+1)/(fromIntegral n)) * d) + b
 
 {-
+-- A simpler definition than the above, but this version doesn't chop
+-- with multiple chops, and only works with a single 'pure' event..
+_chop' :: Int -> ControlPattern -> ControlPattern
+_chop' n p = begin (fromList begins) # end (fromList ends) # p
+  where step = 1/(fromIntegral n)
+        begins = [0,step .. (1-step)]
+        ends = (tail begins) ++ [1]
+-}
+
 
 {- | Striate is a kind of granulator, for example:
 
@@ -1851,9 +1859,15 @@ striate = tParam _striate
 
 _striate :: Int -> ControlPattern -> ControlPattern
 _striate n p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p
-                  # begin (pure (fromIntegral i / fromIntegral n))
-                  # end (pure (fromIntegral (i+1) / fromIntegral n))
+  where off i p = (mergePlayRange ((fromIntegral i / fromIntegral n), (fromIntegral (i+1) / fromIntegral n))) <$> p
+
+mergePlayRange :: (Float, Float) -> ControlMap -> ControlMap
+mergePlayRange (b,e) cm = Map.insert "begin" (VF $ (b*d')+b') $ Map.insert "end" (VF $ (e*d')+b') $ cm
+  where b' = fromMaybe 0 $ Map.lookup "begin" cm >>= getF
+        e' = fromMaybe 1 $ Map.lookup "end" cm >>= getF
+        d' = e' - b'
+
+{-
 
 {-|
 The `striate'` function is a variant of `striate` with an extra
