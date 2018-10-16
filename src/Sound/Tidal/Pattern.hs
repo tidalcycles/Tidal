@@ -478,8 +478,13 @@ onsetIn :: Arc -> Event a -> Bool
 onsetIn a e = isIn a (eventWholeOnset e)
 
 -- | @subArc i j@ is the timespan that is the intersection of @i@ and @j@.
+-- The definition is a bit fiddly as results might be zero-width, but
+-- not at the end of an non-zero-width arc - e.g. (0,1) and (1,2) do
+-- not intersect, but (1,1) (1,1) does.
 subArc :: Arc -> Arc -> Maybe Arc
-subArc (s, e) (s',e') | s'' <= e'' = Just (s'', e'')
+subArc (s, e) (s',e') | and [s'' == e'', s'' == e, s < e] = Nothing
+                      | and [s'' == e'', s'' == e', s' < e'] = Nothing
+                      | s'' <= e'' = Just (s'', e'')
                       | otherwise = Nothing
   where s'' = max s s'
         e'' = min e e'
