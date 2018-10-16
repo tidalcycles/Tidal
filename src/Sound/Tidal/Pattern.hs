@@ -489,12 +489,6 @@ subArc (s, e) (s',e') | and [s'' == e'', s'' == e, s < e] = Nothing
   where s'' = max s s'
         e'' = min e e'
 
-{-
-maybeSubArc :: Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)
-maybeSubArc (Just a) (Just b) = Just $ subArc a b
-maybeSubArc _ _ = Nothing
--}
-
 -- | The arc of the whole cycle that the given time value falls within
 timeToCycleArc :: Time -> Arc
 timeToCycleArc t = (sam t, (sam t) + 1)
