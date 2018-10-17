@@ -34,8 +34,8 @@ defaultTempo t = Tempo {atTime   = t,
                        }
 
 
-getClockIp :: IO String
-getClockIp = fromMaybe "127.0.0.1" <$> lookupEnv "TIDAL_TEMPO_IP"
+getClockHostname :: IO String
+getClockHostname = fromMaybe "127.0.0.1" <$> lookupEnv "TIDAL_TEMPO_IP"
 
 getClockPort :: IO Int
 getClockPort =
@@ -48,13 +48,18 @@ timeToCycles tempo t = (atCycle tempo) + (toRational cycleDelta)
   where delta = t - (atTime tempo)
         cycleDelta = (realToFrac $ cps tempo) * delta
 
+getHz :: IO Double
+getHz = maybe 9160 (readNote "Hz parse") <$> lookupEnv "TIDAL_HZ"
+
+getTickLength :: IO O.Time
+getTickLength = do hz <- getHz
+                   return $ 1/hz
+
 {-
 getCurrentCycle :: MVar Tempo -> IO Rational
 getCurrentCycle t = (readMVar t) >>= (cyclesNow) >>= (return . toRational)
 -}
 
-tickLength :: O.Time
-tickLength = 0.125
 
 clocked :: (Tempo -> State -> IO ()) -> IO ()
 clocked callback = do s <- O.time
@@ -69,6 +74,7 @@ clocked callback = do s <- O.time
           do -- putStrLn $ show $ nowArc st
 
              tempo <- readMVar mt
+             tickLength <- getTickLength
              let logicalNow = start st + (fromIntegral $ (ticks st)+1) * tickLength
                  s = snd $ nowArc st
                  e = timeToCycles tempo logicalNow
@@ -80,10 +86,11 @@ clocked callback = do s <- O.time
 
 listen :: O.Time -> IO (MVar Tempo, ThreadId)
 listen s = do udp <- O.udpServer "127.0.0.1" 0
-              addr <- getClockIp
+              hostname <- getClockHostname
               port <- getClockPort
-              remote_addr <- N.inet_addr addr
-              let remote_sockaddr = N.SockAddrInet (fromIntegral port) remote_addr
+              (remote_addr:_) <- N.getAddrInfo Nothing (Just hostname) Nothing
+              let (N.SockAddrInet _ a) = N.addrAddress remote_addr
+                  remote_sockaddr = N.SockAddrInet (fromIntegral port) (a)
                   t = defaultTempo s
               O.sendTo udp (O.Message "/hello" [O.int32 (1 :: Int)]) remote_sockaddr
               mt <- newMVar t
