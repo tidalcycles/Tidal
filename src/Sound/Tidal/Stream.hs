@@ -34,7 +34,7 @@ stream :: OSCTarget -> IO (ControlPattern -> IO (ControlPattern))
 stream target = do u <- O.openUDP (address target) (port target)
                    mp <- newMVar empty
                    _ <- ($) forkIO $ clocked $ onTick mp target u
-                   return $ swapMVar mp
+                   return $ \p -> swapMVar mp p >> return p
 
 toDatum :: Value -> O.Datum
 toDatum (VF x) = float x
