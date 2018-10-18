@@ -1,6 +1,7 @@
 module Sound.Tidal.Stream where
 
 import Sound.Tidal.Pattern
+import Sound.Tidal.UI (stack, silence)
 import Sound.Tidal.Tempo as T
 import qualified Sound.OSC.FD as O
 import Sound.OSC.Datum as O
@@ -35,6 +36,46 @@ stream target = do u <- O.openUDP (address target) (port target)
                    mp <- newMVar empty
                    _ <- ($) forkIO $ clocked $ onTick mp target u
                    return $ \p -> swapMVar mp p >> return p
+
+type PatId = Int
+
+data PlayState = PlayState {pattern :: ControlPattern,
+                            mute :: Bool,
+                            solo :: Bool
+                           }
+
+type PlayMap = Map.Map PatId PlayState
+
+stream2 :: OSCTarget -> IO (PatId -> ControlPattern -> IO (), -- swap
+                            IO ()) -- hush
+                             -- IO (Int -> IO ()), -- toggle mute
+                             -- IO (Int -> IO ()), -- solo
+                             -- IO (IO ()), -- unsolo
+                             -- IO ([Int, True]) -- list patterns and whether they're muted
+                             -- ]
+stream2 target = do set <- stream target
+                    pMapMV <- newMVar (Map.empty :: Map.Map PatId PlayState)
+                    return (swap set pMapMV,
+                            hush set pMapMV
+                            {- --toggle set pMapMV,
+                                solo set pMapMV,
+                                unsolo set pMapMV,
+                                list set pMapMV -}
+                           )
+  where
+        swap :: (ControlPattern -> IO ControlPattern) -> MVar PlayMap -> PatId -> ControlPattern -> IO ()
+        swap set pMapMV k p = do pMap <- takeMVar pMapMV
+                                 let pMap' = Map.insert k (PlayState p False False) pMap
+                                 update set pMap'
+                                 putMVar pMapMV pMap'
+                                 return ()
+        update :: (ControlPattern -> IO ControlPattern) -> PlayMap -> IO ()
+        update set pMap = do set $ stack $ map pattern $ filter (\pState -> if hasSolo pMap then solo pState else not (mute pState)) (Map.elems pMap)
+                             return ()
+        hasSolo = (>= 1) . length . filter solo . Map.elems
+        hush set pMapMV = do set silence
+                             swapMVar pMapMV Map.empty
+                             return ()
 
 toDatum :: Value -> O.Datum
 toDatum (VF x) = float x
