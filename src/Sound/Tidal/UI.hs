@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings #-}
 
 module Sound.Tidal.UI where
 
@@ -1061,7 +1061,7 @@ prrw f rot (blen, vlen) beatPattern valuePattern =
   in
     _slow cycles $ stack $ zipWith
     (\( _, (start, end), v') v -> (start `rotR`) $ densityGap (1 / (end - start)) $ pure (f v' v))
-    (sortBy ecompare $ arc (_density cycles $ beatPattern) (0, blen))
+    (sortBy ecompare $ arc (_fast cycles $ beatPattern) (0, blen))
     (drop (rot `mod` length values) $ cycle values)
 
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
@@ -1899,32 +1899,14 @@ _striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
   where off i p = p # begin (pure (slot * i) :: Pattern Double) # end (pure ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
-{-
-{- | like `striate`, but with an offset to the begin and end values -}
-striateO :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
-striateO = tParam2 _striateO
+off :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+off tp f p = unwrap $ (\tv -> _off tv f p) <$> tp
 
-_striateO :: Int -> Double -> ControlPattern -> ControlPattern
-_striateO n o p = _striate n p |+ begin (pure o :: Pattern Double) |+ end (pure o :: Pattern Double)
+_off :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_off t f p = superimpose (f . (t `rotR`)) p
 
-{- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
-The primed version is just like `striate'`, where the loop count is the third argument. For example:
-
-@
-d1 $ striateL' 3 0.125 4 $ sound "feel sn:2"
-@
-
-Like `striate`, these use the `begin` and `end` parameters internally, as well as the `loop` parameter for these versions.
--}
-striateL :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
-striateL = tParam2 _striateL
-
-striateL' :: Pattern Int -> Pattern Double -> Pattern Int -> ControlPattern -> ControlPattern
-striateL' = tParam3 _striateL'
-
-_striateL :: Int -> Int -> ControlPattern -> ControlPattern
-_striateL n l p = _striate n p # loop (pure $ fromIntegral l)
-_striateL' n f l p = _striate' n f p # loop (pure $ fromIntegral l)
+offadd :: Num a => Pattern Time -> Pattern a -> Pattern a -> Pattern a
+offadd tp pn p = off tp (+pn) p
 
 {- | `gap` is similar to `chop` in that it granualizes every sample in place as it is played,
 but every other grain is silent. Use an integer value to specify how many granules
@@ -1938,37 +1920,8 @@ d1 $ gap 16 $ sound "[jvbass drum:4]"
 gap :: Pattern Int -> ControlPattern -> ControlPattern
 gap = tParam _gap
 
-_gap :: Int -> ControlPattern -> ControlPattern
-_gap n p = Pattern $ \queryA -> concatMap (f queryA) $ arcCycles queryA
-     where f queryA a = concatMap (chopEvent queryA) (arc p a)
-           chopEvent (queryS, queryE) (a,_a',v) = map (newEvent v) $ filter (\(_, (s,e)) -> not $ or [e < queryS, s >= queryE]) (enumerate $ everyOther $ chopArc a n)
-           newEvent :: ControlMap -> (Int, Arc) -> Event ControlMap
-           newEvent v (i, a) = (a,a,Map.insert "end" (VF ((fromIntegral $ i+1)/(fromIntegral n))) $ Map.insert "begin" (VF ((fromIntegral i)/(fromIntegral n))) v)
-           everyOther (x:_:xs) = x:everyOther xs
-           everyOther xs = xs
-
-{-
-normEv :: Event a -> Event a -> Event a
-normEv ev@(_, (s,e), _) ev'@(_, (s',e'), _)
-       | not on && not off = [] -- shouldn't happen
-       | on && off = splitEv ev'
-       | not on && s' > sam s = []
-       | not off && e' < nextSam s = [(fst' ev, mapSnd' (mapSnd (min $ nextSam s)) ev, thd' ev)]
-  where on = onsetIn (sam s, nextSam s) ev
-        off = offsetIn (sam s, nextSam s) ev
-        eplitEv
--}
---mapCycleEvents :: Pattern a -> ([Event a] -> [Event a]) -> Pattern a
---mapCycleEvents p f = splitQueries $ Pattern $ \(s,e) -> filter (\ev -> isJust $ subArc (s,e) (eventArc ev)) $ f $ arc p (sam s, nextSam s)
-
---off :: Time -> Pattern a -> Pattern a
---off t p = mapCycleEvents p (mapArcs (mapSnd wrappedPlus . mapFst wrappedPlus))
---               where wrapAtCycle f t' = sam t' + cyclePos (f t')
---                     wrappedPlus = wrapAtCycle (+t)
-
-
-en :: [(Int, Int)] -> Pattern String -> Pattern String
-en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate ns
+_gap :: Int -> ControlPattern -> ControlPattern 
+_gap n p = (_fast (toRational n) $ cat [pure 1, silence]) |>| ( _chop n p)
 
 {- |
 `weave` applies a function smoothly over an array of different patterns. It uses an `OscPattern` to
@@ -1990,12 +1943,12 @@ d1 $ weave' 3 (sound "bd [sn drum:2*2] bd*2 [sn drum:1]") [density 2, (# speed "
 -}
 weave' :: Rational -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
 weave' t p fs | l == 0 = silence
-              | otherwise = _slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) `rotL` (_density t $ f (_slow t p))) (zip [0 ..] fs)
+              | otherwise = _slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) `rotL` (_fast t $ f (_slow t p))) (zip [0 ..] fs)
   where l = fromIntegral $ length fs
 
 {- |
-(A function that takes two OscPatterns, and blends them together into
-a new OscPattern. An OscPattern is basically a pattern of messages to
+(A function that takes two ControlPatterns, and blends them together into
+a new ControlPattern. An ControlPattern is basically a pattern of messages to
 a synthesiser.)
 
 Shifts between the two given patterns, using distortion.
@@ -2008,6 +1961,32 @@ d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn:2")
 -}
 interlace :: ControlPattern -> ControlPattern -> ControlPattern
 interlace a b = weave 16 (shape $ ((* 0.9) <$> sine)) [a, b]
+
+{-
+{- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
+The primed version is just like `striate'`, where the loop count is the third argument. For example:
+
+@
+d1 $ striateL' 3 0.125 4 $ sound "feel sn:2"
+@
+
+Like `striate`, these use the `begin` and `end` parameters internally, as well as the `loop` parameter for these versions.
+-}
+striateL :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
+striateL = tParam2 _striateL
+
+striateL' :: Pattern Int -> Pattern Double -> Pattern Int -> ControlPattern -> ControlPattern
+striateL' = tParam3 _striateL'
+
+_striateL :: Int -> Int -> ControlPattern -> ControlPattern
+_striateL n l p = _striate n p # loop (pure $ fromIntegral l)
+_striateL' n f l p = _striate' n f p # loop (pure $ fromIntegral l)
+
+
+en :: [(Int, Int)] -> Pattern String -> Pattern String
+en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate ns
+
+-}
 
 -- | Step sequencing
 step :: String -> String -> Pattern String
@@ -2026,27 +2005,10 @@ step' ss steps = fastcat $ map f steps
               | isDigit c = pure $ ss!!(digitToInt c)
               | otherwise = silence
 
-off :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-off tp f p = unwrap $ (\tv -> _off tv f p) <$> tp
-
-_off :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_off t f p = superimpose (f . (t `rotR`)) p
-
-offadd :: Num a => Pattern Time -> Pattern a -> Pattern a -> Pattern a
-offadd tp pn p = off tp (+pn) p
-
-{- | `up` does a poor man's pitchshift by semitones via `speed`.
-
-You can easily produce melodies from a single sample with up:
-
-@
-d1 # up "0 5 4 12" # sound "arpy"
-@
-
-This will play the _arpy_ sample four times a cycle in the original pitch, pitched by 5 semitones, by 4 and then by an octave.
+{- | `up` is deprecated, and is now an alias of `note`.
 -}
 up :: Pattern Double -> ControlPattern
-up = speed . ((1.059466**) <$>)
+up = note
 
 ghost'' a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) $ p
 ghost' a p = ghost'' 0.125 ((|*| gain (pure 0.7)) . (|> end (pure 0.2)) . (|*| speed (pure 1.25))) p
@@ -2097,9 +2059,9 @@ tabby n p p' = stack [maskedWarp n p,
     thread xs n p = _slow (n%1) $ fastcat $ map (\i -> zoom (i%n,(i+1)%n) p) (concat xs)
     weftP n p = thread (weft n) n p
     warpP n p = thread (warp n) n p
-    maskedWeft n p = mask (every 2 rev $ _density ((n)%2) "~ 1" :: Pattern Int) $ weftP n p
-    maskedWarp n p = mask (every 2 rev $ _density ((n)%2) "1 ~" :: Pattern Int) $ warpP n p
+    maskedWeft n p = mask (every 2 rev $ _fast ((n)%2) $ fastCat [silence, pure True]) $ weftP n p
+    maskedWarp n p = mask (every 2 rev $ _fast ((n)%2) $ fastCat [pure True, silence]) $ warpP n p
 
 hurry :: Pattern Rational -> ControlPattern -> ControlPattern
 hurry x = (|*| speed (fromRational <$> x)) . fast x
--}
+
