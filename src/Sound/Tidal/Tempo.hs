@@ -49,7 +49,7 @@ timeToCycles tempo t = (atCycle tempo) + (toRational cycleDelta)
         cycleDelta = (realToFrac $ cps tempo) * delta
 
 getHz :: IO Double
-getHz = maybe 9160 (readNote "Hz parse") <$> lookupEnv "TIDAL_HZ"
+getHz = maybe 100 (readNote "Hz parse") <$> lookupEnv "TIDAL_HZ"
 
 getTickLength :: IO O.Time
 getTickLength = do hz <- getHz
