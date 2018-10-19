@@ -398,21 +398,23 @@ whenT test f p = splitQueries $ p {query = apply}
 --eoff n k s p = ((s%(fromIntegral k)) `rotL`) (_e n k p)
    -- TPat_ShiftL (s%(fromIntegral k)) (TPat_E n k p)
 
-
-controlI :: String -> Pattern Int
-controlI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
+cI :: String -> Pattern Int
+cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
   where f a (VI v) = [((a,a),v)]
         f a (VF v) = [((a,a),floor v)]
         f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
 
-controlF :: String -> Pattern Double
-controlF s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
+cF :: String -> Pattern Double
+cF s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
   where f a (VI v) = [((a,a),fromIntegral v)]
         f a (VF v) = [((a,a),v)]
         f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
 
-controlS :: String -> Pattern String
-controlS s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
+cT = (toRational <$>) . cF
+cR = cT
+
+cS :: String -> Pattern String
+cS s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
   where f a (VI v) = [((a,a),show v)]
         f a (VF v) = [((a,a),show v)]
         f a (VS v) = [((a,a),v)]
