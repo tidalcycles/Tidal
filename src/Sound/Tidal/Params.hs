@@ -4,47 +4,47 @@ import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Pattern
 
-cf :: String -> Pattern Double -> ControlPattern
-cf name = fmap (Map.singleton name . VF)
+pF :: String -> Pattern Double -> ControlPattern
+pF name = fmap (Map.singleton name . VF)
 
-ci :: String -> Pattern Int -> ControlPattern
-ci name = fmap (Map.singleton name . VI)
+pI :: String -> Pattern Int -> ControlPattern
+pI name = fmap (Map.singleton name . VI)
 
-cs :: String -> Pattern String -> ControlPattern
-cs name = fmap (Map.singleton name . VS)
+pS :: String -> Pattern String -> ControlPattern
+pS name = fmap (Map.singleton name . VS)
 
 begin :: Pattern Double -> ControlPattern
-begin = cf "begin"
+begin = pF "begin"
 
 cut :: Pattern Int -> ControlPattern
-cut = ci "cut"
+cut = pI "cut"
 
 end :: Pattern Double -> ControlPattern
-end = cf "end"
+end = pF "end"
 
 gain :: Pattern Double -> ControlPattern
-gain = cf "end"
+gain = pF "gain"
 
 loop :: Pattern Double -> ControlPattern
-loop = cf "loop"
+loop = pF "loop"
 
 n :: Pattern Double -> ControlPattern
-n = cf "n"
+n = pF "n"
 
 note :: Pattern Double -> ControlPattern
-note = cf "note"
+note = pF "note"
 
 s :: Pattern String -> ControlPattern
-s = cs "s"
+s = pS "s"
 
 shape :: Pattern Double -> ControlPattern
-shape = cf "shape"
+shape = pF "shape"
 
 speed :: Pattern Double -> ControlPattern
-speed = cf "speed"
+speed = pF "speed"
 
 pan :: Pattern Double -> ControlPattern
-pan = cf "pan"
+pan = pF "pan"
 
 unit :: Pattern String -> ControlPattern
-unit = cs "unit"
+unit = pS "unit"
