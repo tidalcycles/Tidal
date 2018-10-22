@@ -20,6 +20,7 @@ import Data.List
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
+import Sound.Tidal.Core
 
 {-
 #ifdef TIDAL_SEMIGROUP
