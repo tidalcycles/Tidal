@@ -41,6 +41,13 @@ readMaybe s      =  case [x | (x,t) <- reads s, ("","") <- lex t] of
 (!!!) :: [a] -> Int -> a
 (!!!) xs n = xs !! (n `mod` length xs)
 
+
+{- | Safer version of !! --}
+nth :: Int -> [a] -> Maybe a
+nth _ []       = Nothing
+nth 0 (x : _)  = Just x
+nth n (_ : xs) = nth (n - 1) xs
+
 accumulate :: Num t => [t] -> [t]
 accumulate = accumulate' 0
   where accumulate' _ [] = []
