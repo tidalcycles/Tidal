@@ -5,10 +5,11 @@ import Prelude hiding ((<*), (*>))
 import Data.Ratio
 import Data.List (sort)
 
+import Sound.Tidal.Core
+import Sound.Tidal.Params
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
 import Sound.Tidal.Utils
-import Sound.Tidal.Params
 
 import qualified Data.Map.Strict as Map
 
@@ -344,3 +345,4 @@ main = microspec $ do
         (begin (pure 0) # end (pure 0.5) # (s (pure "a")))
     it "can chop a chop" $
       property $ compareTol (0,1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")
+
