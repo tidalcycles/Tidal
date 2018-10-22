@@ -1,7 +1,7 @@
 module Sound.Tidal.Stream where
 
 import Sound.Tidal.Pattern
-import Sound.Tidal.UI (stack, silence)
+import Sound.Tidal.Core (stack, silence)
 import qualified Sound.Tidal.Tempo as T
 import qualified Sound.OSC.FD as O
 import Sound.OSC.Datum as O
