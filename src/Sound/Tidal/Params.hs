@@ -356,3 +356,7 @@ songPtr = pF "songPtr"
 uid = pF "uid"
 val = pF "val"
 
+{- | `up` is now an alias of `note`. -}
+up :: Pattern Double -> ControlPattern
+up = note
+
