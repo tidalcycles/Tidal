@@ -5,6 +5,7 @@ import Prelude hiding ((<*), (*>))
 import Data.Ratio
 import Data.List (sort)
 
+import Sound.Tidal.Control
 import Sound.Tidal.Core
 import Sound.Tidal.Params
 import Sound.Tidal.Pattern
