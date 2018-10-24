@@ -360,3 +360,4 @@ val = pF "val"
 up :: Pattern Double -> ControlPattern
 up = note
 
+cps = pF "cps"

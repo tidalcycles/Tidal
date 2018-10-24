@@ -120,15 +120,25 @@ toDatum (VS x) = string x
 toData :: Event ControlMap -> [O.Datum]
 toData e = concatMap (\(n,v) -> [string n, toDatum v]) $ Map.toList $ eventValue e
 
-onTick :: MVar ControlMap -> MVar ControlPattern -> OSCTarget -> O.UDP -> T.Tempo -> T.State -> IO ()
-onTick cMapMV pMV target u t st =
+onTick :: MVar ControlMap -> MVar ControlPattern -> OSCTarget -> O.UDP -> MVar T.Tempo -> T.State -> IO ()
+onTick cMapMV pMV target u tempoMV st =
   do p <- readMVar pMV
      cMap <- readMVar cMapMV
+     tempo <- readMVar tempoMV
+     now <- O.time
      let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
-         messages = map (\e -> (sched $ fst $ eventWhole e, toMessage e)) es
+         at e = sched tempo $ fst $ eventWhole e
+         messages = map (\e -> (at e, toMessage e)) es
+         cpsChanges = map (\e -> (at e - now, Map.lookup "cps" $ eventValue e)) es
          toMessage e = O.Message (path target) $ preamble target ++ toData e
      mapM_ send messages
+     mapM_ (doCps now) cpsChanges
      return ()
   where send (time, m) = O.sendOSC u $ O.Bundle (time + (latency target)) [m]
-        sched :: Rational -> Double
-        sched c = ((fromRational $ c - (T.atCycle t)) / T.cps t) + (T.atTime t)
+        sched :: T.Tempo -> Rational -> Double
+        sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)
+        doCps _ (_, Nothing) = return ()
+        doCps t (d, Just (VF cps)) = do forkIO $ do threadDelay $ floor $ d * 1000000
+                                                    T.setCps tempoMV cps
+                                                    return ()
+                                        return ()

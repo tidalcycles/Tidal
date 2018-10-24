@@ -76,7 +76,7 @@ getCurrentCycle t = (readMVar t) >>= (cyclesNow) >>= (return . toRational)
 -}
 
 
-clocked :: (Tempo -> State -> IO ()) -> IO (MVar Tempo, [ThreadId])
+clocked :: (MVar Tempo -> State -> IO ()) -> IO (MVar Tempo, [ThreadId])
 clocked callback = do s <- O.time
                       (tempoMV, listenTid) <- clientListen s
                       let st = State {ticks = 0,
@@ -99,7 +99,7 @@ clocked callback = do s <- O.time
                  st' = st {ticks = (ticks st) + 1, nowArc = (s,e)}
              t <- O.time
              when (t < logicalNow) $ threadDelay (floor $ (logicalNow - t) * 1000000)
-             callback tempo st'
+             callback tempoMV st'
              loop tempoMV st'
 
 clientListen :: O.Time -> IO (MVar Tempo, ThreadId)
