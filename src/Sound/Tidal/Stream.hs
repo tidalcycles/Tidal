@@ -13,27 +13,27 @@ import Data.Maybe (fromJust)
 data TimeStamp = BundleStamp | MessageStamp | NoStamp
  deriving Eq
 
-data OSCTarget = OSCTarget {address :: String,
-                            port :: Int,
-                            path :: String,
-                            shape :: Maybe [(String, Maybe Value)],
-                            latency :: Double,
-                            preamble :: [O.Datum],
-                            timestamp :: TimeStamp
+data OSCTarget = OSCTarget {oAddress :: String,
+                            oPort :: Int,
+                            oPath :: String,
+                            oShape :: Maybe [(String, Maybe Value)],
+                            oLatency :: Double,
+                            oPreamble :: [O.Datum],
+                            oTimestamp :: TimeStamp
                            }
 
 superdirtTarget :: OSCTarget
-superdirtTarget = OSCTarget {address = "127.0.0.1",
-                             port = 57120,
-                             path = "/play2",
-                             shape = Nothing,
-                             latency = 0.2,
-                             preamble = [],
-                             timestamp = BundleStamp
+superdirtTarget = OSCTarget {oAddress = "127.0.0.1",
+                             oPort = 57120,
+                             oPath = "/play2",
+                             oShape = Nothing,
+                             oLatency = 0.2,
+                             oPreamble = [],
+                             oTimestamp = BundleStamp
                             }
 
 stream :: MVar ControlMap -> OSCTarget -> IO (ControlPattern -> IO (ControlPattern), MVar T.Tempo)
-stream cMapMV target = do u <- O.openUDP (address target) (port target)
+stream cMapMV target = do u <- O.openUDP (oAddress target) (oPort target)
                           mp <- newMVar empty
                           (tempoMV, _) <- T.clocked $ onTick cMapMV mp target u
                           return $ (\p -> swapMVar mp p >> return p, tempoMV)
@@ -130,11 +130,11 @@ onTick cMapMV pMV target u tempoMV st =
          at e = sched tempo $ fst $ eventWhole e
          messages = map (\e -> (at e, toMessage e)) es
          cpsChanges = map (\e -> (at e - now, Map.lookup "cps" $ eventValue e)) es
-         toMessage e = O.Message (path target) $ preamble target ++ toData e
+         toMessage e = O.Message (oPath target) $ oPreamble target ++ toData e
      mapM_ send messages
      mapM_ (doCps now) cpsChanges
      return ()
-  where send (time, m) = O.sendOSC u $ O.Bundle (time + (latency target)) [m]
+  where send (time, m) = O.sendOSC u $ O.Bundle (time + (oLatency target)) [m]
         sched :: T.Tempo -> Rational -> Double
         sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)
         doCps _ (_, Nothing) = return ()
