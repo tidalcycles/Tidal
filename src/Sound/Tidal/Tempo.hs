@@ -8,7 +8,7 @@ import Safe (readNote)
 import Control.Concurrent.MVar
 import qualified Sound.Tidal.Pattern as P
 import qualified Sound.OSC.FD as O
-import qualified Sound.OSC.Transport.FD.UDP as O
+-- import qualified Sound.OSC.Transport.FD.UDP as O
 import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
 import Control.Monad (forever, when, foldM)
@@ -20,12 +20,25 @@ data Tempo = Tempo {atTime  :: O.Time,
                     paused  :: Bool,
                     nudged  :: Double
                    }
+             deriving Show
 
 data State = State {ticks   :: Int,
                     start   :: O.Time,
                     nowTime :: O.Time,
                     nowArc  :: P.Arc
                    }
+
+setCps :: MVar Tempo -> O.Time -> IO (Tempo)
+setCps tempoMV newCps = do t <- O.time
+                           tempo <- takeMVar tempoMV
+                           let c = timeToCycles tempo t
+                               tempo' = tempo {atTime = t,
+                                               atCycle = c,
+                                               cps = newCps
+                                              }
+                           putMVar tempoMV $ tempo'
+                           return tempo'
+            
 
 defaultTempo :: O.Time -> Tempo
 defaultTempo t = Tempo {atTime   = t,
@@ -63,28 +76,31 @@ getCurrentCycle t = (readMVar t) >>= (cyclesNow) >>= (return . toRational)
 -}
 
 
-clocked :: (Tempo -> State -> IO ()) -> IO ()
+clocked :: (Tempo -> State -> IO ()) -> IO (MVar Tempo, [ThreadId])
 clocked callback = do s <- O.time
-                      (mt, _) <- clientListen s
+                      (tempoMV, listenTid) <- clientListen s
                       let st = State {ticks = 0,
                                       start = s,
                                       nowTime = s,
                                       nowArc = (0,0)
                                      }
-                      loop mt st
-  where loop mt st =
+                      clockTid <- forkIO $ loop tempoMV st
+                      return (tempoMV, [listenTid, clockTid])
+  where loop tempoMV st =
           do -- putStrLn $ show $ nowArc ts
 
-             tempo <- readMVar mt
+             tempo <- readMVar tempoMV
              tickLength <- getTickLength
-             let logicalNow = start st + (fromIntegral $ (ticks st)+1) * tickLength
+             let -- 'now' comes from clock ticks, nothing to do with cycles
+                 logicalNow = start st + (fromIntegral $ (ticks st)+1) * tickLength
+                 -- the tempo is just used to convert logical time to cycles
                  s = snd $ nowArc st
                  e = timeToCycles tempo logicalNow
                  st' = st {ticks = (ticks st) + 1, nowArc = (s,e)}
              t <- O.time
              when (t < logicalNow) $ threadDelay (floor $ (logicalNow - t) * 1000000)
              callback tempo st'
-             loop mt st'
+             loop tempoMV st'
 
 clientListen :: O.Time -> IO (MVar Tempo, ThreadId)
 clientListen s =
@@ -101,15 +117,15 @@ clientListen s =
      O.sendTo udp (O.Message "/hello" []) remote_sockaddr
      putStrLn "sent."
      -- Make tempo mvar
-     mt <- newMVar t
+     tempoMV <- newMVar t
      -- Listen to tempo changes
-     tempoChild <- (forkIO $ listenTempo udp mt)
-     return (mt, tempoChild)
+     tempoChild <- (forkIO $ listenTempo udp tempoMV)
+     return (tempoMV, tempoChild)
 
 listenTempo :: O.UDP -> (MVar Tempo) -> IO ()
-listenTempo udp mt = forever $ do pkt <- O.recvPacket udp
-                                  act Nothing pkt
-                                  return ()
+listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
+                                       act Nothing pkt
+                                       return ()
   where act _ (O.Packet_Bundle (O.Bundle ts ms)) = mapM_ (act (Just ts) . O.Packet_Message) ms
         act (Just ts) (O.Packet_Message (O.Message "/cps/cycle" [O.Float atCycle',
                                                                  O.Float cps',
@@ -118,8 +134,8 @@ listenTempo udp mt = forever $ do pkt <- O.recvPacket udp
                                         )
                       ) =
           do putStrLn "cps change"
-             tempo <- takeMVar mt
-             putMVar mt $ tempo {atTime = ts,
+             tempo <- takeMVar tempoMV
+             putMVar tempoMV $ tempo {atTime = ts,
                                  atCycle = realToFrac atCycle',
                                  cps = realToFrac cps',
                                  paused = (paused' == 1)
@@ -140,14 +156,14 @@ serverListen = do port <- getClockPort
         act _ c _ cs (O.Packet_Message (O.Message "/hello" []))
           = do putStrLn $ "hello from " ++ show c
                return $ nub $ c:cs
-        act udp c _ cs (O.Packet_Message (O.Message path params))
+        act udp _ _ cs (O.Packet_Message (O.Message path params))
           | isPrefixOf "/transmit" path =
               do let path' = drop 9 path
                      msg = O.Message path' params
                  putStrLn $ "transmit " ++ show msg
                  mapM_ (O.sendTo udp msg) cs
                  return cs
-        act _ c _ cs pkt = do putStrLn $ "Unknown packet: " ++ show pkt
+        act _ _ _ cs pkt = do putStrLn $ "Unknown packet: " ++ show pkt
                               return cs
 
 {-
