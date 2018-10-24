@@ -32,11 +32,11 @@ superdirtTarget = OSCTarget {address = "127.0.0.1",
                              timestamp = BundleStamp
                             }
 
-stream :: MVar ControlMap -> OSCTarget -> IO (ControlPattern -> IO (ControlPattern))
+stream :: MVar ControlMap -> OSCTarget -> IO (ControlPattern -> IO (ControlPattern), MVar T.Tempo)
 stream cMapMV target = do u <- O.openUDP (address target) (port target)
                           mp <- newMVar empty
-                          _ <- ($) forkIO $ T.clocked $ onTick cMapMV mp target u
-                          return $ \p -> swapMVar mp p >> return p
+                          (tempoMV, _) <- T.clocked $ onTick cMapMV mp target u
+                          return $ (\p -> swapMVar mp p >> return p, tempoMV)
 
 type PatId = String
 
@@ -62,7 +62,8 @@ listenCMap cMapMV = do sock <- O.udpServer "127.0.0.1" (6011)
                             putMVar cMapMV $ Map.insert k v cMap
                             return ()
 
-stream3 :: OSCTarget -> IO (MVar ControlMap,
+stream5 :: OSCTarget -> IO (MVar T.Tempo,
+                            MVar ControlMap,
                             PatId -> ControlPattern -> IO (), -- swap
                             IO (), -- hush
                             IO () -- list
@@ -72,11 +73,12 @@ stream3 :: OSCTarget -> IO (MVar ControlMap,
                              -- IO (IO ()), -- unsolo
                              -- IO ([Int, True]) -- list patterns and whether they're muted
                              -- ]
-stream3 target = do pMapMV <- newMVar (Map.empty :: Map.Map PatId PlayState)
+stream5 target = do pMapMV <- newMVar (Map.empty :: Map.Map PatId PlayState)
                     cMapMV <- newMVar (Map.empty :: ControlMap)
                     listenCMap cMapMV
-                    set <- stream cMapMV target
-                    return (cMapMV,
+                    (set, tempoMV) <- stream cMapMV target
+                    return (tempoMV,
+                            cMapMV,
                             swap set pMapMV,
                             hush set pMapMV,
                             list pMapMV
@@ -129,4 +131,4 @@ onTick cMapMV pMV target u t st =
      return ()
   where send (time, m) = O.sendOSC u $ O.Bundle (time + (latency target)) [m]
         sched :: Rational -> Double
-        sched c = ((fromRational $ c - (T.atCycle t)) / T.cps t) + (T.nowTime st)
+        sched c = ((fromRational $ c - (T.atCycle t)) / T.cps t) + (T.atTime t)
