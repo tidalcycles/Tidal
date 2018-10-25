@@ -47,20 +47,22 @@ data PlayState = PlayState {pattern :: ControlPattern,
 
 type PlayMap = Map.Map PatId PlayState
 
+listenCMap :: MVar ControlMap -> IO ()
 listenCMap cMapMV = do sock <- O.udpServer "127.0.0.1" (6011)
                        _ <- forkIO $ loop sock
                        return ()
   where loop sock =
           do ms <- O.recvMessages sock
-             mapM_ r ms
+             mapM_ readMessage ms
              loop sock
-        r (O.Message path (O.ASCII_String k:v@(O.Float _):[])) = add cMapMV (ascii_to_string k) (VF $ fromJust $ datum_floating v)
-        r (O.Message path (O.ASCII_String k:O.ASCII_String v:[])) = add cMapMV (ascii_to_string k) (VS $ ascii_to_string v)
-        r (O.Message path (O.ASCII_String k:O.Int32 v:[]))  = add cMapMV (ascii_to_string k) (VI $ fromIntegral v)
-        add :: MVar ControlMap -> String -> Value -> IO ()
-        add cMapMV k v = do cMap <- takeMVar cMapMV
-                            putMVar cMapMV $ Map.insert k v cMap
-                            return ()
+        readMessage (O.Message _ (O.ASCII_String k:v@(O.Float _):[])) = add (ascii_to_string k) (VF $ fromJust $ datum_floating v)
+        readMessage (O.Message _ (O.ASCII_String k:O.ASCII_String v:[])) = add (ascii_to_string k) (VS $ ascii_to_string v)
+        readMessage (O.Message _ (O.ASCII_String k:O.Int32 v:[]))  = add (ascii_to_string k) (VI $ fromIntegral v)
+        readMessage _ = return ()
+        add :: String -> Value -> IO ()
+        add k v = do cMap <- takeMVar cMapMV
+                     putMVar cMapMV $ Map.insert k v cMap
+                     return ()
 
 stream5 :: OSCTarget -> IO (MVar T.Tempo,
                             MVar ControlMap,
@@ -96,11 +98,11 @@ stream5 target = do pMapMV <- newMVar (Map.empty :: Map.Map PatId PlayState)
                putMVar pMapMV pMap'
                return ()
         update :: (ControlPattern -> IO ControlPattern) -> PlayMap -> IO ()
-        update set pMap = do set $ stack $ map pattern $ filter (\pState -> if hasSolo pMap then solo pState else not (mute pState)) (Map.elems pMap)
+        update set pMap = do _ <- set $ stack $ map pattern $ filter (\pState -> if hasSolo pMap then solo pState else not (mute pState)) (Map.elems pMap)
                              return ()
         hasSolo = (>= 1) . length . filter solo . Map.elems
-        hush set pMapMV = do set silence
-                             swapMVar pMapMV Map.empty
+        hush set pMapMV = do _ <- set silence
+                             _ <- swapMVar pMapMV Map.empty
                              return ()
         list :: MVar PlayMap -> IO ()
         list pMapMV = do pMap <- readMVar pMapMV
@@ -132,13 +134,13 @@ onTick cMapMV pMV target u tempoMV st =
          cpsChanges = map (\e -> (at e - now, Map.lookup "cps" $ eventValue e)) es
          toMessage e = O.Message (oPath target) $ oPreamble target ++ toData e
      mapM_ send messages
-     mapM_ (doCps now) cpsChanges
+     mapM_ doCps cpsChanges
      return ()
   where send (time, m) = O.sendOSC u $ O.Bundle (time + (oLatency target)) [m]
         sched :: T.Tempo -> Rational -> Double
         sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)
-        doCps _ (_, Nothing) = return ()
-        doCps t (d, Just (VF cps)) = do forkIO $ do threadDelay $ floor $ d * 1000000
-                                                    T.setCps tempoMV cps
-                                                    return ()
-                                        return ()
+        doCps (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
+                                                       _ <- T.setCps tempoMV cps
+                                                       return ()
+                                      return ()
+        doCps _ = return ()

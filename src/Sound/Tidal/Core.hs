@@ -218,7 +218,7 @@ timeCat tps = stack $ map (\(s,e,p) -> compress (s/total, e/total) p) $ arrange 
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
           arrange _ [] = []
-          arrange t ((t',p):tps) = (t,t+t',p):(arrange (t+t') tps)
+          arrange t ((t',p):tps') = (t,t+t',p):(arrange (t+t') tps')
 
 -- | 'overlay' combines two 'Pattern's into a new pattern, so that
 -- their events are combined over time. 
@@ -319,6 +319,7 @@ fastGap :: Pattern Time -> Pattern a -> Pattern a
 fastGap = tParam _fastGap
 
 -- | An alias for @fastGap@
+densityGap :: Pattern Time -> Pattern a -> Pattern a
 densityGap = fastGap
 
 compress :: Arc -> Pattern a -> Pattern a
@@ -399,7 +400,10 @@ cF s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
         f a (VF v) = [((a,a),v)]
         f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
 
+cT :: String -> Pattern Time
 cT = (toRational <$>) . cF
+
+cR :: String -> Pattern Rational
 cR = cT
 
 cS :: String -> Pattern String
