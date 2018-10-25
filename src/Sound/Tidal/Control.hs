@@ -301,3 +301,43 @@ smash n xs p = slowcat $ map (\n -> slow n p') xs
 -}
 smash' n xs p = slowcat $ map (\n -> slow n p') xs
   where p' = _chop n p
+
+
+{- | Stut applies a type of delay to a pattern. It has three parameters,
+which could be called depth, feedback and time. Depth is an integer
+and the others floating point. This adds a bit of echo:
+
+@
+d1 $ stut 4 0.5 0.2 $ sound "bd sn"
+@
+
+The above results in 4 echos, each one 50% quieter than the last,
+with 1/5th of a cycle between them. It is possible to reverse the echo:
+
+@
+d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
+@
+-}
+
+stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ControlPattern -> ControlPattern
+stut = tParam3 _stut
+
+_stut :: Integer -> Double -> Rational -> ControlPattern -> ControlPattern
+_stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) `rotR` (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
+  where scale x
+          = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
+
+{- | Instead of just decreasing volume to produce echoes, @stut'@ allows to apply a function for each step and overlays the result delayed by the given time.
+
+@
+d1 $ stut' 2 (1%3) (# vowel "{a e i o u}%2") $ sound "bd sn"
+@
+
+In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has the @vowel@ filter applied.
+-}
+stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stut' n t f p = unwrap $ (\a b -> _stut' a b f p) <$> n <*> t
+
+_stut' :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_stut' steps steptime f p | steps <= 0 = p
+                         | otherwise = overlay (f (steptime `rotR` _stut' (steps-1) steptime f p)) p
