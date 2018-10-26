@@ -9,15 +9,13 @@ import Sound.Tidal.Params
 import Data.Ord (comparing)
 import Data.Char (digitToInt, isDigit)
 import System.Random.Mersenne.Pure64 (randomDouble, pureMT)
-import qualified Data.Map.Strict as Map
-import Data.Ratio (numerator, denominator, (%))
-import Data.List (delete, findIndex, sort, sortBy, intercalate, findIndices, elemIndex, groupBy, transpose)
-import Data.Maybe (isJust, fromJust, catMaybes, fromMaybe, mapMaybe)
+import Data.Ratio ((%))
+import Data.List (sort, sortBy, findIndices, elemIndex, groupBy, transpose)
+import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
 import Control.Applicative (liftA2)
 
 import Sound.Tidal.Bjorklund (bjorklund)
-import Sound.Tidal.Params
 import Sound.Tidal.Utils
 
 ------------------------------------------------------------------------
