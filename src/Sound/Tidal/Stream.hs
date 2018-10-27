@@ -2,6 +2,7 @@ module Sound.Tidal.Stream where
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Core (stack, silence)
+
 import qualified Sound.Tidal.Tempo as T
 import qualified Sound.OSC.FD as O
 import Sound.OSC.Datum as O
@@ -27,7 +28,7 @@ superdirtTarget = OSCTarget {oAddress = "127.0.0.1",
                              oPort = 57120,
                              oPath = "/play2",
                              oShape = Nothing,
-                             oLatency = 0.2,
+                             oLatency = 0.02,
                              oPreamble = [],
                              oTimestamp = BundleStamp
                             }
@@ -84,35 +85,12 @@ stream5 target = do pMapMV <- newMVar (Map.empty :: Map.Map PatId PlayState)
                             swap set pMapMV,
                             hush set pMapMV,
                             list pMapMV
+                            -- once set pMapMV
                             {- --toggle set pMapMV,
                                 solo set pMapMV,
                                 unsolo set pMapMV,
                                 list set pMapMV -}
                            )
-  where
-        swap :: (ControlPattern -> IO ControlPattern) -> MVar PlayMap -> PatId -> ControlPattern -> IO ()
-        swap set pMapMV k p
-          = do pMap <- takeMVar pMapMV
-               let pMap' = Map.insert k (PlayState p False False) pMap
-               update set pMap'
-               putMVar pMapMV pMap'
-               return ()
-        update :: (ControlPattern -> IO ControlPattern) -> PlayMap -> IO ()
-        update set pMap = do _ <- set $ stack $ map pattern $ filter (\pState -> if hasSolo pMap then solo pState else not (mute pState)) (Map.elems pMap)
-                             return ()
-        hasSolo = (>= 1) . length . filter solo . Map.elems
-        hush set pMapMV = do _ <- set silence
-                             _ <- swapMVar pMapMV Map.empty
-                             return ()
-        list :: MVar PlayMap -> IO ()
-        list pMapMV = do pMap <- readMVar pMapMV
-                         let hs = hasSolo pMap
-                         putStrLn $ concatMap (showKV hs) $ Map.toList pMap
-          where showKV :: Bool -> (PatId, PlayState) -> String
-                showKV True  (k, (PlayState _  _ True)) = k ++ " - solo\n"
-                showKV True  (k, _) = "(" ++ k ++ ")\n"
-                showKV False (k, (PlayState _ False _)) = k ++ "\n"
-                showKV False (k, _) = "(" ++ k ++ ") - muted\n"
 
 toDatum :: Value -> O.Datum
 toDatum (VF x) = float x
@@ -144,3 +122,37 @@ onTick cMapMV pMV target u tempoMV st =
                                                        return ()
                                       return ()
         doCps _ = return ()
+
+
+-- Interaction
+
+hasSolo :: Map.Map k PlayState -> Bool
+hasSolo = (>= 1) . length . filter solo . Map.elems
+
+hush :: (Pattern a1 -> IO a2) -> MVar (Map.Map k a3) -> IO ()
+hush set pMapMV = do _ <- set silence
+                     _ <- swapMVar pMapMV Map.empty
+                     return ()
+
+list :: MVar PlayMap -> IO ()
+list pMapMV = do pMap <- readMVar pMapMV
+                 let hs = hasSolo pMap
+                 putStrLn $ concatMap (showKV hs) $ Map.toList pMap
+  where showKV :: Bool -> (PatId, PlayState) -> String
+        showKV True  (k, (PlayState _  _ True)) = k ++ " - solo\n"
+        showKV True  (k, _) = "(" ++ k ++ ")\n"
+        showKV False (k, (PlayState _ False _)) = k ++ "\n"
+        showKV False (k, _) = "(" ++ k ++ ") - muted\n"
+
+swap :: (ControlPattern -> IO ControlPattern) -> MVar PlayMap -> PatId -> ControlPattern -> IO ()
+swap set pMapMV k p
+  = do pMap <- takeMVar pMapMV
+       let pMap' = Map.insert k (PlayState p False False) pMap
+       update set pMap'
+       putMVar pMapMV pMap'
+       return ()
+
+update :: (ControlPattern -> IO ControlPattern) -> PlayMap -> IO ()
+update set pMap = do _ <- set $ stack $ map pattern $ filter (\pState -> if hasSolo pMap then solo pState else not (mute pState)) (Map.elems pMap)
+                     return ()
+
