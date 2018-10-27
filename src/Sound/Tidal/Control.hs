@@ -9,7 +9,7 @@ import Data.Ratio
 import Sound.Tidal.Pattern
 import Sound.Tidal.Core
 import Sound.Tidal.UI
-import Sound.Tidal.Params
+import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Utils
 
 {- | `spin` will "spin" a layer up a pattern the given number of times,
@@ -27,9 +27,9 @@ spin = tParam _spin
 
 _spin :: Int -> ControlPattern -> ControlPattern
 _spin copies p =
-  stack $ map (\n -> let offset = toInteger n % toInteger copies in
+  stack $ map (\i -> let offset = toInteger i % toInteger copies in
                      offset `rotL` p
-                     # pan (pure $ fromRational offset)
+                     # P.pan (pure $ fromRational offset)
               )
           [0 .. (copies - 1)]
 
@@ -62,7 +62,7 @@ _chop :: Int -> ControlPattern -> ControlPattern
 _chop n p = withEvents (concatMap chopEvent) p
   where -- for each part,
         chopEvent :: Event ControlMap -> [Event ControlMap]
-        chopEvent ((whole,part), v) = map (\a -> chomp part v (length $ chopArc whole n) a) $ arcs whole part
+        chopEvent ((whole,part), v) = map (\a -> chomp v (length $ chopArc whole n) a) $ arcs whole part
         -- cut whole into n bits, and number them
         arcs whole part = numberedArcs part $ chopArc whole n
         -- each bit is a new whole, with part that's the intersection of old part and new whole
@@ -73,17 +73,17 @@ _chop n p = withEvents (concatMap chopEvent) p
         -- if the old event had a begin and end, then multiply the new
         -- begin and end values by the old difference (end-begin), and
         -- add the old begin
-        chomp :: Arc -> ControlMap -> Int -> (Int, Part) -> Event ControlMap
-        chomp part v n (i, pt) = (pt,
-                                  Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v
-                                 )
+        chomp :: ControlMap -> Int -> (Int, Part) -> Event ControlMap
+        chomp v n' (i, pt) = (pt,
+                             Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v
+                            )
           where b = fromMaybe 0 $ do v' <- Map.lookup "begin" v
                                      getF v'
                 e = fromMaybe 1 $ do v' <- Map.lookup "end" v
                                      getF v'
                 d = e-b
-                b' = (((fromIntegral i)/(fromIntegral n)) * d) + b
-                e' = (((fromIntegral $ i+1)/(fromIntegral n)) * d) + b
+                b' = (((fromIntegral i)/(fromIntegral n')) * d) + b
+                e' = (((fromIntegral $ i+1)/(fromIntegral n')) * d) + b
 
 {-
 -- A simpler definition than the above, but this version doesn't chop
@@ -124,8 +124,8 @@ striate :: Pattern Int -> ControlPattern -> ControlPattern
 striate = tParam _striate
 
 _striate :: Int -> ControlPattern -> ControlPattern
-_striate n p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = (mergePlayRange ((fromIntegral i / fromIntegral n), (fromIntegral (i+1) / fromIntegral n))) <$> p
+_striate n p = fastcat $ map (\i -> offset i) [0 .. n-1]
+  where offset i = (mergePlayRange ((fromIntegral i / fromIntegral n), (fromIntegral (i+1) / fromIntegral n))) <$> p
 
 mergePlayRange :: (Double, Double) -> ControlMap -> ControlMap
 mergePlayRange (b,e) cm = Map.insert "begin" (VF $ (b*d')+b') $ Map.insert "end" (VF $ (e*d')+b') $ cm
@@ -153,8 +153,8 @@ striate' :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
 striate' = tParam2 _striate'
 
 _striate' :: Int -> Double -> ControlPattern -> ControlPattern
-_striate' n f p = fastcat $ map (\x -> off (fromIntegral x) p) [0 .. n-1]
-  where off i p = p # begin (pure (slot * i) :: Pattern Double) # end (pure ((slot * i) + f) :: Pattern Double)
+_striate' n f p = fastcat $ map (\i -> offset (fromIntegral i)) [0 .. n-1]
+  where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.end (pure ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
 {- | `gap` is similar to `chop` in that it granualizes every sample in place as it is played,
@@ -192,7 +192,7 @@ d1 $ weave' 3 (sound "bd [sn drum:2*2] bd*2 [sn drum:1]") [density 2, (# speed "
 -}
 weave' :: Rational -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
 weave' t p fs | l == 0 = silence
-              | otherwise = _slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) `rotL` (_fast t $ f (_slow t p))) (zip [0 ..] fs)
+              | otherwise = _slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) `rotL` (_fast t $ f (_slow t p))) (zip [0 :: Int ..] fs)
   where l = fromIntegral $ length fs
 
 {- |
@@ -209,7 +209,7 @@ d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn:2")
 @
 -}
 interlace :: ControlPattern -> ControlPattern -> ControlPattern
-interlace a b = weave 16 (shape $ ((* 0.9) <$> sine)) [a, b]
+interlace a b = weave 16 (P.shape $ ((* 0.9) <$> sine)) [a, b]
 
 {-
 {- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
@@ -238,16 +238,16 @@ en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate 
 -}
 
 slice :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
-slice pi pn p = begin b # end e # p
-  where b = (\i n -> (div' i n)) <$> pi <*> pn
-        e = (\i n -> (div' i n) + (div' 1 n)) <$> pi <*> pn
-        div' a b = fromIntegral (a `mod` b) / fromIntegral b
+slice pI pN p = P.begin b # P.end e # p
+  where b = (\i n -> (div' i n)) <$> pI <*> pN
+        e = (\i n -> (div' i n) + (div' 1 n)) <$> pI <*> pN
+        div' num den = fromIntegral (num `mod` den) / fromIntegral den
 
 _slice :: Int -> Int -> ControlPattern -> ControlPattern
 _slice i n p =
       p
-      # begin (pure $ fromIntegral i / fromIntegral n)
-      # end (pure $ fromIntegral (i+1) / fromIntegral n)
+      # P.begin (pure $ fromIntegral i / fromIntegral n)
+      # P.end (pure $ fromIntegral (i+1) / fromIntegral n)
 
 randslice :: Int -> ControlPattern -> ControlPattern
 randslice n p = unwrap $ (\i -> _slice i n p) <$> irand n
@@ -264,10 +264,10 @@ d1 $ juxBy 0.6 (|*| speed "2") $ slowspread (loopAt) [4,6,2,3] $ chop 12 $ sound
 @
 -}
 loopAt :: Pattern Time -> ControlPattern -> ControlPattern
-loopAt n p = slow n p |*| speed (fromRational <$> (1/n)) # unit (pure "c")
+loopAt n p = slow n p |*| P.speed (fromRational <$> (1/n)) # P.unit (pure "c")
 
 hurry :: Pattern Rational -> ControlPattern -> ControlPattern
-hurry x = (|*| speed (fromRational <$> x)) . fast x
+hurry x = (|*| P.speed (fromRational <$> x)) . fast x
 
 {- | Smash is a combination of `spread` and `striate` - it cuts the samples
 into the given number of bits, and then cuts between playing the loop
@@ -294,12 +294,14 @@ d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
 @
 -}
 
-smash n xs p = slowcat $ map (\n -> slow n p') xs
+smash :: Pattern Int -> [Pattern Time] -> ControlPattern -> Pattern ControlMap
+smash n xs p = slowcat $ map (\x -> slow x p') xs
   where p' = striate n p
 
 {- | an altenative form to `smash` is `smash'` which will use `chop` instead of `striate`.
 -}
-smash' n xs p = slowcat $ map (\n -> slow n p') xs
+smash' :: Int -> [Pattern Time] -> ControlPattern -> Pattern ControlMap
+smash' n xs p = slowcat $ map (\x -> slow x p') xs
   where p' = _chop n p
 
 
@@ -323,9 +325,9 @@ stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ControlPattern 
 stut = tParam3 _stut
 
 _stut :: Integer -> Double -> Rational -> ControlPattern -> ControlPattern
-_stut steps feedback time p = stack (p:(map (\x -> (((x%steps)*time) `rotR` (p |*| gain (pure $ scale (fromIntegral x))))) [1..(steps-1)]))
-  where scale x
-          = ((+feedback) . (*(1-feedback)) . (/(fromIntegral steps)) . ((fromIntegral steps)-)) x
+_stut count feedback time p = stack (p:(map (\x -> (((x%count)*time) `rotR` (p |*| P.gain (pure $ scalegain (fromIntegral x))))) [1..(count-1)]))
+  where scalegain x
+          = ((+feedback) . (*(1-feedback)) . (/(fromIntegral count)) . ((fromIntegral count)-)) x
 
 {- | Instead of just decreasing volume to produce echoes, @stut'@ allows to apply a function for each step and overlays the result delayed by the given time.
 
@@ -339,5 +341,5 @@ stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a ->
 stut' n t f p = unwrap $ (\a b -> _stut' a b f p) <$> n <*> t
 
 _stut' :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_stut' steps steptime f p | steps <= 0 = p
-                         | otherwise = overlay (f (steptime `rotR` _stut' (steps-1) steptime f p)) p
+_stut' count steptime f p | count <= 0 = p
+                          | otherwise = overlay (f (steptime `rotR` _stut' (count-1) steptime f p)) p

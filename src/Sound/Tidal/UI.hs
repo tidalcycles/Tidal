@@ -617,6 +617,11 @@ _euler n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund 
 _euler' :: Int -> Int -> Pattern a -> Pattern a
 _euler' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
+eulerOff :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern a -> Pattern a
+eulerOff = tParam3 _eulerOff
+
+_eulerOff :: Int -> Int -> Integer -> Pattern a -> Pattern a
+_eulerOff n k s p = ((s%(fromIntegral k)) `rotL`) (_euler n k p)
 
 distrib :: [Pattern Int] -> Pattern a -> Pattern a
 distrib ps p = do p' <- sequence ps
