@@ -841,7 +841,7 @@ rand :: Pattern Double
 rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
 timeToRand :: RealFrac r => r -> Double
-timeToRand t = fst $ random $ mkStdGen $ floor $ (*1000000) t
+timeToRand t = fst $ random $ mkStdGen $ floor $ (*128) t
 
 {- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:
