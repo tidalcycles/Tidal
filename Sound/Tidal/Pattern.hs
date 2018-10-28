@@ -845,12 +845,10 @@ rand :: Pattern Double
 rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
 timeToRand :: RealFrac a => a -> Double
-timeToRand t = randomDouble $ toRational t * 1000000
-
-randomDouble :: Ratio Integer -> Double
-randomDouble x = runST $ do
-  let n' = fromIntegral $ numerator x
-  let d' = fromIntegral $ denominator x
+timeToRand x = runST $ do
+  let x' = toRational (x*x) / 1000000
+  let n' = fromIntegral $ numerator x'
+  let d' = fromIntegral $ denominator x'
   seed <- initialize (fromList [n',d'] :: Vector Word32)
   uniform seed
 
