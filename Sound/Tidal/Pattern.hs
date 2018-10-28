@@ -13,8 +13,12 @@ import Data.Ratio
 -- import Debug.Trace
 import Data.Typeable
 import Data.Function
--- import System.Random.Mersenne.Pure64
-import System.Random hiding (split)
+
+import System.Random.MWC
+import Control.Monad.ST
+import Data.Vector (Vector,fromList)
+import Data.Word (Word32)
+
 import Data.Char (digitToInt)
 import qualified Data.Text as T
 
@@ -840,8 +844,15 @@ d1 $ jux (|+| ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 rand :: Pattern Double
 rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
-timeToRand :: RealFrac r => r -> Double
-timeToRand t = fst $ random $ mkStdGen $ floor $ (*128) t
+timeToRand :: RealFrac a => a -> Double
+timeToRand t = randomDouble $ toRational t * 1000000
+
+randomDouble :: Ratio Integer -> Double
+randomDouble x = runST $ do
+  let n' = fromIntegral $ numerator x
+  let d' = fromIntegral $ denominator x
+  seed <- initialize (fromList [n',d'] :: Vector Word32)
+  uniform seed
 
 {- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:

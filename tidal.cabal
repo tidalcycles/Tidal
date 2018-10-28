@@ -61,6 +61,8 @@ library
     , websockets > 0.8
     , mtl >= 2.1
     , monad-loops
+    , vector
+    , mwc-random
 
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups == 0.18.*
