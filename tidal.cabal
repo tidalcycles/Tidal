@@ -54,7 +54,7 @@ library
     , colour
     , hosc >= 0.16
     , text
-    , mersenne-random-pure64
+    , random
     , time
     , parsec
     , safe
@@ -80,6 +80,6 @@ test-suite test
     test.hs
   build-depends:
       base >= 4 && < 5
-              , tasty 
+              , tasty
               , tasty-hunit
     , tidal

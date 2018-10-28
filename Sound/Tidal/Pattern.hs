@@ -13,7 +13,8 @@ import Data.Ratio
 -- import Debug.Trace
 import Data.Typeable
 import Data.Function
-import System.Random.Mersenne.Pure64
+-- import System.Random.Mersenne.Pure64
+import System.Random hiding (split)
 import Data.Char (digitToInt)
 import qualified Data.Text as T
 
@@ -840,7 +841,7 @@ rand :: Pattern Double
 rand = Pattern $ \a -> [(a, a, timeToRand $ (midPoint a))]
 
 timeToRand :: RealFrac r => r -> Double
-timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
+timeToRand t = fst $ random $ mkStdGen $ floor $ (*1000000) t
 
 {- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:
@@ -865,7 +866,7 @@ choose [] =  E.throw (E.ErrorCall "Empty list. Nothing to choose from.")
 choose xs = (xs !!) <$> (irand $ length xs)
 
 {- | Picks an element from the given weighted list, according to the pattern
-     given 
+     given
 
 @
 d1 $ gain "1.2 1 1 1" # s (wchooseBy (slow 4 $ saw) [("bd", 0.49), ("cp", 0.51)])
@@ -1125,9 +1126,9 @@ within (s,e) f p = stack [playWhen (\t -> cyclePos t >= s && cyclePos t < e) $ f
                          ]
 
 {- |
-For many cases, @within'@ will function exactly as within.  
-The difference between the two occurs when applying functions that change the timing of notes such as 'fast' or '<~'. 
-within first applies the function to all notes in the cycle, then keeps the results in the specified interval, and then combines it with the old cycle (an "apply split combine" paradigm). 
+For many cases, @within'@ will function exactly as within.
+The difference between the two occurs when applying functions that change the timing of notes such as 'fast' or '<~'.
+within first applies the function to all notes in the cycle, then keeps the results in the specified interval, and then combines it with the old cycle (an "apply split combine" paradigm).
 within' first keeps notes in the specified interval, then applies the function to these notes, and then combines it with the old cycle (a "split apply combine" paradigm).
 
 
@@ -1149,7 +1150,7 @@ using this alternative version, within'
 d1 $ within' (0, 0.25) (fast 2) $ sound "bd hh cp sd"
 @
 
-sounds like: 
+sounds like:
 
 @
 d1 $ sound "[bd bd] hh cp sd"
@@ -1158,8 +1159,8 @@ d1 $ sound "[bd bd] hh cp sd"
 -}
 
 within' :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-within' (s,e) f p = stack [playWhen (\t -> cyclePos t >= s && cyclePos t < e) $ compress (s,e) $ f $ zoom (s,e) $ p, 
-                           playWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p 
+within' (s,e) f p = stack [playWhen (\t -> cyclePos t >= s && cyclePos t < e) $ compress (s,e) $ f $ zoom (s,e) $ p,
+                           playWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p
                           ]
 
 
@@ -1770,7 +1771,7 @@ _ply :: Int -> Pattern a -> Pattern a
 _ply n p = breakUp $ stack (replicate n p)
 
 -- Uses the first (binary) pattern to switch between the following two
--- patterns. 
+-- patterns.
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 sew stitch p1 p2 = overlay (const <$> p1 <*> a) (const <$> p2 <*> b)
   where a = filterValues (id) stitch
