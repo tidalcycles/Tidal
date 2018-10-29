@@ -1,9 +1,9 @@
 module Sound.Tidal.Chords where
 
 import Sound.Tidal.Pattern
-import Sound.Tidal.Stream (ParamMap, ParamPattern)
+-- import Sound.Tidal.Stream (ParamMap, ParamPattern)
 import Sound.Tidal.Params (n)
-import Sound.Tidal.Time (Arc)
+-- import Sound.Tidal.Time (Arc)
 import Data.Maybe
 import Control.Applicative
 
@@ -87,8 +87,8 @@ m11 :: Num a => [a]
 m11 = [0,3,7,10,14,17]
 maj11 :: Num a => [a]
 maj11 = [0,4,7,11,14,17]
-evelenSharp :: Num a => [a]
-evelenSharp = [0,4,7,10,14,18]
+elevenSharp :: Num a => [a]
+elevenSharp = [0,4,7,10,14,18]
 m11sharp :: Num a => [a]
 m11sharp = [0,3,7,10,14,18]
 thirteen :: Num a => [a]
@@ -98,60 +98,88 @@ m13 = [0,3,7,10,14,17,21]
 
 -- | @chordate cs m n@ selects the @n@th "chord" (a chord is a list of Ints)
 -- from a list of chords @cs@ and transposes it by @m@
-chordate :: Num b => [[b]] -> b -> Int -> [b]
-chordate cs m n = map (+m) $ cs!!n
+-- chordate :: Num b => [[b]] -> b -> Int -> [b]
+-- chordate cs m n = map (+m) $ cs!!n
 
 -- | @enchord chords pn pc@ turns every note in the note pattern @pn@ into
 -- a chord, selecting from the chord lists @chords@ using the index pattern
 -- @pc@.  For example, @Chords.enchord [Chords.major Chords.minor] "c g" "0 1"@
 -- will create a pattern of a C-major chord followed by a G-minor chord.
-enchord :: Num a => [[a]] -> Pattern a -> Pattern Int -> Pattern a
-enchord chords pn pc = flatpat $ (chordate chords) <$> pn <*> pc
+-- enchord :: Num a => [[a]] -> Pattern a -> Pattern Int -> Pattern a
+-- enchord chords pn pc = flatpat $ (chordate chords) <$> pn <*> pc
+
 
 chordTable :: Num a => [(String, [a])]
 chordTable = [("major", major),
+              ("maj", major),
               ("minor", minor),
+              ("min", minor),
               ("major7", major7),
+              ("maj7", major7),
               ("dom7", dom7),
               ("minor7", minor7),
+              ("min7", minor7),
               ("aug", aug),
               ("dim", dim),
               ("dim7", dim7),
               ("one", one),
+              ("1", one),
               ("five", five),
+              ("5", five),
               ("plus", plus),
               ("sharp5", sharp5),
               ("msharp5", msharp5),
               ("sus2", sus2),
               ("sus4", sus4),
               ("six", six),
+              ("6", six),
               ("m6", m6),
               ("sevenSus2", sevenSus2),
+              ("7sus2", sevenSus2),
               ("sevenSus4", sevenSus4),
+              ("7sus4", sevenSus4),
               ("sevenFlat5", sevenFlat5),
+              ("7f5", sevenFlat5),
               ("m7flat5", m7flat5),
+              ("m7f5", m7flat5),
               ("sevenSharp5", sevenSharp5),
+              ("7s5", sevenSharp5),
               ("m7sharp5", m7sharp5),
+              ("m7s5", m7sharp5),
               ("nine", nine),
               ("m9", m9),
               ("m7sharp9", m7sharp9),
+              ("m7s9", m7sharp9),
               ("maj9", maj9),
               ("nineSus4", nineSus4),
+              ("ninesus4", nineSus4),
+              ("9sus4", nineSus4),
               ("sixby9", sixby9),
+              ("6by9", sixby9),
               ("m6by9", m6by9),
               ("sevenFlat9", sevenFlat9),
+              ("7f9", sevenFlat9),
               ("m7flat9", m7flat9),
+              ("m7f9", m7flat9),
               ("sevenFlat10", sevenFlat10),
+              ("7f10", sevenFlat10),
               ("nineSharp5", nineSharp5),
+              ("9s5", nineSharp5),
               ("m9sharp5", m9sharp5),
+              ("m9s5", m9sharp5),
               ("sevenSharp5flat9", sevenSharp5flat9),
+              ("7s5f9", sevenSharp5flat9),
               ("m7sharp5flat9", m7sharp5flat9),
               ("eleven", eleven),
+              ("11", eleven),
               ("m11", m11),
               ("maj11", maj11),
-              ("evelenSharp", evelenSharp),
+              ("elevenSharp", elevenSharp),
+              ("11s", elevenSharp),
               ("m11sharp", m11sharp),
+              ("m11s", m11sharp),
               ("thirteen", thirteen),
+              ("13", thirteen),
               ("m13", m13)
              ]
 
@@ -160,9 +188,10 @@ chordL p = (\name -> fromMaybe [] $ lookup name chordTable) <$> p
 
 -- | @chord p@ turns a pattern of chord names into a pattern of
 -- numbers, representing note value offsets for the chords
-chord :: Num a => Pattern String -> Pattern a
-chord p = flatpat $ chordL p
+-- chord :: Num a => Pattern String -> Pattern a
+-- chord p = flatpat $ chordL p
 
+{-
 -- | @arpg p@ turns a pattern of chord names into a pattern of arpeggios
 -- of those chords respectively
 arpg :: Num a => Pattern String -> Pattern a
@@ -193,3 +222,4 @@ arpgtt f p c = within (0,1) f $ n (arpg p + c)
 -- and applies transformation function @f@ to pattern's time interval @(s,e)@
 arpgti :: Arc -> (Pattern ParamMap -> Pattern ParamMap) -> Pattern String -> Pattern Double -> Pattern ParamMap
 arpgti (s,e) f p c = within (s,e) f $ n (arpg p + c)
+-}

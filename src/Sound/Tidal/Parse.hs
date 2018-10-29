@@ -18,6 +18,7 @@ import Data.Functor.Identity (Identity)
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
 import Sound.Tidal.Core
+import Sound.Tidal.Chords (chordTable)
 
 -- | AST representation of patterns
 
@@ -33,6 +34,7 @@ data TPat a = TPat_Atom a
             | TPat_Cat [TPat a]
             | TPat_TimeCat [TPat a]
             | TPat_Overlay (TPat a) (TPat a)
+            | TPat_Stack [TPat a]
             | TPat_ShiftL Time (TPat a)
               -- TPat_E Int Int (TPat a)
             | TPat_pE (TPat Int) (TPat Int) (TPat Integer) (TPat a)
@@ -49,6 +51,7 @@ toPat = \case
    TPat_Cat xs -> fastcat $ map toPat xs
    TPat_TimeCat xs -> timeCat $ map (\(n, pat) -> (toRational n, toPat pat)) $ durations xs
    TPat_Overlay x0 x1 -> overlay (toPat x0) (toPat x1)
+   TPat_Stack xs -> stack $ map toPat xs
    TPat_ShiftL t x -> t `rotL` toPat x
    TPat_pE n k s thing ->
       unwrap $ _eulerOff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
@@ -249,7 +252,7 @@ pPart f = do part <- pSingle f <|> pPolyIn f <|> pPolyOut f
 pPolyIn :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 pPolyIn f = do ps <- brackets (pSequence f `sepBy` symbol ",")
                spaces
-               pMult $ foldr TPat_Overlay TPat_Silence ps
+               pMult $ TPat_Stack ps
 
 pPolyOut :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
@@ -259,11 +262,11 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
                            i <- integer <?> "integer"
                            return $ Just (fromIntegral i)
                         <|> return Nothing
-                pMult $ foldr TPat_Overlay TPat_Silence $ scale' base ps
+                pMult $ TPat_Stack $ scale' base ps
              <|>
              do ps <- angles (pSequenceN f `sepBy` symbol ",")
                 spaces
-                pMult $ foldr TPat_Overlay TPat_Silence $ scale' (Just 1) ps
+                pMult $ TPat_Stack $ scale' (Just 1) ps
   where scale' _ [] = []
         scale' base (pats@((n,_):_)) = map (\(n',pat) -> TPat_Density (TPat_Atom $ fromIntegral (fromMaybe n base)/ fromIntegral n') pat) pats
 
@@ -298,7 +301,13 @@ parseInt = do s <- sign
               return $ applySign s $ fromIntegral i
 
 pIntegral :: Parseable a => Integral a => Parser (TPat a)
-pIntegral = TPat_Atom <$> parseIntNote
+pIntegral = do i <- parseIntNote
+               c <- (parseChord <|> return [0])
+               return $ TPat_Stack $ map (TPat_Atom . (+i)) c
+
+parseChord :: Num a => Parser [a]
+parseChord = do name <- many1 $ letter <|> digit
+                return $ fromMaybe [0] $ lookup name chordTable
 
 parseNote :: Num a => Parser a
 parseNote = do n <- notenum
