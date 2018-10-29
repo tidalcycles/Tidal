@@ -43,8 +43,8 @@ setCps tempoMV newCps = do t <- O.time
 defaultTempo :: O.Time -> Tempo
 defaultTempo t = Tempo {atTime   = t,
                         atCycle  = 0,
-                        cps      = 2,
-                        paused   = True,
+                        cps      = 0.5625,
+                        paused   = False,
                         nudged   = 0
                        }
 
@@ -166,11 +166,3 @@ serverListen = do port <- getClockPort
         act _ _ _ cs pkt = do putStrLn $ "Unknown packet: " ++ show pkt
                               return cs
 
-{-
-
-let daveip = "192.168.0.21";
-    daveport = 8000
-    delayDave n = do dave <- openUDP daveip daveport
-                     let m = Message "/delay" [Sound.OSC.FD.float n]
-                     sendOSC dave m
--}
