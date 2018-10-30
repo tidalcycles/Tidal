@@ -44,6 +44,8 @@ defaultConfig = Config {cCtrlListen = True,
                         cCtrlPort = 6010
                        }
 
+type PatId = String
+
 type AppConfig = MonadReader State
 
 data AppError = IOError E.IOException
@@ -77,7 +79,6 @@ stream cMapMV target = do u <- O.openUDP (oAddress target) (oPort target)
                           (tempoMV, _) <- T.clocked $ onTick cMapMV pMV target u
                           return $ (pMV, tempoMV)
 
-type PatId = String
 
 data PlayState = PlayState {pattern :: ControlPattern,
                             mute :: Bool,
@@ -184,28 +185,28 @@ streamList s = do pMap <- readMVar (sPMapMV s)
         showKV False (k, (PlayState _ False _ _)) = k ++ "\n"
         showKV False (k, _) = "(" ++ k ++ ") - muted\n"
 
-streamReplace :: Stream -> PatId -> ControlPattern -> IO ()
+streamReplace :: Show a => Stream -> a -> ControlPattern -> IO ()
 streamReplace s k p
   = do playMap <- takeMVar $ sPMapMV s
-       let pMap' = Map.insert k (PlayState p False False []) playMap
+       let pMap' = Map.insert (show k) (PlayState p False False []) playMap
        putMVar (sPMapMV s) pMap'
        calcOutput s
        return ()
 
-streamMute :: Stream -> PatId -> IO ()
-streamMute s k = withPatId s k (\x -> x {mute = True})
+streamMute :: Show a => Stream -> a -> IO ()
+streamMute s k = withPatId s (show k) (\x -> x {mute = True})
 
-streamMutes :: Stream -> [PatId] -> IO ()
-streamMutes s ks = withPatIds s ks (\x -> x {mute = True})
+streamMutes :: Show a => Stream -> [a] -> IO ()
+streamMutes s ks = withPatIds s (map show ks) (\x -> x {mute = True})
 
-streamUnmute :: Stream -> PatId -> IO ()
-streamUnmute s k = withPatId s k (\x -> x {mute = False})
+streamUnmute :: Show a => Stream -> a -> IO ()
+streamUnmute s k = withPatId s (show k) (\x -> x {mute = False})
 
-streamSolo :: Stream -> PatId -> IO ()
-streamSolo s k = withPatId s k (\x -> x {solo = True})
+streamSolo :: Show a => Stream -> a -> IO ()
+streamSolo s k = withPatId s (show k) (\x -> x {solo = True})
 
-streamUnsolo :: Stream -> PatId -> IO ()
-streamUnsolo s k = withPatId s k (\x -> x {solo = False})
+streamUnsolo :: Show a => Stream -> a -> IO ()
+streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
 
 withPatId :: Stream -> PatId -> (PlayState -> PlayState) -> IO ()
 withPatId s k f = withPatIds s [k] f
