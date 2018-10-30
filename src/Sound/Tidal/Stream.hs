@@ -1,0 +1,265 @@
+
+{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables #-}
+
+module Sound.Tidal.Stream where
+
+import Sound.Tidal.Pattern
+import Sound.Tidal.Core (stack, silence)
+
+import qualified Sound.Tidal.Tempo as T
+import qualified Sound.OSC.FD as O
+import Sound.OSC.Datum as O
+import Control.Concurrent.MVar
+import Control.Concurrent
+import qualified Data.Map.Strict as Map
+import Data.Maybe (fromJust)
+
+import qualified Control.Exception as E
+import Control.Monad.Reader
+import Control.Monad.Except
+-- import qualified Data.Bifunctor as BF
+-- import qualified Data.Bool as B
+-- import qualified Data.Char as C
+
+data TimeStamp = BundleStamp | MessageStamp | NoStamp
+ deriving Eq
+
+
+data Config = Config {cCtrlListen :: Bool,
+                      cCtrlAddr :: String,
+                      cCtrlPort :: Int
+                     }
+
+data Stream = Stream {sConfig :: Config,
+                      sInput :: MVar ControlMap,
+                      sOutput :: MVar ControlPattern,
+                      sListenTid :: Maybe ThreadId,
+                      sPMapMV :: MVar PlayMap,
+                      sTempo :: MVar T.Tempo
+                     }
+
+defaultConfig :: Config
+defaultConfig = Config {cCtrlListen = True,
+                        cCtrlAddr ="127.0.0.1",
+                        cCtrlPort = 6010
+                       }
+
+type AppConfig = MonadReader State
+
+data AppError = IOError E.IOException
+
+newtype App a = App {
+  runApp :: ReaderT State (ExceptT AppError IO) a
+} deriving (Monad, Functor, Applicative, AppConfig, MonadIO, MonadError AppError)
+
+data OSCTarget = OSCTarget {oAddress :: String,
+                            oPort :: Int,
+                            oPath :: String,
+                            oShape :: Maybe [(String, Maybe Value)],
+                            oLatency :: Double,
+                            oPreamble :: [O.Datum],
+                            oTimestamp :: TimeStamp
+                           }
+
+superdirtTarget :: OSCTarget
+superdirtTarget = OSCTarget {oAddress = "127.0.0.1",
+                             oPort = 57120,
+                             oPath = "/play2",
+                             oShape = Nothing,
+                             oLatency = 0.01,
+                             oPreamble = [],
+                             oTimestamp = BundleStamp
+                            }
+
+stream :: MVar ControlMap -> OSCTarget -> IO (MVar ControlPattern, MVar T.Tempo)
+stream cMapMV target = do u <- O.openUDP (oAddress target) (oPort target)
+                          pMV <- newMVar empty
+                          (tempoMV, _) <- T.clocked $ onTick cMapMV pMV target u
+                          return $ (pMV, tempoMV)
+
+type PatId = String
+
+data PlayState = PlayState {pattern :: ControlPattern,
+                            mute :: Bool,
+                            solo :: Bool,
+                            history :: [ControlPattern]
+                           }
+
+type PlayMap = Map.Map PatId PlayState
+
+listenCMap :: MVar ControlMap -> IO ()
+listenCMap cMapMV = do sock <- O.udpServer "127.0.0.1" (6011)
+                       _ <- forkIO $ loop sock
+                       return ()
+  where loop sock =
+          do ms <- O.recvMessages sock
+             mapM_ readMessage ms
+             loop sock
+        readMessage (O.Message _ (O.ASCII_String k:v@(O.Float _):[])) = add (ascii_to_string k) (VF $ fromJust $ datum_floating v)
+        readMessage (O.Message _ (O.ASCII_String k:O.ASCII_String v:[])) = add (ascii_to_string k) (VS $ ascii_to_string v)
+        readMessage (O.Message _ (O.ASCII_String k:O.Int32 v:[]))  = add (ascii_to_string k) (VI $ fromIntegral v)
+        readMessage _ = return ()
+        add :: String -> Value -> IO ()
+        add k v = do cMap <- takeMVar cMapMV
+                     putMVar cMapMV $ Map.insert k v cMap
+                     return ()
+
+{-
+stream5 :: OSCTarget -> IO (MVar T.Tempo,
+                            MVar ControlMap,
+                            PatId -> ControlPattern -> IO (), -- swap
+                            IO (), -- hush
+                            IO () -- list
+                           )
+                             -- IO (Int -> IO ()), -- toggle mute
+                             -- IO (Int -> IO ()), -- solo
+                             -- IO (IO ()), -- unsolo
+                             -- IO ([Int, True]) -- list patterns and whether they're muted
+                             -- ]
+stream5 target = do pMapMV <- newMVar (Map.empty :: Map.Map PatId PlayState)
+                    cMapMV <- newMVar (Map.empty :: ControlMap)
+                    listenCMap cMapMV
+                    (pMV, tempoMV) <- stream cMapMV target
+                    return (tempoMV,
+                            cMapMV,
+                            swap set pMapMV,
+                            hush set pMapMV,
+                            list pMapMV
+                            -- once set pMapMV
+                            {- --toggle set pMapMV,
+                                solo set pMapMV,
+                                unsolo set pMapMV,
+                                list set pMapMV -}
+                           )
+-}
+
+toDatum :: Value -> O.Datum
+toDatum (VF x) = float x
+toDatum (VI x) = int32 x
+toDatum (VS x) = string x
+
+toData :: Event ControlMap -> [O.Datum]
+toData e = concatMap (\(n,v) -> [string n, toDatum v]) $ Map.toList $ eventValue e
+
+onTick :: MVar ControlMap -> MVar ControlPattern -> OSCTarget -> O.UDP -> MVar T.Tempo -> T.State -> IO ()
+onTick cMapMV pMV target u tempoMV st =
+  do p <- readMVar pMV
+     cMap <- readMVar cMapMV
+     tempo <- readMVar tempoMV
+     now <- O.time
+     let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
+         at e = sched tempo $ fst $ eventWhole e
+         messages = map (\e -> (at e, toMessage e)) es
+         cpsChanges = map (\e -> (at e - now, Map.lookup "cps" $ eventValue e)) es
+         toMessage e = O.Message (oPath target) $ oPreamble target ++ toData e
+
+     E.catch (mapM_ send messages)
+       (\(_ ::E.SomeException)
+        -> putStrLn $ "Failed to send. Is the target (probably superdirt) running?")
+                -- ++ show (msg :: E.SomeException))
+     mapM_ doCps cpsChanges
+     return ()
+  where send (time, m) = O.sendOSC u $ O.Bundle (time + (oLatency target)) [m]
+        sched :: T.Tempo -> Rational -> Double
+        sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)
+        doCps (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
+                                                       _ <- T.setCps tempoMV cps
+                                                       return ()
+                                      return ()
+        doCps _ = return ()
+
+
+-- Interaction
+
+hasSolo :: Map.Map k PlayState -> Bool
+hasSolo = (>= 1) . length . filter solo . Map.elems
+
+streamList :: Stream -> IO ()
+streamList s = do pMap <- readMVar (sPMapMV s)
+                  let hs = hasSolo pMap
+                  putStrLn $ concatMap (showKV hs) $ Map.toList pMap
+  where showKV :: Bool -> (PatId, PlayState) -> String
+        showKV True  (k, (PlayState _  _ True _)) = k ++ " - solo\n"
+        showKV True  (k, _) = "(" ++ k ++ ")\n"
+        showKV False (k, (PlayState _ False _ _)) = k ++ "\n"
+        showKV False (k, _) = "(" ++ k ++ ") - muted\n"
+
+streamReplace :: Stream -> PatId -> ControlPattern -> IO ()
+streamReplace s k p
+  = do playMap <- takeMVar $ sPMapMV s
+       let pMap' = Map.insert k (PlayState p False False []) playMap
+       putMVar (sPMapMV s) pMap'
+       calcOutput s
+       return ()
+
+streamMute :: Stream -> PatId -> IO ()
+streamMute s k = withPatId s k (\x -> x {mute = True})
+
+streamMutes :: Stream -> [PatId] -> IO ()
+streamMutes s ks = withPatIds s ks (\x -> x {mute = True})
+
+streamUnmute :: Stream -> PatId -> IO ()
+streamUnmute s k = withPatId s k (\x -> x {mute = False})
+
+streamSolo :: Stream -> PatId -> IO ()
+streamSolo s k = withPatId s k (\x -> x {solo = True})
+
+streamUnsolo :: Stream -> PatId -> IO ()
+streamUnsolo s k = withPatId s k (\x -> x {solo = False})
+
+withPatId :: Stream -> PatId -> (PlayState -> PlayState) -> IO ()
+withPatId s k f = withPatIds s [k] f
+
+withPatIds :: Stream -> [PatId] -> (PlayState -> PlayState) -> IO ()
+withPatIds s ks f
+  = do playMap <- takeMVar $ sPMapMV s
+       let pMap' = foldr (Map.update (\x -> Just $ f x)) playMap ks
+       putMVar (sPMapMV s) pMap'
+       calcOutput s
+       return ()
+
+-- TODO - is there a race condition here?
+streamHush :: Stream -> IO ()
+streamHush s = do modifyMVar_ (sOutput s) $ return . const silence
+                  modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = True})
+
+calcOutput :: Stream -> IO ()
+calcOutput s = do pMap <- readMVar $ sPMapMV s
+                  _ <- swapMVar (sOutput s) $ toPat pMap
+                  return ()
+  where toPat pMap =
+          stack $ map pattern $ filter (\pState -> if hasSolo pMap
+                                                   then solo pState
+                                                   else not (mute pState)
+                                       ) (Map.elems pMap)  
+
+startTidal :: OSCTarget -> Config -> IO Stream
+startTidal target c = do cMapMV <- newMVar (Map.empty :: ControlMap)
+                         listenTid <- ctrlListen cMapMV c
+                         (pMV, tempoMV) <- stream cMapMV target
+                         pMapMV <- newMVar Map.empty
+                         return $ Stream {sConfig = defaultConfig,
+                                          sInput = cMapMV,
+                                          sListenTid = listenTid,
+                                          sOutput = pMV,
+                                          sPMapMV = pMapMV,
+                                          sTempo = tempoMV
+                                         }
+ctrlListen :: MVar ControlMap -> Config -> IO (Maybe ThreadId)
+ctrlListen cMapMV c
+  | cCtrlListen c = do x <- O.udpServer (cCtrlAddr c) (cCtrlPort c)
+                       tid <- forkIO $ loop x
+                       return $ Just tid
+  | otherwise  = return Nothing
+  where
+        loop x = do m <- O.recvMessage x
+                    act m
+                    loop x
+        act (Just (O.Message "/ctrl" [O.Float v, O.Float n, O.Float chan])) = 
+          do putStrLn $ "got '" ++ show n ++ ":" ++ show v ++ ":" ++ show chan
+             let name = "cc" ++ show (floor n :: Int)
+                 value = v/127
+             ctrl <- takeMVar cMapMV
+             putMVar cMapMV $ Map.insert name (VF $ realToFrac value) ctrl
+             return ()
+        act _ = return ()

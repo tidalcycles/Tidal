@@ -1,5 +1,5 @@
 name:                tidal
-version:             0.9.11
+version:             1.0.0
 synopsis:            Pattern language for improvised music
 -- description:
 homepage:            http://tidalcycles.org/
@@ -8,13 +8,13 @@ license-file:        LICENSE
 author:              Alex McLean
 maintainer:          Alex McLean <alex@slab.org>, Mike Hodnick <mike.hodnick@gmail.com>
 Stability:           Experimental
-Copyright:           (c) Tidal contributors, 2017
+Copyright:           (c) Tidal contributors, 2018
 category:            Sound
 build-type:          Simple
 cabal-version:       >=1.10
 tested-with:         GHC == 7.10.3, GHC == 8.0.1, GHC == 8.4.1
 
-Extra-source-files: README.md CHANGELOG.md tidal.el doc/tidal.md
+Extra-source-files: README.md CHANGELOG.md tidal.el
 
 Description: Tidal is a domain specific language for live coding pattern.
 
@@ -22,30 +22,24 @@ library
   if impl(ghc == 8.4.1)
     cpp-options: -DTIDAL_SEMIGROUP
 
+  ghc-options: -Wall 
+  hs-source-dirs:
+                 src
+                        
   default-language:    Haskell2010
-
+  
   Exposed-modules:     Sound.Tidal.Bjorklund
-                       Sound.Tidal.Strategies
-                       Sound.Tidal.Dirt
+                       Sound.Tidal.Chords
+                       Sound.Tidal.Control
+                       Sound.Tidal.Context
+                       Sound.Tidal.Core
+                       Sound.Tidal.Params
+                       Sound.Tidal.Parse
                        Sound.Tidal.Pattern
                        Sound.Tidal.Stream
-                       Sound.Tidal.OscStream
-                       Sound.Tidal.Parse
                        Sound.Tidal.Tempo
-                       Sound.Tidal.Time
-                       Sound.Tidal.Context
+                       Sound.Tidal.UI
                        Sound.Tidal.Utils
-                       Sound.Tidal.SuperCollider
-                       Sound.Tidal.Params
-                       Sound.Tidal.Transition
-                       Sound.Tidal.EspGrid
-                       Sound.Tidal.MultiMode
-                       Sound.Tidal.Scales
-                       Sound.Tidal.Chords
-                       Sound.Tidal.Sieve
-                       Sound.Tidal.Version
-                       Sound.Tidal.Simple
-                       -- Sound.Tidal.PatternList
 
   Build-depends:
       base < 5
@@ -61,25 +55,25 @@ library
     , websockets > 0.8
     , mtl >= 2.1
     , monad-loops
-
+    , network
+              
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups == 0.18.*
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  hs-source-dirs:
+      test
+  ghc-options: -Wall 
+  build-depends:
+                base ==4.*
+              , microspec >= 0.2.0.1
+              , containers
+              , tidal
+
+  default-language: Haskell2010
 
 source-repository head
   type:     git
   location: https://github.com/tidalcycles/Tidal
-
-test-suite test
-  default-language:
-    Haskell2010
-  type:
-    exitcode-stdio-1.0
-  hs-source-dirs:
-    tests
-  main-is:
-    test.hs
-  build-depends:
-      base >= 4 && < 5
-              , tasty 
-              , tasty-hunit
-    , tidal
