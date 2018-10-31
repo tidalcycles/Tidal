@@ -15,8 +15,8 @@ import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust)
 
 import qualified Control.Exception as E
-import Control.Monad.Reader
-import Control.Monad.Except
+-- import Control.Monad.Reader
+-- import Control.Monad.Except
 -- import qualified Data.Bifunctor as BF
 -- import qualified Data.Bool as B
 -- import qualified Data.Char as C
@@ -35,7 +35,9 @@ data Stream = Stream {sConfig :: Config,
                       sOutput :: MVar ControlPattern,
                       sListenTid :: Maybe ThreadId,
                       sPMapMV :: MVar PlayMap,
-                      sTempo :: MVar T.Tempo
+                      sTempo :: MVar T.Tempo,
+                      sTarget :: OSCTarget,
+                      sUDP :: O.UDP
                      }
 
 defaultConfig :: Config
@@ -45,14 +47,6 @@ defaultConfig = Config {cCtrlListen = True,
                        }
 
 type PatId = String
-
-type AppConfig = MonadReader State
-
-data AppError = IOError E.IOException
-
-newtype App a = App {
-  runApp :: ReaderT State (ExceptT AppError IO) a
-} deriving (Monad, Functor, Applicative, AppConfig, MonadIO, MonadError AppError)
 
 data OSCTarget = OSCTarget {oAddress :: String,
                             oPort :: Int,
@@ -73,11 +67,11 @@ superdirtTarget = OSCTarget {oAddress = "127.0.0.1",
                              oTimestamp = BundleStamp
                             }
 
-stream :: MVar ControlMap -> OSCTarget -> IO (MVar ControlPattern, MVar T.Tempo)
+stream :: MVar ControlMap -> OSCTarget -> IO (MVar ControlPattern, MVar T.Tempo, O.UDP)
 stream cMapMV target = do u <- O.openUDP (oAddress target) (oPort target)
                           pMV <- newMVar empty
                           (tempoMV, _) <- T.clocked $ onTick cMapMV pMV target u
-                          return $ (pMV, tempoMV)
+                          return $ (pMV, tempoMV, u)
 
 
 data PlayState = PlayState {pattern :: ControlPattern,
@@ -154,21 +148,23 @@ onTick cMapMV pMV target u tempoMV st =
          cpsChanges = map (\e -> (at e - now, Map.lookup "cps" $ eventValue e)) es
          toMessage e = O.Message (oPath target) $ oPreamble target ++ toData e
 
-     E.catch (mapM_ send messages)
+     E.catch (mapM_ (send target u) messages)
        (\(_ ::E.SomeException)
         -> putStrLn $ "Failed to send. Is the target (probably superdirt) running?")
                 -- ++ show (msg :: E.SomeException))
      mapM_ doCps cpsChanges
      return ()
-  where send (time, m) = O.sendOSC u $ O.Bundle (time + (oLatency target)) [m]
-        sched :: T.Tempo -> Rational -> Double
-        sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)
-        doCps (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
+  where doCps (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
                                                        _ <- T.setCps tempoMV cps
                                                        return ()
                                       return ()
         doCps _ = return ()
 
+send :: O.Transport t => OSCTarget -> t -> (Double, O.Message) -> IO ()
+send target u (time, m) = O.sendOSC u $ O.Bundle (time + (oLatency target)) [m]
+
+sched :: T.Tempo -> Rational -> Double
+sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)
 
 -- Interaction
 
@@ -208,6 +204,32 @@ streamSolo s k = withPatId s (show k) (\x -> x {solo = True})
 streamUnsolo :: Show a => Stream -> a -> IO ()
 streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
 
+streamOnce :: Stream -> ControlPattern -> IO ()
+streamOnce st p = do cMap <- readMVar (sInput st)
+                     -- pMap <- readMVar (sPMapMV s)
+                     tempo <- readMVar (sTempo st)
+                     now <- O.time
+                     let target = sTarget st
+                         fakeTempo = T.Tempo {T.cps = T.cps tempo,
+                                              T.atCycle = 0,
+                                              T.atTime = now,
+                                              T.paused = False,
+                                              T.nudged = 0
+                                             }
+                         es = filter eventHasOnset $ query p (State {arc = (0,1),
+                                                                     controls = cMap
+                                                                    }
+                                                             )
+                         at e = sched fakeTempo $ fst $ eventWhole e
+                         messages = map (\e -> (at e, toMessage e)) es
+                         toMessage e = O.Message (oPath target) $ oPreamble target ++ toData e
+                         -- c = T.timeToCycles fakeTempo now
+                     -- note that send adds latency, that probably is what we want.. but
+                     -- perhaps a way to send ASAP would be nice.
+                     E.catch (mapM_ (send target (sUDP st)) messages)
+                       (\(_ ::E.SomeException)
+                        -> putStrLn $ "Failed to send. Is the target (probably superdirt) running?")
+                    
 withPatId :: Stream -> PatId -> (PlayState -> PlayState) -> IO ()
 withPatId s k f = withPatIds s [k] f
 
@@ -237,14 +259,16 @@ calcOutput s = do pMap <- readMVar $ sPMapMV s
 startTidal :: OSCTarget -> Config -> IO Stream
 startTidal target c = do cMapMV <- newMVar (Map.empty :: ControlMap)
                          listenTid <- ctrlListen cMapMV c
-                         (pMV, tempoMV) <- stream cMapMV target
+                         (pMV, tempoMV, u) <- stream cMapMV target
                          pMapMV <- newMVar Map.empty
                          return $ Stream {sConfig = defaultConfig,
                                           sInput = cMapMV,
                                           sListenTid = listenTid,
                                           sOutput = pMV,
                                           sPMapMV = pMapMV,
-                                          sTempo = tempoMV
+                                          sTempo = tempoMV,
+                                          sTarget = target,
+                                          sUDP = u
                                          }
 ctrlListen :: MVar ControlMap -> Config -> IO (Maybe ThreadId)
 ctrlListen cMapMV c
