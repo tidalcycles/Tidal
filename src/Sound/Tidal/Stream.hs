@@ -204,31 +204,30 @@ streamSolo s k = withPatId s (show k) (\x -> x {solo = True})
 streamUnsolo :: Show a => Stream -> a -> IO ()
 streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
 
-streamOnce :: Stream -> ControlPattern -> IO ()
-streamOnce st p = do cMap <- readMVar (sInput st)
-                     -- pMap <- readMVar (sPMapMV s)
-                     tempo <- readMVar (sTempo st)
-                     now <- O.time
-                     let target = sTarget st
-                         fakeTempo = T.Tempo {T.cps = T.cps tempo,
-                                              T.atCycle = 0,
-                                              T.atTime = now,
-                                              T.paused = False,
-                                              T.nudged = 0
-                                             }
-                         es = filter eventHasOnset $ query p (State {arc = (0,1),
-                                                                     controls = cMap
-                                                                    }
-                                                             )
-                         at e = sched fakeTempo $ fst $ eventWhole e
-                         messages = map (\e -> (at e, toMessage e)) es
-                         toMessage e = O.Message (oPath target) $ oPreamble target ++ toData e
-                         -- c = T.timeToCycles fakeTempo now
-                     -- note that send adds latency, that probably is what we want.. but
-                     -- perhaps a way to send ASAP would be nice.
-                     E.catch (mapM_ (send target (sUDP st)) messages)
-                       (\(_ ::E.SomeException)
-                        -> putStrLn $ "Failed to send. Is the target (probably superdirt) running?")
+streamOnce :: Stream -> Bool -> ControlPattern -> IO ()
+streamOnce st asap p
+  = do cMap <- readMVar (sInput st)
+       tempo <- readMVar (sTempo st)
+       now <- O.time
+       let target = if asap
+                    then (sTarget st) {oLatency = 0}
+                    else sTarget st
+           fakeTempo = T.Tempo {T.cps = T.cps tempo,
+                                T.atCycle = 0,
+                                T.atTime = now,
+                                T.paused = False,
+                                T.nudged = 0
+                               }
+           es = filter eventHasOnset $ query p (State {arc = (0,1),
+                                                       controls = cMap
+                                                      }
+                                               )
+           at e = sched fakeTempo $ fst $ eventWhole e
+           messages = map (\e -> (at e, toMessage e)) es
+           toMessage e = O.Message (oPath target) $ oPreamble target ++ toData e
+       E.catch (mapM_ (send target (sUDP st)) messages)
+         (\(msg ::E.SomeException)
+          -> putStrLn $ "Failed to send. Is the target (probably superdirt) running? " ++ show (msg :: E.SomeException))
                     
 withPatId :: Stream -> PatId -> (PlayState -> PlayState) -> IO ()
 withPatId s k f = withPatIds s [k] f
