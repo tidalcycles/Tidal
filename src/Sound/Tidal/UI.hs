@@ -1141,13 +1141,11 @@ flatpat p = p {query = \st -> (concatMap (\((b,b'),xs) -> map (\x -> ((b,b'),x))
 layer :: [a -> Pattern b] -> a -> Pattern b
 layer fs p = stack $ map ($ p) fs
 
--- | @breakUp@ finds events that share the same timespan, and spreads
--- them out during that timespan, so for example @breakUp "[bd,sn]"@
--- gets turned into @"bd sn"@
-
--- TODO - does this need a sort before groupBy ?
-breakUp :: Pattern a -> Pattern a
-breakUp p = withEvents munge p
+-- | @arpeggiate@ finds events that share the same timespan, and spreads
+-- them out during that timespan, so for example @arpeggiate "[bd,sn]"@
+-- gets turned into @"bd sn"@. Useful for creating arpeggios/broken chords. 
+arpeggiate :: Pattern a -> Pattern a
+arpeggiate p = withEvents munge p
   where munge es = concatMap spreadOut (groupBy (\a b -> eventWhole a == eventWhole b) es)
         spreadOut xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
         shiftIt n d (((s,e), a'), v) = do a'' <- subArc (newS, newE) a'
@@ -1155,6 +1153,10 @@ breakUp p = withEvents munge p
           where newS = s + (dur*(fromIntegral n))
                 newE = newS + dur
                 dur = (e - s) / (fromIntegral d)
+
+-- | Shorthand alias for arpeggiate
+arpg :: Pattern a -> Pattern a
+arpg = arpeggiate
 
 {- TODO !
 
@@ -1183,7 +1185,7 @@ ply :: Pattern Int -> Pattern a -> Pattern a
 ply = tParam _ply
 
 _ply :: Int -> Pattern a -> Pattern a
-_ply n p = breakUp $ stack (replicate n p)
+_ply n p = arpeggiate $ stack (replicate n p)
 
 -- Uses the first (binary) pattern to switch between the following two
 -- patterns. 
@@ -1408,5 +1410,4 @@ tabby n p p' = stack [maskedWarp,
     warpP = thread warp p
     maskedWeft = mask (every 2 rev $ _fast ((n)%2) $ fastCat [silence, pure True]) weftP
     maskedWarp = mask (every 2 rev $ _fast ((n)%2) $ fastCat [pure True, silence]) warpP
-
 
