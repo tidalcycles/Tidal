@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 import Test.Microspec
 
 import Prelude hiding ((<*), (*>))
@@ -8,6 +10,7 @@ import Data.List (sort)
 import Sound.Tidal.Control
 import Sound.Tidal.Core
 import Sound.Tidal.Params
+import Sound.Tidal.Parse
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
 import Sound.Tidal.Utils
@@ -347,3 +350,8 @@ main = microspec $ do
     it "can chop a chop" $
       property $ compareTol (0,1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")
 
+  describe "Sound.Tidal.Parse.p" $ do
+    it "can parse things" $ do
+      compareP (0,5)
+        ("a b c" :: Pattern String)
+        (fastCat ["a", "b", "c"])
