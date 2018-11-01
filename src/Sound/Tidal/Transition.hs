@@ -6,12 +6,13 @@ import qualified Sound.OSC.FD as O
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust)
 
+import Sound.Tidal.Control
 import Sound.Tidal.Core
 import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Stream
 import Sound.Tidal.Tempo (timeToCycles)
-import Sound.Tidal.UI (fadeOutFrom)
+import Sound.Tidal.UI (fadeOutFrom, fadeInFrom, spread')
 import Sound.Tidal.Utils (enumerate)
 
 transition :: Show a => Stream -> (Time -> [ControlPattern] -> ControlPattern) -> a -> ControlPattern -> IO ()
@@ -43,6 +44,9 @@ wash fout fin delay durin durout now (pat:pat':_) =
          ]
  where
    between lo hi x = (x >= lo) && (x < hi)
+
+washIn :: (Pattern a -> Pattern a) -> Time -> Time -> [Pattern a] -> Pattern a
+washIn f durin now pats = wash f id 0 durin 0 now pats
 
 xfadeIn :: Time -> Time -> [ControlPattern] -> ControlPattern
 xfadeIn _ _ [] = silence
@@ -121,3 +125,56 @@ interpolateIn t now (p:p':_) = do n <- now `rotR` (_slow t envL)
         combineV f a b = Map.mapWithKey pairUp a
           where pairUp k v | Map.notMember k b = v
                            | otherwise = f v (fromJust $ Map.lookup k b)
+
+
+{-|
+Degrades the current pattern while undegrading the next.
+
+This is like @xfade@ but not by gain of samples but by randomly removing events from the current pattern and slowly adding back in missing events from the next one.
+
+@
+d1 $ sound "bd(3,8)"
+
+t1 clutch $ sound "[hh*4, odx(3,8)]"
+@
+
+@clutch@ takes two cycles for the transition, essentially this is @clutchIn 2@.
+-}
+clutch :: Time -> [Pattern a] -> Pattern a
+clutch = clutchIn 2
+
+{-|
+Also degrades the current pattern and undegrades the next.
+To change the number of cycles the transition takes, you can use @clutchIn@ like so:
+
+@
+d1 $ sound "bd(5,8)"
+
+t1 (clutchIn 8) $ sound "[hh*4, odx(3,8)]"
+@
+
+will take 8 cycles for the transition.
+-}
+clutchIn :: Time -> Time -> [Pattern a] -> Pattern a
+clutchIn _ _ [] = silence
+clutchIn _ _ (p:[]) = p
+clutchIn t now (p:p':_) = overlay (fadeOutFrom now t p') (fadeInFrom now t p)
+
+{-| same as `anticipate` though it allows you to specify the number of cycles until dropping to the new pattern, e.g.:
+
+@
+d1 $ sound "jvbass(3,8)"
+
+t1 (anticipateIn 4) $ sound "jvbass(5,8)"
+@-}
+anticipateIn :: Time -> Time -> [ControlPattern] -> ControlPattern
+anticipateIn t now pats = washIn (spread' (_stut 8 0.2) (now `rotR` (_slow t $ (toRational . (1-)) <$> envL))) t now pats
+
+-- wash :: (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Time -> Time -> Time -> Time -> [Pattern a] -> Pattern a
+
+{- | `anticipate` is an increasing comb filter.
+
+Build up some tension, culminating in a _drop_ to the new pattern after 8 cycles.
+-}
+anticipate :: Time -> [ControlPattern] -> ControlPattern
+anticipate = anticipateIn 8
