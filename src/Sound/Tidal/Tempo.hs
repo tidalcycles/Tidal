@@ -113,9 +113,7 @@ clientListen s =
          remote_sockaddr = N.SockAddrInet (fromIntegral port) (a)
          t = defaultTempo s
      -- Send to clock port from same port that's listened to
-     putStrLn "sending hello."
      O.sendTo udp (O.Message "/hello" []) remote_sockaddr
-     putStrLn "sent."
      -- Make tempo mvar
      tempoMV <- newMVar t
      -- Listen to tempo changes
