@@ -67,11 +67,11 @@ superdirtTarget = OSCTarget {oAddress = "127.0.0.1",
                              oTimestamp = BundleStamp
                             }
 
-stream :: MVar ControlMap -> OSCTarget -> IO (MVar ControlPattern, MVar T.Tempo, O.UDP)
-stream cMapMV target = do u <- O.openUDP (oAddress target) (oPort target)
-                          pMV <- newMVar empty
-                          (tempoMV, _) <- T.clocked $ onTick cMapMV pMV target u
-                          return $ (pMV, tempoMV, u)
+startStream :: MVar ControlMap -> OSCTarget -> IO (MVar ControlPattern, MVar T.Tempo, O.UDP)
+startStream cMapMV target = do u <- O.openUDP (oAddress target) (oPort target)
+                               pMV <- newMVar empty
+                               (tempoMV, _) <- T.clocked $ onTick cMapMV pMV target u
+                               return $ (pMV, tempoMV, u)
 
 
 data PlayState = PlayState {pattern :: ControlPattern,
@@ -98,35 +98,6 @@ listenCMap cMapMV = do sock <- O.udpServer "127.0.0.1" (6011)
         add k v = do cMap <- takeMVar cMapMV
                      putMVar cMapMV $ Map.insert k v cMap
                      return ()
-
-{-
-stream5 :: OSCTarget -> IO (MVar T.Tempo,
-                            MVar ControlMap,
-                            PatId -> ControlPattern -> IO (), -- swap
-                            IO (), -- hush
-                            IO () -- list
-                           )
-                             -- IO (Int -> IO ()), -- toggle mute
-                             -- IO (Int -> IO ()), -- solo
-                             -- IO (IO ()), -- unsolo
-                             -- IO ([Int, True]) -- list patterns and whether they're muted
-                             -- ]
-stream5 target = do pMapMV <- newMVar (Map.empty :: Map.Map PatId PlayState)
-                    cMapMV <- newMVar (Map.empty :: ControlMap)
-                    listenCMap cMapMV
-                    (pMV, tempoMV) <- stream cMapMV target
-                    return (tempoMV,
-                            cMapMV,
-                            swap set pMapMV,
-                            hush set pMapMV,
-                            list pMapMV
-                            -- once set pMapMV
-                            {- --toggle set pMapMV,
-                                solo set pMapMV,
-                                unsolo set pMapMV,
-                                list set pMapMV -}
-                           )
--}
 
 toDatum :: Value -> O.Datum
 toDatum (VF x) = float x
@@ -258,7 +229,7 @@ calcOutput s = do pMap <- readMVar $ sPMapMV s
 startTidal :: OSCTarget -> Config -> IO Stream
 startTidal target c = do cMapMV <- newMVar (Map.empty :: ControlMap)
                          listenTid <- ctrlListen cMapMV c
-                         (pMV, tempoMV, u) <- stream cMapMV target
+                         (pMV, tempoMV, u) <- startStream cMapMV target
                          pMapMV <- newMVar Map.empty
                          return $ Stream {sConfig = defaultConfig,
                                           sInput = cMapMV,
