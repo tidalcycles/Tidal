@@ -92,24 +92,38 @@
   (if (string< tidal-interpreter-version "8.2.0")
       (tidal-send-string ":set prompt2 \"\"")
     (tidal-send-string ":set prompt-cont \"\""))
-  (tidal-send-string ":module Sound.Tidal.Context")
-  (tidal-send-string "(tempoMVar, ctrlMVar, p, hush, list) <- stream5 superdirtTarget")
-  (tidal-send-string "let d1 = p \"d1\"")
-  (tidal-send-string "let d2 = p \"d2\"")
-  (tidal-send-string "let d3 = p \"d3\"")
-  (tidal-send-string "let d4 = p \"d4\"")
-  (tidal-send-string "let d5 = p \"d5\"")
-  (tidal-send-string "let d6 = p \"d6\"")
-  (tidal-send-string "let d7 = p \"d7\"")
-  (tidal-send-string "let d8 = p \"d8\"")
-  (tidal-send-string "let d9 = p \"d9\"")
-  (tidal-send-string "let d10 = p \"d10\"")
-  (tidal-send-string "let d11 = p \"d11\"")
-  (tidal-send-string "let d12 = p \"d12\"")
-  (tidal-send-string "let d13 = p \"13\"")
-  (tidal-send-string "let d14 = p \"d14\"")
-  (tidal-send-string "let d15 = p \"d15\"")
-  (tidal-send-string "let d16 = p \"d16\"")
+  (tidal-send-string "import Sound.Tidal.Context
+
+tidal <- startTidal superdirtTarget defaultConfig
+
+let p = streamReplace tidal
+    hush = streamHush tidal
+    list = streamList tidal
+    mute = streamMute tidal
+    unmute = streamUnmute tidal
+    once = streamOnce tidal False
+    asap = streamOnce tidal True
+    setcps = asap . cps
+    xfade = transition tidal (Sound.Tidal.Transition.xfadeIn 4)
+    xfadeIn t = transition tidal (Sound.Tidal.Transition.xfadeIn t)
+    wait t = transition tidal (Sound.Tidal.Transition.wait t)
+    d1 = p \"1\"
+    d2 = p \"2\"
+    d3 = p \"3\"
+    d4 = p \"4\"
+    d5 = p \"5\"
+    d6 = p \"6\"
+    d7 = p \"7\"
+    d8 = p \"8\"
+    d9 = p \"9\"
+    d10 = p \"10\"
+    d11 = p \"11\"
+    d12 = p \"12\"
+    d13 = p \"13\"
+    d14 = p \"14\"
+    d15 = p \"15\"
+    d16 = p \"16\"
+  ")
   (tidal-send-string ":set prompt \"tidal> \"")
 )
 
