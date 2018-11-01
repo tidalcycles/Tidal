@@ -10,3 +10,7 @@ let p = streamReplace tidal
     once = streamOnce tidal False
     asap = streamOnce tidal True
     setcps = asap . cps
+    xfade = transition tidal (Sound.Tidal.Transition.xfadeIn 4)
+    xfadeIn t = transition tidal (Sound.Tidal.Transition.xfadeIn t)
+    wait t = transition tidal (Sound.Tidal.Transition.wait t)
+
