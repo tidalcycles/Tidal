@@ -631,6 +631,7 @@ filterValues f p = p {query = (filter (f . snd)) . query p}
 filterJust :: Pattern (Maybe a) -> Pattern a
 filterJust p = fromJust <$> (filterValues (isJust) p)
 
+-- formerly known as playWhen
 filterWhen :: (Time -> Bool) -> Pattern a -> Pattern a
 filterWhen test p = p {query = filter (test . eventWholeOnset) . query p}
 

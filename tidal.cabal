@@ -38,6 +38,7 @@ library
                        Sound.Tidal.Pattern
                        Sound.Tidal.Stream
                        Sound.Tidal.Tempo
+                       Sound.Tidal.Transition
                        Sound.Tidal.UI
                        Sound.Tidal.Utils
 

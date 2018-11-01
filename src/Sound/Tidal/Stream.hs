@@ -35,7 +35,7 @@ data Stream = Stream {sConfig :: Config,
                       sOutput :: MVar ControlPattern,
                       sListenTid :: Maybe ThreadId,
                       sPMapMV :: MVar PlayMap,
-                      sTempo :: MVar T.Tempo,
+                      sTempoMV :: MVar T.Tempo,
                       sTarget :: OSCTarget,
                       sUDP :: O.UDP
                      }
@@ -207,7 +207,7 @@ streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
 streamOnce :: Stream -> Bool -> ControlPattern -> IO ()
 streamOnce st asap p
   = do cMap <- readMVar (sInput st)
-       tempo <- readMVar (sTempo st)
+       tempo <- readMVar (sTempoMV st)
        now <- O.time
        let target = if asap
                     then (sTarget st) {oLatency = 0}
@@ -265,7 +265,7 @@ startTidal target c = do cMapMV <- newMVar (Map.empty :: ControlMap)
                                           sListenTid = listenTid,
                                           sOutput = pMV,
                                           sPMapMV = pMapMV,
-                                          sTempo = tempoMV,
+                                          sTempoMV = tempoMV,
                                           sTarget = target,
                                           sUDP = u
                                          }
