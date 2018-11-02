@@ -1,6 +1,8 @@
 module Sound.Tidal.Transition where
 
-import Control.Concurrent.MVar (readMVar)
+import Prelude hiding ((<*), (*>))
+
+import Control.Concurrent.MVar (readMVar, takeMVar, putMVar)
 
 import qualified Sound.OSC.FD as O
 import qualified Data.Map.Strict as Map
@@ -16,18 +18,27 @@ import Sound.Tidal.UI (fadeOutFrom, fadeInFrom, spread')
 import Sound.Tidal.Utils (enumerate)
 
 transition :: Show a => Stream -> (Time -> [ControlPattern] -> ControlPattern) -> a -> ControlPattern -> IO ()
-transition stream f patId pat = do pMap <- readMVar (sPMapMV stream)
-                                   let match = Map.lookup (show patId) pMap
-                                   transition' match
+transition stream f patId pat = do pMap <- takeMVar (sPMapMV stream)
+                                   putStrLn $ "before: " ++ show pMap
+                                   let playState = updatePS $ Map.lookup (show patId) pMap
+                                   pat' <- transition' $ history playState
+                                   let pMap' =
+                                         Map.insert (show patId) (playState {pattern = pat'}) pMap
+                                   putMVar (sPMapMV stream) pMap'
+                                   calcOutput stream
+                                   putStrLn $ "after: " ++ show pMap'
+                                   return ()
   where
-    transition' (Just playState) = do let context = pat:(pattern playState):(history playState)
-                                      tempo <- readMVar $ sTempoMV stream
-                                      now <- O.time
-                                      let c = timeToCycles tempo now
-                                      streamReplace stream patId $ f c context
-    transition' Nothing = putStrLn $ "No such pattern: " ++ show patId
-
-
+    updatePS (Just playState) = playState {history = pat:(history playState)}
+    updatePS Nothing = PlayState {pattern = silence,
+                                  mute = False,
+                                  solo = False,
+                                  history = pat:silence:[]
+                                 }
+    transition' context = do tempo <- readMVar $ sTempoMV stream
+                             now <- O.time
+                             let c = timeToCycles tempo now
+                             return $ f c context
 
 {-| Washes away the current pattern after a certain delay by applying a
     function to it over time, then switching over to the next pattern to
@@ -116,16 +127,13 @@ interpolate = interpolateIn 4
 interpolateIn :: Time -> Time -> [ControlPattern] -> ControlPattern
 interpolateIn _ _ [] = silence
 interpolateIn _ _ (p:[]) = p
-interpolateIn t now (p:p':_) = do n <- now `rotR` (_slow t envL)
-                                  combineV (mixNums n) <$> p <*> p'
-  where mixNums v (VF a) (VF b) = VF $ (a * v) + (b * (1-v))
-        mixNums v (VI a) (VI b) = VI $ floor $ (fromIntegral a * v) + (fromIntegral b * (1-v))
-        mixNums _ _ b = b
-        combineV :: (Value -> Value -> Value) -> ControlMap -> ControlMap -> ControlMap
-        combineV f a b = Map.mapWithKey pairUp a
-          where pairUp k v | Map.notMember k b = v
-                           | otherwise = f v (fromJust $ Map.lookup k b)
-
+interpolateIn t now (pat:pat':_) = f <$> pat' *> pat <* automation
+  where automation = now `rotR` (_slow t envL)
+        f = (\a b x -> Map.unionWith (fNum2 (\a' b' -> floor $ (fromIntegral a') * x + (fromIntegral b') * (1-x))
+                                            (\a' b' -> a' * x + b' * (1-x))
+                                     )
+                       b a
+            )
 
 {-|
 Degrades the current pattern while undegrading the next.

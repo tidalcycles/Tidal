@@ -79,6 +79,7 @@ data PlayState = PlayState {pattern :: ControlPattern,
                             solo :: Bool,
                             history :: [ControlPattern]
                            }
+               deriving Show
 
 type PlayMap = Map.Map PatId PlayState
 
@@ -153,12 +154,14 @@ streamList s = do pMap <- readMVar (sPMapMV s)
         showKV False (k, _) = "(" ++ k ++ ") - muted\n"
 
 streamReplace :: Show a => Stream -> a -> ControlPattern -> IO ()
-streamReplace s k p
-  = do playMap <- takeMVar $ sPMapMV s
-       let pMap' = Map.insert (show k) (PlayState p False False []) playMap
-       putMVar (sPMapMV s) pMap'
+streamReplace s k pat
+  = do pMap <- takeMVar $ sPMapMV s
+       let playState = updatePS $ Map.lookup (show k) pMap
+       putMVar (sPMapMV s) $ Map.insert (show k) playState pMap
        calcOutput s
        return ()
+  where updatePS (Just playState) = do playState {pattern = pat, history = pat:(history playState)}
+        updatePS Nothing = PlayState pat False False []
 
 streamMute :: Show a => Stream -> a -> IO ()
 streamMute s k = withPatId s (show k) (\x -> x {mute = True})
