@@ -45,6 +45,7 @@ library
                        Sound.Tidal.Sieve
                        Sound.Tidal.Version
                        Sound.Tidal.Simple
+                       Sound.Tidal.MiniTidal
                        -- Sound.Tidal.PatternList
 
   Build-depends:
