@@ -456,3 +456,7 @@ pDensity = angles (pRatio <?> "ratio")
            <|>
            return (1 % 1)
 -}
+
+cBP :: (Parseable a, Enumerable a) => String -> Pattern a
+cBP s = unwrap $ fromString <$> cS s
+
