@@ -117,7 +117,10 @@ instance Pattern' ControlMap where
 controlPatternMergeOperator :: Parser (ControlPattern -> ControlPattern -> ControlPattern)
 controlPatternMergeOperator = choice [
   op "#" >> return (T.#),
---  op "|=|" >> return (T.|=|), -- not in Tidal 1.0?
+  op "|>" >> return (T.|>),
+  op "<|" >> return (T.<|),
+  op "|>|" >> return (T.|>|),
+  op "|<|" >> return (T.|<),
   op "|+|" >> return (T.|+|),
   op "|-|" >> return (T.|-|),
   op "|*|" >> return (T.|*|),
@@ -397,7 +400,7 @@ tokenParser = P.makeTokenParser $ haskellDef {
     "scramble","breakUp","degrade","randcat","randStruct","toScale'","toScale","cycleChoose",
     "d1","d2","d3","d4","d5","d6","d7","d8","d9","t1","t2","t3","t4","t5","t6","t7","t8","t9",
     "cps","xfadeIn"],
-  P.reservedOpNames = ["+","-","*","/","<~","~>","#","|=|","|+|","|-|","|*|","|/|","$","\""]
+  P.reservedOpNames = ["+","-","*","/","<~","~>","#","|+|","|-|","|*|","|/|","$","\"","|>","<|","|>|","|<|"]
   }
 
 identifier = P.identifier tokenParser
