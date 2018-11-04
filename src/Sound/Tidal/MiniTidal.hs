@@ -273,7 +273,7 @@ simpleDoublePatterns = choice [
 instance Pattern' Int where
   simplePattern = choice [
     pure <$> int,
-    p'
+    parseBP'
     ]
   complexPattern = (atom <*> int) <|> enumComplexPatterns <|> numComplexPatterns <|> intComplexPatterns
   mergeOperator = numMergeOperator
@@ -284,7 +284,7 @@ instance Pattern' Int where
 instance Pattern' Integer where
   simplePattern = choice [
     pure <$> integer,
-    p'
+    parseBP'
     ]
   complexPattern = (atom <*> integer) <|> enumComplexPatterns <|> numComplexPatterns
   mergeOperator = numMergeOperator
@@ -294,7 +294,7 @@ instance Pattern' Integer where
 
 instance Pattern' Double where
   simplePattern = choice [
-    p',
+    parseBP',
     pure <$> double,
     simpleDoublePatterns
     ]
@@ -307,7 +307,7 @@ instance Pattern' Double where
 instance Pattern' Time where
   simplePattern = choice [
     pure <$> literal,
-    p'
+    parseBP'
     ]
   complexPattern = atom <*> literal <|> numComplexPatterns
   mergeOperator = numMergeOperator <|> fractionalMergeOperator
@@ -329,7 +329,7 @@ instance Pattern' Arc where
     if length xs == 2 then return (xs!!0,xs!!1) else unexpected "Arcs must contain exactly two values"
 
 instance Pattern' String where
-  simplePattern = p'
+  simplePattern = parseBP'
   complexPattern = atom <*> stringLiteral
   mergeOperator = choice [] -- ??
   transformationWithoutArgs = patternTransformationWithoutArgs
@@ -429,33 +429,11 @@ semiSep1 = P.semiSep1 tokenParser
 commaSep = P.commaSep tokenParser
 commaSep1 = P.commaSep1 tokenParser
 
-p' :: (Enumerable a, Parseable' a) => Parser (Pattern a)
-p' = parseTPat' >>= return . T.toPat
+parseBP' :: (Enumerable a, Parseable a) => Parser (Pattern a)
+parseBP' = parseTPat' >>= return . T.toPat
 
--- The class Parseable' and instances below basically just duplicate the class
--- Parseable in Tidal but incorporates the parser into our parser instead of
--- running it. Probably this idea should just be part of Parseable instead.
-
-class Parseable' a where
-  parseTPat' :: Parser (TPat a)
-
-instance Parseable' Double where
-  parseTPat' = parseRhythm' T.pDouble
-
-instance Parseable' String where
-  parseTPat' = parseRhythm' T.pVocable
-
-instance Parseable' Bool where
-  parseTPat' = parseRhythm' T.pBool
-
-instance Parseable' Int where
-  parseTPat' = parseRhythm' T.pIntegral
-
-instance Parseable' Integer where
-  parseTPat' = parseRhythm' T.pIntegral
-
-instance Parseable' Rational where
-  parseTPat' = parseRhythm' T.pRational
+parseTPat' :: Parseable a => Parser (TPat a)
+parseTPat' = parseRhythm' T.tPatParser
 
 parseRhythm' :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 parseRhythm' f = do
