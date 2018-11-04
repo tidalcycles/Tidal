@@ -5,6 +5,7 @@
 module Sound.Tidal.ParseBP where
 
 import Text.ParserCombinators.Parsec
+import Text.Parsec.Error
 import qualified Text.ParserCombinators.Parsec.Token as P
 import Text.ParserCombinators.Parsec.Language ( haskellDef )
 import Data.Ratio
@@ -14,6 +15,8 @@ import GHC.Exts( IsString(..) )
 import Control.Applicative ((<$>), (<*>), pure)
 import Data.Maybe
 import Data.Functor.Identity (Identity)
+import Data.Typeable (Typeable)
+import Data.List (intercalate)
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
@@ -21,8 +24,19 @@ import Sound.Tidal.Core
 import Sound.Tidal.Chords (chordTable)
 import qualified  Control.Exception as E
 
--- Make parse errors throwable
-instance E.Exception ParseError
+data TidalParseError = TidalParseError {parsecError :: ParseError,
+                                        code :: String
+                                       }
+  deriving (Eq, Typeable)
+
+instance E.Exception TidalParseError
+
+instance Show TidalParseError where
+  show err = "Syntax error in sequence:\n  \"" ++ code err ++ "\"\n  " ++ pointer ++ "  " ++ message
+    where pointer = replicate (sourceColumn $ errorPos perr) ' ' ++ "^"
+          message = showErrorMessages "or" "unknown parse error" "expecting" "unexpected" "end of input" $ errorMessages perr
+          perr = parsecError err
+
 
 -- | AST representation of patterns
 
@@ -78,7 +92,7 @@ parseBP_E s = toE parsed
   where
     parsed = parseTPat s
     -- TODO - custom error
-    toE (Left e) = E.throw e
+    toE (Left e) = E.throw $ TidalParseError {parsecError = e, code = s}
     toE (Right tp) = toPat tp
 
 class Parseable a where
