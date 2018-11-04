@@ -8,7 +8,7 @@ import Prelude hiding ((<*), (*>))
 
 import Data.List (sort)
 
-import Sound.Tidal.Parse
+import Sound.Tidal.ParseBP (parseBP_E)
 import Sound.Tidal.Pattern
 
 import qualified Data.Map.Strict as Map
@@ -29,4 +29,4 @@ compareTol a p p' = (sort $ queryArc p a) ~== (sort $ queryArc p' a)
 
 -- | Utility to create a pattern from a String
 ps :: String -> Pattern String
-ps = Sound.Tidal.Parse.p
+ps = parseBP_E

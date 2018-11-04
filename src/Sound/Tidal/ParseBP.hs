@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-unused-do-bind #-}
 
-module Sound.Tidal.Parse where
+module Sound.Tidal.ParseBP where
 
 import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
@@ -19,6 +19,10 @@ import Sound.Tidal.Pattern
 import Sound.Tidal.UI
 import Sound.Tidal.Core
 import Sound.Tidal.Chords (chordTable)
+import qualified  Control.Exception as E
+
+-- Make parse errors throwable
+instance E.Exception ParseError
 
 -- | AST representation of patterns
 
@@ -66,11 +70,19 @@ durations ((TPat_Elongate n):xs) = (n, TPat_Silence):(durations xs)
 durations (a:(TPat_Elongate n):xs) = (n+1,a):(durations xs)
 durations (a:xs) = (1,a):(durations xs)
 
-p :: (Enumerable a, Parseable a) => String -> Pattern a
-p = toPat . parseTPat
+parseBP :: (Enumerable a, Parseable a) => String -> Either ParseError (Pattern a)
+parseBP s = toPat <$> parseTPat s
+
+parseBP_E :: (Enumerable a, Parseable a) => String -> Pattern a
+parseBP_E s = toE parsed
+  where
+    parsed = parseTPat s
+    -- TODO - custom error
+    toE (Left e) = E.throw e
+    toE (Right tp) = toPat tp
 
 class Parseable a where
-  parseTPat :: String -> TPat a
+  parseTPat :: String -> Either ParseError (TPat a)
 
 class Enumerable a where
   fromTo :: a -> a -> Pattern a
@@ -130,7 +142,7 @@ instance Enumerable ColourD where
   fromThenTo a b c = listToPat [a,b,c]
 
 instance (Enumerable a, Parseable a) => IsString (Pattern a) where
-  fromString = toPat . parseTPat
+  fromString = parseBP_E
 
 --instance (Parseable a, Pattern p) => IsString (p a) where
 --  fromString = p :: String -> p a
@@ -187,8 +199,8 @@ r s orig = do E.handle
                 (return $ p s)
 -}
 
-parseRhythm :: Parseable a => Parser (TPat a) -> String -> TPat a
-parseRhythm f input = either (const TPat_Silence) id $ parse (pSequence f') "" input
+parseRhythm :: Parseable a => Parser (TPat a) -> String -> Either ParseError (TPat a)
+parseRhythm f input = parse (pSequence f') "" input
   where f' = f
              <|> do symbol "~" <?> "rest"
                     return TPat_Silence
