@@ -19,6 +19,10 @@ import Sound.Tidal.Pattern
 import Sound.Tidal.UI
 import Sound.Tidal.Core
 import Sound.Tidal.Chords (chordTable)
+import qualified  Control.Exception as E
+
+-- Make parse errors throwable
+instance E.Exception ParseError
 
 -- | AST representation of patterns
 
@@ -74,7 +78,7 @@ parseBP_E s = toE parsed
   where
     parsed = parseTPat s
     -- TODO - custom error
-    toE (Left e) = error $ show e
+    toE (Left e) = E.throw e
     toE (Right tp) = toPat tp
 
 class Parseable a where

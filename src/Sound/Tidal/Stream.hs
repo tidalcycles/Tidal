@@ -1,5 +1,5 @@
 
-{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, BangPatterns #-}
 
 module Sound.Tidal.Stream where
 
@@ -153,13 +153,17 @@ streamList s = do pMap <- readMVar (sPMapMV s)
         showKV False (k, (PlayState _ False _ _)) = k ++ "\n"
         showKV False (k, _) = "(" ++ k ++ ") - muted\n"
 
+-- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 streamReplace :: Show a => Stream -> a -> ControlPattern -> IO ()
-streamReplace s k pat
-  = do pMap <- takeMVar $ sPMapMV s
-       let playState = updatePS $ Map.lookup (show k) pMap
-       putMVar (sPMapMV s) $ Map.insert (show k) playState pMap
-       calcOutput s
-       return ()
+streamReplace s k !pat
+  = E.catch (do pMap <- takeMVar $ sPMapMV s
+                let playState = updatePS $ Map.lookup (show k) pMap
+                putMVar (sPMapMV s) $ Map.insert (show k) playState pMap
+                calcOutput s
+                return ()
+          )
+    (\(e :: E.SomeException) -> putStrLn $ "Error in pattern: " ++ show e
+    )
   where updatePS (Just playState) = do playState {pattern = pat, history = pat:(history playState)}
         updatePS Nothing = PlayState pat False False []
 
@@ -218,6 +222,10 @@ withPatIds s ks f
 streamHush :: Stream -> IO ()
 streamHush s = do modifyMVar_ (sOutput s) $ return . const silence
                   modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = True})
+
+streamUnhush :: Stream -> IO ()
+streamUnhush s = do modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = False})
+                    calcOutput s
 
 calcOutput :: Stream -> IO ()
 calcOutput s = do pMap <- readMVar $ sPMapMV s

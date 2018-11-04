@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Sound.Tidal.Transition where
 
 import Prelude hiding ((<*), (*>))
@@ -6,7 +8,7 @@ import Control.Concurrent.MVar (readMVar, takeMVar, putMVar)
 
 import qualified Sound.OSC.FD as O
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromJust)
+-- import Data.Maybe (fromJust)
 
 import Sound.Tidal.Control
 import Sound.Tidal.Core
@@ -17,17 +19,16 @@ import Sound.Tidal.Tempo (timeToCycles)
 import Sound.Tidal.UI (fadeOutFrom, fadeInFrom, spread')
 import Sound.Tidal.Utils (enumerate)
 
+-- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 transition :: Show a => Stream -> (Time -> [ControlPattern] -> ControlPattern) -> a -> ControlPattern -> IO ()
-transition stream f patId pat = do pMap <- takeMVar (sPMapMV stream)
-                                   putStrLn $ "before: " ++ show pMap
-                                   let playState = updatePS $ Map.lookup (show patId) pMap
-                                   pat' <- transition' $ history playState
-                                   let pMap' =
-                                         Map.insert (show patId) (playState {pattern = pat'}) pMap
-                                   putMVar (sPMapMV stream) pMap'
-                                   calcOutput stream
-                                   putStrLn $ "after: " ++ show pMap'
-                                   return ()
+transition stream f patId !pat = do pMap <- takeMVar (sPMapMV stream)
+                                    let playState = updatePS $ Map.lookup (show patId) pMap
+                                    pat' <- transition' $ history playState
+                                    let pMap' =
+                                          Map.insert (show patId) (playState {pattern = pat'}) pMap
+                                    putMVar (sPMapMV stream) pMap'
+                                    calcOutput stream
+                                    return ()
   where
     updatePS (Just playState) = playState {history = pat:(history playState)}
     updatePS Nothing = PlayState {pattern = silence,
