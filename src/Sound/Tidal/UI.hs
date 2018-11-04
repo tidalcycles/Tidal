@@ -8,8 +8,11 @@ import qualified Sound.Tidal.Params as P
 
 import Data.Ord (comparing)
 import Data.Char (digitToInt, isDigit)
-import System.Random.Mersenne.Pure64 (randomDouble, pureMT)
-import Data.Ratio ((%))
+import System.Random.MWC
+import Control.Monad.ST
+import qualified Data.Vector as V
+import Data.Word (Word32)
+import Data.Ratio ((%),numerator,denominator)
 import Data.List (sort, sortBy, findIndices, elemIndex, groupBy, transpose)
 import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
@@ -23,8 +26,13 @@ import Sound.Tidal.Utils
 
 -- | Randomisation
 
-timeToRand :: RealFrac r => r -> Double
-timeToRand t = fst $ randomDouble $ pureMT $ floor $ (*1000000) t
+timeToRand :: RealFrac a => a -> Double
+timeToRand x = runST $ do
+  let x' = toRational (x*x) / 1000000
+  let n' = fromIntegral $ numerator x'
+  let d' = fromIntegral $ denominator x'
+  seed <- initialize (V.fromList [n',d'] :: V.Vector Word32)
+  uniform seed
 
 {-|
 
@@ -520,9 +528,9 @@ within (s,e) f p = stack [filterWhen (\t -> cyclePos t >= s && cyclePos t < e) $
                          ]
 
 {- |
-For many cases, @within'@ will function exactly as within.  
-The difference between the two occurs when applying functions that change the timing of notes such as 'fast' or '<~'. 
-within first applies the function to all notes in the cycle, then keeps the results in the specified interval, and then combines it with the old cycle (an "apply split combine" paradigm). 
+For many cases, @within'@ will function exactly as within.
+The difference between the two occurs when applying functions that change the timing of notes such as 'fast' or '<~'.
+within first applies the function to all notes in the cycle, then keeps the results in the specified interval, and then combines it with the old cycle (an "apply split combine" paradigm).
 within' first keeps notes in the specified interval, then applies the function to these notes, and then combines it with the old cycle (a "split apply combine" paradigm).
 
 
@@ -544,7 +552,7 @@ using this alternative version, within'
 d1 $ within' (0, 0.25) (fast 2) $ sound "bd hh cp sd"
 @
 
-sounds like: 
+sounds like:
 
 @
 d1 $ sound "[bd bd] hh cp sd"
@@ -553,8 +561,8 @@ d1 $ sound "[bd bd] hh cp sd"
 -}
 
 within' :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-within' (s,e) f p = stack [filterWhen (\t -> cyclePos t >= s && cyclePos t < e) $ compress (s,e) $ f $ zoom (s,e) $ p, 
-                           filterWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p 
+within' (s,e) f p = stack [filterWhen (\t -> cyclePos t >= s && cyclePos t < e) $ compress (s,e) $ f $ zoom (s,e) $ p,
+                           filterWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p
                           ]
 
 
@@ -1143,7 +1151,7 @@ layer fs p = stack $ map ($ p) fs
 
 -- | @arpeggiate@ finds events that share the same timespan, and spreads
 -- them out during that timespan, so for example @arpeggiate "[bd,sn]"@
--- gets turned into @"bd sn"@. Useful for creating arpeggios/broken chords. 
+-- gets turned into @"bd sn"@. Useful for creating arpeggios/broken chords.
 arpeggiate :: Pattern a -> Pattern a
 arpeggiate p = withEvents munge p
   where munge es = concatMap spreadOut (groupBy (\a b -> eventWhole a == eventWhole b) es)
@@ -1188,7 +1196,7 @@ _ply :: Int -> Pattern a -> Pattern a
 _ply n p = arpeggiate $ stack (replicate n p)
 
 -- Uses the first (binary) pattern to switch between the following two
--- patterns. 
+-- patterns.
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 sew stitch p1 p2 = overlay (const <$> p1 <*> a) (const <$> p2 <*> b)
   where a = filterValues (id) stitch
@@ -1410,4 +1418,3 @@ tabby n p p' = stack [maskedWarp,
     warpP = thread warp p
     maskedWeft = mask (every 2 rev $ _fast ((n)%2) $ fastCat [silence, pure True]) weftP
     maskedWarp = mask (every 2 rev $ _fast ((n)%2) $ fastCat [pure True, silence]) warpP
-
