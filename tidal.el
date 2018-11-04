@@ -92,33 +92,53 @@
   (if (string< tidal-interpreter-version "8.2.0")
       (tidal-send-string ":set prompt2 \"\"")
     (tidal-send-string ":set prompt-cont \"\""))
-  (tidal-send-string ":module Sound.Tidal.Context")
-  (tidal-send-string "import qualified Sound.Tidal.Scales as Scales")
-  (tidal-send-string "import qualified Sound.Tidal.Chords as Chords")
-  (tidal-send-string "(cps, nudger, getNow) <- cpsUtils'")
-  (tidal-send-string "(d1,t1) <- superDirtSetters getNow")
-  (tidal-send-string "(d2,t2) <- superDirtSetters getNow")
-  (tidal-send-string "(d3,t3) <- superDirtSetters getNow")
-  (tidal-send-string "(d4,t4) <- superDirtSetters getNow")
-  (tidal-send-string "(d5,t5) <- superDirtSetters getNow")
-  (tidal-send-string "(d6,t6) <- superDirtSetters getNow")
-  (tidal-send-string "(d7,t7) <- superDirtSetters getNow")
-  (tidal-send-string "(d8,t8) <- superDirtSetters getNow")
-  (tidal-send-string "(d9,t9) <- superDirtSetters getNow")
-  (tidal-send-string "(d10,t10) <- superDirtSetters getNow")
-  (tidal-send-string "(c1,ct1) <- dirtSetters getNow")
-  (tidal-send-string "(c2,ct2) <- dirtSetters getNow")
-  (tidal-send-string "(c3,ct3) <- dirtSetters getNow")
-  (tidal-send-string "(c4,ct4) <- dirtSetters getNow")
-  (tidal-send-string "(c5,ct5) <- dirtSetters getNow")
-  (tidal-send-string "(c6,ct6) <- dirtSetters getNow")
-  (tidal-send-string "(c7,ct7) <- dirtSetters getNow")
-  (tidal-send-string "(c8,ct8) <- dirtSetters getNow")
-  (tidal-send-string "(c9,ct9) <- dirtSetters getNow")
-  (tidal-send-string "(c10,ct10) <- dirtSetters getNow")
-  (tidal-send-string "let bps x = cps (x/2)")
-  (tidal-send-string "let hush = mapM_ ($ silence) [c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,d1,d2,d3,d4,d5,d6,d7,d8,d9,d10]")
-  (tidal-send-string "let solo = (>>) hush")
+  (tidal-send-string "import Sound.Tidal.Context
+
+tidal <- startTidal superdirtTarget defaultConfig
+
+let p = streamReplace tidal
+    hush = streamHush tidal
+    list = streamList tidal
+    mute = streamMute tidal
+    unmute = streamUnmute tidal
+    solo = streamSolo tidal
+    unsolo = streamUnsolo tidal
+    once = streamOnce tidal False
+    asap = streamOnce tidal True
+    setcps = asap . cps
+    xfade = transition tidal (Sound.Tidal.Transition.xfadeIn 4)
+    xfadeIn t = transition tidal (Sound.Tidal.Transition.xfadeIn t)
+    histpan t = transition tidal (Sound.Tidal.Transition.histpan t)
+    wait t = transition tidal (Sound.Tidal.Transition.wait t)
+    waitT f t = transition tidal (Sound.Tidal.Transition.waitT f t)
+    jump = transition tidal (Sound.Tidal.Transition.jump)
+    jumpIn t = transition tidal (Sound.Tidal.Transition.jumpIn t)
+    jumpIn' t = transition tidal (Sound.Tidal.Transition.jumpIn' t)
+    jumpMod t = transition tidal (Sound.Tidal.Transition.jumpMod t)
+    mortal lifespan release = transition tidal (Sound.Tidal.Transition.mortal lifespan release)
+    interpolate = transition tidal (Sound.Tidal.Transition.interpolate)
+    interpolateIn t = transition tidal (Sound.Tidal.Transition.interpolateIn t)
+    clutch = transition tidal (Sound.Tidal.Transition.clutch)
+    clutchIn t = transition tidal (Sound.Tidal.Transition.clutchIn t)
+    anticipate = transition tidal (Sound.Tidal.Transition.anticipate)
+    anticipateIn t = transition tidal (Sound.Tidal.Transition.anticipateIn t)
+    d1 = p \"1\"
+    d2 = p \"2\"
+    d3 = p \"3\"
+    d4 = p \"4\"
+    d5 = p \"5\"
+    d6 = p \"6\"
+    d7 = p \"7\"
+    d8 = p \"8\"
+    d9 = p \"9\"
+    d10 = p \"10\"
+    d11 = p \"11\"
+    d12 = p \"12\"
+    d13 = p \"13\"
+    d14 = p \"14\"
+    d15 = p \"15\"
+    d16 = p \"16\"
+  ")
   (tidal-send-string ":set prompt \"tidal> \"")
 )
 
@@ -179,7 +199,7 @@
 (defun tidal-run-line ()
   "Send the current line to the interpreter."
   (interactive)
-  (tidal-get-now)
+  ;(tidal-get-now)
   (let* ((s (buffer-substring (line-beginning-position)
 			      (line-end-position)))
 	 (s* (if tidal-literate-p
@@ -192,7 +212,7 @@
 
 (defun tidal-eval-multiple-lines ()
   "Eval the current region in the interpreter as a single line."
-  (tidal-get-now)
+  ;(tidal-get-now)
   (mark-paragraph)
   (let* ((s (buffer-substring-no-properties (region-beginning)
                                             (region-end)))

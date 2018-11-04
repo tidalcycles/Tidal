@@ -40,6 +40,18 @@ development workflow, you are very welcome to join the
 `#tidal-innards` channel on http://talk.lurk.org/ and ask questions
 there.
 
+# Testing
+
+Use `cabal test` to run the test suite to look for regressions. Please
+add tests for any new functionality. You can look for things that need
+testing like this:
+
+```
+cabal configure --enable-coverage    # only need to do this the first time
+cabal test --show-details=streaming
+firefox dist/hpc/prof/html/tests/hpc_index.html
+```
+
 # A process for making a release
 
 We haven't documented a clear process for this, but we'd like to
