@@ -95,45 +95,49 @@ parseBP_E s = toE parsed
     toE (Left e) = E.throw $ TidalParseError {parsecError = e, code = s}
     toE (Right tp) = toPat tp
 
+parseTPat :: Parseable a => String -> Either ParseError (TPat a)
+parseTPat = parseRhythm tPatParser
+
 class Parseable a where
-  parseTPat :: String -> Either ParseError (TPat a)
+  -- parseTPat :: String -> Either ParseError (TPat a)
+  tPatParser :: Parser (TPat a)
 
 class Enumerable a where
   fromTo :: a -> a -> Pattern a
   fromThenTo :: a -> a -> a -> Pattern a
 
 instance Parseable Double where
-  parseTPat = parseRhythm pDouble
+  tPatParser = pDouble
 instance Enumerable Double where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable String where
-  parseTPat = parseRhythm pVocable
+  tPatParser = pVocable
 instance Enumerable String where
   fromTo a b = listToPat [a,b]
   fromThenTo a b c = listToPat [a,b,c]
 
 instance Parseable Bool where
-  parseTPat = parseRhythm pBool
+  tPatParser = pBool
 instance Enumerable Bool where
   fromTo a b = listToPat [a,b]
   fromThenTo a b c = listToPat [a,b,c]
 
 instance Parseable Int where
-  parseTPat = parseRhythm pIntegral
+  tPatParser = pIntegral
 instance Enumerable Int where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable Integer where
-  parseTPat s = parseRhythm pIntegral s
+  tPatParser = pIntegral
 instance Enumerable Integer where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable Rational where
-  parseTPat = parseRhythm pRational
+  tPatParser = pRational
 instance Enumerable Rational where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
@@ -147,10 +151,10 @@ enumFromThenTo'
 enumFromThenTo' a b c | a > c = listToPat $ reverse $ enumFromThenTo c (c + (a-b)) a
                       | otherwise = listToPat $ enumFromThenTo a b c
 
-type ColourD = Colour Double 
+type ColourD = Colour Double
 
 instance Parseable ColourD where
-  parseTPat = parseRhythm pColour
+  tPatParser = pColour
 instance Enumerable ColourD where
   fromTo a b = listToPat [a,b]
   fromThenTo a b c = listToPat [a,b,c]
@@ -206,9 +210,9 @@ intOrFloat =  do s   <- sign
 
 {-
 r :: (Enumerable a, Parseable a) => String -> Pattern a -> IO (Pattern a)
-r s orig = do E.handle 
+r s orig = do E.handle
                 (\err -> do putStrLn (show (err :: E.SomeException))
-                            return orig 
+                            return orig
                 )
                 (return $ p s)
 -}

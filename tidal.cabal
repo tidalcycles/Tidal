@@ -22,12 +22,12 @@ library
   if impl(ghc == 8.4.1)
     cpp-options: -DTIDAL_SEMIGROUP
 
-  ghc-options: -Wall 
+  ghc-options: -Wall
   hs-source-dirs:
                  src
-                        
+
   default-language:    Haskell2010
-  
+
   Exposed-modules:     Sound.Tidal.Bjorklund
                        Sound.Tidal.Chords
                        Sound.Tidal.Control
@@ -41,6 +41,7 @@ library
                        Sound.Tidal.Transition
                        Sound.Tidal.UI
                        Sound.Tidal.Utils
+                       Sound.Tidal.MiniTidal
 
   Build-depends:
       base < 5
@@ -49,7 +50,7 @@ library
     , colour
     , hosc >= 0.16
     , text
-    , mersenne-random-pure64
+    , random
     , time
     , parsec
     , safe
@@ -57,7 +58,9 @@ library
     , mtl >= 2.1
     , monad-loops
     , network
-              
+    , mwc-random
+    , vector
+
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups == 0.18.*
 
@@ -66,7 +69,7 @@ test-suite tests
   main-is: Test.hs
   hs-source-dirs:
       test
-  ghc-options: -Wall 
+  ghc-options: -Wall
   build-depends:
                 base ==4.*
               , microspec >= 0.2.0.1
