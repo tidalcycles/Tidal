@@ -115,11 +115,19 @@ onTick cMapMV pMV target u tempoMV st =
      tempo <- readMVar tempoMV
      now <- O.time
      let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
-         at e = sched tempo $ fst $ eventWhole e
-         messages = map (\e -> (at e, toMessage e)) es
-         cpsChanges = map (\e -> (at e - now, Map.lookup "cps" $ eventValue e)) es
-         toMessage e = O.Message (oPath target) $ oPreamble target ++ toData e
-
+         on e = sched tempo $ fst $ eventWhole e
+         off e = sched tempo $ snd $ eventWhole e
+         delta e = (off e) - (on e)
+         messages = map (\e -> (on e, toMessage e)) es
+         cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ eventValue e)) es
+         cpsNow = T.cps tempo
+         -- If there is already cps in the event, the union will preserve that.
+         addCps e = (\v -> (Map.union v $ Map.fromList [("cps", (VF cpsNow)),
+                                                        ("delta", VF (delta e)),
+                                                        ("cycle", VF (fromRational $ fst $ eventWhole e))
+                                                       ]
+                           )) <$> e
+         toMessage e = O.Message (oPath target) $ oPreamble target ++ toData (addCps e)
      E.catch (mapM_ (send target u) messages)
        (\(_ ::E.SomeException)
         -> putStrLn $ "Failed to send. Is the target (probably superdirt) running?")
@@ -219,13 +227,17 @@ withPatIds s ks f
        return ()
 
 -- TODO - is there a race condition here?
+streamMuteAll :: Stream -> IO ()
+streamMuteAll s = do modifyMVar_ (sOutput s) $ return . const silence
+                     modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = True})
+
 streamHush :: Stream -> IO ()
 streamHush s = do modifyMVar_ (sOutput s) $ return . const silence
-                  modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = True})
+                  modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {pattern = silence})
 
-streamUnhush :: Stream -> IO ()
-streamUnhush s = do modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = False})
-                    calcOutput s
+streamUnmuteAll :: Stream -> IO ()
+streamUnmuteAll s = do modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = False})
+                       calcOutput s
 
 calcOutput :: Stream -> IO ()
 calcOutput s = do pMap <- readMVar $ sPMapMV s
