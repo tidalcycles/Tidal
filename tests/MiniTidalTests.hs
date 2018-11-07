@@ -6,14 +6,16 @@ import Test.Hspec
 import Sound.Tidal.MiniTidal
 import Sound.Tidal.Context as Tidal
 import Data.Either
+import Text.ParserCombinators.Parsec (ParseError)
+import qualified Data.Map.Strict as Map
 
-parsesTo :: String -> ParamPattern -> Expectation
+parsesTo :: String -> ControlPattern -> Expectation
 parsesTo s p = x `shouldBe` y
-  where x = arc <$> miniTidal s <*> Right (0,16)
-        y = Right $ arc p $ (0,16)
+  where x = query <$> miniTidal s <*> Right (State (0,16) Map.empty)
+        y = Right $ query p $ State (0,16) Map.empty
 
 causesParseError :: String -> Expectation
-causesParseError s = isLeft (miniTidal s) `shouldBe` True
+causesParseError s = isLeft (miniTidal s :: Either ParseError ControlPattern) `shouldBe` True
 
 main :: IO ()
 main = hspec $ do
@@ -67,14 +69,11 @@ main = hspec $ do
     it "parses pan patterns" $
       "pan \"0 0.25 0.5 0.75 1\"" `parsesTo` (pan "0 0.25 0.5 0.75 1")
 
-    it "parses sinewave oscillators" $
-      "pan sinewave" `parsesTo` (pan sinewave)
+    it "parses sine oscillators" $
+      "pan sine" `parsesTo` (pan sine)
 
-    it "parses sinewave1 oscillators" $
-      "pan sinewave1" `parsesTo` (pan sinewave1)
-
-    it "parses sinewave1 oscillators used in pan patterns" $
-      "s \"arpy*8\" # pan sinewave1" `parsesTo` (s "arpy*8" # pan sinewave1)
+    it "parses sine oscillators used in pan patterns" $
+      "s \"arpy*8\" # pan sine" `parsesTo` (s "arpy*8" # pan sine)
 
     it "parses fast transformations of parampatterns" $
       "fast 2 $ s \"bd cp\"" `parsesTo` (fast 2 $ s "bd cp")
