@@ -241,7 +241,7 @@ patternTransformationWithArgs = parensOrNot $ choice [
   (function "degradeBy" >> return T.degradeBy) <*> patternArg,
   (function "unDegradeBy" >> return T.unDegradeBy) <*> patternArg,
   (function "degradeOverBy" >> return T.degradeOverBy) <*> literalArg <*> patternArg,
-  (function "sometimesBy" >> return T.sometimesBy) <*> literalArg <*> patternTransformationArg,
+  (function "sometimesBy" >> return T.sometimesBy) <*> patternArg <*> patternTransformationArg,
   (function "sometimes" >> return T.sometimes) <*> patternTransformationArg,
   (function "often" >> return T.often) <*> patternTransformationArg,
   (function "rarely" >> return T.rarely) <*> patternTransformationArg,
