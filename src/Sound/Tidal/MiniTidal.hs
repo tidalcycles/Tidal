@@ -440,9 +440,9 @@ parseTPat' = parseRhythm' T.tPatParser
 
 parseRhythm' :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 parseRhythm' f = do
-  reservedOp "\""
+  char '\"' >> whiteSpace
   x <- T.pSequence f'
-  reservedOp "\""
+  char '\"' >> whiteSpace
   return x
   where f' = f
              <|> do symbol "~" <?> "rest"
