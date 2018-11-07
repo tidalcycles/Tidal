@@ -28,8 +28,20 @@ main = hspec $ do
     it "parses a string containing only spaces as silence" $
       "    " `parsesTo` silence
 
-    it "parses a single 's' pattern" $
+    it "parses a very simple single 's' pattern" $
       "s \"bd cp\"" `parsesTo` s "bd cp"
+
+    it "parses a single 's' pattern that uses angle brackets" $
+      "s \"<bd cp>\"" `parsesTo` s "<bd cp>"
+
+    it "parses a single 's' pattern that uses square brackets" $
+      "s \"[bd sn] cp\"" `parsesTo` s "[bd sn] cp"
+
+    it "parses a single 's' pattern that uses square brackets and *" $
+      "s \"[bd sn]*2 cp\"" `parsesTo` s "[bd sn]*2 cp"
+
+    it "parses a single 's' pattern that uses Bjorklund rhythms" $
+      "s \"sn(5,16)\"" `parsesTo` s "sn(5,16)"
 
     it "parses two merged patterns" $
       "s \"bd cp\" # pan \"0 1\"" `parsesTo` (s "bd cp" # pan "0 1")
