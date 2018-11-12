@@ -83,22 +83,6 @@ data PlayState = PlayState {pattern :: ControlPattern,
 
 type PlayMap = Map.Map PatId PlayState
 
-listenCMap :: MVar ControlMap -> IO ()
-listenCMap cMapMV = do sock <- O.udpServer "127.0.0.1" (6011)
-                       _ <- forkIO $ loop sock
-                       return ()
-  where loop sock =
-          do ms <- O.recvMessages sock
-             mapM_ readMessage ms
-             loop sock
-        readMessage (O.Message _ (O.ASCII_String k:v@(O.Float _):[])) = add (O.ascii_to_string k) (VF $ fromJust $ O.datum_floating v)
-        readMessage (O.Message _ (O.ASCII_String k:O.ASCII_String v:[])) = add (O.ascii_to_string k) (VS $ O.ascii_to_string v)
-        readMessage (O.Message _ (O.ASCII_String k:O.Int32 v:[]))  = add (O.ascii_to_string k) (VI $ fromIntegral v)
-        readMessage _ = return ()
-        add :: String -> Value -> IO ()
-        add k v = do cMap <- takeMVar cMapMV
-                     putMVar cMapMV $ Map.insert k v cMap
-                     return ()
 
 toDatum :: Value -> O.Datum
 toDatum (VF x) = O.float x
@@ -265,19 +249,45 @@ startTidal target c = do cMapMV <- newMVar (Map.empty :: ControlMap)
                                          }
 ctrlListen :: MVar ControlMap -> Config -> IO (Maybe ThreadId)
 ctrlListen cMapMV c
-  | cCtrlListen c = do x <- O.udpServer (cCtrlAddr c) (cCtrlPort c)
-                       tid <- forkIO $ loop x
+  | cCtrlListen c = do putStrLn $ "Listening for controls on " ++ cCtrlAddr c ++ ":" ++ show (cCtrlPort c)
+                       sock <- O.udpServer (cCtrlAddr c) (cCtrlPort c)
+                       tid <- forkIO $ loop sock
                        return $ Just tid
   | otherwise  = return Nothing
   where
-        loop x = do m <- O.recvMessage x
-                    act m
-                    loop x
-        act (Just (O.Message "/ctrl" [O.Float v, O.Float n, O.Float chan])) = 
-          do putStrLn $ "got '" ++ show n ++ ":" ++ show v ++ ":" ++ show chan
-             let name = "cc" ++ show (floor n :: Int)
-                 value = v/127
-             ctrl <- takeMVar cMapMV
-             putMVar cMapMV $ Map.insert name (VF $ realToFrac value) ctrl
-             return ()
-        act _ = return ()
+        loop sock = do ms <- O.recvMessages sock
+                       putStrLn $ "got: " ++ show ms
+                       mapM_ act ms
+                       loop sock
+        act (O.Message x (O.Int32 k:v:[]))
+          = act (O.Message x [O.string $ show k,v])
+        act (O.Message _ (O.ASCII_String k:v@(O.Float _):[]))
+          = add (O.ascii_to_string k) (VF $ fromJust $ O.datum_floating v)
+        act (O.Message _ (O.ASCII_String k:O.ASCII_String v:[]))
+          = add (O.ascii_to_string k) (VS $ O.ascii_to_string v)
+        act (O.Message _ (O.ASCII_String k:O.Int32 v:[]))
+          = add (O.ascii_to_string k) (VI $ fromIntegral v)
+        act m = putStrLn $ "Unhandled OSC: " ++ show m
+        add :: String -> Value -> IO ()
+        add k v = do cMap <- takeMVar cMapMV
+                     putMVar cMapMV $ Map.insert k v cMap
+                     return ()
+
+{-
+listenCMap :: MVar ControlMap -> IO ()
+listenCMap cMapMV = do sock <- O.udpServer "127.0.0.1" (6011)
+                       _ <- forkIO $ loop sock
+                       return ()
+  where loop sock =
+          do ms <- O.recvMessages sock
+             mapM_ readMessage ms
+             loop sock
+        readMessage (O.Message _ (O.ASCII_String k:v@(O.Float _):[])) = add (O.ascii_to_string k) (VF $ fromJust $ O.datum_floating v)
+        readMessage (O.Message _ (O.ASCII_String k:O.ASCII_String v:[])) = add (O.ascii_to_string k) (VS $ O.ascii_to_string v)
+        readMessage (O.Message _ (O.ASCII_String k:O.Int32 v:[]))  = add (O.ascii_to_string k) (VI $ fromIntegral v)
+        readMessage _ = return ()
+        add :: String -> Value -> IO ()
+        add k v = do cMap <- takeMVar cMapMV
+                     putMVar cMapMV $ Map.insert k v cMap
+                     return ()
+-}
