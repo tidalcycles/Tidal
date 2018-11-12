@@ -53,6 +53,7 @@ data Value = VS { svalue :: String }
 type ControlMap = Map.Map String Value
 type ControlPattern = Pattern ControlMap
 
+
 ------------------------------------------------------------------------
 -- * Instances
 
