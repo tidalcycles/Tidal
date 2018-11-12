@@ -1357,13 +1357,20 @@ d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
   |+ speed (slow 4 $ scale 1 1.5 sine1)
 @
 -}
-scale :: (Functor f, Num b) => b -> b -> f b -> f b
-scale from to p = ((+ from) . (* (to-from))) <$> p
+
+scale :: Num a => Pattern a -> Pattern a -> Pattern a -> Pattern a
+scale fromP toP p = do
+  from <- fromP
+  to <- toP
+  _scale from to p
+
+_scale :: (Functor f, Num b) => b -> b -> f b -> f b
+_scale from to p = ((+ from) . (* (to-from))) <$> p
 
 {- | `scalex` is an exponential version of `scale`, good for using with
 frequencies.  Do *not* use negative numbers or zero as arguments! -}
 scalex :: (Functor f, Floating b) => b -> b -> f b -> f b
-scalex from to p = exp <$> scale (log from) (log to) p
+scalex from to p = exp <$> _scale (log from) (log to) p
 
 off :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 off tp f p = unwrap $ (\tv -> _off tv f p) <$> tp
