@@ -8,7 +8,7 @@ import Sound.Tidal.Core (stack, silence)
 
 import qualified Sound.Tidal.Tempo as T
 import qualified Sound.OSC.FD as O
-import Sound.OSC.Datum as O
+import qualified Sound.OSC.Datum as O
 import Control.Concurrent.MVar
 import Control.Concurrent
 import qualified Data.Map.Strict as Map
@@ -91,9 +91,9 @@ listenCMap cMapMV = do sock <- O.udpServer "127.0.0.1" (6011)
           do ms <- O.recvMessages sock
              mapM_ readMessage ms
              loop sock
-        readMessage (O.Message _ (O.ASCII_String k:v@(O.Float _):[])) = add (ascii_to_string k) (VF $ fromJust $ datum_floating v)
-        readMessage (O.Message _ (O.ASCII_String k:O.ASCII_String v:[])) = add (ascii_to_string k) (VS $ ascii_to_string v)
-        readMessage (O.Message _ (O.ASCII_String k:O.Int32 v:[]))  = add (ascii_to_string k) (VI $ fromIntegral v)
+        readMessage (O.Message _ (O.ASCII_String k:v@(O.Float _):[])) = add (O.ascii_to_string k) (VF $ fromJust $ O.datum_floating v)
+        readMessage (O.Message _ (O.ASCII_String k:O.ASCII_String v:[])) = add (O.ascii_to_string k) (VS $ O.ascii_to_string v)
+        readMessage (O.Message _ (O.ASCII_String k:O.Int32 v:[]))  = add (O.ascii_to_string k) (VI $ fromIntegral v)
         readMessage _ = return ()
         add :: String -> Value -> IO ()
         add k v = do cMap <- takeMVar cMapMV
@@ -101,12 +101,12 @@ listenCMap cMapMV = do sock <- O.udpServer "127.0.0.1" (6011)
                      return ()
 
 toDatum :: Value -> O.Datum
-toDatum (VF x) = float x
-toDatum (VI x) = int32 x
-toDatum (VS x) = string x
+toDatum (VF x) = O.float x
+toDatum (VI x) = O.int32 x
+toDatum (VS x) = O.string x
 
 toData :: Event ControlMap -> [O.Datum]
-toData e = concatMap (\(n,v) -> [string n, toDatum v]) $ Map.toList $ eventValue e
+toData e = concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ eventValue e
 
 onTick :: MVar ControlMap -> MVar ControlPattern -> OSCTarget -> O.UDP -> MVar T.Tempo -> T.State -> IO ()
 onTick cMapMV pMV target u tempoMV st =
