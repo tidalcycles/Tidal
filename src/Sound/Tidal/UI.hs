@@ -1366,7 +1366,7 @@ scalex :: (Functor f, Floating b) => b -> b -> f b -> f b
 scalex from to p = exp <$> scale (log from) (log to) p
 
 off :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-off tp f p = unwrap $ (\tv -> _off tv f p) <$> tp
+off tp f p = innerJoin $ (\tv -> _off tv f p) <$> tp
 
 _off :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _off t f p = superimpose (f . (t `rotR`)) p
