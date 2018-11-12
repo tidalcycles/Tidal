@@ -155,7 +155,8 @@ specificControlPatterns = choice [
   (function "s" >> return T.s) <*> patternArg,
   (function "sound" >> return T.sound) <*> patternArg,
   (function "vowel" >> return T.vowel) <*> patternArg,
-  (function "unit" >> return T.unit) <*> patternArg
+  (function "unit" >> return T.unit) <*> patternArg,
+  (function "note" >> return T.note) <*> patternArg
   ]
 
 controlPatternTransformation :: Parser (ControlPattern -> ControlPattern)
@@ -275,8 +276,8 @@ simpleDoublePatterns = choice [
 
 instance Pattern' Int where
   simplePattern = choice [
-    pure <$> int,
-    parseBP'
+    parseBP',
+    pure <$> int
     ]
   complexPattern = (atom <*> int) <|> enumComplexPatterns <|> numComplexPatterns <|> intComplexPatterns
   mergeOperator = numMergeOperator
@@ -286,8 +287,8 @@ instance Pattern' Int where
 
 instance Pattern' Integer where
   simplePattern = choice [
-    pure <$> integer,
-    parseBP'
+    parseBP',
+    pure <$> integer
     ]
   complexPattern = (atom <*> integer) <|> enumComplexPatterns <|> numComplexPatterns
   mergeOperator = numMergeOperator
@@ -298,7 +299,7 @@ instance Pattern' Integer where
 instance Pattern' Double where
   simplePattern = choice [
     parseBP',
-    pure <$> double,
+    try $ pure <$> double,
     simpleDoublePatterns
     ]
   complexPattern = (atom <*> double) <|> enumComplexPatterns <|> numComplexPatterns
@@ -309,8 +310,8 @@ instance Pattern' Double where
 
 instance Pattern' Time where
   simplePattern = choice [
-    pure <$> literal,
-    parseBP'
+    parseBP',
+    pure <$> literal
     ]
   complexPattern = atom <*> literal <|> numComplexPatterns
   mergeOperator = numMergeOperator <|> fractionalMergeOperator
@@ -353,7 +354,7 @@ atom :: Applicative m => Parser (a -> m a)
 atom = (function "pure" <|> function "atom" <|> function "return") >> return (pure)
 
 double :: Parser Double
-double = try $ parensOrNot $ choice [float,fromIntegral <$> integer]
+double = parensOrNot $ choice [try float,fromIntegral <$> integer]
 
 int :: Parser Int
 int = try $ parensOrNot $ fromIntegral <$> integer
@@ -399,7 +400,7 @@ tokenParser = P.makeTokenParser $ haskellDef {
     "someCycles","somecycles","substruct'","repeatCycles","spaceOut","fill","ply","shuffle",
     "scramble","breakUp","degrade","randcat","randStruct","toScale'","toScale","cycleChoose",
     "d1","d2","d3","d4","d5","d6","d7","d8","d9","t1","t2","t3","t4","t5","t6","t7","t8","t9",
-    "cps","xfadeIn"],
+    "cps","xfadeIn","note"],
   P.reservedOpNames = ["+","-","*","/","<~","~>","#","|+|","|-|","|*|","|/|","$","\"","|>","<|","|>|","|<|"]
   }
 
@@ -440,9 +441,9 @@ parseTPat' = parseRhythm' T.tPatParser
 
 parseRhythm' :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 parseRhythm' f = do
-  reservedOp "\""
+  char '\"' >> whiteSpace
   x <- T.pSequence f'
-  reservedOp "\""
+  char '\"' >> whiteSpace
   return x
   where f' = f
              <|> do symbol "~" <?> "rest"
