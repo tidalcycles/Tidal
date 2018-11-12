@@ -11,6 +11,7 @@ import Sound.Tidal.Core
 import Sound.Tidal.UI
 import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Utils
+import Sound.Tidal.ParseBP (Parseable, Enumerable, parseBP_E)
 
 {- | `spin` will "spin" a layer up a pattern the given number of times,
 with each successive layer offset in time by an additional `1/n` of a
@@ -343,3 +344,35 @@ stut' n t f p = unwrap $ (\a b -> _stut' a b f p) <$> n <*> t
 _stut' :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _stut' count steptime f p | count <= 0 = p
                           | otherwise = overlay (f (steptime `rotR` _stut' (count-1) steptime f p)) p
+
+
+cI :: String -> Pattern Int
+cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
+  where f a (VI v) = [((a,a),v)]
+        f a (VF v) = [((a,a),floor v)]
+        f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
+
+cF :: String -> Pattern Double
+cF s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
+  where f a (VI v) = [((a,a),fromIntegral v)]
+        f a (VF v) = [((a,a),v)]
+        f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
+
+cT :: String -> Pattern Time
+cT = (toRational <$>) . cF
+
+
+cR :: String -> Pattern Rational
+cR = cT
+
+cS :: String -> Pattern String
+cS s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
+  where f a (VI v) = [((a,a),show v)]
+        f a (VF v) = [((a,a),show v)]
+        f a (VS v) = [((a,a),v)]
+
+cP :: (Enumerable a, Parseable a) => String -> Pattern a
+cP s = innerJoin $ Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
+  where f a (VI v) = [((a,a),parseBP_E $ show v)]
+        f a (VF v) = [((a,a),parseBP_E $ show v)]
+        f a (VS v) = [((a,a),parseBP_E $ v)]
