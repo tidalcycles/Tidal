@@ -21,6 +21,7 @@
 #X text 336 74 midi channel (not used);
 #X obj 152 72 / 127;
 #X msg 188 129 format if;
+#X obj 275 135 loadbang;
 #X connect 0 0 10 0;
 #X connect 0 1 11 0;
 #X connect 0 2 12 0;
@@ -37,3 +38,4 @@
 #X connect 13 0 9 0;
 #X connect 17 0 2 0;
 #X connect 18 0 4 0;
+#X connect 19 0 8 0;
