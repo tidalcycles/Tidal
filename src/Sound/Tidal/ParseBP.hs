@@ -16,7 +16,6 @@ import Control.Applicative ((<$>), (<*>), pure)
 import Data.Maybe
 import Data.Functor.Identity (Identity)
 import Data.Typeable (Typeable)
-import Data.List (intercalate)
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
@@ -461,6 +460,4 @@ pDensity = angles (pRatio <?> "ratio")
            return (1 % 1)
 -}
 
-cBP :: (Parseable a, Enumerable a) => String -> Pattern a
-cBP s = unwrap $ fromString <$> cS s
 
