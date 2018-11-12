@@ -403,6 +403,7 @@ cF s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
 cT :: String -> Pattern Time
 cT = (toRational <$>) . cF
 
+
 cR :: String -> Pattern Rational
 cR = cT
 
@@ -411,3 +412,4 @@ cS s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
   where f a (VI v) = [((a,a),show v)]
         f a (VF v) = [((a,a),show v)]
         f a (VS v) = [((a,a),v)]
+
