@@ -11,6 +11,7 @@ import Data.Ratio
 
 import Sound.Tidal.Core
 import Sound.Tidal.Pattern
+import Sound.Tidal.Control
 
 import qualified Data.Map.Strict as Map
 
