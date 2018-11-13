@@ -345,7 +345,6 @@ _stut' :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -
 _stut' count steptime f p | count <= 0 = p
                           | otherwise = overlay (f (steptime `rotR` _stut' (count-1) steptime f p)) p
 
-
 cI :: String -> Pattern Int
 cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
   where f a (VI v) = [((a,a),v)]
