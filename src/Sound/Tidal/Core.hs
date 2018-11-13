@@ -329,7 +329,10 @@ compressTo :: Arc -> Pattern a -> Pattern a
 compressTo = __compressTo
 
 repeatCycles :: Int -> Pattern a -> Pattern a
-repeatCycles n p = fastcat (replicate n p)
+repeatCycles n p = cat (replicate n p)
+
+fastRepeatCycles :: Int -> Pattern a -> Pattern a
+fastRepeatCycles n p = cat (replicate n p)
 
 -- | * Higher order functions
 

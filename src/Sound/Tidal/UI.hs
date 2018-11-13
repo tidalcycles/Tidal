@@ -143,7 +143,7 @@ _unDegradeBy :: Double -> Pattern a -> Pattern a
 _unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <*> rand
 
 degradeOverBy :: Int -> Pattern Double -> Pattern a -> Pattern a
-degradeOverBy i tx p = unwrap $ (\x -> (fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <*> repeatCycles i rand)) <$> (slow (fromIntegral i) tx)
+degradeOverBy i tx p = unwrap $ (\x -> (fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <*> fastRepeatCycles i rand)) <$> (slow (fromIntegral i) tx)
 
 
 {- | Use @sometimesBy@ to apply a given function "sometimes". For example, the
@@ -1418,3 +1418,4 @@ tabby n p p' = stack [maskedWarp,
     warpP = thread warp p
     maskedWeft = mask (every 2 rev $ _fast ((n)%2) $ fastCat [silence, pure True]) weftP
     maskedWarp = mask (every 2 rev $ _fast ((n)%2) $ fastCat [pure True, silence]) warpP
+
