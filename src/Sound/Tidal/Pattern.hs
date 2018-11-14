@@ -3,6 +3,8 @@
 
 module Sound.Tidal.Pattern where
 
+import Prelude hiding ((<*), (*>))
+
 import qualified Data.Map.Strict as Map
 import Control.Applicative (liftA2)
 
@@ -648,7 +650,7 @@ tParam2 :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Patt
 tParam2 f a b p = unwrap $ (\x y -> f x y p) <$> a <*> b
 
 tParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
-tParam3 f a b c p = unwrap $ (\x y z -> f x y z p) <$> a <*> b <*> c
+tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 tParamSqueeze f tv p = unwrapSqueeze $ (`f` p) <$> tv
