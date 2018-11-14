@@ -776,7 +776,7 @@ discretise :: Time -> Pattern a -> Pattern a
 discretise = _discretise
 
 discretise' :: Pattern Time -> Pattern a -> Pattern a
-discretise' n p = (density n $ pure (id)) <*> p
+discretise' n p = (density n $ pure (id)) <* p
 
 _discretise :: Time -> Pattern a -> Pattern a
 _discretise n p = (_fast n $ pure (id)) <* p
