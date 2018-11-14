@@ -71,3 +71,14 @@ run =
           expectedResult = ps "cp hh bd*2"
           in
             compareP overTimeSpan testMe expectedResult
+
+    describe "rand" $ do
+      it "generates a (pseudo-)random number between zero & one" $ do
+        it "at the start of a cycle" $
+          (queryArc rand (0, 0)) `shouldBe` [(((0, 0), (0, 0)), 0.5000844 :: Float)]
+        it "at 1/4 of a cycle" $
+          (queryArc rand (0.25, 0.25)) `shouldBe`
+            [(((0.25, 0.25), (0.25, 0.25)), 0.8587171 :: Float)]
+        it "at 3/4 of a cycle" $
+          (queryArc rand (0.75, 0.75)) `shouldBe`
+            [(((0.75, 0.75), (0.75, 0.75)), 0.7277789 :: Float)]

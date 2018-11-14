@@ -71,9 +71,8 @@ and with the juxed version shifted backwards for 1024 cycles:
 jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 @
 -}
-
-rand :: Pattern Double
-rand = Pattern Analog (\(State a _) -> [((a, a), timeToRand $ mid a)])
+rand :: Fractional a => Pattern a
+rand = Pattern Analog (\(State a _) -> [((a, a), realToFrac $ timeToRand $ mid a)])
 
 {- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:
