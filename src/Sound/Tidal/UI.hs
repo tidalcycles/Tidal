@@ -2,6 +2,8 @@
 
 module Sound.Tidal.UI where
 
+import Prelude hiding ((<*), (*>))
+
 import Sound.Tidal.Pattern
 import Sound.Tidal.Core
 import qualified Sound.Tidal.Params as P
@@ -20,7 +22,7 @@ import Control.Applicative (liftA2)
 
 import Sound.Tidal.Bjorklund (bjorklund)
 import Sound.Tidal.Utils
-
+ 
 ------------------------------------------------------------------------
 -- * UI
 
@@ -777,7 +779,7 @@ discretise' :: Pattern Time -> Pattern a -> Pattern a
 discretise' n p = (density n $ pure (id)) <*> p
 
 _discretise :: Time -> Pattern a -> Pattern a
-_discretise n p = (_fast n $ pure (id)) <*> p
+_discretise n p = (_fast n $ pure (id)) <* p
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
@@ -1198,7 +1200,7 @@ _ply n p = arpeggiate $ stack (replicate n p)
 -- Uses the first (binary) pattern to switch between the following two
 -- patterns.
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
-sew stitch p1 p2 = overlay (const <$> p1 <*> a) (const <$> p2 <*> b)
+sew stitch p1 p2 = overlay (const <$> p1 <* a) (const <$> p2 <* b)
   where a = filterValues (id) stitch
         b = filterValues (not . id) stitch
 
