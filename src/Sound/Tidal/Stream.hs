@@ -119,7 +119,8 @@ onTick cMapMV pMV target u tempoMV st =
      mapM_ doCps cpsChanges
      return ()
   where doCps (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
-                                                       _ <- T.setCps tempoMV cps
+                                                       -- hack to stop things from stopping
+                                                       _ <- T.setCps tempoMV (max 0.1 cps)
                                                        return ()
                                       return ()
         doCps _ = return ()
@@ -256,7 +257,6 @@ ctrlListen cMapMV c
   | otherwise  = return Nothing
   where
         loop sock = do ms <- O.recvMessages sock
-                       putStrLn $ "got: " ++ show ms
                        mapM_ act ms
                        loop sock
         act (O.Message x (O.Int32 k:v:[]))
