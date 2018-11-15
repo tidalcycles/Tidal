@@ -1,4 +1,4 @@
-#N canvas 308 396 450 300 10;
+#N canvas 1182 313 450 300 10;
 #X obj 170 9 ctlin;
 #X floatatom 16 74 5 0 0 0 - - -;
 #X floatatom 151 97 5 0 0 0 - - -;
@@ -12,7 +12,7 @@
 #X obj 11 50 hsl 128 15 0 127 0 0 empty empty empty -2 -8 0 10 -262144
 -1 -1 0 1;
 #X obj 154 49 hsl 128 15 0 127 0 0 empty empty empty -2 -8 0 10 -262144
--1 -1 0 1;
+-1 -1 12700 1;
 #X obj 298 50 hsl 128 15 0 127 0 0 empty empty empty -2 -8 0 10 -262144
 -1 -1 0 1;
 #X obj 96 136 pack 1 2;
@@ -20,13 +20,16 @@
 #X text 194 85 control value;
 #X text 336 74 midi channel (not used);
 #X obj 152 72 / 127;
-#X msg 188 129 format if;
-#X obj 275 135 loadbang;
+#X msg 195 134 format if;
+#X obj 259 109 loadbang;
+#X obj 115 110 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+-1 -1;
 #X connect 0 0 10 0;
 #X connect 0 1 11 0;
 #X connect 0 2 12 0;
 #X connect 1 0 13 0;
 #X connect 2 0 13 1;
+#X connect 2 0 20 0;
 #X connect 4 0 5 0;
 #X connect 5 0 6 0;
 #X connect 6 0 7 0;
@@ -39,3 +42,5 @@
 #X connect 17 0 2 0;
 #X connect 18 0 4 0;
 #X connect 19 0 8 0;
+#X connect 19 0 18 0;
+#X connect 20 0 13 0;
