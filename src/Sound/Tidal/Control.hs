@@ -353,7 +353,7 @@ cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
 
 cF :: String -> Pattern Double
 cF s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
-  where f a (VI v) = [((a,a),(fromIntegral v)/127.0)]
+  where f a (VI v) = [((a,a),fromIntegral v)]
         f a (VF v) = [((a,a),v)]
         f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
 
