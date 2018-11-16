@@ -357,7 +357,7 @@ _cX f ds s = Pattern Analog $
 
 _cF :: [Double] -> String -> Pattern Double
 _cF = _cX f
-  where f a (VI v) = [((a,a),(fromIntegral v)/127.0)]
+  where f a (VI v) = [((a,a),fromIntegral v)]
         f a (VF v) = [((a,a),v)]
         f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
 
