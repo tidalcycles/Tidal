@@ -204,7 +204,7 @@ run =
 
     describe "controlI" $ do
       it "can retrieve values from state" $
-       (query (pure 3 + cF "hello") $ State (0,1) (Map.singleton "hello" (VF 0.5)))
+       (query (pure 3 + cF_ "hello") $ State (0,1) (Map.singleton "hello" (VF 0.5)))
        `shouldBe` [(((0 % 1,1 % 1),(0 % 1,1 % 1)),3.5)]
 
     -- pending "Sound.Tidal.Pattern.eventL" $ do
