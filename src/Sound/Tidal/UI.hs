@@ -1421,3 +1421,8 @@ tabby n p p' = stack [maskedWarp,
     maskedWeft = mask (every 2 rev $ _fast ((n)%2) $ fastCat [silence, pure True]) weftP
     maskedWarp = mask (every 2 rev $ _fast ((n)%2) $ fastCat [pure True, silence]) warpP
 
+_select :: Double -> [Pattern a] -> Pattern a
+_select f ps =  ps !! (floor $ (max 0 $ min 1 f) * (fromIntegral $ length ps - 1))
+
+select :: Pattern Double -> [Pattern a] -> Pattern a
+select = tParam _select
