@@ -1424,5 +1424,6 @@ tabby n p p' = stack [maskedWarp,
 _select :: Double -> [Pattern a] -> Pattern a
 _select f ps =  ps !! (floor $ (max 0 $ min 1 f) * (fromIntegral $ length ps - 1))
 
+-- | chooses between a list of patterns, using a pattern of floats (from 0-1)
 select :: Pattern Double -> [Pattern a] -> Pattern a
 select = tParam _select
