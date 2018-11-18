@@ -345,21 +345,15 @@ _stut' :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -
 _stut' count steptime f p | count <= 0 = p
                           | otherwise = overlay (f (steptime `rotR` _stut' (count-1) steptime f p)) p
 
-_cX :: (Arc -> Value -> [Event a]) -> [a] -> String -> Pattern a
-_cX f ds s = Pattern Analog $
-               \(State a m) -> maybe (map (\d -> ((a,a),d)) ds) (f a) $ Map.lookup s m
-
-_cI :: [Int] -> String -> Pattern Int
-_cI = _cX f
+cI :: String -> Pattern Int
+cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
   where f a (VI v) = [((a,a),v)]
         f a (VF v) = [((a,a),floor v)]
         f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
-cI :: Int -> String -> Pattern Int
-cI d = _cI [d]
-cI1 :: String -> Pattern Int
-cI1 = _cI [1]
-cI_ :: String -> Pattern Int
-cI_ = _cI []
+
+_cX :: (Arc -> Value -> [Event a]) -> [a] -> String -> Pattern a
+_cX f ds s = Pattern Analog $
+               \(State a m) -> maybe (map (\d -> ((a,a),d)) ds) (f a) $ Map.lookup s m
 
 _cF :: [Double] -> String -> Pattern Double
 _cF = _cX f

@@ -390,3 +390,24 @@ whenT test f p = splitQueries $ p {query = apply}
 --eoff :: Int -> Int -> Integer -> Pattern a -> Pattern a
 --eoff n k s p = ((s%(fromIntegral k)) `rotL`) (_e n k p)
    -- TPat_ShiftL (s%(fromIntegral k)) (TPat_E n k p)
+
+-- | like filterValues but for ControlPatterns
+filterControlValues :: (ValueType a) => String -> (a -> Bool) -> ControlPattern -> ControlPattern
+filterControlValues ctl f = filterValues (safeTest . (Map.lookup ctl)) where
+  safeTest (Just a) = (f . fromV) a
+  safeTest (Nothing) = False
+
+withControlValues :: (ValueType a, Eq a) => String -> [a] -> (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern
+withControlValues ctl vs f p = stack [
+  f $ filterControlValues ctl (flip elem vs) p,
+  filterControlValues ctl (flip notElem vs) p
+  ]
+
+withControlValue ctl v = withControlValues ctl [v]
+
+withControlRange :: (ValueType a, Ord a) => String -> (a,a) -> (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern
+withControlRange ctl (va,vb) f p = stack [
+  f $ filterControlValues ctl (\x -> (x < vb) && (x >= va)) p,
+  filterControlValues ctl (\x -> (x >= vb) || (x < va)) p
+  ]
+

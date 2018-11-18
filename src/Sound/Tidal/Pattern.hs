@@ -55,6 +55,8 @@ data Value = VS { svalue :: String }
 type ControlMap = Map.Map String Value
 type ControlPattern = Pattern ControlMap
 
+class ValueType a where
+  fromV :: Value -> a
 
 ------------------------------------------------------------------------
 -- * Instances
@@ -310,6 +312,15 @@ instance Num (ControlMap) where
 instance Fractional ControlMap where
   recip        = fmap (applyFIS recip id id)
   fromRational = Map.singleton "speed" . VF . fromRational
+
+instance ValueType String where
+  fromV = svalue
+
+instance ValueType Int where
+  fromV = ivalue
+
+instance ValueType Double where
+  fromV = fvalue
 
 
 instance {-# OVERLAPPING #-} Show Arc where
