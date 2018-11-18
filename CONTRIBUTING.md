@@ -47,10 +47,15 @@ add tests for any new functionality. You can look for things that need
 testing like this:
 
 ```
+cabal install --only-dependencies
 cabal configure --enable-coverage    # only need to do this the first time
 cabal test --show-details=streaming
 firefox dist/hpc/prof/html/tests/hpc_index.html
 ```
+
+To run up your changes locally, install Tidal with `cabal install`. To remove
+them again and revert to the latest release, run `ghc-pkg unregister tidal-1.0.0`
+being sure to match up the version numbers.
 
 # A process for making a release
 
