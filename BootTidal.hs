@@ -1,6 +1,10 @@
+:set -XOverloadedStrings
+:set prompt ""
+:set prompt-cont ""
+
 import Sound.Tidal.Context
 
-tidal <- startTidal superdirtTarget defaultConfig
+tidal <- startTidal (superdirtTarget {oLatency = 0.04}) defaultConfig
 
 let p = streamReplace tidal
     hush = streamHush tidal
@@ -44,3 +48,5 @@ let p = streamReplace tidal
     d14 = p "14"
     d15 = p "15"
     d16 = p "16"
+
+:set prompt "tidal> "

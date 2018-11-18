@@ -643,7 +643,7 @@ playFor s e = filterWhen (\t -> and [t >= s, t < e])
 
 -- ** Temporal parameter helpers
 
-tParam :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
+tParam :: (t1 -> t2 -> Pattern a) -> Pattern t1 -> t2 -> Pattern a
 tParam f tv p = innerJoin $ (`f` p) <$> tv
 
 tParam2 :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)

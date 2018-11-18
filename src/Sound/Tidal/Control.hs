@@ -345,33 +345,66 @@ _stut' :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -
 _stut' count steptime f p | count <= 0 = p
                           | otherwise = overlay (f (steptime `rotR` _stut' (count-1) steptime f p)) p
 
-cI :: String -> Pattern Int
-cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
+_cX :: (Arc -> Value -> [Event a]) -> [a] -> String -> Pattern a
+_cX f ds s = Pattern Analog $
+               \(State a m) -> maybe (map (\d -> ((a,a),d)) ds) (f a) $ Map.lookup s m
+
+_cI :: [Int] -> String -> Pattern Int
+_cI = _cX f
   where f a (VI v) = [((a,a),v)]
         f a (VF v) = [((a,a),floor v)]
         f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
+cI :: Int -> String -> Pattern Int
+cI d = _cI [d]
+cI1 :: String -> Pattern Int
+cI1 = _cI [1]
+cI_ :: String -> Pattern Int
+cI_ = _cI []
 
-cF :: String -> Pattern Double
-cF s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
+_cF :: [Double] -> String -> Pattern Double
+_cF = _cX f
   where f a (VI v) = [((a,a),fromIntegral v)]
         f a (VF v) = [((a,a),v)]
         f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
 
-cT :: String -> Pattern Time
-cT = (toRational <$>) . cF
+cF :: Double -> String -> Pattern Double
+cF d = _cF [d]
+cF0 :: String -> Pattern Double
+cF0 = _cF [0]
+cF_ :: String -> Pattern Double
+cF_ = _cF []
+
+cT :: Time -> String -> Pattern Time
+cT d = (toRational <$>) . cF (fromRational d)
+cT0 :: String -> Pattern Time
+cT0 = (toRational <$>) . cF0
+cT_ :: String -> Pattern Time
+cT_ = (toRational <$>) . cF_
 
 
-cR :: String -> Pattern Rational
+cR :: Time -> String -> Pattern Rational
 cR = cT
+cR0 :: String -> Pattern Time
+cR0 = cT0
+cR_ :: String -> Pattern Time
+cR_ = cT_
 
-cS :: String -> Pattern String
-cS s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
+_cS :: [String] -> String -> Pattern String
+_cS = _cX f
   where f a (VI v) = [((a,a),show v)]
         f a (VF v) = [((a,a),show v)]
         f a (VS v) = [((a,a),v)]
+cS :: String -> String -> Pattern String
+cS d = _cS [d]
+cS_ :: String -> Pattern String
+cS_ = _cS []
 
-cP :: (Enumerable a, Parseable a) => String -> Pattern a
-cP s = innerJoin $ Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
+_cP :: (Enumerable a, Parseable a) => [Pattern a] -> String -> Pattern a
+_cP ds s = innerJoin $ _cX f ds s
   where f a (VI v) = [((a,a),parseBP_E $ show v)]
         f a (VF v) = [((a,a),parseBP_E $ show v)]
         f a (VS v) = [((a,a),parseBP_E $ v)]
+cP :: (Enumerable a, Parseable a) => Pattern a -> String -> Pattern a
+cP d = _cP [d]
+cP_ :: (Enumerable a, Parseable a) => String -> Pattern a
+cP_ = _cP []
