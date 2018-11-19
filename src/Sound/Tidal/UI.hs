@@ -773,6 +773,7 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 rot :: Ord a => Pattern Int -> Pattern a -> Pattern a
 rot = tParam _rot
 
+-- Calculates a whole cycle, rotates it, then constrains events to the original query arc
 _rot :: Ord a => Int -> Pattern a -> Pattern a
 _rot n p = splitQueries $ p {query = \st -> f st (query p (st {arc = wholeCycle (arc st)}))}
   where -- TODO maybe events with the same arc (part+whole) should be
