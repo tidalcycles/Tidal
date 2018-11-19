@@ -118,9 +118,9 @@ run =
     describe "filterControlValues" $ do
       it "can remove values" $ do
         property $ comparePD (0,2)
-          (filterControlValues "n" (/= (2 :: Double)) (n "1 2 3 4" # s "bd"))
+          (filterControlValues "n" (/= (VF 2)) (n "1 2 3 4" # s "bd"))
           (n "1 ~ 3 4" # s "bd")
       it "copes with type mismatch" $ do
         property $ comparePD (0,2)
-          (filterControlValues "n" (/= (10 :: Int)) (n "1 2 3 4" # s "bd"))
+          (filterControlValues "n" (/= (VI 10)) (n "1 2 3 4" # s "bd"))
           (n "1 2 3 4" # s "bd")
