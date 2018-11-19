@@ -16,7 +16,7 @@ import qualified Data.Vector as V
 import Data.Word (Word32)
 import Data.Ratio ((%),numerator,denominator)
 import Data.List (sort, sortBy, findIndices, elemIndex, groupBy, transpose)
-import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
+import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe, catMaybes)
 import qualified Data.Text as T
 import Control.Applicative (liftA2)
 
@@ -768,6 +768,23 @@ pequal :: Ord a => Time -> Pattern a -> Pattern a -> Bool
 pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -}
 
+-- | @rot n p@ rotates the values in a pattern @p@ by @n@ beats to the left.
+-- Example: @d1 $ every 4 (rot 2) $ slow 2 $ sound "bd hh hh hh"@
+rot :: Ord a => Int -> Pattern a -> Pattern a
+rot n p = splitQueries $ p {query = \st -> f st (query p (st {arc = wholeCycle (arc st)}))}
+  where -- TODO maybe events with the same arc (part+whole) should be
+        -- grouped together in the rotation?
+        f st es = constrainEvents (arc st) $ shiftValues n $ sort $ defragParts es
+        shiftValues n es | n >= 0 = zip (map fst es) (drop n $ cycle $ map snd es)
+                         | otherwise = zip (map fst es) (drop ((length es) - (abs n)) $ cycle $ map snd es)
+        wholeCycle (s,_) = (sam s, nextSam s)
+        constrainEvents :: Arc -> [Event a] -> [Event a]
+        constrainEvents a es = catMaybes $ map (constrainEvent a) es
+        constrainEvent :: Arc -> Event a -> Maybe (Event a)
+        constrainEvent a ((w,p),v) = do w' <- subArc w a
+                                        p' <- subArc p a
+                                        return ((w',p'),v)
+
 -- | @discretise n p@: 'samples' the pattern @p@ at a rate of @n@
 -- events per cycle. Useful for turning a continuous pattern into a
 -- discrete one.
@@ -1321,12 +1338,6 @@ scrumple o p p' = p'' -- overlay p (o `rotR` p'')
                                                    (arc p' (s,s))
                               ) (arc p a)
 -}
-
---rev :: Pattern a -> Pattern a
---rev p = Pattern $ \a -> concatMap
---                        (\a' -> mapFsts mirrorArc $
---                                (arc p (mirrorArc a')))
---                        (arcCycles a)
 
 --spreadf :: [Pattern a -> Pattern b] -> Pattern a -> Pattern b
 spreadf :: [a -> Pattern b] -> a -> Pattern b
