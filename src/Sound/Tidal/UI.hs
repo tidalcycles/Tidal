@@ -775,12 +775,12 @@ rot = tParam _rot
 
 -- Calculates a whole cycle, rotates it, then constrains events to the original query arc
 _rot :: Ord a => Int -> Pattern a -> Pattern a
-_rot n p = splitQueries $ p {query = \st -> f st (query p (st {arc = wholeCycle (arc st)}))}
+_rot i pat = splitQueries $ pat {query = \st -> f st (query pat (st {arc = wholeCycle (arc st)}))}
   where -- TODO maybe events with the same arc (part+whole) should be
         -- grouped together in the rotation?
-        f st es = constrainEvents (arc st) $ shiftValues n $ sort $ defragParts es
-        shiftValues n es | n >= 0 = zip (map fst es) (drop n $ cycle $ map snd es)
-                         | otherwise = zip (map fst es) (drop ((length es) - (abs n)) $ cycle $ map snd es)
+        f st es = constrainEvents (arc st) $ shiftValues $ sort $ defragParts es
+        shiftValues es | i >= 0 = zip (map fst es) (drop i $ cycle $ map snd es)
+                       | otherwise = zip (map fst es) (drop ((length es) - (abs i)) $ cycle $ map snd es)
         wholeCycle (s,_) = (sam s, nextSam s)
         constrainEvents :: Arc -> [Event a] -> [Event a]
         constrainEvents a es = catMaybes $ map (constrainEvent a) es
