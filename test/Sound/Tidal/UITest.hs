@@ -108,3 +108,17 @@ run =
           it "at 1/2 of a cycle" $
             (queryArc (Sound.Tidal.UI.scale 10 10 saw) (0.5, 0.5)) `shouldBe`
               [(((0.5, 0.5), (0.5, 0.5)), 10 :: Float)]
+    describe "rot" $ do
+      it "rotates values in a pattern irrespective of structure" $
+        property $ comparePD (0,2)
+          (rot 1 "a ~ b c" :: Pattern String)
+          ( "b ~ c a" :: Pattern String)
+      it "works with negative values" $
+        property $ comparePD (0,2)
+          (rot (-1) "a ~ b c" :: Pattern String)
+          ( "c ~ a b" :: Pattern String)
+      it "works with complex patterns" $
+        property $ comparePD (0,2)
+          (rot (1) "a ~ [b [c ~ d]] [e <f g>]" :: Pattern String)
+          ( "b ~ [c [d ~ e]] [<f g> a]" :: Pattern String)
+        
