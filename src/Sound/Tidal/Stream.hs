@@ -8,7 +8,7 @@ import Sound.Tidal.Core (stack, silence)
 
 import qualified Sound.Tidal.Tempo as T
 import qualified Sound.OSC.FD as O
-import qualified Sound.OSC.Datum as O
+-- import qualified Sound.OSC.Datum as O
 import Control.Concurrent.MVar
 import Control.Concurrent
 import qualified Data.Map.Strict as Map
