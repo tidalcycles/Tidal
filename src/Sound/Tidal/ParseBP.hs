@@ -310,12 +310,13 @@ pVocable = do v <- pString
 
 pDouble :: Parser (TPat Double)
 pDouble = do f <- choice [intOrFloat, parseNote] <?> "float"
-             return $ TPat_Atom f
-             {-
              do c <- parseChord
                 return $ TPat_Stack $ map (TPat_Atom . (+f)) c
                <|> return (TPat_Atom f)
-             -}
+            <|>
+               do c <- parseChord
+                  return $ TPat_Stack $ map TPat_Atom c
+
 
 pBool :: Parser (TPat Bool)
 pBool = do oneOf "t1"
@@ -336,15 +337,16 @@ parseInt = do s <- sign
 
 pIntegral :: Parseable a => Integral a => Parser (TPat a)
 pIntegral = do i <- parseIntNote
-               return (TPat_Atom i)
-            {-
                do c <- parseChord
                   return $ TPat_Stack $ map (TPat_Atom . (+i)) c
                  <|> return (TPat_Atom i)
-             -}
+            <|>
+               do c <- parseChord
+                  return $ TPat_Stack $ map TPat_Atom c
 
 parseChord :: Num a => Parser [a]
-parseChord = do name <- many1 $ letter <|> digit
+parseChord = do char '\''
+                name <- many1 $ letter <|> digit
                 return $ fromMaybe [0] $ lookup name chordTable
 
 parseNote :: Num a => Parser a
