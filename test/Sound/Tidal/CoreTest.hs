@@ -2,6 +2,7 @@
 
 module Sound.Tidal.CoreTest where
 
+import TestUtils
 import Test.Microspec
 
 import Prelude hiding ((<*), (*>))
@@ -9,9 +10,7 @@ import Prelude hiding ((<*), (*>))
 import Data.Ratio
 import Data.List (sort)
 
-import Sound.Tidal.Core
-import Sound.Tidal.Pattern
-import Sound.Tidal.Utils
+import Sound.Tidal.Context
 
 run :: Microspec ()
 run =
@@ -116,3 +115,12 @@ run =
         it "works with inset points" $
           (queryArc (rev saw) (0.25,0.25))
             `shouldBe` [(((0.25,0.25), (0.25,0.25)), 0.75 :: Float)]
+    describe "filterControlValues" $ do
+      it "can remove values" $ do
+        property $ comparePD (0,2)
+          (filterControlValues "n" (/= (2 :: Double)) (n "1 2 3 4" # s "bd"))
+          (n "1 ~ 3 4" # s "bd")
+      it "copes with type mismatch" $ do
+        property $ comparePD (0,2)
+          (filterControlValues "n" (/= (10 :: Int)) (n "1 2 3 4" # s "bd"))
+          (n "1 2 3 4" # s "bd")
