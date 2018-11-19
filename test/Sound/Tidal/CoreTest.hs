@@ -115,6 +115,7 @@ run =
         it "works with inset points" $
           (queryArc (rev saw) (0.25,0.25))
             `shouldBe` [(((0.25,0.25), (0.25,0.25)), 0.75 :: Float)]
+
     describe "filterControlValues" $ do
       it "can remove values" $ do
         property $ comparePD (0,2)
