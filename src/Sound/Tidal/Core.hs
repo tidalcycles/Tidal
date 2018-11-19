@@ -406,6 +406,12 @@ withControlValues ctl vs f p =
   ]
  where vs' = map toV vs
 
+withControlValue :: (Valuable a, Eq a) =>
+                    String
+                    -> a
+                    -> (ControlPattern -> ControlPattern)
+                    -> ControlPattern
+                    -> ControlPattern
 withControlValue ctl v = withControlValues ctl [v]
 
 withControlRange :: (Valuable a, Ord a) => String -> (a,a) -> (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern
