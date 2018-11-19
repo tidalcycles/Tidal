@@ -770,8 +770,11 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 
 -- | @rot n p@ rotates the values in a pattern @p@ by @n@ beats to the left.
 -- Example: @d1 $ every 4 (rot 2) $ slow 2 $ sound "bd hh hh hh"@
-rot :: Ord a => Int -> Pattern a -> Pattern a
-rot n p = splitQueries $ p {query = \st -> f st (query p (st {arc = wholeCycle (arc st)}))}
+rot :: Ord a => Pattern Int -> Pattern a -> Pattern a
+rot = tParam _rot
+
+_rot :: Ord a => Int -> Pattern a -> Pattern a
+_rot n p = splitQueries $ p {query = \st -> f st (query p (st {arc = wholeCycle (arc st)}))}
   where -- TODO maybe events with the same arc (part+whole) should be
         -- grouped together in the rotation?
         f st es = constrainEvents (arc st) $ shiftValues n $ sort $ defragParts es
@@ -781,9 +784,8 @@ rot n p = splitQueries $ p {query = \st -> f st (query p (st {arc = wholeCycle (
         constrainEvents :: Arc -> [Event a] -> [Event a]
         constrainEvents a es = catMaybes $ map (constrainEvent a) es
         constrainEvent :: Arc -> Event a -> Maybe (Event a)
-        constrainEvent a ((w,p),v) = do w' <- subArc w a
-                                        p' <- subArc p a
-                                        return ((w',p'),v)
+        constrainEvent a ((w,p),v) = do p' <- subArc p a
+                                        return ((w,p'),v)
 
 -- | @discretise n p@: 'samples' the pattern @p@ at a rate of @n@
 -- events per cycle. Useful for turning a continuous pattern into a
