@@ -70,6 +70,12 @@ test-suite tests
   hs-source-dirs:
       test
   ghc-options: -Wall
+  other-modules: Sound.Tidal.CoreTest
+                 Sound.Tidal.ParseTest
+                 Sound.Tidal.PatternTest
+                 Sound.Tidal.UITest
+                 Sound.Tidal.UtilsTest
+                 TestUtils
   build-depends:
                 base ==4.*
               , microspec >= 0.2.0.1
