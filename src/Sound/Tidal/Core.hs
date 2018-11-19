@@ -393,10 +393,7 @@ whenT test f p = splitQueries $ p {query = apply}
 
 -- | like filterValues but for ControlPatterns
 filterControlValues :: String -> (Value -> Bool) -> ControlPattern -> ControlPattern
-filterControlValues ctl f = filterValues (safeTest . (Map.lookup ctl)) where
-  safeTest (Just a) = f a
-  safeTest (Nothing) = False
-
+filterControlValues ctl f = filterValues (maybe False f . (Map.lookup ctl))
 
 withControlValues :: (Valuable a, Eq a) => String -> [a] -> (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern
 withControlValues ctl vs f p =
