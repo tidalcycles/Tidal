@@ -19,6 +19,7 @@ import Data.List (sort, sortBy, findIndices, elemIndex, groupBy, transpose)
 import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe, catMaybes)
 import qualified Data.Text as T
 import Control.Applicative (liftA2)
+import Data.Map.Strict (isSubmapOf)
 
 import Sound.Tidal.Bjorklund (bjorklund)
 import Sound.Tidal.Utils
@@ -1447,3 +1448,26 @@ _select f ps =  ps !! (floor $ (max 0 $ min 1 f) * (fromIntegral $ length ps - 1
 -- | chooses between a list of patterns, using a pattern of floats (from 0-1)
 select :: Pattern Double -> [Pattern a] -> Pattern a
 select = tParam _select
+
+
+-- | @contrast p f f' p'@ splits controlpattern @p'@ in two, applying
+-- the function @f@ to one and @f'@ to the other. This depends on
+-- whether events in it contains values matching with those in @p@.
+-- For example in @contrast (n "1") (# crush 3) (# vowel "a") $ n "0 1" # s "bd sn" # speed 3@,
+-- the first event will have the vowel effect applied and the second
+-- will have the crush applied.
+contrast :: (ControlPattern -> ControlPattern) -> (ControlPattern -> ControlPattern)
+            -> ControlPattern -> ControlPattern -> ControlPattern
+contrast f f' p p' = overlay (f matched) (f' unmatched)
+  where matches = (\a b -> (isSubmapOf a b, b)) <$> p *> p'
+        matched = filterJust $ (\(t, a) -> if t then Just a else Nothing) <$> matches
+        unmatched = filterJust $ (\(t, a) -> if not t then Just a else Nothing) <$> matches
+
+-- | Like @contrast@, but one function is given, and applied to events with matching controls.
+fix :: (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern
+fix f p p' = contrast f id p p'
+
+-- | Like @contrast@, but one function is given, and applied to events
+-- with controls which don't match.
+unfix :: (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern
+unfix f p p' = contrast id f p p'

@@ -121,4 +121,29 @@ run =
         property $ comparePD (0,2)
           (rot (1) "a ~ [b [c ~ d]] [e <f g>]" :: Pattern String)
           ( "b ~ [c [d ~ e]] [<f g> a]" :: Pattern String)
-        
+
+    describe "fix" $ do
+      it "can apply functions conditionally" $ do
+        compareP (0,1)
+          (fix (|+ n 1) (s "sn") (s "bd sn cp" # n 1))
+          (s "bd sn cp" # n "1 2 1")
+      it "works with complex matches" $ do
+        compareP (0,1)
+          (fix (|+ n 2) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2"))
+          (s "bd sn*4 cp" # n "1 [1 4] 2")
+      it "leaves unmatched controls in place" $ do
+        compareP (0,1)
+          (fix (|+ n 2) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2" # speed (sine + 1)))
+          (s "bd sn*4 cp" # n "1 [1 4] 2" # speed (sine + 1))
+
+    describe "unfix" $ do
+      it "does the opposite of fix" $ do
+        compareP (0,1)
+          (unfix (|+ n 2) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2" # speed (sine + 1)))
+          (s "bd sn*4 cp" # n "3 [3 2] 4" # speed (sine + 1))
+
+    describe "contrast" $ do
+      it "does both fix and unfix" $ do
+        compareP (0,1)
+          (contrast (|+ n 2) (|+ n 10) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2" # speed (sine + 1)))
+          (s "bd sn*4 cp" # n "11 [11 4] 12" # speed (sine + 1))
