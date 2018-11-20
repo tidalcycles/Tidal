@@ -618,7 +618,7 @@ euler :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euler = tParam2 _euler
 
 _euler :: Int -> Int -> Pattern a -> Pattern a
-_euler n k p = (flip const) <$> (filterValues (== True) $ listToPat $ bjorklund (n,k)) <*> p
+_euler n k p = (flip const) <$> (filterValues (== True) $ fastFromList $ bjorklund (n,k)) <*> p
 
 -- euler' :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 -- euler' = tParam2 _eulerq'
@@ -645,7 +645,7 @@ _distrib xs p = boolsToPat (foldr (distrib') (replicate (last xs) True) (reverse
     distrib' (True:a) (x:b) = x:(distrib' a b)
     distrib' (False:a) (b) = False:(distrib' a b)
     layers = map bjorklund . (zip<*>tail)
-    boolsToPat a b' = (flip const) <$> (filterValues (== True) $ listToPat $ a) <*> b'
+    boolsToPat a b' = (flip const) <$> (filterValues (== True) $ fastFromList $ a) <*> b'
 
 {- | `einv` fills in the blanks left by `e`
  -
@@ -657,7 +657,7 @@ eulerInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 eulerInv = tParam2 _eulerInv
 
 _eulerInv :: Int -> Int -> Pattern a -> Pattern a
-_eulerInv n k p = (flip const) <$> (filterValues (== False) $ listToPat $ bjorklund (n,k)) <*> p
+_eulerInv n k p = (flip const) <$> (filterValues (== False) $ fastFromList $ bjorklund (n,k)) <*> p
 
 {- | `eulerfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
 eulerFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
@@ -855,7 +855,7 @@ fit perCycle xs p = (xs !!!) <$> (p {query = \st -> map ((\e -> (fmap (+ (pos e)
   where pos e = perCycle * (floor $ fst $ snd $ fst e)
 
 permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
-permstep nSteps things p = unwrap $ (\n -> listToPat $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (_discretise 1 p)
+permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (_discretise 1 p)
       where ps = permsort (length things) nSteps
             deviance avg xs = sum $ map (abs . (avg-) . fromIntegral) xs
             permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total / (fromIntegral n :: Double)) x)) $ perms n total
@@ -1119,7 +1119,7 @@ shuffle n = fit' 1 n (_run n) randpat
   where randpat = Pattern {nature = Digital,
                            query = \(State {arc = (s,e)}) -> queryArc (p $ sam s) (s,e)
                           }
-        p c = listToPat $ map snd $ sort $ zip
+        p c = fastFromList $ map snd $ sort $ zip
               [timeToRand (c+i/n') | i <- [0..n'-1]] [0..n-1]
         n' :: Time
         n' = fromIntegral n

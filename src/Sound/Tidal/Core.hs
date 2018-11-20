@@ -139,13 +139,17 @@ a  <| b = union <$> a *> b
 
 -- ** Constructing patterns
 
--- | Turns a list of values into a pattern, playing through them once per cycle.
+-- | Turns a list of values into a pattern, playing one of them per cycle.
 fromList :: [a] -> Pattern a
-fromList = fastCat . map pure
+fromList = cat . map pure
 
--- | A synonym for 'fromList'
+-- | Turns a list of values into a pattern, playing one of them per cycle.
+fastFromList :: [a] -> Pattern a
+fastFromList = fastcat . map pure
+
+-- | A synonym for 'fastFromList'
 listToPat :: [a] -> Pattern a
-listToPat = fromList
+listToPat = fastFromList
 
 -- | 'fromMaybes; is similar to 'fromList', but allows values to
 -- be optional using the 'Maybe' type, so that 'Nothing' results in
@@ -160,7 +164,7 @@ run :: (Enum a, Num a) => Pattern a -> Pattern a
 run = (>>= _run)
 
 _run :: (Enum a, Num a) => a -> Pattern a
-_run n = fromList [0 .. n-1]
+_run n = fastFromList [0 .. n-1]
 
 -- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
 scan :: (Enum a, Num a) => Pattern a -> Pattern a

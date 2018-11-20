@@ -114,14 +114,14 @@ instance Enumerable Double where
 instance Parseable String where
   tPatParser = pVocable
 instance Enumerable String where
-  fromTo a b = listToPat [a,b]
-  fromThenTo a b c = listToPat [a,b,c]
+  fromTo a b = fastFromList [a,b]
+  fromThenTo a b c = fastFromList [a,b,c]
 
 instance Parseable Bool where
   tPatParser = pBool
 instance Enumerable Bool where
-  fromTo a b = listToPat [a,b]
-  fromThenTo a b c = listToPat [a,b,c]
+  fromTo a b = fastFromList [a,b]
+  fromThenTo a b c = fastFromList [a,b,c]
 
 instance Parseable Int where
   tPatParser = pIntegral
@@ -142,21 +142,21 @@ instance Enumerable Rational where
   fromThenTo a b c = enumFromThenTo' a b c
 
 enumFromTo' :: (Ord a, Enum a) => a -> a -> Pattern a
-enumFromTo' a b | a > b = listToPat $ reverse $ enumFromTo b a
-                | otherwise = listToPat $ enumFromTo a b
+enumFromTo' a b | a > b = fastFromList $ reverse $ enumFromTo b a
+                | otherwise = fastFromList $ enumFromTo a b
 
 enumFromThenTo'
   :: (Ord a, Enum a, Num a) => a -> a -> a -> Pattern a
-enumFromThenTo' a b c | a > c = listToPat $ reverse $ enumFromThenTo c (c + (a-b)) a
-                      | otherwise = listToPat $ enumFromThenTo a b c
+enumFromThenTo' a b c | a > c = fastFromList $ reverse $ enumFromThenTo c (c + (a-b)) a
+                      | otherwise = fastFromList $ enumFromThenTo a b c
 
 type ColourD = Colour Double
 
 instance Parseable ColourD where
   tPatParser = pColour
 instance Enumerable ColourD where
-  fromTo a b = listToPat [a,b]
-  fromThenTo a b c = listToPat [a,b,c]
+  fromTo a b = fastFromList [a,b]
+  fromThenTo a b c = fastFromList [a,b,c]
 
 instance (Enumerable a, Parseable a) => IsString (Pattern a) where
   fromString = parseBP_E
