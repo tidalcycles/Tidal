@@ -19,7 +19,7 @@ import Data.List (sort, sortBy, findIndices, elemIndex, groupBy, transpose)
 import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe, catMaybes)
 import qualified Data.Text as T
 import Control.Applicative (liftA2)
-import Data.Map.Strict (isSubmapOf)
+import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Bjorklund (bjorklund)
 import Sound.Tidal.Utils
@@ -1456,11 +1456,23 @@ select = tParam _select
 -- For example in @contrast (n "1") (# crush 3) (# vowel "a") $ n "0 1" # s "bd sn" # speed 3@,
 -- the first event will have the vowel effect applied and the second
 -- will have the crush applied.
+
+
 contrast :: (ControlPattern -> ControlPattern) -> (ControlPattern -> ControlPattern)
             -> ControlPattern -> ControlPattern -> ControlPattern
-contrast f f' p p' = overlay (f matched) (f' unmatched)
-  where matches = (\a b -> (isSubmapOf a b, b)) <$> p *> p'
+contrast = contrastBy (==)
+
+contrastBy :: (a -> Value -> Bool)
+              -> (ControlPattern -> Pattern b)
+              -> (ControlPattern -> Pattern b)
+              -> Pattern (Map.Map String a)
+              -> Pattern (Map.Map String Value)
+              -> Pattern b
+contrastBy comp f f' p p' = overlay (f matched) (f' unmatched)
+  where matches = (\a b -> (Map.isSubmapOfBy comp a b, b)) <$> p *> p'
+        matched :: ControlPattern
         matched = filterJust $ (\(t, a) -> if t then Just a else Nothing) <$> matches
+        unmatched :: ControlPattern
         unmatched = filterJust $ (\(t, a) -> if not t then Just a else Nothing) <$> matches
 
 -- | Like @contrast@, but one function is given, and applied to events with matching controls.
