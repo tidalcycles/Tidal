@@ -1489,9 +1489,21 @@ contrastRange = contrastBy f
 
 -- | Like @contrast@, but one function is given, and applied to events with matching controls.
 fix :: (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern
-fix f p p' = contrast f id p p'
+fix f = contrast f id
 
 -- | Like @contrast@, but one function is given, and applied to events
 -- with controls which don't match.
 unfix :: (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern
-unfix f p p' = contrast id f p p'
+unfix f = contrast id f
+
+fixRange :: (ControlPattern -> Pattern ControlMap)
+            -> Pattern (Map.Map String (Value, Value))
+            -> ControlPattern
+            -> Pattern ControlMap
+fixRange f = contrastRange f id
+
+unfixRange :: (ControlPattern -> Pattern ControlMap)
+              -> Pattern (Map.Map String (Value, Value))
+              -> ControlPattern
+              -> Pattern ControlMap
+unfixRange f = contrastRange id f
