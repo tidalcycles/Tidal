@@ -98,7 +98,7 @@ choose = chooseBy rand
 
 chooseBy :: Pattern Double -> [a] -> Pattern a
 chooseBy _ [] = silence
-chooseBy f xs = ((xs !!) . floor) <$> (scale 0 (fromIntegral $ length xs) f)
+chooseBy f xs = ((xs !!) . floor) <$> (range 0 (fromIntegral $ length xs) f)
 
 {- | Like @choose@, but works on an a list of tuples of values and weights
 
@@ -1366,27 +1366,27 @@ cross f p p' = Pattern $ \t -> concat [filter flt $ arc p t,
 ]  where flt = f . cyclePos . fst . fst
 -}
 
-{- | `scale` will take a pattern which goes from 0 to 1 (like `sine1`), and scale it to a different range - between the first and second arguments. In the below example, `scale 1 1.5` shifts the range of `sine1` from 0 - 1 to 1 - 1.5.
+{- | `range` will take a pattern which goes from 0 to 1 (like `sine`), and range it to a different range - between the first and second arguments. In the below example, `range 1 1.5` shifts the range of `sine1` from 0 - 1 to 1 - 1.5.
 
 @
 d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
-  |+ speed (slow 4 $ scale 1 1.5 sine1)
+  |+ speed (slow 4 $ range 1 1.5 sine1)
 @
 -}
 
-scale :: Num a => Pattern a -> Pattern a -> Pattern a -> Pattern a
-scale fromP toP p = do
+range :: Num a => Pattern a -> Pattern a -> Pattern a -> Pattern a
+range fromP toP p = do
   from <- fromP
   to <- toP
-  _scale from to p
+  _range from to p
 
-_scale :: (Functor f, Num b) => b -> b -> f b -> f b
-_scale from to p = ((+ from) . (* (to-from))) <$> p
+_range :: (Functor f, Num b) => b -> b -> f b -> f b
+_range from to p = ((+ from) . (* (to-from))) <$> p
 
-{- | `scalex` is an exponential version of `scale`, good for using with
+{- | `rangex` is an exponential version of `range`, good for using with
 frequencies.  Do *not* use negative numbers or zero as arguments! -}
-scalex :: (Functor f, Floating b) => b -> b -> f b -> f b
-scalex from to p = exp <$> _scale (log from) (log to) p
+rangex :: (Functor f, Floating b) => b -> b -> f b -> f b
+rangex from to p = exp <$> _range (log from) (log to) p
 
 off :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 off tp f p = innerJoin $ (\tv -> _off tv f p) <$> tp

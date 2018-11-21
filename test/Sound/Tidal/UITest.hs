@@ -9,7 +9,7 @@ import Prelude hiding ((<*), (*>))
 
 import qualified Data.Map.Strict as Map
 
-import Sound.Tidal.Pattern
+-- import Sound.Tidal.Pattern
 import Sound.Tidal.Control
 import Sound.Tidal.Core
 import Sound.Tidal.Params
@@ -77,38 +77,38 @@ run =
           (queryArc rand (0.75, 0.75)) `shouldBe`
             [(((0.75, 0.75), (0.75, 0.75)), 0.7277789 :: Float)]
 
-    describe "scale" $ do
+    describe "range" $ do
       describe "scales a pattern to the supplied range" $ do
         describe "from 3 to 4" $ do
           it "at the start of a cycle" $
-            (queryArc (Sound.Tidal.UI.scale 3 4 saw) (0, 0)) `shouldBe`
+            (queryArc (Sound.Tidal.UI.range 3 4 saw) (0, 0)) `shouldBe`
               [(((0, 0), (0, 0)), 3 :: Float)]
           it "at 1/4 of a cycle" $
-            (queryArc (Sound.Tidal.UI.scale 3 4 saw) (0.25, 0.25)) `shouldBe`
+            (queryArc (Sound.Tidal.UI.range 3 4 saw) (0.25, 0.25)) `shouldBe`
               [(((0.25, 0.25), (0.25, 0.25)), 3.25 :: Float)]
           it "at 3/4 of a cycle" $
-            (queryArc (Sound.Tidal.UI.scale 3 4 saw) (0.75, 0.75)) `shouldBe`
+            (queryArc (Sound.Tidal.UI.range 3 4 saw) (0.75, 0.75)) `shouldBe`
               [(((0.75, 0.75), (0.75, 0.75)), 3.75 :: Float)]
 
         describe "from -1 to 1" $ do
           it "at 1/2 of a cycle" $
-            (queryArc (Sound.Tidal.UI.scale (-1) 1 saw) (0.5, 0.5)) `shouldBe`
+            (queryArc (Sound.Tidal.UI.range (-1) 1 saw) (0.5, 0.5)) `shouldBe`
               [(((0.5, 0.5), (0.5, 0.5)), 0 :: Float)]
 
         describe "from 4 to 2" $ do
           it "at the start of a cycle" $
-            (queryArc (Sound.Tidal.UI.scale 4 2 saw) (0, 0)) `shouldBe`
+            (queryArc (Sound.Tidal.UI.range 4 2 saw) (0, 0)) `shouldBe`
               [(((0, 0), (0, 0)), 4 :: Float)]
           it "at 1/4 of a cycle" $
-            (queryArc (Sound.Tidal.UI.scale 4 2 saw) (0.25, 0.25)) `shouldBe`
+            (queryArc (Sound.Tidal.UI.range 4 2 saw) (0.25, 0.25)) `shouldBe`
               [(((0.25, 0.25), (0.25, 0.25)), 3.5 :: Float)]
           it "at 3/4 of a cycle" $
-            (queryArc (Sound.Tidal.UI.scale 4 2 saw) (0.75, 0.75)) `shouldBe`
+            (queryArc (Sound.Tidal.UI.range 4 2 saw) (0.75, 0.75)) `shouldBe`
               [(((0.75, 0.75), (0.75, 0.75)), 2.5 :: Float)]
 
         describe "from 10 to 10" $ do
           it "at 1/2 of a cycle" $
-            (queryArc (Sound.Tidal.UI.scale 10 10 saw) (0.5, 0.5)) `shouldBe`
+            (queryArc (Sound.Tidal.UI.range 10 10 saw) (0.5, 0.5)) `shouldBe`
               [(((0.5, 0.5), (0.5, 0.5)), 10 :: Float)]
     describe "rot" $ do
       it "rotates values in a pattern irrespective of structure" $
@@ -155,3 +155,11 @@ run =
         compareP (0,1)
           (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VF 0, VF 3)) $ s "bd" >| n "1 4")
           (s "bd" >| n "1 4" >| crush "3 0")
+
+    describe "contrastValues" $ do
+      it "matches using a pattern of lists of values" $ do
+        compareP (0,1)
+          (contrastValues (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VF 0, VF 4)) $ s "bd" >| n "1 4")
+          (s "bd" >| n "1 4" >| crush "0 3")
+
+
