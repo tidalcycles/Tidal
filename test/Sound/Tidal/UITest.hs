@@ -7,6 +7,8 @@ import Test.Microspec
 
 import Prelude hiding ((<*), (*>))
 
+import qualified Data.Map.Strict as Map
+
 import Sound.Tidal.Pattern
 import Sound.Tidal.Control
 import Sound.Tidal.Core
@@ -147,3 +149,9 @@ run =
         compareP (0,1)
           (contrast (|+ n 2) (|+ n 10) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2" # speed (sine + 1)))
           (s "bd sn*4 cp" # n "11 [11 4] 12" # speed (sine + 1))
+
+    describe "contrastRange" $ do
+      it "matches using a pattern of ranges" $ do
+        compareP (0,1)
+          (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VF 0, VF 3)) $ s "bd" >| n "1 4")
+          (s "bd" >| n "1 4" >| crush "3 0")

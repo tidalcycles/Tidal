@@ -1475,6 +1475,18 @@ contrastBy comp f f' p p' = overlay (f matched) (f' unmatched)
         unmatched :: ControlPattern
         unmatched = filterJust $ (\(t, a) -> if not t then Just a else Nothing) <$> matches
 
+contrastRange
+  :: (ControlPattern -> Pattern b)
+     -> (ControlPattern -> Pattern b)
+     -> Pattern (Map.Map String (Value, Value))
+     -> ControlPattern
+     -> Pattern b
+contrastRange = contrastBy f
+      where f (VI s, VI e) (VI v) = v >= s && v <= e 
+            f (VF s, VF e) (VF v) = v >= s && v <= e 
+            f (VS s, VS e) (VS v) = v == s && v == e
+            f _ _ = False
+
 -- | Like @contrast@, but one function is given, and applied to events with matching controls.
 fix :: (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern
 fix f p p' = contrast f id p p'
