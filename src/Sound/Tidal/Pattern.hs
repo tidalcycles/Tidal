@@ -55,10 +55,6 @@ data Value = VS { svalue :: String }
 type ControlMap = Map.Map String Value
 type ControlPattern = Pattern ControlMap
 
-class Valuable a where
-  fromV :: Value -> a
-  toV :: a -> Value
-
 ------------------------------------------------------------------------
 -- * Instances
 
@@ -312,19 +308,6 @@ instance Num (ControlMap) where
 instance Fractional ControlMap where
   recip        = fmap (applyFIS recip id id)
   fromRational = Map.singleton "speed" . VF . fromRational
-
-instance Valuable String where
-  fromV = svalue
-  toV = VS
-
-instance Valuable Int where
-  fromV = ivalue
-  toV = VI
-
-instance Valuable Double where
-  fromV = fvalue
-  toV = VF
-
 
 instance {-# OVERLAPPING #-} Show Arc where
   show (s,e) = prettyRat s ++ ">" ++ prettyRat e
