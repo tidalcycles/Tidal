@@ -669,3 +669,13 @@ tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
 tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 tParamSqueeze f tv p = unwrapSqueeze $ (`f` p) <$> tv
 
+-- | Mark values in the first pattern which match with at least one
+-- value in the second pattern.
+matchManyToOne :: (b -> a -> Bool) -> Pattern a -> Pattern b -> Pattern (Bool, b)
+matchManyToOne f pa pb = pa {query = q}
+  where q st = map match $ query pb st
+          where
+            match ((xWhole, xPart), x) =
+              ((xWhole, xPart), (or $ map (f x) (as $ fst xWhole), x))
+            as s = map snd $ query pa $ fQuery s
+            fQuery s = st {arc = (s,s)}

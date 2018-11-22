@@ -1469,7 +1469,7 @@ contrastBy :: (a -> Value -> Bool)
               -> Pattern (Map.Map String Value)
               -> Pattern b
 contrastBy comp f f' p p' = overlay (f matched) (f' unmatched)
-  where matches = (\a b -> (Map.isSubmapOfBy comp a b, b)) <$> p *> p'
+  where matches = matchManyToOne (flip $ Map.isSubmapOfBy comp) p p'
         matched :: ControlPattern
         matched = filterJust $ (\(t, a) -> if t then Just a else Nothing) <$> matches
         unmatched :: ControlPattern
@@ -1486,15 +1486,6 @@ contrastRange = contrastBy f
             f (VF s, VF e) (VF v) = v >= s && v <= e 
             f (VS s, VS e) (VS v) = v == s && v == e
             f _ _ = False
-
-contrastValues
-  :: Foldable t =>
-     (ControlPattern -> Pattern a)
-     -> (ControlPattern -> Pattern a)
-     -> Pattern (Map.Map String (t Value))
-     -> Pattern (Map.Map String Value)
-     -> Pattern a
-contrastValues = contrastBy (flip elem)
 
 -- | Like @contrast@, but one function is given, and applied to events with matching controls.
 fix :: (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern
@@ -1516,15 +1507,3 @@ unfixRange :: (ControlPattern -> Pattern ControlMap)
               -> ControlPattern
               -> Pattern ControlMap
 unfixRange f = contrastRange id f
-
-fixValues :: (ControlPattern -> Pattern ControlMap)
-             -> Pattern (Map.Map String (Value, Value))
-             -> Pattern (Map.Map String Value)
-             -> Pattern ControlMap
-fixValues f = contrastRange f id
-
-unfixValues :: (ControlPattern -> Pattern ControlMap)
-               -> Pattern (Map.Map String (Value, Value))
-               -> Pattern (Map.Map String Value)
-               -> Pattern ControlMap
-unfixValues f = contrastRange id f

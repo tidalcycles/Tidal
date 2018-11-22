@@ -137,6 +137,14 @@ run =
         compareP (0,1)
           (fix (|+ n 2) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2" # speed (sine + 1)))
           (s "bd sn*4 cp" # n "1 [1 4] 2" # speed (sine + 1))
+      it "ignores silence" $ do
+        compareP (0,1)
+          (fix (|+ n 2) (silence) $ s "bd sn*4 cp" # n "1 2" # speed (sine + 1))
+          (s "bd sn*4 cp" # n "1 2" # speed (sine + 1))
+      it "treats polyphony as 'or'" $ do
+        compareP (0,1)
+          (fix (# crush 2) (n "[1,2]") $ s "bd sn" # n "1 2")
+          (s "bd sn" # n "1 2" # crush 2)
 
     describe "unfix" $ do
       it "does the opposite of fix" $ do
@@ -155,11 +163,3 @@ run =
         compareP (0,1)
           (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VF 0, VF 3)) $ s "bd" >| n "1 4")
           (s "bd" >| n "1 4" >| crush "3 0")
-
-    describe "contrastValues" $ do
-      it "matches using a pattern of lists of values" $ do
-        compareP (0,1)
-          (contrastValues (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VF 0, VF 4)) $ s "bd" >| n "1 4")
-          (s "bd" >| n "1 4" >| crush "0 3")
-
-
