@@ -1343,16 +1343,8 @@ scrumple o p p' = p'' -- overlay p (o `rotR` p'')
                               ) (arc p a)
 -}
 
---spreadf :: [Pattern a -> Pattern b] -> Pattern a -> Pattern b
 spreadf :: [a -> Pattern b] -> a -> Pattern b
 spreadf = spread ($)
-
-{-stripe :: Arc -> Pattern a -> Pattern a
-stripe (stripeS, stripeE) p = slow t $ Pattern $ \a -> concatMap f $ arcCycles a
-  where f a = mapFsts (stretch . stripe') $ arc p (stripe' a)
-        trunc' (s,e) = (min s ((sam s) + t), min e ((sam s) + t))
-        stretch (s,e) = (sam s + ((s - sam s) / t), sam s + ((e - sam s) / t))
--}
 
 stackwith :: Unionable a => Pattern a -> [Pattern a] -> Pattern a
 stackwith p ps | null ps = silence
