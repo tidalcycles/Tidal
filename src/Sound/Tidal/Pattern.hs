@@ -137,7 +137,6 @@ pf <* px = Pattern Analog q
               query pf $ fQuery xWhole
             fQuery ((s,_)) = st {arc = (s,s)} -- for discrete events, match with the onset
             
-
 pf *> px = Pattern Analog q
   where q st = concatMap match $ query px st
           where
