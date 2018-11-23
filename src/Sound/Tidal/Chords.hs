@@ -1,11 +1,12 @@
 module Sound.Tidal.Chords where
 
 import Sound.Tidal.Pattern
+import Sound.Tidal.UI (rot)
 -- import Sound.Tidal.Stream (ParamMap, ParamPattern)
--- import Sound.Tidal.Params (n)
+import Sound.Tidal.Params (n)
 -- import Sound.Tidal.Time (Arc)
 import Data.Maybe
--- import Control.Applicative
+import Control.Applicative
 
 major :: Num a => [a]
 major = [0,4,7]
@@ -191,35 +192,20 @@ chordL p = (\name -> fromMaybe [] $ lookup name chordTable) <$> p
 -- chord :: Num a => Pattern String -> Pattern a
 -- chord p = flatpat $ chordL p
 
-{-
--- | @arpg p@ turns a pattern of chord names into a pattern of arpeggios
--- of those chords respectively
-arpg :: Num a => Pattern String -> Pattern a
-arpg p = breakUp $ chord p
+-- | @arpgt c@ arpeggiates chord(s)
+arpgt :: Pattern Double -> Pattern ControlMap
+arpgt c = arpeggiate $ n c
 
--- | @arpg' fst p@ starts each arpeggio on note @fst@
-arpg' :: Num a => Pattern Int -> Pattern String -> Pattern a
-arpg' = temporalParam arpg_
+-- | @arpgt' fstn c@ arpeggiates chord(s) @c@ starting each arpeggio on note @fstn@
+arpgt' :: Pattern Int -> Pattern Double -> Pattern ControlMap
+arpgt' fstn c = rot fstn $ arpeggiate $ n c
 
-arpg_ :: Num a => Int -> Pattern String -> Pattern a
-arpg_ fst p = (fst <<~) $ arpg p
+-- | @arpgtt f c@ arpeggiates chord(s) @c@ and applies
+-- transformation function @f@ to the whole pattern
+arpgtt :: (Pattern ControlMap -> Pattern ControlMap) -> Pattern Double -> Pattern ControlMap
+arpgtt f c = within (0,1) f $ arpeggiate $ n c
 
--- | @arpgt p c@ arpeggiates pattern @p@ with chords' transposing @c@
-arpgt :: Pattern String -> Pattern Double -> Pattern ParamMap
-arpgt p c = n (arpg p + c)
-
--- | @arpgt' fst p c@ arpeggiates pattern @p@ with chords' transposing @c@
--- starting each arpeggio on note @fst@
-arpgt' :: Pattern Int -> Pattern String -> Pattern Double -> ParamPattern
-arpgt' fst p c = n (arpg' fst p + c)
-
--- | @arpgtt f p c@ arpeggiates pattern @p@ with chords' transposing @c@
--- and applies transformation function @f@ to the whole pattern
-arpgtt :: (Pattern ParamMap -> Pattern ParamMap) -> Pattern String -> Pattern Double -> Pattern ParamMap
-arpgtt f p c = within (0,1) f $ n (arpg p + c)
-
--- | @arpgti (s,e) f p c@ arpeggiates pattern @p@ with chords' transposing @c@
--- and applies transformation function @f@ to pattern's time interval @(s,e)@
-arpgti :: Arc -> (Pattern ParamMap -> Pattern ParamMap) -> Pattern String -> Pattern Double -> Pattern ParamMap
-arpgti (s,e) f p c = within (s,e) f $ n (arpg p + c)
--}
+-- | @arpgti (s,e) f c@ arpeggiates chord(s) @c@ and applies
+-- transformation function @f@ to pattern's time interval @(s,e)@
+arpgti :: (Time, Time) -> (Pattern ControlMap -> Pattern ControlMap) -> Pattern Double -> Pattern ControlMap
+arpgti (s,e) f c = within (s,e) f $ arpeggiate $ n c
