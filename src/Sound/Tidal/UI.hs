@@ -116,9 +116,10 @@ wchoose = wchooseBy rand
 wchooseBy :: Pattern Double -> [(a,Double)] -> Pattern a
 wchooseBy pat pairs = match <$> pat
   where
-    match r = values !! ((findIndices (> r) cweights) !! 0)
+    match r = values !! (head (findIndices (> (r*total)) cweights))
     cweights = scanl1 (+) (map snd pairs)
     values = map fst pairs
+    total = sum $ map snd pairs
 
 {- |
 Similar to `degrade` `degradeBy` allows you to control the percentage of events that
