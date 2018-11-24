@@ -354,7 +354,12 @@ atom :: Applicative m => Parser (a -> m a)
 atom = (function "pure" <|> function "atom" <|> function "return") >> return (pure)
 
 double :: Parser Double
-double = parensOrNot $ choice [try float,fromIntegral <$> integer]
+double = choice [
+  parens $ symbol "-" >> float >>= return . (* (-1)),
+  parens double,
+  try float,
+  try $ fromIntegral <$> integer
+  ]
 
 int :: Parser Int
 int = try $ parensOrNot $ fromIntegral <$> integer

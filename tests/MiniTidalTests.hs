@@ -43,6 +43,15 @@ main = hspec $ do
     it "parses a single 's' pattern that uses Bjorklund rhythms" $
       "s \"sn(5,16)\"" `parsesTo` s "sn(5,16)"
 
+    it "parses a literal int as a double pattern" $
+      "pan 0" `parsesTo` (pan 0)
+
+    it "parses a literal double as a double pattern" $
+      "pan 1.0" `parsesTo` (pan 1.0)
+
+    it "parses a negative literal double as a double pattern" $
+      "pan (-1.0)" `parsesTo` (pan (-1.0))
+
     it "parses two merged patterns" $
       "s \"bd cp\" # pan \"0 1\"" `parsesTo` (s "bd cp" # pan "0 1")
 
@@ -80,6 +89,9 @@ main = hspec $ do
 
     it "parses pan patterns" $
       "pan \"0 0.25 0.5 0.75 1\"" `parsesTo` (pan "0 0.25 0.5 0.75 1")
+
+    it "parses note patterns" $
+      "note \"0 0.25 0.5 0.75 1\"" `parsesTo` (note "0 0.25 0.5 0.75 1")
 
     it "parses sine oscillators" $
       "pan sine" `parsesTo` (pan sine)
