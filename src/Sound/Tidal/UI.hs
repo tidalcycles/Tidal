@@ -2,27 +2,26 @@
 
 module Sound.Tidal.UI where
 
-import Prelude hiding ((<*), (*>))
+import           Prelude hiding ((<*), (*>))
 
-import Sound.Tidal.Pattern
-import Sound.Tidal.Core
-import qualified Sound.Tidal.Params as P
-
-import Data.Ord (comparing)
-import Data.Char (digitToInt, isDigit)
-import System.Random.MWC
-import Control.Monad.ST
+import           Data.Ord (comparing)
+import           Data.Char (digitToInt, isDigit)
+import           System.Random.MWC
+import           Control.Monad.ST
 import qualified Data.Vector as V
-import Data.Word (Word32)
-import Data.Ratio ((%),numerator,denominator)
-import Data.List (sort, sortBy, findIndices, elemIndex, groupBy, transpose)
-import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe, catMaybes)
+import           Data.Word (Word32)
+import           Data.Ratio ((%),numerator,denominator)
+import           Data.List (sort, sortBy, findIndices, elemIndex, groupBy, transpose)
+import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe, catMaybes)
 import qualified Data.Text as T
-import Control.Applicative (liftA2)
+import           Control.Applicative (liftA2)
 import qualified Data.Map.Strict as Map
 
-import Sound.Tidal.Bjorklund (bjorklund)
-import Sound.Tidal.Utils
+import           Sound.Tidal.Bjorklund (bjorklund)
+import           Sound.Tidal.Core
+import qualified Sound.Tidal.Params as P
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Utils
  
 ------------------------------------------------------------------------
 -- * UI
