@@ -33,15 +33,16 @@ library
                        Sound.Tidal.Control
                        Sound.Tidal.Context
                        Sound.Tidal.Core
+                       Sound.Tidal.MiniTidal
                        Sound.Tidal.Params
                        Sound.Tidal.ParseBP
                        Sound.Tidal.Pattern
+                       Sound.Tidal.Scales
                        Sound.Tidal.Stream
                        Sound.Tidal.Tempo
                        Sound.Tidal.Transition
                        Sound.Tidal.UI
                        Sound.Tidal.Utils
-                       Sound.Tidal.MiniTidal
 
   Build-depends:
       base < 5
