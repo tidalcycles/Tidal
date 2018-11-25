@@ -2,13 +2,13 @@
 
 module Sound.Tidal.Core where
 
-import Prelude hiding ((<*), (*>))
+import           Prelude hiding ((<*), (*>))
 
-import Sound.Tidal.Pattern
-import Sound.Tidal.Utils
-
+import           Data.Fixed (mod')
 import qualified Data.Map.Strict as Map
-import Data.Fixed (mod')
+
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Utils
 
 -- ** Elemental patterns
 
