@@ -1,11 +1,8 @@
 module Sound.Tidal.Chords where
 
-import Sound.Tidal.Pattern
--- import Sound.Tidal.Stream (ParamMap, ParamPattern)
--- import Sound.Tidal.Params (n)
--- import Sound.Tidal.Time (Arc)
 import Data.Maybe
--- import Control.Applicative
+
+import Sound.Tidal.Pattern
 
 major :: Num a => [a]
 major = [0,4,7]
@@ -108,7 +105,6 @@ m13 = [0,3,7,10,14,17,21]
 -- enchord :: Num a => [[a]] -> Pattern a -> Pattern Int -> Pattern a
 -- enchord chords pn pc = flatpat $ (chordate chords) <$> pn <*> pc
 
-
 chordTable :: Num a => [(String, [a])]
 chordTable = [("major", major),
               ("maj", major),
@@ -186,40 +182,3 @@ chordTable = [("major", major),
 chordL :: Num a => Pattern String -> Pattern [a]
 chordL p = (\name -> fromMaybe [] $ lookup name chordTable) <$> p
 
--- | @chord p@ turns a pattern of chord names into a pattern of
--- numbers, representing note value offsets for the chords
--- chord :: Num a => Pattern String -> Pattern a
--- chord p = flatpat $ chordL p
-
-{-
--- | @arpg p@ turns a pattern of chord names into a pattern of arpeggios
--- of those chords respectively
-arpg :: Num a => Pattern String -> Pattern a
-arpg p = breakUp $ chord p
-
--- | @arpg' fst p@ starts each arpeggio on note @fst@
-arpg' :: Num a => Pattern Int -> Pattern String -> Pattern a
-arpg' = temporalParam arpg_
-
-arpg_ :: Num a => Int -> Pattern String -> Pattern a
-arpg_ fst p = (fst <<~) $ arpg p
-
--- | @arpgt p c@ arpeggiates pattern @p@ with chords' transposing @c@
-arpgt :: Pattern String -> Pattern Double -> Pattern ParamMap
-arpgt p c = n (arpg p + c)
-
--- | @arpgt' fst p c@ arpeggiates pattern @p@ with chords' transposing @c@
--- starting each arpeggio on note @fst@
-arpgt' :: Pattern Int -> Pattern String -> Pattern Double -> ParamPattern
-arpgt' fst p c = n (arpg' fst p + c)
-
--- | @arpgtt f p c@ arpeggiates pattern @p@ with chords' transposing @c@
--- and applies transformation function @f@ to the whole pattern
-arpgtt :: (Pattern ParamMap -> Pattern ParamMap) -> Pattern String -> Pattern Double -> Pattern ParamMap
-arpgtt f p c = within (0,1) f $ n (arpg p + c)
-
--- | @arpgti (s,e) f p c@ arpeggiates pattern @p@ with chords' transposing @c@
--- and applies transformation function @f@ to pattern's time interval @(s,e)@
-arpgti :: Arc -> (Pattern ParamMap -> Pattern ParamMap) -> Pattern String -> Pattern Double -> Pattern ParamMap
-arpgti (s,e) f p c = within (s,e) f $ n (arpg p + c)
--}
