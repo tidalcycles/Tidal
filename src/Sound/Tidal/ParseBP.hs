@@ -4,24 +4,24 @@
 
 module Sound.Tidal.ParseBP where
 
-import Text.ParserCombinators.Parsec
-import Text.Parsec.Error
+import           Control.Applicative ((<$>), (<*>), pure)
+import qualified Control.Exception as E
+import           Data.Colour
+import           Data.Colour.Names
+import           Data.Functor.Identity (Identity)
+import           Data.Maybe
+import           Data.Ratio
+import           Data.Typeable (Typeable)
+import           GHC.Exts ( IsString(..) )
+import           Text.Parsec.Error
+import           Text.ParserCombinators.Parsec
+import           Text.ParserCombinators.Parsec.Language ( haskellDef )
 import qualified Text.ParserCombinators.Parsec.Token as P
-import Text.ParserCombinators.Parsec.Language ( haskellDef )
-import Data.Ratio
-import Data.Colour
-import Data.Colour.Names
-import GHC.Exts( IsString(..) )
-import Control.Applicative ((<$>), (<*>), pure)
-import Data.Maybe
-import Data.Functor.Identity (Identity)
-import Data.Typeable (Typeable)
 
-import Sound.Tidal.Pattern
-import Sound.Tidal.UI
-import Sound.Tidal.Core
-import Sound.Tidal.Chords (chordTable)
-import qualified  Control.Exception as E
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.UI
+import           Sound.Tidal.Core
+import           Sound.Tidal.Chords (chordTable)
 
 data TidalParseError = TidalParseError {parsecError :: ParseError,
                                         code :: String
@@ -461,5 +461,4 @@ pDensity = angles (pRatio <?> "ratio")
            <|>
            return (1 % 1)
 -}
-
 
