@@ -3,18 +3,17 @@
 
 module Sound.Tidal.Pattern where
 
-import Prelude hiding ((<*), (*>))
+import           Prelude hiding ((<*), (*>))
 
+import           Control.Applicative (liftA2)
+import           Data.Data (Data) -- toConstr
+import           Data.List (delete, findIndex, sort, intercalate)
 import qualified Data.Map.Strict as Map
-import Control.Applicative (liftA2)
+import           Data.Maybe (isJust, fromJust, catMaybes, fromMaybe)
+import           Data.Ratio (numerator, denominator)
+import           Data.Typeable (Typeable)
 
-import Data.Maybe (isJust, fromJust, catMaybes, fromMaybe)
-import Data.Ratio (numerator, denominator)
-import Data.List (delete, findIndex, sort, intercalate)
-import Data.Typeable (Typeable)
-import Data.Data (Data) -- toConstr
-
-import Sound.Tidal.Utils
+import           Sound.Tidal.Utils
 
 ------------------------------------------------------------------------
 -- * Types
@@ -662,3 +661,4 @@ matchManyToOne f pa pb = pa {query = q}
               ((xWhole, xPart), (or $ map (f x) (as $ fst xWhole), x))
             as s = map snd $ query pa $ fQuery s
             fQuery s = st {arc = (s,s)}
+ 
