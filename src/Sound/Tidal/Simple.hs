@@ -17,11 +17,11 @@ louder = (|* gain 1.2)
 quieter :: ControlPattern -> ControlPattern
 quieter = (|* gain 0.8)
 
-mute :: ControlPattern -> ControlPattern
-mute = const silence
+silent :: ControlPattern -> ControlPattern
+silent = const silence
 
-jump :: ControlPattern -> ControlPattern
-jump = (0.25 <~)
+skip :: ControlPattern -> ControlPattern
+skip = (0.25 <~)
 
 left :: ControlPattern -> ControlPattern
 left = (# pan 0)
