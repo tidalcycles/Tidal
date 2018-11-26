@@ -1,7 +1,7 @@
 module Sound.Tidal.Simple where
 
 import Sound.Tidal.Control (chop, hurry)
-import Sound.Tidal.Core ((#), (|+), (|*), (<~), silence, rev)
+import Sound.Tidal.Core ((#), (|*), (<~), silence, rev)
 import Sound.Tidal.Params (crush, gain, pan, speed)
 import Sound.Tidal.Pattern (ControlPattern)
 

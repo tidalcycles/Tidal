@@ -5,7 +5,6 @@ import Data.List (intercalate)
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
-import Control.Applicative
 
 -- five notes scales
 minPent :: Num a => [a]
@@ -156,7 +155,7 @@ chromatic :: Num a => [a]
 chromatic = [0,1,2,3,4,5,6,7,8,9,10,11]
 
 scale :: Num a => Pattern String -> Pattern Int -> Pattern a
-scale sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName scaleTable) n) <$> p <*> sp
+scale sp p = (\n scaleName -> noteInScale (fromMaybe [0 :: Int] $ lookup scaleName scaleTable) n) <$> p <*> sp
   where octave s x = x `div` length s
         noteInScale s x = (s !!! x) + (fromIntegral $ 12 * octave s x)
 
