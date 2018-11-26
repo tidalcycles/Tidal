@@ -155,12 +155,12 @@ chromatic :: Num a => [a]
 chromatic = [0,1,2,3,4,5,6,7,8,9,10,11]
 
 scale :: Num a => Pattern String -> Pattern Int -> Pattern a
-scale sp p = (\n scaleName -> noteInScale (fromMaybe [0 :: Int] $ lookup scaleName scaleTable) n) <$> p <*> sp
+scale sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName scaleTable) n) <$> p <*> sp
   where octave s x = x `div` length s
         noteInScale s x = (s !!! x) + (fromIntegral $ 12 * octave s x)
 
 scaleList :: String
-scaleList = intercalate " " $ map fst scaleTable
+scaleList = intercalate " " $ map fst (scaleTable :: [(String, [Int])])
 
 scaleTable :: Num a => [(String, [a])]
 scaleTable = [("minPent", minPent),
