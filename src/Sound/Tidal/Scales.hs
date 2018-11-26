@@ -1,6 +1,7 @@
 module Sound.Tidal.Scales (scale, scaleList) where
 
 import Data.Maybe
+import Data.List (intercalate)
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
@@ -159,8 +160,8 @@ scale sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName scal
   where octave s x = x `div` length s
         noteInScale s x = (s !!! x) + (fromIntegral $ 12 * octave s x)
 
-scaleList :: [String]
-scaleList = map fst scaleTable
+scaleList :: String
+scaleList = intercalate " " $ map fst scaleTable
 
 scaleTable :: Num a => [(String, [a])]
 scaleTable = [("minPent", minPent),
