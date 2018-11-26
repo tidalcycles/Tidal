@@ -2,14 +2,17 @@
 
 module Sound.Tidal.MiniTidal (miniTidal,miniTidalIO,main) where
 
-import Text.ParserCombinators.Parsec
+import           Data.Functor.Identity (Identity)
+import           Text.Parsec.Language (haskellDef)
+import           Text.Parsec.Prim (ParsecT)
+import           Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
-import Text.Parsec.Language (haskellDef)
-import Data.List (intercalate)
-import Data.Bool (bool)
-import Data.Ratio
-import Control.Monad (forever)
-import Sound.Tidal.Context (Pattern,ControlMap,ControlPattern,Enumerable,Parseable,Time,Arc,TPat,Stream)
+import           Control.Monad (forever)
+-- import Data.List (intercalate)
+-- import Data.Bool (bool)
+-- import Data.Ratio
+
+import           Sound.Tidal.Context (Pattern,ControlMap,ControlPattern,Enumerable,Parseable,Time,Arc,TPat,Stream)
 import qualified Sound.Tidal.Context as T
 
 -- This is depended upon by Estuary, and changes to its type will cause problems downstream for Estuary.
@@ -409,34 +412,65 @@ tokenParser = P.makeTokenParser $ haskellDef {
   P.reservedOpNames = ["+","-","*","/","<~","~>","#","|+|","|-|","|*|","|/|","$","\"","|>","<|","|>|","|<|"]
   }
 
-identifier = P.identifier tokenParser
-reserved = P.reserved tokenParser
-operator = P.operator tokenParser
-reservedOp = P.reservedOp tokenParser
-charLiteral = P.charLiteral tokenParser
-stringLiteral = P.stringLiteral tokenParser
-natural = P.natural tokenParser
-integer = P.integer tokenParser
-float = P.float tokenParser
-naturalOrFloat = P.naturalOrFloat tokenParser
-decimal = P.decimal tokenParser
-hexadecimal = P.hexadecimal tokenParser
-octal = P.octal tokenParser
-symbol = P.symbol tokenParser
-lexeme = P.lexeme tokenParser
-whiteSpace = P.whiteSpace tokenParser
-parens = P.parens tokenParser
-braces = P.braces tokenParser
+{- Not currently in use
+angles :: ParsecT String u Identity a -> ParsecT String u Identity a
 angles = P.angles tokenParser
-brackets = P.brackets tokenParser
-semi = P.semi tokenParser
-comma = P.comma tokenParser
+braces :: ParsecT String u Identity a -> ParsecT String u Identity a
+braces = P.braces tokenParser
+charLiteral :: ParsecT String u Identity Char
+charLiteral = P.charLiteral tokenParser
+colon :: ParsecT String u Identity String
 colon = P.colon tokenParser
+comma :: ParsecT String u Identity String
+comma = P.comma tokenParser
+decimal :: ParsecT String u Identity Integer
+decimal = P.decimal tokenParser
+dot :: ParsecT String u Identity String
 dot = P.dot tokenParser
-semiSep = P.semiSep tokenParser
+hexadecimal :: ParsecT String u Identity Integer
+hexadecimal = P.hexadecimal tokenParser
+identifier :: ParsecT String u Identity String
+identifier = P.identifier tokenParser
+lexeme :: ParsecT String u Identity a -> ParsecT String u Identity a
+lexeme = P.lexeme tokenParser
+naturalOrFloat :: ParsecT String u Identity (Either Integer Double)
+naturalOrFloat = P.naturalOrFloat tokenParser
+natural :: ParsecT String u Identity Integer
+natural = P.natural tokenParser
+octal :: ParsecT String u Identity Integer
+octal = P.octal tokenParser
+operator :: ParsecT String u Identity String
+operator = P.operator tokenParser
+semi :: ParsecT String u Identity String
+semi = P.semi tokenParser
+semiSep1 :: ParsecT String u Identity a -> ParsecT String u Identity [a]
 semiSep1 = P.semiSep1 tokenParser
-commaSep = P.commaSep tokenParser
+semiSep :: ParsecT String u Identity a -> ParsecT String u Identity [a]
+semiSep = P.semiSep tokenParser
+-}
+
+brackets :: ParsecT String u Identity a -> ParsecT String u Identity a
+brackets = P.brackets tokenParser
+commaSep1 :: ParsecT String u Identity a -> ParsecT String u Identity [a]
 commaSep1 = P.commaSep1 tokenParser
+commaSep :: ParsecT String u Identity a -> ParsecT String u Identity [a]
+commaSep = P.commaSep tokenParser
+float :: ParsecT String u Identity Double
+float = P.float tokenParser
+integer :: ParsecT String u Identity Integer
+integer = P.integer tokenParser
+parens :: ParsecT String u Identity a -> ParsecT String u Identity a
+parens = P.parens tokenParser
+reservedOp :: String -> ParsecT String u Identity ()
+reservedOp = P.reservedOp tokenParser
+reserved :: String -> ParsecT String u Identity ()
+reserved = P.reserved tokenParser
+stringLiteral :: ParsecT String u Identity String
+stringLiteral = P.stringLiteral tokenParser
+symbol :: String -> ParsecT String u Identity String
+symbol = P.symbol tokenParser
+whiteSpace :: ParsecT String u Identity ()
+whiteSpace = P.whiteSpace tokenParser
 
 parseBP' :: (Enumerable a, Parseable a) => Parser (Pattern a)
 parseBP' = parseTPat' >>= return . T.toPat
@@ -451,7 +485,7 @@ parseRhythm' f = do
   char '\"' >> whiteSpace
   return x
   where f' = f
-             <|> do symbol "~" <?> "rest"
+             <|> do _ <- symbol "~" <?> "rest"
                     return T.TPat_Silence
 
 miniTidalIO :: Stream -> String -> Either ParseError (IO ())
