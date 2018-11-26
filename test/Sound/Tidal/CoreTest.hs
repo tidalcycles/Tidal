@@ -2,7 +2,7 @@
 
 module Sound.Tidal.CoreTest where
 
-import TestUtils
+-- import TestUtils
 import Test.Microspec
 
 import Prelude hiding ((<*), (*>))
@@ -17,7 +17,7 @@ run =
   describe "Sound.Tidal.Core" $ do
     describe "append" $ do
       it "can switch between the cycles from two pures" $ do
-        (queryArc (append (pure "a") (pure "b")) (0,5)) `shouldBe` [(((0,1), (0,1)), "a"),
+        (queryArc (append (pure "a") (pure "b")) (0,5)) `shouldBe` [(((0,1), (0,1)), "a" :: String),
                                                                     (((1,2), (1,2)), "b"),
                                                                     (((2,3), (2,3)), "a"),
                                                                     (((3,4), (3,4)), "b"),
@@ -26,7 +26,7 @@ run =
 
     describe "cat" $ do
       it "can switch between the cycles from three pures" $ do
-        queryArc (cat [pure "a", pure "b", pure "c"]) (0,5) `shouldBe` [(((0,1), (0,1)), "a"),
+        queryArc (cat [pure "a", pure "b", pure "c"]) (0,5) `shouldBe` [(((0,1), (0,1)), "a" :: String),
                                                                         (((1,2), (1,2)), "b"),
                                                                         (((2,3), (2,3)), "c"),
                                                                         (((3,4), (3,4)), "a"),
@@ -36,12 +36,12 @@ run =
     describe "fastCat" $ do
       it "can switch between the cycles from three pures inside one cycle" $ do
         it "1" $ queryArc (fastCat [pure "a", pure "b", pure "c"]) (0,1)
-          `shouldBe` [(((0,1/3),   (0,1/3)),   "a"),
+          `shouldBe` [(((0,1/3),   (0,1/3)),   "a" :: String),
                       (((1/3,2/3), (1/3,2/3)), "b"),
                       (((2/3,1),   (2/3,1)),   "c")
                      ]
         it "5/3" $ queryArc (fastCat [pure "a", pure "b", pure "c"]) (0,5/3)
-          `shouldBe` [(((0,1/3),   (0,1/3)),   "a"),
+          `shouldBe` [(((0,1/3),   (0,1/3)),   "a" :: String),
                       (((1/3,2/3), (1/3,2/3)), "b"),
                       (((2/3,1),   (2/3,1)),   "c"),
                       (((1,4/3),   (1,4/3)),   "a"),
@@ -50,10 +50,10 @@ run =
       it "works with zero-length queries" $ do
         it "0" $
           queryArc (fastCat [pure "a", pure "b"]) (0,0)
-            `shouldBe` [(((0,0.5), (0,0)), "a")]
+            `shouldBe` [(((0,0.5), (0,0)), "a" :: String)]
         it "1/3" $
           queryArc (fastCat [pure "a", pure "b"]) (1%3,1%3)
-            `shouldBe` [(((0,0.5), (1%3,1%3)), "a")]
+            `shouldBe` [(((0,0.5), (1%3,1%3)), "a" :: String)]
 
     describe "rev" $ do
       it "mirrors events" $ do
