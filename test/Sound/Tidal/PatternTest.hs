@@ -38,20 +38,20 @@ run =
       it "works with zero-length queries" $ do
         it "0" $
           queryArc (pure "a") (0,0)
-            `shouldBe` [(((0,1), (0,0)), "a")]
+            `shouldBe` [(((0,1), (0,0)), "a" :: String)]
         it "1/3" $
           queryArc (pure "a") (1%3,1%3)
-            `shouldBe` [(((0,1), (1%3,1%3)), "a")]
+            `shouldBe` [(((0,1), (1%3,1%3)), "a" :: String)]
 
     describe "_fastGap" $ do
       it "copes with cross-cycle queries" $ do
         (queryArc(_fastGap 2 $ fastCat [pure "a", pure "b"]) (0.5,1.5))
           `shouldBe`
-          [(((1 % 1,5 % 4),(1 % 1,5 % 4)),"a"),
+          [(((1 % 1,5 % 4),(1 % 1,5 % 4)),"a" :: String),
            (((5 % 4,3 % 2),(5 % 4,3 % 2)),"b")
           ]
       it "does not return events outside of the query" $ do
-        (queryArc(_fastGap 2 $ fastCat [pure "a", pure "b"]) (0.5,0.9))
+        (queryArc(_fastGap 2 $ fastCat [pure "a", pure ("b" :: String)]) (0.5,0.9))
           `shouldBe` []
 
     describe "<*>" $ do
@@ -128,24 +128,24 @@ run =
     describe "unwrap" $ do
       it "preserves inner structure" $ do
         it "one" $
-          (queryArc (unwrap $ pure (fastCat [pure "a", pure "b"])) (0,1))
+          (queryArc (unwrap $ pure (fastCat [pure "a", pure ("b" :: String)])) (0,1))
           `shouldBe` (queryArc (fastCat [pure "a", pure "b"]) (0,1))
         it "two" $
-          (queryArc (unwrap $ pure (fastCat [pure "a", pure "b", fastCat [pure "c", pure "d"]])) (0,1))
+          (queryArc (unwrap $ pure (fastCat [pure "a", pure "b", fastCat [pure "c", pure ("d" :: String)]])) (0,1))
           `shouldBe` (queryArc (fastCat [pure "a", pure "b", fastCat [pure "c", pure "d"]]) (0,1))
       it "preserves outer structure" $ do
         it "one" $
-          (queryArc (unwrap $ fastCat [pure $ pure "a", pure $ pure "b"]) (0,1))
+          (queryArc (unwrap $ fastCat [pure $ pure "a", pure $ pure ("b" :: String)]) (0,1))
           `shouldBe` (queryArc (fastCat [pure "a", pure "b"]) (0,1))
         it "two" $
-          (queryArc (unwrap $ fastCat [pure $ pure "a", pure $ pure "b", fastCat [pure $ pure "c", pure $ pure "d"]]) (0,1))
+          (queryArc (unwrap $ fastCat [pure $ pure "a", pure $ pure "b", fastCat [pure $ pure "c", pure $ pure ("d" :: String)]]) (0,1))
           `shouldBe` (queryArc (fastCat [pure "a", pure "b", fastCat [pure "c", pure "d"]]) (0,1))
       it "gives events whole/part timespans that are an intersection of that of inner and outer events" $ do
         let a = fastCat [pure "a", pure "b"]
             b = fastCat [pure "c", pure "d", pure "e"]
             pp = fastCat [pure a, pure b]
         queryArc (unwrap pp) (0,1)
-          `shouldBe` [(((0 % 1,1 % 2),(0 % 1,1 % 2)),"a"),
+          `shouldBe` [(((0 % 1,1 % 2),(0 % 1,1 % 2)),"a" :: String),
                       (((1 % 2,2 % 3),(1 % 2,2 % 3)),"d"),
                       (((2 % 3,1 % 1),(2 % 3,1 % 1)),"e")
                      ]
@@ -156,7 +156,7 @@ run =
             b = fastCat [pure "c", pure "d", pure "e"]
             pp = fastCat [pure a, pure b]
         queryArc (unwrapSqueeze pp) (0,1)
-          `shouldBe` [(((0 % 1,1 % 4),(0 % 1,1 % 4)),"a"),
+          `shouldBe` [(((0 % 1,1 % 4),(0 % 1,1 % 4)),"a" :: String),
                       (((1 % 4,1 % 2),(1 % 4,1 % 2)),"b"),
                       (((1 % 2,2 % 3),(1 % 2,2 % 3)),"c"),
                       (((2 % 3,5 % 6),(2 % 3,5 % 6)),"d"),
@@ -183,23 +183,23 @@ run =
            v = 5 :: Int
        compareP (0,5) ((return v) >>= f) (f v)
       it "conforms to m >>= return ≡ m" $ do
-       let m = fastCat [pure "a", fastCat [pure "b", pure "c"]]
+       let m = fastCat [pure "a", fastCat [pure "b", pure ("c" :: String)]]
        compareP (0,1) (m >>= return) m
      --    it "conforms to (m >>= f) >>= g ≡ m >>= ( \x -> (f x >>= g) )" $ do
      --      let m = fastCat [pure "a", fastCat [pure "b", pure "c"]]
 
     describe "rotR" $ do
       it "works over two cycles" $
-       property $ comparePD (0,2) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
+       property $ comparePD (0,2) (0.25 ~> pure "a") (0.25 `rotR` pure ("a" :: String))
       it "works over one cycle" $
-       property $ compareP (0,1) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
+       property $ compareP (0,1) (0.25 ~> pure "a") (0.25 `rotR` pure ("a" :: String))
       it "works with zero width queries" $
-       property $ compareP (0,0) (0.25 ~> pure "a") (0.25 `rotR` pure "a")
+       property $ compareP (0,0) (0.25 ~> pure "a") (0.25 `rotR` pure ("a" :: String))
 
     describe "comparePD" $ do
       it "allows split events to be compared" $
        property $ comparePD (0,2)
-         (splitQueries $ _slow 2 $ pure "a")
+         (splitQueries $ _slow 2 $ pure ("a" :: String))
          (_slow 2 $ pure "a")
 
     describe "controlI" $ do

@@ -6,16 +6,7 @@ import Test.Microspec
 
 import Prelude hiding ((<*), (*>))
 
-import Data.Ratio
-import Data.List (sort)
-
-import Sound.Tidal.Control
-import Sound.Tidal.Core
-import Sound.Tidal.Params
-import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
-
-import qualified Data.Map.Strict as Map
 
 run :: Microspec ()
 run =
