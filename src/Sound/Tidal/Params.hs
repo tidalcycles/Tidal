@@ -480,260 +480,133 @@ up = note
 cps :: Pattern Double -> ControlPattern
 cps = pF "cps"
 
--- | Useful for MIDI CCs
-cc0:: Pattern Double -> ControlPattern
-cc0 = pF "cc0"
-cc1:: Pattern Double -> ControlPattern
-cc1 = pF "cc1"
-cc2:: Pattern Double -> ControlPattern
-cc2 = pF "cc2"
-cc3:: Pattern Double -> ControlPattern
-cc3 = pF "cc3"
-cc4:: Pattern Double -> ControlPattern
-cc4 = pF "cc4"
-cc5:: Pattern Double -> ControlPattern
-cc5 = pF "cc5"
-cc6:: Pattern Double -> ControlPattern
-cc6 = pF "cc6"
-cc7:: Pattern Double -> ControlPattern
-cc7 = pF "cc7"
-cc8:: Pattern Double -> ControlPattern
-cc8 = pF "cc8"
-cc9:: Pattern Double -> ControlPattern
-cc9 = pF "cc9"
-cc10:: Pattern Double -> ControlPattern
-cc10 = pF "cc10"
-cc11:: Pattern Double -> ControlPattern
-cc11 = pF "cc11"
-cc12:: Pattern Double -> ControlPattern
-cc12 = pF "cc12"
-cc13:: Pattern Double -> ControlPattern
-cc13 = pF "cc13"
-cc14:: Pattern Double -> ControlPattern
-cc14 = pF "cc14"
-cc15:: Pattern Double -> ControlPattern
-cc15 = pF "cc15"
-cc16:: Pattern Double -> ControlPattern
-cc16 = pF "cc16"
-cc17:: Pattern Double -> ControlPattern
-cc17 = pF "cc17"
-cc18:: Pattern Double -> ControlPattern
-cc18 = pF "cc18"
-cc19:: Pattern Double -> ControlPattern
-cc19 = pF "cc19"
-cc20:: Pattern Double -> ControlPattern
-cc20 = pF "cc20"
-cc21:: Pattern Double -> ControlPattern
-cc21 = pF "cc21"
-cc22:: Pattern Double -> ControlPattern
-cc22 = pF "cc22"
-cc23:: Pattern Double -> ControlPattern
-cc23 = pF "cc23"
-cc24:: Pattern Double -> ControlPattern
-cc24 = pF "cc24"
-cc25:: Pattern Double -> ControlPattern
-cc25 = pF "cc25"
-cc26:: Pattern Double -> ControlPattern
-cc26 = pF "cc26"
-cc27:: Pattern Double -> ControlPattern
-cc27 = pF "cc27"
-cc28:: Pattern Double -> ControlPattern
-cc28 = pF "cc28"
-cc29:: Pattern Double -> ControlPattern
-cc29 = pF "cc29"
-cc30:: Pattern Double -> ControlPattern
-cc30 = pF "cc30"
-cc31:: Pattern Double -> ControlPattern
-cc31 = pF "cc31"
-cc32:: Pattern Double -> ControlPattern
-cc32 = pF "cc32"
-cc33:: Pattern Double -> ControlPattern
-cc33 = pF "cc33"
-cc34:: Pattern Double -> ControlPattern
-cc34 = pF "cc34"
-cc35:: Pattern Double -> ControlPattern
-cc35 = pF "cc35"
-cc36:: Pattern Double -> ControlPattern
-cc36 = pF "cc36"
-cc37:: Pattern Double -> ControlPattern
-cc37 = pF "cc37"
-cc38:: Pattern Double -> ControlPattern
-cc38 = pF "cc38"
-cc39:: Pattern Double -> ControlPattern
-cc39 = pF "cc39"
-cc40:: Pattern Double -> ControlPattern
-cc40 = pF "cc40"
-cc41:: Pattern Double -> ControlPattern
-cc41 = pF "cc41"
-cc42:: Pattern Double -> ControlPattern
-cc42 = pF "cc42"
-cc43:: Pattern Double -> ControlPattern
-cc43 = pF "cc43"
-cc44:: Pattern Double -> ControlPattern
-cc44 = pF "cc44"
-cc45:: Pattern Double -> ControlPattern
-cc45 = pF "cc45"
-cc46:: Pattern Double -> ControlPattern
-cc46 = pF "cc46"
-cc47:: Pattern Double -> ControlPattern
-cc47 = pF "cc47"
-cc48:: Pattern Double -> ControlPattern
-cc48 = pF "cc48"
-cc49:: Pattern Double -> ControlPattern
-cc49 = pF "cc49"
-cc50:: Pattern Double -> ControlPattern
-cc50 = pF "cc50"
-cc51:: Pattern Double -> ControlPattern
-cc51 = pF "cc51"
-cc52:: Pattern Double -> ControlPattern
-cc52 = pF "cc52"
-cc53:: Pattern Double -> ControlPattern
-cc53 = pF "cc53"
-cc54:: Pattern Double -> ControlPattern
-cc54 = pF "cc54"
-cc55:: Pattern Double -> ControlPattern
-cc55 = pF "cc55"
-cc56:: Pattern Double -> ControlPattern
-cc56 = pF "cc56"
-cc57:: Pattern Double -> ControlPattern
-cc57 = pF "cc57"
-cc58:: Pattern Double -> ControlPattern
-cc58 = pF "cc58"
-cc59:: Pattern Double -> ControlPattern
-cc59 = pF "cc59"
-cc60:: Pattern Double -> ControlPattern
-cc60 = pF "cc60"
-cc61:: Pattern Double -> ControlPattern
-cc61 = pF "cc61"
-cc62:: Pattern Double -> ControlPattern
-cc62 = pF "cc62"
-cc63:: Pattern Double -> ControlPattern
-cc63 = pF "cc63"
-cc64:: Pattern Double -> ControlPattern
-cc64 = pF "cc64"
-cc65:: Pattern Double -> ControlPattern
-cc65 = pF "cc65"
-cc66:: Pattern Double -> ControlPattern
-cc66 = pF "cc66"
-cc67:: Pattern Double -> ControlPattern
-cc67 = pF "cc67"
-cc68:: Pattern Double -> ControlPattern
-cc68 = pF "cc68"
-cc69:: Pattern Double -> ControlPattern
-cc69 = pF "cc69"
-cc70:: Pattern Double -> ControlPattern
-cc70 = pF "cc70"
-cc71:: Pattern Double -> ControlPattern
-cc71 = pF "cc71"
-cc72:: Pattern Double -> ControlPattern
-cc72 = pF "cc72"
-cc73:: Pattern Double -> ControlPattern
-cc73 = pF "cc73"
-cc74:: Pattern Double -> ControlPattern
-cc74 = pF "cc74"
-cc75:: Pattern Double -> ControlPattern
-cc75 = pF "cc75"
-cc76:: Pattern Double -> ControlPattern
-cc76 = pF "cc76"
-cc77:: Pattern Double -> ControlPattern
-cc77 = pF "cc77"
-cc78:: Pattern Double -> ControlPattern
-cc78 = pF "cc78"
-cc79:: Pattern Double -> ControlPattern
-cc79 = pF "cc79"
-cc80:: Pattern Double -> ControlPattern
-cc80 = pF "cc80"
-cc81:: Pattern Double -> ControlPattern
-cc81 = pF "cc81"
-cc82:: Pattern Double -> ControlPattern
-cc82 = pF "cc82"
-cc83:: Pattern Double -> ControlPattern
-cc83 = pF "cc83"
-cc84:: Pattern Double -> ControlPattern
-cc84 = pF "cc84"
-cc85:: Pattern Double -> ControlPattern
-cc85 = pF "cc85"
-cc86:: Pattern Double -> ControlPattern
-cc86 = pF "cc86"
-cc87:: Pattern Double -> ControlPattern
-cc87 = pF "cc87"
-cc88:: Pattern Double -> ControlPattern
-cc88 = pF "cc88"
-cc89:: Pattern Double -> ControlPattern
-cc89 = pF "cc89"
-cc90:: Pattern Double -> ControlPattern
-cc90 = pF "cc90"
-cc91:: Pattern Double -> ControlPattern
-cc91 = pF "cc91"
-cc92:: Pattern Double -> ControlPattern
-cc92 = pF "cc92"
-cc93:: Pattern Double -> ControlPattern
-cc93 = pF "cc93"
-cc94:: Pattern Double -> ControlPattern
-cc94 = pF "cc94"
-cc95:: Pattern Double -> ControlPattern
-cc95 = pF "cc95"
-cc96:: Pattern Double -> ControlPattern
-cc96 = pF "cc96"
-cc97:: Pattern Double -> ControlPattern
-cc97 = pF "cc97"
-cc98:: Pattern Double -> ControlPattern
-cc98 = pF "cc98"
-cc99:: Pattern Double -> ControlPattern
-cc99 = pF "cc99"
-cc100:: Pattern Double -> ControlPattern
-cc100 = pF "cc100"
-cc101:: Pattern Double -> ControlPattern
-cc101 = pF "cc101"
-cc102:: Pattern Double -> ControlPattern
-cc102 = pF "cc102"
-cc103:: Pattern Double -> ControlPattern
-cc103 = pF "cc103"
-cc104:: Pattern Double -> ControlPattern
-cc104 = pF "cc104"
-cc105:: Pattern Double -> ControlPattern
-cc105 = pF "cc105"
-cc106:: Pattern Double -> ControlPattern
-cc106 = pF "cc106"
-cc107:: Pattern Double -> ControlPattern
-cc107 = pF "cc107"
-cc108:: Pattern Double -> ControlPattern
-cc108 = pF "cc108"
-cc109:: Pattern Double -> ControlPattern
-cc109 = pF "cc109"
-cc110:: Pattern Double -> ControlPattern
-cc110 = pF "cc110"
-cc111:: Pattern Double -> ControlPattern
-cc111 = pF "cc111"
-cc112:: Pattern Double -> ControlPattern
-cc112 = pF "cc112"
-cc113:: Pattern Double -> ControlPattern
-cc113 = pF "cc113"
-cc114:: Pattern Double -> ControlPattern
-cc114 = pF "cc114"
-cc115:: Pattern Double -> ControlPattern
-cc115 = pF "cc115"
-cc116:: Pattern Double -> ControlPattern
-cc116 = pF "cc116"
-cc117:: Pattern Double -> ControlPattern
-cc117 = pF "cc117"
-cc118:: Pattern Double -> ControlPattern
-cc118 = pF "cc118"
-cc119:: Pattern Double -> ControlPattern
-cc119 = pF "cc119"
-cc120:: Pattern Double -> ControlPattern
-cc120 = pF "cc120"
-cc121:: Pattern Double -> ControlPattern
-cc121 = pF "cc121"
-cc122:: Pattern Double -> ControlPattern
-cc122 = pF "cc122"
-cc123:: Pattern Double -> ControlPattern
-cc123 = pF "cc123"
-cc124:: Pattern Double -> ControlPattern
-cc124 = pF "cc124"
-cc125:: Pattern Double -> ControlPattern
-cc125 = pF "cc125"
-cc126:: Pattern Double -> ControlPattern
-cc126 = pF "cc126"
-cc127:: Pattern Double -> ControlPattern
-cc127 = pF "cc127"
+-- generic names for mapping to e.g. midi controls
+button0 :: Pattern Double -> ControlPattern
+button0 = pF "button0"
+button1 :: Pattern Double -> ControlPattern
+button1 = pF "button1"
+button2 :: Pattern Double -> ControlPattern
+button2 = pF "button2"
+button3 :: Pattern Double -> ControlPattern
+button3 = pF "button3"
+button4 :: Pattern Double -> ControlPattern
+button4 = pF "button4"
+button5 :: Pattern Double -> ControlPattern
+button5 = pF "button5"
+button6 :: Pattern Double -> ControlPattern
+button6 = pF "button6"
+button7 :: Pattern Double -> ControlPattern
+button7 = pF "button7"
+button8 :: Pattern Double -> ControlPattern
+button8 = pF "button8"
+button9 :: Pattern Double -> ControlPattern
+button9 = pF "button9"
+button10 :: Pattern Double -> ControlPattern
+button10 = pF "button10"
+button11 :: Pattern Double -> ControlPattern
+button11 = pF "button11"
+button12 :: Pattern Double -> ControlPattern
+button12 = pF "button12"
+button13 :: Pattern Double -> ControlPattern
+button13 = pF "button13"
+button14 :: Pattern Double -> ControlPattern
+button14 = pF "button14"
+button15 :: Pattern Double -> ControlPattern
+button15 = pF "button15"
+button16 :: Pattern Double -> ControlPattern
+button16 = pF "button16"
+button17 :: Pattern Double -> ControlPattern
+button17 = pF "button17"
+button18 :: Pattern Double -> ControlPattern
+button18 = pF "button18"
+button19 :: Pattern Double -> ControlPattern
+button19 = pF "button19"
+button20 :: Pattern Double -> ControlPattern
+button20 = pF "button20"
+button21 :: Pattern Double -> ControlPattern
+button21 = pF "button21"
+button22 :: Pattern Double -> ControlPattern
+button22 = pF "button22"
+button23 :: Pattern Double -> ControlPattern
+button23 = pF "button23"
+button24 :: Pattern Double -> ControlPattern
+button24 = pF "button24"
+button25 :: Pattern Double -> ControlPattern
+button25 = pF "button25"
+button26 :: Pattern Double -> ControlPattern
+button26 = pF "button26"
+button27 :: Pattern Double -> ControlPattern
+button27 = pF "button27"
+button28 :: Pattern Double -> ControlPattern
+button28 = pF "button28"
+button29 :: Pattern Double -> ControlPattern
+button29 = pF "button29"
+button30 :: Pattern Double -> ControlPattern
+button30 = pF "button30"
+button31 :: Pattern Double -> ControlPattern
+button31 = pF "button31"
+
+slider0 :: Pattern Double -> ControlPattern
+slider0 = pF "slider0"
+slider1 :: Pattern Double -> ControlPattern
+slider1 = pF "slider1"
+slider2 :: Pattern Double -> ControlPattern
+slider2 = pF "slider2"
+slider3 :: Pattern Double -> ControlPattern
+slider3 = pF "slider3"
+slider4 :: Pattern Double -> ControlPattern
+slider4 = pF "slider4"
+slider5 :: Pattern Double -> ControlPattern
+slider5 = pF "slider5"
+slider6 :: Pattern Double -> ControlPattern
+slider6 = pF "slider6"
+slider7 :: Pattern Double -> ControlPattern
+slider7 = pF "slider7"
+slider8 :: Pattern Double -> ControlPattern
+slider8 = pF "slider8"
+slider9 :: Pattern Double -> ControlPattern
+slider9 = pF "slider9"
+slider10 :: Pattern Double -> ControlPattern
+slider10 = pF "slider10"
+slider11 :: Pattern Double -> ControlPattern
+slider11 = pF "slider11"
+slider12 :: Pattern Double -> ControlPattern
+slider12 = pF "slider12"
+slider13 :: Pattern Double -> ControlPattern
+slider13 = pF "slider13"
+slider14 :: Pattern Double -> ControlPattern
+slider14 = pF "slider14"
+slider15 :: Pattern Double -> ControlPattern
+slider15 = pF "slider15"
+slider16 :: Pattern Double -> ControlPattern
+slider16 = pF "slider16"
+slider17 :: Pattern Double -> ControlPattern
+slider17 = pF "slider17"
+slider18 :: Pattern Double -> ControlPattern
+slider18 = pF "slider18"
+slider19 :: Pattern Double -> ControlPattern
+slider19 = pF "slider19"
+slider20 :: Pattern Double -> ControlPattern
+slider20 = pF "slider20"
+slider21 :: Pattern Double -> ControlPattern
+slider21 = pF "slider21"
+slider22 :: Pattern Double -> ControlPattern
+slider22 = pF "slider22"
+slider23 :: Pattern Double -> ControlPattern
+slider23 = pF "slider23"
+slider24 :: Pattern Double -> ControlPattern
+slider24 = pF "slider24"
+slider25 :: Pattern Double -> ControlPattern
+slider25 = pF "slider25"
+slider26 :: Pattern Double -> ControlPattern
+slider26 = pF "slider26"
+slider27 :: Pattern Double -> ControlPattern
+slider27 = pF "slider27"
+slider28 :: Pattern Double -> ControlPattern
+slider28 = pF "slider28"
+slider29 :: Pattern Double -> ControlPattern
+slider29 = pF "slider29"
+slider30 :: Pattern Double -> ControlPattern
+slider30 = pF "slider30"
+slider31 :: Pattern Double -> ControlPattern
+slider31 = pF "slider31"
