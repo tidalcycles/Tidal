@@ -421,7 +421,7 @@ spread' f vpat pat = vpat >>= \v -> f v pat
 shorter alias `spreadr`.
 -}
 spreadChoose :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
-spreadChoose f vs p = do v <- _sr 1 (choose vs)
+spreadChoose f vs p = do v <- _segment 1 (choose vs)
                          f v p
 
 spreadr :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
@@ -789,23 +789,23 @@ _rot i pat = splitQueries $ pat {query = \st -> f st (query pat (st {arc = whole
         constrainEvent a ((w,p),v) = do p' <- subArc p a
                                         return ((w,p'),v)
 
--- | @sr n p@: 'samples' the pattern @p@ at a rate of @n@
+-- | @segment n p@: 'samples' the pattern @p@ at a rate of @n@
 -- events per cycle. Useful for turning a continuous pattern into a
 -- discrete one.
-sr :: Pattern Time -> Pattern a -> Pattern a
-sr = tParam _sr
+segment :: Pattern Time -> Pattern a -> Pattern a
+segment = tParam _segment
 
-_sr :: Time -> Pattern a -> Pattern a
-_sr n p = (_fast n $ pure (id)) <* p
+_segment :: Time -> Pattern a -> Pattern a
+_segment n p = (_fast n $ pure (id)) <* p
 
--- | @discretise@: the old (deprecated) name for 'sr'
+-- | @discretise@: the old (deprecated) name for 'segment'
 discretise :: Pattern Time -> Pattern a -> Pattern a
-discretise = sr
+discretise = segment
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' (rotL) (_sr 1 $ ((%1) . fromIntegral) <$> (irand (length ps) :: Pattern Int)) (slowcat ps)
+randcat ps = spread' (rotL) (_segment 1 $ ((%1) . fromIntegral) <$> (irand (length ps) :: Pattern Int)) (slowcat ps)
 
 -- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
@@ -857,7 +857,7 @@ fit perCycle xs p = (xs !!!) <$> (p {query = \st -> map ((\e -> (fmap (+ (pos e)
   where pos e = perCycle * (floor $ fst $ snd $ fst e)
 
 permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
-permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (_sr 1 p)
+permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (_segment 1 p)
       where ps = permsort (length things) nSteps
             deviance avg xs = sum $ map (abs . (avg-) . fromIntegral) xs
             permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total / (fromIntegral n :: Double)) x)) $ perms n total

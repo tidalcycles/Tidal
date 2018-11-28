@@ -10,12 +10,12 @@ import Text.ParserCombinators.Parsec (ParseError)
 import qualified Data.Map.Strict as Map
 
 parsesTo :: String -> ControlPattern -> Property
-parsesTo s p = x `shouldBe` y
-  where x = query <$> miniTidal s <*> Right (State (0,16) Map.empty)
+parsesTo str p = x `shouldBe` y
+  where x = query <$> miniTidal str <*> Right (State (0,16) Map.empty)
         y = Right $ query p $ State (0,16) Map.empty
 
 causesParseError :: String -> Property
-causesParseError s = isLeft (miniTidal s :: Either ParseError ControlPattern) `shouldBe` True
+causesParseError str = isLeft (miniTidal str :: Either ParseError ControlPattern) `shouldBe` True
 
 run :: Microspec ()
 run =
