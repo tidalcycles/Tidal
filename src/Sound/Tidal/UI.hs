@@ -1500,3 +1500,8 @@ unfixRange :: (ControlPattern -> Pattern ControlMap)
               -> ControlPattern
               -> Pattern ControlMap
 unfixRange f = contrastRange id f
+
+-- | limit values in a Pattern (or other Functor) to n equally spaced
+-- divisions of 1.
+quantise :: (Functor f, RealFrac b) => b -> f b -> f b
+quantise n = fmap ((/n) . fromIntegral . floor . (*n))
