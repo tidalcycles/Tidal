@@ -31,22 +31,22 @@ run =
       it "can chop a chop" $
         property $ compareTol (0,1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")
 
-    describe "discretise" $ do
+    describe "sr" $ do
       it "can turn a single event into multiple events" $ do
         compareP (0,3)
-          (discretise 4 "x")
+          (sr 4 "x")
           ("x*4" :: Pattern String)
-      it "can turn a continuous into multiple discrete events" $ do
+      it "can turn a continuous pattern into multiple discrete events" $ do
         compareP (0,3)
-          (discretise 4 saw)
+          (sr 4 saw)
           ("0 0.25 0.5 0.75" :: Pattern Double)
       it "can hold a value over multiple cycles" $ do
         comparePD (0,8)
-          (discretise 0.5 saw)
+          (sr 0.5 saw)
           (slow 2 "0" :: Pattern Double)
       it "holding values over multiple cycles works in combination" $ do
         comparePD (0,8)
-          ("0*4" |+ (_discretise (1/8) $ saw))
+          ("0*4" |+ (_sr (1/8) $ saw))
           ("0*4" :: Pattern Double)
 
     describe "sometimesBy" $ do
