@@ -193,11 +193,29 @@ streamOnce st asap p
                                                       }
                                                )
            at e = sched fakeTempo $ fst $ eventWhole e
+           on e = sched tempo $ fst $ eventWhole e
+           off e = sched tempo $ snd $ eventWhole e
+           delta e = (off e) - (on e)
+           cpsNow = T.cps tempo
+           cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ eventValue e)) es
+           -- If there is already cps in the event, the union will preserve that.
+           addCps e = (\v -> (Map.union v $ Map.fromList [("cps", (VF $ cpsNow)),
+                                                        ("delta", VF (delta e)),
+                                                        ("cycle", VF (fromRational $ fst $ eventWhole e))
+                                                        ])) <$> e
            messages = map (\e -> (at e, toMessage e)) es
-           toMessage e = O.Message (oPath target) $ oPreamble target ++ toData e
+           toMessage e = O.Message (oPath target) $ oPreamble target ++ toData (addCps e)
        E.catch (mapM_ (send target (sUDP st)) messages)
          (\(msg ::E.SomeException)
           -> putStrLn $ "Failed to send. Is the target (probably superdirt) running? " ++ show (msg :: E.SomeException))
+       mapM_ doCps cpsChanges
+       return ()
+    where doCps (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
+                                                         -- hack to stop things from stopping
+                                                         _ <- T.setCps (sTempoMV st) (max 0.1 cps)
+                                                         return ()
+                                        return ()
+          doCps _ = return ()
                     
 withPatId :: Stream -> PatId -> (PlayState -> PlayState) -> IO ()
 withPatId s k f = withPatIds s [k] f
