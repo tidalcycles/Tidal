@@ -71,7 +71,7 @@ toPat = \case
    TPat_Stack xs -> stack $ map toPat xs
    TPat_ShiftL t x -> t `rotL` toPat x
    TPat_pE n k s thing ->
-      unwrap $ _eulerOff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
+      unwrap $ _euclidOff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
    TPat_EnumFromTo a b -> unwrap $ fromTo <$> (toPat a) <*> (toPat b)
    -- TPat_EnumFromThenTo a b c -> unwrap $ fromThenTo <$> (toPat a) <*> (toPat b) <*> (toPat c)
