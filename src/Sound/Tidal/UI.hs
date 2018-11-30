@@ -621,6 +621,17 @@ euclid = tParam2 _euclid
 _euclid :: Int -> Int -> Pattern a -> Pattern a
 _euclid n k p = (flip const) <$> (filterValues (== True) $ fastFromList $ bjorklund (n,k)) <*> p
 
+euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
+euclidFull pn pk pa pb = innerJoin $ (\n k -> _euclidFull n k pa pb) <$> pn <*> pk
+
+_euclidBool :: Int -> Int -> Pattern Bool
+_euclidBool n k = fastFromList $ bjorklund (n,k)
+
+_euclidFull :: Int -> Int -> Pattern a -> Pattern a -> Pattern a
+_euclidFull n k p p' = pick <$> (_euclidBool n k) <*> p <*> p'
+  where pick True a _ = a
+        pick False _ b = b
+
 -- euclid' :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 -- euclid' = tParam2 _euclidq'
 
@@ -660,9 +671,9 @@ euclidInv = tParam2 _euclidInv
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
 _euclidInv n k p = (flip const) <$> (filterValues (== False) $ fastFromList $ bjorklund (n,k)) <*> p
 
-{- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
-euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
-euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
+-- {- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
+--euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
+--euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat

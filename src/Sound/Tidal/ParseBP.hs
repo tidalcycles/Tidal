@@ -57,7 +57,7 @@ data TPat a = TPat_Atom a
             | TPat_pE (TPat Int) (TPat Int) (TPat Integer) (TPat a)
             deriving (Show)
 
-toPat :: Enumerable a => TPat a -> Pattern a
+toPat :: (Enumerable a, Parseable a) => TPat a -> Pattern a
 toPat = \case
    TPat_Atom x -> pure x
    TPat_Density t x -> fast (toPat t) $ toPat x
@@ -71,7 +71,7 @@ toPat = \case
    TPat_Stack xs -> stack $ map toPat xs
    TPat_ShiftL t x -> t `rotL` toPat x
    TPat_pE n k s thing ->
-      unwrap $ _euclidOff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
+      doEuclid (toPat n) (toPat k) (toPat s) (toPat thing)
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
    TPat_EnumFromTo a b -> unwrap $ fromTo <$> (toPat a) <*> (toPat b)
    -- TPat_EnumFromThenTo a b c -> unwrap $ fromThenTo <$> (toPat a) <*> (toPat b) <*> (toPat c)
@@ -98,8 +98,9 @@ parseTPat :: Parseable a => String -> Either ParseError (TPat a)
 parseTPat = parseRhythm tPatParser
 
 class Parseable a where
-  -- parseTPat :: String -> Either ParseError (TPat a)
   tPatParser :: Parser (TPat a)
+  doEuclid :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern a -> Pattern a
+  -- toEuclid :: a -> 
 
 class Enumerable a where
   fromTo :: a -> a -> Pattern a
@@ -107,36 +108,48 @@ class Enumerable a where
 
 instance Parseable Double where
   tPatParser = pDouble
+  doEuclid = euclidOff
+  
 instance Enumerable Double where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable String where
   tPatParser = pVocable
+  doEuclid = euclidOff
+
 instance Enumerable String where
   fromTo a b = fastFromList [a,b]
   fromThenTo a b c = fastFromList [a,b,c]
 
 instance Parseable Bool where
   tPatParser = pBool
+  doEuclid = euclidOff
+
 instance Enumerable Bool where
   fromTo a b = fastFromList [a,b]
   fromThenTo a b c = fastFromList [a,b,c]
 
 instance Parseable Int where
   tPatParser = pIntegral
+  doEuclid = euclidOff
+
 instance Enumerable Int where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable Integer where
   tPatParser = pIntegral
+  doEuclid = euclidOff
+
 instance Enumerable Integer where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
 
 instance Parseable Rational where
   tPatParser = pRational
+  doEuclid = euclidOff
+
 instance Enumerable Rational where
   fromTo a b = enumFromTo' a b
   fromThenTo a b c = enumFromThenTo' a b c
@@ -154,6 +167,8 @@ type ColourD = Colour Double
 
 instance Parseable ColourD where
   tPatParser = pColour
+  doEuclid = euclidOff
+
 instance Enumerable ColourD where
   fromTo a b = fastFromList [a,b]
   fromThenTo a b c = fastFromList [a,b,c]
