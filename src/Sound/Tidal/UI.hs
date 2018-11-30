@@ -883,8 +883,8 @@ permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> repli
             perms n total = concatMap (\x -> map (x:) $ perms (n-1) (total-x)) [1 .. (total-(n-1))]
 
 -- | @struct a b@: structures pattern @b@ in terms of @a@.
-struct :: Pattern String -> Pattern a -> Pattern a
-struct ps pv = (flip const) <$> ps <*> pv
+struct :: Pattern Bool -> Pattern a -> Pattern a
+struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <*> pv
 
 -- | @substruct a b@: similar to @struct@, but each event in pattern @a@ gets replaced with pattern @b@, compressed to fit the timespan of the event.
 substruct :: Pattern String -> Pattern b -> Pattern b
