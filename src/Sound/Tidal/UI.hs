@@ -615,23 +615,23 @@ including rotation in some cases.
 - (13,24,5) : Another rhythm necklace of the Aka Pygmies of the upper Sangha.
 @
 -}
-euler :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-euler = tParam2 _euler
+euclid :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+euclid = tParam2 _euclid
 
-_euler :: Int -> Int -> Pattern a -> Pattern a
-_euler n k p = (flip const) <$> (filterValues (== True) $ fastFromList $ bjorklund (n,k)) <*> p
+_euclid :: Int -> Int -> Pattern a -> Pattern a
+_euclid n k p = (flip const) <$> (filterValues (== True) $ fastFromList $ bjorklund (n,k)) <*> p
 
--- euler' :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
--- euler' = tParam2 _eulerq'
+-- euclid' :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+-- euclid' = tParam2 _euclidq'
 
-_euler' :: Int -> Int -> Pattern a -> Pattern a
-_euler' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
+_euclid' :: Int -> Int -> Pattern a -> Pattern a
+_euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
-eulerOff :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern a -> Pattern a
-eulerOff = tParam3 _eulerOff
+euclidOff :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern a -> Pattern a
+euclidOff = tParam3 _euclidOff
 
-_eulerOff :: Int -> Int -> Integer -> Pattern a -> Pattern a
-_eulerOff n k s p = ((s%(fromIntegral k)) `rotL`) (_euler n k p)
+_euclidOff :: Int -> Int -> Integer -> Pattern a -> Pattern a
+_euclidOff n k s p = ((s%(fromIntegral k)) `rotL`) (_euclid n k p)
 
 distrib :: [Pattern Int] -> Pattern a -> Pattern a
 distrib ps p = do p' <- sequence ps
@@ -654,15 +654,15 @@ _distrib xs p = boolsToPat (foldr (distrib') (replicate (last xs) True) (reverse
 
  @einv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
 -}
-eulerInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-eulerInv = tParam2 _eulerInv
+euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+euclidInv = tParam2 _euclidInv
 
-_eulerInv :: Int -> Int -> Pattern a -> Pattern a
-_eulerInv n k p = (flip const) <$> (filterValues (== False) $ fastFromList $ bjorklund (n,k)) <*> p
+_euclidInv :: Int -> Int -> Pattern a -> Pattern a
+_euclidInv n k p = (flip const) <$> (filterValues (== False) $ fastFromList $ bjorklund (n,k)) <*> p
 
-{- | `eulerfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
-eulerFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
-eulerFull n k pa pb = stack [ euler n k pa, eulerInv n k pb ]
+{- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
+euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
+euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
@@ -1240,7 +1240,7 @@ function to a pattern, but only in the right-hand channel. For
 example, the following reverses the pattern on the righthand side:
 
 @
-d1 $ slow 32 $ jux (rev) $ striate' 32 (1/16) $ sound "bev"
+d1 $ slow 32 $ jux (rev) $ striateBy 32 (1/16) $ sound "bev"
 @
 
 When passing pattern transforms to functions like [jux](#jux) and [every](#every),
@@ -1249,7 +1249,7 @@ example this both reverses and halves the playback speed of the
 pattern in the righthand channel:
 
 @
-d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striate' 32 (1/16) $ sound "bev"
+d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striateBy 32 (1/16) $ sound "bev"
 @
 -}
 jux
