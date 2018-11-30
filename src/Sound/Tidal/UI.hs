@@ -1006,11 +1006,19 @@ d1 $ s (mask ("1 ~ 1 ~ 1 1 ~ 1")
 @
 -}
 
+mask :: Pattern Bool -> Pattern a -> Pattern a
+mask maskpat pat = filterJust $ toMaybe <$> pat'
+  where pat' = matchManyToOne (flip const) maskpat pat
+        toMaybe (True, a) = Just a
+        toMaybe (False, _) = Nothing
+
+{-
 mask :: Pattern Bool -> Pattern b -> Pattern b
 -- TODO - should that be eventPart or eventWhole?
 mask pa pb = pb {query = \st -> concat [filterOns (subArc (arc st) $ eventPart i) (query pb st) | i <- query pa st]}
      where filterOns Nothing _ = []
            filterOns (Just a) es = filter (onsetIn a) es
+-}
 
 enclosingArc :: [Arc] -> Arc
 enclosingArc [] = (0,1)
