@@ -644,6 +644,12 @@ euclidOff = tParam3 _euclidOff
 _euclidOff :: Int -> Int -> Integer -> Pattern a -> Pattern a
 _euclidOff n k s p = ((s%(fromIntegral k)) `rotL`) (_euclid n k p)
 
+euclidOffBool :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern Bool -> Pattern Bool
+euclidOffBool = tParam3 _euclidOffBool
+
+_euclidOffBool :: Int -> Int -> Integer -> Pattern Bool -> Pattern Bool
+_euclidOffBool n k s p = ((s%(fromIntegral k)) `rotL`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
+
 distrib :: [Pattern Int] -> Pattern a -> Pattern a
 distrib ps p = do p' <- sequence ps
                   _distrib p' p

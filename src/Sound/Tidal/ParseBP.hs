@@ -124,7 +124,7 @@ instance Enumerable String where
 
 instance Parseable Bool where
   tPatParser = pBool
-  doEuclid = euclidOff
+  doEuclid = euclidOffBool
 
 instance Enumerable Bool where
   fromTo a b = fastFromList [a,b]
