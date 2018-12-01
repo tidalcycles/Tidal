@@ -136,27 +136,33 @@ mergePlayRange (b,e) cm = Map.insert "begin" (VF $ (b*d')+b') $ Map.insert "end"
 
 
 {-|
-The `striate'` function is a variant of `striate` with an extra
-parameter, which specifies the length of each part. The `striate'`
+The `striateBy` function is a variant of `striate` with an extra
+parameter, which specifies the length of each part. The `striateBy`
 function still scans across the sample over a single cycle, but if
 each bit is longer, it creates a sort of stuttering effect. For
 example the following will cut the bev sample into 32 parts, but each
 will be 1/16th of a sample long:
 
 @
-d1 $ slow 32 $ striate' 32 (1/16) $ sound "bev"
+d1 $ slow 32 $ striateBy 32 (1/16) $ sound "bev"
 @
 
 Note that `striate` uses the `begin` and `end` parameters
-internally. This means that if you're using `striate` (or `striate'`)
+internally. This means that if you're using `striate` (or `striateBy`)
 you probably shouldn't also specify `begin` or `end`. -}
-striate' :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
-striate' = tParam2 _striate'
+striateBy :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
+striateBy = tParam2 _striateBy
 
-_striate' :: Int -> Double -> ControlPattern -> ControlPattern
-_striate' n f p = fastcat $ map (\i -> offset (fromIntegral i)) [0 .. n-1]
+-- Old name for striateBy, here as a deprecated alias for now.
+striate' :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
+striate' = striateBy
+
+_striateBy :: Int -> Double -> ControlPattern -> ControlPattern
+_striateBy n f p = fastcat $ map (\i -> offset (fromIntegral i)) [0 .. n-1]
   where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.end (pure ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
+
+
 
 {- | `gap` is similar to `chop` in that it granualizes every sample in place as it is played,
 but every other grain is silent. Use an integer value to specify how many granules
@@ -214,7 +220,7 @@ interlace a b = weave 16 (P.shape $ ((* 0.9) <$> sine)) [a, b]
 
 {-
 {- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
-The primed version is just like `striate'`, where the loop count is the third argument. For example:
+The primed version is just like `striateBy`, where the loop count is the third argument. For example:
 
 @
 d1 $ striateL' 3 0.125 4 $ sound "feel sn:2"
@@ -230,7 +236,7 @@ striateL' = tParam3 _striateL'
 
 _striateL :: Int -> Int -> ControlPattern -> ControlPattern
 _striateL n l p = _striate n p # loop (pure $ fromIntegral l)
-_striateL' n f l p = _striate' n f p # loop (pure $ fromIntegral l)
+_striateL' n f l p = _striateBy n f p # loop (pure $ fromIntegral l)
 
 
 en :: [(Int, Int)] -> Pattern String -> Pattern String
@@ -338,12 +344,16 @@ d1 $ stut' 2 (1%3) (# vowel "{a e i o u}%2") $ sound "bd sn"
 
 In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has the @vowel@ filter applied.
 -}
-stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stut' n t f p = unwrap $ (\a b -> _stut' a b f p) <$> n <*> t
+stutWith :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stutWith n t f p = unwrap $ (\a b -> _stutWith a b f p) <$> n <*> t
 
-_stut' :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_stut' count steptime f p | count <= 0 = p
-                          | otherwise = overlay (f (steptime `rotR` _stut' (count-1) steptime f p)) p
+_stutWith :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_stutWith count steptime f p | count <= 0 = p
+                          | otherwise = overlay (f (steptime `rotR` _stutWith (count-1) steptime f p)) p
+
+-- | The old name for stutWith
+stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stut' = stutWith
 
 cI :: String -> Pattern Int
 cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m

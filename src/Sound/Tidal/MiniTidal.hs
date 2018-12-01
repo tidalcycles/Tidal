@@ -233,7 +233,7 @@ patternTransformationWithArgs = parensOrNot $ choice [
 --  (function "prot1" >> return T.prot1) <*> literalArg,
   (function "discretise" >> return T.discretise) <*> patternArg,
   (function "segment" >> return T.segment) <*> patternArg,
-  (function "struct" >> return T.struct) <*> patternArg,
+  --(function "struct" >> return T.struct) <*> patternArg,
   (function "substruct" >> return T.substruct) <*> patternArg,
   (function "compressTo" >> return T.compressTo) <*> literalArg,
   (function "substruct'" >> return T.substruct') <*> patternArg,
