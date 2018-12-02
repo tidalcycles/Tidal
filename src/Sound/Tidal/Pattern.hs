@@ -642,8 +642,8 @@ playFor s e = filterWhen (\t -> and [t >= s, t < e])
 tParam :: (t1 -> t2 -> Pattern a) -> Pattern t1 -> t2 -> Pattern a
 tParam f tv p = innerJoin $ (`f` p) <$> tv
 
-tParam2 :: (a -> b -> Pattern c -> Pattern d) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d)
-tParam2 f a b p = unwrap $ (\x y -> f x y p) <$> a <*> b
+tParam2 :: (a -> b -> c -> Pattern d) -> Pattern a -> Pattern b -> c -> Pattern d
+tParam2 f a b p = innerJoin $ (\x y -> f x y p) <$> a <*> b
 
 tParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
 tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c

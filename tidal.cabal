@@ -74,6 +74,7 @@ test-suite tests
       test
   ghc-options: -Wall
   other-modules: Sound.Tidal.CoreTest
+                 Sound.Tidal.MiniTidalTest
                  Sound.Tidal.ParseTest
                  Sound.Tidal.PatternTest
                  Sound.Tidal.UITest
@@ -83,6 +84,7 @@ test-suite tests
                 base ==4.*
               , microspec >= 0.2.0.1
               , containers
+              , parsec
               , tidal
 
   default-language: Haskell2010

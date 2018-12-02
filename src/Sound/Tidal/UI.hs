@@ -421,7 +421,7 @@ spread' f vpat pat = vpat >>= \v -> f v pat
 shorter alias `spreadr`.
 -}
 spreadChoose :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
-spreadChoose f vs p = do v <- _discretise 1 (choose vs)
+spreadChoose f vs p = do v <- _segment 1 (choose vs)
                          f v p
 
 spreadr :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
@@ -615,23 +615,40 @@ including rotation in some cases.
 - (13,24,5) : Another rhythm necklace of the Aka Pygmies of the upper Sangha.
 @
 -}
-euler :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-euler = tParam2 _euler
+euclid :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+euclid = tParam2 _euclid
 
-_euler :: Int -> Int -> Pattern a -> Pattern a
-_euler n k p = (flip const) <$> (filterValues (== True) $ fastFromList $ bjorklund (n,k)) <*> p
+_euclid :: Int -> Int -> Pattern a -> Pattern a
+_euclid n k p = (flip const) <$> (filterValues (== True) $ fastFromList $ bjorklund (n,k)) <*> p
 
--- euler' :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
--- euler' = tParam2 _eulerq'
+euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
+euclidFull pn pk pa pb = innerJoin $ (\n k -> _euclidFull n k pa pb) <$> pn <*> pk
 
-_euler' :: Int -> Int -> Pattern a -> Pattern a
-_euler' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
+_euclidBool :: Int -> Int -> Pattern Bool
+_euclidBool n k = fastFromList $ bjorklund (n,k)
 
-eulerOff :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern a -> Pattern a
-eulerOff = tParam3 _eulerOff
+_euclidFull :: Int -> Int -> Pattern a -> Pattern a -> Pattern a
+_euclidFull n k p p' = pick <$> (_euclidBool n k) <*> p <*> p'
+  where pick True a _ = a
+        pick False _ b = b
 
-_eulerOff :: Int -> Int -> Integer -> Pattern a -> Pattern a
-_eulerOff n k s p = ((s%(fromIntegral k)) `rotL`) (_euler n k p)
+-- euclid' :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+-- euclid' = tParam2 _euclidq'
+
+_euclid' :: Int -> Int -> Pattern a -> Pattern a
+_euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
+
+euclidOff :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern a -> Pattern a
+euclidOff = tParam3 _euclidOff
+
+_euclidOff :: Int -> Int -> Integer -> Pattern a -> Pattern a
+_euclidOff n k s p = ((s%(fromIntegral k)) `rotL`) (_euclid n k p)
+
+euclidOffBool :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern Bool -> Pattern Bool
+euclidOffBool = tParam3 _euclidOffBool
+
+_euclidOffBool :: Int -> Int -> Integer -> Pattern Bool -> Pattern Bool
+_euclidOffBool n k s p = ((s%(fromIntegral k)) `rotL`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
 
 distrib :: [Pattern Int] -> Pattern a -> Pattern a
 distrib ps p = do p' <- sequence ps
@@ -654,15 +671,15 @@ _distrib xs p = boolsToPat (foldr (distrib') (replicate (last xs) True) (reverse
 
  @einv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
 -}
-eulerInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-eulerInv = tParam2 _eulerInv
+euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+euclidInv = tParam2 _euclidInv
 
-_eulerInv :: Int -> Int -> Pattern a -> Pattern a
-_eulerInv n k p = (flip const) <$> (filterValues (== False) $ fastFromList $ bjorklund (n,k)) <*> p
+_euclidInv :: Int -> Int -> Pattern a -> Pattern a
+_euclidInv n k p = (flip const) <$> (filterValues (== False) $ fastFromList $ bjorklund (n,k)) <*> p
 
-{- | `eulerfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
-eulerFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
-eulerFull n k pa pb = stack [ euler n k pa, eulerInv n k pb ]
+-- {- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
+--euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
+--euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
@@ -789,22 +806,23 @@ _rot i pat = splitQueries $ pat {query = \st -> f st (query pat (st {arc = whole
         constrainEvent a ((w,p),v) = do p' <- subArc p a
                                         return ((w,p'),v)
 
--- | @discretise n p@: 'samples' the pattern @p@ at a rate of @n@
+-- | @segment n p@: 'samples' the pattern @p@ at a rate of @n@
 -- events per cycle. Useful for turning a continuous pattern into a
 -- discrete one.
-discretise :: Time -> Pattern a -> Pattern a
-discretise = _discretise
+segment :: Pattern Time -> Pattern a -> Pattern a
+segment = tParam _segment
 
-discretise' :: Pattern Time -> Pattern a -> Pattern a
-discretise' n p = (density n $ pure (id)) <* p
+_segment :: Time -> Pattern a -> Pattern a
+_segment n p = (_fast n $ pure (id)) <* p
 
-_discretise :: Time -> Pattern a -> Pattern a
-_discretise n p = (_fast n $ pure (id)) <* p
+-- | @discretise@: the old (deprecated) name for 'segment'
+discretise :: Pattern Time -> Pattern a -> Pattern a
+discretise = segment
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' (rotL) (_discretise 1 $ ((%1) . fromIntegral) <$> (irand (length ps) :: Pattern Int)) (slowcat ps)
+randcat ps = spread' (rotL) (_segment 1 $ ((%1) . fromIntegral) <$> (irand (length ps) :: Pattern Int)) (slowcat ps)
 
 -- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
@@ -856,7 +874,7 @@ fit perCycle xs p = (xs !!!) <$> (p {query = \st -> map ((\e -> (fmap (+ (pos e)
   where pos e = perCycle * (floor $ fst $ snd $ fst e)
 
 permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
-permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (_discretise 1 p)
+permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! (floor (n * (fromIntegral $ (length ps - 1))))) things) <$> (_segment 1 p)
       where ps = permsort (length things) nSteps
             deviance avg xs = sum $ map (abs . (avg-) . fromIntegral) xs
             permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total / (fromIntegral n :: Double)) x)) $ perms n total
@@ -864,9 +882,11 @@ permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> repli
             perms 1 n = [[n]]
             perms n total = concatMap (\x -> map (x:) $ perms (n-1) (total-x)) [1 .. (total-(n-1))]
 
--- | @struct a b@: structures pattern @b@ in terms of @a@.
-struct :: Pattern String -> Pattern a -> Pattern a
-struct ps pv = (flip const) <$> ps <*> pv
+-- | @struct a b@: structures pattern @b@ in terms of the pattern of
+-- boolean values @a@. Only @True@ values in the boolean pattern are
+-- used.
+struct :: Pattern Bool -> Pattern a -> Pattern a
+struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <* pv
 
 -- | @substruct a b@: similar to @struct@, but each event in pattern @a@ gets replaced with pattern @b@, compressed to fit the timespan of the event.
 substruct :: Pattern String -> Pattern b -> Pattern b
@@ -988,11 +1008,19 @@ d1 $ s (mask ("1 ~ 1 ~ 1 1 ~ 1")
 @
 -}
 
+mask :: Pattern Bool -> Pattern a -> Pattern a
+mask maskpat pat = filterJust $ toMaybe <$> pat'
+  where pat' = matchManyToOne (flip const) maskpat pat
+        toMaybe (True, a) = Just a
+        toMaybe (False, _) = Nothing
+
+{-
 mask :: Pattern Bool -> Pattern b -> Pattern b
 -- TODO - should that be eventPart or eventWhole?
 mask pa pb = pb {query = \st -> concat [filterOns (subArc (arc st) $ eventPart i) (query pb st) | i <- query pa st]}
      where filterOns Nothing _ = []
            filterOns (Just a) es = filter (onsetIn a) es
+-}
 
 enclosingArc :: [Arc] -> Arc
 enclosingArc [] = (0,1)
@@ -1239,7 +1267,7 @@ function to a pattern, but only in the right-hand channel. For
 example, the following reverses the pattern on the righthand side:
 
 @
-d1 $ slow 32 $ jux (rev) $ striate' 32 (1/16) $ sound "bev"
+d1 $ slow 32 $ jux (rev) $ striateBy 32 (1/16) $ sound "bev"
 @
 
 When passing pattern transforms to functions like [jux](#jux) and [every](#every),
@@ -1248,7 +1276,7 @@ example this both reverses and halves the playback speed of the
 pattern in the righthand channel:
 
 @
-d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striate' 32 (1/16) $ sound "bev"
+d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striateBy 32 (1/16) $ sound "bev"
 @
 -}
 jux
@@ -1499,3 +1527,8 @@ unfixRange :: (ControlPattern -> Pattern ControlMap)
               -> ControlPattern
               -> Pattern ControlMap
 unfixRange f = contrastRange id f
+
+-- | limit values in a Pattern (or other Functor) to n equally spaced
+-- divisions of 1.
+quantise :: (Functor f, RealFrac b) => b -> f b -> f b
+quantise n = fmap ((/n) . fromIntegral . floor . (*n))

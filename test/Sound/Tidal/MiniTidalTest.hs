@@ -1,25 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module MiniTidalTests where
+module Sound.Tidal.MiniTidalTest where
 
-import Test.Hspec
+import Test.Microspec
 import Sound.Tidal.MiniTidal
 import Sound.Tidal.Context as Tidal
 import Data.Either
 import Text.ParserCombinators.Parsec (ParseError)
 import qualified Data.Map.Strict as Map
 
-parsesTo :: String -> ControlPattern -> Expectation
-parsesTo s p = x `shouldBe` y
-  where x = query <$> miniTidal s <*> Right (State (0,16) Map.empty)
+parsesTo :: String -> ControlPattern -> Property
+parsesTo str p = x `shouldBe` y
+  where x = query <$> miniTidal str <*> Right (State (0,16) Map.empty)
         y = Right $ query p $ State (0,16) Map.empty
 
-causesParseError :: String -> Expectation
-causesParseError s = isLeft (miniTidal s :: Either ParseError ControlPattern) `shouldBe` True
+causesParseError :: String -> Property
+causesParseError str = isLeft (miniTidal str :: Either ParseError ControlPattern) `shouldBe` True
 
-main :: IO ()
-main = hspec $ do
-
+run :: Microspec ()
+run =
   describe "miniTidal" $ do
 
     it "parses the empty string as silence" $
