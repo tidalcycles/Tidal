@@ -1,9 +1,6 @@
 module Sound.Tidal.Tempo where
 
 -- import Data.Time (getCurrentTime, UTCTime, NominalDiffTime, diffUTCTime, addUTCTime)
-import System.Environment (lookupEnv)
-import Data.Maybe (fromMaybe)
-import Safe (readNote)
 -- import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Control.Concurrent.MVar
 import qualified Sound.Tidal.Pattern as P
@@ -11,8 +8,9 @@ import qualified Sound.OSC.FD as O
 -- import qualified Sound.OSC.Transport.FD.UDP as O
 import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
-import Control.Monad (forever, when, foldM)
-import Data.List (nub,isPrefixOf)
+import Control.Monad (forever, when)
+
+import Sound.Tidal.Config
 
 data Tempo = Tempo {atTime  :: O.Time,
                     atCycle :: Rational,
@@ -48,14 +46,6 @@ defaultTempo t = Tempo {atTime   = t,
                         nudged   = 0
                        }
 
-
-getClockHostname :: IO String
-getClockHostname = fromMaybe "127.0.0.1" <$> lookupEnv "TIDAL_TEMPO_IP"
-
-getClockPort :: IO Int
-getClockPort =
-   maybe 9160 (readNote "port parse") <$> lookupEnv "TIDAL_TEMPO_PORT"
-
 -- | Returns the given time in terms of
 -- cycles relative to metrical grid of a given Tempo
 timeToCycles :: Tempo -> O.Time -> Rational
@@ -63,36 +53,29 @@ timeToCycles tempo t = (atCycle tempo) + (toRational cycleDelta)
   where delta = t - (atTime tempo)
         cycleDelta = (realToFrac $ cps tempo) * delta
 
-getHz :: IO Double
-getHz = maybe 100 (readNote "Hz parse") <$> lookupEnv "TIDAL_HZ"
-
-getTickLength :: IO O.Time
-getTickLength = do hz <- getHz
-                   return $ 1/hz
-
 {-
 getCurrentCycle :: MVar Tempo -> IO Rational
 getCurrentCycle t = (readMVar t) >>= (cyclesNow) >>= (return . toRational)
 -}
 
 
-clocked :: (MVar Tempo -> State -> IO ()) -> IO (MVar Tempo, [ThreadId])
-clocked callback = do s <- O.time
-                      (tempoMV, listenTid) <- clientListen s
-                      let st = State {ticks = 0,
-                                      start = s,
-                                      nowTime = s,
-                                      nowArc = (0,0)
-                                     }
-                      clockTid <- forkIO $ loop tempoMV st
-                      return (tempoMV, [listenTid, clockTid])
+clocked :: Config -> (MVar Tempo -> State -> IO ()) -> IO (MVar Tempo, [ThreadId])
+clocked config callback
+  = do s <- O.time
+       (tempoMV, listenTid) <- clientListen config s
+       let st = State {ticks = 0,
+                       start = s,
+                       nowTime = s,
+                       nowArc = (0,0)
+                      }
+       clockTid <- forkIO $ loop tempoMV st
+       return (tempoMV, [listenTid, clockTid])
   where loop tempoMV st =
           do -- putStrLn $ show $ nowArc ts
-
              tempo <- readMVar tempoMV
-             tickLength <- getTickLength
+             let frameTimespan = cFrameTimespan config
              let -- 'now' comes from clock ticks, nothing to do with cycles
-                 logicalNow = start st + (fromIntegral $ (ticks st)+1) * tickLength
+                 logicalNow = start st + (fromIntegral $ (ticks st)+1) * frameTimespan
                  -- the tempo is just used to convert logical time to cycles
                  s = snd $ nowArc st
                  e = timeToCycles tempo logicalNow
@@ -102,12 +85,12 @@ clocked callback = do s <- O.time
              callback tempoMV st'
              loop tempoMV st'
 
-clientListen :: O.Time -> IO (MVar Tempo, ThreadId)
-clientListen s =
+clientListen :: Config -> O.Time -> IO (MVar Tempo, ThreadId)
+clientListen config s =
   do -- Listen on random port
      udp <- O.udpServer "127.0.0.1" 0
-     hostname <- getClockHostname
-     port <- getClockPort
+     let hostname = cTempoAddr config
+         port = cTempoPort config
      (remote_addr:_) <- N.getAddrInfo Nothing (Just hostname) Nothing
      let (N.SockAddrInet _ a) = N.addrAddress remote_addr
          remote_sockaddr = N.SockAddrInet (fromIntegral port) (a)
@@ -140,7 +123,7 @@ listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
                                 }
         act _ pkt = putStrLn $ "Unknown packet: " ++ show pkt
 
-
+{-
 serverListen :: IO ()
 serverListen = do port <- getClockPort
                   -- iNADDR_ANY deprecated - what's the right way to do this?
@@ -163,4 +146,4 @@ serverListen = do port <- getClockPort
                  return cs
         act _ _ _ cs pkt = do putStrLn $ "Unknown packet: " ++ show pkt
                               return cs
-
+-}

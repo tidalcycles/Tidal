@@ -628,9 +628,9 @@ _euclidBool :: Int -> Int -> Pattern Bool
 _euclidBool n k = fastFromList $ bjorklund (n,k)
 
 _euclidFull :: Int -> Int -> Pattern a -> Pattern a -> Pattern a
-_euclidFull n k p p' = pick <$> (_euclidBool n k) <*> p <*> p'
-  where pick True a _ = a
-        pick False _ b = b
+_euclidFull n k p p' = pickbool <$> (_euclidBool n k) <*> p <*> p'
+  where pickbool True a _ = a
+        pickbool False _ b = b
 
 -- euclid' :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 -- euclid' = tParam2 _euclidq'
@@ -1532,3 +1532,7 @@ unfixRange f = contrastRange id f
 -- divisions of 1.
 quantise :: (Functor f, RealFrac b) => b -> f b -> f b
 quantise n = fmap ((/n) . fromIntegral . floor . (*n))
+
+-- | Inverts all the values in a boolean pattern
+inv :: Functor f => f Bool -> f Bool
+inv = (not <$>)

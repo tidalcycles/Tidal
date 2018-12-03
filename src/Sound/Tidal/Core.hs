@@ -394,4 +394,3 @@ whenT test f p = splitQueries $ p {query = apply}
 --eoff :: Int -> Int -> Integer -> Pattern a -> Pattern a
 --eoff n k s p = ((s%(fromIntegral k)) `rotL`) (_e n k p)
    -- TPat_ShiftL (s%(fromIntegral k)) (TPat_E n k p)
-
