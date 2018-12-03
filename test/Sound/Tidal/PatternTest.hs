@@ -247,6 +247,60 @@ run =
         let res = arcCycles (2.1, 3.3)
         property $ [(2.1, 3.0), (3.0, 3.3)] === res
     
+    describe "arcCyclesZW" $ do 
+      it "if start and end time are equal return list of (start, end)" $ do
+        let res = arcCyclesZW (2.5, 2.5)
+        property $ [(2.5, 2.5)] === res 
+      it "if start and end time are not equal call arcCycles (start, end) with same rules as above" $ do
+        let res = arcCyclesZW (2.3, 2.1)
+        property $ [] === res 
+      it "if start time is less than end time" $ do 
+        let res = arcCyclesZW (2.1, 2.3)
+        property $ [(2.1, 2.3)] === res 
+      it "if start time is greater than end time" $ do 
+        let res = arcCyclesZW (2.1, 3.3)
+        property $ [(2.1, 3.0), (3.0, 3.3)] === res 
+
+    describe "mapArc" $ do 
+      it "Apply a given function to the start and end values of an Arc" $ do
+        let res = mapArc (+1) (3, 5)
+        property $ ((4, 6) :: Arc) === res 
+
+    describe "mapCycle" $ do
+      it "Apply a function to the Arc values minus the start value rounded down (sam'), adding both results to sam' to obtain the new Arc value" $ do
+        let res = mapCycle (*2) (3.3, 5)
+        property $ ((3.6, 7.0) :: Arc) === res
+
+    describe "toTime" $ do 
+      it "Convert a number of type Real to a Time value of type Rational, Int test" $ do 
+        let res = toTime (3 :: Int) 
+        property $ (3 % 1 :: Time) === res
+      it "Convert a number of type Double to a Time value of type Rational" $ do 
+        let res = toTime (3.2 :: Double)
+        property $ (3602879701896397 % 1125899906842624 :: Time) === res 
+
+    describe "cyclePos" $ do
+      it "Subtract a Time value from its value rounded down (the start of the cycle)" $ do 
+        let res = cyclePos 2.6
+        property $ (0.6 :: Time) === res 
+      it "If no difference between a given Time and the start of the cycle" $ do 
+        let res = cyclePos 2
+        property $ (0.0 :: Time) === res 
+
+    describe "isIn" $ do
+      it "Check given Time is inside a given Arc value, Time is greater than start and less than end Arc values" $ do
+        let res = isIn (2.0, 2.8) 2.5
+        property $ True === res 
+      it "Given Time is equal to the Arc start value" $ do 
+        let res = isIn (2.0, 2.8) 2.0
+        property $ True === res
+      it "Given Time is less than the Arc start value" $ do 
+        let res = isIn (2.0, 2.8) 1.4
+        property $ False === res
+      it "Given Time is greater than the Arc end value" $ do 
+        let res = isIn (2.0, 2.8) 3.2
+        property $ False === res 
+    
     -- pending "Sound.Tidal.Pattern.eventL" $ do
     --  it "succeeds if the first event 'whole' is shorter" $ do
     --    property $ eventL (((0,0),(0,1)),"x") (((0,0),(0,1.1)),"x")
