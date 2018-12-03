@@ -207,6 +207,46 @@ run =
        (query (pure 3 + cF_ "hello") $ State (0,1) (Map.singleton "hello" (VF 0.5)))
        `shouldBe` [(((0 % 1,1 % 1),(0 % 1,1 % 1)),3.5)]
 
+    describe "eventWholeOnset" $ do 
+      it "retrieve first element of a tuple, inside first element of a tuple, inside the first of another" $ do 
+        property $ 1 === eventWholeOnset (((1, 2), (3, 4)), 5 :: Int)
+
+    describe "eventValue" $ do
+      it "retrieve the second value from a tuple" $ do 
+        property $ 5 === eventValue (((1, 2), (3, 4)), 5 :: Int)
+  
+    describe "eventHasOnset" $ do 
+      it "return True when the start values of the two arcs in an event are equal" $ do 
+        let ev = (((1, 2), (1, 3)), 4 :: Int) 
+        property $ True === eventHasOnset ev 
+      it "return False when the start values of the two arcs in an event are not equal" $ do 
+        let ev = (((1, 2), (3, 4)), 5 :: Int) 
+        property $ False === eventHasOnset ev
+
+    describe "sam" $ do 
+      it "start of a cycle, round down time value" $ do
+        let res = sam (3.4 :: Time)
+        property $ (3.0 :: Time) === res
+
+    describe "nextSam" $ do 
+      it "the end point of the current cycle, and start of the next" $ do 
+        let res = nextSam (3.4 :: Time) 
+        property $ (4.0 :: Time) === res 
+
+    describe "arcCycles" $ do 
+      it "if start time is greater than end time return empty list" $ do 
+        let res = arcCycles (2.3, 2.1)
+        property $ [] === res 
+      it "if start time is equal to end time return empty list" $ do 
+        let res = arcCycles (3, 3)
+        property $ [] === res
+      it "if start and end time round down to same value return list of (start, end)" $ do
+        let res = arcCycles (2.1, 2.3) 
+        property $ [(2.1, 2.3)] === res
+      it "if start time is less than end time and start time does not round down to same value as end time" $ do
+        let res = arcCycles (2.1, 3.3)
+        property $ [(2.1, 3.0), (3.0, 3.3)] === res
+    
     -- pending "Sound.Tidal.Pattern.eventL" $ do
     --  it "succeeds if the first event 'whole' is shorter" $ do
     --    property $ eventL (((0,0),(0,1)),"x") (((0,0),(0,1.1)),"x")

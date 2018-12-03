@@ -82,6 +82,25 @@ toDatum (VS x) = O.string x
 toData :: Event ControlMap -> [O.Datum]
 toData e = concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ eventValue e
 
+toMessage :: OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> O.Message
+toMessage target tempo e = O.Message (oPath target) $ oPreamble target ++ toData (addCps e)
+  where on e = sched tempo $ fst $ eventWhole e
+        off e = sched tempo $ snd $ eventWhole e
+        delta e = (off e) - (on e)
+        -- If there is already cps in the event, the union will preserve that.
+        addCps e = (\v -> (Map.union v $ Map.fromList [("cps", (VF $ T.cps tempo)),
+                                                       ("delta", VF (delta e)),
+                                                       ("cycle", VF (fromRational $ fst $ eventWhole e))
+                                                       ])) <$> e
+
+doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
+doCps tempoMV (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
+                                                       -- hack to stop things from stopping
+                                                       _ <- T.setCps tempoMV (max 0.1 cps)
+                                                       return ()
+                                      return ()
+doCps _ _ = return ()
+
 onTick :: Config -> MVar ControlMap -> MVar ControlPattern -> OSCTarget -> O.UDP -> MVar T.Tempo -> T.State -> IO ()
 onTick config cMapMV pMV target u tempoMV st =
   do p <- readMVar pMV
@@ -90,31 +109,15 @@ onTick config cMapMV pMV target u tempoMV st =
      now <- O.time
      let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
          on e = sched tempo $ fst $ eventWhole e
-         off e = sched tempo $ snd $ eventWhole e
-         delta e = (off e) - (on e)
-         messages = map (\e -> (on e, toMessage e)) es
+         messages = map (\e -> (on e, toMessage target tempo e)) es
          cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ eventValue e)) es
-         cpsNow = T.cps tempo
-         -- If there is already cps in the event, the union will preserve that.
-         addCps e = (\v -> (Map.union v $ Map.fromList [("cps", (VF cpsNow)),
-                                                        ("delta", VF (delta e)),
-                                                        ("cycle", VF (fromRational $ fst $ eventWhole e))
-                                                       ]
-                           )) <$> e
-         toMessage e = O.Message (oPath target) $ oPreamble target ++ toData (addCps e)
          latency = oLatency target + cFrameTimespan config
      E.catch (mapM_ (send latency u) messages)
        (\(_ ::E.SomeException)
         -> putStrLn $ "Failed to send. Is the target (probably superdirt) running?")
                 -- ++ show (msg :: E.SomeException))
-     mapM_ doCps cpsChanges
+     mapM_ (doCps tempoMV) cpsChanges
      return ()
-  where doCps (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
-                                                       -- hack to stop things from stopping
-                                                       _ <- T.setCps tempoMV (max 0.1 cps)
-                                                       return ()
-                                      return ()
-        doCps _ = return ()
 
 send :: O.Transport t => Double -> t -> (Double, O.Message) -> IO ()
 send latency u (time, m) = O.sendOSC u $ O.Bundle (time + latency) [m]
@@ -185,12 +188,15 @@ streamOnce st asap p
                                                       }
                                                )
            at e = sched fakeTempo $ fst $ eventWhole e
-           messages = map (\e -> (at e, toMessage e)) es
-           toMessage e = O.Message (oPath target) $ oPreamble target ++ toData e
+           on e = sched tempo $ fst $ eventWhole e
+           cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ eventValue e)) es
+           messages = map (\e -> (at e, toMessage target fakeTempo e)) es
        E.catch (mapM_ (send (oLatency target) (sUDP st)) messages)
          (\(msg ::E.SomeException)
           -> putStrLn $ "Failed to send. Is the target (probably superdirt) running? " ++ show (msg :: E.SomeException))
-                    
+       mapM_ (doCps $ sTempoMV st) cpsChanges
+       return ()
+
 withPatId :: Stream -> PatId -> (PlayState -> PlayState) -> IO ()
 withPatId s k f = withPatIds s [k] f
 
@@ -223,7 +229,7 @@ calcOutput s = do pMap <- readMVar $ sPMapMV s
           stack $ map pattern $ filter (\pState -> if hasSolo pMap
                                                    then solo pState
                                                    else not (mute pState)
-                                       ) (Map.elems pMap)  
+                                       ) (Map.elems pMap)
 
 startTidal :: OSCTarget -> Config -> IO Stream
 startTidal target config =
