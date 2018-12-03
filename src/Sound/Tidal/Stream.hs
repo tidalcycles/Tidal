@@ -83,15 +83,15 @@ toData :: Event ControlMap -> [O.Datum]
 toData e = concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ eventValue e
 
 toMessage :: OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> O.Message
-toMessage target tempo e = O.Message (oPath target) $ oPreamble target ++ toData (addCps e)
-  where on e = sched tempo $ fst $ eventWhole e
-        off e = sched tempo $ snd $ eventWhole e
-        delta e = (off e) - (on e)
+toMessage target tempo e = O.Message (oPath target) $ oPreamble target ++ toData addCps
+  where on = sched tempo $ fst $ eventWhole e
+        off = sched tempo $ snd $ eventWhole e
+        delta = off - on
         -- If there is already cps in the event, the union will preserve that.
-        addCps e = (\v -> (Map.union v $ Map.fromList [("cps", (VF $ T.cps tempo)),
-                                                       ("delta", VF (delta e)),
-                                                       ("cycle", VF (fromRational $ fst $ eventWhole e))
-                                                       ])) <$> e
+        addCps = (\v -> (Map.union v $ Map.fromList [("cps", (VF $ T.cps tempo)),
+                                                     ("delta", VF delta),
+                                                     ("cycle", VF (fromRational $ fst $ eventWhole e))
+                                                    ])) <$> e
 
 doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
 doCps tempoMV (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
