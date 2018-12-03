@@ -183,7 +183,7 @@ append a b = cat [a,b]
 -- in turn, then the second cycle from each, and so on.
 cat :: [Pattern a] -> Pattern a
 cat [] = silence
--- I *guess* it would be digital..
+-- TODO I *guess* it would be digital..
 cat ps = Pattern Digital q
   where n = length ps
         q st = concatMap (f st) $ arcCyclesZW (arc st)
