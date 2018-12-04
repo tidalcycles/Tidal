@@ -6,7 +6,7 @@ module Sound.Tidal.Stream where
 import           Control.Concurrent.MVar
 import           Control.Concurrent
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust)
+import           Data.Maybe (fromJust, fromMaybe)
 import qualified Control.Exception as E
 -- import Control.Monad.Reader
 -- import Control.Monad.Except
@@ -108,10 +108,11 @@ onTick config cMapMV pMV target u tempoMV st =
      tempo <- readMVar tempoMV
      now <- O.time
      let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
-         on e = sched tempo $ fst $ eventWhole e
+         on e = (sched tempo $ fst $ eventWhole e) + eventNudge e
+         eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ eventValue e
          messages = map (\e -> (on e, toMessage target tempo e)) es
          cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ eventValue e)) es
-         latency = oLatency target + cFrameTimespan config
+         latency = oLatency target + cFrameTimespan config + T.nudged tempo
      E.catch (mapM_ (send latency u) messages)
        (\(_ ::E.SomeException)
         -> putStrLn $ "Failed to send. Is the target (probably superdirt) running?")
@@ -126,6 +127,10 @@ sched :: T.Tempo -> Rational -> Double
 sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)
 
 -- Interaction
+
+setNudge :: Stream -> Double -> IO ()
+setNudge s nudge = do tempo <- takeMVar $ sTempoMV s
+                      putMVar (sTempoMV s) $ tempo {T.nudged = nudge}
 
 hasSolo :: Map.Map k PlayState -> Bool
 hasSolo = (>= 1) . length . filter solo . Map.elems
