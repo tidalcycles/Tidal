@@ -128,9 +128,9 @@ sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTi
 
 -- Interaction
 
-setNudge :: Stream -> Double -> IO ()
-setNudge s nudge = do tempo <- takeMVar $ sTempoMV s
-                      putMVar (sTempoMV s) $ tempo {T.nudged = nudge}
+streamNudgeAll :: Stream -> Double -> IO ()
+streamNudgeAll s nudge = do tempo <- takeMVar $ sTempoMV s
+                            putMVar (sTempoMV s) $ tempo {T.nudged = nudge}
 
 hasSolo :: Map.Map k PlayState -> Bool
 hasSolo = (>= 1) . length . filter solo . Map.elems

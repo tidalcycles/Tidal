@@ -103,6 +103,7 @@ let p = streamReplace tidal
     unsolo = streamUnsolo tidal
     once = streamOnce tidal False
     asap = streamOnce tidal True
+    nudgeAll = streamNudgeAll tidal
     setcps = asap . cps
     xfade = transition tidal (Sound.Tidal.Transition.xfadeIn 4)
     xfadeIn t = transition tidal (Sound.Tidal.Transition.xfadeIn t)
