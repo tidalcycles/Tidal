@@ -149,7 +149,7 @@ specificControlPatterns = choice [
   (function "delayfeedback" >> return T.delayfeedback) <*> patternArg,
   (function "delaytime" >> return T.delaytime) <*> patternArg,
   (function "delay" >> return T.delay) <*> patternArg,
-  (function "end" >> return T.end) <*> patternArg,
+  (function "end" >> return T.fin) <*> patternArg,
   (function "hcutoff" >> return T.hcutoff) <*> patternArg,
   (function "hresonance" >> return T.hresonance) <*> patternArg,
   (function "resonance" >> return T.resonance) <*> patternArg,
@@ -333,7 +333,7 @@ instance Pattern' Arc where
   transformationWithArgs = patternTransformationWithArgs
   literal = do
     xs <- parens (commaSep1 literal)
-    if length xs == 2 then return (xs!!0,xs!!1) else unexpected "Arcs must contain exactly two values"
+    if length xs == 2 then return (T.Arc (xs!!0) (xs!!1)) else unexpected "Arcs must contain exactly two values"
 
 instance Pattern' String where
   simplePattern = parseBP'

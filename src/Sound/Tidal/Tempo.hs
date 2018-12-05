@@ -66,7 +66,7 @@ clocked config callback
        let st = State {ticks = 0,
                        start = s,
                        nowTime = s,
-                       nowArc = (0,0)
+                       nowArc = (P.Arc 0 0)
                       }
        clockTid <- forkIO $ loop tempoMV st
        return (tempoMV, [listenTid, clockTid])
@@ -77,9 +77,9 @@ clocked config callback
              let -- 'now' comes from clock ticks, nothing to do with cycles
                  logicalNow = start st + (fromIntegral $ (ticks st)+1) * frameTimespan
                  -- the tempo is just used to convert logical time to cycles
-                 s = snd $ nowArc st
+                 s = P.end $ nowArc st
                  e = timeToCycles tempo logicalNow
-                 st' = st {ticks = (ticks st) + 1, nowArc = (s,e)}
+                 st' = st {ticks = (ticks st) + 1, nowArc = P.Arc s e}
              t <- O.time
              when (t < logicalNow) $ threadDelay (floor $ (logicalNow - t) * 1000000)
              callback tempoMV st'

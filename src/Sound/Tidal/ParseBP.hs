@@ -448,7 +448,7 @@ pStretch :: Parseable a => TPat a -> Parser [TPat a]
 pStretch thing =
   do char '@'
      n <- ((read <$> many1 digit) <|> return 1)
-     return $ map (\x -> TPat_Zoom (x%n,(x+1)%n) thing) [0 .. (n-1)]
+     return $ map (\x -> TPat_Zoom (Arc (x%n) ((x+1)%n)) thing) [0 .. (n-1)]
 
 pRatio :: Parser (Rational)
 pRatio = do s <- sign

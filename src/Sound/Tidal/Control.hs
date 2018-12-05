@@ -57,27 +57,25 @@ chop :: Pattern Int -> ControlPattern -> ControlPattern
 chop = tParam _chop
 
 chopArc :: Arc -> Int -> [Arc]
-chopArc (s, e) n = map (\i -> ((s + (e-s)*(fromIntegral i/fromIntegral n)), s + (e-s)*((fromIntegral $ i+1)/fromIntegral n))) [0 .. n-1]
+chopArc (Arc s e) n = map (\i -> (Arc (s + (e-s)*(fromIntegral i/fromIntegral n)) (s + (e-s)*((fromIntegral $ i+1)/fromIntegral n)))) [0 .. n-1]
 
 _chop :: Int -> ControlPattern -> ControlPattern
 _chop n p = withEvents (concatMap chopEvent) p
   where -- for each part,
         chopEvent :: Event ControlMap -> [Event ControlMap]
-        chopEvent ((whole,part), v) = map (\a -> chomp v (length $ chopArc whole n) a) $ arcs whole part
+        chopEvent (Event w p v) = map (\a -> chomp v (length $ chopArc w n) a) $ arcs w p
         -- cut whole into n bits, and number them
         arcs whole part = numberedArcs part $ chopArc whole n
         -- each bit is a new whole, with part that's the intersection of old part and new whole
         -- (discard new parts that don't intersect with the old part)
-        numberedArcs :: Arc -> [Arc] -> [(Int, Part)]
+        numberedArcs :: Arc -> [Arc] -> [(Int, (Arc, Arc))]
         numberedArcs part as = map ((fromJust <$>) <$>) $ filter (isJust . snd . snd) $ enumerate $ map (\a -> (a, subArc part a)) as
         -- begin set to i/n, end set to i+1/n
         -- if the old event had a begin and end, then multiply the new
         -- begin and end values by the old difference (end-begin), and
         -- add the old begin
-        chomp :: ControlMap -> Int -> (Int, Part) -> Event ControlMap
-        chomp v n' (i, pt) = (pt,
-                             Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v
-                            )
+        chomp :: ControlMap -> Int -> (Int, (Arc, Arc)) -> Event ControlMap
+        chomp v n' (i, (w,p)) = Event w p (Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v)
           where b = fromMaybe 0 $ do v' <- Map.lookup "begin" v
                                      getF v'
                 e = fromMaybe 1 $ do v' <- Map.lookup "end" v
@@ -159,7 +157,7 @@ striate' = striateBy
 
 _striateBy :: Int -> Double -> ControlPattern -> ControlPattern
 _striateBy n f p = fastcat $ map (\i -> offset (fromIntegral i)) [0 .. n-1]
-  where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.end (pure ((slot * i) + f) :: Pattern Double)
+  where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.fin (pure ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
 
@@ -248,7 +246,7 @@ en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate 
 -}
 
 slice :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
-slice pI pN p = P.begin b # P.end e # p
+slice pI pN p = P.begin b # P.fin e # p
   where b = (\i n -> (div' i n)) <$> pI <*> pN
         e = (\i n -> (div' i n) + (div' 1 n)) <$> pI <*> pN
         div' num den = fromIntegral (num `mod` den) / fromIntegral den
@@ -257,7 +255,7 @@ _slice :: Int -> Int -> ControlPattern -> ControlPattern
 _slice i n p =
       p
       # P.begin (pure $ fromIntegral i / fromIntegral n)
-      # P.end (pure $ fromIntegral (i+1) / fromIntegral n)
+      # P.fin (pure $ fromIntegral (i+1) / fromIntegral n)
 
 randslice :: Int -> ControlPattern -> ControlPattern
 randslice n p = unwrap $ (\i -> _slice i n p) <$> irand n
@@ -360,19 +358,19 @@ stut' = stutWith
 
 cI :: String -> Pattern Int
 cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
-  where f a (VI v) = [((a,a),v)]
-        f a (VF v) = [((a,a),floor v)]
-        f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
+  where f a (VI v) = [Event a a v]
+        f a (VF v) = [Event a a (floor v)]
+        f a (VS v) = maybe [] (\v' -> [Event a a v']) (readMaybe v)
 
 _cX :: (Arc -> Value -> [Event a]) -> [a] -> String -> Pattern a
 _cX f ds s = Pattern Analog $
-               \(State a m) -> maybe (map (\d -> ((a,a),d)) ds) (f a) $ Map.lookup s m
+               \(State a m) -> maybe (map (\d -> (Event a a d)) ds) (f a) $ Map.lookup s m
 
 _cF :: [Double] -> String -> Pattern Double
 _cF = _cX f
-  where f a (VI v) = [((a,a),fromIntegral v)]
-        f a (VF v) = [((a,a),v)]
-        f a (VS v) = maybe [] (\v' -> [((a,a),v')]) (readMaybe v)
+  where f a (VI v) = [Event a a (fromIntegral v)]
+        f a (VF v) = [Event a a v]
+        f a (VS v) = maybe [] (\v' -> [Event a a v']) (readMaybe v)
 
 cF :: Double -> String -> Pattern Double
 cF d = _cF [d]
@@ -398,9 +396,9 @@ cR_ = cT_
 
 _cS :: [String] -> String -> Pattern String
 _cS = _cX f
-  where f a (VI v) = [((a,a),show v)]
-        f a (VF v) = [((a,a),show v)]
-        f a (VS v) = [((a,a),v)]
+  where f a (VI v) = [Event a a (show v)]
+        f a (VF v) = [Event a a (show v)]
+        f a (VS v) = [Event a a v]
 cS :: String -> String -> Pattern String
 cS d = _cS [d]
 cS_ :: String -> Pattern String
@@ -408,9 +406,9 @@ cS_ = _cS []
 
 _cP :: (Enumerable a, Parseable a) => [Pattern a] -> String -> Pattern a
 _cP ds s = innerJoin $ _cX f ds s
-  where f a (VI v) = [((a,a),parseBP_E $ show v)]
-        f a (VF v) = [((a,a),parseBP_E $ show v)]
-        f a (VS v) = [((a,a),parseBP_E $ v)]
+  where f a (VI v) = [Event a a (parseBP_E $ show v)]
+        f a (VF v) = [Event a a (parseBP_E $ show v)]
+        f a (VS v) = [Event a a (parseBP_E $ v)]
 cP :: (Enumerable a, Parseable a) => Pattern a -> String -> Pattern a
 cP d = _cP [d]
 cP_ :: (Enumerable a, Parseable a) => String -> Pattern a
