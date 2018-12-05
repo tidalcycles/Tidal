@@ -163,3 +163,9 @@ run =
         compareP (0,1)
           (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VF 0, VF 3)) $ s "bd" >| n "1 4")
           (s "bd" >| n "1 4" >| crush "3 0")
+
+    describe "euclidFull" $ do
+      it "can match against silence" $ do
+        compareP (0,1)
+          (euclidFull 3 8 "bd" silence)
+          ("bd(3,8)" :: Pattern String)
