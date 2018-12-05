@@ -187,20 +187,23 @@ apply the function at different levels to each pattern, creating a weaving effec
 d1 $ weave 3 (shape $ sine1) [sound "bd [sn drum:2*2] bd*2 [sn drum:1]", sound "arpy*8 ~"]
 @
 -}
-weave :: Rational -> ControlPattern -> [ControlPattern] -> ControlPattern
+weave :: Time -> ControlPattern -> [ControlPattern] -> ControlPattern
 weave t p ps = weave' t p (map (\x -> (x #)) ps)
 
 
-{- | `weave'` is similar in that it blends functions at the same time at different amounts over a pattern:
+{- | `weaveWith` is similar in that it blends functions at the same time at different amounts over a pattern:
 
 @
-d1 $ weave' 3 (sound "bd [sn drum:2*2] bd*2 [sn drum:1]") [density 2, (# speed "0.5"), chop 16]
+d1 $ weaveWith 3 (sound "bd [sn drum:2*2] bd*2 [sn drum:1]") [density 2, (# speed "0.5"), chop 16]
 @
 -}
-weave' :: Rational -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
-weave' t p fs | l == 0 = silence
+weaveWith :: Time -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
+weaveWith t p fs | l == 0 = silence
               | otherwise = _slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) `rotL` (_fast t $ f (_slow t p))) (zip [0 :: Int ..] fs)
   where l = fromIntegral $ length fs
+
+weave' :: Time -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
+weave' = weaveWith
 
 {- |
 (A function that takes two ControlPatterns, and blends them together into
@@ -216,7 +219,7 @@ d1 $ interlace (sound  "bd sn kurt") (every 3 rev $ sound  "bd sn:2")
 @
 -}
 interlace :: ControlPattern -> ControlPattern -> ControlPattern
-interlace a b = weave 16 (P.shape $ ((* 0.9) <$> sine)) [a, b]
+interlace a b = weave 16 (P.shape $ (sine * 0.9)) [a, b]
 
 {-
 {- | Just like `striate`, but also loops each sample chunk a number of times specified in the second argument.
