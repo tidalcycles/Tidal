@@ -621,8 +621,10 @@ euclid = tParam2 _euclid
 _euclid :: Int -> Int -> Pattern a -> Pattern a
 _euclid n k p = (flip const) <$> (filterValues (== True) $ fastFromList $ bjorklund (n,k)) <*> p
 
+{- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
 euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
-euclidFull pn pk pa pb = innerJoin $ (\n k -> _euclidFull n k pa pb) <$> pn <*> pk
+--euclidFull pn pk pa pb = innerJoin $ (\n k -> _euclidFull n k pa pb) <$> pn <*> pk
+euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
 
 _euclidBool :: Int -> Int -> Pattern Bool
 _euclidBool n k = fastFromList $ bjorklund (n,k)
@@ -676,10 +678,6 @@ euclidInv = tParam2 _euclidInv
 
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
 _euclidInv n k p = (flip const) <$> (filterValues (== False) $ fastFromList $ bjorklund (n,k)) <*> p
-
--- {- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
---euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
---euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat = spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
@@ -1531,7 +1529,7 @@ unfixRange f = contrastRange id f
 -- | limit values in a Pattern (or other Functor) to n equally spaced
 -- divisions of 1.
 quantise :: (Functor f, RealFrac b) => b -> f b -> f b
-quantise n = fmap ((/n) . fromIntegral . floor . (*n))
+quantise n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . floor . (*n))
 
 -- | Inverts all the values in a boolean pattern
 inv :: Functor f => f Bool -> f Bool
