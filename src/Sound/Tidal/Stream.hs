@@ -84,13 +84,13 @@ toData e = concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ eventVal
 
 toMessage :: OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> O.Message
 toMessage target tempo e = O.Message (oPath target) $ oPreamble target ++ toData addCps
-  where on = sched tempo $ fst $ eventWhole e
-        off = sched tempo $ snd $ eventWhole e
+  where on = sched tempo $ start $ eventWhole e
+        off = sched tempo $ finish $ eventWhole e
         delta = off - on
         -- If there is already cps in the event, the union will preserve that.
         addCps = (\v -> (Map.union v $ Map.fromList [("cps", (VF $ T.cps tempo)),
                                                      ("delta", VF delta),
-                                                     ("cycle", VF (fromRational $ fst $ eventWhole e))
+                                                     ("cycle", VF (fromRational $ start $ eventWhole e))
                                                     ])) <$> e
 
 doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
@@ -108,7 +108,7 @@ onTick config cMapMV pMV target u tempoMV st =
      tempo <- readMVar tempoMV
      now <- O.time
      let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
-         on e = (sched tempo $ fst $ eventWhole e) + eventNudge e
+         on e = (sched tempo $ start $ eventWhole e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ eventValue e
          messages = map (\e -> (on e, toMessage target tempo e)) es
          cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ eventValue e)) es
@@ -188,12 +188,12 @@ streamOnce st asap p
                                 T.paused = False,
                                 T.nudged = 0
                                }
-           es = filter eventHasOnset $ query p (State {arc = (0,1),
+           es = filter eventHasOnset $ query p (State {arc = (Arc 0 1),
                                                        controls = cMap
                                                       }
                                                )
-           at e = sched fakeTempo $ fst $ eventWhole e
-           on e = sched tempo $ fst $ eventWhole e
+           at e = sched fakeTempo $ start $ eventWhole e
+           on e = sched tempo $ start $ eventWhole e
            cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ eventValue e)) es
            messages = map (\e -> (at e, toMessage target fakeTempo e)) es
        E.catch (mapM_ (send (oLatency target) (sUDP st)) messages)

@@ -19,8 +19,9 @@ silence = empty
 -- | Takes a function from time to values, and turns it into a 'Pattern'.
 sig :: (Time -> a) -> Pattern a
 sig f = Pattern Analog q
-  where q (State (s,e) _) | s > e = []
-                          | otherwise = [(((s,e), (s,e)), f (s+((e-s)/2)))]
+  where q (State (Arc s e) _)
+          | s > e = []
+          | otherwise = [Event (Arc s e) (Arc s e) (f (s+((e-s)/2)))]
 
 -- | @sine@ returns a 'Pattern' of continuous 'Fractional' values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
@@ -187,9 +188,9 @@ cat [] = silence
 cat ps = Pattern Digital q
   where n = length ps
         q st = concatMap (f st) $ arcCyclesZW (arc st)
-        f st a = query (withResultTime (+offset) p) $ st {arc = mapBoth (subtract offset) a}
+        f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (finish a))}
           where p = ps !! i
-                cyc = (floor $ fst a) :: Int
+                cyc = (floor $ start a) :: Int
                 i = cyc `mod` n
                 offset = (fromIntegral $ cyc - ((cyc - i) `div` n)) :: Time
 
@@ -218,7 +219,7 @@ fastcat = fastCat
 
 -- | Similar to @fastCat@, but each pattern is given a relative duration
 timeCat :: [(Time, Pattern a)] -> Pattern a
-timeCat tps = stack $ map (\(s,e,p) -> compress (s/total, e/total) p) $ arrange 0 tps
+timeCat tps = stack $ map (\(s,e,p) -> compress (Arc (s/total) (e/total)) p) $ arrange 0 tps
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
           arrange _ [] = []
@@ -289,14 +290,29 @@ sparsity = slow
 -- | @rev p@ returns @p@ with the event positions in each cycle
 -- reversed (or mirrored).
 rev :: Pattern a -> Pattern a
-rev p = splitQueries $ p {query = \st -> map makeWholeAbsolute $ mapParts (mirrorArc (midCycle $ arc st)) $ map makeWholeRelative (query p st {arc = (mirrorArc (midCycle $ arc st) (arc st))})}
-  where makeWholeRelative (((s,e), part@(s',e')), v) = (((s'-s, e-e'), part), v)
-        makeWholeAbsolute (((s,e), part@(s',e')), v) = (((s'-e, e'+s), part), v)
-        midCycle (s,_) = (sam s) + 0.5
-        mapParts f es = map (mapFst (mapSnd f)) es
+rev p =
+  splitQueries $ p {
+    query = \st -> map makeWholeAbsolute $
+      mapParts (mirrorArc (midCycle $ arc st)) $
+      map makeWholeRelative
+      (query p st
+        {arc =
+            (mirrorArc (midCycle $ arc st) (arc st))
+        })
+    }
+  where makeWholeRelative :: Event a -> Event a
+        makeWholeRelative (Event (Arc s e) p@(Arc s' e') v) =
+          Event (Arc (s'-s) (e'-e)) p v
+        makeWholeAbsolute :: Event a -> Event a
+        makeWholeAbsolute (Event (Arc s e) p@(Arc s' e') v) =
+          Event (Arc (s'-e) (e'+s)) p v
+        midCycle :: Arc -> Time
+        midCycle (Arc s _) = (sam s) + 0.5
+        mapParts :: (Arc -> Arc) -> [Event a] -> [Event a]
+        mapParts f es = (\(Event w p e) -> Event w (f p) e) <$> es
         -- | Returns the `mirror image' of a 'Arc' around the given point in time
         mirrorArc :: Time -> Arc -> Arc
-        mirrorArc mid' (s, e) = (mid' - (e-mid'), mid'+(mid'-s))
+        mirrorArc mid' (Arc s e) = Arc (mid' - (e-mid')) (mid'+(mid'-s))
 
 {- | Plays a portion of a pattern, specified by a time arc (start and end time).
 The new resulting pattern is played over the time period of the original pattern:
@@ -312,7 +328,8 @@ d1 $ sound "hh*3 [sn bd]*2"
 @
 -}
 zoom :: Arc -> Pattern a -> Pattern a
-zoom (s,e) p = splitQueries $ withResultArc (mapCycle ((/d) . (subtract s))) $ withQueryArc (mapCycle ((+s) . (*d))) p
+zoom (Arc s e) p = splitQueries $
+  withResultArc (mapCycle ((/d) . (subtract s))) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 
 -- | @fastGap@ is similar to 'fast' but maintains its cyclic
@@ -381,13 +398,13 @@ cycle number 399.
 -}
 when :: (Int -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
 when test f p = splitQueries $ p {query = apply}
-  where apply st | test (floor $ fst $ arc st) = query (f p) st
+  where apply st | test (floor $ start $ arc st) = query (f p) st
                  | otherwise = query p st
 
 -- | Like 'when', but works on continuous time values rather than cycle numbers.
 whenT :: (Time -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
 whenT test f p = splitQueries $ p {query = apply}
-  where apply st | test (fst $ arc st) = query (f p) st
+  where apply st | test (start $ arc st) = query (f p) st
                  | otherwise = query p st
 
 
