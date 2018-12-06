@@ -149,7 +149,7 @@ specificControlPatterns = choice [
   (function "delayfeedback" >> return T.delayfeedback) <*> patternArg,
   (function "delaytime" >> return T.delaytime) <*> patternArg,
   (function "delay" >> return T.delay) <*> patternArg,
-  (function "end" >> return T.fin) <*> patternArg,
+  (function "end" >> return T.end) <*> patternArg,
   (function "hcutoff" >> return T.hcutoff) <*> patternArg,
   (function "hresonance" >> return T.hresonance) <*> patternArg,
   (function "resonance" >> return T.resonance) <*> patternArg,

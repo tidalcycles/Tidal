@@ -143,8 +143,8 @@ dry = pF "dry"
 {- the same as `begin`, but cuts the end off samples, shortening them;
  e.g. `0.75` to cut off the last quarter of each sample.
 -}
-fin :: Pattern Double -> ControlPattern
-fin = pF "end"
+end :: Pattern Double -> ControlPattern
+end = pF "end"
 -- | a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder.
 gain :: Pattern Double -> ControlPattern
 gain = pF "gain"

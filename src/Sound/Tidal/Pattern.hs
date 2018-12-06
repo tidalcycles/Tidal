@@ -40,7 +40,7 @@ cyclePos :: Time -> Time
 cyclePos t = t - sam t
 
 -- | A time arc (start and end)
-data Arc = Arc { start :: Time, end :: Time} deriving (Eq, Ord)
+data Arc = Arc { start :: Time, finish :: Time} deriving (Eq, Ord)
 
 instance {-# OVERLAPPING #-} Show Arc where
   show (Arc s e) = prettyRat s ++ ">" ++ prettyRat e
@@ -139,15 +139,15 @@ defragParts (e:es) | isJust i = defraged:(defragParts (delete e' es))
         defraged = (Event (eventWhole e) part (eventValue e))
         part = Arc start' end'
         start' = min (start $ eventPart e) (start $ eventPart e')
-        end' = max (end $ eventPart e) (end $ eventPart e')
+        end' = max (finish $ eventPart e) (finish $ eventPart e')
 
 -- | Returns 'True' if the two given events are adjacent parts of the same whole
 isAdjacent :: Eq a => Event a -> Event a -> Bool
 isAdjacent e e' = (eventWhole e == eventWhole e')
                   && (eventValue e == eventValue e')
-                  && (((end $ eventPart e) == (start $ eventPart e'))
+                  && (((finish $ eventPart e) == (start $ eventPart e'))
                       ||
-                      ((end $ eventPart e') == (start $ eventPart e))
+                      ((finish $ eventPart e') == (start $ eventPart e))
                      )
 
 -- | Get the timespan of an event's 'whole'

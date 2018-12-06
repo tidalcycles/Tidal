@@ -77,7 +77,7 @@ clocked config callback
              let -- 'now' comes from clock ticks, nothing to do with cycles
                  logicalNow = start st + (fromIntegral $ (ticks st)+1) * frameTimespan
                  -- the tempo is just used to convert logical time to cycles
-                 s = P.end $ nowArc st
+                 s = P.finish $ nowArc st
                  e = timeToCycles tempo logicalNow
                  st' = st {ticks = (ticks st) + 1, nowArc = P.Arc s e}
              t <- O.time

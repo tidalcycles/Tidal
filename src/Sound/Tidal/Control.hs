@@ -157,7 +157,7 @@ striate' = striateBy
 
 _striateBy :: Int -> Double -> ControlPattern -> ControlPattern
 _striateBy n f p = fastcat $ map (\i -> offset (fromIntegral i)) [0 .. n-1]
-  where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.fin (pure ((slot * i) + f) :: Pattern Double)
+  where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.end (pure ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / (fromIntegral n)
 
 
@@ -246,7 +246,7 @@ en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate 
 -}
 
 slice :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
-slice pI pN p = P.begin b # P.fin e # p
+slice pI pN p = P.begin b # P.end e # p
   where b = (\i n -> (div' i n)) <$> pI <*> pN
         e = (\i n -> (div' i n) + (div' 1 n)) <$> pI <*> pN
         div' num den = fromIntegral (num `mod` den) / fromIntegral den
@@ -255,7 +255,7 @@ _slice :: Int -> Int -> ControlPattern -> ControlPattern
 _slice i n p =
       p
       # P.begin (pure $ fromIntegral i / fromIntegral n)
-      # P.fin (pure $ fromIntegral (i+1) / fromIntegral n)
+      # P.end (pure $ fromIntegral (i+1) / fromIntegral n)
 
 randslice :: Int -> ControlPattern -> ControlPattern
 randslice n p = unwrap $ (\i -> _slice i n p) <$> irand n

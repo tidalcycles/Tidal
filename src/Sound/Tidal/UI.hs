@@ -1031,7 +1031,7 @@ mask pa pb = pb {query = \st -> concat [filterOns (subArc (arc st) $ eventPart i
 -- | TODO: refactor towards union
 enclosingArc :: [Arc] -> Arc
 enclosingArc [] = (Arc 0 1)
-enclosingArc as = Arc (minimum (map start as)) (maximum (map end as))
+enclosingArc as = Arc (minimum (map start as)) (maximum (map finish as))
 
 stretch :: Pattern a -> Pattern a
 -- TODO - should that be eventWhole or eventPart?
@@ -1448,7 +1448,7 @@ ghost'' :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ghost'' a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) $ p
 
 ghost' :: Time -> Pattern ControlMap -> Pattern ControlMap
-ghost' a p = ghost'' a ((|*| P.gain (pure 0.7)) . (|> P.fin (pure 0.2)) . (|*| P.speed (pure 1.25))) p
+ghost' a p = ghost'' a ((|*| P.gain (pure 0.7)) . (|> P.end (pure 0.2)) . (|*| P.speed (pure 1.25))) p
 
 ghost :: Pattern ControlMap -> Pattern ControlMap
 ghost p = ghost' 0.125 p

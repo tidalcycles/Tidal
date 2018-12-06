@@ -188,7 +188,7 @@ cat [] = silence
 cat ps = Pattern Digital q
   where n = length ps
         q st = concatMap (f st) $ arcCyclesZW (arc st)
-        f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (end a))}
+        f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (finish a))}
           where p = ps !! i
                 cyc = (floor $ start a) :: Int
                 i = cyc `mod` n

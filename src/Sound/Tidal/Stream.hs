@@ -85,7 +85,7 @@ toData e = concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ eventVal
 toMessage :: OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> O.Message
 toMessage target tempo e = O.Message (oPath target) $ oPreamble target ++ toData addCps
   where on = sched tempo $ start $ eventWhole e
-        off = sched tempo $ end $ eventWhole e
+        off = sched tempo $ finish $ eventWhole e
         delta = off - on
         -- If there is already cps in the event, the union will preserve that.
         addCps = (\v -> (Map.union v $ Map.fromList [("cps", (VF $ T.cps tempo)),
