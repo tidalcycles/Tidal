@@ -2,18 +2,18 @@
 
 module Sound.Tidal.PatternTest where
 
-import TestUtils
-import Test.Microspec
+import           Test.Microspec
+import           TestUtils
 
-import Prelude hiding ((<*), (*>))
+import           Prelude             hiding ((*>), (<*))
 
-import Data.Ratio
+import           Data.Ratio
 
-import Sound.Tidal.Core
-import Sound.Tidal.Pattern
-import Sound.Tidal.Control
+import           Sound.Tidal.Control
+import           Sound.Tidal.Core
+import           Sound.Tidal.Pattern
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict     as Map
 
 run :: Microspec ()
 run =
@@ -207,46 +207,183 @@ run =
        (query (pure 3 + cF_ "hello") $ State (0,1) (Map.singleton "hello" (VF 0.5)))
        `shouldBe` [(((0 % 1,1 % 1),(0 % 1,1 % 1)),3.5)]
 
-    describe "eventWholeOnset" $ do 
-      it "retrieve first element of a tuple, inside first element of a tuple, inside the first of another" $ do 
+    describe "eventWholeOnset" $ do
+      it "retrieve first element of a tuple, inside first element of a tuple, inside the first of another" $ do
         property $ 1 === eventWholeOnset (((1, 2), (3, 4)), 5 :: Int)
 
     describe "eventValue" $ do
-      it "retrieve the second value from a tuple" $ do 
+      it "retrieve the second value from a tuple" $ do
         property $ 5 === eventValue (((1, 2), (3, 4)), 5 :: Int)
-  
-    describe "eventHasOnset" $ do 
-      it "return True when the start values of the two arcs in an event are equal" $ do 
-        let ev = (((1, 2), (1, 3)), 4 :: Int) 
-        property $ True === eventHasOnset ev 
-      it "return False when the start values of the two arcs in an event are not equal" $ do 
-        let ev = (((1, 2), (3, 4)), 5 :: Int) 
+
+    describe "eventHasOnset" $ do
+      it "return True when the start values of the two arcs in an event are equal" $ do
+        let ev = (((1, 2), (1, 3)), 4 :: Int)
+        property $ True === eventHasOnset ev
+      it "return False when the start values of the two arcs in an event are not equal" $ do
+        let ev = (((1, 2), (3, 4)), 5 :: Int)
         property $ False === eventHasOnset ev
 
-    describe "sam" $ do 
+    describe "sam" $ do
       it "start of a cycle, round down time value" $ do
         let res = sam (3.4 :: Time)
         property $ (3.0 :: Time) === res
 
-    describe "nextSam" $ do 
-      it "the end point of the current cycle, and start of the next" $ do 
-        let res = nextSam (3.4 :: Time) 
-        property $ (4.0 :: Time) === res 
+    describe "nextSam" $ do
+      it "the end point of the current cycle, and start of the next" $ do
+        let res = nextSam (3.4 :: Time)
+        property $ (4.0 :: Time) === res
 
-    describe "arcCycles" $ do 
-      it "if start time is greater than end time return empty list" $ do 
+    describe "arcCycles" $ do
+      it "if start time is greater than end time return empty list" $ do
         let res = arcCycles (2.3, 2.1)
-        property $ [] === res 
-      it "if start time is equal to end time return empty list" $ do 
+        property $ [] === res
+      it "if start time is equal to end time return empty list" $ do
         let res = arcCycles (3, 3)
         property $ [] === res
       it "if start and end time round down to same value return list of (start, end)" $ do
-        let res = arcCycles (2.1, 2.3) 
+        let res = arcCycles (2.1, 2.3)
         property $ [(2.1, 2.3)] === res
       it "if start time is less than end time and start time does not round down to same value as end time" $ do
         let res = arcCycles (2.1, 3.3)
         property $ [(2.1, 3.0), (3.0, 3.3)] === res
-    
+
+    describe "arcCyclesZW" $ do
+      it "if start and end time are equal return list of (start, end)" $ do
+        let res = arcCyclesZW (2.5, 2.5)
+        property $ [(2.5, 2.5)] === res
+      it "if start and end time are not equal call arcCycles (start, end) with same rules as above" $ do
+        let res = arcCyclesZW (2.3, 2.1)
+        property $ [] === res
+      it "if start time is less than end time" $ do
+        let res = arcCyclesZW (2.1, 2.3)
+        property $ [(2.1, 2.3)] === res
+      it "if start time is greater than end time" $ do
+        let res = arcCyclesZW (2.1, 3.3)
+        property $ [(2.1, 3.0), (3.0, 3.3)] === res
+
+    describe "mapArc" $ do
+      it "Apply a given function to the start and end values of an Arc" $ do
+        let res = mapArc (+1) (3, 5)
+        property $ ((4, 6) :: Arc) === res
+
+    describe "mapCycle" $ do
+      it "Apply a function to the Arc values minus the start value rounded down (sam'), adding both results to sam' to obtain the new Arc value" $ do
+        let res = mapCycle (*2) (3.3, 5)
+        property $ ((3.6, 7.0) :: Arc) === res
+
+    describe "toTime" $ do
+      it "Convert a number of type Real to a Time value of type Rational, Int test" $ do
+        let res = toTime (3 :: Int)
+        property $ (3 % 1 :: Time) === res
+      it "Convert a number of type Double to a Time value of type Rational" $ do
+        let res = toTime (3.2 :: Double)
+        property $ (3602879701896397 % 1125899906842624 :: Time) === res
+
+    describe "cyclePos" $ do
+      it "Subtract a Time value from its value rounded down (the start of the cycle)" $ do
+        let res = cyclePos 2.6
+        property $ (0.6 :: Time) === res
+      it "If no difference between a given Time and the start of the cycle" $ do
+        let res = cyclePos 2
+        property $ (0.0 :: Time) === res
+
+    describe "isIn" $ do
+      it "Check given Time is inside a given Arc value, Time is greater than start and less than end Arc values" $ do
+        let res = isIn (2.0, 2.8) 2.5
+        property $ True === res
+      it "Given Time is equal to the Arc start value" $ do
+        let res = isIn (2.0, 2.8) 2.0
+        property $ True === res
+      it "Given Time is less than the Arc start value" $ do
+        let res = isIn (2.0, 2.8) 1.4
+        property $ False === res
+      it "Given Time is greater than the Arc end value" $ do
+        let res = isIn (2.0, 2.8) 3.2
+        property $ False === res
+
+    describe "onsetIn" $ do
+      it "If the beginning of an Event is within a given Arc, same rules as 'isIn'" $ do 
+         let res = onsetIn (2.0, 2.8) (((2.2, 2.7), (3.3, 3.8)), 5 :: Int)
+         property $ True === res 
+      it "Beginning of Event is equal to beggining of given Arc" $ do 
+         let res = onsetIn (2.0, 2.8) (((2.0, 2.7), (3.3, 3.8)), 5 :: Int)
+         property $ True === res 
+      it "Beginning of an Event is less than the start of the Arc" $ do 
+         let res = onsetIn (2.0, 2.8) (((1.2, 1.7), (3.3, 3.8)), 5 :: Int)
+         property $ False === res
+      it "Start of Event is greater than the start of the given Arc" $ do 
+         let res = onsetIn (2.0, 2.8) (((3.1, 3.5), (4.0, 4.6)), 5 :: Int)
+         property $ False === res
+
+    describe "subArc" $ do
+      it "Checks if an Arc is within another, returns Just (max $ (fst a1) (fst a2), min $ (snd a1) (snd a2)) if so, otherwise Nothing" $ do       
+        let res = subArc (2.1, 2.4) (2.4, 2.8)
+        property $ Nothing === res
+      it "if max (fst arc1) (fst arc2) <= min (snd arc1) (snd arc2) return Just (max (fst arc1) (fst arc2), min...)" $ do
+        let res = subArc (2, 2.8) (2.4, 2.9)
+        property $ Just (2.4, 2.8) === res
+
+    describe "timeToCycleArc" $ do
+      it "given a Time value return the Arc in which it resides" $ do
+        let res = timeToCycleArc 2.2 
+        property $ (2.0, 3.0) === res
+
+    describe "cyclesInArc" $ do 
+      it "Return a list of cycles in a given arc, if start is greater than end return empty list" $ do 
+        let res = cyclesInArc (2.4, 2.2)
+        property $ ([] :: [Int]) === res
+      it "If start value of Arc is equal to end value return list with start value rounded down" $ do
+        let res = cyclesInArc (2.4, 2.4)
+        property $ ([2] :: [Int]) === res
+      it "if start of Arc is less than end return list of start rounded down to end rounded up minus one" $ do
+        let res = cyclesInArc (2.2,4.5)
+        property $ ([2,3,4] :: [Int]) === res  
+
+    describe "cycleArcsInArc" $ do
+      it "generates a list of Arcs based on the cycles found within a given a Arc" $ do
+       let res = cycleArcsInArc (2.2, 4.5) 
+       property $ [(2.0, 3.0), (3.0, 4.0), (4.0, 5.0)] === res
+
+    describe "isAdjacent" $ do
+      it "if the given Events are adjacent parts of the same whole" $ do 
+        let res = isAdjacent (((1, 2), (3, 4)), 5) (((1, 2), (4, 3)), 5 :: Int)
+        property $ True === res 
+      it "if first Arc of of first Event is not equal to first Arc of second Event" $ do
+        let res = isAdjacent (((1, 2), (3, 4)), 5) (((7, 8), (4, 3)), 5 :: Int)
+        property $ False === res  
+      it "if the value of the first Event does not equal the value of the second Event" $ do 
+        let res = isAdjacent (((1, 2), (3, 4)), 5) (((1, 2), (4, 3)), 6 :: Int)
+        property $ False === res 
+      it "second value of second Arc of first Event not equal to first value of second Arc in second Event..." $ do
+        let res = isAdjacent (((1, 2), (3, 4)), 5) (((1, 2), (3, 4)), 5 :: Int)
+        property $ False === res 
+
+    describe "defragParts" $ do 
+      it "if empty list with no events return empty list" $ do 
+        let res = defragParts ([] :: [Event Int]) 
+        property $ [] === res
+      it "if list consists of only one Event return it as is" $ do 
+        let res = defragParts [(((1, 2), (3, 4)), 5 :: Int)]
+        property $ [(((1, 2), (3, 4)), 5 :: Int)] === res 
+      it "if list contains adjacent Events return list with Parts combined" $ do 
+        let res = defragParts [(((1, 2), (3, 4)), 5 :: Int), (((1, 2), (4, 3)), 5 :: Int)]
+        property $ [(((1, 2), (3, 4)), 5)] === res
+      it "if list contains more than one Event none of which are adjacent, return List as is" $ do 
+        let res = defragParts [(((1, 2), (3, 4)), 5), (((7, 8), (4, 3)), 5 :: Int)]
+        property $ [(((1, 2), (3, 4)), 5), (((7, 8), (4, 3)), 5 :: Int)] === res
+
+    describe "compareDefrag" $ do 
+      it "compare list with Events with empty list of Events" $ do
+        let res = compareDefrag [(((1, 2), (3, 4)), 5 :: Int), (((1, 2), (4, 3)), 5 :: Int)] []
+        property $ False === res 
+      it "compare lists containing same Events but of different length" $ do 
+        let res = compareDefrag [(((1, 2), (3, 4)), 5 :: Int), (((1, 2), (4, 3)), 5)] [(((1, 2), (3, 4)), 5 :: Int)]
+        property $ True === res
+      it "compare lists of same length with same Events" $ do 
+        let res = compareDefrag [(((1, 2), (3, 4)), 5 :: Int)] [(((1, 2), (3, 4)), 5 :: Int)]
+        property $ True === res 
+
+
     -- pending "Sound.Tidal.Pattern.eventL" $ do
     --  it "succeeds if the first event 'whole' is shorter" $ do
     --    property $ eventL (((0,0),(0,1)),"x") (((0,0),(0,1.1)),"x")
