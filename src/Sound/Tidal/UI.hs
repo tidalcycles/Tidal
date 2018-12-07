@@ -1069,8 +1069,8 @@ fit' cyc n from to p = unwrap' $ fit n mapMasks to
 d1 $ chunk 4 (density 4) $ sound "cp sn arpy [mt lt]"
 @
 -}
-chunk :: Integer -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-chunk n f p = cat [within (Arc (i%(fromIntegral n)) ((i+1)%(fromIntegral n))) f p | i <- [0..n-1]]
+chunk :: Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+chunk n f p = cat [within (Arc (i%(fromIntegral n)) ((i+1)%(fromIntegral n))) f p | i <- [0..(fromIntegral n)-1]]
 
 {-
 chunk n f p = do i <- _slow (toRational n) $ run (fromIntegral n)
@@ -1078,7 +1078,7 @@ chunk n f p = do i <- _slow (toRational n) $ run (fromIntegral n)
 -}
 
 -- deprecated (renamed to chunk)
-runWith :: Integer -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+runWith :: Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 runWith = chunk
 
 {-| @chunk'@ works much the same as `chunk`, but runs from right to left.
