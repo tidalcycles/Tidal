@@ -39,8 +39,14 @@ nextSam = (1+) . sam
 cyclePos :: Time -> Time
 cyclePos t = t - sam t
 
--- | A time arc (start and end)
-data Arc = Arc { start :: Time, finish :: Time} deriving (Eq, Ord)
+-- | A time arc (start and finish)
+data ArcF a = Arc { start :: a, finish :: a } deriving (Eq, Ord, Functor)
+
+type Arc = ArcF Time
+
+instance Applicative ArcF where
+  pure t = Arc t t
+  (<*>) (Arc sf ef) (Arc sx ex) = Arc (sf sx) (ef ex)
 
 instance {-# OVERLAPPING #-} Show Arc where
   show (Arc s e) = prettyRat s ++ ">" ++ prettyRat e
@@ -109,7 +115,16 @@ isIn (Arc s e) t = t >= s && t < e
 -- | An event is a value that's active during a timespan
 -- The part should be equal to or fit inside the
 -- whole
-data Event a = Event { whole :: Arc, part :: Arc, event :: a } deriving (Eq, Ord, Functor)
+data EventF a b = Event
+  { whole :: a
+  , part :: a
+  , event :: b
+  } deriving (Eq, Ord, Functor)
+
+type Event a = EventF (ArcF Time) a
+
+instance Bifunctor EventF where
+  bimap f g (Event w p e) = (Event (g w) (g p) (f e))
 
 instance {-# OVERLAPPING #-} Show a => Show (Event a) where
   show (Event (Arc ws we) (Arc ps pe) e) =
