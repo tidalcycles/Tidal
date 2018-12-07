@@ -43,7 +43,7 @@ isaw = (1-) <$> saw
 
 -- | @tri@ is the equivalent of 'sine' for triangular waves.
 tri :: (Fractional a, Real a) => Pattern a
-tri = append saw (rev saw)
+tri = fastAppend saw isaw
 
 -- | @square@ is the equivalent of 'sine' for square waves.
 square :: (Fractional a, Real a) => Pattern a
