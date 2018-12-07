@@ -111,7 +111,7 @@ install:
       DISTDIR=$(mktemp -d /tmp/dist-test.XXXX)
       ;;
     stack)
-      stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies
+      travis_wait stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies
       ;;
   esac
 
