@@ -10,6 +10,7 @@ import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
 import Control.Monad (forever, when, foldM)
 import Data.List (isPrefixOf, nub)
+import qualified Control.Exception as E
 
 import Sound.Tidal.Config
 
@@ -17,9 +18,14 @@ data Tempo = Tempo {atTime  :: O.Time,
                     atCycle :: Rational,
                     cps     :: O.Time,
                     paused  :: Bool,
-                    nudged  :: Double
+                    nudged  :: Double,
+                    localUDP   :: O.UDP,
+                    remoteAddr :: N.SockAddr
                    }
-             deriving Show
+           -- deriving Show
+
+-- sendTempo udp tempo remote_sockaddr            
+-- 
 
 data State = State {ticks   :: Int,
                     start   :: O.Time,
@@ -35,17 +41,20 @@ setCps tempoMV newCps = do t <- O.time
                                                atCycle = c,
                                                cps = newCps
                                               }
+                           sendTempo tempo'
+                           -- TODO - should we set the tempo ASAP rather than waiting for (possibly failing) network round trip?
                            putMVar tempoMV $ tempo'
                            return tempo'
-            
 
-defaultTempo :: O.Time -> Tempo
-defaultTempo t = Tempo {atTime   = t,
-                        atCycle  = 0,
-                        cps      = 0.5625,
-                        paused   = False,
-                        nudged   = 0
-                       }
+defaultTempo :: O.Time -> O.UDP -> N.SockAddr -> Tempo
+defaultTempo t local remote = Tempo {atTime   = t,
+                                     atCycle  = 0,
+                                     cps      = 0.5625,
+                                     paused   = False,
+                                     nudged   = 0,
+                                     localUDP   = local,
+                                     remoteAddr = remote
+                                    }
 
 -- | Returns the given time in terms of
 -- cycles relative to metrical grid of a given Tempo
@@ -64,7 +73,7 @@ clocked :: Config -> (MVar Tempo -> State -> IO ()) -> IO (MVar Tempo, [ThreadId
 clocked config callback
   = do s <- O.time
        -- TODO - do something with thread id
-       -- _ <- serverListen config
+       _ <- serverListen config
        (tempoMV, listenTid) <- clientListen config s
        let st = State {ticks = 0,
                        start = s,
@@ -91,21 +100,28 @@ clocked config callback
 clientListen :: Config -> O.Time -> IO (MVar Tempo, ThreadId)
 clientListen config s =
   do -- Listen on random port
-     udp <- O.udpServer "127.0.0.1" 0
+     local <- O.udpServer "127.0.0.1" 0
      let hostname = cTempoAddr config
          port = cTempoPort config
      (remote_addr:_) <- N.getAddrInfo Nothing (Just hostname) Nothing
      let (N.SockAddrInet _ a) = N.addrAddress remote_addr
-         remote_sockaddr = N.SockAddrInet (fromIntegral port) (a)
-         t = defaultTempo s
+         remote = N.SockAddrInet (fromIntegral port) (a)
+         t = defaultTempo s local remote
      -- Send to clock port from same port that's listened to
-     putStrLn "Sending hello"
-     O.sendTo udp (O.Message "/hello" []) remote_sockaddr
+     O.sendTo local (O.Message "/hello" []) remote
      -- Make tempo mvar
      tempoMV <- newMVar t
      -- Listen to tempo changes
-     tempoChild <- (forkIO $ listenTempo udp tempoMV)
+     tempoChild <- (forkIO $ listenTempo local tempoMV)
      return (tempoMV, tempoChild)
+
+sendTempo :: Tempo -> IO ()
+sendTempo tempo = O.sendTo (localUDP tempo) b (remoteAddr tempo)
+  where b = O.Bundle (atTime tempo) [O.Message "/transmit/cps/cycle" [O.Float $ fromRational $ atCycle tempo,
+                                                                      O.Float $ realToFrac $ cps tempo,
+                                                                      O.Int32 $ if (paused tempo) then 1 else 0
+                                                                     ]
+                                    ]
 
 listenTempo :: O.UDP -> (MVar Tempo) -> IO ()
 listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
@@ -118,37 +134,37 @@ listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
                                                                 ]
                                         )
                       ) =
-          do putStrLn "cps change"
-             tempo <- takeMVar tempoMV
+          do tempo <- takeMVar tempoMV
              putMVar tempoMV $ tempo {atTime = ts,
-                                 atCycle = realToFrac atCycle',
-                                 cps = realToFrac cps',
-                                 paused = (paused' == 1)
-                                }
+                                      atCycle = realToFrac atCycle',
+                                      cps = realToFrac cps',
+                                      paused = (paused' == 1)
+                                     }
         act _ pkt = putStrLn $ "Unknown packet: " ++ show pkt
 
-serverListen :: Config -> IO ThreadId
-serverListen config
-  = do let port = cTempoPort config
-       -- iNADDR_ANY deprecated - what's the right way to do this?
-       udp <- O.udpServer "0.0.0.0" port
-       forkIO $ loop udp []
-  where loop udp cs = do putStrLn "loop"
-                         (pkt,c) <- O.recvFrom udp
+serverListen :: Config -> IO (Maybe ThreadId)
+serverListen config = catchAny (run) (\e -> do putStrLn $ "Tempo listener failed (is one already running?)"
+                                               return Nothing
+                                     )
+  where run = do let port = cTempoPort config
+                 -- iNADDR_ANY deprecated - what's the right way to do this?
+                 udp <- O.udpServer "0.0.0.0" port
+                 tid <- forkIO $ loop udp []
+                 return $ Just tid
+        loop udp cs = do (pkt,c) <- O.recvFrom udp
                          cs' <- act udp c Nothing cs pkt
                          loop udp cs'
         act :: O.UDP -> N.SockAddr -> Maybe O.Time -> [N.SockAddr] -> O.Packet -> IO [N.SockAddr]
         act udp c _ cs (O.Packet_Bundle (O.Bundle ts ms)) = foldM (act udp c (Just ts)) cs $ map (O.Packet_Message) ms
         act _ c _ cs (O.Packet_Message (O.Message "/hello" []))
-          = do putStrLn $ "hello from " ++ show c
-               return $ nub $ c:cs
-        act udp _ _ cs (O.Packet_Message (O.Message path params))
+          = return $ nub $ c:cs
+        act udp _ (Just ts) cs (O.Packet_Message (O.Message path params))
           | isPrefixOf "/transmit" path =
               do let path' = drop 9 path
                      msg = O.Message path' params
-                 putStrLn $ "transmit " ++ show msg
-                 mapM_ (O.sendTo udp msg) cs
+                 mapM_ (O.sendTo udp $ O.Bundle ts [msg]) cs
                  return cs
         act _ _ _ cs pkt = do putStrLn $ "Unknown packet: " ++ show pkt
                               return cs
-
+        catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
+        catchAny = E.catch
