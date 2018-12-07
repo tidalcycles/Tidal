@@ -8,7 +8,8 @@ import qualified Sound.OSC.FD as O
 -- import qualified Sound.OSC.Transport.FD.UDP as O
 import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
-import Control.Monad (forever, when)
+import Control.Monad (forever, when, foldM)
+import Data.List (isPrefixOf, nub)
 
 import Sound.Tidal.Config
 
@@ -62,6 +63,8 @@ getCurrentCycle t = (readMVar t) >>= (cyclesNow) >>= (return . toRational)
 clocked :: Config -> (MVar Tempo -> State -> IO ()) -> IO (MVar Tempo, [ThreadId])
 clocked config callback
   = do s <- O.time
+       -- TODO - do something with thread id
+       -- _ <- serverListen config
        (tempoMV, listenTid) <- clientListen config s
        let st = State {ticks = 0,
                        start = s,
@@ -96,6 +99,7 @@ clientListen config s =
          remote_sockaddr = N.SockAddrInet (fromIntegral port) (a)
          t = defaultTempo s
      -- Send to clock port from same port that's listened to
+     putStrLn "Sending hello"
      O.sendTo udp (O.Message "/hello" []) remote_sockaddr
      -- Make tempo mvar
      tempoMV <- newMVar t
@@ -123,13 +127,14 @@ listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
                                 }
         act _ pkt = putStrLn $ "Unknown packet: " ++ show pkt
 
-{-
-serverListen :: IO ()
-serverListen = do port <- getClockPort
-                  -- iNADDR_ANY deprecated - what's the right way to do this?
-                  udp <- O.udpServer "0.0.0.0" port
-                  loop udp []
-  where loop udp cs = do (pkt,c) <- O.recvFrom udp
+serverListen :: Config -> IO ThreadId
+serverListen config
+  = do let port = cTempoPort config
+       -- iNADDR_ANY deprecated - what's the right way to do this?
+       udp <- O.udpServer "0.0.0.0" port
+       forkIO $ loop udp []
+  where loop udp cs = do putStrLn "loop"
+                         (pkt,c) <- O.recvFrom udp
                          cs' <- act udp c Nothing cs pkt
                          loop udp cs'
         act :: O.UDP -> N.SockAddr -> Maybe O.Time -> [N.SockAddr] -> O.Packet -> IO [N.SockAddr]
@@ -146,4 +151,4 @@ serverListen = do port <- getClockPort
                  return cs
         act _ _ _ cs pkt = do putStrLn $ "Unknown packet: " ++ show pkt
                               return cs
--}
+
