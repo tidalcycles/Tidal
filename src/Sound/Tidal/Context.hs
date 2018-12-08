@@ -4,6 +4,7 @@ import Prelude hiding ((<*), (*>))
 
 import Data.Ratio as C
 
+import Sound.Tidal.Config as C
 import Sound.Tidal.Control as C
 import Sound.Tidal.Core as C
 import Sound.Tidal.Params as C

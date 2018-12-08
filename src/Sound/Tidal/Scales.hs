@@ -53,8 +53,8 @@ yu :: Num a => [a]
 yu = [0,3,5,7,10]
 
 -- 6 note scales
-whole :: Num a => [a]
-whole = [0,2,4,6,8,10]
+whole' :: Num a => [a]
+whole' = [0,2,4,6,8,10]
 augmented :: Num a => [a]
 augmented = [0,3,4,7,8,11]
 augmented2 :: Num a => [a]
@@ -180,7 +180,7 @@ scaleTable = [("minPent", minPent),
               ("jiao", jiao),
               ("zhi", zhi),
               ("yu", yu),
-              ("whole", whole),
+              ("whole", whole'),
               ("augmented", augmented),
               ("augmented2", augmented2),
               ("hexMajor7", hexMajor7),

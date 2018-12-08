@@ -4,7 +4,8 @@
 
 import Sound.Tidal.Context
 
-tidal <- startTidal (superdirtTarget {oLatency = 0.04, oAddress = "127.0.0.1", oPort = 57120}) defaultConfig
+-- total latency = oLatency + cFrameTimespan
+tidal <- startTidal (superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oPort = 57120}) (defaultConfig {cFrameTimespan = 1/20})
 
 let p = streamReplace tidal
 let hush = streamHush tidal
@@ -15,6 +16,7 @@ let solo = streamSolo tidal
 let unsolo = streamUnsolo tidal
 let once = streamOnce tidal False
 let asap = streamOnce tidal True
+let nudgeAll = streamNudgeAll tidal
 let setcps = asap . cps
 let xfade = transition tidal (Sound.Tidal.Transition.xfadeIn 4)
 let xfadeIn t = transition tidal (Sound.Tidal.Transition.xfadeIn t)

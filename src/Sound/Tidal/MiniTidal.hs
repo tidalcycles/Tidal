@@ -331,7 +331,7 @@ instance Pattern' Arc where
   transformationWithArgs = patternTransformationWithArgs
   literal = do
     xs <- parens (commaSep1 literal)
-    if length xs == 2 then return (xs!!0,xs!!1) else unexpected "Arcs must contain exactly two values"
+    if length xs == 2 then return (T.Arc (xs!!0) (xs!!1)) else unexpected "Arcs must contain exactly two values"
 
 instance Pattern' String where
   simplePattern = parseBP'

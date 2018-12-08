@@ -284,14 +284,14 @@ pSingle :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 pSingle f = f >>= pRand >>= pMult
 
 pPart :: Parseable a => Parser (TPat a) -> Parser [TPat a]
-pPart f = do part <- pSingle f <|> pPolyIn f <|> pPolyOut f
-             part' <- pE part
-             part'' <- pRand part'
+pPart f = do pt <- pSingle f <|> pPolyIn f <|> pPolyOut f
+             pt' <- pE pt
+             pt'' <- pRand pt'
              spaces
-             parts <- pStretch part
-                      <|> pReplicate part''
+             pts <- pStretch pt
+                    <|> pReplicate pt''
              spaces
-             return $ parts
+             return $ pts
 
 pPolyIn :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 pPolyIn f = do ps <- brackets (pSequence f `sepBy` symbol ",")
@@ -448,7 +448,7 @@ pStretch :: Parseable a => TPat a -> Parser [TPat a]
 pStretch thing =
   do char '@'
      n <- ((read <$> many1 digit) <|> return 1)
-     return $ map (\x -> TPat_Zoom (x%n,(x+1)%n) thing) [0 .. (n-1)]
+     return $ map (\x -> TPat_Zoom (Arc (x%n) ((x+1)%n)) thing) [0 .. (n-1)]
 
 pRatio :: Parser (Rational)
 pRatio = do s <- sign
