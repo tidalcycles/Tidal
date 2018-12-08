@@ -246,13 +246,13 @@ en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate 
 -}
 
 slice :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
-slice pI pN p = P.begin b # P.end e # p
+slice pN pI p = P.begin b # P.end e # p
   where b = (\i n -> (div' i n)) <$> pI <*> pN
         e = (\i n -> (div' i n) + (div' 1 n)) <$> pI <*> pN
         div' num den = fromIntegral (num `mod` den) / fromIntegral den
 
 _slice :: Int -> Int -> ControlPattern -> ControlPattern
-_slice i n p =
+_slice n i p =
       p
       # P.begin (pure $ fromIntegral i / fromIntegral n)
       # P.end (pure $ fromIntegral (i+1) / fromIntegral n)
@@ -333,7 +333,7 @@ stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ControlPattern 
 stut = tParam3 _stut
 
 _stut :: Integer -> Double -> Rational -> ControlPattern -> ControlPattern
-_stut count feedback time p = stack (p:(map (\x -> (((x%count)*time) `rotR` (p |*| P.gain (pure $ scalegain (fromIntegral x))))) [1..(count-1)]))
+_stut count feedback time p = stack (p:(map (\x -> (((x%count)*time) `rotR` (p |* P.gain (pure $ scalegain (fromIntegral x))))) [1..(count-1)]))
   where scalegain x
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral count)) . ((fromIntegral count)-)) x
 
