@@ -15,4 +15,4 @@ import Sound.Tidal.Simple as C
 import Sound.Tidal.Stream as C
 import Sound.Tidal.Transition as C
 import Sound.Tidal.UI as C
-
+import Sound.Tidal.EspGrid as C

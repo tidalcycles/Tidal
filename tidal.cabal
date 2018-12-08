@@ -45,6 +45,7 @@ library
                        Sound.Tidal.Transition
                        Sound.Tidal.UI
                        Sound.Tidal.Utils
+                       Sound.Tidal.EspGrid
 
   Build-depends:
       base < 5
