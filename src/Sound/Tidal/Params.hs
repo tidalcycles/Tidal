@@ -304,6 +304,8 @@ slide = pF "slide"
 -- | a pattern of numbers which changes the speed of sample playback, i.e. a cheap way of changing pitch. Negative values will play the sample backwards!
 speed :: Pattern Double -> ControlPattern
 speed = pF "speed"
+squiz :: Pattern Double -> ControlPattern
+squiz = pF "squiz"
 -- | a pattern of strings. Selects the sample to be played.
 s' :: Pattern String -> ControlPattern
 s' = pS "s"
@@ -332,6 +334,8 @@ voice = pF "voice"
 -- | formant filter to make things sound like vowels, a pattern of either `a`, `e`, `i`, `o` or `u`. Use a rest (`~`) for no effect.
 vowel :: Pattern String -> ControlPattern
 vowel = pS "vowel"
+waveloss :: Pattern Double -> ControlPattern
+waveloss = pF "waveloss"
 
 -- MIDI-specific params
 
