@@ -95,8 +95,8 @@ toMessage target tempo e = O.Message (oPath target) $ oPreamble target ++ toData
 
 doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
 doCps tempoMV (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
-                                                       -- hack to stop things from stopping
-                                                       _ <- T.setCps tempoMV (max 0.1 cps)
+                                                       -- hack to stop things from stopping !
+                                                       _ <- T.setCps tempoMV (max 0.00001 cps)
                                                        return ()
                                       return ()
 doCps _ _ = return ()
@@ -254,11 +254,14 @@ startTidal target config =
 ctrlListen :: MVar ControlMap -> Config -> IO (Maybe ThreadId)
 ctrlListen cMapMV c
   | cCtrlListen c = do putStrLn $ "Listening for controls on " ++ cCtrlAddr c ++ ":" ++ show (cCtrlPort c)
-                       sock <- O.udpServer (cCtrlAddr c) (cCtrlPort c)
-                       tid <- forkIO $ loop sock
-                       return $ Just tid
+                       catchAny run (\e -> do putStrLn $ "Control listen failed. Perhaps there's already another tidal instance listening on that port?"
+                                              return Nothing
+                                    )
   | otherwise  = return Nothing
   where
+        run = do sock <- O.udpServer (cCtrlAddr c) (cCtrlPort c)
+                 tid <- forkIO $ loop sock
+                 return $ Just tid
         loop sock = do ms <- O.recvMessages sock
                        mapM_ act ms
                        loop sock
@@ -275,6 +278,8 @@ ctrlListen cMapMV c
         add k v = do cMap <- takeMVar cMapMV
                      putMVar cMapMV $ Map.insert k v cMap
                      return ()
+        catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
+        catchAny = E.catch
 
 {-
 listenCMap :: MVar ControlMap -> IO ()
