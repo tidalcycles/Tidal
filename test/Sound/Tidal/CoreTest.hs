@@ -2,7 +2,7 @@
 
 module Sound.Tidal.CoreTest where
 
--- import TestUtils
+import TestUtils
 import Test.Microspec
 
 import Prelude hiding ((<*), (*>))
@@ -125,3 +125,12 @@ run =
           (queryArc (rev saw) (Arc 0.25 0.25))
             `shouldBe` fmap toEvent [(((0.25,0.25), (0.25,0.25)), 0.75 :: Float)]
 
+    describe "tri" $ do
+      it "goes from 0 up to 1 and back every cycle" $ do
+        comparePD (Arc 0 1)
+          (struct "t*8" (tri :: Pattern Double))
+          ("0 0.25 0.5 0.75 1 0.75 0.5 0.25")
+      it "can be added to" $ do
+        comparePD (Arc 0 1)
+          (struct "t*8" $ (tri :: Pattern Double) + 1)
+          ("1 1.25 1.5 1.75 2 1.75 1.5 1.25")
