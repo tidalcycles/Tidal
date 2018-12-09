@@ -117,7 +117,7 @@ instance {-# OVERLAPPING #-} Show a => Show (Event a) where
     where h | ws == ps = ""
             | otherwise = prettyRat ws ++ "-"
           t | we == pe = ""
-            | otherwise = "-" ++ prettyRat pe
+            | otherwise = "-" ++ prettyRat we
 
 -- | `True` if an `Event`'s starts is within given `Arc`
 onsetIn :: Arc -> Event a -> Bool
