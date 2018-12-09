@@ -112,8 +112,8 @@ isIn (Arc s e) t = t >= s && t < e
 data Event a = Event { whole :: Arc, part :: Arc, event :: a } deriving (Eq, Ord, Functor)
 
 instance {-# OVERLAPPING #-} Show a => Show (Event a) where
-  show (Event (Arc ws we) (Arc ps pe) e) =
-    h ++ "(" ++ show (ps,pe) ++ ")" ++ t ++ "|" ++ show e
+  show (Event (Arc ws we) a@(Arc ps pe) e) =
+    h ++ "(" ++ show a ++ ")" ++ t ++ "|" ++ show e
     where h | ws == ps = ""
             | otherwise = prettyRat ws ++ "-"
           t | we == pe = ""
@@ -121,7 +121,7 @@ instance {-# OVERLAPPING #-} Show a => Show (Event a) where
 
 -- | `True` if an `Event`'s starts is within given `Arc`
 onsetIn :: Arc -> Event a -> Bool
-onsetIn a e = isIn a (eventWholeOnset e)
+onsetIn a e = isIn a (eventWholeStart e)
 
 -- | Compares two lists of events, attempting to combine fragmented events in the process
 -- for a 'truer' compare
@@ -155,8 +155,20 @@ eventWhole :: Event a -> Arc
 eventWhole = whole
 
 -- | Get the onset of an event's 'whole'
-eventWholeOnset :: Event a -> Time
-eventWholeOnset = start . whole
+eventWholeStart :: Event a -> Time
+eventWholeStart = start . whole
+
+-- | Get the offset of an event's 'whole'
+eventWholeFinish :: Event a -> Time
+eventWholeFinish = finish . whole
+
+-- | Get the onset of an event's 'whole'
+eventPartStart :: Event a -> Time
+eventPartStart = start . part
+
+-- | Get the offset of an event's 'part'
+eventPartFinish :: Event a -> Time
+eventPartFinish = finish . part
 
 -- | Get the timespan of an event's 'part'
 eventPart :: Event a -> Arc
@@ -645,7 +657,7 @@ filterJust p = fromJust <$> (filterValues (isJust) p)
 
 -- formerly known as playWhen
 filterWhen :: (Time -> Bool) -> Pattern a -> Pattern a
-filterWhen test p = p {query = filter (test . eventWholeOnset) . query p}
+filterWhen test p = p {query = filter (test . eventWholeStart) . query p}
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
 playFor s e = filterWhen (\t -> and [t >= s, t < e])
