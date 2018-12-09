@@ -84,6 +84,55 @@ d1 $ n (irand 5) # sound "drum"
 irand :: Num a => Int -> Pattern a
 irand i = (fromIntegral . (floor :: Double -> Int) . (* (fromIntegral i))) <$> rand
 
+{- | 1D Perlin (smooth) noise, works like rand but smoothly moves between random
+values each cycle. `perlinWith` takes a pattern as the RNG's "input" instead
+of automatically using the cycle count.
+@
+d1 $ s "arpy*32" # cutoff (perlinWith (saw * 4) * 2000)
+@
+will generate a smooth random pattern for the cutoff frequency which will
+repeat every cycle (because the saw does)
+The `perlin` function uses the cycle count as input and can be used much like @rand@.
+-}
+perlinWith :: Pattern Double -> Pattern Double
+perlinWith p = interp <$> (p-pa) <*> (timeToRand <$> pa) <*> (timeToRand <$> pb) where
+  pa = (fromIntegral . floor) <$> p
+  pb = (fromIntegral . (+1) . floor) <$> p
+  interp x a b = a + smootherStep x * (b-a)
+  smootherStep x = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
+perlin = perlinWith (sig fromRational)
+
+{- `perlin2With` is Perlin noise with a 2-dimensional input. This can be
+useful for more control over how the randomness repeats (or doesn't).
+@
+d1 
+ $ s "[supersaw:-12*32]" 
+ # lpf (rangex 60 5000 $ perlin2With (cosine*2) (sine*2)) 
+ # lpq 0.3
+@
+will generate a smooth random cutoff pattern that repeats every cycle without
+any reversals or discontinuities (because the 2D path is a circle).
+`perlin2` only needs one input because it uses the cycle count as the
+second input.
+-}
+perlin2With :: Pattern Double -> Pattern Double -> Pattern Double
+perlin2With x y = (/2) . (+1) $ interp2 <$> xfrac <*> yfrac <*> dota <*> dotb <*> dotc <*> dotd where
+  fl = fmap (fromIntegral . floor)
+  ce = fmap (fromIntegral . (+1) . floor)
+  xfrac = x - fl x
+  yfrac = y - fl y
+  randAngle a b = 2 * pi * timeToRand (a + 0.0001 * b)
+  pcos x y = cos $ randAngle <$> x <*> y
+  psin x y = sin $ randAngle <$> x <*> y
+  dota = pcos (fl x) (fl y) * xfrac       + psin (fl x) (fl y) * yfrac
+  dotb = pcos (ce x) (fl y) * (xfrac - 1) + psin (ce x) (fl y) * yfrac
+  dotc = pcos (fl x) (ce y) * xfrac       + psin (fl x) (ce y) * (yfrac - 1)
+  dotd = pcos (ce x) (ce y) * (xfrac - 1) + psin (ce x) (ce y) * (yfrac - 1)
+  interp2 x y a b c d = (1.0 - s x) * (1.0 - s y) * a  +  s x * (1.0 - s y) * b
+                        + (1.0 - s x) * s y * c  +  s x * s y * d
+  s x = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
+perlin2 = perlin2With (sig fromRational)
+
 {- | Randomly picks an element from the given list
 
 @
