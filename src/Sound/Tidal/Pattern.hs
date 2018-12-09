@@ -121,7 +121,7 @@ instance {-# OVERLAPPING #-} Show a => Show (Event a) where
 
 -- | `True` if an `Event`'s starts is within given `Arc`
 onsetIn :: Arc -> Event a -> Bool
-onsetIn a e = isIn a (eventWholeStart e)
+onsetIn a e = isIn a (wholeStart e)
 
 -- | Compares two lists of events, attempting to combine fragmented events in the process
 -- for a 'truer' compare
@@ -155,12 +155,12 @@ eventWhole :: Event a -> Arc
 eventWhole = whole
 
 -- | Get the onset of an event's 'whole'
-eventWholeStart :: Event a -> Time
-eventWholeStart = start . whole
+wholeStart :: Event a -> Time
+wholeStart = start . whole
 
 -- | Get the offset of an event's 'whole'
-eventWholeFinish :: Event a -> Time
-eventWholeFinish = finish . whole
+wholeFinish :: Event a -> Time
+wholeFinish = finish . whole
 
 -- | Get the onset of an event's 'whole'
 eventPartStart :: Event a -> Time
@@ -657,7 +657,7 @@ filterJust p = fromJust <$> (filterValues (isJust) p)
 
 -- formerly known as playWhen
 filterWhen :: (Time -> Bool) -> Pattern a -> Pattern a
-filterWhen test p = p {query = filter (test . eventWholeStart) . query p}
+filterWhen test p = p {query = filter (test . wholeStart) . query p}
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
 playFor s e = filterWhen (\t -> and [t >= s, t < e])

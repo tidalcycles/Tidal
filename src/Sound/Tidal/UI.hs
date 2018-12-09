@@ -1575,12 +1575,12 @@ smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State 
     midArc a = Arc (mid (start a, finish a)) (mid (start a, finish a))
     tween _ _ [] = []
     tween st queryA (e:_) = maybe [e {whole = queryA, part = queryA}] (tween' queryA) (nextV st)
-      where aFinish = Arc (eventWholeFinish e) (eventWholeFinish e)
+      where aFinish = Arc (wholeFinish e) (wholeFinish e)
             nextEs st = query monoP (st {arc = aFinish})
             nextV st | null (nextEs st) = Nothing
                      | otherwise = Just $ event (head (nextEs st))
             tween' queryA v = [Event {whole = queryA, part = queryA, event = event e + ((v - event e) * pc)}]
             pc | (delta $ whole e) == 0 = 0
-               | otherwise = fromRational $ (eventPartStart e - eventWholeStart e) / (delta $ whole e)
+               | otherwise = fromRational $ (eventPartStart e - wholeStart e) / (delta $ whole e)
             delta a = finish a - start a
     monoP = mono p
