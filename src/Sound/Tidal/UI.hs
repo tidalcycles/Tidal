@@ -898,7 +898,7 @@ struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <* p
 substruct :: Pattern String -> Pattern b -> Pattern b
 substruct s p = p {query = f}
   where f st =
-          concatMap (\a' -> queryArc (compressTo a' p) a') $ (map eventWhole $ query s st)
+          concatMap (\a' -> queryArc (compressTo a' p) a') $ (map whole $ query s st)
 
 randArcs :: Int -> Pattern [Arc]
 randArcs n =
@@ -921,7 +921,7 @@ randStruct n = splitQueries $ Pattern {nature = Digital, query = f}
           where as = map (\(i, (Arc s' e')) ->
                     (((Arc (s' + sam s) (e' + sam s)),
                        subArc (Arc s e) (Arc (s' + sam s) (e' + sam s)), i))) $
-                      enumerate $ eventValue $ head $
+                      enumerate $ event $ head $
                       queryArc (randArcs n) (Arc (sam s) (nextSam s))
                 (Arc s e) = arc st
 
@@ -984,7 +984,7 @@ lindenmayerI n r s = fmap fromIntegral $ fmap digitToInt $ lindenmayer n r s
 -- support for fit'
 unwrap' :: Pattern (Pattern a) -> Pattern a
 unwrap' pp = pp {query = \st -> query (stack $ map scalep (query pp st)) st}
-  where scalep ev = compress (eventWhole ev) $ eventValue ev
+  where scalep ev = compress (whole ev) $ event ev
 
 {-|
 Removes events from second pattern that don't start during an event from first.
@@ -1022,8 +1022,8 @@ mask maskpat pat = filterJust $ toMaybe <$> pat'
 
 {-
 mask :: Pattern Bool -> Pattern b -> Pattern b
--- TODO - should that be eventPart or eventWhole?
-mask pa pb = pb {query = \st -> concat [filterOns (subArc (arc st) $ eventPart i) (query pb st) | i <- query pa st]}
+-- TODO - should that be part or whole?
+mask pa pb = pb {query = \st -> concat [filterOns (subArc (arc st) $ part i) (query pb st) | i <- query pa st]}
      where filterOns Nothing _ = []
            filterOns (Just a) es = filter (onsetIn a) es
 -}
@@ -1034,9 +1034,9 @@ enclosingArc [] = (Arc 0 1)
 enclosingArc as = Arc (minimum (map start as)) (maximum (map finish as))
 
 stretch :: Pattern a -> Pattern a
--- TODO - should that be eventWhole or eventPart?
+-- TODO - should that be whole or part?
 stretch p = splitQueries $ p {query = q}
-  where q st = query (zoom (enclosingArc $ map eventWhole $ query p (st {arc = (Arc (sam s) (nextSam s))})) p) st
+  where q st = query (zoom (enclosingArc $ map whole $ query p (st {arc = (Arc (sam s) (nextSam s))})) p) st
           where s = start $ arc st
 
 {- | `fit'` is a generalization of `fit`, where the list is instead constructed by using another integer pattern to slice up a given pattern.  The first argument is the number of cycles of that latter pattern to use when slicing.  It's easier to understand this with a few examples:
@@ -1100,8 +1100,8 @@ outside n = inside (1/n)
 loopFirst :: Pattern a -> Pattern a
 loopFirst p = splitQueries $ p {query = f}
   where f st = map (\(Event w p v) -> (Event (plus w) (plus p) v)) $ query p (st {arc = minus $ arc st})
-          where minus = mapArc (subtract (sam s))
-                plus = mapArc (+ (sam s))
+          where minus = fmap (subtract (sam s))
+                plus = fmap (+ (sam s))
                 s = start $ arc st
 
 timeLoop :: Pattern Time -> Pattern a -> Pattern a
@@ -1211,7 +1211,7 @@ layer fs p = stack $ map ($ p) fs
 -- gets turned into @"bd sn"@. Useful for creating arpeggios/broken chords.
 arpeggiate :: Pattern a -> Pattern a
 arpeggiate p = withEvents munge p
-  where munge es = concatMap spreadOut (groupBy (\a b -> eventWhole a == eventWhole b) es)
+  where munge es = concatMap spreadOut (groupBy (\a b -> whole a == whole b) es)
         spreadOut xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
         shiftIt n d (Event (Arc s e) a' v) =
           do
@@ -1233,7 +1233,7 @@ fill p' p = struct (splitQueries $ p {query = q}) p'
   where
     q st = removeTolerance (s,e) $ invert (s-tolerance, e+tolerance) $ query p (st {arc = (s-tolerance, e+tolerance)})
       where (s,e) = arc st
-    invert (s,e) es = map arcToEvent $ foldr remove [(s,e)] (map eventPart es)
+    invert (s,e) es = map arcToEvent $ foldr remove [(s,e)] (map part es)
     remove (s,e) xs = concatMap (remove' (s, e)) xs
     remove' (s,e) (s',e') | s > s' && e < e' = [(s',s),(e,e')] -- inside
                           | s > s' && s < e' = [(s',s)] -- cut off right

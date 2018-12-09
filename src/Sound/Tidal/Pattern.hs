@@ -8,6 +8,7 @@ module Sound.Tidal.Pattern where
 import           Prelude hiding ((<*), (*>))
 
 import           Control.Applicative (liftA2)
+import           Data.Bifunctor (Bifunctor(..))
 import           Data.Data (Data) -- toConstr
 import           Data.List (delete, findIndex, sort, intercalate)
 import qualified Data.Map.Strict as Map
@@ -44,18 +45,27 @@ data ArcF a = Arc { start :: a, finish :: a } deriving (Eq, Ord, Functor)
 
 type Arc = ArcF Time
 
-instance Applicative ArcF where
-  pure t = Arc t t
-  (<*>) (Arc sf ef) (Arc sx ex) = Arc (sf sx) (ef ex)
-
 instance {-# OVERLAPPING #-} Show Arc where
   show (Arc s e) = prettyRat s ++ ">" ++ prettyRat e
+
+instance Num a => Num (ArcF a) where
+  negate      = fmap negate
+  (+)         = liftA2 (+)
+  (*)         = liftA2 (*)
+  fromInteger = pure . fromInteger
+  abs         = fmap abs
+  signum      = fmap signum
+
+instance (Fractional a) => Fractional (ArcF a) where
+  recip        = fmap recip
+  fromRational = pure . fromRational
 
 sect :: Arc -> Arc -> Arc
 sect (Arc s e) (Arc s' e') = Arc (max s s') (min e e')
 
-ion :: Arc -> Arc -> Arc
-ion (Arc s e) (Arc s' e') = Arc (min s s') (max e e')
+-- | convex hull union
+hull :: Arc -> Arc -> Arc
+hull (Arc s e) (Arc s' e') = Arc (min s s') (max e e')
 
 -- | @subArc i j@ is the timespan that is the intersection of @i@ and @j@.
 -- intersection
@@ -69,6 +79,10 @@ subArc a@(Arc s e) b@(Arc s' e')
   | s'' <= e'' = Just (Arc s'' e'')
   | otherwise = Nothing
   where (Arc s'' e'') = sect a b
+
+instance Applicative ArcF where
+  pure t = Arc t t
+  (<*>) (Arc sf ef) (Arc sx ex) = Arc (sf sx) (ef ex)
 
 -- | The arc of the whole cycle that the given time value falls within
 timeToCycleArc :: Time -> Arc
@@ -96,12 +110,7 @@ arcCyclesZW :: Arc -> [Arc]
 arcCyclesZW (Arc s e) | s == e = [Arc s e]
                   | otherwise = arcCycles (Arc s e)
 
--- | Map the given function over both the start and end @Time@ values
--- of the given @Arc@.
-mapArc :: (Time -> Time) -> Arc -> Arc
-mapArc f (Arc s e) = Arc (f s) (f e)
-
--- | Similar to 'mapArc' but time is relative to the cycle (i.e. the
+-- | Similar to 'fmap' but time is relative to the cycle (i.e. the
 -- sam of the start of the arc)
 mapCycle :: (Time -> Time) -> Arc -> Arc
 mapCycle f (Arc s e) = Arc (sam' + (f $ s - sam')) (sam' + (f $ e - sam'))
@@ -124,7 +133,7 @@ data EventF a b = Event
 type Event a = EventF (ArcF Time) a
 
 instance Bifunctor EventF where
-  bimap f g (Event w p e) = (Event (g w) (g p) (f e))
+  bimap f g (Event w p e) = (Event (f w) (f p) (g e))
 
 instance {-# OVERLAPPING #-} Show a => Show (Event a) where
   show (Event (Arc ws we) (Arc ps pe) e) =
@@ -136,7 +145,7 @@ instance {-# OVERLAPPING #-} Show a => Show (Event a) where
 
 -- | `True` if an `Event`'s starts is within given `Arc`
 onsetIn :: Arc -> Event a -> Bool
-onsetIn a e = isIn a (eventWholeOnset e)
+onsetIn a e = isIn a (wholeOnset e)
 
 -- | Compares two lists of events, attempting to combine fragmented events in the process
 -- for a 'truer' compare
@@ -151,34 +160,21 @@ defragParts (e:es) | isJust i = defraged:(defragParts (delete e' es))
                    | otherwise = e:(defragParts es)
   where i = findIndex (isAdjacent e) es
         e' = es !! (fromJust i)
-        defraged = (Event (eventWhole e) part (eventValue e))
-        part = Arc start' end'
-        start' = min (start $ eventPart e) (start $ eventPart e')
-        end' = max (finish $ eventPart e) (finish $ eventPart e')
+        defraged = Event (whole e) u (event e)
+        u = hull (part e) (part e')
 
 -- | Returns 'True' if the two given events are adjacent parts of the same whole
 isAdjacent :: Eq a => Event a -> Event a -> Bool
-isAdjacent e e' = (eventWhole e == eventWhole e')
-                  && (eventValue e == eventValue e')
-                  && (((finish $ eventPart e) == (start $ eventPart e'))
+isAdjacent e e' = (whole e == whole e')
+                  && (event e == event e')
+                  && (((finish $ part e) == (start $ part e'))
                       ||
-                      ((finish $ eventPart e') == (start $ eventPart e))
+                      ((finish $ part e') == (start $ part e))
                      )
 
--- | Get the timespan of an event's 'whole'
-eventWhole :: Event a -> Arc
-eventWhole = whole
-
 -- | Get the onset of an event's 'whole'
-eventWholeOnset :: Event a -> Time
-eventWholeOnset = start . whole
-
--- | Get the timespan of an event's 'part'
-eventPart :: Event a -> Arc
-eventPart = part
-
-eventValue :: Event a -> a
-eventValue = event
+wholeOnset :: Event a -> Time
+wholeOnset = start . whole
 
 eventHasOnset :: Event a -> Bool
 eventHasOnset e = (start $ whole e) == (start $ part e)
@@ -238,23 +234,23 @@ instance Applicative Pattern where
             where
               match (Event fWhole fPart f) =
                 map
-                (\(Event _ _ x) -> (Event fWhole fPart (f x)))
-                (query px $ st {arc = Arc (start fPart) (start fPart)})
+                (\e -> (Event fWhole fPart (f (event e))))
+                (query px $ st {arc = pure (start fPart)})
 
   (<*>) pf@(Pattern Analog _) px@(Pattern Digital _) = Pattern Digital q
     where q st = concatMap match $ query px st
             where
               match (Event xWhole xPart x) =
                 map
-                (\(Event _ _ f) -> (Event xWhole xPart (f x)))
-                (query pf st {arc = (Arc (start xPart) (start xPart))})
+                (\e -> (Event xWhole xPart ((event e) x)))
+                (query pf st {arc = (pure (start xPart))})
                 
   (<*>) pf px = Pattern Analog q
     where q st = concatMap match $ query pf st
             where
-              match (Event _ _ f) =
+              match ef =
                 map
-                (\(Event _ _ x) -> (Event (arc st) (arc st) (f x)))
+                (\ex -> (Event (arc st) (arc st) ((event ef) (event ex))))
                 (query px st)
 
 -- | Like <*>, but the structure only comes from the left
@@ -264,16 +260,16 @@ instance Applicative Pattern where
          where
             match (Event fWhole fPart f) =
               map
-              (\(Event _ _ x) -> (Event fWhole fPart (f x))) $
+              (\e -> (Event fWhole fPart (f (event e)))) $
               query px $ st {arc = xQuery fWhole}
-            xQuery (Arc s _) = Arc s s -- for discrete events, match with the onset
+            xQuery (Arc s _) = pure s -- for discrete events, match with the onset
 
 pf <* px = Pattern Analog q
   where q st = concatMap match $ query pf st
           where
             match (Event fWhole fPart f) =
               map
-              (\(Event _ _ x) -> (Event fWhole fPart (f x))) $
+              (\e -> (Event fWhole fPart (f (event e)))) $
               query px st -- for continuous events, use the original query
 
 -- | Like <*>, but the structure only comes from the right
@@ -283,16 +279,16 @@ pf <* px = Pattern Analog q
          where
             match (Event xWhole xPart x) =
               map
-              (\(Event _ _ f) -> (Event xWhole xPart (f x))) $
+              (\e -> (Event xWhole xPart ((event e) x))) $
               query pf $ fQuery xWhole
-            fQuery (Arc s _) = st {arc = Arc s s} -- for discrete events, match with the onset
+            fQuery (Arc s _) = st {arc = pure s} -- for discrete events, match with the onset
 
 pf *> px = Pattern Analog q
   where q st = concatMap match $ query px st
           where
             match (Event xWhole xPart x) =
               map
-              (\(Event _ _ f) -> (Event xWhole xPart (f x))) $
+              (\e -> (Event xWhole xPart ((event e) x))) $
               query pf st -- for continuous events, use the original query
 
 infixl 4 <*, *>
@@ -336,7 +332,7 @@ innerJoin pp = pp {query = q}
 -- but structure only comes from the outer pattern.
 outerJoin :: Pattern (Pattern a) -> Pattern a
 outerJoin pp = pp {query = q}
-  where q st = concatMap (\(Event whole part p) -> catMaybes $ map (munge whole part) $ query p st {arc = (Arc (start whole) (start whole))}) (query pp st)
+  where q st = concatMap (\(Event whole part p) -> catMaybes $ map (munge whole part) $ query p st {arc = (pure (start whole))}) (query pp st)
           where munge oWhole oPart (Event _ _ v) =
                   do let w = oWhole
                      p <- subArc (arc st) oPart
@@ -660,7 +656,7 @@ filterJust p = fromJust <$> (filterValues (isJust) p)
 
 -- formerly known as playWhen
 filterWhen :: (Time -> Bool) -> Pattern a -> Pattern a
-filterWhen test p = p {query = filter (test . eventWholeOnset) . query p}
+filterWhen test p = p {query = filter (test . wholeOnset) . query p}
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
 playFor s e = filterWhen (\t -> and [t >= s, t < e])
