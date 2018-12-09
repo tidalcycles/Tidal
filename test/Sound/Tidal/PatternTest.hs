@@ -250,6 +250,22 @@ run =
        (query (pure 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (VF 0.5)))
        `shouldBe` [(Event (Arc (0 % 1) (1 % 1)) (Arc (0 % 1) (1 % 1)) 3.5)]
 
+    describe "wholeStart" $ do 
+      it "retrieve first element of a tuple, inside first element of a tuple, inside the first of another" $ do 
+        property $ 1 === wholeStart (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+
+    describe "eventValue" $ do
+      it "retrieve the second value from a tuple" $ do 
+        property $ 5 === eventValue (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+
+    describe "eventHasOnset" $ do 
+      it "return True when the start values of the two arcs in an event are equal" $ do 
+        let ev = (Event (Arc 1 2) (Arc 1 3) (4 :: Int)) 
+        property $ True === eventHasOnset ev 
+      it "return False when the start values of the two arcs in an event are not equal" $ do 
+        let ev = (Event (Arc 1 2) (Arc 3 4) (5 :: Int)) 
+        property $ False === eventHasOnset ev
+
     describe "sam" $ do
       it "start of a cycle, round down time value" $ do
         let res = sam (3.4 :: Time)

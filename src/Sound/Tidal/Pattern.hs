@@ -136,16 +136,16 @@ instance Bifunctor EventF where
   bimap f g (Event w p e) = (Event (f w) (f p) (g e))
 
 instance {-# OVERLAPPING #-} Show a => Show (Event a) where
-  show (Event (Arc ws we) (Arc ps pe) e) =
-    h ++ "(" ++ show (ps,pe) ++ ")" ++ t ++ "|" ++ show e
+  show (Event (Arc ws we) a@(Arc ps pe) e) =
+    h ++ "(" ++ show a ++ ")" ++ t ++ "|" ++ show e
     where h | ws == ps = ""
             | otherwise = prettyRat ws ++ "-"
           t | we == pe = ""
-            | otherwise = "-" ++ prettyRat pe
+            | otherwise = "-" ++ prettyRat we
 
 -- | `True` if an `Event`'s starts is within given `Arc`
 onsetIn :: Arc -> Event a -> Bool
-onsetIn a e = isIn a (wholeOnset e)
+onsetIn a e = isIn a (wholeStart e)
 
 -- | Compares two lists of events, attempting to combine fragmented events in the process
 -- for a 'truer' compare
@@ -173,8 +173,27 @@ isAdjacent e e' = (whole e == whole e')
                      )
 
 -- | Get the onset of an event's 'whole'
-wholeOnset :: Event a -> Time
-wholeOnset = start . whole
+wholeStart :: Event a -> Time
+wholeStart = start . whole
+
+-- | Get the offset of an event's 'whole'
+wholeFinish :: Event a -> Time
+wholeFinish = finish . whole
+
+-- | Get the onset of an event's 'whole'
+eventPartStart :: Event a -> Time
+eventPartStart = start . part
+
+-- | Get the offset of an event's 'part'
+eventPartFinish :: Event a -> Time
+eventPartFinish = finish . part
+
+-- | Get the timespan of an event's 'part'
+eventPart :: Event a -> Arc
+eventPart = part
+
+eventValue :: Event a -> a
+eventValue = event
 
 eventHasOnset :: Event a -> Bool
 eventHasOnset e = (start $ whole e) == (start $ part e)
@@ -656,7 +675,7 @@ filterJust p = fromJust <$> (filterValues (isJust) p)
 
 -- formerly known as playWhen
 filterWhen :: (Time -> Bool) -> Pattern a -> Pattern a
-filterWhen test p = p {query = filter (test . wholeOnset) . query p}
+filterWhen test p = p {query = filter (test . wholeStart) . query p}
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
 playFor s e = filterWhen (\t -> and [t >= s, t < e])
