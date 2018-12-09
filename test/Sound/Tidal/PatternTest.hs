@@ -214,9 +214,9 @@ run =
        (query (pure 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (VF 0.5)))
        `shouldBe` [(Event (Arc (0 % 1) (1 % 1)) (Arc (0 % 1) (1 % 1)) 3.5)]
 
-    describe "eventWholeOnset" $ do 
+    describe "eventWholeStart" $ do 
       it "retrieve first element of a tuple, inside first element of a tuple, inside the first of another" $ do 
-        property $ 1 === eventWholeOnset (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 1 === eventWholeStart (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "eventValue" $ do
       it "retrieve the second value from a tuple" $ do 
