@@ -2,7 +2,7 @@
 # run with: stack runghc -- ../haskell-ci/make_travis_yml_2.hs tidal.cabal > .travis-cabal.yml
 # stack methods based on https://raw.githubusercontent.com/commercialhaskell/stack/stable/doc/travis-complex.yml
 
-language: c
+language: haskell
 sudo: false
 
 cache:
@@ -111,7 +111,7 @@ install:
       DISTDIR=$(mktemp -d /tmp/dist-test.XXXX)
       ;;
     stack)
-      travis_wait stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies
+      stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies
       ;;
   esac
 
