@@ -247,8 +247,8 @@ en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate 
 
 slice :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
 slice pN pI p = P.begin b # P.end e # p
-  where b = (\i n -> (div' i n)) <$> pI <*> pN
-        e = (\i n -> (div' i n) + (div' 1 n)) <$> pI <*> pN
+  where b = (\i n -> (div' i n)) <$> pI <* pN
+        e = (\i n -> (div' i n) + (div' 1 n)) <$> pI <* pN
         div' num den = fromIntegral (num `mod` den) / fromIntegral den
 
 _slice :: Int -> Int -> ControlPattern -> ControlPattern
@@ -257,8 +257,8 @@ _slice n i p =
       # P.begin (pure $ fromIntegral i / fromIntegral n)
       # P.end (pure $ fromIntegral (i+1) / fromIntegral n)
 
-randslice :: Int -> ControlPattern -> ControlPattern
-randslice n p = unwrap $ (\i -> _slice i n p) <$> irand n
+randslice :: Pattern Int -> ControlPattern -> ControlPattern
+randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> irand n
 
 {- |
 `loopAt` makes a sample fit the given number of cycles. Internally, it
@@ -268,14 +268,14 @@ the `density` of the pattern to match.
 
 @
 d1 $ loopAt 4 $ sound "breaks125"
-d1 $ juxBy 0.6 (|*| speed "2") $ slowspread (loopAt) [4,6,2,3] $ chop 12 $ sound "fm:14"
+d1 $ juxBy 0.6 (|* speed "2") $ slowspread (loopAt) [4,6,2,3] $ chop 12 $ sound "fm:14"
 @
 -}
 loopAt :: Pattern Time -> ControlPattern -> ControlPattern
-loopAt n p = slow n p |*| P.speed (fromRational <$> (1/n)) # P.unit (pure "c")
+loopAt n p = slow n p |* P.speed (fromRational <$> (1/n)) # P.unit (pure "c")
 
 hurry :: Pattern Rational -> ControlPattern -> ControlPattern
-hurry x = (|*| P.speed (fromRational <$> x)) . fast x
+hurry x = (|* P.speed (fromRational <$> x)) . fast x
 
 {- | Smash is a combination of `spread` and `striate` - it cuts the samples
 into the given number of bits, and then cuts between playing the loop
