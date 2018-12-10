@@ -2,6 +2,8 @@
 
 module Sound.Tidal.Control where
 
+import           Prelude hiding ((<*), (*>))
+
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe, isJust, fromJust)
 import Data.Ratio
