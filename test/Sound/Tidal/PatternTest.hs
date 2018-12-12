@@ -7,6 +7,7 @@ import           TestUtils
 
 import           Prelude             hiding ((*>), (<*))
 
+import           Data.Bifunctor (first, second)
 import           Data.Ratio
 
 import           Sound.Tidal.Control
@@ -18,13 +19,48 @@ import qualified Data.Map.Strict     as Map
 run :: Microspec ()
 run =
   describe "Sound.Tidal.Pattern" $ do
-    describe "eventWhole" $ do
-      it "returns the first element of a tuple inside the first element of a tuple" $ do
-        property $ (Arc 1 2) === eventWhole (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+    describe "Arc" $ do
+      it "Arc is a Functor: Apply a given function to the start and end values of an Arc" $ do
+        let res = fmap (+1) (Arc 3 5)
+        property $ ((Arc 4 6) :: Arc) === res
 
-    describe "eventPart" $ do
-      it "returns the second element of a tuple inside the first element of a tuple" $ do
-        property $ (Arc 3 4) === eventPart (Event (Arc 1 2) (Arc 3 4) ( 5 :: Int))
+    describe "Event" $ do
+      it "(Bifunctor) first: Apply a function to the Arc elements: whole and part" $ do
+        let res = Event (Arc 1 2) (Arc 3 4) 5 :: Event Int
+            f = (+1)
+        property $
+          first f res ===
+          Event (Arc 2 3) (Arc 4 5) 5
+      it "(Bifunctor) second: Apply a function to the event element" $ do
+        let res = Event (Arc 1 2) (Arc 3 4) 5 :: Event Int
+            f = (+1)
+        property $
+          second f res ===
+          Event (Arc 1 2) (Arc 3 4) 6
+
+    describe "whole" $ do
+      it "returns the whole Arc in an Event" $ do
+        property $ Arc 1 2 === whole (Event (Arc 1 2) (Arc 3 4) 5 :: Event Int)
+
+    describe "part" $ do
+      it "returns the part Arc in an Event" $ do
+        property $ Arc 3 4 === part (Event (Arc 1 2) (Arc 3 4) 5 :: Event Int)
+
+    describe "value" $ do
+      it "returns the event value in an Event" $ do
+        property $ 5 === value (Event (Arc 1 2 :: Arc) (Arc 3 4) ( 5 :: Int))
+
+    describe "wholeStart" $ do 
+      it "retrieve the onset of an event: the start of the whole Arc" $ do 
+        property $ 1 === wholeStart (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+
+    describe "eventHasOnset" $ do 
+      it "return True when the start values of the two arcs in an event are equal" $ do 
+        let ev = (Event (Arc 1 2) (Arc 1 3) (4 :: Int)) 
+        property $ True === eventHasOnset ev 
+      it "return False when the start values of the two arcs in an event are not equal" $ do 
+        let ev = (Event (Arc 1 2) (Arc 3 4) (5 :: Int)) 
+        property $ False === eventHasOnset ev
 
     describe "pure" $ do
       it "fills a whole cycle" $ do
@@ -267,11 +303,6 @@ run =
       it "if start time is greater than end time" $ do
         let res = arcCyclesZW (Arc 2.1 3.3)
         property $ [(Arc 2.1 3.0), (Arc 3.0 3.3)] === res
-
-    describe "mapArc" $ do
-      it "Apply a given function to the start and end values of an Arc" $ do
-        let res = mapArc (+1) (Arc 3 5)
-        property $ ((Arc 4 6) :: Arc) === res
 
     describe "mapCycle" $ do
       it "Apply a function to the Arc values minus the start value rounded down (sam'), adding both results to sam' to obtain the new Arc value" $ do

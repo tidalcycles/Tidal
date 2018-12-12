@@ -18,7 +18,7 @@ compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
 compareP a p p' = (sort $ query p $ State a Map.empty) `shouldBe` (sort $ query p' $ State a Map.empty)
 
 -- | Like @compareP@, but tries to 'defragment' the events
-comparePD :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Bool
+comparePD :: (Ord a) => Arc -> Pattern a -> Pattern a -> Bool
 comparePD a p p' = compareDefrag es es'
   where es = query p (State a Map.empty)
         es' = query p' (State a Map.empty)

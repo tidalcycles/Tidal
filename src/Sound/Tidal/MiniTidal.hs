@@ -174,7 +174,7 @@ controlPatternTransformation = choice [
 patternTransformationArg :: Pattern' a => Parser (Pattern a -> Pattern a)
 patternTransformationArg = appliedOrNot transformationWithoutArgs <|> parensOrApplied transformationWithArgs
 
-patternTransformationWithoutArgs :: Pattern' a => Parser (Pattern a -> Pattern a)
+patternTransformationWithoutArgs :: Parser (Pattern a -> Pattern a)
 patternTransformationWithoutArgs = choice [
   function "brak" >> return T.brak,
   function "rev" >> return T.rev,
