@@ -1,5 +1,5 @@
-
 {-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, BangPatterns #-}
+{-# OPTIONS_GHC -fno-warn-missing-fields #-}
 
 module Sound.Tidal.Stream where
 
@@ -254,7 +254,7 @@ startTidal target config =
 ctrlListen :: MVar ControlMap -> Config -> IO (Maybe ThreadId)
 ctrlListen cMapMV c
   | cCtrlListen c = do putStrLn $ "Listening for controls on " ++ cCtrlAddr c ++ ":" ++ show (cCtrlPort c)
-                       catchAny run (\e -> do putStrLn $ "Control listen failed. Perhaps there's already another tidal instance listening on that port?"
+                       catchAny run (\_ -> do putStrLn $ "Control listen failed. Perhaps there's already another tidal instance listening on that port?"
                                               return Nothing
                                     )
   | otherwise  = return Nothing

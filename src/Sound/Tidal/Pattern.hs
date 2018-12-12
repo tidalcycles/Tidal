@@ -16,8 +16,6 @@ import           Data.Maybe (isJust, fromJust, catMaybes, fromMaybe)
 import           Data.Ratio (numerator, denominator)
 import           Data.Typeable (Typeable)
 
-import           Sound.Tidal.Utils
-
 ------------------------------------------------------------------------
 -- * Types
 
@@ -152,7 +150,7 @@ onsetIn a e = isIn a (wholeStart e)
 
 -- | Compares two lists of events, attempting to combine fragmented events in the process
 -- for a 'truer' compare
-compareDefrag :: (Eq a, Ord a) => [Event a] -> [Event a] -> Bool
+compareDefrag :: (Ord a) => [Event a] -> [Event a] -> Bool
 compareDefrag as bs = (sort $ defragParts as) == (sort $ defragParts bs)
 
 -- | Returns a list of events, with any adjacent parts of the same whole combined
@@ -329,47 +327,66 @@ instance Monad Pattern where
 -- 4/ Concatenate all the events together (discarding wholes/parts that didn't intersect)
 --
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
-
 unwrap :: Pattern (Pattern a) -> Pattern a
 unwrap pp = pp {query = q}
-  where q st = concatMap (\(Event whole part p) -> catMaybes $ map (munge whole part) $ query p st {arc = part}) (query pp st)
-        munge oWhole oPart (Event iWhole iPart v) =
+  where q st = concatMap
+          (\(Event w p v) ->
+             catMaybes $
+             map (munge w p) $
+             query v st {arc = p})
+          (query pp st)
+        munge ow op (Event iw ip v') =
           do
-            w <- subArc oWhole iWhole
-            p <- subArc oPart iPart
-            return (Event w p v)
+            w' <- subArc ow iw
+            p' <- subArc op ip
+            return (Event w' p' v')
 
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the inner pattern.
 innerJoin :: Pattern (Pattern a) -> Pattern a
 innerJoin pp = pp {query = q}
-  where q st = concatMap (\(Event _ part p) -> catMaybes $ map munge $ query p st {arc = part}) (query pp st)
-          where munge (Event iWhole iPart v) =
-                  do 
-                    p <- subArc (arc st) iPart
+  where q st = concatMap
+          (\(Event _ p v) ->
+              catMaybes $
+              map munge $
+              query v st {arc = p})
+          (query pp st)
+          where munge (Event iw ip v) =
+                  do
+                    p <- subArc (arc st) ip
                     p' <- subArc p (arc st)
-                    return (Event iWhole p' v)
+                    return (Event iw p' v)
 
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the outer pattern.
 outerJoin :: Pattern (Pattern a) -> Pattern a
 outerJoin pp = pp {query = q}
-  where q st = concatMap (\(Event whole part p) -> catMaybes $ map (munge whole part) $ query p st {arc = (pure (start whole))}) (query pp st)
-          where munge oWhole oPart (Event _ _ v) =
-                  do let w = oWhole
-                     p <- subArc (arc st) oPart
-                     return (Event w p v)
+  where q st = concatMap
+          (\(Event w p v) ->
+             catMaybes $
+             map (munge w p) $
+             query v st {arc = (pure (start w))})
+          (query pp st)
+          where munge ow op (Event _ _ v') =
+                  do
+                    p' <- subArc (arc st) op
+                    return (Event ow p' v')
 
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
 -- timespan of the outer whole (or the original query if it's a continuous pattern?)
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 unwrapSqueeze :: Pattern (Pattern a) -> Pattern a
 unwrapSqueeze pp = pp {query = q}
-  where q st = concatMap (\(Event whole part p) -> catMaybes $ map (munge whole part) $ query (__compress whole p) st {arc = part}) (query pp st)
+  where q st = concatMap
+          (\(Event w p v) ->
+             catMaybes $
+             map (munge w p) $
+             query (__compress w v) st {arc = p})
+          (query pp st)
         munge oWhole oPart (Event iWhole iPart v) =
-          do whole' <- subArc oWhole iWhole
-             part' <- subArc oPart iPart
-             return (Event whole' part' v)
+          do w' <- subArc oWhole iWhole
+             p' <- subArc oPart iPart
+             return (Event w' p' v)
 
 noOv :: String -> a
 noOv meth = error $ meth ++ ": not supported for patterns"
@@ -498,7 +515,7 @@ instance Show Value where
   show (VF f) = show f ++ "f"
 
 instance {-# OVERLAPPING #-} Show (ControlMap) where
-  show m = intercalate ", " $ map (\(name, value) -> name ++ ": " ++ show value) $ Map.toList m
+  show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
 
 prettyRat :: Rational -> String
 prettyRat r | unit == 0 && frac > 0 = showFrac (numerator frac) (denominator frac)
@@ -578,7 +595,8 @@ splitQueries p = p {query = \st -> concatMap (\a -> query p st {arc = a}) $ arcC
 
 -- | Apply a function to the arcs/timespans (both whole and parts) of the result
 withResultArc :: (Arc -> Arc) -> Pattern a -> Pattern a
-withResultArc f p = p {query = map (\(Event w p e) -> Event (f w) (f p) e) . query p}
+withResultArc f pat = pat
+  { query = map (\(Event w p e) -> Event (f w) (f p) e) . query pat}
 
 -- | Apply a function to the time (both start and end of the timespans
 -- of both whole and parts) of the result

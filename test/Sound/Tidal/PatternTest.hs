@@ -48,7 +48,7 @@ run =
 
     describe "value" $ do
       it "returns the event value in an Event" $ do
-        property $ 5 === value (Event (Arc 1 2) (Arc 3 4) ( 5 :: Int))
+        property $ 5 === value (Event (Arc 1 2 :: Arc) (Arc 3 4) ( 5 :: Int))
 
     describe "wholeStart" $ do 
       it "retrieve the onset of an event: the start of the whole Arc" $ do 

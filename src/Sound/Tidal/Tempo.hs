@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
+
 module Sound.Tidal.Tempo where
 
 -- import Data.Time (getCurrentTime, UTCTime, NominalDiffTime, diffUTCTime, addUTCTime)
@@ -143,7 +145,7 @@ listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
         act _ pkt = putStrLn $ "Unknown packet: " ++ show pkt
 
 serverListen :: Config -> IO (Maybe ThreadId)
-serverListen config = catchAny (run) (\e -> do putStrLn $ "Tempo listener failed (is one already running?)"
+serverListen config = catchAny (run) (\_ -> do putStrLn $ "Tempo listener failed (is one already running?)"
                                                return Nothing
                                      )
   where run = do let port = cTempoPort config

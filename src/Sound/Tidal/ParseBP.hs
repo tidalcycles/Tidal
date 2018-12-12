@@ -280,7 +280,7 @@ pSequence :: Parseable a => Parser (TPat a) -> GenParser Char () (TPat a)
 pSequence f = do (_, pat) <- pSequenceN f
                  return pat
 
-pSingle :: Parseable a => Parser (TPat a) -> Parser (TPat a)
+pSingle :: Parser (TPat a) -> Parser (TPat a)
 pSingle f = f >>= pRand >>= pMult
 
 pPart :: Parseable a => Parser (TPat a) -> Parser [TPat a]
@@ -350,7 +350,7 @@ parseInt = do s <- sign
               i <- integer
               return $ applySign s $ fromIntegral i
 
-pIntegral :: Parseable a => Integral a => Parser (TPat a)
+pIntegral :: Integral a => Parser (TPat a)
 pIntegral = do i <- parseIntNote
                do c <- parseChord
                   return $ TPat_Stack $ map (TPat_Atom . (+i)) c
@@ -394,7 +394,7 @@ pColour = do name <- many1 letter <?> "colour name"
              colour <- readColourName name <?> "known colour"
              return $ TPat_Atom colour
 
-pMult :: Parseable a => TPat a -> Parser (TPat a)
+pMult :: TPat a -> Parser (TPat a)
 pMult thing = do char '*'
                  spaces
                  r <- (pRational <|> pPolyIn pRational  <|> pPolyOut pRational)
@@ -409,13 +409,13 @@ pMult thing = do char '*'
 
 
 
-pRand :: Parseable a => TPat a -> Parser (TPat a)
+pRand :: TPat a -> Parser (TPat a)
 pRand thing = do char '?'
                  spaces
                  return $ TPat_DegradeBy 0.5 thing
               <|> return thing
 
-pE :: Parseable a => TPat a -> Parser (TPat a)
+pE :: TPat a -> Parser (TPat a)
 pE thing = do (n,k,s) <- parens (pair)
               pure $ TPat_pE n k s thing
             <|> return thing
@@ -431,7 +431,7 @@ pE thing = do (n,k,s) <- parens (pair)
                         <|> return (TPat_Atom 0)
                    return (a, b, c)
 
-pReplicate :: Parseable a => TPat a -> Parser [TPat a]
+pReplicate :: TPat a -> Parser [TPat a]
 pReplicate thing =
   do extras <- many $ do char '!'
                          -- if a number is given (without a space)slow 2 $ fast
@@ -443,8 +443,7 @@ pReplicate thing =
                          return $ replicate (fromIntegral (n-1)) thing'
      return (thing:concat extras)
 
-
-pStretch :: Parseable a => TPat a -> Parser [TPat a]
+pStretch :: TPat a -> Parser [TPat a]
 pStretch thing =
   do char '@'
      n <- ((read <$> many1 digit) <|> return 1)

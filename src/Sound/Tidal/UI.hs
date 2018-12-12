@@ -683,7 +683,7 @@ index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
   spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
   where
-    zoom' tSz start = zoom (Arc start (start+tSz))
+    zoom' tSz s = zoom (Arc s (s+tSz))
 
 {-
 -- | @prrw f rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
@@ -1099,7 +1099,10 @@ outside n = inside (1/n)
 
 loopFirst :: Pattern a -> Pattern a
 loopFirst p = splitQueries $ p {query = f}
-  where f st = map (\(Event w p v) -> (Event (plus w) (plus p) v)) $ query p (st {arc = minus $ arc st})
+  where f st = map
+          (\(Event w p' v) ->
+             (Event (plus w) (plus p') v)) $
+          query p (st {arc = minus $ arc st})
           where minus = fmap (subtract (sam s))
                 plus = fmap (+ (sam s))
                 s = start $ arc st
@@ -1576,11 +1579,16 @@ smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State 
     tween _ _ [] = []
     tween st queryA (e:_) = maybe [e {whole = queryA, part = queryA}] (tween' queryA) (nextV st)
       where aStop = Arc (wholeStop e) (wholeStop e)
-            nextEs st = query monoP (st {arc = aStop})
-            nextV st | null (nextEs st) = Nothing
-                     | otherwise = Just $ value (head (nextEs st))
-            tween' queryA v = [Event {whole = queryA, part = queryA, value = value e + ((v - value e) * pc)}]
-            pc | (delta $ whole e) == 0 = 0
-               | otherwise = fromRational $ (eventPartStart e - wholeStart e) / (delta $ whole e)
-            delta a = stop a - start a
+            nextEs st' = query monoP (st' {arc = aStop})
+            nextV st' | null (nextEs st') = Nothing
+                      | otherwise = Just $ value (head (nextEs st'))
+            tween' queryA' v =
+              [ Event
+                { whole = queryA'
+                , part = queryA'
+                , value = value e + ((v - value e) * pc)}
+              ]
+            pc | (delta' $ whole e) == 0 = 0
+               | otherwise = fromRational $ (eventPartStart e - wholeStart e) / (delta' $ whole e)
+            delta' a = stop a - start a
     monoP = mono p
