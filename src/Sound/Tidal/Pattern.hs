@@ -381,7 +381,7 @@ unwrapSqueeze pp = pp {query = q}
           (\(Event w p v) ->
              catMaybes $
              map (munge w p) $
-             query (__compress w v) st {arc = p})
+             query (compressArc w v) st {arc = p})
           (query pp st)
         munge oWhole oPart (Event iWhole iPart v) =
           do w' <- subArc oWhole iWhole
@@ -653,14 +653,14 @@ getS :: Value -> Maybe String
 getS (VS s) = Just s
 getS _  = Nothing
 
-__compress :: Arc -> Pattern a -> Pattern a
-__compress (Arc s e) p | s > e = empty
-                   | s > 1 || e > 1 = empty
-                   | s < 0 || e < 0 = empty
-                   | otherwise = s `rotR` _fastGap (1/(e-s)) p
+compressArc :: Arc -> Pattern a -> Pattern a
+compressArc (Arc s e) p | s > e = empty
+                        | s > 1 || e > 1 = empty
+                        | s < 0 || e < 0 = empty
+                        | otherwise = s `rotR` _fastGap (1/(e-s)) p
 
-__compressTo :: Arc -> Pattern a -> Pattern a
-__compressTo (Arc s e) p = __compress (Arc (cyclePos s) (e-(sam s))) p
+compressArcTo :: Arc -> Pattern a -> Pattern a
+compressArcTo (Arc s e) p = compressArc (Arc (cyclePos s) (e-(sam s))) p
 
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = empty

@@ -62,7 +62,7 @@ toPat = \case
    TPat_Atom x -> pure x
    TPat_Density t x -> fast (toPat t) $ toPat x
    TPat_Slow t x -> slow (toPat t) $ toPat x
-   TPat_Zoom a x -> zoom a $ toPat x
+   TPat_Zoom a x -> zoomArc a $ toPat x
    TPat_DegradeBy amt x -> _degradeBy amt $ toPat x
    TPat_Silence -> silence
    TPat_Cat xs -> fastcat $ map toPat xs

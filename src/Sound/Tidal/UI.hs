@@ -96,10 +96,12 @@ The `perlin` function uses the cycle count as input and can be used much like @r
 -}
 perlinWith :: Pattern Double -> Pattern Double
 perlinWith p = interp <$> (p-pa) <*> (timeToRand <$> pa) <*> (timeToRand <$> pb) where
-  pa = (fromIntegral . floor) <$> p
-  pb = (fromIntegral . (+1) . floor) <$> p
+  pa = ((fromIntegral :: Int -> Double) . floor) <$> p
+  pb = ((fromIntegral :: Int -> Double) . (+1) . floor) <$> p
   interp x a b = a + smootherStep x * (b-a)
   smootherStep x = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
+
+perlin :: Pattern Double
 perlin = perlinWith (sig fromRational)
 
 {- `perlin2With` is Perlin noise with a 2-dimensional input. This can be
@@ -117,20 +119,22 @@ second input.
 -}
 perlin2With :: Pattern Double -> Pattern Double -> Pattern Double
 perlin2With x y = (/2) . (+1) $ interp2 <$> xfrac <*> yfrac <*> dota <*> dotb <*> dotc <*> dotd where
-  fl = fmap (fromIntegral . floor)
-  ce = fmap (fromIntegral . (+1) . floor)
+  fl = fmap ((fromIntegral :: Int -> Double) . floor)
+  ce = fmap ((fromIntegral :: Int -> Double) . (+1) . floor)
   xfrac = x - fl x
   yfrac = y - fl y
   randAngle a b = 2 * pi * timeToRand (a + 0.0001 * b)
-  pcos x y = cos $ randAngle <$> x <*> y
-  psin x y = sin $ randAngle <$> x <*> y
+  pcos x' y' = cos $ randAngle <$> x' <*> y'
+  psin x' y' = sin $ randAngle <$> x' <*> y'
   dota = pcos (fl x) (fl y) * xfrac       + psin (fl x) (fl y) * yfrac
   dotb = pcos (ce x) (fl y) * (xfrac - 1) + psin (ce x) (fl y) * yfrac
   dotc = pcos (fl x) (ce y) * xfrac       + psin (fl x) (ce y) * (yfrac - 1)
   dotd = pcos (ce x) (ce y) * (xfrac - 1) + psin (ce x) (ce y) * (yfrac - 1)
-  interp2 x y a b c d = (1.0 - s x) * (1.0 - s y) * a  +  s x * (1.0 - s y) * b
-                        + (1.0 - s x) * s y * c  +  s x * s y * d
-  s x = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
+  interp2 x' y' a b c d = (1.0 - s x') * (1.0 - s y') * a  +  s x' * (1.0 - s y') * b
+                          + (1.0 - s x') * s y' * c  +  s x' * s y' * d
+  s x' = 6.0 * x'**5 - 15.0 * x'**4 + 10.0 * x'**3
+
+perlin2 :: Pattern Double -> Pattern Double
 perlin2 = perlin2With (sig fromRational)
 
 {- | Randomly picks an element from the given list
@@ -545,7 +549,7 @@ trunc :: Pattern Time -> Pattern a -> Pattern a
 trunc = tParam _trunc
 
 _trunc :: Time -> Pattern a -> Pattern a
-_trunc t = compress (Arc 0 t) . zoom (Arc 0 t)
+_trunc t = compress (0, t) . zoomArc (Arc 0 t)
 
 {- | @linger@ is similar to `trunc` but the truncated part of the pattern loops until the end of the cycle
 
@@ -557,7 +561,7 @@ linger :: Pattern Time -> Pattern a -> Pattern a
 linger = tParam _linger
 
 _linger :: Time -> Pattern a -> Pattern a
-_linger n p = _fast (1/n) $ zoom (Arc 0 n) p
+_linger n p = _fast (1/n) $ zoomArc (Arc 0 n) p
 
 {- |
 Use `within` to apply a function to only a part of a pattern. For example, to
@@ -573,10 +577,13 @@ Or, to apply `(# speed "0.5") to only the last quarter of a pattern:
 d1 $ within (0.75, 1) (# speed "0.5") $ sound "bd*2 sn lt mt hh hh hh hh"
 @
 -}
-within :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-within (Arc s e) f p = stack [filterWhen (\t -> cyclePos t >= s && cyclePos t < e) $ f p,
-                          filterWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p
-                         ]
+within :: (Time, Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+within (s, e) f p = stack [filterWhen (\t -> cyclePos t >= s && cyclePos t < e) $ f p,
+                           filterWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p
+                          ]
+
+withinArc :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+withinArc (Arc s e) = within (s, e)
 
 {- |
 For many cases, @within'@ will function exactly as within.
@@ -611,13 +618,13 @@ d1 $ sound "[bd bd] hh cp sd"
 
 -}
 
-within' :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-within' a@(Arc s e) f p =
+within' :: (Time, Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+within' a@(s, e) f p =
   stack [ filterWhen (\t -> cyclePos t >= s && cyclePos t < e) $ compress a $ f $ zoom a $ p
         , filterWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p
         ]
 
-revArc :: Arc -> Pattern a -> Pattern a
+revArc :: (Time, Time) -> Pattern a -> Pattern a
 revArc a = within a rev
 
 {- | You can use the @e@ function to apply a Euclidean algorithm over a
@@ -732,7 +739,7 @@ index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
   spread' (zoom' $ toRational sz) (toRational . (*(1-sz)) <$> indexpat) pat
   where
-    zoom' tSz s = zoom (Arc s (s+tSz))
+    zoom' tSz s = zoomArc (Arc s (s+tSz))
 
 {-
 -- | @prrw f rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
@@ -947,7 +954,7 @@ struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <* p
 substruct :: Pattern String -> Pattern b -> Pattern b
 substruct s p = p {query = f}
   where f st =
-          concatMap (\a' -> queryArc (compressTo a' p) a') $ (map whole $ query s st)
+          concatMap (\a' -> queryArc (compressArcTo a' p) a') $ (map whole $ query s st)
 
 randArcs :: Int -> Pattern [Arc]
 randArcs n =
@@ -976,7 +983,7 @@ randStruct n = splitQueries $ Pattern {nature = Digital, query = f}
 
 -- TODO - what does this do?
 substruct' :: Pattern Int -> Pattern a -> Pattern a
-substruct' s p = p {query = \st -> concatMap (\(Event a' _ i) -> queryArc (compressTo a' (inside (pure $ 1/toRational(length (queryArc s (Arc (sam (start $ arc st)) (nextSam (start $ arc st)))))) (rotR (toRational i)) p)) a') (query s st)}
+substruct' s p = p {query = \st -> concatMap (\(Event a' _ i) -> queryArc (compressArcTo a' (inside (pure $ 1/toRational(length (queryArc s (Arc (sam (start $ arc st)) (nextSam (start $ arc st)))))) (rotR (toRational i)) p)) a') (query s st)}
 
 -- | @stripe n p@: repeats pattern @p@, @n@ times per cycle. So
 -- similar to @fast@, but with random durations. The repetitions will
@@ -1033,7 +1040,7 @@ lindenmayerI n r s = fmap fromIntegral $ fmap digitToInt $ lindenmayer n r s
 -- support for fit'
 unwrap' :: Pattern (Pattern a) -> Pattern a
 unwrap' pp = pp {query = \st -> query (stack $ map scalep (query pp st)) st}
-  where scalep ev = compress (whole ev) $ value ev
+  where scalep ev = compressArc (whole ev) $ value ev
 
 {-|
 Removes events from second pattern that don't start during an event from first.
@@ -1085,7 +1092,7 @@ enclosingArc as = Arc (minimum (map start as)) (maximum (map stop as))
 stretch :: Pattern a -> Pattern a
 -- TODO - should that be whole or part?
 stretch p = splitQueries $ p {query = q}
-  where q st = query (zoom (enclosingArc $ map whole $ query p (st {arc = (Arc (sam s) (nextSam s))})) p) st
+  where q st = query (zoomArc (enclosingArc $ map whole $ query p (st {arc = (Arc (sam s) (nextSam s))})) p) st
           where s = start $ arc st
 
 {- | `fit'` is a generalization of `fit`, where the list is instead constructed by using another integer pattern to slice up a given pattern.  The first argument is the number of cycles of that latter pattern to use when slicing.  It's easier to understand this with a few examples:
@@ -1119,7 +1126,7 @@ d1 $ chunk 4 (density 4) $ sound "cp sn arpy [mt lt]"
 @
 -}
 chunk :: Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-chunk n f p = cat [within (Arc (i%(fromIntegral n)) ((i+1)%(fromIntegral n))) f p | i <- [0..(fromIntegral n)-1]]
+chunk n f p = cat [withinArc (Arc (i%(fromIntegral n)) ((i+1)%(fromIntegral n))) f p | i <- [0..(fromIntegral n)-1]]
 
 {-
 chunk n f p = do i <- _slow (toRational n) $ run (fromIntegral n)
@@ -1134,7 +1141,7 @@ runWith = chunk
 -}
 chunk' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 chunk' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
-                  within (Arc (i%(fromIntegral n)) ((i+)1%(fromIntegral n))) f p
+                  withinArc (Arc (i%(fromIntegral n)) ((i+)1%(fromIntegral n))) f p
 
 -- deprecated (renamed to chunk')
 runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
@@ -1183,7 +1190,7 @@ the second half of each slice by `x` fraction of a slice . @swing@ is an alias
 for `swingBy (1%3)`
 -}
 swingBy :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
-swingBy x n = inside n (within (Arc 0.5 1) (x ~>))
+swingBy x n = inside n (withinArc (Arc 0.5 1) (x ~>))
 
 swing :: Pattern Time -> Pattern a -> Pattern a
 swing = swingBy (pure $ 1%3)
@@ -1241,7 +1248,7 @@ inhabit ps p = unwrap' $ (\s -> fromMaybe silence $ lookup s ps) <$> p
 
 {- | @spaceOut xs p@ repeats a pattern @p@ at different durations given by the list of time values in @xs@ -}
 spaceOut :: [Time] -> Pattern a -> Pattern a
-spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compress a p) $ spaceArcs
+spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compressArc a p) $ spaceArcs
   where markOut :: Time -> [Time] -> [Arc]
         markOut _ [] = []
         markOut offset (x:xs') = (Arc offset (offset+x)):(markOut (offset+x) xs')
@@ -1517,7 +1524,7 @@ tabby n p p' = stack [maskedWarp,
   where
     weft = concatMap (\_ -> [[0..n-1],(reverse [0..n-1])]) [0 .. (n `div` 2) - 1]
     warp = transpose weft
-    thread xs p'' = _slow (n%1) $ fastcat $ map (\i -> zoom (Arc (i%n) ((i+1)%n)) p'') (concat xs)
+    thread xs p'' = _slow (n%1) $ fastcat $ map (\i -> zoomArc (Arc (i%n) ((i+1)%n)) p'') (concat xs)
     weftP = thread weft p'
     warpP = thread warp p
     maskedWeft = mask (every 2 rev $ _fast ((n)%2) $ fastCat [silence, pure True]) weftP

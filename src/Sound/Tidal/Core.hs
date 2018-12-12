@@ -218,7 +218,7 @@ fastcat = fastCat
 
 -- | Similar to @fastCat@, but each pattern is given a relative duration
 timeCat :: [(Time, Pattern a)] -> Pattern a
-timeCat tps = stack $ map (\(s,e,p) -> compress (Arc (s/total) (e/total)) p) $ arrange 0 tps
+timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 tps
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
           arrange _ [] = []
@@ -322,8 +322,11 @@ In the pattern above, `zoom` is used with an arc from 25% to 75%. It is equivale
 d1 $ sound "hh*3 [sn bd]*2"
 @
 -}
-zoom :: Arc -> Pattern a -> Pattern a
-zoom (Arc s e) p = splitQueries $
+zoom :: (Time, Time) -> Pattern a -> Pattern a
+zoom (s,e) = zoomArc (Arc s e)
+
+zoomArc :: Arc -> Pattern a -> Pattern a
+zoomArc (Arc s e) p = splitQueries $
   withResultArc (mapCycle ((/d) . (subtract s))) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 
@@ -338,11 +341,11 @@ fastGap = tParam _fastGap
 densityGap :: Pattern Time -> Pattern a -> Pattern a
 densityGap = fastGap
 
-compress :: Arc -> Pattern a -> Pattern a
-compress = __compress
+compress :: (Time,Time) -> Pattern a -> Pattern a
+compress (s,e) = compressArc (Arc s e)
 
-compressTo :: Arc -> Pattern a -> Pattern a
-compressTo = __compressTo
+compressTo :: (Time,Time) -> Pattern a -> Pattern a
+compressTo (s,e) = compressArcTo (Arc s e)
 
 repeatCycles :: Int -> Pattern a -> Pattern a
 repeatCycles n p = cat (replicate n p)
