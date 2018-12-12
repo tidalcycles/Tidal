@@ -1545,3 +1545,42 @@ quantise n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . floor . (*n
 -- | Inverts all the values in a boolean pattern
 inv :: Functor f => f Bool -> f Bool
 inv = (not <$>)
+
+-- | Serialises a pattern so there's only one event playing at any one
+-- time, making it 'monophonic'. Events which start/end earlier are given priority.
+mono :: Pattern a -> Pattern a
+mono p = Pattern Digital $ \(State a cm) -> flatten $ (query p) (State a cm) where
+  flatten :: [Event a] -> [Event a]
+  flatten = catMaybes . map constrainPart . truncateOverlaps . sortBy (comparing whole)
+  truncateOverlaps [] = []
+  truncateOverlaps (e:es) = e:(truncateOverlaps $ catMaybes $ map (snip e) es)
+  snip a b | (start $ whole b) >= (finish $ whole a) = Just b
+           | (finish $ whole b) <= (finish $ whole a) = Nothing
+           | otherwise = Just b {whole = Arc (finish $ whole a) (finish $ whole b)}
+  constrainPart :: Event a -> Maybe (Event a)
+  constrainPart e = do a <- subArc (whole e) (part e)
+                       return $ e {part = a}
+
+-- serialize the given pattern
+-- find the middle of the query's arc and use that to query the serialized pattern. We should get either no events or a single event back
+-- if we don't get any events, return nothing
+-- if we get an event, get the finish of its arc, and use that to query the serialized pattern, to see if there's an adjoining event
+-- if there isn't, return the event as-is.
+-- if there is, check where we are in the 'whole' of the event, and use that to tween between the values of the event and the next event
+-- smooth :: Pattern Double -> Pattern Double
+
+smooth :: Fractional a => Pattern a -> Pattern a
+smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State (midArc a) cm)
+  where
+    midArc a = Arc (mid (start a, finish a)) (mid (start a, finish a))
+    tween _ _ [] = []
+    tween st queryA (e:_) = maybe [e {whole = queryA, part = queryA}] (tween' queryA) (nextV st)
+      where aFinish = Arc (wholeFinish e) (wholeFinish e)
+            nextEs st = query monoP (st {arc = aFinish})
+            nextV st | null (nextEs st) = Nothing
+                     | otherwise = Just $ event (head (nextEs st))
+            tween' queryA v = [Event {whole = queryA, part = queryA, event = event e + ((v - event e) * pc)}]
+            pc | (delta $ whole e) == 0 = 0
+               | otherwise = fromRational $ (eventPartStart e - wholeStart e) / (delta $ whole e)
+            delta a = finish a - start a
+    monoP = mono p
