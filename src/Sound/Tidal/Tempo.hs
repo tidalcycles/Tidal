@@ -33,6 +33,17 @@ data State = State {ticks   :: Int,
                     nowArc  :: P.Arc
                    }
 
+resetCycles :: MVar Tempo -> IO (Tempo)
+resetCycles tempoMV = do t <- O.time
+                         tempo <- takeMVar tempoMV
+                         let tempo' = tempo {atTime = t,
+                                             atCycle = (-0.5)
+                                            }
+                         sendTempo tempo'
+                         putMVar tempoMV $ tempo'
+                         return tempo'
+
+
 setCps :: MVar Tempo -> O.Time -> IO (Tempo)
 setCps tempoMV newCps = do t <- O.time
                            tempo <- takeMVar tempoMV

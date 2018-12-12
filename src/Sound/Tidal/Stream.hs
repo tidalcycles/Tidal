@@ -132,6 +132,10 @@ streamNudgeAll :: Stream -> Double -> IO ()
 streamNudgeAll s nudge = do tempo <- takeMVar $ sTempoMV s
                             putMVar (sTempoMV s) $ tempo {T.nudged = nudge}
 
+streamResetCycles :: Stream -> IO ()
+streamResetCycles s = do T.resetCycles (sTempoMV s)
+                         return ()
+
 hasSolo :: Map.Map k PlayState -> Bool
 hasSolo = (>= 1) . length . filter solo . Map.elems
 
