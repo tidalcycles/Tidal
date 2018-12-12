@@ -73,19 +73,19 @@ run =
 
     describe "compress" $ do
       it "squashes cycles to the start of a cycle" $ do
-        let p = compress (Arc 0 0.5) $ fastCat [pure 7, pure 8] :: Pattern Int
+        let p = compress (0, 0.5) $ fastCat [pure 7, pure 8] :: Pattern Int
         (queryArc p (Arc 0 1)) `shouldBe` fmap toEvent
           [ (((0,0.25),  (0,0.25)),   7),
             (((0.25,0.5),(0.25,0.5)), 8)
           ]
       it "squashes cycles to the end of a cycle" $ do
-        let p = compress (Arc 0.5 1) $ fastCat [pure 7, pure 8] :: Pattern Int
+        let p = compress (0.5, 1) $ fastCat [pure 7, pure 8] :: Pattern Int
         (queryArc p (Arc 0 1)) `shouldBe` fmap toEvent
           [(((0.5,0.75),  (0.5,0.75)), 7 :: Int),
            (((0.75,1),    (0.75,1)),   8)
           ]
       it "squashes cycles to the middle of a cycle" $ do
-        let p = compress (Arc 0.25 0.75) $ fastCat [pure 7, pure 8]
+        let p = compress (0.25, 0.75) $ fastCat [pure 7, pure 8]
         (queryArc p (Arc 0 1)) `shouldBe` fmap toEvent
           [(((0.25,0.5),  (0.25,0.5)), 7 :: Int),
             (((0.5,0.75),  (0.5,0.75)), 8)
