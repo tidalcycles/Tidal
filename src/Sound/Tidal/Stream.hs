@@ -80,12 +80,12 @@ toDatum (VI x) = O.int32 x
 toDatum (VS x) = O.string x
 
 toData :: Event ControlMap -> [O.Datum]
-toData e = concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ event e
+toData e = concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ value e
 
 toMessage :: OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> O.Message
 toMessage target tempo e = O.Message (oPath target) $ oPreamble target ++ toData addCps
   where on = sched tempo $ start $ whole e
-        off = sched tempo $ finish $ whole e
+        off = sched tempo $ stop $ whole e
         delta = off - on
         -- If there is already cps in the event, the union will preserve that.
         addCps = (\v -> (Map.union v $ Map.fromList [("cps", (VF $ T.cps tempo)),
@@ -109,9 +109,9 @@ onTick config cMapMV pMV target u tempoMV st =
      now <- O.time
      let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
          on e = (sched tempo $ start $ whole e) + eventNudge e
-         eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ event e
+         eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
          messages = map (\e -> (on e, toMessage target tempo e)) es
-         cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ event e)) es
+         cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
          latency = oLatency target + cFrameTimespan config + T.nudged tempo
      E.catch (mapM_ (send latency u) messages)
        (\(_ ::E.SomeException)
@@ -194,7 +194,7 @@ streamOnce st asap p
                                                )
            at e = sched fakeTempo $ start $ whole e
            on e = sched tempo $ start $ whole e
-           cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ event e)) es
+           cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
            messages = map (\e -> (at e, toMessage target fakeTempo e)) es
        E.catch (mapM_ (send (oLatency target) (sUDP st)) messages)
          (\(msg ::E.SomeException)

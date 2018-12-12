@@ -40,8 +40,11 @@ nextSam = (1+) . sam
 cyclePos :: Time -> Time
 cyclePos t = t - sam t
 
--- | A time arc (start and finish)
-data ArcF a = Arc { start :: a, finish :: a } deriving (Eq, Ord, Functor)
+-- | An arc of time, with a start time (or onset) and a stop time (or offset)
+data ArcF a = Arc
+  { start :: a
+  , stop :: a
+  } deriving (Eq, Ord, Functor)
 
 type Arc = ArcF Time
 
@@ -127,7 +130,7 @@ isIn (Arc s e) t = t >= s && t < e
 data EventF a b = Event
   { whole :: a
   , part :: a
-  , event :: b
+  , value :: b
   } deriving (Eq, Ord, Functor)
 
 type Event a = EventF (ArcF Time) a
@@ -160,16 +163,16 @@ defragParts (e:es) | isJust i = defraged:(defragParts (delete e' es))
                    | otherwise = e:(defragParts es)
   where i = findIndex (isAdjacent e) es
         e' = es !! (fromJust i)
-        defraged = Event (whole e) u (event e)
+        defraged = Event (whole e) u (value e)
         u = hull (part e) (part e')
 
 -- | Returns 'True' if the two given events are adjacent parts of the same whole
 isAdjacent :: Eq a => Event a -> Event a -> Bool
 isAdjacent e e' = (whole e == whole e')
-                  && (event e == event e')
-                  && (((finish $ part e) == (start $ part e'))
+                  && (value e == value e')
+                  && (((stop $ part e) == (start $ part e'))
                       ||
-                      ((finish $ part e') == (start $ part e))
+                      ((stop $ part e') == (start $ part e))
                      )
 
 -- | Get the onset of an event's 'whole'
@@ -177,23 +180,23 @@ wholeStart :: Event a -> Time
 wholeStart = start . whole
 
 -- | Get the offset of an event's 'whole'
-wholeFinish :: Event a -> Time
-wholeFinish = finish . whole
+wholeStop :: Event a -> Time
+wholeStop = stop . whole
 
 -- | Get the onset of an event's 'whole'
 eventPartStart :: Event a -> Time
 eventPartStart = start . part
 
 -- | Get the offset of an event's 'part'
-eventPartFinish :: Event a -> Time
-eventPartFinish = finish . part
+eventPartStop :: Event a -> Time
+eventPartStop = stop . part
 
 -- | Get the timespan of an event's 'part'
 eventPart :: Event a -> Arc
 eventPart = part
 
 eventValue :: Event a -> a
-eventValue = event
+eventValue = value
 
 eventHasOnset :: Event a -> Bool
 eventHasOnset e = (start $ whole e) == (start $ part e)
@@ -253,7 +256,7 @@ instance Applicative Pattern where
             where
               match (Event fWhole fPart f) =
                 map
-                (\e -> (Event fWhole fPart (f (event e))))
+                (\e -> (Event fWhole fPart (f (value e))))
                 (query px $ st {arc = pure (start fPart)})
 
   (<*>) pf@(Pattern Analog _) px@(Pattern Digital _) = Pattern Digital q
@@ -261,15 +264,15 @@ instance Applicative Pattern where
             where
               match (Event xWhole xPart x) =
                 map
-                (\e -> (Event xWhole xPart ((event e) x)))
+                (\e -> (Event xWhole xPart ((value e) x)))
                 (query pf st {arc = (pure (start xPart))})
-                
+
   (<*>) pf px = Pattern Analog q
     where q st = concatMap match $ query pf st
             where
               match ef =
                 map
-                (\ex -> (Event (arc st) (arc st) ((event ef) (event ex))))
+                (\ex -> (Event (arc st) (arc st) ((value ef) (value ex))))
                 (query px st)
 
 -- | Like <*>, but the structure only comes from the left
@@ -279,7 +282,7 @@ instance Applicative Pattern where
          where
             match (Event fWhole fPart f) =
               map
-              (\e -> (Event fWhole fPart (f (event e)))) $
+              (\e -> (Event fWhole fPart (f (value e)))) $
               query px $ st {arc = xQuery fWhole}
             xQuery (Arc s _) = pure s -- for discrete events, match with the onset
 
@@ -288,7 +291,7 @@ pf <* px = Pattern Analog q
           where
             match (Event fWhole fPart f) =
               map
-              (\e -> (Event fWhole fPart (f (event e)))) $
+              (\e -> (Event fWhole fPart (f (value e)))) $
               query px st -- for continuous events, use the original query
 
 -- | Like <*>, but the structure only comes from the right
@@ -298,7 +301,7 @@ pf <* px = Pattern Analog q
          where
             match (Event xWhole xPart x) =
               map
-              (\e -> (Event xWhole xPart ((event e) x))) $
+              (\e -> (Event xWhole xPart ((value e) x))) $
               query pf $ fQuery xWhole
             fQuery (Arc s _) = st {arc = pure s} -- for discrete events, match with the onset
 
@@ -307,7 +310,7 @@ pf *> px = Pattern Analog q
           where
             match (Event xWhole xPart x) =
               map
-              (\e -> (Event xWhole xPart ((event e) x))) $
+              (\e -> (Event xWhole xPart ((value e) x))) $
               query pf st -- for continuous events, use the original query
 
 infixl 4 <*, *>
@@ -666,7 +669,7 @@ rotR t = rotL (0-t)
 
 -- | Remove events from patterns that to not meet the given test
 filterValues :: (a -> Bool) -> Pattern a -> Pattern a
-filterValues f p = p {query = (filter (f . event)) . query p}
+filterValues f p = p {query = (filter (f . value)) . query p}
 
 -- | Turns a pattern of 'Maybe' values in to a pattern of values,
 -- dropping the events of 'Nothing'.
@@ -702,5 +705,5 @@ matchManyToOne f pa pb = pa {query = q}
           where
             match (Event xWhole xPart x) =
               Event xWhole xPart (or $ (map (f x) (as $ start xWhole)), x)
-            as s = map event $ query pa $ fQuery s
+            as s = map value $ query pa $ fQuery s
             fQuery s = st {arc = (Arc s s)}

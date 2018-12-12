@@ -46,13 +46,13 @@ run =
       it "returns the part Arc in an Event" $ do
         property $ Arc 3 4 === part (Event (Arc 1 2) (Arc 3 4) 5 :: Event Int)
 
-    describe "event" $ do
+    describe "value" $ do
       it "returns the event value in an Event" $ do
-        property $ 5 === event (Event (Arc 1 2) (Arc 3 4) ( 5 :: Int))
+        property $ 5 === value (Event (Arc 1 2) (Arc 3 4) ( 5 :: Int))
 
-    describe "wholeOnset" $ do 
+    describe "wholeStart" $ do 
       it "retrieve the onset of an event: the start of the whole Arc" $ do 
-        property $ 1 === wholeOnset (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 1 === wholeStart (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "eventHasOnset" $ do 
       it "return True when the start values of the two arcs in an event are equal" $ do 

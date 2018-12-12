@@ -102,7 +102,7 @@ run =
         it "0.75" $
           (queryArc saw (Arc 0.75 0.75)) `shouldBe` fmap toEvent [(((0.75,0.75), (0.75,0.75)), 0.75 :: Float)]
       it "can be added to" $ do
-        (map event $ queryArc ((+1) <$> saw) (Arc 0.5 0.5)) `shouldBe` [1.5 :: Float]
+        (map value $ queryArc ((+1) <$> saw) (Arc 0.5 0.5)) `shouldBe` [1.5 :: Float]
       it "works on the left of <*>" $ do
         (queryArc ((+) <$> saw <*> pure 3) (Arc 0 1))
           `shouldBe` fmap toEvent [(((0,1), (0,1)), 3 :: Float)]
