@@ -64,6 +64,7 @@ library
     , network
     , mwc-random
     , vector
+    , bifunctors
 
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups == 0.18.*

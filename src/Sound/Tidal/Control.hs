@@ -65,19 +65,19 @@ _chop :: Int -> ControlPattern -> ControlPattern
 _chop n p = withEvents (concatMap chopEvent) p
   where -- for each part,
         chopEvent :: Event ControlMap -> [Event ControlMap]
-        chopEvent (Event w p v) = map (\a -> chomp v (length $ chopArc w n) a) $ arcs w p
+        chopEvent (Event w p' v) = map (\a -> chomp v (length $ chopArc w n) a) $ arcs w p'
         -- cut whole into n bits, and number them
-        arcs whole part = numberedArcs part $ chopArc whole n
+        arcs w' p' = numberedArcs p' $ chopArc w' n
         -- each bit is a new whole, with part that's the intersection of old part and new whole
         -- (discard new parts that don't intersect with the old part)
         numberedArcs :: Arc -> [Arc] -> [(Int, (Arc, Arc))]
-        numberedArcs part as = map ((fromJust <$>) <$>) $ filter (isJust . snd . snd) $ enumerate $ map (\a -> (a, subArc part a)) as
+        numberedArcs p' as = map ((fromJust <$>) <$>) $ filter (isJust . snd . snd) $ enumerate $ map (\a -> (a, subArc p' a)) as
         -- begin set to i/n, end set to i+1/n
         -- if the old event had a begin and end, then multiply the new
         -- begin and end values by the old difference (end-begin), and
         -- add the old begin
         chomp :: ControlMap -> Int -> (Int, (Arc, Arc)) -> Event ControlMap
-        chomp v n' (i, (w,p)) = Event w p (Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v)
+        chomp v n' (i, (w,p')) = Event w p' (Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v)
           where b = fromMaybe 0 $ do v' <- Map.lookup "begin" v
                                      getF v'
                 e = fromMaybe 1 $ do v' <- Map.lookup "end" v

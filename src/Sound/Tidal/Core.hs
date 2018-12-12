@@ -8,7 +8,6 @@ import           Data.Fixed (mod')
 import qualified Data.Map.Strict as Map
 
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Utils
 
 -- ** Elemental patterns
 
@@ -46,7 +45,7 @@ tri :: (Fractional a, Real a) => Pattern a
 tri = fastAppend saw isaw
 
 -- | @square@ is the equivalent of 'sine' for square waves.
-square :: (Fractional a, Real a) => Pattern a
+square :: (Fractional a) => Pattern a
 square = sig $
          \t -> fromIntegral $ ((floor $ (mod' (fromRational t :: Double) 1) * 2) :: Integer)
 
@@ -188,7 +187,7 @@ cat [] = silence
 cat ps = Pattern Digital q
   where n = length ps
         q st = concatMap (f st) $ arcCyclesZW (arc st)
-        f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (finish a))}
+        f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (stop a))}
           where p = ps !! i
                 cyc = (floor $ start a) :: Int
                 i = cyc `mod` n
@@ -232,10 +231,6 @@ overlay :: Pattern a -> Pattern a -> Pattern a
 overlay p@(Pattern Analog _) p'@(Pattern Analog _) = Pattern Analog $ \st -> (query p st) ++ (query p' st)
 -- Otherwise digital. Won't really work to have a mixture.. Hmm
 overlay p p' = Pattern Digital $ \st -> (query p st) ++ (query p' st)
-
--- | An infix operator, an alias of overlay
-(<>) :: Pattern a -> Pattern a -> Pattern a
-(<>) = overlay
 
 -- | 'stack' combines a list of 'Pattern's into a new pattern, so that
 -- their events are combined over time.
@@ -301,15 +296,15 @@ rev p =
         })
     }
   where makeWholeRelative :: Event a -> Event a
-        makeWholeRelative (Event (Arc s e) p@(Arc s' e') v) =
-          Event (Arc (s'-s) (e'-e)) p v
+        makeWholeRelative (Event (Arc s e) p'@(Arc s' e') v) =
+          Event (Arc (s'-s) (e'-e)) p' v
         makeWholeAbsolute :: Event a -> Event a
-        makeWholeAbsolute (Event (Arc s e) p@(Arc s' e') v) =
-          Event (Arc (s'-e) (e'+s)) p v
+        makeWholeAbsolute (Event (Arc s e) p'@(Arc s' e') v) =
+          Event (Arc (s'-e) (e'+s)) p' v
         midCycle :: Arc -> Time
         midCycle (Arc s _) = (sam s) + 0.5
         mapParts :: (Arc -> Arc) -> [Event a] -> [Event a]
-        mapParts f es = (\(Event w p e) -> Event w (f p) e) <$> es
+        mapParts f es = (\(Event w p' v) -> Event w (f p') v) <$> es
         -- | Returns the `mirror image' of a 'Arc' around the given point in time
         mirrorArc :: Time -> Arc -> Arc
         mirrorArc mid' (Arc s e) = Arc (mid' - (e-mid')) (mid'+(mid'-s))
