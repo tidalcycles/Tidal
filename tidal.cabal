@@ -58,7 +58,6 @@ library
     , time
     , parsec
     , safe
-    , websockets > 0.8
     , mtl >= 2.1
     , monad-loops
     , network
