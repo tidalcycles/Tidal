@@ -13,6 +13,7 @@ import           Data.Ratio
 import           Sound.Tidal.Control
 import           Sound.Tidal.Core
 import           Sound.Tidal.Pattern
+import           Sound.Tidal.UI
 
 import qualified Data.Map.Strict     as Map
 
@@ -254,6 +255,22 @@ run =
       it "retrieve first element of a tuple, inside first element of a tuple, inside the first of another" $ do 
         property $ 1 === wholeStart (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
 
+    describe "wholeStop" $ do
+      it "retrieve the end time from the first Arc in an Event" $ do
+        property $ 2 === wholeStop (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+
+    describe "eventPartStart" $ do 
+      it "retrieve the start time of the second Arc in an Event" $ do 
+        property $ 3 === eventPartStart (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+
+    describe "eventPartStop" $ do 
+      it "retrieve the end time of the second Arc in an Event" $ do 
+        property $ 4 === eventPartStop (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+    
+    describe "eventPart" $ do 
+      it "retrieve the second Arc in an Event" $ do 
+        property $ Arc 3 4 === eventPart (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+    
     describe "eventValue" $ do
       it "retrieve the second value from a tuple" $ do 
         property $ 5 === eventValue (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
@@ -420,6 +437,91 @@ run =
       it "compare lists of same length with same Events" $ do 
         let res = compareDefrag [Event (Arc 1 2) (Arc 3 4) (5 :: Int)] [Event (Arc 1 2) (Arc 3 4) (5 :: Int)]
         property $ True === res 
+
+    describe "sect" $ do 
+      it "take two Arcs and return - Arc (max of two starts) (min of two ends)" $ do
+        let res = sect (Arc 2.2 3) (Arc 2 2.9)
+        property $ Arc 2.2 2.9 == res
+
+    describe "hull" $ do 
+      it "take two Arcs anre return - Arc (min of two starts) (max of two ends)" $ do
+        let res = hull (Arc 2.2 3) (Arc 2 2.9) 
+        property $ Arc 2 3 == res
+
+    describe "withResultArc" $ do 
+     it "apply given function to the Arcs" $ do
+      let p = withResultArc (+5) (fast "1 2" "3 4" :: Pattern Int) 
+      let res = queryArc p (Arc 0 1)
+      property $ res === fmap toEvent [(((5, 11%2), (5, 11%2)), 3), (((11%2, 23%4), (11%2, 23%4)), 3), (((23%4, 6), (23%4, 6)), 4)]
+
+    describe "applyFIS" $ do 
+      it "apply Float function when value of type VF" $ do 
+        let res = applyFIS (+1) (+1) (++ "1") (VF 1)
+        property $ (VF $ 2.0) === res
+      it "apply Int function when value of type VI" $ do 
+        let res = applyFIS (+1) (+1) (++ "1") (VI 1)
+        property $ (VI $ 2) === res
+      it "apply String function when value of type VS" $ do
+        let res = applyFIS (+1) (+1) (++ "1") (VS "1")
+        property $ (VS $ "11") === res 
+
+    describe "fNum2" $ do
+      it "apply Int function for two Int values" $ do 
+        let res = fNum2 (+) (+) (VI 2) (VI 3)
+        property $ (VI $ 5) === res 
+      it "apply float function when given two float values" $ do 
+        let res = fNum2 (+) (+) (VF 2) (VF 3)
+        property $ (VF $ 5.0) === res 
+      it "apply float function when one float and one int value given" $ do
+        let res = fNum2 (+) (+) (VF 2) (VI 3) 
+        property $ (VF $ 5.0) === res 
+
+    describe "getI" $ do 
+      it "get Just value when Int value is supplied" $ do
+        let res = getI (VI 3)
+        property $ (Just 3) === res
+      it "get Nothing if Int value is not supplied" $ do
+        let res = getI (VF 3)
+        property $ Nothing === res
+
+    describe "getf" $ do 
+     it "get Just value when Float value is supplied" $ do
+       let res = getF (VF 3)
+       property $ (Just 3.0) === res
+     it "get Nothing if Int value is not supplied" $ do
+       let res = getF (VI 3)
+       property $ Nothing === res
+
+    describe "getS" $ do 
+     it "get Just value when String value is supplied" $ do
+       let res = getS (VS "Tidal")
+       property $ (Just "Tidal") === res
+     it "get Nothing if Int value is not supplied" $ do
+       let res = getS (VI 3) 
+       property $ Nothing === res
+
+    describe "filterValues" $ do 
+     it "remove Events above given threshold" $ do 
+       let fil = filterValues (<2) $ fastCat [pure 1, pure 2, pure 3] :: Pattern Time 
+       let res = queryArc fil (Arc 0.5 1.5)
+       property $ fmap toEvent [(((1, 4%3), (1, 4%3)), 1%1)] === res
+
+     it "remove Events below given threshold" $ do 
+       let fil = filterValues (>2) $ fastCat [pure 1, pure 2, pure 3] :: Pattern Time 
+       let res = queryArc fil (Arc 0.5 1.5)
+       property $ fmap toEvent [(((2%3, 1), (2%3, 1)), 3%1)] === res
+
+    describe "filterWhen" $ do 
+      it "filter below given threshold" $ do 
+        let fil = filterWhen (<0.5) $ struct "t*4" $ (tri :: Pattern Double) + 1
+        let res = queryArc fil (Arc 0.5 1.5)
+        property $ [] === res
+
+      it "filter above given threshold" $ do 
+        let fil = filterWhen (>0.5) $ struct "t*4" $ (tri :: Pattern Double) + 1
+        let res = queryArc fil (Arc 0.5 1.5)
+        property $ fmap toEvent [(((3%4, 1), (3%4, 1)), 1.5), (((1, 5%4), (1, 5%4)), 1.0), (((5%4, 3%2), (5%4, 3%2)), 1.5)] === res
+
 
     -- pending "Sound.Tidal.Pattern.eventL" $ do
     --  it "succeeds if the first event 'whole' is shorter" $ do
