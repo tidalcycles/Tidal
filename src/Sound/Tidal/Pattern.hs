@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Sound.Tidal.Pattern where
@@ -9,6 +11,7 @@ import           Prelude hiding ((<*), (*>))
 
 import           Control.Applicative (liftA2)
 import           Data.Bifunctor (Bifunctor(..))
+import           Data.Biapplicative (Biapplicative(..))
 import           Data.Data (Data) -- toConstr
 import           Data.List (delete, findIndex, sort, intercalate)
 import qualified Data.Map.Strict as Map
@@ -39,7 +42,7 @@ cyclePos :: Time -> Time
 cyclePos t = t - sam t
 
 -- | An arc of time, with a start time (or onset) and a stop time (or offset)
-data ArcF a = Arc
+data ArcF a = EmptyArc | Arc
   { start :: a
   , stop :: a
   } deriving (Eq, Ord, Functor)
@@ -47,6 +50,7 @@ data ArcF a = Arc
 type Arc = ArcF Time
 
 instance {-# OVERLAPPING #-} Show Arc where
+  show EmptyArc = "empty"
   show (Arc s e) = prettyRat s ++ ">" ++ prettyRat e
 
 instance Num a => Num (ArcF a) where
@@ -61,9 +65,6 @@ instance (Fractional a) => Fractional (ArcF a) where
   recip        = fmap recip
   fromRational = pure . fromRational
 
-sect :: Arc -> Arc -> Arc
-sect (Arc s e) (Arc s' e') = Arc (max s s') (min e e')
-
 -- | convex hull union
 hull :: Arc -> Arc -> Arc
 hull (Arc s e) (Arc s' e') = Arc (min s s') (max e e')
@@ -73,7 +74,7 @@ hull (Arc s e) (Arc s' e') = Arc (min s s') (max e e')
 -- The definition is a bit fiddly as results might be zero-width, but
 -- not at the end of an non-zero-width arc - e.g. (0,1) and (1,2) do
 -- not intersect, but (1,1) (1,1) does.
-subArc :: Arc -> Arc -> Maybe Arc
+subArc :: (Ord a) => ArcF a -> ArcF a -> Maybe (ArcF a)
 subArc a@(Arc s e) b@(Arc s' e')
   | and [s'' == e'', s'' == e, s < e] = Nothing
   | and [s'' == e'', s'' == e', s' < e'] = Nothing
@@ -81,9 +82,23 @@ subArc a@(Arc s e) b@(Arc s' e')
   | otherwise = Nothing
   where (Arc s'' e'') = sect a b
 
+sect :: (Ord a) => ArcF a -> ArcF a -> ArcF a
+sect (Arc s e) (Arc s' e') = Arc (max s s') (min e e')
+
 instance Applicative ArcF where
   pure t = Arc t t
   (<*>) (Arc sf ef) (Arc sx ex) = Arc (sf sx) (ef ex)
+
+instance (Ord a, Fractional a) => Semigroup (ArcF a) where
+  (<>) a b = maybe EmptyArc id (subArc a b)
+
+longArcStop :: (Fractional a) => a
+longArcStop = 1000000
+
+instance (Ord a, Fractional a, Semigroup (ArcF a)) => Monoid (ArcF a) where
+  mempty = Arc 0 longArcStop
+
+-- one = Arc 0 1
 
 -- | The arc of the whole cycle that the given time value falls within
 timeToCycleArc :: Time -> Arc
@@ -129,13 +144,28 @@ data EventF a b = Event
   { whole :: a
   , part :: a
   , value :: b
-  } deriving (Eq, Ord, Functor)
+  } deriving (Eq, Ord, Functor, Show)
 
 type Event a = EventF (ArcF Time) a
 
 instance Bifunctor EventF where
   bimap f g (Event w p e) = (Event (f w) (f p) (g e))
 
+-- See https://www.well-typed.com/blog/2018/09/compositional-zooming/ for motivation
+instance Biapplicative EventF where
+  bipure a b = Event a a b
+  (Event fw fp fv) <<*>> (Event xw xp xv) = Event (fw xw) (fp xp) (fv xv) 
+
+instance (Monoid a) => Applicative (EventF a) where
+  pure a = bipure mempty a
+  (Event fw fp fv) <*> (Event xw xp xv) = Event (fw <> xw) (fp <> xp) (fv xv)
+
+nonEvent :: Event a -> Bool
+nonEvent (Event EmptyArc _ _) = True
+nonEvent (Event _ EmptyArc _) = True
+nonEvent _ = False
+
+{-
 instance {-# OVERLAPPING #-} Show a => Show (Event a) where
   show (Event (Arc ws we) a@(Arc ps pe) e) =
     h ++ "(" ++ show a ++ ")" ++ t ++ "|" ++ show e
@@ -143,6 +173,7 @@ instance {-# OVERLAPPING #-} Show a => Show (Event a) where
             | otherwise = prettyRat ws ++ "-"
           t | we == pe = ""
             | otherwise = "-" ++ prettyRat we
+-}
 
 -- | `True` if an `Event`'s starts is within given `Arc`
 onsetIn :: Arc -> Event a -> Bool
@@ -203,12 +234,18 @@ toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
 toEvent (((ws, we), (ps, pe)), v) = Event (Arc ws we) (Arc ps pe) v
 
 -- | an Arc and some named control values
-data State = State {arc :: Arc,
-                    controls :: ControlMap
-                   }
+data StateF t =
+  State
+  { arc :: t
+  , controls :: ControlMap
+  } deriving (Eq, Ord, Functor)
+
+type State = StateF (ArcF Time)
 
 -- | A function that represents events taking place over time
-type Query a = (State -> [Event a])
+type QueryF t a = (StateF t -> [EventF t a])
+
+type Query a = QueryF (ArcF Time) a
 
 -- | Also known as Continuous vs Discrete/Amorphous vs Pulsating etc.
 data Nature = Analog | Digital
@@ -216,7 +253,13 @@ data Nature = Analog | Digital
 
 -- | A datatype that's basically a query, plus a hint about whether its events
 -- are Analogue or Digital by nature
-data Pattern a = Pattern {nature :: Nature, query :: Query a}
+data PatternF t a =
+  Pattern
+  { nature :: Nature
+  , query :: QueryF t a
+  }
+
+type Pattern = PatternF (ArcF Time)
 
 data Value = VS { svalue :: String }
            | VF { fvalue :: Double }
@@ -229,53 +272,23 @@ type ControlPattern = Pattern ControlMap
 ------------------------------------------------------------------------
 -- * Instances
 
+-- Can't get this quite right due to the double use of an ArcF: in the State and in the Event.  But it's close ...
+-- instance Bifunctor PatternF where
+--   bimap f g (Pattern h q) = Pattern h (\st -> bimap f g <$> (q (f <$> st)))
+
 instance Functor Pattern where
   -- | apply a function to all the values in a pattern
   fmap f p = p {query = (fmap (fmap f)) . query p}
 
 instance Applicative Pattern where
-  -- | Repeat the given value once per cycle, forever
-  pure v = Pattern Digital $ \(State a _) ->
-    map (\a' -> Event a' (sect a a') v) $ cycleArcsInArc a
+  pure v = Pattern Digital $ \(State a _) -> pure (bipure a v)
 
-  (<*>) pf@(Pattern Digital _) px@(Pattern Digital _) = Pattern Digital q
-    where q st = catMaybes $ concat $ map match $ query pf st
-            where
-              match (Event fWhole fPart f) =
-                map
-                (\(Event xWhole xPart x) ->
-                  do whole' <- subArc xWhole fWhole
-                     part' <- subArc fPart xPart
-                     return (Event whole' part' (f x))
-                )
-                (query px $ st {arc = fPart})
-  (<*>) pf@(Pattern Digital _) px@(Pattern Analog _) = Pattern Digital q
-    where q st = concatMap match $ query pf st
-            where
-              match (Event fWhole fPart f) =
-                map
-                (\e -> (Event fWhole fPart (f (value e))))
-                (query px $ st {arc = pure (start fPart)})
-
-  (<*>) pf@(Pattern Analog _) px@(Pattern Digital _) = Pattern Digital q
-    where q st = concatMap match $ query px st
-            where
-              match (Event xWhole xPart x) =
-                map
-                (\e -> (Event xWhole xPart ((value e) x)))
-                (query pf st {arc = (pure (start xPart))})
-
-  (<*>) pf px = Pattern Analog q
-    where q st = concatMap match $ query pf st
-            where
-              match ef =
-                map
-                (\ex -> (Event (arc st) (arc st) ((value ef) (value ex))))
-                (query px st)
+  (<*>) pf px = Pattern Digital $ \st ->
+    filter (not . nonEvent) ((<*>) <$> query pf st <*> query px st)
 
 -- | Like <*>, but the structure only comes from the left
-(<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<*) pf@(Pattern Digital _) px = Pattern Digital q
+(<*|) :: Pattern (a -> b) -> Pattern a -> Pattern b
+(<*|) pf@(Pattern Digital _) px = Pattern Digital q
   where q st = concatMap match $ query pf st
          where
             match (Event fWhole fPart f) =
@@ -284,7 +297,7 @@ instance Applicative Pattern where
               query px $ st {arc = xQuery fWhole}
             xQuery (Arc s _) = pure s -- for discrete events, match with the onset
 
-(<*) pf px = Pattern Analog q
+pf <*| px = Pattern Analog q
   where q st = concatMap match $ query pf st
           where
             match (Event fWhole fPart f) =
@@ -293,8 +306,8 @@ instance Applicative Pattern where
               query px st -- for continuous events, use the original query
 
 -- | Like <*>, but the structure only comes from the right
-(*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(*>) pf px@(Pattern Digital _) = Pattern Digital q
+(|*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
+(|*>) pf px@(Pattern Digital _) = Pattern Digital q
   where q st = concatMap match $ query px st
          where
             match (Event xWhole xPart x) =
@@ -303,7 +316,7 @@ instance Applicative Pattern where
               query pf $ fQuery xWhole
             fQuery (Arc s _) = st {arc = pure s} -- for discrete events, match with the onset
 
-(*>) pf px = Pattern Analog q
+pf |*> px = Pattern Analog q
   where q st = concatMap match $ query px st
           where
             match (Event xWhole xPart x) =
@@ -311,7 +324,7 @@ instance Applicative Pattern where
               (\e -> (Event xWhole xPart ((value e) x))) $
               query pf st -- for continuous events, use the original query
 
-infixl 4 <*, *>
+infixl 4 <*|, |*>
 
 instance Monad Pattern where
   return = pure

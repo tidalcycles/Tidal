@@ -2,7 +2,7 @@
 
 module Sound.Tidal.Core where
 
-import           Prelude hiding ((<*), (*>))
+import           Prelude
 
 import           Data.Fixed (mod')
 import qualified Data.Map.Strict as Map
@@ -85,51 +85,51 @@ instance {-# OVERLAPPING #-} Unionable ControlMap where
 (|+|) :: (Applicative a, Num b) => a b -> a b -> a b
 a |+| b = (+) <$> a <*> b
 (|+ ) :: Num a => Pattern a -> Pattern a -> Pattern a
-a |+  b = (+) <$> a <* b
+a |+  b = (+) <$> a <*| b
 ( +|) :: Num a => Pattern a -> Pattern a -> Pattern a
-a  +| b = (+) <$> a *> b
+a  +| b = (+) <$> a |*> b
 
 (|/|) :: (Applicative a, Fractional b) => a b -> a b -> a b
 a |/| b = (/) <$> a <*> b
 (|/ ) :: Fractional a => Pattern a -> Pattern a -> Pattern a
-a |/  b = (/) <$> a <* b
+a |/  b = (/) <$> a <*| b
 ( /|) :: Fractional a => Pattern a -> Pattern a -> Pattern a
-a  /| b = (/) <$> a *> b
+a  /| b = (/) <$> a |*> b
 
 (|*|) :: (Applicative a, Num b) => a b -> a b -> a b
 a |*| b = (*) <$> a <*> b
 (|* ) :: Num a => Pattern a -> Pattern a -> Pattern a
-a |*  b = (*) <$> a <* b
+a |*  b = (*) <$> a <*| b
 ( *|) :: Num a => Pattern a -> Pattern a -> Pattern a
-a  *| b = (*) <$> a *> b
+a  *| b = (*) <$> a |*> b
 
 (|-|) :: (Applicative a, Num b) => a b -> a b -> a b
 a |-| b = (-) <$> a <*> b
 (|- ) :: Num a => Pattern a -> Pattern a -> Pattern a
-a |-  b = (-) <$> a <* b
+a |-  b = (-) <$> a <*| b
 ( -|) :: Num a => Pattern a -> Pattern a -> Pattern a
-a  -| b = (-) <$> a *> b
+a  -| b = (-) <$> a |*> b
 
 (|%|) :: (Applicative a, Real b) => a b -> a b -> a b
 a |%| b = mod' <$> a <*> b
 (|% ) :: Real a => Pattern a -> Pattern a -> Pattern a
-a |%  b = mod' <$> a <* b
+a |%  b = mod' <$> a <*| b
 ( %|) :: Real a => Pattern a -> Pattern a -> Pattern a
-a  %| b = mod' <$> a *> b
+a  %| b = mod' <$> a |*> b
 
 (|>|) :: (Applicative a, Unionable b) => a b -> a b -> a b
 a |>| b = (flip union) <$> a <*> b
 (|> ) :: Unionable a => Pattern a -> Pattern a -> Pattern a
-a |>  b = (flip union) <$> a <* b
+a |>  b = (flip union) <$> a <*| b
 ( >|) :: Unionable a => Pattern a -> Pattern a -> Pattern a
-a  >| b = (flip union) <$> a *> b
+a  >| b = (flip union) <$> a |*> b
 
 (|<|) :: (Applicative a, Unionable b) => a b -> a b -> a b
 a |<| b = union <$> a <*> b
 (|< ) :: Unionable a => Pattern a -> Pattern a -> Pattern a
-a |<  b = union <$> a <* b
+a |<  b = union <$> a <*| b
 ( <|) :: Unionable a => Pattern a -> Pattern a -> Pattern a
-a  <| b = union <$> a *> b
+a  <| b = union <$> a |*> b
 
 -- Backward compatibility - structure from left, values from right.
 (#) :: Unionable b => Pattern b -> Pattern b -> Pattern b

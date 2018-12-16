@@ -142,18 +142,18 @@ run =
 
     describe "<*" $ do
       it "can apply a pattern of values to a pattern of functions" $ do
-        queryArc ((pure (+1)) <* (pure 3)) (Arc 0 1) `shouldBe` fmap toEvent
+        queryArc ((pure (+1)) <*| (pure 3)) (Arc 0 1) `shouldBe` fmap toEvent
           [(((0,1), (0,1)), 4  :: Int)]
       it "doesn't take structure from the right" $ do
-        queryArc (pure (+1) <* (fastCat [pure 7, pure 8])) (Arc 0 1)
+        queryArc (pure (+1) <*| (fastCat [pure 7, pure 8])) (Arc 0 1)
           `shouldBe` fmap toEvent [(((0,1), (0,1)), 8 :: Int)]
 
     describe "*>" $ do
       it "can apply a pattern of values to a pattern of functions" $ do
-        it "works within cycles" $ queryArc ((pure (+1)) *> (pure 3)) (Arc 0 1) `shouldBe` fmap toEvent [(((0,1), (0,1)), 4  :: Int)]
-        it "works across cycles" $ queryArc ((pure (+1)) *> (slow 2 $ pure 3)) (Arc 0 1) `shouldBe` fmap toEvent [(((0,2), (0,1)), 4  :: Int)]
+        it "works within cycles" $ queryArc ((pure (+1)) |*> (pure 3)) (Arc 0 1) `shouldBe` fmap toEvent [(((0,1), (0,1)), 4  :: Int)]
+        it "works across cycles" $ queryArc ((pure (+1)) |*> (slow 2 $ pure 3)) (Arc 0 1) `shouldBe` fmap toEvent [(((0,2), (0,1)), 4  :: Int)]
       it "doesn't take structure from the left" $ do
-        queryArc (pure (+1) *> (fastCat [pure 7, pure 8])) (Arc 0 1)
+        queryArc (pure (+1) |*> (fastCat [pure 7, pure 8])) (Arc 0 1)
           `shouldBe` fmap toEvent
           [(((0,0.5), (0,0.5)), 8 :: Int),
             (((0.5,1), (0.5,1)), 9 :: Int)
@@ -372,10 +372,10 @@ run =
 
     describe "subArc" $ do
       it "Checks if an Arc is within another, returns Just (max $ (fst a1) (fst a2), min $ (snd a1) (snd a2)) if so, otherwise Nothing" $ do       
-        let res = subArc (Arc 2.1 2.4) (Arc 2.4 2.8)
+        let res = subArc (Arc 2.1 2.4) (Arc 2.4 2.8) :: Maybe Arc
         property $ Nothing === res
       it "if max (fst arc1) (fst arc2) <= min (snd arc1) (snd arc2) return Just (max (fst arc1) (fst arc2), min...)" $ do
-        let res = subArc (Arc 2 2.8) (Arc 2.4 2.9)
+        let res = subArc (Arc 2 2.8) (Arc 2.4 2.9) :: Maybe Arc
         property $ Just (Arc 2.4 2.8) === res
 
     describe "timeToCycleArc" $ do

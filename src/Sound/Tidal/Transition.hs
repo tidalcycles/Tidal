@@ -128,7 +128,7 @@ interpolate = interpolateIn 4
 interpolateIn :: Time -> Time -> [ControlPattern] -> ControlPattern
 interpolateIn _ _ [] = silence
 interpolateIn _ _ (p:[]) = p
-interpolateIn t now (pat:pat':_) = f <$> pat' *> pat <* automation
+interpolateIn t now (pat:pat':_) = f <$> pat' |*> pat <*| automation
   where automation = now `rotR` (_slow t envL)
         f = (\a b x -> Map.unionWith (fNum2 (\a' b' -> floor $ (fromIntegral a') * x + (fromIntegral b') * (1-x))
                                             (\a' b' -> a' * x + b' * (1-x))

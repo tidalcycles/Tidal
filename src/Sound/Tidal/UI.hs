@@ -880,7 +880,7 @@ segment :: Pattern Time -> Pattern a -> Pattern a
 segment = tParam _segment
 
 _segment :: Time -> Pattern a -> Pattern a
-_segment n p = (_fast n $ pure (id)) <* p
+_segment n p = (_fast n $ pure (id)) <*| p
 
 -- | @discretise@: the old (deprecated) name for 'segment'
 discretise :: Pattern Time -> Pattern a -> Pattern a
@@ -953,7 +953,7 @@ permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> repli
 -- boolean values @a@. Only @True@ values in the boolean pattern are
 -- used.
 struct :: Pattern Bool -> Pattern a -> Pattern a
-struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <* pv
+struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <*| pv
 
 -- | @substruct a b@: similar to @struct@, but each event in pattern @a@ gets replaced with pattern @b@, compressed to fit the timespan of the event.
 substruct :: Pattern String -> Pattern b -> Pattern b
@@ -1321,7 +1321,7 @@ _ply n p = arpeggiate $ stack (replicate n p)
 -- Uses the first (binary) pattern to switch between the following two
 -- patterns.
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
-sew stitch p1 p2 = overlay (const <$> p1 <* a) (const <$> p2 <* b)
+sew stitch p1 p2 = overlay (const <$> p1 <*| a) (const <$> p2 <*| b)
   where a = filterValues (id) stitch
         b = filterValues (not . id) stitch
 
