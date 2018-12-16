@@ -528,7 +528,7 @@ run =
         property $ [] === res
 
       it "return empty if start time or end time are greater than 1" $ do 
-        let res = queryArc (compressArc (Arc 0.8 0.1) (fast "1 2" "3 4" :: Pattern Time)) (Arc 1 2)
+        let res = queryArc (compressArc (Arc 0.1 2) (fast "1 2" "3 4" :: Pattern Time)) (Arc 1 2)
         property $ [] === res
 
       it "return empty if start or end are less than zero" $ do
