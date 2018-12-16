@@ -1,3 +1,5 @@
+The main website is here: http://tidalcycles.org/
+
 # Community
 
 The below might help, but to find people to ask questions about
