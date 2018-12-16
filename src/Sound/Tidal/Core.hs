@@ -271,6 +271,7 @@ _fast r p | r == 0 = silence
 slow :: Pattern Time -> Pattern a -> Pattern a
 slow = tParam _slow
 _slow :: Time -> Pattern a -> Pattern a
+_slow 0 _ = silence
 _slow r p = _fast (1/r) p
 
 -- | Slow down a pattern by the factors in the given time pattern, 'squeezing'

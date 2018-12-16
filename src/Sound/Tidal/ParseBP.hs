@@ -54,7 +54,7 @@ data TPat a = TPat_Atom a
             | TPat_Stack [TPat a]
             | TPat_ShiftL Time (TPat a)
               -- TPat_E Int Int (TPat a)
-            | TPat_pE (TPat Int) (TPat Int) (TPat Integer) (TPat a)
+            | TPat_pE (TPat Int) (TPat Int) (TPat Int) (TPat a)
             deriving (Show)
 
 toPat :: (Enumerable a, Parseable a) => TPat a -> Pattern a
@@ -99,7 +99,7 @@ parseTPat = parseRhythm tPatParser
 
 class Parseable a where
   tPatParser :: Parser (TPat a)
-  doEuclid :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern a -> Pattern a
+  doEuclid :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
   -- toEuclid :: a -> 
 
 class Enumerable a where
@@ -419,7 +419,7 @@ pE :: TPat a -> Parser (TPat a)
 pE thing = do (n,k,s) <- parens (pair)
               pure $ TPat_pE n k s thing
             <|> return thing
-   where pair :: Parser (TPat Int, TPat Int, TPat Integer)
+   where pair :: Parser (TPat Int, TPat Int, TPat Int)
          pair = do a <- pSequence pIntegral
                    spaces
                    symbol ","

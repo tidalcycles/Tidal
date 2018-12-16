@@ -696,17 +696,22 @@ _euclidFull n k p p' = pickbool <$> (_euclidBool n k) <*> p <*> p'
 _euclid' :: Int -> Int -> Pattern a -> Pattern a
 _euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
-euclidOff :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern a -> Pattern a
+euclidOff :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclidOff = tParam3 _euclidOff
 
-_euclidOff :: Int -> Int -> Integer -> Pattern a -> Pattern a
-_euclidOff n k s p = ((s%(fromIntegral k)) `rotL`) (_euclid n k p)
+eoff :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+eoff = euclidOff
 
-euclidOffBool :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern Bool -> Pattern Bool
+_euclidOff :: Int -> Int -> Int -> Pattern a -> Pattern a
+_euclidOff _ 0 _ _ = silence
+_euclidOff n k s p = (((fromIntegral s)%(fromIntegral k)) `rotL`) (_euclid n k p)
+
+euclidOffBool :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern Bool -> Pattern Bool
 euclidOffBool = tParam3 _euclidOffBool
 
-_euclidOffBool :: Int -> Int -> Integer -> Pattern Bool -> Pattern Bool
-_euclidOffBool n k s p = ((s%(fromIntegral k)) `rotL`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
+_euclidOffBool :: Int -> Int -> Int -> Pattern Bool -> Pattern Bool
+_euclidOffBool _ 0 _ _ = silence
+_euclidOffBool n k s p = (((fromIntegral s)%(fromIntegral k)) `rotL`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
 
 distrib :: [Pattern Int] -> Pattern a -> Pattern a
 distrib ps p = do p' <- sequence ps
@@ -723,11 +728,11 @@ _distrib xs p = boolsToPat (foldr (distrib') (replicate (last xs) True) (reverse
     layers = map bjorklund . (zip<*>tail)
     boolsToPat a b' = (flip const) <$> (filterValues (== True) $ fastFromList $ a) <*> b'
 
-{- | `einv` fills in the blanks left by `e`
+{- | `euclidInv` fills in the blanks left by `e`
  -
  @e 3 8 "x"@ -> @"x ~ ~ x ~ ~ x ~"@
 
- @einv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
+ @euclidInv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
 -}
 euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclidInv = tParam2 _euclidInv
@@ -1517,11 +1522,12 @@ ghost p = ghost' 0.125 p
    of 'threads' per cycle and two patterns, and this function will weave them
    together using a plain (aka 'tabby') weave, with a simple over/under structure
  -}
-tabby :: Integer -> Pattern a -> Pattern a -> Pattern a
-tabby n p p' = stack [maskedWarp,
+tabby :: Int -> Pattern a -> Pattern a -> Pattern a
+tabby nInt p p' = stack [maskedWarp,
                       maskedWeft
                      ]
   where
+    n = fromIntegral nInt
     weft = concatMap (\_ -> [[0..n-1],(reverse [0..n-1])]) [0 .. (n `div` 2) - 1]
     warp = transpose weft
     thread xs p'' = _slow (n%1) $ fastcat $ map (\i -> zoomArc (Arc (i%n) ((i+1)%n)) p'') (concat xs)
