@@ -157,8 +157,8 @@ instance Biapplicative EventF where
   (Event fw fp fv) <<*>> (Event xw xp xv) = Event (fw xw) (fp xp) (fv xv) 
 
 instance (Monoid a) => Applicative (EventF a) where
-  pure a = bipure mempty a
-  (Event fw fp fv) <*> (Event xw xp xv) = Event (fw <> xw) (fp <> xp) (fv xv)
+  pure = bipure mempty
+  (<*>) = biliftA2 mappend ($)
 
 nonEvent :: Event a -> Bool
 nonEvent (Event EmptyArc _ _) = True
