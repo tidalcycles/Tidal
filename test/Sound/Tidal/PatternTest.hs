@@ -522,6 +522,25 @@ run =
         let res = queryArc fil (Arc 0.5 1.5)
         property $ fmap toEvent [(((3%4, 1), (3%4, 1)), 1.5), (((1, 5%4), (1, 5%4)), 1.0), (((5%4, 3%2), (5%4, 3%2)), 1.5)] === res
 
+    describe "compressArc" $ do
+      it "return empty if start time is greater than end time" $ do 
+        let res = queryArc (compressArc (Arc 0.8 0.1) (fast "1 2" "3 4" :: Pattern Time) ) (Arc 1 2)
+        property $ [] === res
+
+      it "return empty if start time or end time are greater than 1" $ do 
+        let res = queryArc (compressArc (Arc 0.8 0.1) (fast "1 2" "3 4" :: Pattern Time)) (Arc 1 2)
+        property $ [] === res
+
+      it "return empty if start or end are less than zero" $ do
+        let res = queryArc (compressArc (Arc (-0.8) 0.1) (fast "1 2" "3 4" :: Pattern Time)) (Arc 1 2)
+        property $ [] === res
+      
+      it "otherwise compress difference between start and end values of Arc" $ do
+        let p = fast "1 2" "3 4" :: Pattern Time
+        let res = queryArc (compressArc (Arc 0.2 0.8) p) (Arc 0 1)
+        let expected = fmap toEvent [(((1%5, 1%2), (1%5, 1%2)), 3%1), (((1%2, 13%20), (1%2, 13%20)), 3%1), (((13%20, 4%5), (13%20, 4%5)), 4%1)]
+        property $ expected === res
+        
 
     -- pending "Sound.Tidal.Pattern.eventL" $ do
     --  it "succeeds if the first event 'whole' is shorter" $ do
