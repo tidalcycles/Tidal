@@ -1,4 +1,4 @@
-{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, BangPatterns #-}
+{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
 
 module Sound.Tidal.Stream where
@@ -151,8 +151,9 @@ streamList s = do pMap <- readMVar (sPMapMV s)
 
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 streamReplace :: Show a => Stream -> a -> ControlPattern -> IO ()
-streamReplace s k !pat
-  = E.catch (do pMap <- takeMVar $ sPMapMV s
+streamReplace s k pat
+  = E.catch (do let x = queryArc pat (Arc 0 0)
+                pMap <- seq x $ takeMVar $ sPMapMV s
                 let playState = updatePS $ Map.lookup (show k) pMap
                 putMVar (sPMapMV s) $ Map.insert (show k) playState pMap
                 calcOutput s
