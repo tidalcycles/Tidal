@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE BangPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Sound.Tidal.Pattern where
@@ -275,7 +276,7 @@ instance Applicative Pattern where
 
 -- | Like <*>, but the structure only comes from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<*) pf@(Pattern Digital _) px = Pattern Digital q
+(<*) !pf@(Pattern Digital _) !px = Pattern Digital q
   where q st = concatMap match $ query pf st
          where
             match (Event fWhole fPart f) =
@@ -284,7 +285,7 @@ instance Applicative Pattern where
               query px $ st {arc = xQuery fWhole}
             xQuery (Arc s _) = pure s -- for discrete events, match with the onset
 
-pf <* px = Pattern Analog q
+(<*) !pf !px = Pattern Analog q
   where q st = concatMap match $ query pf st
           where
             match (Event fWhole fPart f) =
@@ -294,7 +295,7 @@ pf <* px = Pattern Analog q
 
 -- | Like <*>, but the structure only comes from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(*>) pf px@(Pattern Digital _) = Pattern Digital q
+(*>) !pf !px@(Pattern Digital _) = Pattern Digital q
   where q st = concatMap match $ query px st
          where
             match (Event xWhole xPart x) =
@@ -303,7 +304,7 @@ pf <* px = Pattern Analog q
               query pf $ fQuery xWhole
             fQuery (Arc s _) = st {arc = pure s} -- for discrete events, match with the onset
 
-pf *> px = Pattern Analog q
+(*>) !pf !px = Pattern Analog q
   where q st = concatMap match $ query px st
           where
             match (Event xWhole xPart x) =
