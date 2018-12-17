@@ -52,13 +52,13 @@ run =
             (((1,4/3),   (1,4/3)),   "a"),
             (((4/3,5/3), (4/3,5/3)), "b")
           ]
-      it "works with zero-length queries" $ do
+      it "works with zero-length query arcs" $ do
         it "0" $
           queryArc (fastCat [pure "a", pure "b"]) (Arc 0 0)
-            `shouldBe` fmap toEvent [(((0,0.5), (0,0)), "a" :: String)]
+            `shouldBe` fmap toEvent [(((0,0), (0,0)), "a" :: String)]
         it "1/3" $
-          queryArc (fastCat [pure "a", pure "b"]) (Arc (1%3) (1%3))
-            `shouldBe` fmap toEvent [(((0,0.5), (1%3,1%3)), "a" :: String)]
+          queryArc (fastCat [pure "a", pure "b", pure "c"]) (Arc (1%3) (1%3))
+            `shouldBe` fmap toEvent [((((1%3),(1%3)), (1%3,1%3)), "b" :: String)]
 
     describe "rev" $ do
       it "mirrors events" $ do
