@@ -26,12 +26,12 @@ removeCommon [] bs = ([],bs)
 removeCommon as [] = (as,[])
 removeCommon (a:as) bs | elem a bs = removeCommon as (delete a bs)
                        | otherwise = (a:as',bs')
-                           where (as',bs') = removeCommon as bs
+                      where (as',bs') = removeCommon as bs
 
-readMaybe        :: (Read a) => String -> Maybe a
-readMaybe s      =  case [x | (x,t) <- reads s, ("","") <- lex t] of
-                         [x] -> Just x
-                         _   -> Nothing
+readMaybe :: (Read a) => String -> Maybe a
+readMaybe s = case [x | (x,t) <- reads s, ("","") <- lex t] of
+                   [x] -> Just x
+                   _   -> Nothing
 
 {- | like `!!` selects @n@th element from xs, but wraps over at the end of @xs@
 
