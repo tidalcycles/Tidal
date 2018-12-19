@@ -31,6 +31,7 @@ data Stream = Stream {sConfig :: Config,
                       sListenTid :: Maybe ThreadId,
                       sPMapMV :: MVar PlayMap,
                       sTempoMV :: MVar T.Tempo,
+                      sGlobalFMV :: MVar (ControlPattern -> ControlPattern),
                       sTarget :: OSCTarget,
                       sUDP :: O.UDP
                      }
@@ -231,9 +232,15 @@ streamUnmuteAll :: Stream -> IO ()
 streamUnmuteAll s = do modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = False})
                        calcOutput s
 
+
+streamAll :: Stream -> (ControlPattern -> ControlPattern) -> IO ()
+streamAll s f = do _ <- swapMVar (sGlobalFMV s) f
+                   calcOutput s
+
 calcOutput :: Stream -> IO ()
 calcOutput s = do pMap <- readMVar $ sPMapMV s
-                  _ <- swapMVar (sOutput s) $ toPat pMap
+                  globalF <- (readMVar $ sGlobalFMV s)
+                  _ <- swapMVar (sOutput s) $ globalF $ toPat $ pMap
                   return ()
   where toPat pMap =
           stack $ map pattern $ filter (\pState -> if hasSolo pMap
@@ -247,15 +254,18 @@ startTidal target config =
      listenTid <- ctrlListen cMapMV config
      (pMV, tempoMV, u) <- startStream config cMapMV target
      pMapMV <- newMVar Map.empty
+     globalFMV <- newMVar id
      return $ Stream {sConfig = config,
                       sInput = cMapMV,
                       sListenTid = listenTid,
                       sOutput = pMV,
                       sPMapMV = pMapMV,
                       sTempoMV = tempoMV,
+                      sGlobalFMV = globalFMV,
                       sTarget = target,
                       sUDP = u
                      }
+
 ctrlListen :: MVar ControlMap -> Config -> IO (Maybe ThreadId)
 ctrlListen cMapMV c
   | cCtrlListen c = do putStrLn $ "Listening for controls on " ++ cCtrlAddr c ++ ":" ++ show (cCtrlPort c)
