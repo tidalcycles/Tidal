@@ -1654,3 +1654,7 @@ smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State 
                | otherwise = fromRational $ (eventPartStart e - wholeStart e) / (delta' $ whole e)
             delta' a = stop a - start a
     monoP = mono p
+
+-- | Takes a list of tuples, in order to swap values in the given pattern
+swap :: Eq a => [(a, b)] -> Pattern a -> Pattern b
+swap things p = filterJust $ (\x -> lookup x things) <$> p
