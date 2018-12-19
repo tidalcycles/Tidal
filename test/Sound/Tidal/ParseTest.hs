@@ -66,4 +66,3 @@ run =
         compareP (Arc 0 2)
           ("cp(5,c)" :: Pattern String)
           (silence)
-
