@@ -6,7 +6,8 @@ data Config = Config {cCtrlListen :: Bool,
                       cCtrlPort :: Int,
                       cFrameTimespan :: Double,
                       cTempoAddr :: String,
-                      cTempoPort :: Int
+                      cTempoPort :: Int,
+                      cTempoClientPort :: Int
                      }
 
 defaultConfig :: Config
@@ -15,5 +16,6 @@ defaultConfig = Config {cCtrlListen = True,
                         cCtrlPort = 6010,
                         cFrameTimespan = 1/20,
                         cTempoAddr = "127.0.0.1",
-                        cTempoPort = 9160
+                        cTempoPort = 9160,
+                        cTempoClientPort = 0 -- choose at random
                        }
