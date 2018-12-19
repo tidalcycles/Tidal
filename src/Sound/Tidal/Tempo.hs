@@ -113,10 +113,11 @@ clocked config callback
 clientListen :: Config -> O.Time -> IO (MVar Tempo, ThreadId)
 clientListen config s =
   do -- Listen on random port
-     local <- O.udpServer "127.0.0.1" 0
-     let hostname = cTempoAddr config
+     let tempoClientPort = cTempoClientPort config
+         hostname = cTempoAddr config
          port = cTempoPort config
      (remote_addr:_) <- N.getAddrInfo Nothing (Just hostname) Nothing
+     local <- O.udpServer "127.0.0.1" tempoClientPort
      let (N.SockAddrInet _ a) = N.addrAddress remote_addr
          remote = N.SockAddrInet (fromIntegral port) (a)
          t = defaultTempo s local remote
