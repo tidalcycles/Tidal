@@ -7,7 +7,8 @@ Language for live coding of pattern
 For documentation, mailing list and more info see here:
   https://tidalcycles.org/
 
-<script type='text/javascript' src='https://ko-fi.com/widgets/widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support Me on Ko-fi', '#46b798', 'G2G6LHVU');kofiwidget2.draw();</script> 
+
+![Buy Me a Coffee at ko-fi.com](https://az743702.vo.msecnd.net/cdn/kofi1.png?v=0 "Buy Me a Coffee at ko-fi.com")
 
 (c) Alex McLean and contributors, 2018
 
