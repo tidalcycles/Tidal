@@ -121,7 +121,7 @@ onTick config cMapMV pMV target u tempoMV st =
      return ()
 
 send :: O.Transport t => Double -> t -> (Double, O.Message) -> IO ()
-send latency u (time, m) = O.sendOSC u $ O.Bundle (time + latency) [m]
+send latency u (time, m) = O.sendBundle u $ O.Bundle (time + latency) [m]
 
 sched :: T.Tempo -> Rational -> Double
 sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)

@@ -34,7 +34,7 @@ tidalEspGridLink :: MVar Tempo -> IO ()
 tidalEspGridLink t = do
   socket <- openUDP "127.0.0.1" 5510
   _ <- forkIO $ forever $ do
-    _ <- sendOSC socket $ Message "/esp/tempo/q" []
+    _ <- sendMessage socket $ Message "/esp/tempo/q" []
     response <- waitAddress socket "/esp/tempo/r"
     changeTempo t response
     threadDelay 200000
@@ -43,4 +43,4 @@ tidalEspGridLink t = do
 cpsEsp :: Real t => t -> IO ()
 cpsEsp t = do
   socket <- openUDP "127.0.0.1" 5510
-  sendOSC socket $ Message "/esp/beat/tempo" [float (t*60)]
+  sendMessage socket $ Message "/esp/beat/tempo" [float (t*60)]

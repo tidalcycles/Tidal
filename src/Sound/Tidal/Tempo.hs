@@ -121,7 +121,7 @@ clientListen config s =
          remote = N.SockAddrInet (fromIntegral port) (a)
          t = defaultTempo s local remote
      -- Send to clock port from same port that's listened to
-     O.sendTo local (O.Message "/hello" []) remote
+     O.sendTo local (O.p_message "/hello" []) remote
      -- Make tempo mvar
      tempoMV <- newMVar t
      -- Listen to tempo changes
@@ -129,13 +129,12 @@ clientListen config s =
      return (tempoMV, tempoChild)
 
 sendTempo :: Tempo -> IO ()
-sendTempo tempo = O.sendTo (localUDP tempo) b (remoteAddr tempo)
-  where b = O.Bundle (atTime tempo) [O.Message "/transmit/cps/cycle" [O.Float $ fromRational $ atCycle tempo,
-                                                                      O.Float $ realToFrac $ cps tempo,
-                                                                      O.Int32 $ if (paused tempo) then 1 else 0
-                                                                     ]
-                                    ]
-
+sendTempo tempo = O.sendTo (localUDP tempo) (O.p_bundle (atTime tempo) [m]) (remoteAddr tempo)
+  where m = O.Message "/transmit/cps/cycle" [O.Float $ fromRational $ atCycle tempo,
+                                             O.Float $ realToFrac $ cps tempo,
+                                             O.Int32 $ if (paused tempo) then 1 else 0
+                                            ]
+ 
 listenTempo :: O.UDP -> (MVar Tempo) -> IO ()
 listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
                                        act Nothing pkt
@@ -175,7 +174,7 @@ serverListen config = catchAny (run) (\_ -> do putStrLn $ "Tempo listener failed
           | isPrefixOf "/transmit" path =
               do let path' = drop 9 path
                      msg = O.Message path' params
-                 mapM_ (O.sendTo udp $ O.Bundle ts [msg]) cs
+                 mapM_ (O.sendTo udp $ O.p_bundle ts [msg]) cs
                  return cs
         act _ _ _ cs pkt = do putStrLn $ "Unknown packet: " ++ show pkt
                               return cs
