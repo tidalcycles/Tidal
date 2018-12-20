@@ -253,6 +253,10 @@ stack = foldr overlay silence
 fast :: Pattern Time -> Pattern a -> Pattern a
 fast = tParam _fast
 
+-- | Speed up a pattern by the given time pattern
+fast' :: Pattern Time -> Pattern a -> Pattern a
+fast' = tParam _fast'
+
 -- | Slow down a pattern by the factors in the given time pattern, 'squeezing'
 -- the pattern to fit the slot given in the time pattern
 fastSqueeze :: Pattern Time -> Pattern a -> Pattern a
@@ -266,6 +270,11 @@ _fast :: Time -> Pattern a -> Pattern a
 _fast r p | r == 0 = silence
           | r < 0 = rev $ _fast (0-r) p
           | otherwise = withResultTime (/ r) $ withQueryTime (* r) p
+
+_fast' :: Time -> Pattern a -> Pattern a
+_fast' r p | r == 0 = silence
+           | r < 0 = rev $ _fast' (0-r) p
+           | otherwise = withQueryArcs (fmap (fmap (/r)) . arcCycles . fmap (*r)) p
 
 -- | Slow down a pattern by the given time pattern
 slow :: Pattern Time -> Pattern a -> Pattern a

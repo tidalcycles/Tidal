@@ -620,6 +620,10 @@ withResultTime f = withResultArc (\(Arc s e) -> Arc (f s) (f e))
 withQueryArc :: (Arc -> Arc) -> Pattern a -> Pattern a
 withQueryArc f p = p {query = query p . (\(State a m) -> State (f a) m)}
 
+-- | Apply a function to the timespan of the query, returning a list of Arcs
+withQueryArcs :: (Arc -> [Arc]) -> Pattern a -> Pattern a
+withQueryArcs f p = p {query = mconcat . fmap (query p) . (\(State a m) -> State <$> f a <*> pure m)}
+
 -- | Apply a function to the time (both start and end) of the query
 withQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
 withQueryTime f = withQueryArc (\(Arc s e) -> Arc (f s) (f e))
