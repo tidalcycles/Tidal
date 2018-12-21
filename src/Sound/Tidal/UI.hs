@@ -1289,6 +1289,50 @@ arpeggiate p = withEvents munge p
 arpg :: Pattern a -> Pattern a
 arpg = arpeggiate
 
+
+arpWith :: ([EventF (ArcF Time) a] -> [EventF (ArcF Time) b]) -> Pattern a -> Pattern b
+arpWith f p = withEvents munge p
+  where munge es = concatMap (spreadOut . f) (groupBy (\a b -> whole a == whole b) es)
+        spreadOut xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
+        shiftIt n d (Event (Arc s e) a' v) =
+          do
+            a'' <- subArc (Arc newS newE) a'
+            return (Event (Arc newS newE) a'' v)
+          where newS = s + (dur*(fromIntegral n))
+                newE = newS + dur
+                dur = (e - s) / (fromIntegral d)
+
+arp :: Pattern String -> Pattern a -> Pattern a
+arp = tParam _arp
+
+_arp :: String -> Pattern a -> Pattern a
+_arp name p = arpWith f p
+  where f = fromMaybe id $ lookup name arps
+        arps :: [(String, [a] -> [a])]
+        arps = [("up", id),
+                ("down", reverse),
+                ("updown", \x -> init x ++ init (reverse x)),
+                ("downup", \x -> init (reverse x) ++ init x),
+                ("up&down", \x -> x ++ reverse x),
+                ("down&up", \x -> reverse x ++ x),
+                ("converge", converge),
+                ("diverge", reverse . converge),
+                ("disconverge", \x -> converge x ++ (tail $ reverse $ converge x)),
+                ("pinkyup", pinkyup),
+                ("pinkyupdown", \x -> init (pinkyup x) ++ init (reverse $ pinkyup x)),
+                ("thumbup", thumbup),
+                ("thumbupdown", \x -> init (thumbup x) ++ init (reverse $ thumbup x))
+               ]
+        converge [] = []
+        converge (x:xs) = x:(converge' xs)
+        converge' [] = []
+        converge' xs = (last xs):(converge $ init xs)
+        pinkyup xs = concatMap (:[pinky]) $ init xs
+          where pinky = last xs
+        thumbup xs = concatMap (\x -> [thumb,x]) $ tail xs
+          where thumb = head xs
+
+
 {- TODO !
 
 -- | @fill@ 'fills in' gaps in one pattern with events from another. For example @fill "bd" "cp ~ cp"@ would result in the equivalent of `"~ bd ~"`. This only finds gaps in a resulting pattern, in other words @"[bd ~, sn]"@ doesn't contain any gaps (because @sn@ covers it all), and @"bd ~ ~ sn"@ only contains a single gap that bridges two steps.
