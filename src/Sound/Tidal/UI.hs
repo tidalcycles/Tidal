@@ -1544,6 +1544,13 @@ select :: Pattern Double -> [Pattern a] -> Pattern a
 select = tParam _select
 
 
+-- | chooses between a list of functions, using a pattern of floats (from 0-1)
+selectF :: Pattern Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
+selectF pf ps p = innerJoin $ (\f -> _selectF f ps p) <$> pf
+
+_selectF :: Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
+_selectF f ps p =  (ps !! (floor $ (max 0 $ min 0.999999 f) * (fromIntegral $ length ps))) p
+
 -- | @contrast p f f' p'@ splits controlpattern @p'@ in two, applying
 -- the function @f@ to one and @f'@ to the other. This depends on
 -- whether events in it contains values matching with those in @p@.
@@ -1655,6 +1662,6 @@ smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State 
             delta' a = stop a - start a
     monoP = mono p
 
--- | Takes a list of tuples, in order to swap values in the given pattern
+-- | Looks up values from a list of tuples, in order to swap values in the given pattern
 swap :: Eq a => [(a, b)] -> Pattern a -> Pattern b
 swap things p = filterJust $ (\x -> lookup x things) <$> p
