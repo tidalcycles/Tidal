@@ -4,5 +4,5 @@ packages:
   - '.'
 
 extra-deps:
-  - hosc-0.16
+  - hosc-0.17
   - microspec-0.2.1.3
