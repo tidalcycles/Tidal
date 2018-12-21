@@ -358,6 +358,33 @@ phaserrate, phaserdepth :: Pattern Double -> ControlPattern
 phaserrate = pF "phaserrate"
 phaserdepth = pF "phaserdepth"
 
+-- More SuperDirt effects
+-- frequency shifter
+fshift, fshiftphase, fshiftnote :: Pattern Double -> ControlPattern
+fshift = pF "fshift"
+fshiftphase = pF "fshiftphase"
+fshiftnote = pF "fshiftnote"
+-- triode (tube distortion)
+triode :: Pattern Double -> ControlPattern
+triode = pF "triode"
+-- krush (like Sonic Pi's shape/bass enhancer)
+krush, kcutoff :: Pattern Double -> ControlPattern
+krush = pF "krush"
+kcutoff = pF "kcutoff"
+-- octer (like Sonic Pi's octaver effect)
+octer, octersub, octersubsub :: Pattern Double -> ControlPattern
+octer = pF "octer"
+octersub = pF "octersub"
+octersubsub = pF "octersubsub"
+-- ring modulation
+ring, ringf, ringdf :: Pattern Double -> ControlPattern
+ring = pF "ring"
+ringf = pF "ringf"
+ringdf = pF "ringdf"
+-- noisy fuzzy distortion
+distort :: Pattern Double -> ControlPattern
+distort = pF "distort"
+
 -- aliases
 att, bpf, bpq, chdecay, ctf, ctfg, delayfb, delayt, det, gat, hg, hpf, hpq, lag, lbd, lch, lcl, lcp, lcr, lfoc, lfoi
    , lfop, lht, llt, loh, lpf, lpq, lsn, ohdecay, phasdp, phasr, pit1, pit2, pit3, por, rel, sz, sag, scl, scp
