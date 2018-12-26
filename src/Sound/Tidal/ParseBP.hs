@@ -359,10 +359,15 @@ pIntegral = do i <- parseIntNote
                do c <- parseChord
                   return $ TPat_Stack $ map TPat_Atom c
 
-parseChord :: Num a => Parser [a]
+parseChord :: (Enum a, Num a) => Parser [a]
 parseChord = do char '\''
                 name <- many1 $ letter <|> digit
-                return $ fromMaybe [0] $ lookup name chordTable
+                let chord = fromMaybe [0] $ lookup name chordTable
+                do char '\''
+                   i <- integer <?> "chord range"
+                   let chord' = take (fromIntegral i) $ concatMap (\x -> map (+ x) chord) [0,12..]
+                   return $ chord'
+                  <|> return chord
 
 parseNote :: Num a => Parser a
 parseNote = do n <- notenum
