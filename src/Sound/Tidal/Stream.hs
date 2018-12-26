@@ -3,10 +3,11 @@
 
 module Sound.Tidal.Stream where
 
+import           Control.Applicative ((<|>))
 import           Control.Concurrent.MVar
 import           Control.Concurrent
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust, fromMaybe)
+import           Data.Maybe (fromJust, fromMaybe, isJust, catMaybes)
 import qualified Control.Exception as E
 -- import Control.Monad.Reader
 -- import Control.Monad.Except
@@ -57,6 +58,47 @@ superdirtTarget = OSCTarget {oAddress = "127.0.0.1",
                              oTimestamp = BundleStamp
                             }
 
+dirtTarget :: OSCTarget
+dirtTarget = OSCTarget {oAddress = "127.0.0.1",
+                        oPort = 57120,
+                        oPath = "/play2",
+                        oShape = Just [("s", Nothing),
+                                       ("offset", Just $ VF 0),
+                                       ("begin", Just $ VF 0),
+                                       ("end", Just $ VF 1),
+                                       ("speed", Just $ VF 1),
+                                       ("pan", Just $ VF 0.5),
+                                       ("velocity", Just $ VF 0.5),
+                                       ("vowel", Just $ VS ""),
+                                       ("cutoff", Just $ VF 0),
+                                       ("resonance", Just $ VF 0),
+                                       ("accelerate", Just $ VF 0),
+                                       ("shape", Just $ VF 0),
+                                       ("kriole", Just $ VI 0),
+                                       ("gain", Just $ VF 1),
+                                       ("cut", Just $ VI 0),
+                                       ("delay", Just $ VF 0),
+                                       ("delaytime", Just $ VF (-1)),
+                                       ("delayfeedback", Just $ VF (-1)),
+                                       ("crush", Just $ VF 0),
+                                       ("coarse", Just $ VI 0),
+                                       ("hcutoff", Just $ VF 0),
+                                       ("hresonance", Just $ VF 0),
+                                       ("bandf", Just $ VF 0),
+                                       ("bandq", Just $ VF 0),
+                                       ("unit", Just $ VS "rate"),
+                                       ("loop", Just $ VF 0),
+                                       ("n", Just $ VF 0),
+                                       ("attack", Just $ VF (-1)),
+                                       ("hold", Just $ VF 0),
+                                       ("release", Just $ VF (-1)),
+                                       ("orbit", Just $ VI 0)
+                                      ],
+                         oLatency = 0.02,
+                         oPreamble = [],
+                         oTimestamp = BundleStamp
+                       }
+
 startStream :: Config -> MVar ControlMap -> OSCTarget -> IO (MVar ControlPattern, MVar T.Tempo, O.UDP)
 startStream config cMapMV target
   = do u <- O.openUDP (oAddress target) (oPort target)
@@ -80,11 +122,15 @@ toDatum (VF x) = O.float x
 toDatum (VI x) = O.int32 x
 toDatum (VS x) = O.string x
 
-toData :: Event ControlMap -> [O.Datum]
-toData e = concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ value e
+toData :: OSCTarget -> Event ControlMap -> Maybe [O.Datum]
+toData target e
+  | isJust (oShape target) = fmap (fmap toDatum) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) (fromJust $ oShape target)
+  | otherwise = Just $ concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ value e
+  where find n = Map.lookup n 
 
-toMessage :: OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> O.Message
-toMessage target tempo e = O.Message (oPath target) $ oPreamble target ++ toData addCps
+toMessage :: OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> Maybe O.Message
+toMessage target tempo e = do vs <- toData target addCps
+                              return $ O.Message (oPath target) $ oPreamble target ++ vs
   where on = sched tempo $ start $ whole e
         off = sched tempo $ stop $ whole e
         delta = off - on
@@ -111,7 +157,9 @@ onTick config cMapMV pMV target u tempoMV st =
      let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
          on e = (sched tempo $ start $ whole e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
-         messages = map (\e -> (on e, toMessage target tempo e)) es
+         messages = catMaybes $ map (\e -> do m <- toMessage target tempo e
+                                              return $ (on e, m)
+                                    ) es
          cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
          latency = oLatency target + cFrameTimespan config + T.nudged tempo
      E.catch (mapM_ (send latency u) messages)
@@ -201,7 +249,9 @@ streamOnce st asap p
            at e = sched fakeTempo $ start $ whole e
            on e = sched tempo $ start $ whole e
            cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
-           messages = map (\e -> (at e, toMessage target fakeTempo e)) es
+           messages = catMaybes $ map (\e -> do m <- toMessage target fakeTempo e
+                                                return $ (at e, m)
+                                      ) es
        E.catch (mapM_ (send (oLatency target) (sUDP st)) messages)
          (\(msg ::E.SomeException)
           -> putStrLn $ "Failed to send. Is the target (probably superdirt) running? " ++ show (msg :: E.SomeException))
