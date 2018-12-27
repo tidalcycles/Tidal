@@ -24,7 +24,7 @@ import qualified Sound.Tidal.Tempo as T
 -- import qualified Sound.OSC.Datum as O
 
 data TimeStamp = BundleStamp | MessageStamp | NoStamp
- deriving Eq
+ deriving (Eq, Show)
 
 data Stream = Stream {sConfig :: Config,
                       sInput :: MVar ControlMap,
@@ -47,6 +47,7 @@ data OSCTarget = OSCTarget {oAddress :: String,
                             oPreamble :: [O.Datum],
                             oTimestamp :: TimeStamp
                            }
+                 deriving Show
 
 superdirtTarget :: OSCTarget
 superdirtTarget = OSCTarget {oAddress = "127.0.0.1",
@@ -60,9 +61,12 @@ superdirtTarget = OSCTarget {oAddress = "127.0.0.1",
 
 dirtTarget :: OSCTarget
 dirtTarget = OSCTarget {oAddress = "127.0.0.1",
-                        oPort = 57120,
-                        oPath = "/play2",
-                        oShape = Just [("s", Nothing),
+                        oPort = 7771,
+                        oPath = "/play",
+                        oShape = Just [("sec", Nothing),
+                                       ("usec", Nothing),
+                                       ("cps", Nothing),
+                                       ("s", Nothing),
                                        ("offset", Just $ VF 0),
                                        ("begin", Just $ VF 0),
                                        ("end", Just $ VF 1),
@@ -96,7 +100,7 @@ dirtTarget = OSCTarget {oAddress = "127.0.0.1",
                                       ],
                          oLatency = 0.02,
                          oPreamble = [],
-                         oTimestamp = BundleStamp
+                         oTimestamp = MessageStamp
                        }
 
 startStream :: Config -> MVar ControlMap -> OSCTarget -> IO (MVar ControlPattern, MVar T.Tempo, O.UDP)
@@ -126,19 +130,28 @@ toData :: OSCTarget -> Event ControlMap -> Maybe [O.Datum]
 toData target e
   | isJust (oShape target) = fmap (fmap toDatum) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) (fromJust $ oShape target)
   | otherwise = Just $ concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ value e
-  where find n = Map.lookup n 
 
-toMessage :: OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> Maybe O.Message
-toMessage target tempo e = do vs <- toData target addCps
-                              return $ O.Message (oPath target) $ oPreamble target ++ vs
+toMessage :: Double -> OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> Maybe O.Message
+toMessage t target tempo e = do vs <- toData target addExtra
+                                return $ O.Message (oPath target) $ oPreamble target ++ vs
   where on = sched tempo $ start $ whole e
         off = sched tempo $ stop $ whole e
         delta = off - on
+        messageStamp = oTimestamp target == MessageStamp
         -- If there is already cps in the event, the union will preserve that.
-        addCps = (\v -> (Map.union v $ Map.fromList [("cps", (VF $ T.cps tempo)),
-                                                     ("delta", VF delta),
-                                                     ("cycle", VF (fromRational $ start $ whole e))
-                                                    ])) <$> e
+        addExtra = (\v -> (Map.union v $ Map.fromList (extra messageStamp)
+                          )) <$> e
+        extra False = [("cps", (VF $ T.cps tempo)),
+                       ("delta", VF delta),
+                       ("cycle", VF (fromRational $ start $ whole e))
+                      ]
+        extra True = timestamp ++ (extra False)
+        timestamp = [("sec", VI sec),
+                     ("usec", VI usec)
+                    ]
+        ut = O.ntpr_to_ut t
+        sec = floor ut
+        usec = floor $ 1000000 * (ut - (fromIntegral sec))
 
 doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
 doCps tempoMV (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
@@ -157,21 +170,27 @@ onTick config cMapMV pMV target u tempoMV st =
      let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
          on e = (sched tempo $ start $ whole e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
-         messages = catMaybes $ map (\e -> do m <- toMessage target tempo e
+         messages = catMaybes $ map (\e -> do m <- toMessage (on e + latency) target tempo e
                                               return $ (on e, m)
                                     ) es
          cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
          latency = oLatency target + cFrameTimespan config + T.nudged tempo
-     E.catch (mapM_ (send latency u) messages)
+     E.catch (mapM_ (send target latency u) messages)
        (\(_ ::E.SomeException)
         -> putStrLn $ "Failed to send. Is the target (probably superdirt) running?")
                 -- ++ show (msg :: E.SomeException))
      mapM_ (doCps tempoMV) cpsChanges
      return ()
 
-send :: O.Transport t => Double -> t -> (Double, O.Message) -> IO ()
-send latency u (time, m) = O.sendBundle u $ O.Bundle (time + latency) [m]
-
+send :: O.Transport t => OSCTarget -> Double -> t -> (Double, O.Message) -> IO ()
+send target latency u (time, m)
+  | oTimestamp target == BundleStamp = O.sendBundle u $ O.Bundle (time + latency) [m]
+  | oTimestamp target == MessageStamp = O.sendMessage u m
+  | otherwise = do _ <- forkIO $ do now <- O.time
+                                    threadDelay $ floor $ ((time+latency) - now) * 1000000
+                                    O.sendMessage u m
+                   return ()
+  
 sched :: T.Tempo -> Rational -> Double
 sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)
 
@@ -249,10 +268,10 @@ streamOnce st asap p
            at e = sched fakeTempo $ start $ whole e
            on e = sched tempo $ start $ whole e
            cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
-           messages = catMaybes $ map (\e -> do m <- toMessage target fakeTempo e
+           messages = catMaybes $ map (\e -> do m <- toMessage (at e + oLatency target) target fakeTempo e
                                                 return $ (at e, m)
                                       ) es
-       E.catch (mapM_ (send (oLatency target) (sUDP st)) messages)
+       E.catch (mapM_ (send target (oLatency target) (sUDP st)) messages)
          (\(msg ::E.SomeException)
           -> putStrLn $ "Failed to send. Is the target (probably superdirt) running? " ++ show (msg :: E.SomeException))
        mapM_ (doCps $ sTempoMV st) cpsChanges
