@@ -134,3 +134,8 @@ run =
         comparePD (Arc 0 1)
           (struct "t*8" $ (tri :: Pattern Double) + 1)
           ("1 1.25 1.5 1.75 2 1.75 1.5 1.25")
+    describe "every" $ do
+      it "`every n id` doesn't change the pattern's structure" $ do
+        comparePD (Arc 0 4)
+          (every 2 id $ "x/2" :: Pattern String)
+          ("x/2")
