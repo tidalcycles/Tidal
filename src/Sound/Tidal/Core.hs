@@ -361,7 +361,7 @@ fastRepeatCycles n p = cat (replicate n p)
 -- | @every n f p@ applies the function @f@ to @p@, but only affects
 -- every @n@ cycles.
 every :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-every tp f p = tp >>= \t -> _every t f p
+every tp f p = innerJoin $ (\t -> _every t f p) <$> tp
 
 _every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _every 0 _ p = p
@@ -405,8 +405,3 @@ whenT :: (Time -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
 whenT test f p = splitQueries $ p {query = apply}
   where apply st | test (start $ arc st) = query (f p) st
                  | otherwise = query p st
-
-
---eoff :: Int -> Int -> Integer -> Pattern a -> Pattern a
---eoff n k s p = ((s%(fromIntegral k)) `rotL`) (_e n k p)
-   -- TPat_ShiftL (s%(fromIntegral k)) (TPat_E n k p)
