@@ -78,7 +78,7 @@ rand = Pattern Analog (\(State a@(Arc s e) _) -> [Event a a (realToFrac $ timeTo
 samples from a folder:
 
 @
-d1 $ n (irand 5) # sound "drum"
+d1 $ segment 4 $ n (irand 5) # sound "drum"
 @
 -}
 irand :: Num a => Int -> Pattern a
