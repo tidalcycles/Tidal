@@ -212,7 +212,7 @@ type Query a = (State -> [Event a])
 
 -- | Also known as Continuous vs Discrete/Amorphous vs Pulsating etc.
 data Nature = Analog | Digital
-            deriving Eq
+            deriving (Eq, Show)
 
 -- | A datatype that's basically a query, plus a hint about whether its events
 -- are Analogue or Digital by nature
