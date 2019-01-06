@@ -4,10 +4,11 @@ module Sound.Tidal.MiniTidal (miniTidal,miniTidalIO,main) where
 
 import           Data.Functor.Identity (Identity)
 import           Text.Parsec.Language (haskellDef)
-import           Text.Parsec.Prim (ParsecT)
+import           Text.Parsec.Prim (ParsecT,parserZero)
 import           Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec.Token as P
 import           Control.Monad (forever)
+import Control.Applicative (liftA2)
 -- import Data.List (intercalate)
 -- import Data.Bool (bool)
 -- import Data.Ratio
@@ -28,94 +29,78 @@ miniTidalParser = whiteSpace >> choice [
     return x
   ]
 
-class Pattern' a where
-  simplePattern :: Parser (Pattern a)
-  complexPattern :: Parser (Pattern a)
-  mergeOperator :: Parser (Pattern a -> Pattern a -> Pattern a)
-  transformationWithoutArgs :: Parser (Pattern a -> Pattern a)
-  transformationWithArgs :: Parser (Pattern a -> Pattern a)
-  literal :: Parser a
+class MiniTidal a where
+  literal :: Parser a -- parse an individual pure value of this type
+  simplePattern :: Parser (Pattern a) -- any way of making this pattern that wouldn't require parentheses if it was an argument
+  complexPattern :: Parser (Pattern a) -- producing this pattern by way of unary functions with an argument of a different type
+  transformationWithArguments:: Parser (Pattern a -> Pattern a) -- producing this pattern by with unary functions that take same type
+  transformationWithoutArguments :: Parser (Pattern a -> Pattern a) -- also producing this pattern by unary functions of same type
+  mergeOperator :: Parser (Pattern a -> Pattern a -> Pattern a) -- operators for combining this type of pattern, eg. # or |>
+  binaryFunctions :: Parser (a -> a -> a) -- binary functions on pure values of this type, eg. (+) for Int or other Num instances
 
-pattern :: Pattern' a => Parser (Pattern a)
-pattern = chainl1 pattern' mergeOperator
-
-pattern' :: Pattern' a => Parser (Pattern a)
-pattern' = choice [
-  nestedParens $ chainl1 pattern mergeOperator,
-  parensOrNot complexPattern,
-  parensOrNot genericComplexPatterns,
-  parensOrNot transformedPattern,
-  parensOrNot simplePattern,
-  silence
-  ]
-
-patternArg :: Pattern' a => Parser (Pattern a)
-patternArg = choice [
-  try $ parensOrApplied $ chainl1 pattern mergeOperator,
-  try $ parensOrApplied transformedPattern,
-  try $ parensOrApplied complexPattern,
-  try $ parensOrApplied genericComplexPatterns,
-  appliedOrNot simplePattern,
-  appliedOrNot silence
-  ]
-
-literalArg :: Pattern' a => Parser a
+literalArg :: MiniTidal a => Parser a
 literalArg = choice [
   literal,
   nestedParens literal,
   try $ applied $ parensOrNot literal
   ]
 
-listLiteralArg :: Pattern' a => Parser [a]
+listLiteralArg :: MiniTidal a => Parser [a]
 listLiteralArg = brackets (commaSep $ parensOrNot literal)
 
-listPatternArg :: Pattern' a => Parser [Pattern a]
-listPatternArg = parensOrNot $ brackets (commaSep pattern)
+pattern :: MiniTidal a => Parser (Pattern a)
+pattern = chainl1 pattern' mergeOperator
+
+pattern' :: MiniTidal a => Parser (Pattern a)
+pattern' = choice [
+  nestedParens $ chainl1 pattern mergeOperator,
+  transformation <*> patternArg,
+  genericComplexPattern,
+  complexPattern,
+  simplePattern,
+  silence
+  ]
+
+patternArg :: MiniTidal a => Parser (Pattern a)
+patternArg = choice [
+  try $ parensOrApplied $ chainl1 pattern mergeOperator,
+  try $ parensOrApplied $ transformation <*> patternArg,
+  try $ parensOrApplied genericComplexPattern,
+  try $ parensOrApplied complexPattern,
+  try $ appliedOrNot simplePattern,
+  appliedOrNot silence
+  ]
+
+transformation :: MiniTidal a => Parser (Pattern a -> Pattern a)
+transformation = transformationWithArguments <|> transformationWithoutArguments
+
+transformationArg :: MiniTidal a => Parser (Pattern a -> Pattern a)
+transformationArg = choice [
+  try $ appliedOrNot $ transformationWithoutArguments,
+  parensOrApplied $ transformationWithArguments
+  ]
+
+listPatternArg :: MiniTidal a => Parser [Pattern a]
+listPatternArg = try $ parensOrNot $ brackets (commaSep pattern)
+
+listTransformationArg :: MiniTidal a => Parser [Pattern a -> Pattern a]
+listTransformationArg = try $ parensOrNot $ brackets (commaSep transformation)
+
+--  d1 $ spread ($) [density 2, rev, slow 2, striate 3, (# speed "0.8")] $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4"
+--  spread  ((a -> b) -> a -> b) -> [ControlPattern -> ControlPattern] -> ControlPattern -> ControlPattern
+
 
 silence :: Parser (Pattern a)
 silence = function "silence" >> return T.silence
 
-genericComplexPatterns :: Pattern' a => Parser (Pattern a)
-genericComplexPatterns = choice [
-  (function "stack" >> return T.stack) <*> listPatternArg,
-  (function "fastcat" >> return T.fastcat) <*> listPatternArg,
-  (function "slowcat" >> return T.slowcat) <*> listPatternArg,
-  (function "cat" >> return T.cat) <*> listPatternArg,
-  (function "listToPat" >> return T.listToPat) <*> listLiteralArg,
-  (function "fit" >> return T.fit) <*> literalArg <*> listLiteralArg <*> patternArg,
-  (function "choose" >> return T.choose) <*> listLiteralArg,
-  (function "randcat" >> return T.randcat) <*> listPatternArg,
-  (function "cycleChoose" >> return T.cycleChoose) <*> listLiteralArg
-  ]
-
-enumComplexPatterns :: (Enum a, Num a, Pattern' a) => Parser (Pattern a)
-enumComplexPatterns = choice [
-  (function "run" >> return T.run) <*> patternArg,
-  (function "scan" >> return T.scan) <*> patternArg
-  ]
-
-numComplexPatterns :: (Num a, Pattern' a) => Parser (Pattern a)
-numComplexPatterns = choice [
-  (function "irand" >> return T.irand) <*> literal,
-  (function "toScale'" >> return T.toScale') <*> literalArg <*> listLiteralArg <*> patternArg,
-  (function "toScale" >> return T.toScale) <*> listLiteralArg <*> patternArg
-  ]
-
-intComplexPatterns :: Parser (Pattern Int)
-intComplexPatterns = choice [
-  (function "randStruct" >> return T.randStruct) <*> literalArg
-  ]
-
-transformedPattern :: Pattern' a => Parser (Pattern a)
-transformedPattern = (transformationWithArgs <|> transformationWithoutArgs) <*> patternArg
-
-instance Pattern' ControlMap where
-  simplePattern = choice []
+instance MiniTidal ControlMap where
+  literal = parserZero
+  simplePattern = parserZero
+  transformationWithArguments = p_p <|> pControl_pControl
+  transformationWithoutArguments = p_p_noArgs
   complexPattern = specificControlPatterns
   mergeOperator = controlPatternMergeOperator
-  transformationWithArgs = controlPatternTransformation <|> patternTransformationWithArgs
-  transformationWithoutArgs = patternTransformationWithoutArgs
-  literal = choice []
+  binaryFunctions = parserZero
 
 controlPatternMergeOperator :: Parser (ControlPattern -> ControlPattern -> ControlPattern)
 controlPatternMergeOperator = choice [
@@ -132,6 +117,7 @@ controlPatternMergeOperator = choice [
 
 specificControlPatterns :: Parser ControlPattern
 specificControlPatterns = choice [
+  try $ parens specificControlPatterns,
   (function "coarse" >> return T.coarse) <*> patternArg,
   (function "cut" >> return T.cut) <*> patternArg,
   (function "n" >> return T.n) <*> patternArg,
@@ -162,107 +148,272 @@ specificControlPatterns = choice [
   (function "note" >> return T.note) <*> patternArg
   ]
 
-controlPatternTransformation :: Parser (ControlPattern -> ControlPattern)
-controlPatternTransformation = choice [
-  function "chop" >> patternArg >>= return . T.chop,
-  function "striate" >> patternArg >>= return . T.striate,
-  (function "striate'" >> return T.striate') <*> patternArg <*> patternArg,
-  (function "stut" >> return T.stut) <*> patternArg <*> patternArg <*> patternArg,
-  function "jux" >> patternTransformationArg >>= return . T.jux
+genericComplexPattern :: MiniTidal a => Parser (Pattern a)
+genericComplexPattern = choice [
+  try $ parens genericComplexPattern,
+  lp_p <*> listPatternArg,
+  l_p <*> listLiteralArg
   ]
 
-patternTransformationArg :: Pattern' a => Parser (Pattern a -> Pattern a)
-patternTransformationArg = appliedOrNot transformationWithoutArgs <|> parensOrApplied transformationWithArgs
-
-patternTransformationWithoutArgs :: Parser (Pattern a -> Pattern a)
-patternTransformationWithoutArgs = choice [
+p_p_noArgs :: Parser (Pattern a -> Pattern a)
+p_p_noArgs  = choice [
   function "brak" >> return T.brak,
   function "rev" >> return T.rev,
   function "palindrome" >> return T.palindrome,
   function "stretch" >> return T.stretch,
   function "loopFirst" >> return T.loopFirst,
---  function "breakUp" >> return T.breakUp, -- removed from new Tidal?
   function "degrade" >> return T.degrade
   ]
 
-patternTransformationWithArgs :: Pattern' a => Parser (Pattern a -> Pattern a)
-patternTransformationWithArgs = parensOrNot $ choice [
-  function "fast" >> patternArg >>= return . T.fast,
---  function "fast'" >> patternArg >>= return . T.fast', -- removed from Tidal 1.0?
-  function "density" >> patternArg >>= return . T.density,
-  function "slow" >> patternArg >>= return . T.slow,
-  function "iter" >> patternArg >>= return . T.iter,
-  function "iter'" >> patternArg >>= return . T.iter',
-  function "trunc" >> patternArg >>= return . T.trunc,
-  (function "swingBy" >> return T.swingBy) <*> patternArg <*> patternArg,
-  (function "append" >> return T.append) <*> patternArg,
---  (function "append'" >> return T.append') <*> patternArg,
-  (function "every" >> return T.every) <*> patternArg <*> patternTransformationArg,
-  (function "every'" >> return T.every') <*> patternArg <*> patternArg <*> patternTransformationArg,
-  (function "whenmod" >> return T.whenmod) <*> int <*> int <*> patternTransformationArg,
-  (function "overlay" >> return T.overlay) <*> patternArg,
-  (function "fastGap" >> return T.fastGap) <*> patternArg,
-  (function "densityGap" >> return T.densityGap) <*> patternArg,
-  (function "sparsity" >> return T.sparsity) <*> patternArg,
-  (function "rotL" >> return T.rotL) <*> literalArg,
-  (function "rotR" >> return T.rotR) <*> literalArg,
-  (function "playFor" >> return T.playFor) <*> literalArg <*> literalArg,
-  (function "foldEvery" >> return T.foldEvery) <*> listLiteralArg <*> patternTransformationArg,
-  (function "superimpose" >> return T.superimpose) <*> patternTransformationArg,
-  (function "trunc" >> return T.trunc) <*> patternArg,
-  (function "linger" >> return T.linger) <*> patternArg,
-  (function "zoom" >> return T.zoomArc) <*> literalArg,
-  (function "compress" >> return T.compressArc) <*> literalArg,
---  (function "sliceArc" >> return T.sliceArc) <*> literalArg,
-  (function "within" >> return T.withinArc) <*> literalArg <*> patternTransformationArg,
-  --(function "within'" >> return T.within') <*> literalArg <*> patternTransformationArg,
-  -- (function "revArc" >> return T.revArc) <*> literalArg,
-  (function "euclid" >> return T.euclid) <*> patternArg <*> patternArg,
-  (function "euclidFull" >> return T.euclidFull) <*> patternArg <*> patternArg <*> patternArg,
-  (function "euclidInv" >> return T.euclidInv) <*> patternArg <*> patternArg,
-  (function "distrib" >> return T.distrib) <*> listPatternArg,
-  (function "wedge" >> return T.wedge) <*> literalArg <*> patternArg,
---  (function "prr" >> return T.prr) <*> literalArg <*> literalArg <*> patternArg,
---  (function "preplace" >> return T.preplace) <*> literalArg <*> patternArg,
---  (function "prep" >> return T.prep) <*> literalArg <*> patternArg,
---  (function "preplace1" >> return T.preplace1) <*> patternArg,
---  (function "protate" >> return T.protate) <*> literalArg <*> literalArg,
---  (function "prot" >> return T.prot) <*> literalArg <*> literalArg,
---  (function "prot1" >> return T.prot1) <*> literalArg,
-  (function "discretise" >> return T.discretise) <*> patternArg,
-  (function "segment" >> return T.segment) <*> patternArg,
-  --(function "struct" >> return T.struct) <*> patternArg,
-  (function "substruct" >> return T.substruct) <*> patternArg,
-  (function "compressTo" >> return T.compressArcTo) <*> literalArg,
-  (function "substruct'" >> return T.substruct') <*> patternArg,
-  (function "slowstripe" >> return T.slowstripe) <*> patternArg,
-  (function "fit'" >> return T.fit') <*> patternArg <*> literalArg <*> patternArg <*> patternArg,
-  (function "chunk" >> return T.chunk) <*> literalArg <*> patternTransformationArg,
-  (function "timeLoop" >> return T.timeLoop) <*> patternArg,
-  (function "swing" >> return T.swing) <*> patternArg,
-  (function "degradeBy" >> return T.degradeBy) <*> patternArg,
-  (function "unDegradeBy" >> return T.unDegradeBy) <*> patternArg,
-  (function "degradeOverBy" >> return T.degradeOverBy) <*> literalArg <*> patternArg,
-  (function "sometimesBy" >> return T.sometimesBy) <*> patternArg <*> patternTransformationArg,
-  (function "sometimes" >> return T.sometimes) <*> patternTransformationArg,
-  (function "often" >> return T.often) <*> patternTransformationArg,
-  (function "rarely" >> return T.rarely) <*> patternTransformationArg,
-  (function "almostNever" >> return T.almostNever) <*> patternTransformationArg,
-  (function "almostAlways" >> return T.almostAlways) <*> patternTransformationArg,
-  (function "never" >> return T.never) <*> patternTransformationArg,
-  (function "always" >> return T.always) <*> patternTransformationArg,
-  (function "someCyclesBy" >> return T.someCyclesBy) <*> literalArg <*> patternTransformationArg,
-  (function "somecyclesBy" >> return T.somecyclesBy) <*> literalArg <*> patternTransformationArg,
-  (function "someCycles" >> return T.someCycles) <*> patternTransformationArg,
-  (function "somecycles" >> return T.somecycles) <*> patternTransformationArg,
-  (function "substruct'" >> return T.substruct') <*> patternArg,
-  (function "repeatCycles" >> return T.repeatCycles) <*> literalArg,
-  (function "spaceOut" >> return T.spaceOut) <*> listLiteralArg,
---  (function "fill" >> return T.fill) <*> patternArg, -- removed from tidal-1.0?
-  (function "ply" >> return T.ply) <*> patternArg,
-  (function "shuffle" >> return T.shuffle) <*> literalArg,
-  (function "scramble" >> return T.scramble) <*> literalArg
+p_p :: (MiniTidal a, MiniTidal a) => Parser (Pattern a -> Pattern a)
+p_p = choice [
+  try $ parens p_p,
+  p_p_p <*> patternArg,
+  t_p_p <*> transformationArg,
+  lp_p_p <*> listPatternArg,
+  lt_p_p <*> listTransformationArg,
+  lpInt_p_p <*> listPatternArg,
+  pTime_p_p <*> patternArg,
+  pInt_p_p <*> patternArg,
+  pString_p_p <*> patternArg,
+  pDouble_p_p <*> patternArg,
+  vTime_p_p <*> literalArg,
+  vInt_p_p <*> literalArg,
+  vTimeTime_p_p <*> literalArg,
+  pDouble_p_p <*> patternArg,
+  lTime_p_p <*> listLiteralArg
   ]
+
+lt_p_p = choice [
+  try $ parens lt_p_p,
+  spreads <*> (nestedParens $ reservedOp "$" >> return ($))
+  ]
+
+l_p :: MiniTidal a => Parser ([a] -> Pattern a)
+l_p = choice [
+  function "listToPat" >> return T.listToPat,
+  function "choose" >> return T.choose,
+  function "cycleChoose" >> return T.cycleChoose
+  ]
+
+lp_p :: MiniTidal a => Parser ([Pattern a] -> Pattern a)
+lp_p = choice [
+  function "stack" >> return T.stack,
+  function "fastcat" >> return T.fastcat,
+  function "slowcat" >> return T.slowcat,
+  function "cat" >> return T.cat,
+  function "randcat" >> return T.randcat
+  ]
+
+pInt_p :: MiniTidal a => Parser (Pattern Int -> Pattern a)
+pInt_p = choice [
+  try $ parens pInt_p,
+  l_pInt_p <*> listLiteralArg
+  ]
+
+p_p_p :: MiniTidal a => Parser (Pattern a -> Pattern a -> Pattern a)
+p_p_p = choice [
+  try $ parens p_p_p,
+  liftA2 <$> binaryFunctions,
+  function "overlay" >> return T.overlay,
+  function "append" >> return T.append,
+  vTime_p_p_p <*> literalArg,
+  pInt_p_p_p <*> patternArg
+  ]
+
+pTime_p_p = choice [
+  try $ parens pTime_p_p,
+  function "fast" >> return T.fast,
+  function "fastGap" >> return T.fastGap,
+  function "density" >> return T.density,
+  function "slow" >> return T.slow,
+  function "trunc" >> return T.trunc,
+  function "fastGap" >> return T.fastGap,
+  function "densityGap" >> return T.densityGap,
+  function "sparsity" >> return T.sparsity,
+  function "trunc" >> return T.trunc,
+  function "linger" >> return T.linger,
+  function "segment" >> return T.segment,
+  function "discretise" >> return T.discretise,
+  function "timeLoop" >> return T.timeLoop,
+  function "swing" >> return T.swing,
+  pTime_pTime_p_p <*> patternArg
+  ]
+
+lTime_p_p = choice [
+  try $ parens lTime_p_p,
+  spreads <*> parens vTime_p_p -- re: spread
+  ]
+
+spreads = choice [
+  function "spread" >> return T.spread,
+  function "slowspread" >> return T.slowspread,
+  function "fastspread" >> return T.fastspread
+  ]
+
+pInt_p_p = choice [
+  try $ parens pInt_p_p,
+  function "iter" >> return T.iter,
+  function "iter'" >> return T.iter',
+  function "ply" >> return T.ply,
+  function "substruct'" >> return T.substruct',
+  function "slowstripe" >> return T.slowstripe,
+  pInt_pInt_p_p <*> patternArg
+  ]
+
+pString_p_p = function "substruct" >> return T.substruct
+
+pDouble_p_p = choice [
+  try $ parens pDouble_p_p,
+  function "degradeBy" >> return T.degradeBy,
+  function "unDegradeBy" >> return T.unDegradeBy,
+  vInt_pDouble_p_p <*> literalArg
+  ]
+
+vTime_p_p = choice [
+  try $ parens vTime_p_p,
+  function "rotL" >> return T.rotL,
+  function "rotR" >> return T.rotR,
+  vTime_vTime_p_p <*> literalArg
+  ]
+
+vInt_p_p = choice [
+  function "shuffle" >> return T.shuffle,
+  function "scramble" >> return T.scramble,
+  function "repeatCycles" >> return T.repeatCycles
+  ]
+
+vTimeTime_p_p = choice [
+  function "compress" >> return T.compressArc,
+  function "zoom" >> return T.zoomArc,
+  function "compressTo" >> return T.compressArcTo
+  ]
+
+t_p_p = choice [
+  try $ parens t_p_p,
+  function "sometimes" >> return T.sometimes,
+  function "often" >> return T.often,
+  function "rarely" >> return T.rarely,
+  function "almostNever" >> return T.almostNever,
+  function "almostAlways" >> return T.almostAlways,
+  function "never" >> return T.never,
+  function "always" >> return T.always,
+  function "superimpose" >> return T.superimpose,
+  function "someCycles" >> return T.someCycles,
+  function "somecycles" >> return T.somecycles,
+  pInt_t_p_p <*> patternArg,
+  pDouble_t_p_p <*> patternArg,
+  lvInt_t_p_p <*> listLiteralArg,
+  vInt_t_p_p <*> literalArg,
+  vDouble_t_p_p <*> literalArg
+  ]
+
+lvTime_p_p = function "spaceOut" >> return T.spaceOut
+
+lpInt_p_p = function "distrib" >> return T.distrib
+
+lp_p_p :: MiniTidal a => Parser ([Pattern a] -> Pattern a -> Pattern a)
+lp_p_p = choice [
+  try $ parens lp_p_p,
+  try $ spreads <*> parens p_p_p
+  ]
+
+l_pInt_p = choice [
+  try $ parens l_pInt_p,
+  vInt_l_pInt_p <*> literalArg
+  ]
+
+vInt_l_pInt_p = function "fit" >> return T.fit
+
+vTime_p_p_p = function "wedge" >> return T.wedge
+
+vInt_pDouble_p_p = function "degradeOverBy" >> return T.degradeOverBy
+
+pInt_t_p_p = choice [
+  try $ parens pInt_t_p_p,
+  function "every" >> return T.every,
+  pInt_pInt_t_p_p <*> patternArg
+  ]
+
+pDouble_t_p_p = function "sometimesBy" >> return T.sometimesBy
+
+lvInt_t_p_p = function "foldEvery" >> return T.foldEvery
+
+vTime_vTime_p_p = function "playFor" >> return T.playFor
+
+vTimeTime_t_p_p = function "within" >> return T.withinArc
+
+vInt_t_p_p = choice [
+  try $ parens vInt_t_p_p,
+  function "chunk" >> return T.chunk,
+  vInt_vInt_t_p_p <*> literalArg
+  ]
+
+vDouble_t_p_p = choice [
+  function "someCyclesBy" >> return T.someCyclesBy,
+  function "somecyclesBy" >> return T.somecyclesBy
+  ]
+
+pInt_pInt_p_p = choice [
+  try $ parens pInt_pInt_p_p,
+  function "euclid" >> return T.euclid,
+  function "euclidInv" >> return T.euclidInv,
+  vInt_pInt_pInt_p_p <*> literalArg
+  ]
+
+pTime_pTime_p_p = function "swingBy" >> return T.swingBy
+
+pInt_pInt_t_p_p = function "every'" >> return T.every'
+
+vInt_vInt_t_p_p = function "whenmod" >> return T.whenmod
+
+pInt_p_p_p = choice [
+  try $ parens pInt_p_p_p,
+  pInt_pInt_p_p_p <*> patternArg
+  ]
+
+pInt_pInt_p_p_p = function "euclidFull" >> return T.euclidFull
+
+vInt_pInt_pInt_p_p = choice [
+  try $ parens vInt_pInt_pInt_p_p,
+  pTime_vInt_pInt_pInt_p_p <*> patternArg
+  ]
+
+pTime_vInt_pInt_pInt_p_p = function "fit'" >> return T.fit'
+
+pControl_pControl = choice [
+  try $ parens pControl_pControl,
+  pInt_pControl_pControl <*> patternArg,
+  pDouble_pControl_pControl <*> patternArg,
+  pTime_pControl_pControl <*> patternArg,
+  tControl_pControl_pControl <*> transformationArg
+  ]
+
+tControl_pControl_pControl = function "jux" >> return T.jux
+
+pInt_pControl_pControl = choice [
+  function "chop" >> return T.chop,
+  function "striate" >> return T.striate
+  ]
+
+pDouble_pControl_pControl = choice [
+  try $ parens pDouble_pControl_pControl,
+  pInt_pDouble_pControl_pControl <*> patternArg
+  ]
+
+pInt_pDouble_pControl_pControl = function "striate'" >> return T.striate'
+
+pTime_pControl_pControl = choice [
+  try $ parens pTime_pControl_pControl,
+  pDouble_pTime_pControl_pControl <*> patternArg
+  ]
+
+pDouble_pTime_pControl_pControl = choice [
+  try $ parens pDouble_pTime_pControl_pControl,
+  pInteger_pDouble_pTime_pControl_pControl <*> patternArg
+  ]
+
+pInteger_pDouble_pTime_pControl_pControl = function "stut" >> return T.stut
 
 simpleDoublePatterns :: Parser (Pattern Double)
 simpleDoublePatterns = choice [
@@ -275,71 +426,69 @@ simpleDoublePatterns = choice [
   function "cosine" >> return T.cosine
   ]
 
-instance Pattern' Int where
-  simplePattern = choice [
-    parseBP',
-    pure <$> int
-    ]
+binaryNumFunctions :: Num a => Parser (a -> a -> a)
+binaryNumFunctions = choice [
+  try $ parens binaryNumFunctions,
+  reservedOp "+" >> return (+),
+  reservedOp "-" >> return (-),
+  reservedOp "*" >> return (*)
+  ]
+
+instance MiniTidal Int where
+  literal = int
+  simplePattern = parseBP' <|> (pure <$> int)
+  transformationWithArguments = p_p_noArgs
+  transformationWithoutArguments = p_p
   complexPattern = (atom <*> int) <|> enumComplexPatterns <|> numComplexPatterns <|> intComplexPatterns
   mergeOperator = numMergeOperator
-  transformationWithoutArgs = patternTransformationWithoutArgs
-  transformationWithArgs = patternTransformationWithArgs
-  literal = int
+  binaryFunctions = binaryNumFunctions
 
-instance Pattern' Integer where
-  simplePattern = choice [
-    parseBP',
-    pure <$> integer
-    ]
+instance MiniTidal Integer where
+  literal = integer
+  simplePattern = parseBP' <|> (pure <$> integer)
+  transformationWithArguments = p_p_noArgs
+  transformationWithoutArguments = p_p
   complexPattern = (atom <*> integer) <|> enumComplexPatterns <|> numComplexPatterns
   mergeOperator = numMergeOperator
-  transformationWithoutArgs = patternTransformationWithoutArgs
-  transformationWithArgs = patternTransformationWithArgs
-  literal = integer
+  binaryFunctions = binaryNumFunctions
 
-instance Pattern' Double where
-  simplePattern = choice [
-    parseBP',
-    try $ pure <$> double,
-    simpleDoublePatterns
-    ]
+instance MiniTidal Double where
+  literal = double
+  simplePattern = parseBP' <|> (try $ pure <$> double) <|> simpleDoublePatterns
+  transformationWithArguments = p_p_noArgs
+  transformationWithoutArguments = p_p
   complexPattern = (atom <*> double) <|> enumComplexPatterns <|> numComplexPatterns
   mergeOperator = numMergeOperator <|> fractionalMergeOperator
-  transformationWithoutArgs = patternTransformationWithoutArgs
-  transformationWithArgs = patternTransformationWithArgs
-  literal = double
+  binaryFunctions = binaryNumFunctions
 
-instance Pattern' Time where
-  simplePattern = choice [
-    parseBP',
-    pure <$> literal
-    ]
+instance MiniTidal Time where
+  literal = (toRational <$> double) <|> (fromIntegral <$> integer)
+  simplePattern = parseBP' <|> (pure <$> literal)
+  transformationWithArguments = p_p_noArgs
+  transformationWithoutArguments = p_p
   complexPattern = atom <*> literal <|> numComplexPatterns
   mergeOperator = numMergeOperator <|> fractionalMergeOperator
-  transformationWithoutArgs = patternTransformationWithoutArgs
-  transformationWithArgs = patternTransformationWithArgs
-  literal = choice [
-    toRational <$> double,
-    fromIntegral <$> integer
-    ]
+  binaryFunctions = binaryNumFunctions
 
-instance Pattern' Arc where
-  simplePattern = pure <$> literal
-  complexPattern = atom <*> literal
-  mergeOperator = choice []
-  transformationWithoutArgs = patternTransformationWithoutArgs
-  transformationWithArgs = patternTransformationWithArgs
+instance MiniTidal Arc where
   literal = do
     xs <- parens (commaSep1 literal)
     if length xs == 2 then return (T.Arc (xs!!0) (xs!!1)) else unexpected "Arcs must contain exactly two values"
+  simplePattern = pure <$> literal
+  transformationWithArguments = p_p_noArgs
+  transformationWithoutArguments = p_p
+  complexPattern = atom <*> literal
+  mergeOperator = parserZero
+  binaryFunctions = parserZero
 
-instance Pattern' String where
-  simplePattern = parseBP'
-  complexPattern = atom <*> stringLiteral
-  mergeOperator = choice [] -- ??
-  transformationWithoutArgs = patternTransformationWithoutArgs
-  transformationWithArgs = patternTransformationWithArgs
+instance MiniTidal String where
   literal = stringLiteral
+  simplePattern = parseBP'
+  transformationWithArguments = p_p_noArgs
+  transformationWithoutArguments = p_p
+  complexPattern = atom <*> stringLiteral
+  mergeOperator = parserZero
+  binaryFunctions = parserZero
 
 fractionalMergeOperator :: Fractional a => Parser (Pattern a -> Pattern a -> Pattern a)
 fractionalMergeOperator = op "/" >> return (/)
@@ -349,6 +498,24 @@ numMergeOperator = choice [
   op "+" >> return (+),
   op "-" >> return (-),
   op "*" >> return (*)
+  ]
+
+enumComplexPatterns :: (Enum a, Num a, MiniTidal a) => Parser (Pattern a)
+enumComplexPatterns = choice [
+  (function "run" >> return T.run) <*> patternArg,
+  (function "scan" >> return T.scan) <*> patternArg
+  ]
+
+numComplexPatterns :: (Num a, MiniTidal a) => Parser (Pattern a)
+numComplexPatterns = choice [
+  (function "irand" >> return T.irand) <*> literal,
+  (function "toScale'" >> return T.toScale') <*> literalArg <*> listLiteralArg <*> patternArg,
+  (function "toScale" >> return T.toScale) <*> listLiteralArg <*> patternArg
+  ]
+
+intComplexPatterns :: Parser (Pattern Int)
+intComplexPatterns = choice [
+  (function "randStruct" >> return T.randStruct) <*> literalArg
   ]
 
 atom :: Applicative m => Parser (a -> m a)
@@ -393,8 +560,7 @@ tokenParser = P.makeTokenParser $ haskellDef {
     "append","append'","silence","s","sound","n","up","speed","vowel","pan","shape","gain",
     "accelerate","bandf","bandq","begin","coarse","crush","cut","cutoff","delayfeedback",
     "delaytime","delay","end","hcutoff","hresonance","loop","resonance","shape","unit",
-    "sine","saw","isaw","fit","irand",
-    "tri","square","rand",
+    "sine","saw","isaw","fit","irand","tri","square","rand",
     "pure","return","stack","fastcat","slowcat","cat","atom","overlay","run","scan","fast'",
     "fastGap","densityGap","sparsity","rotL","rotR","playFor","every'","foldEvery",
     "cosine","superimpose","trunc","linger","zoom","compress","sliceArc","within","within'",
@@ -406,7 +572,7 @@ tokenParser = P.makeTokenParser $ haskellDef {
     "someCycles","somecycles","substruct'","repeatCycles","spaceOut","fill","ply","shuffle",
     "scramble","breakUp","degrade","randcat","randStruct","toScale'","toScale","cycleChoose",
     "d1","d2","d3","d4","d5","d6","d7","d8","d9","t1","t2","t3","t4","t5","t6","t7","t8","t9",
-    "cps","xfadeIn","note"],
+    "cps","xfadeIn","note","spread","slowspread","fastspread"],
   P.reservedOpNames = ["+","-","*","/","<~","~>","#","|+|","|-|","|*|","|/|","$","\"","|>","<|","|>|","|<|"]
   }
 
@@ -545,3 +711,18 @@ main = do
   forever $ do
     cmd <- miniTidalIO tidal <$> getLine
     either (\x -> putStrLn $ "error: " ++ show x) id cmd
+
+-- things whose status in new tidal we are unsure of
+--(function "within'" >> return T.within') <*> literalArg <*> transformationArg,
+-- (function "revArc" >> return T.revArc) <*> literalArg,
+--  (function "prr" >> return T.prr) <*> literalArg <*> literalArg <*> patternArg,
+--  (function "preplace" >> return T.preplace) <*> literalArg <*> patternArg,
+--  (function "prep" >> return T.prep) <*> literalArg <*> patternArg,
+--  (function "preplace1" >> return T.preplace1) <*> patternArg,
+--  (function "protate" >> return T.protate) <*> literalArg <*> literalArg,
+--  (function "prot" >> return T.prot) <*> literalArg <*> literalArg,
+--  (function "prot1" >> return T.prot1) <*> literalArg,
+--  (function "fill" >> return T.fill) <*> patternArg,
+--function "struct" >> return T.struct,
+--  (function "sliceArc" >> return T.sliceArc) <*> literalArg
+--  function "breakUp" >> return T.breakUp, -- removed from new Tidal?
