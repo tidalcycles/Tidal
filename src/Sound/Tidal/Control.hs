@@ -335,7 +335,7 @@ stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ControlPattern 
 stut = tParam3 _stut
 
 _stut :: Integer -> Double -> Rational -> ControlPattern -> ControlPattern
-_stut count feedback time p = stack (p:(map (\x -> (((x%count)*time) `rotR` (p |* P.gain (pure $ scalegain (fromIntegral x))))) [1..(count-1)]))
+_stut count feedback steptime p = stack (p:(map (\x -> (((x%1)*steptime) `rotR` (p |* P.gain (pure $ scalegain (fromIntegral x))))) [1..(count-1)]))
   where scalegain x
           = ((+feedback) . (*(1-feedback)) . (/(fromIntegral count)) . ((fromIntegral count)-)) x
 
@@ -348,11 +348,11 @@ d1 $ stut' 2 (1%3) (# vowel "{a e i o u}%2") $ sound "bd sn"
 In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has the @vowel@ filter applied.
 -}
 stutWith :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stutWith n t f p = unwrap $ (\a b -> _stutWith a b f p) <$> n <*> t
+stutWith n t f p = innerJoin $ (\a b -> _stutWith a b f p) <$> n <* t
 
 _stutWith :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_stutWith count steptime f p | count <= 0 = p
-                          | otherwise = overlay (f (steptime `rotR` _stutWith (count-1) steptime f p)) p
+_stutWith count steptime f p | count <= 1 = p
+                             | otherwise = overlay (f (steptime `rotR` _stutWith (count-1) steptime f p)) p
 
 -- | The old name for stutWith
 stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
