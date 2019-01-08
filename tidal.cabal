@@ -74,7 +74,8 @@ test-suite tests
   hs-source-dirs:
       test
   ghc-options: -Wall
-  other-modules: Sound.Tidal.CoreTest
+  other-modules: Sound.Tidal.ControlTest
+                 Sound.Tidal.CoreTest
                  Sound.Tidal.MiniTidalTest
                  Sound.Tidal.ParseTest
                  Sound.Tidal.PatternTest
