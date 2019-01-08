@@ -33,13 +33,17 @@ data Stream = Stream {sConfig :: Config,
                       sPMapMV :: MVar PlayMap,
                       sTempoMV :: MVar T.Tempo,
                       sGlobalFMV :: MVar (ControlPattern -> ControlPattern),
-                      sTarget :: OSCTarget,
-                      sUDP :: O.UDP
+                      sCxs :: [Cx]
                      }
 
 type PatId = String
 
-data OSCTarget = OSCTarget {oAddress :: String,
+data Cx = Cx {cxTarget :: OSCTarget,
+              cxUDP :: O.UDP
+             }
+
+data OSCTarget = OSCTarget {oName :: String,
+                            oAddress :: String,
                             oPort :: Int,
                             oPath :: String,
                             oShape :: Maybe [(String, Maybe Value)],
@@ -50,7 +54,8 @@ data OSCTarget = OSCTarget {oAddress :: String,
                  deriving Show
 
 superdirtTarget :: OSCTarget
-superdirtTarget = OSCTarget {oAddress = "127.0.0.1",
+superdirtTarget = OSCTarget {oName = "SuperDirt",
+                             oAddress = "127.0.0.1",
                              oPort = 57120,
                              oPath = "/play2",
                              oShape = Nothing,
@@ -60,7 +65,8 @@ superdirtTarget = OSCTarget {oAddress = "127.0.0.1",
                             }
 
 dirtTarget :: OSCTarget
-dirtTarget = OSCTarget {oAddress = "127.0.0.1",
+dirtTarget = OSCTarget {oName = "Dirt",
+                        oAddress = "127.0.0.1",
                         oPort = 7771,
                         oPath = "/play",
                         oShape = Just [("sec", Nothing),
@@ -103,12 +109,16 @@ dirtTarget = OSCTarget {oAddress = "127.0.0.1",
                          oTimestamp = MessageStamp
                        }
 
-startStream :: Config -> MVar ControlMap -> OSCTarget -> IO (MVar ControlPattern, MVar T.Tempo, O.UDP)
-startStream config cMapMV target
-  = do u <- O.openUDP (oAddress target) (oPort target)
+startStream :: Config -> MVar ControlMap -> [OSCTarget] -> IO (MVar ControlPattern, MVar T.Tempo, [Cx])
+startStream config cMapMV targets
+  = do cxs <- mapM (\target -> do u <- O.openUDP (oAddress target) (oPort target)
+                                  return $ Cx {cxUDP = u,
+                                               cxTarget = target
+                                              }
+                   ) targets
        pMV <- newMVar empty
-       (tempoMV, _) <- T.clocked config $ onTick config cMapMV pMV target u
-       return $ (pMV, tempoMV, u)
+       (tempoMV, _) <- T.clocked config $ onTick config cMapMV pMV cxs
+       return $ (pMV, tempoMV, cxs)
 
 
 data PlayState = PlayState {pattern :: ControlPattern,
@@ -119,7 +129,6 @@ data PlayState = PlayState {pattern :: ControlPattern,
                deriving Show
 
 type PlayMap = Map.Map PatId PlayState
-
 
 toDatum :: Value -> O.Datum
 toDatum (VF x) = O.float x
@@ -161,8 +170,8 @@ doCps tempoMV (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d *
                                       return ()
 doCps _ _ = return ()
 
-onTick :: Config -> MVar ControlMap -> MVar ControlPattern -> OSCTarget -> O.UDP -> MVar T.Tempo -> T.State -> IO ()
-onTick config cMapMV pMV target u tempoMV st =
+onTick :: Config -> MVar ControlMap -> MVar ControlPattern -> [Cx] -> MVar T.Tempo -> T.State -> IO ()
+onTick config cMapMV pMV cxs tempoMV st =
   do p <- readMVar pMV
      cMap <- readMVar cMapMV
      tempo <- readMVar tempoMV
@@ -170,15 +179,16 @@ onTick config cMapMV pMV target u tempoMV st =
      let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
          on e = (sched tempo $ start $ whole e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
-         messages = catMaybes $ map (\e -> do m <- toMessage (on e + latency) target tempo e
-                                              return $ (on e, m)
-                                    ) es
+         messages target = catMaybes $ map (\e -> do m <- toMessage (on e + latency target) target tempo e
+                                                     return $ (on e, m)
+                                           ) es
          cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
-         latency = oLatency target + cFrameTimespan config + T.nudged tempo
-     E.catch (mapM_ (send target latency u) messages)
-       (\(_ ::E.SomeException)
-        -> putStrLn $ "Failed to send. Is the target (probably superdirt) running?")
-                -- ++ show (msg :: E.SomeException))
+         latency target = oLatency target + cFrameTimespan config + T.nudged tempo
+     mapM_ (\(Cx target udp) -> E.catch (mapM_ (send target (latency target) udp) (messages target))
+                       (\(_ ::E.SomeException)
+                        -> putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running?"
+                       )
+           ) cxs
      mapM_ (doCps tempoMV) cpsChanges
      return ()
 
@@ -252,9 +262,8 @@ streamOnce st asap p
   = do cMap <- readMVar (sInput st)
        tempo <- readMVar (sTempoMV st)
        now <- O.time
-       let target = if asap
-                    then (sTarget st) {oLatency = 0}
-                    else sTarget st
+       let latency target | asap = 0
+                          | otherwise = oLatency target
            fakeTempo = T.Tempo {T.cps = T.cps tempo,
                                 T.atCycle = 0,
                                 T.atTime = now,
@@ -268,12 +277,16 @@ streamOnce st asap p
            at e = sched fakeTempo $ start $ whole e
            on e = sched tempo $ start $ whole e
            cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
-           messages = catMaybes $ map (\e -> do m <- toMessage (at e + oLatency target) target fakeTempo e
-                                                return $ (at e, m)
-                                      ) es
-       E.catch (mapM_ (send target (oLatency target) (sUDP st)) messages)
-         (\(msg ::E.SomeException)
-          -> putStrLn $ "Failed to send. Is the target (probably superdirt) running? " ++ show (msg :: E.SomeException))
+           messages target =
+             catMaybes $ map (\e -> do m <- toMessage (at e + (latency target)) target fakeTempo e
+                                       return $ (at e, m)
+                             ) es
+       mapM_ (\(Cx target udp) ->
+                 E.catch (mapM_ (send target (oLatency target) udp) (messages target))
+                 (\(_ ::E.SomeException)
+                   -> putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running?"
+                 )
+             ) (sCxs st)
        mapM_ (doCps $ sTempoMV st) cpsChanges
        return ()
 
@@ -318,10 +331,13 @@ calcOutput s = do pMap <- readMVar $ sPMapMV s
                                        ) (Map.elems pMap)
 
 startTidal :: OSCTarget -> Config -> IO Stream
-startTidal target config =
+startTidal target config = startMulti [target] config
+
+startMulti :: [OSCTarget] -> Config -> IO Stream
+startMulti targets config =
   do cMapMV <- newMVar (Map.empty :: ControlMap)
      listenTid <- ctrlListen cMapMV config
-     (pMV, tempoMV, u) <- startStream config cMapMV target
+     (pMV, tempoMV, cxs) <- startStream config cMapMV targets
      pMapMV <- newMVar Map.empty
      globalFMV <- newMVar id
      return $ Stream {sConfig = config,
@@ -331,8 +347,7 @@ startTidal target config =
                       sPMapMV = pMapMV,
                       sTempoMV = tempoMV,
                       sGlobalFMV = globalFMV,
-                      sTarget = target,
-                      sUDP = u
+                      sCxs = cxs
                      }
 
 ctrlListen :: MVar ControlMap -> Config -> IO (Maybe ThreadId)
