@@ -16,7 +16,7 @@ import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Stream
 import Sound.Tidal.Tempo (timeToCycles)
-import Sound.Tidal.UI (fadeOutFrom, fadeInFrom, spread')
+import Sound.Tidal.UI (fadeOutFrom, fadeInFrom)
 import Sound.Tidal.Utils (enumerate)
 
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
@@ -177,7 +177,7 @@ d1 $ sound "jvbass(3,8)"
 t1 (anticipateIn 4) $ sound "jvbass(5,8)"
 @-}
 anticipateIn :: Time -> Time -> [ControlPattern] -> ControlPattern
-anticipateIn t now pats = washIn (spread' (_stut 8 0.2) (now `rotR` (_slow t $ (toRational . (1-)) <$> envL))) t now pats
+anticipateIn t now pats = washIn (innerJoin . (\pat -> (\v -> _stut 8 0.2 v pat) <$> (now `rotR` (_slow t $ toRational <$> envLR)))) t now pats
 
 -- wash :: (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Time -> Time -> Time -> Time -> [Pattern a] -> Pattern a
 

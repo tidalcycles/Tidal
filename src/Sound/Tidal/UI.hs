@@ -364,26 +364,20 @@ seqP ps = stack $ map (\(s, e, p) -> playFor s e ((sam s) `rotR` p)) ps
 
 -- | Degrades a pattern over the given time.
 fadeOut :: Time -> Pattern a -> Pattern a
-fadeOut dur p = do slope <- _slow dur envL
-                   _degradeBy slope p
+fadeOut dur p = innerJoin $ (\slope -> _degradeBy slope p) <$> (_slow dur envL)
 
 -- | Alternate version to @fadeOut@ where you can provide the time from which the fade starts
 fadeOutFrom :: Time -> Time -> Pattern a -> Pattern a
-fadeOutFrom from dur p = do slope <- (from `rotR` _slow dur envL)
-                            _degradeBy slope p
-
+fadeOutFrom from dur p = innerJoin $ (\slope -> _degradeBy slope p) <$> (from `rotR` _slow dur envL)
 
 -- | 'Undegrades' a pattern over the given time.
 fadeIn :: Time -> Pattern a -> Pattern a
-fadeIn dur p = do slope <- _slow dur ((1-) <$> envL)
-                  _degradeBy slope p
+fadeIn dur p = innerJoin $ (\slope -> _degradeBy slope p) <$> (_slow dur envLR)
 
 -- | Alternate version to @fadeIn@ where you can provide the time from
 -- which the fade in starts
 fadeInFrom :: Time -> Time -> Pattern a -> Pattern a
-fadeInFrom from dur p = do slope <- (from `rotR` _slow dur ((1-) <$> envL))
-                           _degradeBy slope p
-
+fadeInFrom from dur p = innerJoin $ (\slope -> _degradeBy slope p) <$> (from `rotR` _slow dur envLR)
 
 {- | The 'spread' function allows you to take a pattern transformation
 which takes a parameter, such as `slow`, and provide several

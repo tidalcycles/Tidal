@@ -54,8 +54,7 @@
   "*The version of tidal interpreter as a string.")
 
 (defvar tidal-interpreter-arguments
-  (list "-XOverloadedStrings"
-        )
+  ()
   "*Arguments to the haskell interpreter (default=none).")
 
 (defvar tidal-literate-p
@@ -92,8 +91,9 @@
   (if (string< tidal-interpreter-version "8.2.0")
       (tidal-send-string ":set prompt2 \"\"")
     (tidal-send-string ":set prompt-cont \"\""))
-  (tidal-send-string "import Sound.Tidal.Context
-tidal <- startTidal (superdirtTarget {oLatency = 0.1, oAddress = \"127.0.0.1\", oPort = 57120}) (defaultConfig {cFrameTimespan = 1/20})
+  (tidal-send-string ":set -XOverloadedStrings
+import Sound.Tidal.Context
+tidal <- startMulti [superdirtTarget {oLatency = 0.1, oAddress = \"127.0.0.1\", oPort = 57120}] (defaultConfig {cFrameTimespan = 1/20, cCtrlListen = True})
 let p = streamReplace tidal
     hush = streamHush tidal
     list = streamList tidal
@@ -107,31 +107,31 @@ let p = streamReplace tidal
     all = streamAll tidal
     resetCycles = streamResetCycles tidal
     setcps = asap . cps
-    xfade = transition tidal (Sound.Tidal.Transition.xfadeIn 4)
-    xfadeIn t = transition tidal (Sound.Tidal.Transition.xfadeIn t)
-    histpan t = transition tidal (Sound.Tidal.Transition.histpan t)
-    wait t = transition tidal (Sound.Tidal.Transition.wait t)
-    waitT f t = transition tidal (Sound.Tidal.Transition.waitT f t)
-    jump = transition tidal (Sound.Tidal.Transition.jump)
-    jumpIn t = transition tidal (Sound.Tidal.Transition.jumpIn t)
-    jumpIn' t = transition tidal (Sound.Tidal.Transition.jumpIn' t)
-    jumpMod t = transition tidal (Sound.Tidal.Transition.jumpMod t)
-    mortal lifespan release = transition tidal (Sound.Tidal.Transition.mortal lifespan release)
-    interpolate = transition tidal (Sound.Tidal.Transition.interpolate)
-    interpolateIn t = transition tidal (Sound.Tidal.Transition.interpolateIn t)
-    clutch = transition tidal (Sound.Tidal.Transition.clutch)
-    clutchIn t = transition tidal (Sound.Tidal.Transition.clutchIn t)
-    anticipate = transition tidal (Sound.Tidal.Transition.anticipate)
-    anticipateIn t = transition tidal (Sound.Tidal.Transition.anticipateIn t)
+    xfade i = transition tidal (Sound.Tidal.Transition.xfadeIn 4) i
+    xfadeIn i t = transition tidal (Sound.Tidal.Transition.xfadeIn t) i
+    histpan i t = transition tidal (Sound.Tidal.Transition.histpan t) i
+    wait i t = transition tidal (Sound.Tidal.Transition.wait t) i
+    waitT i f t = transition tidal (Sound.Tidal.Transition.waitT f t) i
+    jump i = transition tidal (Sound.Tidal.Transition.jump) i
+    jumpIn i t = transition tidal (Sound.Tidal.Transition.jumpIn t) i
+    jumpIn' i t = transition tidal (Sound.Tidal.Transition.jumpIn' t) i
+    jumpMod i t = transition tidal (Sound.Tidal.Transition.jumpMod t) i
+    mortal i lifespan release = transition tidal (Sound.Tidal.Transition.mortal lifespan release) i
+    interpolate i = transition tidal (Sound.Tidal.Transition.interpolate) i
+    interpolateIn i t = transition tidal (Sound.Tidal.Transition.interpolateIn t) i
+    clutch i = transition tidal (Sound.Tidal.Transition.clutch) i
+    clutchIn i t = transition tidal (Sound.Tidal.Transition.clutchIn t) i
+    anticipate i = transition tidal (Sound.Tidal.Transition.anticipate) i
+    anticipateIn i t = transition tidal (Sound.Tidal.Transition.anticipateIn t) i
     d1 = p 1
-    d2 = p 2
-    d3 = p 3
-    d4 = p 4
-    d5 = p 5
-    d6 = p 6
-    d7 = p 7
-    d8 = p 8
-    d9 = p 9
+    d2 = p 2 -- . (|< orbit 1)
+    d3 = p 3 -- . (|< orbit 2)
+    d4 = p 4 -- . (|< orbit 3)
+    d5 = p 5 -- . (|< orbit 4)
+    d6 = p 6 -- . (|< orbit 5)
+    d7 = p 7 -- . (|< orbit 6)
+    d8 = p 8 -- . (|< orbit 7)
+    d9 = p 9 -- . (|< orbit 8)
     d10 = p 10
     d11 = p 11
     d12 = p 12
