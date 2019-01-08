@@ -41,6 +41,7 @@ install:
     cabal)
       cabal --version
       ghc --version
+      cabal outdated --exit-code
       ;;
     stack|werror)
       ghc --version
