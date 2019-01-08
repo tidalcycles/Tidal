@@ -133,3 +133,15 @@ run =
     it "parses a fast transformation applied to a simple (ie. non-param) pattern" $
       "up (fast 2 \"<0 2 3 5>\")" `parsesTo`
         (up (fast 2 "<0 2 3 5>"))
+
+    it "parses a binary Num function spread over a simple Num pattern" $
+      "n (spread (+) [2,3,4] \"1 2 3\")" `parsesTo`
+        (n (spread (+) [2,3,4] "1 2 3"))
+
+    it "parses an $ application spread over partially applied transformations of a non-Control Pattern" $
+      "n (spread ($) [density 2, rev, slow 2] $ \"1 2 3 4\")" `parsesTo`
+        (n (spread ($) [density 2, rev, slow 2] $ "1 2 3 4"))
+
+    it "parses an $ application spread over partially applied transformations of a Control Pattern" $
+      "spread ($) [density 2, rev, slow 2, striate 3] $ sound \"[bd*2 [~ bd]] [sn future]*2 cp jvbass*4\"" `parsesTo`
+        (spread ($) [density 2, rev, slow 2, striate 3] $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4")
