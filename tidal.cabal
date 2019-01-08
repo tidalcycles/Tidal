@@ -50,16 +50,16 @@ library
   Build-depends:
       base < 5
     , containers < 0.7
-    , hashable < 1.3
+    --, hashable < 1.3
     , colour < 2.4
     , hosc < 0.18
     , text < 1.3
     -- , random < 1.2
-    , time < 1.10
+    -- , time < 1.10
     , parsec < 3.2
-    , safe < 0.4
-    , mtl >= 2.1 && < 2.3
-    , monad-loops < 0.4.4
+    -- , safe < 0.4
+    -- , mtl >= 2.1 && < 2.3
+    -- , monad-loops < 0.4.4
     , network < 2.9
     , mwc-random < 0.15
     , vector < 0.13
