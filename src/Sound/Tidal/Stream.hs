@@ -196,11 +196,11 @@ send :: O.Transport t => OSCTarget -> Double -> t -> (Double, O.Message) -> IO (
 send target latency u (time, m)
   | oTimestamp target == BundleStamp = O.sendBundle u $ O.Bundle (time + latency) [m]
   | oTimestamp target == MessageStamp = O.sendMessage u m
-  | otherwise = do _ <- forkIO $ do now <- O.time
-                                    threadDelay $ floor $ ((time+latency) - now) * 1000000
-                                    O.sendMessage u m
-                   return ()
-  
+  | oTimestamp target == NoStamp = do _ <- forkIO $ do now <- O.time
+                                                       threadDelay $ floor $ ((time+latency) - now) * 1000000
+                                                       O.sendMessage u m
+                                      return ()
+
 sched :: T.Tempo -> Rational -> Double
 sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)
 
