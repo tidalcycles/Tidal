@@ -73,6 +73,7 @@ test-suite tests
                  Sound.Tidal.MiniTidalTest
                  Sound.Tidal.ParseTest
                  Sound.Tidal.PatternTest
+                 Sound.Tidal.ScalesTest
                  Sound.Tidal.UITest
                  Sound.Tidal.UtilsTest
                  TestUtils

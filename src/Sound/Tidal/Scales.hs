@@ -104,9 +104,9 @@ melodicMinorDesc = [0,2,3,5,7,8,10]
 melodicMajor :: Num a => [a]
 melodicMajor = [0,2,4,5,7,8,10]
 bartok :: Num a => [a]
-bartok = [0,2,4,5,7,8,10]
+bartok = melodicMajor
 hindu :: Num a => [a]
-hindu = [0,2,4,5,7,8,10]
+hindu = melodicMajor
 
 -- raga modes
 todi :: Num a => [a]
@@ -159,6 +159,11 @@ scale sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName scal
   where octave s x = x `div` length s
         noteInScale s x = (s !!! x) + (fromIntegral $ 12 * octave s x)
 
+-- constrainToPitchClass :: Num a => Pattern String -> Pattern Int -> Pattern a
+-- constrainToPitchClass sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName scaleTable) n) <$> p <*> sp
+--   where octave s x = x `div` length s
+--         noteInScale s x = (s !!! x) + (fromIntegral $ 12 * octave s x)
+
 scaleList :: String
 scaleList = intercalate " " $ map fst (scaleTable :: [(String, [Int])])
 
@@ -181,6 +186,7 @@ scaleTable = [("minPent", minPent),
               ("zhi", zhi),
               ("yu", yu),
               ("whole", whole'),
+              ("wholetone", whole'),
               ("augmented", augmented),
               ("augmented2", augmented2),
               ("hexMajor7", hexMajor7),
