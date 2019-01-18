@@ -150,6 +150,22 @@ diminished = [0,1,3,4,6,7,9,10]
 diminished2 :: Num a => [a]
 diminished2 = [0,2,3,5,6,8,9,11]
 
+-- modes of limited transposition
+messiaen1 :: Num a => [a]
+messiaen1 = whole'
+messiaen2 :: Num a => [a]
+messiaen2 = diminished
+messiaen3 :: Num a => [a]
+messiaen3 = [0, 2, 3, 4, 6, 7, 8, 10, 11]
+messiaen4 :: Num a => [a]
+messiaen4 = [0, 1, 2, 5, 6, 7, 8, 11]
+messiaen5 :: Num a => [a]
+messiaen5 = [0, 1, 5, 6, 7, 11]
+messiaen6 :: Num a => [a]
+messiaen6 = [0, 2, 4, 5, 6, 8, 10, 11]
+messiaen7 :: Num a => [a]
+messiaen7 = [0, 1, 2, 3, 5, 6, 7, 8, 9, 11]
+
 -- 12 note scales
 chromatic :: Num a => [a]
 chromatic = [0,1,2,3,4,5,6,7,8,9,10,11]
@@ -158,11 +174,6 @@ scale :: Num a => Pattern String -> Pattern Int -> Pattern a
 scale sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName scaleTable) n) <$> p <*> sp
   where octave s x = x `div` length s
         noteInScale s x = (s !!! x) + (fromIntegral $ 12 * octave s x)
-
--- constrainToPitchClass :: Num a => Pattern String -> Pattern Int -> Pattern a
--- constrainToPitchClass sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName scaleTable) n) <$> p <*> sp
---   where octave s x = x `div` length s
---         noteInScale s x = (s !!! x) + (fromIntegral $ 12 * octave s x)
 
 scaleList :: String
 scaleList = intercalate " " $ map fst (scaleTable :: [(String, [Int])])
@@ -227,7 +238,16 @@ scaleTable = [("minPent", minPent),
               ("neapolitanMajor", neapolitanMajor),
               ("locrianMajor", locrianMajor),
               ("diminished", diminished),
+              ("octatonic", diminished),
               ("diminished2", diminished2),
+              ("octatonic2", diminished2),
+              ("messiaen1", messiaen1),
+              ("messiaen2", messiaen2),
+              ("messiaen3", messiaen3),
+              ("messiaen4", messiaen4),
+              ("messiaen5", messiaen5),
+              ("messiaen6", messiaen6),
+              ("messiaen7", messiaen7),
               ("chromatic", chromatic)
              ]
 

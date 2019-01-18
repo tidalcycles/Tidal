@@ -250,10 +250,56 @@ run =
                 compareP (Arc 0 1)
                     (Sound.Tidal.Scales.scale "diminished" twoOctavesOf8NoteScale)
                     ("0 1 3 4 6 7 9 10 12 13 15 16 18 19 21 22"::Pattern Int)
+            it "can transform notes correctly over 2 octaves - octatonic" $ do
+                compareP (Arc 0 1)
+                    (Sound.Tidal.Scales.scale "octatonic" twoOctavesOf8NoteScale)
+                    (Sound.Tidal.Scales.scale "diminished" twoOctavesOf8NoteScale::Pattern Int)
             it "can transform notes correctly over 2 octaves - diminished2" $ do
                 compareP (Arc 0 1)
                     (Sound.Tidal.Scales.scale "diminished2" twoOctavesOf8NoteScale)
                     ("0 2 3 5 6 8 9 11 12 14 15 17 18 20 21 23"::Pattern Int)
+            it "can transform notes correctly over 2 octaves - octatonic2" $ do
+                compareP (Arc 0 1)
+                    (Sound.Tidal.Scales.scale "octatonic2" twoOctavesOf8NoteScale)
+                    (Sound.Tidal.Scales.scale "diminished2" twoOctavesOf8NoteScale::Pattern Int)
+        describe "modes of limited transposition" $ do
+            let twoOctavesOf6NoteScale = "0 1 2 3 4 5 6 7 8 9 10 11"
+            let twoOctavesOf8NoteScale = "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15"
+            let twoOctavesOf9NoteScale = "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17"
+            let twoOctavesOf10NoteScale = "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19"
+            it "can transform notes correctly over 2 octaves - messiaen1" $ do
+                compareP (Arc 0 1)
+                    (Sound.Tidal.Scales.scale "messiaen1" twoOctavesOf6NoteScale)
+                    (Sound.Tidal.Scales.scale "wholetone" twoOctavesOf6NoteScale::Pattern Int)
+            it "can transform notes correctly over 2 octaves - messiaen2" $ do
+                compareP (Arc 0 1)
+                    (Sound.Tidal.Scales.scale "messiaen2" twoOctavesOf8NoteScale)
+                    (Sound.Tidal.Scales.scale "diminished" twoOctavesOf8NoteScale::Pattern Int)
+            it "can transform notes correctly over 2 octaves - messiaen3" $ do
+                -- tone, semitone, semitone, tone, semitone, semitone, tone, semitone, semitone
+                compareP (Arc 0 1)
+                    (Sound.Tidal.Scales.scale "messiaen3" twoOctavesOf9NoteScale)
+                    ("0 2 3 4 6 7 8 10 11 12 14 15 16 18 19 20 22 23"::Pattern Int)
+            it "can transform notes correctly over 2 octaves - messiaen4" $ do
+                -- semitone, semitone, minor third, semitone, semitone, semitone, minor third, semitone
+                compareP (Arc 0 1)
+                    (Sound.Tidal.Scales.scale "messiaen4" twoOctavesOf8NoteScale)
+                    ("0 1 2 5 6 7 8 11 12 13 14 17 18 19 20 23"::Pattern Int)
+            it "can transform notes correctly over 2 octaves - messiaen5" $ do
+                -- semitone, major third, semitone, semitone, major third, semitone
+                compareP (Arc 0 1)
+                    (Sound.Tidal.Scales.scale "messiaen5" twoOctavesOf6NoteScale)
+                    ("0 1 5 6 7 11 12 13 17 18 19 23"::Pattern Int)
+            it "can transform notes correctly over 2 octaves - messiaen6" $ do
+                -- tone, tone, semitone, semitone, tone, tone, semitone, semitone
+                compareP (Arc 0 1)
+                    (Sound.Tidal.Scales.scale "messiaen6" twoOctavesOf8NoteScale)
+                    ("0 2 4 5 6 8 10 11 12 14 16 17 18 20 22 23"::Pattern Int)
+            it "can transform notes correctly over 2 octaves - messiaen7" $ do
+                -- semitone, semitone, semitone, tone, semitone, semitone, semitone, semitone, tone, semitone
+                compareP (Arc 0 1)
+                    (Sound.Tidal.Scales.scale "messiaen7" twoOctavesOf10NoteScale)
+                    ("0 1 2 3 5 6 7 8 9 11 12 13 14 15 17 18 19 20 21 23"::Pattern Int)
         describe "12 note scales" $ do
             let twoOctavesOf12NoteScale = "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23"
             it "can transform notes correctly over 2 octaves - chromatic" $ do
