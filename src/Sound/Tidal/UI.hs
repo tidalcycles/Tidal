@@ -1217,10 +1217,22 @@ and returns a random permutation of the parts each cycle.  For example,
 `"c a b"`, or `"c b a"`.  But it will **never** return `"a a a"`, because that
 is not a permutation of the parts.
 -}
-
 shuffle :: Int -> Pattern a -> Pattern a
 shuffle n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> randrun n
   where
+    pats = map (\i -> zoom ((fromIntegral i)/nT, (fromIntegral (i+1))/nT) pat) [0 .. (n-1)]
+    nT :: Time
+    nT = fromIntegral n
+
+{- | `scramble n p` is like `shuffle` but randomly selects from the parts
+of `p` instead of making permutations.
+For example, `scramble 3 "a b c"` will randomly select 3 parts from
+`"a"` `"b"` and `"c"`, possibly repeating a single part.
+-}
+scramble :: Int -> Pattern a -> Pattern a
+scramble n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> randn
+  where
+    randn = _segment nT $ irand n
     pats = map (\i -> zoom ((fromIntegral i)/nT, (fromIntegral (i+1))/nT) pat) [0 .. (n-1)]
     nT :: Time
     nT = fromIntegral n
@@ -1233,16 +1245,6 @@ randrun n' = splitQueries $ Pattern Digital (\(State (Arc s _) _) -> events $ sa
                 rs = timeToRands seed n'
                 arcs = map (\(s,e) -> Arc s e) $ zip fractions (tail fractions)
                 fractions = [0, 1/(fromIntegral n') .. 1]
-
-
-{- | `scramble n p` is like `shuffle` but randomly selects from the parts
-of `p` instead of making permutations.
-For example, `scramble 3 "a b c"` will randomly select 3 parts from
-`"a"` `"b"` and `"c"`, possibly repeating a single part.
--}
-scramble::Int -> Pattern a -> Pattern a
-scramble n = fit' 1 n (_run n) (_fast (fromIntegral n) $
-  liftA2 (+) (pure 0) $ irand n)
 
 ur :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
 ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
