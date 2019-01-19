@@ -59,7 +59,8 @@ library
     , mwc-random < 0.15
     , vector < 0.13
     , bifunctors < 5.6
-
+    , transformers < 0.5.6
+    
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups == 0.18.*
 
