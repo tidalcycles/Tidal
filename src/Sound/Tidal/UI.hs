@@ -6,12 +6,13 @@ import           Prelude hiding ((<*), (*>))
 
 import           Data.Ord (comparing)
 import           Data.Char (digitToInt, isDigit)
+-- import           System.Random (randoms, mkStdGen)
 import           System.Random.MWC
 import           Control.Monad.ST
 import qualified Data.Vector as V
 import           Data.Word (Word32)
 import           Data.Ratio ((%),numerator,denominator)
-import           Data.List (sort, sortBy, findIndices, elemIndex, groupBy, transpose)
+import           Data.List (sort, sortBy, sortOn, findIndices, elemIndex, groupBy, transpose)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe, catMaybes)
 import qualified Data.Text as T
 import           Control.Applicative (liftA2)
@@ -35,6 +36,14 @@ timeToRand x = runST $ do
   let d' = fromIntegral $ denominator x'
   seed <- initialize (V.fromList [n',d'] :: V.Vector Word32)
   uniform seed
+
+timeToRands :: RealFrac a => a -> Int -> [Double]
+timeToRands x n = V.toList $ runST $ do
+  let x' = toRational (x*x) / 1000000
+  let n' = fromIntegral $ numerator x'
+  let d' = fromIntegral $ denominator x'
+  seed <- initialize (V.fromList [n',d'] :: V.Vector Word32)
+  uniformVector seed n
 
 {-|
 
@@ -1208,15 +1217,23 @@ and returns a random permutation of the parts each cycle.  For example,
 `"c a b"`, or `"c b a"`.  But it will **never** return `"a a a"`, because that
 is not a permutation of the parts.
 -}
-shuffle::Int -> Pattern a -> Pattern a
-shuffle n = fit' 1 n (_run n) randpat
-  where randpat = Pattern {nature = Digital,
-                           query = \(State {arc = Arc s e}) -> queryArc (p $ sam s) (Arc s e)
-                          }
-        p c = fastFromList $ map snd $ sort $ zip
-              [timeToRand (c+i/n') | i <- [0..n'-1]] [0..n-1]
-        n' :: Time
-        n' = fromIntegral n
+
+shuffle :: Int -> Pattern a -> Pattern a
+shuffle n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> randrun n
+  where
+    pats = map (\i -> zoom ((fromIntegral i)/nT, (fromIntegral (i+1))/nT) pat) [0 .. (n-1)]
+    nT :: Time
+    nT = fromIntegral n
+
+randrun :: Int -> Pattern Int
+randrun 0 = silence
+randrun n' = splitQueries $ Pattern Digital (\(State (Arc s _) _) -> events $ sam s)
+  where events seed = map (\(a,v) -> Event a a v) $ zip arcs shuffled
+          where shuffled = map snd $ sortOn fst $ zip rs [0 .. (n'-1)]
+                rs = timeToRands seed n'
+                arcs = map (\(s,e) -> Arc s e) $ zip fractions (tail fractions)
+                fractions = [0, 1/(fromIntegral n') .. 1]
+
 
 {- | `scramble n p` is like `shuffle` but randomly selects from the parts
 of `p` instead of making permutations.
