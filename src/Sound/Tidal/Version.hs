@@ -1,4 +1,4 @@
 
 module Sound.Tidal.Version where
 
-tidal_version = "1.0.6"
+tidal_version = "1.0.7"
