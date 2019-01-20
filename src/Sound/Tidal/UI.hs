@@ -1237,14 +1237,18 @@ scramble n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> r
     nT :: Time
     nT = fromIntegral n
 
+
 randrun :: Int -> Pattern Int
 randrun 0 = silence
-randrun n' = splitQueries $ Pattern Digital (\(State (Arc s _) _) -> events $ sam s)
-  where events seed = map (\(a,v) -> Event a a v) $ zip arcs shuffled
+randrun n' =
+  splitQueries $ Pattern Digital (\(State a@(Arc s _) _) -> events a $ sam s)
+  where events a seed = catMaybes $ map toEvent $ zip arcs shuffled
           where shuffled = map snd $ sortOn fst $ zip rs [0 .. (n'-1)]
                 rs = timeToRands seed n'
                 arcs = map (\(s,e) -> Arc s e) $ zip fractions (tail fractions)
-                fractions = [0, 1/(fromIntegral n') .. 1]
+                fractions = map (+ (sam $ start a)) $ [0, 1/(fromIntegral n') .. 1]
+                toEvent (a',v) = do a'' <- subArc a a'
+                                    return $ Event a' a'' v
 
 ur :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
 ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . split) <$> outer_p)
