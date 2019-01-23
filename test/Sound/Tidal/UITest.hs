@@ -169,3 +169,10 @@ run =
         compareP (Arc 0 1)
           (euclidFull 3 8 "bd" silence)
           ("bd(3,8)" :: Pattern String)
+          
+    describe "snowball" $ do
+      let testPattern = ("1 2 3 4"::Pattern Int)
+      it "acummulates a transform version of a pattern and appends the result - addition" $ do
+        compareP (Arc 0 1)
+          (snowball (+) (slow 2) 3 (testPattern))
+          (cat [testPattern,(testPattern+(slow 2 testPattern)),((testPattern+(slow 2 testPattern))+slow 2 (testPattern+(slow 2 testPattern)))])

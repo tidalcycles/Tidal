@@ -22,7 +22,7 @@ import           Sound.Tidal.Core
 import qualified Sound.Tidal.Params as P
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Utils
- 
+
 ------------------------------------------------------------------------
 -- * UI
 
@@ -107,9 +107,9 @@ perlin = perlinWith (sig fromRational)
 {- `perlin2With` is Perlin noise with a 2-dimensional input. This can be
 useful for more control over how the randomness repeats (or doesn't).
 @
-d1 
- $ s "[supersaw:-12*32]" 
- # lpf (rangex 60 5000 $ perlin2With (cosine*2) (sine*2)) 
+d1
+ $ s "[supersaw:-12*32]"
+ # lpf (rangex 60 5000 $ perlin2With (cosine*2) (sine*2))
  # lpq 0.3
 @
 will generate a smooth random cutoff pattern that repeats every cycle without
@@ -1621,8 +1621,8 @@ contrastRange
      -> ControlPattern
      -> Pattern a
 contrastRange = contrastBy f
-      where f (VI s, VI e) (VI v) = v >= s && v <= e 
-            f (VF s, VF e) (VF v) = v >= s && v <= e 
+      where f (VI s, VI e) (VI v) = v >= s && v <= e
+            f (VF s, VF e) (VF v) = v >= s && v <= e
             f (VS s, VS e) (VS v) = v == s && v == e
             f _ _ = False
 
@@ -1703,3 +1703,16 @@ smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State 
 -- | Looks up values from a list of tuples, in order to swap values in the given pattern
 swap :: Eq a => [(a, b)] -> Pattern a -> Pattern b
 swap things p = filterJust $ (\x -> lookup x things) <$> p
+
+{-
+  snowball |
+  snowball takes a function that can combine patterns (like '+'),
+  a function that transforms a pattern (like 'slow'),
+  a depth, and a starting pattern,
+  it will then transform the pattern and combine it with the last transformation until the depth is reached
+  this is like putting an effect (like a filter) in the feedback of a delay line
+  each echo is more effected
+  d1 $ note (scale "hexDorian" $ snowball (+) (slow 2 . rev) 8 "0 ~ . -1 . 5 3 4 . ~ -2") # s "gtr"
+-}
+snowball :: (Pattern a -> Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Int -> Pattern a -> Pattern a
+snowball combinationFunction f depth pattern = cat $ take depth $ scanl combinationFunction pattern $ iterate f pattern
