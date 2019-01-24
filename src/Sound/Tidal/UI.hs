@@ -228,7 +228,7 @@ almostAlways = sometimesBy 0.9
 @
 -}
 sometimesBy :: Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-sometimesBy x f p = overlay (degradeBy x p) (f $ unDegradeBy x p)
+sometimesBy x f p = overlay (degradeBy x p) (unDegradeBy x $ f p)
 
 -- | @sometimes@ is an alias for sometimesBy 0.5.
 sometimes :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
