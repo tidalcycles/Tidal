@@ -1727,12 +1727,12 @@ smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State 
 swap :: Eq a => [(a, b)] -> Pattern a -> Pattern b
 swap things p = filterJust $ (\x -> lookup x things) <$> p
 
-{- @mutateBy@ | 
+{- @coat@ | 
     applies a function to a pattern and cats the resulting pattern,
     then continues applying the function until the depth is reached
     this can be used to create a pattern that wanders away from 
     the original pattern by continually adding random numbers
     d1 $ note (scale "hexDorian" mutateBy (+ (range -1 1 $ irand 2)) 8 $ "0 1 . 2 3 4") # s "gtr"
 -}
-mutateBy :: (Pattern a -> Pattern a) -> Int -> Pattern a -> Pattern a
-mutateBy f depth pattern = cat $ take depth $ iterate f pattern
+soak :: (Pattern a -> Pattern a) -> Int -> Pattern a -> Pattern a
+soak f depth pattern = cat $ take depth $ iterate f pattern
