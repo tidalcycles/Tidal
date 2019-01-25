@@ -104,9 +104,9 @@ melodicMinorDesc = [0,2,3,5,7,8,10]
 melodicMajor :: Num a => [a]
 melodicMajor = [0,2,4,5,7,8,10]
 bartok :: Num a => [a]
-bartok = [0,2,4,5,7,8,10]
+bartok = melodicMajor
 hindu :: Num a => [a]
-hindu = [0,2,4,5,7,8,10]
+hindu = melodicMajor
 
 -- raga modes
 todi :: Num a => [a]
@@ -150,6 +150,22 @@ diminished = [0,1,3,4,6,7,9,10]
 diminished2 :: Num a => [a]
 diminished2 = [0,2,3,5,6,8,9,11]
 
+-- modes of limited transposition
+messiaen1 :: Num a => [a]
+messiaen1 = whole'
+messiaen2 :: Num a => [a]
+messiaen2 = diminished
+messiaen3 :: Num a => [a]
+messiaen3 = [0, 2, 3, 4, 6, 7, 8, 10, 11]
+messiaen4 :: Num a => [a]
+messiaen4 = [0, 1, 2, 5, 6, 7, 8, 11]
+messiaen5 :: Num a => [a]
+messiaen5 = [0, 1, 5, 6, 7, 11]
+messiaen6 :: Num a => [a]
+messiaen6 = [0, 2, 4, 5, 6, 8, 10, 11]
+messiaen7 :: Num a => [a]
+messiaen7 = [0, 1, 2, 3, 5, 6, 7, 8, 9, 11]
+
 -- 12 note scales
 chromatic :: Num a => [a]
 chromatic = [0,1,2,3,4,5,6,7,8,9,10,11]
@@ -181,6 +197,7 @@ scaleTable = [("minPent", minPent),
               ("zhi", zhi),
               ("yu", yu),
               ("whole", whole'),
+              ("wholetone", whole'),
               ("augmented", augmented),
               ("augmented2", augmented2),
               ("hexMajor7", hexMajor7),
@@ -221,7 +238,16 @@ scaleTable = [("minPent", minPent),
               ("neapolitanMajor", neapolitanMajor),
               ("locrianMajor", locrianMajor),
               ("diminished", diminished),
+              ("octatonic", diminished),
               ("diminished2", diminished2),
+              ("octatonic2", diminished2),
+              ("messiaen1", messiaen1),
+              ("messiaen2", messiaen2),
+              ("messiaen3", messiaen3),
+              ("messiaen4", messiaen4),
+              ("messiaen5", messiaen5),
+              ("messiaen6", messiaen6),
+              ("messiaen7", messiaen7),
               ("chromatic", chromatic)
              ]
 
