@@ -58,6 +58,14 @@ run =
           in
             compareP overTimeSpan testMe expectedResult
 
+      it "does nothing when set at 0% probability -- const" $ do
+        let
+          overTimeSpan = (Arc 0  2)
+          testMe = sometimesBy 0 (const $ s "cp") (s "bd*8")
+          expectedResult = s "bd*8"
+          in
+            compareP overTimeSpan testMe expectedResult
+
       it "applies the 'rev' function when set at 100% probability" $ do
         let
           overTimeSpan = (Arc 0  1)
@@ -169,3 +177,4 @@ run =
         compareP (Arc 0 1)
           (euclidFull 3 8 "bd" silence)
           ("bd(3,8)" :: Pattern String)
+        
