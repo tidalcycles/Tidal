@@ -22,7 +22,8 @@ data Tempo = Tempo {atTime  :: O.Time,
                     paused  :: Bool,
                     nudged  :: Double,
                     localUDP   :: O.UDP,
-                    remoteAddr :: N.SockAddr
+                    remoteAddr :: N.SockAddr,
+                    synched :: Bool
                    }
            -- deriving Show
 
@@ -32,7 +33,8 @@ data Tempo = Tempo {atTime  :: O.Time,
 data State = State {ticks   :: Int,
                     start   :: O.Time,
                     nowTime :: O.Time,
-                    nowArc  :: P.Arc
+                    nowArc  :: P.Arc,
+                    starting :: Bool
                    }
 
 resetCycles :: MVar Tempo -> IO (Tempo)
@@ -66,7 +68,8 @@ defaultTempo t local remote = Tempo {atTime   = t,
                                      paused   = False,
                                      nudged   = 0,
                                      localUDP   = local,
-                                     remoteAddr = remote
+                                     remoteAddr = remote,
+                                     synched = False
                                     }
 
 -- | Returns the given time in terms of
@@ -91,20 +94,26 @@ clocked config callback
        let st = State {ticks = 0,
                        start = s,
                        nowTime = s,
-                       nowArc = (P.Arc 0 0)
+                       nowArc = (P.Arc 0 0),
+                       starting = True
                       }
        clockTid <- forkIO $ loop tempoMV st
        return (tempoMV, [listenTid, clockTid])
   where loop tempoMV st =
           do -- putStrLn $ show $ nowArc ts
-             tempo <- readMVar tempoMV
+             tempo <- readMVar tempoMV               
              let frameTimespan = cFrameTimespan config
-             let -- 'now' comes from clock ticks, nothing to do with cycles
-                 logicalNow = start st + (fromIntegral $ (ticks st)+1) * frameTimespan
+                 -- 'now' comes from clock ticks, nothing to do with cycles
+                 logicalT ticks' = start st + (fromIntegral ticks') * frameTimespan
+                 logicalNow = logicalT $ (ticks st) + 1
                  -- the tempo is just used to convert logical time to cycles
-                 s = P.stop $ nowArc st
                  e = timeToCycles tempo logicalNow
-                 st' = st {ticks = (ticks st) + 1, nowArc = P.Arc s e}
+                 s = if (starting st) && (synched tempo)
+                     then (timeToCycles tempo (logicalT $ ticks st))
+                     else (P.stop $ nowArc st)
+                 st' = st {ticks = (ticks st) + 1, nowArc = P.Arc s e,
+                           starting = not (synched tempo)
+                          }
              t <- O.time
              when (t < logicalNow) $ threadDelay (floor $ (logicalNow - t) * 1000000)
              callback tempoMV st'
@@ -135,7 +144,7 @@ sendTempo tempo = O.sendTo (localUDP tempo) (O.p_bundle (atTime tempo) [m]) (rem
                                              O.Float $ realToFrac $ cps tempo,
                                              O.Int32 $ if (paused tempo) then 1 else 0
                                             ]
- 
+
 listenTempo :: O.UDP -> (MVar Tempo) -> IO ()
 listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
                                        act Nothing pkt
@@ -151,7 +160,8 @@ listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
              putMVar tempoMV $ tempo {atTime = ts,
                                       atCycle = realToFrac atCycle',
                                       cps = realToFrac cps',
-                                      paused = (paused' == 1)
+                                      paused = (paused' == 1),
+                                      synched = True
                                      }
         act _ pkt = putStrLn $ "Unknown packet: " ++ show pkt
 
@@ -181,3 +191,5 @@ serverListen config = catchAny (run) (\_ -> do putStrLn $ "Tempo listener failed
                               return cs
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch
+
+
