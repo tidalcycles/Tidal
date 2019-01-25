@@ -7,14 +7,10 @@ import Test.Microspec
 
 import Prelude hiding ((<*), (*>))
 
-import qualified Data.Map.Strict as Map
-
--- import Sound.Tidal.Pattern
 import Sound.Tidal.Control
 import Sound.Tidal.Core
 import Sound.Tidal.Params
 import Sound.Tidal.Pattern
-import Sound.Tidal.UI
 
 run :: Microspec ()
 run =
