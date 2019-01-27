@@ -155,7 +155,7 @@ compareDefrag as bs = sort (defragParts as) == sort (defragParts bs)
 -- | Returns a list of events, with any adjacent parts of the same whole combined
 defragParts :: Eq a => [Event a] -> [Event a]
 defragParts [] = []
-defragParts (e:[]) = e:[]
+defragParts [e] = [e]
 defragParts (e:es) | isJust i = defraged : defragParts (delete e' es)
                    | otherwise = e : defragParts es
   where i = findIndex (isAdjacent e) es
@@ -693,7 +693,7 @@ filterWhen :: (Time -> Bool) -> Pattern a -> Pattern a
 filterWhen test p = p {query = filter (test . wholeStart) . query p}
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
-playFor s e = filterWhen (\t -> and [t >= s, t < e])
+playFor s e = filterWhen (\t -> (t >= s) && (t < e))
 
 -- ** Temporal parameter helpers
 

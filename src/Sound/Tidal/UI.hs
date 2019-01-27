@@ -372,20 +372,20 @@ seqP ps = stack $ map (\(s, e, p) -> playFor s e (sam s `rotR` p)) ps
 
 -- | Degrades a pattern over the given time.
 fadeOut :: Time -> Pattern a -> Pattern a
-fadeOut dur p = innerJoin $ (\slope -> _degradeBy slope p) <$> _slow dur envL
+fadeOut dur p = innerJoin $ (`_degradeBy` p) <$> _slow dur envL
 
 -- | Alternate version to @fadeOut@ where you can provide the time from which the fade starts
 fadeOutFrom :: Time -> Time -> Pattern a -> Pattern a
-fadeOutFrom from dur p = innerJoin $ (\slope -> _degradeBy slope p) <$> (from `rotR` _slow dur envL)
+fadeOutFrom from dur p = innerJoin $ (`_degradeBy` p) <$> (from `rotR` _slow dur envL)
 
 -- | 'Undegrades' a pattern over the given time.
 fadeIn :: Time -> Pattern a -> Pattern a
-fadeIn dur p = innerJoin $ (\slope -> _degradeBy slope p) <$> _slow dur envLR
+fadeIn dur p = innerJoin $ (`_degradeBy` p) <$> _slow dur envLR
 
 -- | Alternate version to @fadeIn@ where you can provide the time from
 -- which the fade in starts
 fadeInFrom :: Time -> Time -> Pattern a -> Pattern a
-fadeInFrom from dur p = innerJoin $ (\slope -> _degradeBy slope p) <$> (from `rotR` _slow dur envLR)
+fadeInFrom from dur p = innerJoin $ (`_degradeBy` p) <$> (from `rotR` _slow dur envLR)
 
 {- | The 'spread' function allows you to take a pattern transformation
 which takes a parameter, such as `slow`, and provide several
@@ -452,7 +452,7 @@ d1 $ fastspread chop [4,64,32,16] $ sound "ho ho:2 ho:3 hc"
 There is also @slowspread@, which is an alias of @spread@.
 -}
 fastspread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
-fastspread f xs p = fastcat $ map (\x -> f x p) xs
+fastspread f xs p = fastcat $ map (`f` p) xs
 
 {- | There's a version of this function, `spread'` (pronounced "spread prime"), which takes a *pattern* of parameters, instead of a list:
 
@@ -946,7 +946,7 @@ permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
 permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! floor (n * fromIntegral (length ps - 1))) things) <$> _segment 1 p
       where ps = permsort (length things) nSteps
             deviance avg xs = sum $ map (abs . (avg-) . fromIntegral) xs
-            permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total / (fromIntegral n :: Double)) x)) $ perms n total
+            permsort n total = map fst $ sortOn snd $ map (\x -> (x,deviance (fromIntegral total / (fromIntegral n :: Double)) x)) $ perms n total
             perms 0 _ = []
             perms 1 n = [[n]]
             perms n total = concatMap (\x -> map (x:) $ perms (n-1) (total-x)) [1 .. (total-(n-1))]
@@ -961,7 +961,7 @@ struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <* p
 substruct :: Pattern String -> Pattern b -> Pattern b
 substruct s p = p {query = f}
   where f st =
-          concatMap (\a' -> queryArc (compressArcTo a' p) a') (map whole $ query s st)
+          concatMap ((\a' -> queryArc (compressArcTo a' p) a') . whole) (query s st)
 
 randArcs :: Int -> Pattern [Arc]
 randArcs n =
@@ -973,8 +973,8 @@ randArcs n =
        where pairUp [] = []
              pairUp xs = Arc 0 (head xs) : pairUp' xs
              pairUp' [] = []
-             pairUp' (_:[]) = []
-             pairUp' (a:_:[]) = [Arc a 1]
+             pairUp' [_] = []
+             pairUp' [a, _] = [Arc a 1]
              pairUp' (a:b:xs) = Arc a b: pairUp' (b:xs)
 
 -- TODO - what does this do? Something for @stripe@ ..
@@ -1042,7 +1042,7 @@ lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
 with @fromIntegral@ applied (so they can be used seamlessly where floats or
 rationals are required) -}
 lindenmayerI :: Num b => Int -> String -> String -> [b]
-lindenmayerI n r s = fmap fromIntegral $ fmap digitToInt $ lindenmayer n r s
+lindenmayerI n r s = fmap (fromIntegral . digitToInt) $ lindenmayer n r s
 
 -- support for fit'
 unwrap' :: Pattern (Pattern a) -> Pattern a
@@ -1250,7 +1250,7 @@ randrun n' =
   where events a seed = mapMaybe toEv $ zip arcs shuffled
           where shuffled = map snd $ sortOn fst $ zip rs [0 .. (n'-1)]
                 rs = timeToRands seed n'
-                arcs = map (uncurry Arc) $ zip fractions (tail fractions)
+                arcs = zipWith Arc fractions (tail fractions)
                 fractions = map (+ (sam $ start a)) [0, 1 / fromIntegral n' .. 1]
                 toEv (a',v) = do a'' <- subArc a a'
                                  return $ Event a' a'' v
@@ -1275,7 +1275,7 @@ inhabit ps p = unwrap' $ (\s -> fromMaybe silence $ lookup s ps) <$> p
 
 {- | @spaceOut xs p@ repeats a pattern @p@ at different durations given by the list of time values in @xs@ -}
 spaceOut :: [Time] -> Pattern a -> Pattern a
-spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compressArc a p) spaceArcs
+spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (`compressArc` p) spaceArcs
   where markOut :: Time -> [Time] -> [Arc]
         markOut _ [] = []
         markOut offset (x:xs') = Arc offset (offset+x):markOut (offset+x) xs'
@@ -1389,7 +1389,7 @@ _ply n p = arpeggiate $ stack (replicate n p)
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 sew stitch p1 p2 = overlay (const <$> p1 <* a) (const <$> p2 <* b)
   where a = filterValues id stitch
-        b = filterValues (not . id) stitch
+        b = filterValues not stitch
 
 
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
@@ -1594,7 +1594,7 @@ tabby nInt p p' = stack [maskedWarp,
                      ]
   where
     n = fromIntegral nInt
-    weft = concatMap (\_ -> [[0..n-1], reverse [0..n-1]]) [0 .. (n `div` 2) - 1]
+    weft = concatMap (const [[0..n-1], reverse [0..n-1]]) [0 .. (n `div` 2) - 1]
     warp = transpose weft
     thread xs p'' = _slow (n%1) $ fastcat $ map (\i -> zoomArc (Arc (i%n) ((i+1)%n)) p'') (concat xs)
     weftP = thread weft p'
@@ -1689,7 +1689,7 @@ inv = (not <$>)
 mono :: Pattern a -> Pattern a
 mono p = Pattern Digital $ \(State a cm) -> flatten $ query p (State a cm) where
   flatten :: [Event a] -> [Event a]
-  flatten = mapMaybe constrainPart . truncateOverlaps . sortBy (comparing whole)
+  flatten = mapMaybe constrainPart . truncateOverlaps . sortOn whole
   truncateOverlaps [] = []
   truncateOverlaps (e:es) = e : truncateOverlaps (mapMaybe (snip e) es)
   snip a b | start (whole b) >= stop (whole a) = Just b
@@ -1730,4 +1730,4 @@ smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State 
 
 -- | Looks up values from a list of tuples, in order to swap values in the given pattern
 swap :: Eq a => [(a, b)] -> Pattern a -> Pattern b
-swap things p = filterJust $ (\x -> lookup x things) <$> p
+swap things p = filterJust $ (`lookup` things) <$> p

@@ -12,7 +12,7 @@
 - ignore: {name: "Eta reduce"}
 # - ignore: {name: "Avoid lambda"}
 # - ignore: {name: "Redundant $"}
-- ignore: {name: "Avoid lambda using `infix`"}
+# - ignore: {name: "Avoid lambda using `infix`"}
 # - ignore: {name: "Unused LANGUAGE pragma"}
 # - ignore: {name: "Use negate"}
 # - ignore: {name: "Fuse foldr/map"}
@@ -22,7 +22,7 @@
 - ignore: {name: "Use camelCase"}
 - ignore: {name: "Use <$>"}
 - ignore: {name: "Use &&"}
-- ignore: {name: "Use list literal pattern"}
+# - ignore: {name: "Use list literal pattern"}
 - ignore: {name: "Use list literal"}
 # - ignore: {name: "Use concatMap"}
 # - ignore: {name: "Use mapMaybe"}
@@ -33,22 +33,22 @@
 - ignore: {name: "Reduce duplication"}
 # - ignore: {name: "Use infix"}
 - ignore: {name: "Evaluate"}
-- ignore: {name: "Use sortOn"}
-- ignore: {name: "Fuse concatMap/map"}
-- ignore: {name: "Functor law"}
+# - ignore: {name: "Use sortOn"}
+# - ignore: {name: "Fuse concatMap/map"}
+# - ignore: {name: "Functor law"}
 - ignore: {name: "Use <$"}
-- ignore: {name: "Use zipWith"}
-- ignore: {name: "Redundant id"}
-- ignore: {name: "Use const"}
-- ignore: {name: "Use map once"}
-- ignore: {name: "Use minimum"}
-- ignore: {name: "Use print"}
-- ignore: {name: "Use newtype instead of data"}
-- ignore: {name: "Use String"}
-- ignore: {name: "Redundant =="}
-- ignore: {name: "Use LANGUAGE pragmas"}
-- ignore: {name: "Use ||"}
-- ignore: {name: "Use if"}
+# - ignore: {name: "Use zipWith"}
+# - ignore: {name: "Redundant id"}
+# - ignore: {name: "Use const"}
+# - ignore: {name: "Use map once"}
+# - ignore: {name: "Use minimum"}
+# - ignore: {name: "Use print"}
+# - ignore: {name: "Use newtype instead of data"}
+# - ignore: {name: "Use String"}
+# - ignore: {name: "Redundant =="}
+# - ignore: {name: "Use LANGUAGE pragmas"}
+# - ignore: {name: "Use ||"}
+# - ignore: {name: "Use if"}
 
 
 # Specify additional command line arguments

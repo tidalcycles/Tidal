@@ -305,13 +305,13 @@ d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
 -}
 
 smash :: Pattern Int -> [Pattern Time] -> ControlPattern -> Pattern ControlMap
-smash n xs p = slowcat $ map (\x -> slow x p') xs
+smash n xs p = slowcat $ map (`slow` p') xs
   where p' = striate n p
 
 {- | an altenative form to `smash` is `smash'` which will use `chop` instead of `striate`.
 -}
 smash' :: Int -> [Pattern Time] -> ControlPattern -> Pattern ControlMap
-smash' n xs p = slowcat $ map (\x -> slow x p') xs
+smash' n xs p = slowcat $ map (`slow` p') xs
   where p' = _chop n p
 
 

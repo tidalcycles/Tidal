@@ -376,7 +376,7 @@ _every' n o = when ((== o) . (`mod` n))
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
 -- each cycle in @ns@.
 foldEvery :: [Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-foldEvery ns f p = foldr (\x -> _every x f) p ns
+foldEvery ns f p = foldr (`_every` f) p ns
 
 {-|
 Only `when` the given test function returns `True` the given pattern
