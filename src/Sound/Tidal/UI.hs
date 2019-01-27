@@ -15,7 +15,6 @@ import           Data.Ratio ((%),numerator,denominator)
 import           Data.List (sort, sortBy, sortOn, findIndices, elemIndex, groupBy, transpose)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe, catMaybes)
 import qualified Data.Text as T
-import           Control.Applicative (liftA2)
 import qualified Data.Map.Strict as Map
 
 import           Sound.Tidal.Bjorklund (bjorklund)
@@ -1217,8 +1216,11 @@ and returns a random permutation of the parts each cycle.  For example,
 `"c a b"`, or `"c b a"`.  But it will **never** return `"a a a"`, because that
 is not a permutation of the parts.
 -}
-shuffle :: Int -> Pattern a -> Pattern a
-shuffle n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> randrun n
+shuffle :: Pattern Int -> Pattern a -> Pattern a
+shuffle = tParam _shuffle
+
+_shuffle :: Int -> Pattern a -> Pattern a
+_shuffle n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> randrun n
   where
     pats = map (\i -> zoom ((fromIntegral i)/nT, (fromIntegral (i+1))/nT) pat) [0 .. (n-1)]
     nT :: Time
@@ -1229,8 +1231,11 @@ of `p` instead of making permutations.
 For example, `scramble 3 "a b c"` will randomly select 3 parts from
 `"a"` `"b"` and `"c"`, possibly repeating a single part.
 -}
-scramble :: Int -> Pattern a -> Pattern a
-scramble n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> randn
+scramble :: Pattern Int -> Pattern a -> Pattern a
+scramble = tParam _scramble
+
+_scramble :: Int -> Pattern a -> Pattern a
+_scramble n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> randn
   where
     randn = _segment nT $ irand n
     pats = map (\i -> zoom ((fromIntegral i)/nT, (fromIntegral (i+1))/nT) pat) [0 .. (n-1)]
