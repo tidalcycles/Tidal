@@ -1734,5 +1734,5 @@ swap things p = filterJust $ (\x -> lookup x things) <$> p
     the original pattern by continually adding random numbers
     d1 $ note (scale "hexDorian" mutateBy (+ (range -1 1 $ irand 2)) 8 $ "0 1 . 2 3 4") # s "gtr"
 -}
-soak :: (Pattern a -> Pattern a) -> Int -> Pattern a -> Pattern a
-soak f depth pattern = cat $ take depth $ iterate f pattern
+soak ::  Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+soak depth f pattern = cat $ take depth $ iterate f pattern

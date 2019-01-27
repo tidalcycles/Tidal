@@ -181,14 +181,14 @@ run =
     describe "soak" $ do
       it "applies a transform and then appends the result -- addition" $ do
         compareP (Arc 0 3)
-          (soak (+ 1) 3 "4 ~ 0 1")
+          (soak 3 (+ 1) "4 ~ 0 1")
           (cat ["4 ~ 0 1"::Pattern Int,"5 ~ 1 2"::Pattern Int,"6 ~ 2 3"::Pattern Int])
       it "applies a transform and then appends the result -- slow" $ do
         compareP (Arc 0 7)
-          (soak (slow 2) 3 "4 ~ 0 1")
+          (soak 3 (slow 2) "4 ~ 0 1")
           (cat ["4 ~ 0 1"::Pattern Int, slow 2 "4 ~ 0 1"::Pattern Int, slow 4 "4 ~  0 1"::Pattern Int])
       it "applies a transform and then appends the result -- addition patterns" $ do
         compareP (Arc 0 3)
-          (soak (+ "1 2 3") 3 "1 1")
+          (soak 3 (+ "1 2 3") "1 1")
           (cat ["1 1"::Pattern Int,"2 [3 3] 4"::Pattern Int,"3 [5 5] 7"::Pattern Int])
         
