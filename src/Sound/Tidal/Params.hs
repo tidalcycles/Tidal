@@ -443,10 +443,10 @@ vco = vcoegint
 voi = voice
 
 midinote :: Pattern Double -> ControlPattern
-midinote = note . ((subtract 60) <$>)
+midinote = note . (subtract 60 <$>)
 
 drum :: Pattern String -> ControlPattern
-drum = n . ((subtract 60) . drumN <$>)
+drum = n . (subtract 60 . drumN <$>)
 
 drumN :: Num a => String -> a
 drumN "bd" = 36

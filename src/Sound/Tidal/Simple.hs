@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
 module Sound.Tidal.Simple where
 
@@ -9,7 +9,7 @@ import Sound.Tidal.ParseBP (parseBP_E)
 import Sound.Tidal.Pattern (ControlPattern)
 import GHC.Exts ( IsString(..) )
 
-instance {-# OVERLAPPING #-} IsString (ControlPattern) where
+instance {-# OVERLAPPING #-} IsString ControlPattern where
   fromString = s . parseBP_E
   
 crunch :: ControlPattern -> ControlPattern
