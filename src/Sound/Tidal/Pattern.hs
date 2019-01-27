@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -87,14 +86,14 @@ instance Applicative ArcF where
 
 -- | The arc of the whole cycle that the given time value falls within
 timeToCycleArc :: Time -> Arc
-timeToCycleArc t = (Arc (sam t) ((sam t) + 1))
+timeToCycleArc t = Arc (sam t) (sam t + 1)
 
 -- | A list of cycle numbers which are included in the given arc
 cyclesInArc :: Integral a => Arc -> [a]
 cyclesInArc (Arc s e)
   | s > e = []
   | s == e = [floor s]
-  | otherwise = [floor s .. (ceiling e)-1]
+  | otherwise = [floor s .. ceiling e-1]
 
 -- | A list of arcs of the whole cycles which are included in the given arc
 cycleArcsInArc :: Arc -> [Arc]
@@ -104,7 +103,7 @@ cycleArcsInArc = map (timeToCycleArc . (toTime :: Int -> Time)) . cyclesInArc
 arcCycles :: Arc -> [Arc]
 arcCycles (Arc s e) | s >= e = []
                 | sam s == sam e = [Arc s e]
-                | otherwise = (Arc s (nextSam s)) : (arcCycles (Arc (nextSam s) e))
+                | otherwise = Arc s (nextSam s) : arcCycles (Arc (nextSam s) e)
 
 -- | Like arcCycles, but returns zero-width arcs
 arcCyclesZW :: Arc -> [Arc]
@@ -134,7 +133,7 @@ data EventF a b = Event
 type Event a = EventF (ArcF Time) a
 
 instance Bifunctor EventF where
-  bimap f g (Event w p e) = (Event (f w) (f p) (g e))
+  bimap f g (Event w p e) = Event (f w) (f p) (g e)
 
 instance {-# OVERLAPPING #-} Show a => Show (Event a) where
   show (Event (Arc ws we) a@(Arc ps pe) e) =
@@ -156,11 +155,11 @@ compareDefrag as bs = (sort $ defragParts as) == (sort $ defragParts bs)
 -- | Returns a list of events, with any adjacent parts of the same whole combined
 defragParts :: Eq a => [Event a] -> [Event a]
 defragParts [] = []
-defragParts (e:[]) = (e:[])
-defragParts (e:es) | isJust i = defraged:(defragParts (delete e' es))
-                   | otherwise = e:(defragParts es)
+defragParts (e:[]) = e:[]
+defragParts (e:es) | isJust i = defraged : defragParts (delete e' es)
+                   | otherwise = e : defragParts es
   where i = findIndex (isAdjacent e) es
-        e' = es !! (fromJust i)
+        e' = es !! fromJust i
         defraged = Event (whole e) u (value e)
         u = hull (part e) (part e')
 
@@ -231,7 +230,7 @@ type ControlPattern = Pattern ControlMap
 
 instance Functor Pattern where
   -- | apply a function to all the values in a pattern
-  fmap f p = p {query = (fmap (fmap f)) . query p}
+  fmap f p = p {query = fmap (fmap f) . query p}
 
 instance Applicative Pattern where
   -- | Repeat the given value once per cycle, forever
@@ -254,7 +253,7 @@ instance Applicative Pattern where
             where
               match (Event fWhole fPart f) =
                 map
-                (\e -> (Event fWhole fPart (f (value e))))
+                (\e -> Event fWhole fPart (f (value e)))
                 (query px $ st {arc = pure (start fPart)})
 
   (<*>) pf@(Pattern Analog _) px@(Pattern Digital _) = Pattern Digital q
@@ -262,15 +261,15 @@ instance Applicative Pattern where
             where
               match (Event xWhole xPart x) =
                 map
-                (\e -> (Event xWhole xPart ((value e) x)))
-                (query pf st {arc = (pure (start xPart))})
+                (\e -> Event xWhole xPart (value e x))
+                (query pf st {arc = pure (start xPart)})
 
   (<*>) pf px = Pattern Analog q
     where q st = concatMap match $ query pf st
             where
               match ef =
                 map
-                (\ex -> (Event (arc st) (arc st) ((value ef) (value ex))))
+                (\ex -> Event (arc st) (arc st) (value ef (value ex)))
                 (query px st)
 
 -- | Like <*>, but the structure only comes from the left
@@ -280,7 +279,7 @@ instance Applicative Pattern where
          where
             match (Event fWhole fPart f) =
               map
-              (\e -> (Event fWhole fPart (f (value e)))) $
+              (\e -> Event fWhole fPart (f (value e))) $
               query px $ st {arc = xQuery fWhole}
             xQuery (Arc s _) = pure s -- for discrete events, match with the onset
 
@@ -289,7 +288,7 @@ instance Applicative Pattern where
           where
             match (Event fWhole fPart f) =
               map
-              (\e -> (Event fWhole fPart (f (value e)))) $
+              (\e -> Event fWhole fPart (f (value e))) $
               query px st -- for continuous events, use the original query
 
 -- | Like <*>, but the structure only comes from the right
@@ -299,7 +298,7 @@ instance Applicative Pattern where
          where
             match (Event xWhole xPart x) =
               map
-              (\e -> (Event xWhole xPart ((value e) x))) $
+              (\e -> Event xWhole xPart (value e x)) $
               query pf $ fQuery xWhole
             fQuery (Arc s _) = st {arc = pure s} -- for discrete events, match with the onset
 
@@ -308,7 +307,7 @@ instance Applicative Pattern where
           where
             match (Event xWhole xPart x) =
               map
-              (\e -> (Event xWhole xPart ((value e) x))) $
+              (\e -> Event xWhole xPart (value e x)) $
               query pf st -- for continuous events, use the original query
 
 infixl 4 <*, *>
@@ -365,7 +364,7 @@ outerJoin pp = pp {query = q}
           (\(Event w p v) ->
              catMaybes $
              map (munge w p) $
-             query v st {arc = (pure (start w))})
+             query v st {arc = pure (start w)})
           (query pp st)
           where munge ow op (Event _ _ v') =
                   do
@@ -397,16 +396,16 @@ class TolerantEq a where
 instance TolerantEq Value where
          (VS a) ~== (VS b) = a == b
          (VI a) ~== (VI b) = a == b
-         (VF a) ~== (VF b) = (abs (a - b)) < 0.000001
+         (VF a) ~== (VF b) = abs (a - b) < 0.000001
          _ ~== _ = False
 
 instance TolerantEq ControlMap where
-  a ~== b = (Map.differenceWith (\a' b' -> if a' ~== b' then Nothing else Just a') a b) == Map.empty
+  a ~== b = Map.differenceWith (\a' b' -> if a' ~== b' then Nothing else Just a') a b == Map.empty
 
 instance TolerantEq (Event ControlMap) where
   (Event w p x) ~== (Event w' p' x') = w == w' && p == p' && x ~== x'
 
-instance TolerantEq a => TolerantEq ([a]) where
+instance TolerantEq a => TolerantEq [a] where
   as ~== bs = (length as == length bs) && (and $ map (\(a,b) -> a ~== b) $ zip as bs)
 
 instance Eq (Pattern a) where
@@ -491,13 +490,13 @@ instance (RealFloat a) => RealFloat (Pattern a) where
   isIEEE         = noOv "isIEEE"
   atan2          = liftA2 atan2
 
-instance Num (ControlMap) where
-  negate      = ((applyFIS negate negate id) <$>)
+instance Num ControlMap where
+  negate      = (applyFIS negate negate id <$>)
   (+)         = Map.unionWith (fNum2 (+) (+))
   (*)         = Map.unionWith (fNum2 (*) (*))
   fromInteger i = Map.singleton "n" $ VI $ fromInteger i
-  signum      = ((applyFIS signum signum id) <$>)
-  abs         = ((applyFIS abs abs id) <$>)
+  signum      = (applyFIS signum signum id <$>)
+  abs         = (applyFIS abs abs id <$>)
 
 instance Fractional ControlMap where
   recip        = fmap (applyFIS recip id id)
@@ -514,14 +513,14 @@ instance Show Value where
   show (VI i) = show i
   show (VF f) = show f ++ "f"
 
-instance {-# OVERLAPPING #-} Show (ControlMap) where
+instance {-# OVERLAPPING #-} Show ControlMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
 
 prettyRat :: Rational -> String
 prettyRat r | unit == 0 && frac > 0 = showFrac (numerator frac) (denominator frac)
             | otherwise =  show unit ++ showFrac (numerator frac) (denominator frac)
   where unit = floor r :: Int
-        frac = (r - (toRational unit))
+        frac = r - toRational unit
 
 showFrac :: Integer -> Integer -> String
 showFrac 0 _ = ""
@@ -624,7 +623,7 @@ withEvents f p = p {query = f . query p}
 -- | @withPart f p@ returns a new @Pattern@ with function @f@ applied
 -- to the part.
 withPart :: (Arc -> Arc) -> Pattern a -> Pattern a
-withPart f = withEvent (\(Event w p v) -> (Event w (f p) v))
+withPart f = withEvent (\(Event w p v) -> Event w (f p) v)
 
 -- | Apply one of three functions to a Value, depending on its type
 applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value -> Value
@@ -660,7 +659,7 @@ compressArc (Arc s e) p | s > e = empty
                         | otherwise = s `rotR` _fastGap (1/(e-s)) p
 
 compressArcTo :: Arc -> Pattern a -> Pattern a
-compressArcTo (Arc s e) p = compressArc (Arc (cyclePos s) (e-(sam s))) p
+compressArcTo (Arc s e) p = compressArc (Arc (cyclePos s) (e - sam s)) p
 
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = empty
@@ -687,12 +686,12 @@ rotR t = rotL (0-t)
 
 -- | Remove events from patterns that to not meet the given test
 filterValues :: (a -> Bool) -> Pattern a -> Pattern a
-filterValues f p = p {query = (filter (f . value)) . query p}
+filterValues f p = p {query = filter (f . value) . query p}
 
 -- | Turns a pattern of 'Maybe' values in to a pattern of values,
 -- dropping the events of 'Nothing'.
 filterJust :: Pattern (Maybe a) -> Pattern a
-filterJust p = fromJust <$> (filterValues (isJust) p)
+filterJust p = fromJust <$> filterValues isJust p
 
 -- formerly known as playWhen
 filterWhen :: (Time -> Bool) -> Pattern a -> Pattern a
@@ -722,6 +721,6 @@ matchManyToOne f pa pb = pa {query = q}
   where q st = map match $ query pb st
           where
             match (Event xWhole xPart x) =
-              Event xWhole xPart (or $ (map (f x) (as $ start xWhole)), x)
+              Event xWhole xPart (or $ map (f x) (as $ start xWhole), x)
             as s = map value $ query pa $ fQuery s
-            fQuery s = st {arc = (Arc s s)}
+            fQuery s = st {arc = Arc s s}

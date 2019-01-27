@@ -59,7 +59,7 @@ chop :: Pattern Int -> ControlPattern -> ControlPattern
 chop = tParam _chop
 
 chopArc :: Arc -> Int -> [Arc]
-chopArc (Arc s e) n = map (\i -> (Arc (s + (e-s)*(fromIntegral i/fromIntegral n)) (s + (e-s)*((fromIntegral $ i+1)/fromIntegral n)))) [0 .. n-1]
+chopArc (Arc s e) n = map (\i -> Arc (s + (e-s)*(fromIntegral i/fromIntegral n)) (s + (e-s)*((fromIntegral $ i+1)/fromIntegral n))) [0 .. n-1]
 
 _chop :: Int -> ControlPattern -> ControlPattern
 _chop n p = withEvents (concatMap chopEvent) p
@@ -83,8 +83,8 @@ _chop n p = withEvents (concatMap chopEvent) p
                 e = fromMaybe 1 $ do v' <- Map.lookup "end" v
                                      getF v'
                 d = e-b
-                b' = (((fromIntegral i)/(fromIntegral n')) * d) + b
-                e' = (((fromIntegral $ i+1)/(fromIntegral n')) * d) + b
+                b' = ((fromIntegral i/fromIntegral n') * d) + b
+                e' = (((fromIntegral $ i+1)/fromIntegral n') * d) + b
 
 {-
 -- A simpler definition than the above, but this version doesn't chop
@@ -126,7 +126,7 @@ striate = tParam _striate
 
 _striate :: Int -> ControlPattern -> ControlPattern
 _striate n p = fastcat $ map (\i -> offset i) [0 .. n-1]
-  where offset i = (mergePlayRange ((fromIntegral i / fromIntegral n), (fromIntegral (i+1) / fromIntegral n))) <$> p
+  where offset i = mergePlayRange (fromIntegral i / fromIntegral n, fromIntegral (i+1) / fromIntegral n) <$> p
 
 mergePlayRange :: (Double, Double) -> ControlMap -> ControlMap
 mergePlayRange (b,e) cm = Map.insert "begin" (VF $ (b*d')+b') $ Map.insert "end" (VF $ (e*d')+b') $ cm
@@ -160,7 +160,7 @@ striate' = striateBy
 _striateBy :: Int -> Double -> ControlPattern -> ControlPattern
 _striateBy n f p = fastcat $ map (\i -> offset (fromIntegral i)) [0 .. n-1]
   where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.end (pure ((slot * i) + f) :: Pattern Double)
-        slot = (1 - f) / (fromIntegral n)
+        slot = (1 - f) / fromIntegral n
 
 
 
@@ -177,7 +177,7 @@ gap :: Pattern Int -> ControlPattern -> ControlPattern
 gap = tParam _gap
 
 _gap :: Int -> ControlPattern -> ControlPattern 
-_gap n p = (_fast (toRational n) $ cat [pure 1, silence]) |>| ( _chop n p)
+_gap n p = (_fast (toRational n) $ cat [pure 1, silence]) |>| _chop n p
 
 {- |
 `weave` applies a function smoothly over an array of different patterns. It uses an `OscPattern` to
@@ -249,8 +249,8 @@ en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate 
 
 slice :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
 slice pN pI p = P.begin b # P.end e # p
-  where b = (\i n -> (div' i n)) <$> pI <* pN
-        e = (\i n -> (div' i n) + (div' 1 n)) <$> pI <* pN
+  where b = (\i n -> div' i n) <$> pI <* pN
+        e = (\i n -> div' i n + div' 1 n) <$> pI <* pN
         div' num den = fromIntegral (num `mod` den) / fromIntegral den
 
 _slice :: Int -> Int -> ControlPattern -> ControlPattern
@@ -335,9 +335,9 @@ stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ControlPattern 
 stut = tParam3 _stut
 
 _stut :: Integer -> Double -> Rational -> ControlPattern -> ControlPattern
-_stut count feedback steptime p = stack (p:(map (\x -> (((x%1)*steptime) `rotR` (p |* P.gain (pure $ scalegain (fromIntegral x))))) [1..(count-1)]))
+_stut count feedback steptime p = stack (p:map (\x -> ((x%1)*steptime) `rotR` (p |* P.gain (pure $ scalegain (fromIntegral x)))) [1..(count-1)])
   where scalegain x
-          = ((+feedback) . (*(1-feedback)) . (/(fromIntegral count)) . ((fromIntegral count)-)) x
+          = ((+feedback) . (*(1-feedback)) . (/ fromIntegral count) . (fromIntegral count -)) x
 
 {- | Instead of just decreasing volume to produce echoes, @stut'@ allows to apply a function for each step and overlays the result delayed by the given time.
 
@@ -366,7 +366,7 @@ cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
 
 _cX :: (Arc -> Value -> [Event a]) -> [a] -> String -> Pattern a
 _cX f ds s = Pattern Analog $
-               \(State a m) -> maybe (map (\d -> (Event a a d)) ds) (f a) $ Map.lookup s m
+               \(State a m) -> maybe (map (\d -> Event a a d) ds) (f a) $ Map.lookup s m
 
 _cF :: [Double] -> String -> Pattern Double
 _cF = _cX f
