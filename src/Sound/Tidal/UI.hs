@@ -706,7 +706,7 @@ eoff = euclidOff
 
 _euclidOff :: Int -> Int -> Int -> Pattern a -> Pattern a
 _euclidOff _ 0 _ _ = silence
-_euclidOff n k s p = (fromIntegral s%fromIntegral k `rotL`) (_euclid n k p)
+_euclidOff n k s p = ((fromIntegral s%fromIntegral k) `rotL`) (_euclid n k p)
 
 euclidOffBool :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern Bool -> Pattern Bool
 euclidOffBool = tParam3 _euclidOffBool
