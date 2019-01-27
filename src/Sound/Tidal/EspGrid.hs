@@ -24,7 +24,7 @@ parseEspTempo d = do
     }
 
 changeTempo :: MVar Tempo -> Packet -> IO ()
-changeTempo t (Packet_Message msg) = do
+changeTempo t (Packet_Message msg) =
     case parseEspTempo (messageDatum msg) of
       Just f -> takeMVar t >>= putMVar t . f
       Nothing -> putStrLn "Warning: Unable to parse message (likely from EspGrid) as Tempo"

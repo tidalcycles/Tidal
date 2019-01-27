@@ -238,7 +238,7 @@ instance Applicative Pattern where
     map (\a' -> Event a' (sect a a') v) $ cycleArcsInArc a
 
   (<*>) pf@(Pattern Digital _) px@(Pattern Digital _) = Pattern Digital q
-    where q st = catMaybes $ concat $ map match $ query pf st
+    where q st = catMaybes $ concatMap match $ query pf st
             where
               match (Event fWhole fPart f) =
                 map
@@ -680,7 +680,7 @@ rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 
 -- | Shifts a pattern forward in time by the given amount, expressed in cycles
 rotR :: Time -> Pattern a -> Pattern a
-rotR t = rotL (0-t)
+rotR t = rotL (negate t)
 
 -- ** Event filters
 

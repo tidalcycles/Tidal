@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
 module Sound.Tidal.Core where
 
@@ -264,7 +264,7 @@ density = fast
 
 _fast :: Time -> Pattern a -> Pattern a
 _fast r p | r == 0 = silence
-          | r < 0 = rev $ _fast (0-r) p
+          | r < 0 = rev $ _fast (negate r) p
           | otherwise = withResultTime (/ r) $ withQueryTime (* r) p
 
 -- | Slow down a pattern by the given time pattern
@@ -376,7 +376,7 @@ _every' n o = when ((== o) . (`mod` n))
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
 -- each cycle in @ns@.
 foldEvery :: [Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-foldEvery ns f p = foldr ($) p (map (\x -> _every x f) ns)
+foldEvery ns f p = foldr (\x -> _every x f) p ns
 
 {-|
 Only `when` the given test function returns `True` the given pattern
