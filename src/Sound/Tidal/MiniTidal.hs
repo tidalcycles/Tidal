@@ -258,6 +258,8 @@ pInt_p_p = choice [
   function "ply" >> return T.ply,
   function "substruct'" >> return T.substruct',
   function "slowstripe" >> return T.slowstripe,
+  function "shuffle" >> return T.shuffle,
+  function "scramble" >> return T.scramble,
   pInt_pInt_p_p <*> patternArg
   ]
 
@@ -278,8 +280,6 @@ vTime_p_p = choice [
   ]
 
 vInt_p_p = choice [
-  function "shuffle" >> return T.shuffle,
-  function "scramble" >> return T.scramble,
   function "repeatCycles" >> return T.repeatCycles
   ]
 
