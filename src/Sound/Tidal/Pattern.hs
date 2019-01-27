@@ -11,7 +11,7 @@ import           Data.Bifunctor (Bifunctor(..))
 import           Data.Data (Data) -- toConstr
 import           Data.List (delete, findIndex, sort, intercalate)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (isJust, fromJust, catMaybes, fromMaybe)
+import           Data.Maybe (isJust, fromJust, catMaybes, fromMaybe, mapMaybe)
 import           Data.Ratio (numerator, denominator)
 import           Data.Typeable (Typeable)
 
@@ -330,9 +330,7 @@ unwrap :: Pattern (Pattern a) -> Pattern a
 unwrap pp = pp {query = q}
   where q st = concatMap
           (\(Event w p v) ->
-             catMaybes $
-             map (munge w p) $
-             query v st {arc = p})
+             mapMaybe (munge w p) $ query v st {arc = p})
           (query pp st)
         munge ow op (Event iw ip v') =
           do
@@ -345,10 +343,8 @@ unwrap pp = pp {query = q}
 innerJoin :: Pattern (Pattern a) -> Pattern a
 innerJoin pp = pp {query = q}
   where q st = concatMap
-          (\(Event _ p v) ->
-              catMaybes $
-              map munge $
-              query v st {arc = p})
+               (\(Event _ p v) -> mapMaybe munge $ query v st {arc = p}
+          )
           (query pp st)
           where munge (Event iw ip v) =
                   do
@@ -362,9 +358,8 @@ outerJoin :: Pattern (Pattern a) -> Pattern a
 outerJoin pp = pp {query = q}
   where q st = concatMap
           (\(Event w p v) ->
-             catMaybes $
-             map (munge w p) $
-             query v st {arc = pure (start w)})
+             mapMaybe (munge w p) $ query v st {arc = pure (start w)}
+          )
           (query pp st)
           where munge ow op (Event _ _ v') =
                   do
@@ -378,9 +373,8 @@ unwrapSqueeze :: Pattern (Pattern a) -> Pattern a
 unwrapSqueeze pp = pp {query = q}
   where q st = concatMap
           (\(Event w p v) ->
-             catMaybes $
-             map (munge w p) $
-             query (compressArc w v) st {arc = p})
+             mapMaybe (munge w p) $ query (compressArc w v) st {arc = p}
+          )
           (query pp st)
         munge oWhole oPart (Event iWhole iPart v) =
           do w' <- subArc oWhole iWhole
@@ -406,7 +400,8 @@ instance TolerantEq (Event ControlMap) where
   (Event w p x) ~== (Event w' p' x') = w == w' && p == p' && x ~== x'
 
 instance TolerantEq a => TolerantEq [a] where
-  as ~== bs = (length as == length bs) && and (map (\(a,b) -> a ~== b) $ zip as bs)
+  as ~== bs = (length as == length bs) && all (uncurry (~==)) (zip as bs)
+
 
 instance Eq (Pattern a) where
   (==) = noOv "(==)"
@@ -721,6 +716,6 @@ matchManyToOne f pa pb = pa {query = q}
   where q st = map match $ query pb st
           where
             match (Event xWhole xPart x) =
-              Event xWhole xPart (or $ map (f x) (as $ start xWhole), x)
+              Event xWhole xPart (any (f x) (as $ start xWhole), x)
             as s = map value $ query pa $ fQuery s
             fQuery s = st {arc = Arc s s}

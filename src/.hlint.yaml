@@ -25,13 +25,13 @@
 - ignore: {name: "Use list literal pattern"}
 - ignore: {name: "Use list literal"}
 # - ignore: {name: "Use concatMap"}
-- ignore: {name: "Use mapMaybe"}
-- ignore: {name: "Use all"}
-- ignore: {name: "Use uncurry"}
-- ignore: {name: "Use any"}
-- ignore: {name: "Use unwords"}
+# - ignore: {name: "Use mapMaybe"}
+# - ignore: {name: "Use all"}
+# - ignore: {name: "Use uncurry"}
+# - ignore: {name: "Use any"}
+# - ignore: {name: "Use unwords"}
 - ignore: {name: "Reduce duplication"}
-- ignore: {name: "Use infix"}
+# - ignore: {name: "Use infix"}
 - ignore: {name: "Evaluate"}
 - ignore: {name: "Use sortOn"}
 - ignore: {name: "Fuse concatMap/map"}

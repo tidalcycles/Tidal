@@ -24,7 +24,7 @@ mid (a,b) = a + ((b - a) / 2)
 removeCommon :: Eq a => [a] -> [a] -> ([a],[a])
 removeCommon [] bs = ([],bs)
 removeCommon as [] = (as,[])
-removeCommon (a:as) bs | elem a bs = removeCommon as (delete a bs)
+removeCommon (a:as) bs | a `elem` bs = removeCommon as (delete a bs)
                        | otherwise = (a:as',bs')
                       where (as',bs') = removeCommon as bs
 

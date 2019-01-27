@@ -320,8 +320,7 @@ pString = do c <- (letter <|> oneOf "0123456789") <?> "charnum"
              return (c:cs)
 
 pVocable :: Parser (TPat String)
-pVocable = do v <- pString
-              return $ TPat_Atom v
+pVocable = TPat_Atom <$> pString
 
 pDouble :: Parser (TPat Double)
 pDouble = do f <- choice [intOrFloat, parseNote] <?> "float"
@@ -469,8 +468,7 @@ pRatio = do s <- sign
             return $ applySign s result
 
 pRational :: Parser (TPat Rational)
-pRational = do r <- pRatio
-               return $ TPat_Atom r
+pRational = TPat_Atom <$> pRatio
 
 {-
 pDensity :: Parser (Rational)

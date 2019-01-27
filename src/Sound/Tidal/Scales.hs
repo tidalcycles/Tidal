@@ -176,7 +176,7 @@ scale sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName scal
         noteInScale s x = (s !!! x) + fromIntegral (12 * octave s x)
 
 scaleList :: String
-scaleList = intercalate " " $ map fst (scaleTable :: [(String, [Int])])
+scaleList = unwords $ map fst (scaleTable :: [(String, [Int])])
 
 scaleTable :: Num a => [(String, [a])]
 scaleTable = [("minPent", minPent),

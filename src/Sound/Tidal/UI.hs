@@ -868,7 +868,7 @@ _rot i pat = splitQueries $ pat {query = \st -> f st (query pat (st {arc = whole
                          (drop (length es - abs i) $ cycle $ map value es)
         wholeCycle (Arc s _) = Arc (sam s) (nextSam s)
         constrainEvents :: Arc -> [Event a] -> [Event a]
-        constrainEvents a es = catMaybes $ map (constrainEvent a) es
+        constrainEvents a es = mapMaybe (constrainEvent a) es
         constrainEvent :: Arc -> Event a -> Maybe (Event a)
         constrainEvent a (Event w p v) =
           do
@@ -1247,10 +1247,10 @@ randrun :: Int -> Pattern Int
 randrun 0 = silence
 randrun n' =
   splitQueries $ Pattern Digital (\(State a@(Arc s _) _) -> events a $ sam s)
-  where events a seed = catMaybes $ map toEv $ zip arcs shuffled
+  where events a seed = mapMaybe toEv $ zip arcs shuffled
           where shuffled = map snd $ sortOn fst $ zip rs [0 .. (n'-1)]
                 rs = timeToRands seed n'
-                arcs = map (\(s,e) -> Arc s e) $ zip fractions (tail fractions)
+                arcs = map (uncurry Arc) $ zip fractions (tail fractions)
                 fractions = map (+ (sam $ start a)) [0, 1 / fromIntegral n' .. 1]
                 toEv (a',v) = do a'' <- subArc a a'
                                  return $ Event a' a'' v
@@ -1564,7 +1564,7 @@ step s cs = fastcat $ map f cs
               | otherwise = silence
 
 steps :: [(String, String)] -> Pattern String
-steps = stack . map (\(a,b) -> step a b)
+steps = stack . map (uncurry step)
 
 -- | like `step`, but allows you to specify an array of strings to use for 0,1,2...
 step' :: [String] -> String -> Pattern String
@@ -1689,9 +1689,9 @@ inv = (not <$>)
 mono :: Pattern a -> Pattern a
 mono p = Pattern Digital $ \(State a cm) -> flatten $ query p (State a cm) where
   flatten :: [Event a] -> [Event a]
-  flatten = catMaybes . map constrainPart . truncateOverlaps . sortBy (comparing whole)
+  flatten = mapMaybe constrainPart . truncateOverlaps . sortBy (comparing whole)
   truncateOverlaps [] = []
-  truncateOverlaps (e:es) = e : truncateOverlaps (catMaybes $ map (snip e) es)
+  truncateOverlaps (e:es) = e : truncateOverlaps (mapMaybe (snip e) es)
   snip a b | start (whole b) >= stop (whole a) = Just b
            | stop (whole b) <= stop (whole a) = Nothing
            | otherwise = Just b {whole = Arc (stop $ whole a) (stop $ whole b)}

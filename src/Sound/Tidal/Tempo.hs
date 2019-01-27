@@ -182,7 +182,7 @@ serverListen config = catchAny run (\_ -> do putStrLn "Tempo listener failed (is
         act _ c _ cs (O.Packet_Message (O.Message "/hello" []))
           = return $ nub $ c:cs
         act udp _ (Just ts) cs (O.Packet_Message (O.Message path params))
-          | isPrefixOf "/transmit" path =
+          | "/transmit" `isPrefixOf` path =
               do let path' = drop 9 path
                      msg = O.Message path' params
                  mapM_ (O.sendTo udp $ O.p_bundle ts [msg]) cs
