@@ -25,7 +25,7 @@ sig f = Pattern Analog q
 -- | @sine@ returns a 'Pattern' of continuous 'Fractional' values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
 sine :: Fractional a => Pattern a
-sine = sig $ \t -> ((sin_rat $ (pi :: Double) * 2 * (fromRational t)) + 1) / 2
+sine = sig $ \t -> (sin_rat ((pi :: Double) * 2 * fromRational t) + 1) / 2
   where sin_rat = fromRational . toRational . sin
 
 -- | @cosine@ is a synonym for @0.25 ~> sine@.
@@ -47,7 +47,7 @@ tri = fastAppend saw isaw
 -- | @square@ is the equivalent of 'sine' for square waves.
 square :: (Fractional a) => Pattern a
 square = sig $
-         \t -> fromIntegral $ ((floor $ (mod' (fromRational t :: Double) 1) * 2) :: Integer)
+       \t -> fromIntegral ((floor $ mod' (fromRational t :: Double) 1 * 2) :: Integer)
 
 -- | @envL@ is a 'Pattern' of continuous 'Double' values, representing
 -- a linear interpolation between 0 and 1 during the first cycle, then
@@ -63,11 +63,11 @@ envLR = (1-) <$> envL
 
 -- | 'Equal power' version of 'env', for gain-based transitions
 envEq :: Pattern Double
-envEq = sig $ \t -> sqrt (sin (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
+envEq = sig $ \t -> sqrt (sin (pi/2 * max 0 (min (fromRational (1-t)) 1)))
 
 -- | Equal power reversed
 envEqR :: Pattern Double
-envEqR = sig $ \t -> sqrt (cos (pi/2 * (max 0 $ min (fromRational (1-t)) 1)))
+envEqR = sig $ \t -> sqrt (cos (pi/2 * max 0 (min (fromRational (1-t)) 1)))
 
 -- ** Pattern algebra
 
@@ -118,11 +118,11 @@ a |%  b = mod' <$> a <* b
 a  %| b = mod' <$> a *> b
 
 (|>|) :: (Applicative a, Unionable b) => a b -> a b -> a b
-a |>| b = (flip union) <$> a <*> b
+a |>| b = flip union <$> a <*> b
 (|> ) :: Unionable a => Pattern a -> Pattern a -> Pattern a
-a |>  b = (flip union) <$> a <* b
+a |>  b = flip union <$> a <* b
 ( >|) :: Unionable a => Pattern a -> Pattern a -> Pattern a
-a  >| b = (flip union) <$> a *> b
+a  >| b = flip union <$> a *> b
 
 (|<|) :: (Applicative a, Unionable b) => a b -> a b -> a b
 a |<| b = union <$> a <*> b
@@ -222,15 +222,15 @@ timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) 
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
           arrange _ [] = []
-          arrange t ((t',p):tps') = (t,t+t',p):(arrange (t+t') tps')
+          arrange t ((t',p):tps') = (t,t+t',p) : arrange (t+t') tps'
 
 -- | 'overlay' combines two 'Pattern's into a new pattern, so that
 -- their events are combined over time. 
 overlay :: Pattern a -> Pattern a -> Pattern a
 -- Analog if they're both analog
-overlay p@(Pattern Analog _) p'@(Pattern Analog _) = Pattern Analog $ \st -> (query p st) ++ (query p' st)
+overlay p@(Pattern Analog _) p'@(Pattern Analog _) = Pattern Analog $ \st -> query p st ++ query p' st
 -- Otherwise digital. Won't really work to have a mixture.. Hmm
-overlay p p' = Pattern Digital $ \st -> (query p st) ++ (query p' st)
+overlay p p' = Pattern Digital $ \st -> query p st ++ query p' st
 
 -- | 'stack' combines a list of 'Pattern's into a new pattern, so that
 -- their events are combined over time.
@@ -292,8 +292,7 @@ rev p =
       mapParts (mirrorArc (midCycle $ arc st)) $
       map makeWholeRelative
       (query p st
-        {arc =
-            (mirrorArc (midCycle $ arc st) (arc st))
+        {arc = mirrorArc (midCycle $ arc st) (arc st)
         })
     }
   where makeWholeRelative :: Event a -> Event a
@@ -303,7 +302,7 @@ rev p =
         makeWholeAbsolute (Event (Arc s e) p'@(Arc s' e') v) =
           Event (Arc (s'-e) (e'+s)) p' v
         midCycle :: Arc -> Time
-        midCycle (Arc s _) = (sam s) + 0.5
+        midCycle (Arc s _) = sam s + 0.5
         mapParts :: (Arc -> Arc) -> [Event a] -> [Event a]
         mapParts f es = (\(Event w p' v) -> Event w (f p') v) <$> es
         -- | Returns the `mirror image' of a 'Arc' around the given point in time
@@ -328,7 +327,7 @@ zoom (s,e) = zoomArc (Arc s e)
 
 zoomArc :: Arc -> Pattern a -> Pattern a
 zoomArc (Arc s e) p = splitQueries $
-  withResultArc (mapCycle ((/d) . (subtract s))) $ withQueryArc (mapCycle ((+s) . (*d))) p
+  withResultArc (mapCycle ((/d) . subtract s)) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 
 -- | @fastGap@ is similar to 'fast' but maintains its cyclic
@@ -372,7 +371,7 @@ every' :: Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a ->
 every' np op f p = do { n <- np; o <- op; _every' n o f p }
 
 _every' :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_every' n o f = when ((== o) . (`mod` n)) f
+_every' n o = when ((== o) . (`mod` n))
 
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
 -- each cycle in @ns@.

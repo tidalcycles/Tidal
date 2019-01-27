@@ -8,10 +8,10 @@
 
 # Warnings currently triggered by your code
 # - ignore: {name: "Redundant bracket"}
-- ignore: {name: "Move brackets to avoid $"}
+# - ignore: {name: "Move brackets to avoid $"}
 - ignore: {name: "Eta reduce"}
-- ignore: {name: "Avoid lambda"}
-- ignore: {name: "Redundant $"}
+# - ignore: {name: "Avoid lambda"}
+# - ignore: {name: "Redundant $"}
 - ignore: {name: "Avoid lambda using `infix`"}
 - ignore: {name: "Unused LANGUAGE pragma"}
 - ignore: {name: "Use negate"}

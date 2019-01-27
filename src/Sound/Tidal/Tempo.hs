@@ -37,18 +37,18 @@ data State = State {ticks   :: Int,
                     starting :: Bool
                    }
 
-resetCycles :: MVar Tempo -> IO (Tempo)
+resetCycles :: MVar Tempo -> IO Tempo
 resetCycles tempoMV = do t <- O.time
                          tempo <- takeMVar tempoMV
                          let tempo' = tempo {atTime = t,
-                                             atCycle = (-0.5)
+                                             atCycle = -0.5
                                             }
                          sendTempo tempo'
-                         putMVar tempoMV $ tempo'
+                         putMVar tempoMV tempo'
                          return tempo'
 
 
-setCps :: MVar Tempo -> O.Time -> IO (Tempo)
+setCps :: MVar Tempo -> O.Time -> IO Tempo
 setCps tempoMV newCps = do t <- O.time
                            tempo <- takeMVar tempoMV
                            let c = timeToCycles tempo t
@@ -58,7 +58,7 @@ setCps tempoMV newCps = do t <- O.time
                                               }
                            sendTempo tempo'
                            -- TODO - should we set the tempo ASAP rather than waiting for (possibly failing) network round trip?
-                           putMVar tempoMV $ tempo'
+                           putMVar tempoMV tempo'
                            return tempo'
 
 defaultTempo :: O.Time -> O.UDP -> N.SockAddr -> Tempo
@@ -75,9 +75,9 @@ defaultTempo t local remote = Tempo {atTime   = t,
 -- | Returns the given time in terms of
 -- cycles relative to metrical grid of a given Tempo
 timeToCycles :: Tempo -> O.Time -> Rational
-timeToCycles tempo t = (atCycle tempo) + (toRational cycleDelta)
-  where delta = t - (atTime tempo)
-        cycleDelta = (realToFrac $ cps tempo) * delta
+timeToCycles tempo t = atCycle tempo + toRational cycleDelta
+  where delta = t - atTime tempo
+        cycleDelta = realToFrac (cps tempo) * delta
 
 {-
 getCurrentCycle :: MVar Tempo -> IO Rational
@@ -94,7 +94,7 @@ clocked config callback
        let st = State {ticks = 0,
                        start = s,
                        nowTime = s,
-                       nowArc = (P.Arc 0 0),
+                       nowArc = P.Arc 0 0,
                        starting = True
                       }
        clockTid <- forkIO $ loop tempoMV st
@@ -104,14 +104,14 @@ clocked config callback
              tempo <- readMVar tempoMV               
              let frameTimespan = cFrameTimespan config
                  -- 'now' comes from clock ticks, nothing to do with cycles
-                 logicalT ticks' = start st + (fromIntegral ticks') * frameTimespan
-                 logicalNow = logicalT $ (ticks st) + 1
+                 logicalT ticks' = start st + fromIntegral ticks' * frameTimespan
+                 logicalNow = logicalT $ ticks st + 1
                  -- the tempo is just used to convert logical time to cycles
                  e = timeToCycles tempo logicalNow
-                 s = if (starting st) && (synched tempo)
-                     then (timeToCycles tempo (logicalT $ ticks st))
-                     else (P.stop $ nowArc st)
-                 st' = st {ticks = (ticks st) + 1, nowArc = P.Arc s e,
+                 s = if starting st && synched tempo
+                     then timeToCycles tempo (logicalT $ ticks st)
+                     else P.stop $ nowArc st
+                 st' = st {ticks = ticks st + 1, nowArc = P.Arc s e,
                            starting = not (synched tempo)
                           }
              t <- O.time
@@ -128,24 +128,24 @@ clientListen config s =
      (remote_addr:_) <- N.getAddrInfo Nothing (Just hostname) Nothing
      local <- O.udpServer "127.0.0.1" tempoClientPort
      let (N.SockAddrInet _ a) = N.addrAddress remote_addr
-         remote = N.SockAddrInet (fromIntegral port) (a)
+         remote = N.SockAddrInet (fromIntegral port) a
          t = defaultTempo s local remote
      -- Send to clock port from same port that's listened to
      O.sendTo local (O.p_message "/hello" []) remote
      -- Make tempo mvar
      tempoMV <- newMVar t
      -- Listen to tempo changes
-     tempoChild <- (forkIO $ listenTempo local tempoMV)
+     tempoChild <- forkIO $ listenTempo local tempoMV
      return (tempoMV, tempoChild)
 
 sendTempo :: Tempo -> IO ()
 sendTempo tempo = O.sendTo (localUDP tempo) (O.p_bundle (atTime tempo) [m]) (remoteAddr tempo)
   where m = O.Message "/transmit/cps/cycle" [O.Float $ fromRational $ atCycle tempo,
                                              O.Float $ realToFrac $ cps tempo,
-                                             O.Int32 $ if (paused tempo) then 1 else 0
+                                             O.Int32 $ if paused tempo then 1 else 0
                                             ]
 
-listenTempo :: O.UDP -> (MVar Tempo) -> IO ()
+listenTempo :: O.UDP -> MVar Tempo -> IO ()
 listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
                                        act Nothing pkt
                                        return ()
@@ -160,15 +160,15 @@ listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
              putMVar tempoMV $ tempo {atTime = ts,
                                       atCycle = realToFrac atCycle',
                                       cps = realToFrac cps',
-                                      paused = (paused' == 1),
+                                      paused = paused' == 1,
                                       synched = True
                                      }
         act _ pkt = putStrLn $ "Unknown packet: " ++ show pkt
 
 serverListen :: Config -> IO (Maybe ThreadId)
-serverListen config = catchAny (run) (\_ -> do putStrLn $ "Tempo listener failed (is one already running?)"
-                                               return Nothing
-                                     )
+serverListen config = catchAny run (\_ -> do putStrLn "Tempo listener failed (is one already running?)"
+                                             return Nothing
+                                   )
   where run = do let port = cTempoPort config
                  -- iNADDR_ANY deprecated - what's the right way to do this?
                  udp <- O.udpServer "0.0.0.0" port
@@ -178,7 +178,7 @@ serverListen config = catchAny (run) (\_ -> do putStrLn $ "Tempo listener failed
                          cs' <- act udp c Nothing cs pkt
                          loop udp cs'
         act :: O.UDP -> N.SockAddr -> Maybe O.Time -> [N.SockAddr] -> O.Packet -> IO [N.SockAddr]
-        act udp c _ cs (O.Packet_Bundle (O.Bundle ts ms)) = foldM (act udp c (Just ts)) cs $ map (O.Packet_Message) ms
+        act udp c _ cs (O.Packet_Bundle (O.Bundle ts ms)) = foldM (act udp c (Just ts)) cs $ map O.Packet_Message ms
         act _ c _ cs (O.Packet_Message (O.Message "/hello" []))
           = return $ nub $ c:cs
         act udp _ (Just ts) cs (O.Packet_Message (O.Message path params))

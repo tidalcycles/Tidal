@@ -581,7 +581,7 @@ d1 $ within (0.75, 1) (# speed "0.5") $ sound "bd*2 sn lt mt hh hh hh hh"
 -}
 within :: (Time, Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 within (s, e) f p = stack [filterWhen (\t -> cyclePos t >= s && cyclePos t < e) $ f p,
-                           filterWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p
+                           filterWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) p
                           ]
 
 withinArc :: Arc -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
@@ -622,8 +622,8 @@ d1 $ sound "[bd bd] hh cp sd"
 
 within' :: (Time, Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 within' a@(s, e) f p =
-  stack [ filterWhen (\t -> cyclePos t >= s && cyclePos t < e) $ compress a $ f $ zoom a $ p
-        , filterWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) $ p
+  stack [ filterWhen (\t -> cyclePos t >= s && cyclePos t < e) $ compress a $ f $ zoom a p
+        , filterWhen (\t -> not $ cyclePos t >= s && cyclePos t < e) p
         ]
 
 revArc :: (Time, Time) -> Pattern a -> Pattern a
@@ -677,7 +677,7 @@ euclid :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclid = tParam2 _euclid
 
 _euclid :: Int -> Int -> Pattern a -> Pattern a
-_euclid n k p = flip const <$> (filterValues (== True) $ fastFromList $ bjorklund (n,k)) <*> p
+_euclid n k p = flip const <$> filterValues (== True) (fastFromList $ bjorklund (n,k)) <*> p
 
 {- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
 euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
@@ -706,7 +706,7 @@ eoff = euclidOff
 
 _euclidOff :: Int -> Int -> Int -> Pattern a -> Pattern a
 _euclidOff _ 0 _ _ = silence
-_euclidOff n k s p = ((fromIntegral s%fromIntegral k) `rotL`) (_euclid n k p)
+_euclidOff n k s p = (rotL $ fromIntegral s%fromIntegral k) (_euclid n k p)
 
 euclidOffBool :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern Bool -> Pattern Bool
 euclidOffBool = tParam3 _euclidOffBool
@@ -728,7 +728,7 @@ _distrib xs p = boolsToPat (foldr distrib' (replicate (last xs) True) (reverse $
     distrib' (True:a) (x:b) = x : distrib' a b
     distrib' (False:a) b = False : distrib' a b
     layers = map bjorklund . (zip<*>tail)
-    boolsToPat a b' = flip const <$> (filterValues (== True) $ fastFromList $ a) <*> b'
+    boolsToPat a b' = flip const <$> filterValues (== True) (fastFromList a) <*> b'
 
 {- | `euclidInv` fills in the blanks left by `e`
  -
@@ -740,7 +740,7 @@ euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclidInv = tParam2 _euclidInv
 
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
-_euclidInv n k p = flip const <$> (filterValues (== False) $ fastFromList $ bjorklund (n,k)) <*> p
+_euclidInv n k p = flip const <$> filterValues (== False) (fastFromList $ bjorklund (n,k)) <*> p
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
@@ -882,7 +882,7 @@ segment :: Pattern Time -> Pattern a -> Pattern a
 segment = tParam _segment
 
 _segment :: Time -> Pattern a -> Pattern a
-_segment n p = (_fast n $ pure id) <* p
+_segment n p = _fast n (pure id) <* p
 
 -- | @discretise@: the old (deprecated) name for 'segment'
 discretise :: Pattern Time -> Pattern a -> Pattern a
@@ -939,11 +939,11 @@ The above fits three samples into the pattern, i.e. for the first cycle this wil
 
 -}
 fit :: Int -> [a] -> Pattern Int -> Pattern a
-fit perCycle xs p = (xs !!!) <$> (p {query = \st -> map (\e -> fmap (+ pos e) e) (query p st)})
-  where pos e = perCycle * (floor $ start $ part e)
+fit perCycle xs p = (xs !!!) <$> (p {query = map (\e -> fmap (+ pos e) e) . query p})
+  where pos e = perCycle * floor (start $ part e)
 
 permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
-permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! floor (n * (fromIntegral $ (length ps - 1)))) things) <$> _segment 1 p
+permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! floor (n * fromIntegral (length ps - 1))) things) <$> _segment 1 p
       where ps = permsort (length things) nSteps
             deviance avg xs = sum $ map (abs . (avg-) . fromIntegral) xs
             permsort n total = map fst $ sortBy (comparing snd) $ map (\x -> (x,deviance (fromIntegral total / (fromIntegral n :: Double)) x)) $ perms n total
@@ -961,15 +961,15 @@ struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <* p
 substruct :: Pattern String -> Pattern b -> Pattern b
 substruct s p = p {query = f}
   where f st =
-          concatMap (\a' -> queryArc (compressArcTo a' p) a') $ (map whole $ query s st)
+          concatMap (\a' -> queryArc (compressArcTo a' p) a') (map whole $ query s st)
 
 randArcs :: Int -> Pattern [Arc]
 randArcs n =
-  do rs <- mapM (\x -> (pure $ toRational x / toRational n) <~ choose [1 :: Int,2,3]) [0 .. (n-1)]
+  do rs <- mapM (\x -> pure (toRational x / toRational n) <~ choose [1 :: Int,2,3]) [0 .. (n-1)]
      let rats = map toRational rs
          total = sum rats
          pairs = pairUp $ accumulate $ map (/total) rats
-     return $ pairs
+     return pairs
        where pairUp [] = []
              pairUp xs = Arc 0 (head xs) : pairUp' xs
              pairUp' [] = []
@@ -980,7 +980,7 @@ randArcs n =
 -- TODO - what does this do? Something for @stripe@ ..
 randStruct :: Int -> Pattern Int
 randStruct n = splitQueries $ Pattern {nature = Digital, query = f}
-  where f st = map (\(a,b,c) -> Event a (fromJust b) c) $ filter (\(_,x,_) -> isJust x) $ as
+  where f st = map (\(a,b,c) -> Event a (fromJust b) c) $ filter (\(_,x,_) -> isJust x) as
           where as = map (\(i, Arc s' e') ->
                     (Arc (s' + sam s) (e' + sam s),
                        subArc (Arc s e) (Arc (s' + sam s) (e' + sam s)), i)) $
@@ -1034,7 +1034,7 @@ lindenmayer 1 "a:b,b:ab" "ab" -> "bab"
 -}
 lindenmayer :: Int -> String -> String -> String
 lindenmayer _ _ [] = []
-lindenmayer 1 r (c:cs) = (fromMaybe [c] $ lookup c $ parseLMRule' r)
+lindenmayer 1 r (c:cs) = fromMaybe [c] (lookup c $ parseLMRule' r)
                          ++ lindenmayer 1 r cs
 lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
 
@@ -1123,8 +1123,8 @@ fit' :: Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Patter
 fit' cyc n from to p = unwrap' $ fit n mapMasks to
   where mapMasks = [stretch $ mask (const True <$> filterValues (== i) from') p'
                      | i <- [0..n-1]]
-        p' = density cyc $ p
-        from' = density cyc $ from
+        p' = density cyc p
+        from' = density cyc from
 
 {-| @chunk n f p@ treats the given pattern @p@ as having @n@ chunks, and applies the function @f@ to one of those sections per cycle, running from left to right.
 
@@ -1187,7 +1187,7 @@ to change this use `toScale' size`.  Example:
 toScale' :: Num a => Int -> [a] -> Pattern Int -> Pattern a
 toScale' o s = fmap noteInScale
   where octave x = x `div` length s
-        noteInScale x = (s !!! x) + (fromIntegral $ o * octave x)
+        noteInScale x = (s !!! x) + fromIntegral (o * octave x)
 
 toScale :: Num a => [a] -> Pattern Int -> Pattern a
 toScale = toScale' 12
@@ -1206,7 +1206,7 @@ swing = swingBy (pure $ 1%3)
 once each cycle -}
 cycleChoose::[a] -> Pattern a
 cycleChoose xs = Pattern {nature = Digital, query = q}
-  where q State {arc = Arc s e} = [Event (Arc s e) (Arc s e) (xs!!(floor $ dlen * ctrand s))]
+  where q State {arc = Arc s e} = [Event (Arc s e) (Arc s e) (xs !! floor (dlen * ctrand s))]
         dlen = fromIntegral $ length xs
         ctrand s = (timeToRand :: Time -> Double) $ fromIntegral $ (floor :: Time -> Int) $ sam s
 
@@ -1247,17 +1247,17 @@ randrun :: Int -> Pattern Int
 randrun 0 = silence
 randrun n' =
   splitQueries $ Pattern Digital (\(State a@(Arc s _) _) -> events a $ sam s)
-  where events a seed = catMaybes $ map toEvent $ zip arcs shuffled
+  where events a seed = catMaybes $ map toEv $ zip arcs shuffled
           where shuffled = map snd $ sortOn fst $ zip rs [0 .. (n'-1)]
                 rs = timeToRands seed n'
                 arcs = map (\(s,e) -> Arc s e) $ zip fractions (tail fractions)
-                fractions = map (+ (sam $ start a)) $ [0, 1 / fromIntegral n' .. 1]
-                toEvent (a',v) = do a'' <- subArc a a'
-                                    return $ Event a' a'' v
+                fractions = map (+ (sam $ start a)) [0, 1 / fromIntegral n' .. 1]
+                toEv (a',v) = do a'' <- subArc a a'
+                                 return $ Event a' a'' v
 
 ur :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
-ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ getPat . split <$> outer_p)
-  where split s = wordsBy (==':') s
+ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <$> outer_p)
+  where split = wordsBy (==':')
         getPat (s:xs) = (match s, transform xs)
         -- TODO - check this really can't happen..
         getPat _ = error "can't happen?"
@@ -1275,7 +1275,7 @@ inhabit ps p = unwrap' $ (\s -> fromMaybe silence $ lookup s ps) <$> p
 
 {- | @spaceOut xs p@ repeats a pattern @p@ at different durations given by the list of time values in @xs@ -}
 spaceOut :: [Time] -> Pattern a -> Pattern a
-spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compressArc a p) $ spaceArcs
+spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compressArc a p) spaceArcs
   where markOut :: Time -> [Time] -> [Arc]
         markOut _ [] = []
         markOut offset (x:xs') = Arc offset (offset+x):markOut (offset+x) xs'
@@ -1285,7 +1285,7 @@ spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (\a -> compressArc a p
 -- | @flatpat@ takes a Pattern of lists and pulls the list elements as
 -- separate Events
 flatpat :: Pattern [a] -> Pattern a
-flatpat p = p {query = \st -> concatMap (\(Event b b' xs) -> map (\x -> Event b b' x) xs) $ query p st}
+flatpat p = p {query = concatMap (\(Event b b' xs) -> map (Event b b') xs) . query p}
 
 -- | @layer@ takes a Pattern of lists and pulls the list elements as
 -- separate Events
@@ -1339,7 +1339,7 @@ _arp name p = arpWith f p
                 ("down&up", \x -> reverse x ++ x),
                 ("converge", converge),
                 ("diverge", reverse . converge),
-                ("disconverge", \x -> converge x ++ (tail $ reverse $ converge x)),
+                ("disconverge", \x -> converge x ++ tail (reverse $ converge x)),
                 ("pinkyup", pinkyup),
                 ("pinkyupdown", \x -> init (pinkyup x) ++ init (reverse $ pinkyup x)),
                 ("thumbup", thumbup),
@@ -1348,7 +1348,7 @@ _arp name p = arpWith f p
         converge [] = []
         converge (x:xs) = x : converge' xs
         converge' [] = []
-        converge' xs = last xs : (converge $ init xs)
+        converge' xs = last xs : converge (init xs)
         pinkyup xs = concatMap (:[pinky]) $ init xs
           where pinky = last xs
         thumbup xs = concatMap (\x -> [thumb,x]) $ tail xs
@@ -1575,13 +1575,13 @@ step' ss cs = fastcat $ map f cs
 
 
 ghost'' :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-ghost'' a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) $ p
+ghost'' a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) p
 
 ghost' :: Time -> Pattern ControlMap -> Pattern ControlMap
 ghost' a p = ghost'' a ((|*| P.gain (pure 0.7)) . (|> P.end (pure 0.2)) . (|*| P.speed (pure 1.25))) p
 
 ghost :: Pattern ControlMap -> Pattern ControlMap
-ghost p = ghost' 0.125 p
+ghost = ghost' 0.125
 
 {- |
    tabby - A more literal weaving than the `weave` function, give number
@@ -1603,7 +1603,7 @@ tabby nInt p p' = stack [maskedWarp,
     maskedWarp = mask (every 2 rev $ _fast (n % 2) $ fastCat [pure True, silence]) warpP
 
 _select :: Double -> [Pattern a] -> Pattern a
-_select f ps =  ps !! (floor $ (max 0 $ min 1 f) * (fromIntegral $ length ps - 1))
+_select f ps =  ps !! floor (max 0 (min 1 f) * fromIntegral (length ps - 1))
 
 -- | chooses between a list of patterns, using a pattern of floats (from 0-1)
 select :: Pattern Double -> [Pattern a] -> Pattern a
@@ -1615,7 +1615,7 @@ selectF :: Pattern Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
 selectF pf ps p = innerJoin $ (\f -> _selectF f ps p) <$> pf
 
 _selectF :: Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
-_selectF f ps p =  (ps !! (floor $ (max 0 $ min 0.999999 f) * (fromIntegral $ length ps))) p
+_selectF f ps p =  (ps !! floor (max 0 (min 0.999999 f) * fromIntegral (length ps))) p
 
 -- | @contrast p f f' p'@ splits controlpattern @p'@ in two, applying
 -- the function @f@ to one and @f'@ to the other. This depends on
@@ -1661,7 +1661,7 @@ fix f = contrast f id
 -- | Like @contrast@, but one function is given, and applied to events
 -- with controls which don't match.
 unfix :: (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern
-unfix f = contrast id f
+unfix = contrast id
 
 fixRange :: (ControlPattern -> Pattern ControlMap)
             -> Pattern (Map.Map String (Value, Value))
@@ -1673,7 +1673,7 @@ unfixRange :: (ControlPattern -> Pattern ControlMap)
               -> Pattern (Map.Map String (Value, Value))
               -> ControlPattern
               -> Pattern ControlMap
-unfixRange f = contrastRange id f
+unfixRange = contrastRange id
 
 -- | limit values in a Pattern (or other Functor) to n equally spaced
 -- divisions of 1.
@@ -1691,9 +1691,9 @@ mono p = Pattern Digital $ \(State a cm) -> flatten $ query p (State a cm) where
   flatten :: [Event a] -> [Event a]
   flatten = catMaybes . map constrainPart . truncateOverlaps . sortBy (comparing whole)
   truncateOverlaps [] = []
-  truncateOverlaps (e:es) = e:(truncateOverlaps $ catMaybes $ map (snip e) es)
-  snip a b | (start $ whole b) >= (stop $ whole a) = Just b
-           | (stop $ whole b) <= (stop $ whole a) = Nothing
+  truncateOverlaps (e:es) = e : truncateOverlaps (catMaybes $ map (snip e) es)
+  snip a b | start (whole b) >= stop (whole a) = Just b
+           | stop (whole b) <= stop (whole a) = Nothing
            | otherwise = Just b {whole = Arc (stop $ whole a) (stop $ whole b)}
   constrainPart :: Event a -> Maybe (Event a)
   constrainPart e = do a <- subArc (whole e) (part e)
@@ -1723,8 +1723,8 @@ smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State 
                 , part = queryA'
                 , value = value e + ((v - value e) * pc)}
               ]
-            pc | (delta' $ whole e) == 0 = 0
-               | otherwise = fromRational $ (eventPartStart e - wholeStart e) / (delta' $ whole e)
+            pc | delta' (whole e) == 0 = 0
+               | otherwise = fromRational $ (eventPartStart e - wholeStart e) / delta' (whole e)
             delta' a = stop a - start a
     monoP = mono p
 

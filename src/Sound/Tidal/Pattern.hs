@@ -113,7 +113,7 @@ arcCyclesZW (Arc s e) | s == e = [Arc s e]
 -- | Similar to 'fmap' but time is relative to the cycle (i.e. the
 -- sam of the start of the arc)
 mapCycle :: (Time -> Time) -> Arc -> Arc
-mapCycle f (Arc s e) = Arc (sam' + (f $ s - sam')) (sam' + (f $ e - sam'))
+mapCycle f (Arc s e) = Arc (sam' + f (s - sam')) (sam' + f (e - sam'))
          where sam' = sam s
 
 -- | @isIn a t@ is @True@ if @t@ is inside
@@ -150,7 +150,7 @@ onsetIn a e = isIn a (wholeStart e)
 -- | Compares two lists of events, attempting to combine fragmented events in the process
 -- for a 'truer' compare
 compareDefrag :: (Ord a) => [Event a] -> [Event a] -> Bool
-compareDefrag as bs = (sort $ defragParts as) == (sort $ defragParts bs)
+compareDefrag as bs = sort (defragParts as) == sort (defragParts bs)
 
 -- | Returns a list of events, with any adjacent parts of the same whole combined
 defragParts :: Eq a => [Event a] -> [Event a]
@@ -167,9 +167,9 @@ defragParts (e:es) | isJust i = defraged : defragParts (delete e' es)
 isAdjacent :: Eq a => Event a -> Event a -> Bool
 isAdjacent e e' = (whole e == whole e')
                   && (value e == value e')
-                  && (((stop $ part e) == (start $ part e'))
+                  && ((stop (part e) == start (part e'))
                       ||
-                      ((stop $ part e') == (start $ part e))
+                      (stop (part e') == start (part e))
                      )
 
 -- | Get the onset of an event's 'whole'
@@ -196,7 +196,7 @@ eventValue :: Event a -> a
 eventValue = value
 
 eventHasOnset :: Event a -> Bool
-eventHasOnset e = (start $ whole e) == (start $ part e)
+eventHasOnset e = start (whole e) == start (part e)
 
 toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
 toEvent (((ws, we), (ps, pe)), v) = Event (Arc ws we) (Arc ps pe) v
@@ -253,7 +253,7 @@ instance Applicative Pattern where
             where
               match (Event fWhole fPart f) =
                 map
-                (\e -> Event fWhole fPart (f (value e)))
+                (Event fWhole fPart . f . value)
                 (query px $ st {arc = pure (start fPart)})
 
   (<*>) pf@(Pattern Analog _) px@(Pattern Digital _) = Pattern Digital q
@@ -269,7 +269,7 @@ instance Applicative Pattern where
             where
               match ef =
                 map
-                (\ex -> Event (arc st) (arc st) (value ef (value ex)))
+                (Event (arc st) (arc st) . value ef . value)
                 (query px st)
 
 -- | Like <*>, but the structure only comes from the left
@@ -279,7 +279,7 @@ instance Applicative Pattern where
          where
             match (Event fWhole fPart f) =
               map
-              (\e -> Event fWhole fPart (f (value e))) $
+              (Event fWhole fPart . f . value) $
               query px $ st {arc = xQuery fWhole}
             xQuery (Arc s _) = pure s -- for discrete events, match with the onset
 
@@ -288,7 +288,7 @@ instance Applicative Pattern where
           where
             match (Event fWhole fPart f) =
               map
-              (\e -> Event fWhole fPart (f (value e))) $
+              (Event fWhole fPart . f . value) $
               query px st -- for continuous events, use the original query
 
 -- | Like <*>, but the structure only comes from the right
@@ -406,7 +406,7 @@ instance TolerantEq (Event ControlMap) where
   (Event w p x) ~== (Event w' p' x') = w == w' && p == p' && x ~== x'
 
 instance TolerantEq a => TolerantEq [a] where
-  as ~== bs = (length as == length bs) && (and $ map (\(a,b) -> a ~== b) $ zip as bs)
+  as ~== bs = (length as == length bs) && and (map (\(a,b) -> a ~== b) $ zip as bs)
 
 instance Eq (Pattern a) where
   (==) = noOv "(==)"
@@ -506,7 +506,7 @@ showPattern :: Show a => Arc -> Pattern a -> String
 showPattern a p = intercalate "\n" $ map show $ queryArc p a
 
 instance (Show a) => Show (Pattern a) where
-  show p = showPattern (Arc 0 1) p
+  show = showPattern (Arc 0 1)
 
 instance Show Value where
   show (VS s) = ('"':s) ++ "\""
@@ -659,7 +659,7 @@ compressArc (Arc s e) p | s > e = empty
                         | otherwise = s `rotR` _fastGap (1/(e-s)) p
 
 compressArcTo :: Arc -> Pattern a -> Pattern a
-compressArcTo (Arc s e) p = compressArc (Arc (cyclePos s) (e - sam s)) p
+compressArcTo (Arc s e) = compressArc (Arc (cyclePos s) (e - sam s))
 
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = empty
@@ -671,7 +671,7 @@ _fastGap r p = splitQueries $
         -- zero width queries of the next sam should return zero in this case..
         f st@(State a _) | start a' == nextSam (start a) = []
                          | otherwise = query p st {arc = a'}
-          where mungeQuery t = sam t + (min 1 $ r' * cyclePos t)
+          where mungeQuery t = sam t + min 1 (r' * cyclePos t)
                 a' = (\(Arc s e) -> Arc (mungeQuery s) (mungeQuery e)) a
 
 -- | Shifts a pattern back in time by the given amount, expressed in cycles
