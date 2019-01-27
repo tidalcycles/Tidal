@@ -1048,7 +1048,7 @@ lindenmayerI n r s = fmap fromIntegral $ fmap digitToInt $ lindenmayer n r s
 -- support for fit'
 unwrap' :: Pattern (Pattern a) -> Pattern a
 unwrap' pp = pp {query = \st -> query (stack $ map scalep (query pp st)) st}
-  where scalep ev = compressArc (whole ev) $ value ev
+  where scalep ev = compressArcTo (whole ev) $ value ev
 
 {-|
 Removes events from second pattern that don't start during an event from first.
