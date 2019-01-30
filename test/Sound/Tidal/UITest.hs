@@ -187,21 +187,25 @@ run =
             (euclid 1 4 "x", "x ~ ~ ~"),
             (euclid 4 12 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~"),
             (euclid 2 5 "x", "x ~ x ~ ~"),
-            -- (euclid 3 4 "x", "x ~ x x"),
+            -- (euclid 3 4 "x", "x ~ x x"), -- Toussaint is wrong..
+            (euclid 3 4 "x", "x x x ~"), -- correction
             (euclid 3 5 "x", "x ~ x ~ x"),
             (euclid 3 7 "x", "x ~ x ~ x ~ ~"),
             (euclid 3 8 "x", "x ~ ~ x ~ ~ x ~"),
             (euclid 4 7 "x", "x ~ x ~ x ~ x"),
             (euclid 4 9 "x", "x ~ x ~ x ~ x ~ ~"),
             (euclid 4 11 "x", "x ~ ~ x ~ ~ x ~ ~ x ~"),
-            -- (euclid 5 6 "x", "x ~ x x x x"),
+            -- (euclid 5 6 "x", "x ~ x x x x"), -- Toussaint is wrong..
+            (euclid 5 6 "x", "x x x x x ~"),  -- correction
             (euclid 5 7 "x", "x ~ x x ~ x x"),
             (euclid 5 8 "x", "x ~ x x ~ x x ~"),
             (euclid 5 9 "x", "x ~ x ~ x ~ x ~ x"),
             (euclid 5 11 "x", "x ~ x ~ x ~ x ~ x ~ ~"),
             (euclid 5 12 "x", "x ~ ~ x ~ x ~ ~ x ~ x ~"),
-            -- (euclid 5 16 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~ x ~ ~ ~ ~"),
-            -- (euclid 7 8 "x", "x ~ x x x x x x"),
+            -- (euclid 5 16 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~ x ~ ~ ~ ~"),  -- Toussaint is wrong..
+            (euclid 5 16 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~ x ~ ~ ~"), -- correction
+            -- (euclid 7 8 "x", "x ~ x x x x x x"), -- Toussaint is wrong..
+            (euclid 7 8 "x", "x x x x x x x ~"), -- Correction
             (euclid 7 12 "x", "x ~ x x ~ x ~ x x ~ x ~"),
             (euclid 7 16 "x", "x ~ ~ x ~ x ~ x ~ ~ x ~ x ~ x ~"),
             (euclid 9 16 "x", "x ~ x x ~ x ~ x ~ x x ~ x ~ x ~"),
