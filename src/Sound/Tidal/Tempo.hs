@@ -40,17 +40,18 @@ data State = State {ticks   :: Int,
 changeTempo :: MVar Tempo -> (O.Time -> Tempo -> Tempo) -> IO Tempo
 changeTempo tempoMV f = do t <- O.time
                            tempo <- takeMVar tempoMV
-                           let tempo' = f t $ tempo {atTime = t}
+                           let tempo' = f t $ tempo
                            sendTempo tempo'
                            putMVar tempoMV tempo'
                            return tempo'
 
 
 resetCycles :: MVar Tempo -> IO Tempo
-resetCycles tempoMV = changeTempo tempoMV (\_ tempo -> tempo {atCycle = 0})
+resetCycles tempoMV = changeTempo tempoMV (\t tempo -> tempo {atTime = t, atCycle = 0})
 
 setCps :: MVar Tempo -> O.Time -> IO Tempo
-setCps tempoMV newCps = changeTempo tempoMV (\t tempo -> tempo {atCycle = timeToCycles tempo t,
+setCps tempoMV newCps = changeTempo tempoMV (\t tempo -> tempo {atTime = t,
+                                                                atCycle = timeToCycles tempo t,
                                                                 cps = newCps
                                                                })
 
