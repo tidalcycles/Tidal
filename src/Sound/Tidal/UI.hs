@@ -15,6 +15,7 @@ import           Data.List (sort, sortBy, sortOn, findIndices, elemIndex, groupB
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
+import           Data.Bool (bool)
 
 import           Sound.Tidal.Bjorklund (bjorklund)
 import           Sound.Tidal.Core
@@ -674,7 +675,10 @@ euclid :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclid = tParam2 _euclid
 
 _euclid :: Int -> Int -> Pattern a -> Pattern a
-_euclid n k p = flip const <$> filterValues (== True) (fastFromList $ bjorklund (n,k)) <*> p
+_euclid n k a = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
+
+-- _euclid :: Int -> Int -> Pattern a -> Pattern a
+-- _euclid n k p = flip const <$> filterValues (== True) (fastFromList $ bjorklund (n,k)) <*> p
 
 {- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
 euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
@@ -684,10 +688,13 @@ euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
 _euclidBool :: Int -> Int -> Pattern Bool
 _euclidBool n k = fastFromList $ bjorklund (n,k)
 
-_euclidFull :: Int -> Int -> Pattern a -> Pattern a -> Pattern a
-_euclidFull n k p p' = pickbool <$> _euclidBool n k <*> p <*> p'
-  where pickbool True a _ = a
-        pickbool False _ b = b
+{-_euclidFull :: Int -> Int -> Pattern a -> Pattern a -> Pattern a
+  _euclidFull n k p p' = pickbool <$> _euclidBool n k <*> p <*> p'
+    where pickbool True a _ = a
+          pickbool False _ b = b
+-}
+
+
 
 -- euclid' :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 -- euclid' = tParam2 _euclidq'
@@ -737,7 +744,8 @@ euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclidInv = tParam2 _euclidInv
 
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
-_euclidInv n k p = flip const <$> filterValues (== False) (fastFromList $ bjorklund (n,k)) <*> p
+--_euclidInv n k p = flip const <$> filterValues (== False) (fastFromList $ bjorklund (n,k)) <*> p
+_euclidInv n k a = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
@@ -1306,7 +1314,6 @@ arpeggiate p = withEvents munge p
 -- | Shorthand alias for arpeggiate
 arpg :: Pattern a -> Pattern a
 arpg = arpeggiate
-
 
 arpWith :: ([EventF (ArcF Time) a] -> [EventF (ArcF Time) b]) -> Pattern a -> Pattern b
 arpWith f p = withEvents munge p
