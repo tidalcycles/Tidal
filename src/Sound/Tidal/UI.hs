@@ -4,7 +4,6 @@ module Sound.Tidal.UI where
 
 import           Prelude hiding ((<*), (*>))
 
-import           Data.Ord (comparing)
 import           Data.Char (digitToInt, isDigit)
 -- import           System.Random (randoms, mkStdGen)
 import           System.Random.MWC
@@ -13,7 +12,7 @@ import qualified Data.Vector as V
 import           Data.Word (Word32)
 import           Data.Ratio ((%),numerator,denominator)
 import           Data.List (sort, sortBy, sortOn, findIndices, elemIndex, groupBy, transpose)
-import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe, catMaybes)
+import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
 
@@ -28,21 +27,19 @@ import           Sound.Tidal.Utils
 
 -- | Randomisation
 
-timeToRand :: RealFrac a => a -> Double
-timeToRand x = runST $ do
+timeToSeed x = do
   let x' = toRational (x*x) / 1000000
   let n' = fromIntegral $ numerator x'
   let d' = fromIntegral $ denominator x'
-  seed <- initialize (V.fromList [n',d'] :: V.Vector Word32)
-  uniform seed
+  initialize (V.fromList [n',d'] :: V.Vector Word32)
+
+timeToRand :: RealFrac a => a -> Double
+timeToRand x = runST $ do seed <- timeToSeed x
+                          uniform seed
 
 timeToRands :: RealFrac a => a -> Int -> [Double]
-timeToRands x n = V.toList $ runST $ do
-  let x' = toRational (x*x) / 1000000
-  let n' = fromIntegral $ numerator x'
-  let d' = fromIntegral $ denominator x'
-  seed <- initialize (V.fromList [n',d'] :: V.Vector Word32)
-  uniformVector seed n
+timeToRands x n = V.toList $ runST $ do seed <- timeToSeed x
+                                        uniformVector seed n
 
 {-|
 
@@ -1210,6 +1207,15 @@ cycleChoose xs = Pattern {nature = Digital, query = q}
         dlen = fromIntegral $ length xs
         ctrand s = (timeToRand :: Time -> Double) $ fromIntegral $ (floor :: Time -> Int) $ sam s
 
+
+{- | Internal function used by shuffle and scramble -}
+_rearrangeWith :: Pattern Int -> Int -> Pattern a -> Pattern a
+_rearrangeWith ipat n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> ipat
+  where
+    pats = map (\i -> zoom (fromIntegral i / nT, fromIntegral (i+1) / nT) pat) [0 .. (n-1)]
+    nT :: Time
+    nT = fromIntegral n
+
 {- | `shuffle n p` evenly divides one cycle of the pattern `p` into `n` parts,
 and returns a random permutation of the parts each cycle.  For example,
 `shuffle 3 "a b c"` could return `"a b c"`, `"a c b"`, `"b a c"`, `"b c a"`,
@@ -1220,11 +1226,7 @@ shuffle :: Pattern Int -> Pattern a -> Pattern a
 shuffle = tParam _shuffle
 
 _shuffle :: Int -> Pattern a -> Pattern a
-_shuffle n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> randrun n
-  where
-    pats = map (\i -> zoom (fromIntegral i / nT, fromIntegral (i+1) / nT) pat) [0 .. (n-1)]
-    nT :: Time
-    nT = fromIntegral n
+_shuffle n = _rearrangeWith (randrun n) n
 
 {- | `scramble n p` is like `shuffle` but randomly selects from the parts
 of `p` instead of making permutations.
@@ -1235,13 +1237,7 @@ scramble :: Pattern Int -> Pattern a -> Pattern a
 scramble = tParam _scramble
 
 _scramble :: Int -> Pattern a -> Pattern a
-_scramble n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> randn
-  where
-    randn = _segment nT $ irand n
-    pats = map (\i -> zoom (fromIntegral i / nT, fromIntegral (i+1) / nT) pat) [0 .. (n-1)]
-    nT :: Time
-    nT = fromIntegral n
-
+_scramble n = _rearrangeWith (_segment (fromIntegral n) $ irand n) n
 
 randrun :: Int -> Pattern Int
 randrun 0 = silence
