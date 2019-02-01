@@ -13,6 +13,7 @@ import qualified Data.Map.Strict as Map
 import Sound.Tidal.Control
 import Sound.Tidal.Core
 import Sound.Tidal.Params
+import Sound.Tidal.ParseBP
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
 
@@ -182,6 +183,40 @@ run =
       let testPattern = ("1 2 3 4"::Pattern Int)
       it "acummulates a transform version of a pattern and appends the result - addition" $ do
         compareP (Arc 0 1)
-          (snowball (+) (slow 2) 3 (testPattern))
+          (snowball 3 (+) (slow 2) (testPattern))
           (cat [testPattern,(testPattern+(slow 2 testPattern)),((testPattern+(slow 2 testPattern))+slow 2 (testPattern+(slow 2 testPattern)))])
+
+    describe "euclid" $ do
+      it "matches examples in Toussaint's paper" $ do
+        sequence_ $ map (\(a,b) -> it b $ compareP (Arc 0 1) a (parseBP_E b))
+          ([(euclid 1 2 "x", "x ~"),
+            (euclid 1 3 "x", "x ~ ~"),
+            (euclid 1 4 "x", "x ~ ~ ~"),
+            (euclid 4 12 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~"),
+            (euclid 2 5 "x", "x ~ x ~ ~"),
+            -- (euclid 3 4 "x", "x ~ x x"), -- Toussaint is wrong..
+            (euclid 3 4 "x", "x x x ~"), -- correction
+            (euclid 3 5 "x", "x ~ x ~ x"),
+            (euclid 3 7 "x", "x ~ x ~ x ~ ~"),
+            (euclid 3 8 "x", "x ~ ~ x ~ ~ x ~"),
+            (euclid 4 7 "x", "x ~ x ~ x ~ x"),
+            (euclid 4 9 "x", "x ~ x ~ x ~ x ~ ~"),
+            (euclid 4 11 "x", "x ~ ~ x ~ ~ x ~ ~ x ~"),
+            -- (euclid 5 6 "x", "x ~ x x x x"), -- Toussaint is wrong..
+            (euclid 5 6 "x", "x x x x x ~"),  -- correction
+            (euclid 5 7 "x", "x ~ x x ~ x x"),
+            (euclid 5 8 "x", "x ~ x x ~ x x ~"),
+            (euclid 5 9 "x", "x ~ x ~ x ~ x ~ x"),
+            (euclid 5 11 "x", "x ~ x ~ x ~ x ~ x ~ ~"),
+            (euclid 5 12 "x", "x ~ ~ x ~ x ~ ~ x ~ x ~"),
+            -- (euclid 5 16 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~ x ~ ~ ~ ~"),  -- Toussaint is wrong..
+            (euclid 5 16 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~ x ~ ~ ~"), -- correction
+            -- (euclid 7 8 "x", "x ~ x x x x x x"), -- Toussaint is wrong..
+            (euclid 7 8 "x", "x x x x x x x ~"), -- Correction
+            (euclid 7 12 "x", "x ~ x x ~ x ~ x x ~ x ~"),
+            (euclid 7 16 "x", "x ~ ~ x ~ x ~ x ~ ~ x ~ x ~ x ~"),
+            (euclid 9 16 "x", "x ~ x x ~ x ~ x ~ x x ~ x ~ x ~"),
+            (euclid 11 24 "x", "x ~ ~ x ~ x ~ x ~ x ~ x ~ ~ x ~ x ~ x ~ x ~ x ~"),
+            (euclid 13 24 "x", "x ~ x x ~ x ~ x ~ x ~ x ~ x x ~ x ~ x ~ x ~ x ~")
+          ] :: [(Pattern String, String)])
 

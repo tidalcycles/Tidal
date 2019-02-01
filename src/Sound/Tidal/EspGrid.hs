@@ -36,7 +36,7 @@ tidalEspGridLink t = do
   _ <- forkIO $ forever $ do
     _ <- sendMessage socket $ Message "/esp/tempo/q" []
     response <- waitAddress socket "/esp/tempo/r"
-    changeTempo t response
+    Sound.Tidal.EspGrid.changeTempo t response
     threadDelay 200000
   return ()
 

@@ -37,29 +37,23 @@ data State = State {ticks   :: Int,
                     starting :: Bool
                    }
 
-resetCycles :: MVar Tempo -> IO Tempo
-resetCycles tempoMV = do t <- O.time
-                         tempo <- takeMVar tempoMV
-                         let tempo' = tempo {atTime = t,
-                                             atCycle = -0.5
-                                            }
-                         sendTempo tempo'
-                         putMVar tempoMV tempo'
-                         return tempo'
-
-
-setCps :: MVar Tempo -> O.Time -> IO Tempo
-setCps tempoMV newCps = do t <- O.time
+changeTempo :: MVar Tempo -> (O.Time -> Tempo -> Tempo) -> IO Tempo
+changeTempo tempoMV f = do t <- O.time
                            tempo <- takeMVar tempoMV
-                           let c = timeToCycles tempo t
-                               tempo' = tempo {atTime = t,
-                                               atCycle = c,
-                                               cps = newCps
-                                              }
+                           let tempo' = f t $ tempo
                            sendTempo tempo'
-                           -- TODO - should we set the tempo ASAP rather than waiting for (possibly failing) network round trip?
                            putMVar tempoMV tempo'
                            return tempo'
+
+
+resetCycles :: MVar Tempo -> IO Tempo
+resetCycles tempoMV = changeTempo tempoMV (\t tempo -> tempo {atTime = t, atCycle = 0})
+
+setCps :: MVar Tempo -> O.Time -> IO Tempo
+setCps tempoMV newCps = changeTempo tempoMV (\t tempo -> tempo {atTime = t,
+                                                                atCycle = timeToCycles tempo t,
+                                                                cps = newCps
+                                                               })
 
 defaultTempo :: O.Time -> O.UDP -> N.SockAddr -> Tempo
 defaultTempo t local remote = Tempo {atTime   = t,
