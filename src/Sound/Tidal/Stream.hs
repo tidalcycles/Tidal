@@ -257,20 +257,20 @@ streamSolo s k = withPatId s (show k) (\x -> x {solo = True})
 streamUnsolo :: Show a => Stream -> a -> IO ()
 streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
 
-streamOnce :: Stream -> Bool -> ControlPattern -> IO ()
-streamOnce st asap p
+streamOnceFor :: Stream -> Bool -> Time -> ControlPattern -> IO ()
+streamOnceFor st asap t p
   = do cMap <- readMVar (sInput st)
        tempo <- readMVar (sTempoMV st)
        now <- O.time
        let latency target | asap = 0
                           | otherwise = oLatency target
            fakeTempo = T.Tempo {T.cps = T.cps tempo,
-                                T.atCycle = 0,
-                                T.atTime = now,
+                                T.atCycle = cyclePos (T.atCycle tempo) - 1.0,
+                                T.atTime = T.atTime tempo,
                                 T.paused = False,
-                                T.nudged = 0
+                                T.nudged = T.nudged tempo
                                }
-           es = filter eventHasOnset $ query p (State {arc = (Arc 0 1),
+           es = filter eventHasOnset $ query p (State {arc = (Arc 0 t),
                                                        controls = cMap
                                                       }
                                                )
@@ -289,6 +289,9 @@ streamOnce st asap p
              ) (sCxs st)
        mapM_ (doCps $ sTempoMV st) cpsChanges
        return ()
+
+streamOnce :: Stream -> Bool -> ControlPattern -> IO ()
+streamOnce st asap = streamOnceFor st asap 1
 
 withPatId :: Stream -> PatId -> (PlayState -> PlayState) -> IO ()
 withPatId s k f = withPatIds s [k] f
