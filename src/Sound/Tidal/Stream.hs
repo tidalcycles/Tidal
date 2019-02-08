@@ -265,7 +265,7 @@ streamOnceFor st asap t p
        let latency target | asap = 0
                           | otherwise = oLatency target
            fakeTempo = T.Tempo {T.cps = T.cps tempo,
-                                T.atCycle = cyclePos (T.atCycle tempo) - 1.0,
+                                T.atCycle = if asap then 0 else cyclePos (T.atCycle tempo) - 1.0,
                                 T.atTime = T.atTime tempo,
                                 T.paused = False,
                                 T.nudged = T.nudged tempo
