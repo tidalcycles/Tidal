@@ -240,7 +240,7 @@ streamReplace s k pat
     (\(e :: E.SomeException) -> putStrLn $ "Error in pattern: " ++ show e
     )
   where updatePS (Just playState) = do playState {pattern = pat, history = pat:(history playState)}
-        updatePS Nothing = PlayState pat False False []
+        updatePS Nothing = PlayState pat False False [pat]
 
 streamMute :: Show a => Stream -> a -> IO ()
 streamMute s k = withPatId s (show k) (\x -> x {mute = True})
@@ -308,7 +308,7 @@ streamMuteAll s = do modifyMVar_ (sOutput s) $ return . const silence
 
 streamHush :: Stream -> IO ()
 streamHush s = do modifyMVar_ (sOutput s) $ return . const silence
-                  modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {pattern = silence})
+                  modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {pattern = silence, history = silence:history x})
 
 streamUnmuteAll :: Stream -> IO ()
 streamUnmuteAll s = do modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = False})

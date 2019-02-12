@@ -41,33 +41,27 @@ transition stream f patId !pat = do pMap <- takeMVar (sPMapMV stream)
                              let c = timeToCycles tempo now
                              return $ f c context
 
-transitionWithoutHistory :: Show a => Stream -> (Time -> [ControlPattern] -> ControlPattern) -> a -> ControlPattern -> IO ()
-transitionWithoutHistory stream f patId !pat =
+momentaryTransition :: Show a => Stream -> (Time -> [ControlPattern] -> ControlPattern) -> a -> ControlPattern -> IO ()
+momentaryTransition stream f patId !pat =
   do pMap <- takeMVar (sPMapMV stream)
-     let playState = updatePS $ Map.lookup (show patId) pMap
-     pat' <- transition' $ history playState
-     let pMap' =
-           Map.insert (show patId) (playState {pattern = pat'}) pMap
+     let playState = fromMaybePS $ Map.lookup (show patId) pMap
+     pat' <- transition' $ pat:(history playState)
+     let pMap' = Map.insert (show patId) (playState {pattern = pat'}) pMap
      putMVar (sPMapMV stream) pMap'
      calcOutput stream
-     _ <- takeMVar (sPMapMV stream)
-     putMVar (sPMapMV stream) (Map.insert (show patId) (playState {history = tail $ history playState}) pMap)
-     return ()
   where
-    updatePS (Just playState) = playState {history = pat:(history playState)}
-    updatePS Nothing = PlayState {pattern = silence,
-                                  mute = False,
-                                  solo = False,
-                                  history = pat:silence:[]
-                                 }
+    fromMaybePS (Just playState) = playState
+    fromMaybePS Nothing = PlayState {pattern = silence, mute=False, solo=False, history=silence:[]}
     transition' context = do tempo <- readMVar $ sTempoMV stream
                              now <- O.time
                              let c = timeToCycles tempo now
                              return $ f c context
 
-onceFor :: Time -> Time -> [Pattern a] -> Pattern a
-onceFor t now (pat:[]) = filterWhen (\x -> (x < nextSam now + t) && x >= nextSam now) pat
-onceFor t now (pat:pat':_) = overlay pat' $ filterWhen (\x -> (x < nextSam now + t) && x >= nextSam now) pat
+mortalOverlay :: Time -> Time -> [Pattern a] -> Pattern a
+mortalOverlay _ _ [] = silence
+mortalOverlay t now (pat:ps) = overlay (pop ps) $ filterWhen (\x -> (x < nextSam now + t) && x >= nextSam now) pat where
+  pop [] = silence
+  pop (x:xs) = x
 
 {-| Washes away the current pattern after a certain delay by applying a
     function to it over time, then switching over to the next pattern to

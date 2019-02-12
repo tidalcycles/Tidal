@@ -36,6 +36,7 @@ let clutch i = transition tidal (Sound.Tidal.Transition.clutch) i
 let clutchIn i t = transition tidal (Sound.Tidal.Transition.clutchIn t) i
 let anticipate i = transition tidal (Sound.Tidal.Transition.anticipate) i
 let anticipateIn i t = transition tidal (Sound.Tidal.Transition.anticipateIn t) i
+let onceFor i t = momentaryTransition tidal (Sound.Tidal.Transition.mortalOverlay t) i
 let d1 = p 1
 let d2 = p 2
 let d3 = p 3
