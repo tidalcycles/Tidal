@@ -59,9 +59,10 @@ momentaryTransition stream f patId !pat =
 
 mortalOverlay :: Time -> Time -> [Pattern a] -> Pattern a
 mortalOverlay _ _ [] = silence
-mortalOverlay t now (pat:ps) = overlay (pop ps) $ filterWhen (\x -> (x < nextSam now + t) && x >= nextSam now) pat where
+mortalOverlay t now (pat:ps) = overlay (pop ps) (playFor s (s+t) pat) where
   pop [] = silence
   pop (x:xs) = x
+  s = sam (now - fromIntegral (floor now `mod` floor t)) + sam t
 
 {-| Washes away the current pattern after a certain delay by applying a
     function to it over time, then switching over to the next pattern to
