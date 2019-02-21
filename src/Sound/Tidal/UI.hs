@@ -22,7 +22,7 @@ import           Sound.Tidal.Core
 import qualified Sound.Tidal.Params as P
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Utils
- 
+
 ------------------------------------------------------------------------
 -- * UI
 
@@ -113,9 +113,9 @@ perlin = perlinWith (sig fromRational)
 {- `perlin2With` is Perlin noise with a 2-dimensional input. This can be
 useful for more control over how the randomness repeats (or doesn't).
 @
-d1 
- $ s "[supersaw:-12*32]" 
- # lpf (rangex 60 5000 $ perlin2With (cosine*2) (sine*2)) 
+d1
+ $ s "[supersaw:-12*32]"
+ # lpf (rangex 60 5000 $ perlin2With (cosine*2) (sine*2))
  # lpq 0.3
 @
 will generate a smooth random cutoff pattern that repeats every cycle without
@@ -745,7 +745,7 @@ euclidInv = tParam2 _euclidInv
 
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
 --_euclidInv n k p = flip const <$> filterValues (== False) (fastFromList $ bjorklund (n,k)) <*> p
-_euclidInv n k a = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
+_euclidInv n k a = fastcat $ fmap (bool a silence) $ bjorklund (n,k)
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
@@ -1652,8 +1652,8 @@ contrastRange
      -> ControlPattern
      -> Pattern a
 contrastRange = contrastBy f
-      where f (VI s, VI e) (VI v) = v >= s && v <= e 
-            f (VF s, VF e) (VF v) = v >= s && v <= e 
+      where f (VI s, VI e) (VI v) = v >= s && v <= e
+            f (VF s, VF e) (VF v) = v >= s && v <= e
             f (VS s, VS e) (VS v) = v == s && v == e
             f _ _ = False
 
