@@ -385,6 +385,17 @@ ringdf = pF "ringdf"
 distort :: Pattern Double -> ControlPattern
 distort = pF "distort"
 
+-- Spectral freeze
+freeze :: Pattern Double -> ControlPattern
+freeze = pF "freeze"
+
+-- Spectral delay
+xsdelay :: Pattern Double -> ControlPattern
+xsdelay = pF "xsdelay"
+
+tsdelay :: Pattern Double -> ControlPattern
+tsdelay = pF "tsdelay"
+
 -- Spectral conform
 real :: Pattern Double -> ControlPattern
 real = pF "real"
