@@ -1211,12 +1211,8 @@ swing = swingBy (pure $ 1%3)
 
 {- | `cycleChoose` is like `choose` but only picks a new item from the list
 once each cycle -}
-cycleChoose::[a] -> Pattern a
-cycleChoose xs = Pattern {nature = Digital, query = q}
-  where q State {arc = Arc s e} = [Event (Arc s e) (Arc s e) (xs !! floor (dlen * ctrand s))]
-        dlen = fromIntegral $ length xs
-        ctrand s = (timeToRand :: Time -> Double) $ fromIntegral $ (floor :: Time -> Int) $ sam s
-
+cycleChoose :: [a] -> Pattern a
+cycleChoose = segment 1 . choose
 
 {- | Internal function used by shuffle and scramble -}
 _rearrangeWith :: Pattern Int -> Int -> Pattern a -> Pattern a
