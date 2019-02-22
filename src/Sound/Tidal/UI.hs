@@ -11,7 +11,7 @@ import           Control.Monad.ST
 import qualified Data.Vector as V
 import           Data.Word (Word32)
 import           Data.Ratio ((%),numerator,denominator)
-import           Data.List (sort, sortBy, sortOn, findIndices, elemIndex, groupBy, transpose)
+import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
