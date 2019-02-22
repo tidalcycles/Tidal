@@ -89,11 +89,11 @@ symbol = P.symbol tokenParser
 whiteSpace :: ParsecT String u Identity ()
 whiteSpace = P.whiteSpace tokenParser
 
-function :: String -> Parser ()
-function x = reserved x <|> try (parens (function x))
+functionParser :: String -> Parser ()
+functionParser x = reserved x <|> try (parens (functionParser x))
 
-op :: String -> Parser ()
-op x = reservedOp x <|> try (parens (op x))
+opParser :: String -> Parser ()
+opParser x = reservedOp x <|> try (parens (opParser x))
 
 double :: Parser Double
 double = choice [
@@ -113,7 +113,7 @@ nestedParens :: Parser a -> Parser a
 nestedParens p = try (parens p) <|> try (parens (nestedParens p))
 
 applied :: Parser a -> Parser a
-applied p = op "$" >> p
+applied p = opParser "$" >> p
 
 appliedOrNot :: Parser a -> Parser a
 appliedOrNot p = applied p <|> p

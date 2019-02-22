@@ -84,12 +84,8 @@ listPatternArg = try $ parensOrNot $ brackets (commaSep pattern)
 listTransformationArg :: MiniTidal a => Parser [Pattern a -> Pattern a]
 listTransformationArg = try $ parensOrNot $ brackets (commaSep transformation)
 
---  d1 $ spread ($) [density 2, rev, slow 2, striate 3, (# speed "0.8")] $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4"
---  spread  ((a -> b) -> a -> b) -> [ControlPattern -> ControlPattern] -> ControlPattern -> ControlPattern
-
-
 silence :: Parser (Pattern a)
-silence = function "silence" >> return T.silence
+silence = $(function "silence")
 
 instance MiniTidal ControlMap where
   literal = parserZero
@@ -102,48 +98,48 @@ instance MiniTidal ControlMap where
 
 controlPatternMergeOperator :: Parser (ControlPattern -> ControlPattern -> ControlPattern)
 controlPatternMergeOperator = choice [
-  $(opParser "#"),
-  $(opParser "|>"),
-  $(opParser "<|"),
-  $(opParser "|>"),
-  $(opParser "|<|"),
-  $(opParser "|+|"),
-  $(opParser "|-|"),
-  $(opParser "|*|"),
-  $(opParser "|/|")
+  $(op "#"),
+  $(op "|>"),
+  $(op "<|"),
+  $(op "|>"),
+  $(op "|<|"),
+  $(op "|+|"),
+  $(op "|-|"),
+  $(op "|*|"),
+  $(op "|/|")
   ]
 
 specificControlPatterns :: Parser ControlPattern
 specificControlPatterns = choice [
   try $ parens specificControlPatterns,
-  (function "coarse" >> return T.coarse) <*> patternArg,
-  (function "cut" >> return T.cut) <*> patternArg,
-  (function "n" >> return T.n) <*> patternArg,
-  (function "up" >> return T.up) <*> patternArg,
-  (function "speed" >> return T.speed) <*> patternArg,
-  (function "pan" >> return T.pan) <*> patternArg,
-  (function "shape" >> return T.shape) <*> patternArg,
-  (function "gain" >> return T.gain) <*> patternArg,
-  (function "accelerate" >> return T.accelerate) <*> patternArg,
-  (function "bandf" >> return T.bandf) <*> patternArg,
-  (function "bandq" >> return T.bandq) <*> patternArg,
-  (function "begin" >> return T.begin) <*> patternArg,
-  (function "crush" >> return T.crush) <*> patternArg,
-  (function "cutoff" >> return T.cutoff) <*> patternArg,
-  (function "delayfeedback" >> return T.delayfeedback) <*> patternArg,
-  (function "delaytime" >> return T.delaytime) <*> patternArg,
-  (function "delay" >> return T.delay) <*> patternArg,
-  (function "end" >> return T.end) <*> patternArg,
-  (function "hcutoff" >> return T.hcutoff) <*> patternArg,
-  (function "hresonance" >> return T.hresonance) <*> patternArg,
-  (function "resonance" >> return T.resonance) <*> patternArg,
-  (function "shape" >> return T.shape) <*> patternArg,
-  (function "loop" >> return T.loop) <*> patternArg,
-  (function "s" >> return T.s) <*> patternArg,
-  (function "sound" >> return T.sound) <*> patternArg,
-  (function "vowel" >> return T.vowel) <*> patternArg,
-  (function "unit" >> return T.unit) <*> patternArg,
-  (function "note" >> return T.note) <*> patternArg
+  $(function "coarse") <*> patternArg,
+  $(function "cut") <*> patternArg,
+  $(function "n") <*> patternArg,
+  $(function "up") <*> patternArg,
+  $(function "speed") <*> patternArg,
+  $(function "pan") <*> patternArg,
+  $(function "shape") <*> patternArg,
+  $(function "gain") <*> patternArg,
+  $(function "accelerate") <*> patternArg,
+  $(function "bandf") <*> patternArg,
+  $(function "bandq") <*> patternArg,
+  $(function "begin") <*> patternArg,
+  $(function "crush") <*> patternArg,
+  $(function "cutoff") <*> patternArg,
+  $(function "delayfeedback") <*> patternArg,
+  $(function "delaytime") <*> patternArg,
+  $(function "delay") <*> patternArg,
+  $(function "end") <*> patternArg,
+  $(function "hcutoff") <*> patternArg,
+  $(function "hresonance") <*> patternArg,
+  $(function "resonance") <*> patternArg,
+  $(function "shape") <*> patternArg,
+  $(function "loop") <*> patternArg,
+  $(function "s") <*> patternArg,
+  $(function "sound") <*> patternArg,
+  $(function "vowel") <*> patternArg,
+  $(function "unit") <*> patternArg,
+  $(function "note") <*> patternArg
   ]
 
 genericComplexPattern :: MiniTidal a => Parser (Pattern a)
@@ -155,12 +151,12 @@ genericComplexPattern = choice [
 
 p_p_noArgs :: Parser (Pattern a -> Pattern a)
 p_p_noArgs  = choice [
-  function "brak" >> return T.brak,
-  function "rev" >> return T.rev,
-  function "palindrome" >> return T.palindrome,
-  function "stretch" >> return T.stretch,
-  function "loopFirst" >> return T.loopFirst,
-  function "degrade" >> return T.degrade
+  $(function "brak"),
+  $(function "rev"),
+  $(function "palindrome"),
+  $(function "stretch"),
+  $(function "loopFirst"),
+  $(function "degrade")
   ]
 
 p_p :: (MiniTidal a, MiniTidal a) => Parser (Pattern a -> Pattern a)
@@ -189,18 +185,18 @@ lt_p_p = choice [
 
 l_p :: MiniTidal a => Parser ([a] -> Pattern a)
 l_p = choice [
-  function "listToPat" >> return T.listToPat,
-  function "choose" >> return T.choose,
-  function "cycleChoose" >> return T.cycleChoose
+  $(function "listToPat"),
+  $(function "choose"),
+  $(function "cycleChoose")
   ]
 
 lp_p :: MiniTidal a => Parser ([Pattern a] -> Pattern a)
 lp_p = choice [
-  function "stack" >> return T.stack,
-  function "fastcat" >> return T.fastcat,
-  function "slowcat" >> return T.slowcat,
-  function "cat" >> return T.cat,
-  function "randcat" >> return T.randcat
+  $(function "stack"),
+  $(function "fastcat"),
+  $(function "slowcat"),
+  $(function "cat"),
+  $(function "randcat")
   ]
 
 pInt_p :: MiniTidal a => Parser (Pattern Int -> Pattern a)
@@ -213,28 +209,28 @@ p_p_p :: MiniTidal a => Parser (Pattern a -> Pattern a -> Pattern a)
 p_p_p = choice [
   try $ parens p_p_p,
   liftA2 <$> binaryFunctions,
-  function "overlay" >> return T.overlay,
-  function "append" >> return T.append,
+  $(function "overlay"),
+  $(function "append"),
   vTime_p_p_p <*> literalArg,
   pInt_p_p_p <*> patternArg
   ]
 
 pTime_p_p = choice [
   try $ parens pTime_p_p,
-  function "fast" >> return T.fast,
-  function "fastGap" >> return T.fastGap,
-  function "density" >> return T.density,
-  function "slow" >> return T.slow,
-  function "trunc" >> return T.trunc,
-  function "fastGap" >> return T.fastGap,
-  function "densityGap" >> return T.densityGap,
-  function "sparsity" >> return T.sparsity,
-  function "trunc" >> return T.trunc,
-  function "linger" >> return T.linger,
-  function "segment" >> return T.segment,
-  function "discretise" >> return T.discretise,
-  function "timeLoop" >> return T.timeLoop,
-  function "swing" >> return T.swing,
+  $(function "fast"),
+  $(function "fastGap"),
+  $(function "density"),
+  $(function "slow"),
+  $(function "trunc"),
+  $(function "fastGap"),
+  $(function "densityGap"),
+  $(function "sparsity"),
+  $(function "trunc"),
+  $(function "linger"),
+  $(function "segment"),
+  $(function "discretise"),
+  $(function "timeLoop"),
+  $(function "swing"),
   pTime_pTime_p_p <*> patternArg
   ]
 
@@ -244,61 +240,59 @@ lTime_p_p = choice [
   ]
 
 spreads = choice [
-  function "spread" >> return T.spread,
-  function "slowspread" >> return T.slowspread,
-  function "fastspread" >> return T.fastspread
+  $(function "spread"),
+  $(function "slowspread"),
+  $(function "fastspread")
   ]
 
 pInt_p_p = choice [
   try $ parens pInt_p_p,
-  function "iter" >> return T.iter,
-  function "iter'" >> return T.iter',
-  function "ply" >> return T.ply,
-  function "substruct'" >> return T.substruct',
-  function "slowstripe" >> return T.slowstripe,
-  function "shuffle" >> return T.shuffle,
-  function "scramble" >> return T.scramble,
+  $(function "iter"),
+  $(function "iter'"),
+  $(function "ply"),
+  $(function "substruct'"),
+  $(function "slowstripe"),
+  $(function "shuffle"),
+  $(function "scramble"),
   pInt_pInt_p_p <*> patternArg
   ]
 
-pString_p_p = function "substruct" >> return T.substruct
+pString_p_p = $(function "substruct")
 
 pDouble_p_p = choice [
   try $ parens pDouble_p_p,
-  function "degradeBy" >> return T.degradeBy,
-  function "unDegradeBy" >> return T.unDegradeBy,
+  $(function "degradeBy"),
+  $(function "unDegradeBy"),
   vInt_pDouble_p_p <*> literalArg
   ]
 
 vTime_p_p = choice [
   try $ parens vTime_p_p,
-  function "rotL" >> return T.rotL,
-  function "rotR" >> return T.rotR,
+  $(function "rotL"),
+  $(function "rotR"),
   vTime_vTime_p_p <*> literalArg
   ]
 
-vInt_p_p = choice [
-  function "repeatCycles" >> return T.repeatCycles
-  ]
+vInt_p_p = $(function "repeatCycles")
 
+vTimeTime_p_p :: MiniTidal a => Parser ((Time,Time) -> Pattern a -> Pattern a)
 vTimeTime_p_p = choice [
-  function "compress" >> return T.compressArc,
-  function "zoom" >> return T.zoomArc,
-  function "compressTo" >> return T.compressArcTo
+  $(function "compress"),
+  $(function "zoom"),
+  $(function "compressTo")
   ]
 
 t_p_p = choice [
   try $ parens t_p_p,
-  function "sometimes" >> return T.sometimes,
-  function "often" >> return T.often,
-  function "rarely" >> return T.rarely,
-  function "almostNever" >> return T.almostNever,
-  function "almostAlways" >> return T.almostAlways,
-  function "never" >> return T.never,
-  function "always" >> return T.always,
-  function "superimpose" >> return T.superimpose,
-  function "someCycles" >> return T.someCycles,
-  function "somecycles" >> return T.somecycles,
+  $(function "sometimes"),
+  $(function "often"),
+  $(function "rarely"),
+  $(function "almostNever"),
+  $(function "almostAlways"),
+  $(function "never"),
+  $(function "always"),
+  $(function "superimpose"),
+  $(function "someCycles"),
   pInt_t_p_p <*> patternArg,
   pDouble_t_p_p <*> patternArg,
   lvInt_t_p_p <*> listLiteralArg,
@@ -306,9 +300,9 @@ t_p_p = choice [
   vDouble_t_p_p <*> literalArg
   ]
 
-lvTime_p_p = function "spaceOut" >> return T.spaceOut
+lvTime_p_p = $(function "spaceOut")
 
-lpInt_p_p = function "distrib" >> return T.distrib
+lpInt_p_p = $(function "distrib")
 
 lp_p_p :: MiniTidal a => Parser ([Pattern a] -> Pattern a -> Pattern a)
 lp_p_p = choice [
@@ -321,63 +315,60 @@ l_pInt_p = choice [
   vInt_l_pInt_p <*> literalArg
   ]
 
-vInt_l_pInt_p = function "fit" >> return T.fit
+vInt_l_pInt_p = $(function "fit")
 
-vTime_p_p_p = function "wedge" >> return T.wedge
+vTime_p_p_p = $(function "wedge")
 
-vInt_pDouble_p_p = function "degradeOverBy" >> return T.degradeOverBy
+vInt_pDouble_p_p = $(function "degradeOverBy")
 
 pInt_t_p_p = choice [
   try $ parens pInt_t_p_p,
-  function "every" >> return T.every,
+  $(function "every"),
   pInt_pInt_t_p_p <*> patternArg
   ]
 
-pDouble_t_p_p = function "sometimesBy" >> return T.sometimesBy
+pDouble_t_p_p = $(function "sometimesBy")
 
-lvInt_t_p_p = function "foldEvery" >> return T.foldEvery
+lvInt_t_p_p = $(function "foldEvery")
 
-vTime_vTime_p_p = function "playFor" >> return T.playFor
+vTime_vTime_p_p = $(function "playFor")
 
-vTimeTime_t_p_p = function "within" >> return T.withinArc
+vTimeTime_t_p_p = $(function "within")
 
 vInt_t_p_p = choice [
   try $ parens vInt_t_p_p,
-  function "chunk" >> return T.chunk,
+  $(function "chunk"),
   vInt_vInt_t_p_p <*> literalArg
   ]
 
-vDouble_t_p_p = choice [
-  function "someCyclesBy" >> return T.someCyclesBy,
-  function "somecyclesBy" >> return T.somecyclesBy
-  ]
+vDouble_t_p_p = $(function "someCyclesBy")
 
 pInt_pInt_p_p = choice [
   try $ parens pInt_pInt_p_p,
-  function "euclid" >> return T.euclid,
-  function "euclidInv" >> return T.euclidInv,
+  $(function "euclid"),
+  $(function "euclidInv"),
   vInt_pInt_pInt_p_p <*> literalArg
   ]
 
-pTime_pTime_p_p = function "swingBy" >> return T.swingBy
+pTime_pTime_p_p = $(function "swingBy")
 
-pInt_pInt_t_p_p = function "every'" >> return T.every'
+pInt_pInt_t_p_p = $(function "every'")
 
-vInt_vInt_t_p_p = function "whenmod" >> return T.whenmod
+vInt_vInt_t_p_p = $(function "whenmod")
 
 pInt_p_p_p = choice [
   try $ parens pInt_p_p_p,
   pInt_pInt_p_p_p <*> patternArg
   ]
 
-pInt_pInt_p_p_p = function "euclidFull" >> return T.euclidFull
+pInt_pInt_p_p_p = $(function "euclidFull")
 
 vInt_pInt_pInt_p_p = choice [
   try $ parens vInt_pInt_pInt_p_p,
   pTime_vInt_pInt_pInt_p_p <*> patternArg
   ]
 
-pTime_vInt_pInt_pInt_p_p = function "fit'" >> return T.fit'
+pTime_vInt_pInt_pInt_p_p = $(function "fit'")
 
 pControl_pControl = choice [
   try $ parens pControl_pControl,
@@ -387,11 +378,11 @@ pControl_pControl = choice [
   tControl_pControl_pControl <*> transformationArg
   ]
 
-tControl_pControl_pControl = function "jux" >> return T.jux
+tControl_pControl_pControl = $(function "jux")
 
 pInt_pControl_pControl = choice [
-  function "chop" >> return T.chop,
-  function "striate" >> return T.striate
+  $(function "chop"),
+  $(function "striate")
   ]
 
 pDouble_pControl_pControl = choice [
@@ -399,7 +390,7 @@ pDouble_pControl_pControl = choice [
   pInt_pDouble_pControl_pControl <*> patternArg
   ]
 
-pInt_pDouble_pControl_pControl = function "striate'" >> return T.striate'
+pInt_pDouble_pControl_pControl = $(function "striate'")
 
 pTime_pControl_pControl = choice [
   try $ parens pTime_pControl_pControl,
@@ -411,17 +402,17 @@ pDouble_pTime_pControl_pControl = choice [
   pInteger_pDouble_pTime_pControl_pControl <*> patternArg
   ]
 
-pInteger_pDouble_pTime_pControl_pControl = function "stut" >> return T.stut
+pInteger_pDouble_pTime_pControl_pControl = $(function "stut")
 
 simpleDoublePatterns :: Parser (Pattern Double)
 simpleDoublePatterns = choice [
-  function "rand" >> return T.rand,
-  function "sine" >> return T.sine,
-  function "saw" >> return T.saw,
-  function "isaw" >> return T.isaw,
-  function "tri" >> return T.tri,
-  function "square" >> return T.square,
-  function "cosine" >> return T.cosine
+  $(function "rand"),
+  $(function "sine"),
+  $(function "saw"),
+  $(function "isaw"),
+  $(function "tri"),
+  $(function "square"),
+  $(function "cosine")
   ]
 
 binaryNumFunctions :: Num a => Parser (a -> a -> a)
@@ -479,6 +470,17 @@ instance MiniTidal Arc where
   mergeOperator = parserZero
   binaryFunctions = parserZero
 
+instance MiniTidal (Time,Time) where
+  literal = do
+    xs <- parens (commaSep1 literal)
+    if length xs == 2 then return ((xs!!0),(xs!!1)) else unexpected "(Time,Time) must contain exactly two values"
+  simplePattern = pure <$> literal
+  transformationWithArguments = p_p_noArgs
+  transformationWithoutArguments = p_p
+  complexPattern = atom <*> literal
+  mergeOperator = parserZero
+  binaryFunctions = parserZero
+
 instance MiniTidal String where
   literal = stringLiteral
   simplePattern = parseBP'
@@ -489,38 +491,35 @@ instance MiniTidal String where
   binaryFunctions = parserZero
 
 fractionalMergeOperator :: Fractional a => Parser (Pattern a -> Pattern a -> Pattern a)
-fractionalMergeOperator = op "/" >> return (/)
+fractionalMergeOperator = opParser "/" >> return (/)
 
 numMergeOperator :: Num a => Parser (Pattern a -> Pattern a -> Pattern a)
 numMergeOperator = choice [
-  op "+" >> return (+),
-  op "-" >> return (-),
-  op "*" >> return (*)
+  opParser "+" >> return (+),
+  opParser "-" >> return (-),
+  opParser "*" >> return (*)
   ]
 
 enumComplexPatterns :: (Enum a, Num a, MiniTidal a) => Parser (Pattern a)
 enumComplexPatterns = choice [
-  (function "run" >> return T.run) <*> patternArg,
-  (function "scan" >> return T.scan) <*> patternArg
+  $(function "run") <*> patternArg,
+  $(function "scan") <*> patternArg
   ]
 
 numComplexPatterns :: (Num a, MiniTidal a) => Parser (Pattern a)
 numComplexPatterns = choice [
-  (function "irand" >> return T.irand) <*> literal,
-  (function "toScale'" >> return T.toScale') <*> literalArg <*> listLiteralArg <*> patternArg,
-  (function "toScale" >> return T.toScale) <*> listLiteralArg <*> patternArg
+  $(function "irand") <*> literal,
+  $(function "toScale'") <*> literalArg <*> listLiteralArg <*> patternArg,
+  $(function "toScale") <*> listLiteralArg <*> patternArg
   ]
 
 intComplexPatterns :: Parser (Pattern Int)
 intComplexPatterns = choice [
-  (function "randStruct" >> return T.randStruct) <*> literalArg
+  $(function "randStruct") <*> literalArg
   ]
 
 atom :: Applicative m => Parser (a -> m a)
-atom = (function "pure" <|> function "atom" <|> function "return") >> return (pure)
-
-
-
+atom = (functionParser "pure" <|> functionParser "atom" <|> functionParser "return") >> return (pure)
 
 parseBP' :: (Enumerable a, Parseable a) => Parser (Pattern a)
 parseBP' = parseTPat' >>= return . T.toPat
