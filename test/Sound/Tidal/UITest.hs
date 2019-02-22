@@ -213,3 +213,13 @@ run =
             (euclid 13 24 "x", "x ~ x x ~ x ~ x ~ x ~ x ~ x x ~ x ~ x ~ x ~ x ~")
           ] :: [(Pattern String, String)])
 
+    describe "wedge" $ do
+      it "should not freeze tidal amount is 1" $ do
+        compareP (Arc 0 1)
+          (wedge (1) (s "ho ho:2 ho:3 hc") (rev $ s "ho ho:2 ho:3 hc"))
+          (s "ho ho:2 ho:3 hc")
+      it "should not freeze tidal amount is 0" $ do
+        compareP (Arc 0 1)
+          (wedge (0) (s "ho ho:2 ho:3 hc") (rev $ s "ho ho:2 ho:3 hc"))
+          (rev $ s "ho ho:2 ho:3 hc")
+

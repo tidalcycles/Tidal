@@ -504,6 +504,8 @@ ifp test f1 f2 p = splitQueries $ p {query = q}
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the
 -- remainer of each cycle.
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
+wedge 0 _ p' = p'
+wedge 1 p _ = p
 wedge t p p' = overlay (_fastGap (1/t) p) (t `rotR` _fastGap (1/(1-t)) p')
 
 {- | @whenmod@ has a similar form and behavior to `every`, but requires an
