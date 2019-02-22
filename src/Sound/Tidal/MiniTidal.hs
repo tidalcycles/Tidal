@@ -146,7 +146,8 @@ genericComplexPattern :: MiniTidal a => Parser (Pattern a)
 genericComplexPattern = choice [
   try $ parens genericComplexPattern,
   lp_p <*> listPatternArg,
-  l_p <*> listLiteralArg
+  l_p <*> listLiteralArg,
+  pInt_p <*> patternArg
   ]
 
 p_p_noArgs :: Parser (Pattern a -> Pattern a)
@@ -178,6 +179,7 @@ p_p = choice [
   lTime_p_p <*> listLiteralArg
   ]
 
+lt_p_p :: MiniTidal a => Parser ([t -> Pattern a] -> t -> Pattern a)
 lt_p_p = choice [
   try $ parens lt_p_p,
   spreads <*> (nestedParens $ reservedOp "$" >> return ($))
@@ -215,6 +217,7 @@ p_p_p = choice [
   pInt_p_p_p <*> patternArg
   ]
 
+pTime_p_p :: MiniTidal a => Parser (Pattern Time -> Pattern a -> Pattern a)
 pTime_p_p = choice [
   try $ parens pTime_p_p,
   $(function "fast"),
@@ -234,17 +237,21 @@ pTime_p_p = choice [
   pTime_pTime_p_p <*> patternArg
   ]
 
+lTime_p_p :: MiniTidal a => Parser ([Time] -> Pattern a -> Pattern a)
 lTime_p_p = choice [
   try $ parens lTime_p_p,
+  $(function "spaceOut"),
   spreads <*> parens vTime_p_p -- re: spread
   ]
 
+spreads :: MiniTidal a => Parser ((b -> t -> Pattern a) -> [b] -> t -> Pattern a)
 spreads = choice [
   $(function "spread"),
   $(function "slowspread"),
   $(function "fastspread")
   ]
 
+pInt_p_p :: MiniTidal a => Parser (Pattern Int -> Pattern a -> Pattern a)
 pInt_p_p = choice [
   try $ parens pInt_p_p,
   $(function "iter"),
@@ -257,8 +264,10 @@ pInt_p_p = choice [
   pInt_pInt_p_p <*> patternArg
   ]
 
+pString_p_p :: MiniTidal a => Parser (Pattern String -> Pattern a -> Pattern a)
 pString_p_p = $(function "substruct")
 
+pDouble_p_p :: MiniTidal a => Parser (Pattern Double -> Pattern a -> Pattern a)
 pDouble_p_p = choice [
   try $ parens pDouble_p_p,
   $(function "degradeBy"),
@@ -266,6 +275,7 @@ pDouble_p_p = choice [
   vInt_pDouble_p_p <*> literalArg
   ]
 
+vTime_p_p :: MiniTidal a => Parser (Time -> Pattern a -> Pattern a)
 vTime_p_p = choice [
   try $ parens vTime_p_p,
   $(function "rotL"),
@@ -273,6 +283,7 @@ vTime_p_p = choice [
   vTime_vTime_p_p <*> literalArg
   ]
 
+vInt_p_p :: MiniTidal a => Parser (Int -> Pattern a -> Pattern a)
 vInt_p_p = $(function "repeatCycles")
 
 vTimeTime_p_p :: MiniTidal a => Parser ((Time,Time) -> Pattern a -> Pattern a)
@@ -282,6 +293,7 @@ vTimeTime_p_p = choice [
   $(function "compressTo")
   ]
 
+t_p_p :: MiniTidal a => Parser ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)
 t_p_p = choice [
   try $ parens t_p_p,
   $(function "sometimes"),
@@ -297,11 +309,11 @@ t_p_p = choice [
   pDouble_t_p_p <*> patternArg,
   lvInt_t_p_p <*> listLiteralArg,
   vInt_t_p_p <*> literalArg,
-  vDouble_t_p_p <*> literalArg
+  vDouble_t_p_p <*> literalArg,
+  vTimeTime_t_p_p <*> literalArg
   ]
 
-lvTime_p_p = $(function "spaceOut")
-
+lpInt_p_p :: MiniTidal a => Parser ([Pattern Int] -> Pattern a -> Pattern a)
 lpInt_p_p = $(function "distrib")
 
 lp_p_p :: MiniTidal a => Parser ([Pattern a] -> Pattern a -> Pattern a)
@@ -310,39 +322,51 @@ lp_p_p = choice [
   try $ spreads <*> parens p_p_p
   ]
 
+l_pInt_p :: MiniTidal a => Parser ([a] -> Pattern Int -> Pattern a)
 l_pInt_p = choice [
   try $ parens l_pInt_p,
   vInt_l_pInt_p <*> literalArg
   ]
 
+vInt_l_pInt_p :: MiniTidal a => Parser (Int -> [a] -> Pattern Int -> Pattern a)
 vInt_l_pInt_p = $(function "fit")
 
+vTime_p_p_p :: MiniTidal a => Parser (Time -> Pattern a -> Pattern a -> Pattern a)
 vTime_p_p_p = $(function "wedge")
 
+vInt_pDouble_p_p :: MiniTidal a => Parser (Int -> Pattern Double -> Pattern a -> Pattern a)
 vInt_pDouble_p_p = $(function "degradeOverBy")
 
+pInt_t_p_p :: MiniTidal a => Parser (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
 pInt_t_p_p = choice [
   try $ parens pInt_t_p_p,
   $(function "every"),
   pInt_pInt_t_p_p <*> patternArg
   ]
 
+pDouble_t_p_p :: MiniTidal a => Parser (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
 pDouble_t_p_p = $(function "sometimesBy")
 
+lvInt_t_p_p :: MiniTidal a => Parser ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
 lvInt_t_p_p = $(function "foldEvery")
 
+vTime_vTime_p_p :: MiniTidal a => Parser (Time -> Time -> Pattern a -> Pattern a)
 vTime_vTime_p_p = $(function "playFor")
 
+vTimeTime_t_p_p :: MiniTidal a => Parser ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
 vTimeTime_t_p_p = $(function "within")
 
+vInt_t_p_p :: MiniTidal a => Parser (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
 vInt_t_p_p = choice [
   try $ parens vInt_t_p_p,
   $(function "chunk"),
   vInt_vInt_t_p_p <*> literalArg
   ]
 
+vDouble_t_p_p :: MiniTidal a => Parser (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
 vDouble_t_p_p = $(function "someCyclesBy")
 
+pInt_pInt_p_p :: MiniTidal a => Parser (Pattern Int -> Pattern Int -> Pattern a -> Pattern a)
 pInt_pInt_p_p = choice [
   try $ parens pInt_pInt_p_p,
   $(function "euclid"),
@@ -350,26 +374,34 @@ pInt_pInt_p_p = choice [
   vInt_pInt_pInt_p_p <*> literalArg
   ]
 
+pTime_pTime_p_p :: MiniTidal a => Parser (Pattern Time -> Pattern Time -> Pattern a -> Pattern a)
 pTime_pTime_p_p = $(function "swingBy")
 
+pInt_pInt_t_p_p :: MiniTidal a => Parser (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
 pInt_pInt_t_p_p = $(function "every'")
 
+vInt_vInt_t_p_p :: MiniTidal a => Parser (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
 vInt_vInt_t_p_p = $(function "whenmod")
 
+pInt_p_p_p :: MiniTidal a => Parser (Pattern Int -> Pattern a -> Pattern a -> Pattern a)
 pInt_p_p_p = choice [
   try $ parens pInt_p_p_p,
   pInt_pInt_p_p_p <*> patternArg
   ]
 
+pInt_pInt_p_p_p :: MiniTidal a => Parser (Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a)
 pInt_pInt_p_p_p = $(function "euclidFull")
 
+vInt_pInt_pInt_p_p :: MiniTidal a => Parser (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)
 vInt_pInt_pInt_p_p = choice [
   try $ parens vInt_pInt_pInt_p_p,
   pTime_vInt_pInt_pInt_p_p <*> patternArg
   ]
 
+pTime_vInt_pInt_pInt_p_p :: MiniTidal a => Parser (Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)
 pTime_vInt_pInt_pInt_p_p = $(function "fit'")
 
+pControl_pControl :: Parser (ControlPattern -> ControlPattern)
 pControl_pControl = choice [
   try $ parens pControl_pControl,
   pInt_pControl_pControl <*> patternArg,
@@ -378,30 +410,37 @@ pControl_pControl = choice [
   tControl_pControl_pControl <*> transformationArg
   ]
 
+tControl_pControl_pControl :: Parser ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern)
 tControl_pControl_pControl = $(function "jux")
 
+pInt_pControl_pControl :: Parser (Pattern Int -> ControlPattern -> ControlPattern)
 pInt_pControl_pControl = choice [
   $(function "chop"),
   $(function "striate")
   ]
 
+pDouble_pControl_pControl :: Parser (Pattern Double -> ControlPattern -> ControlPattern)
 pDouble_pControl_pControl = choice [
   try $ parens pDouble_pControl_pControl,
   pInt_pDouble_pControl_pControl <*> patternArg
   ]
 
+pInt_pDouble_pControl_pControl :: Parser (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern)
 pInt_pDouble_pControl_pControl = $(function "striate'")
 
+pTime_pControl_pControl :: Parser (Pattern Time -> ControlPattern -> ControlPattern)
 pTime_pControl_pControl = choice [
   try $ parens pTime_pControl_pControl,
   pDouble_pTime_pControl_pControl <*> patternArg
   ]
 
+pDouble_pTime_pControl_pControl :: Parser (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)
 pDouble_pTime_pControl_pControl = choice [
   try $ parens pDouble_pTime_pControl_pControl,
   pInteger_pDouble_pTime_pControl_pControl <*> patternArg
   ]
 
+pInteger_pDouble_pTime_pControl_pControl :: Parser (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)
 pInteger_pDouble_pTime_pControl_pControl = $(function "stut")
 
 simpleDoublePatterns :: Parser (Pattern Double)
