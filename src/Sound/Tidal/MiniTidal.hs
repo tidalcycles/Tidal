@@ -6,7 +6,7 @@ import           Text.Parsec.Prim (parserZero)
 import           Text.ParserCombinators.Parsec
 import           Control.Monad (forever)
 import           Control.Applicative (liftA2)
-import           Language.Haskell.TH
+-- import           Language.Haskell.TH
 
 import           Sound.Tidal.Context (Pattern,ControlMap,ControlPattern,Enumerable,Parseable,Time,Arc,TPat,Stream)
 import qualified Sound.Tidal.Context as T
