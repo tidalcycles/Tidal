@@ -1,7 +1,6 @@
 module Sound.Tidal.Scales (scale, scaleList) where
 
 import Data.Maybe
-import Data.List (intercalate)
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
