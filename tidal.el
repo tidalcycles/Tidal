@@ -139,7 +139,6 @@ let d13 = p 13
 let d14 = p 14
 let d15 = p 15
 let d16 = p 16
->>>>>>> 0b38ecb7312c00e7d4eb9f6e669f57ef37808fa1
   ")
   (tidal-send-string ":set prompt \"tidal> \"")
 )
