@@ -12,7 +12,7 @@ import           Data.Bifunctor (Bifunctor(..))
 import           Data.Data (Data) -- toConstr
 import           Data.List (delete, findIndex, sort, intercalate)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (isJust, fromJust, catMaybes, fromMaybe)
+import           Data.Maybe (isJust, fromJust, catMaybes, fromMaybe, mapMaybe)
 import           Data.Ratio (numerator, denominator)
 import           Data.Typeable (Typeable)
 
@@ -379,9 +379,8 @@ squeezeJoin :: Pattern (Pattern a) -> Pattern a
 squeezeJoin pp = pp {query = q}
   where q st = concatMap
           (\(Event w p v) ->
-             catMaybes $
-             map (munge w p) $
-             query (compressArc (cycleArc w) v) st {arc = p})
+             mapMaybe (munge w p) $ query (compressArc (cycleArc w) v) st {arc = p}
+          )
           (query pp st)
         munge oWhole oPart (Event iWhole iPart v) =
           do w' <- subArc oWhole iWhole
