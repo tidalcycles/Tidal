@@ -1,41 +1,92 @@
 name:                tidal
-version:             0.7.1
+version:             1.0.7
 synopsis:            Pattern language for improvised music
 -- description:
-homepage:            http://tidal.lurk.org/
+homepage:            http://tidalcycles.org/
 license:             GPL-3
 license-file:        LICENSE
 author:              Alex McLean
 maintainer:          Alex McLean <alex@slab.org>, Mike Hodnick <mike.hodnick@gmail.com>
 Stability:           Experimental
-Copyright:           (c) Alex McLean and other contributors, 2016
+Copyright:           (c) Tidal contributors, 2019
 category:            Sound
 build-type:          Simple
-cabal-version:       >=1.4
+cabal-version:       >=1.10
+tested-with:         GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.3
 
-Extra-source-files: README.md tidal.el doc/tidal.md
+Extra-source-files: README.md CHANGELOG.md tidal.el
 
 Description: Tidal is a domain specific language for live coding pattern.
 
 library
-  Exposed-modules:     Sound.Tidal.Strategies
-                       Sound.Tidal.Dirt
-                       Sound.Tidal.Pattern
-                       Sound.Tidal.Stream
-                       Sound.Tidal.OscStream
-                       Sound.Tidal.MidiStream
-                       Sound.Tidal.MIDI.Device
-                       Sound.Tidal.MIDI.Params
-                       Sound.Tidal.MIDI.Control
-                       Sound.Tidal.Synth
-                       Sound.Tidal.SerialStream
-                       Sound.Tidal.Parse
-                       Sound.Tidal.Tempo
-                       Sound.Tidal.Time
-                       Sound.Tidal.Context
-                       Sound.Tidal.Utils
-                       Sound.Tidal.SuperCollider
-                       Sound.Tidal.Params
-                       Sound.Tidal.Transition
+  ghc-options: -Wall
+  hs-source-dirs:
+                 src
 
-  Build-depends: base < 5, process, parsec, hosc > 0.13, hashable, colour, containers, time, websockets > 0.8, text, mtl >=2.1, transformers, mersenne-random-pure64,binary, bytestring, hmt, PortMidi == 0.1.6.0, serialport >= 0.4.7
+  default-language:    Haskell2010
+
+  Exposed-modules:     Sound.Tidal.Bjorklund
+                       Sound.Tidal.Chords
+                       Sound.Tidal.Config
+                       Sound.Tidal.Control
+                       Sound.Tidal.Context
+                       Sound.Tidal.Core
+                       Sound.Tidal.MiniTidal
+                       Sound.Tidal.Params
+                       Sound.Tidal.ParseBP
+                       Sound.Tidal.Pattern
+                       Sound.Tidal.Scales
+                       Sound.Tidal.Simple
+                       Sound.Tidal.Stream
+                       Sound.Tidal.Tempo
+                       Sound.Tidal.Transition
+                       Sound.Tidal.UI
+                       Sound.Tidal.Utils
+                       Sound.Tidal.Version
+                       Sound.Tidal.EspGrid
+  other-modules: Sound.Tidal.MiniTidal.TH
+                 Sound.Tidal.MiniTidal.Token
+  Build-depends:
+      base >=4.8 && <5
+    , containers < 0.7
+    , colour < 2.4
+    , hosc < 0.18
+    , text < 1.3
+    , parsec < 3.2
+    , network < 3.1
+    , mwc-random < 0.15
+    , vector < 0.13
+    , bifunctors < 5.6
+    , transformers < 0.5.7
+    , template-haskell >= 2.10.0.0 && < 3
+
+  if !impl(ghc >= 8.4.1)
+    build-depends: semigroups == 0.18.*
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  hs-source-dirs:
+      test
+  ghc-options: -Wall
+  other-modules: Sound.Tidal.ControlTest
+                 Sound.Tidal.CoreTest
+                 Sound.Tidal.MiniTidalTest
+                 Sound.Tidal.ParseTest
+                 Sound.Tidal.PatternTest
+                 Sound.Tidal.ScalesTest
+                 Sound.Tidal.UITest
+                 Sound.Tidal.UtilsTest
+                 TestUtils
+  build-depends:
+                base ==4.*
+              , microspec >= 0.2.0.1
+              , containers
+              , parsec
+              , tidal
+
+  default-language: Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/tidalcycles/Tidal
