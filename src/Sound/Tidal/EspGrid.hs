@@ -17,16 +17,16 @@ parseEspTempo d = do
   n :: Integer <- datum_integral (d!!4)
   let nanos = (t1*1000000000) + t2
   return $ \t -> t {
-    atTime = ((realToFrac nanos)/1000000000),
+    atTime = realToFrac nanos / 1000000000,
     atCycle = fromIntegral n,
     cps = bpm/60,
     paused = on == 0
     }
 
 changeTempo :: MVar Tempo -> Packet -> IO ()
-changeTempo t (Packet_Message msg) = do
+changeTempo t (Packet_Message msg) =
     case parseEspTempo (messageDatum msg) of
-      Just f -> takeMVar t >>= (\x -> putMVar t (f x))
+      Just f -> takeMVar t >>= putMVar t . f
       Nothing -> putStrLn "Warning: Unable to parse message (likely from EspGrid) as Tempo"
 changeTempo _ _ = putStrLn "Serious error: Can only process Packet_Message"
 
@@ -36,7 +36,7 @@ tidalEspGridLink t = do
   _ <- forkIO $ forever $ do
     _ <- sendMessage socket $ Message "/esp/tempo/q" []
     response <- waitAddress socket "/esp/tempo/r"
-    changeTempo t response
+    Sound.Tidal.EspGrid.changeTempo t response
     threadDelay 200000
   return ()
 

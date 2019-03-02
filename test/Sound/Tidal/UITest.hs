@@ -13,6 +13,7 @@ import qualified Data.Map.Strict as Map
 import Sound.Tidal.Control
 import Sound.Tidal.Core
 import Sound.Tidal.Params
+import Sound.Tidal.ParseBP
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
 
@@ -177,4 +178,62 @@ run =
         compareP (Arc 0 1)
           (euclidFull 3 8 "bd" silence)
           ("bd(3,8)" :: Pattern String)
-        
+          
+    describe "soak" $ do
+      it "applies a transform and then appends the result -- addition" $ do
+        compareP (Arc 0 3)
+          (soak 3 (+ 1) "4 ~ 0 1")
+          (cat ["4 ~ 0 1"::Pattern Int,"5 ~ 1 2"::Pattern Int,"6 ~ 2 3"::Pattern Int])
+      it "applies a transform and then appends the result -- slow" $ do
+        compareP (Arc 0 7)
+          (soak 3 (slow 2) "4 ~ 0 1")
+          (cat ["4 ~ 0 1"::Pattern Int, slow 2 "4 ~ 0 1"::Pattern Int, slow 4 "4 ~  0 1"::Pattern Int])
+      it "applies a transform and then appends the result -- addition patterns" $ do
+        compareP (Arc 0 3)
+          (soak 3 (+ "1 2 3") "1 1")
+          (cat ["1 1"::Pattern Int,"2 [3 3] 4"::Pattern Int,"3 [5 5] 7"::Pattern Int])
+
+    describe "euclid" $ do
+      it "matches examples in Toussaint's paper" $ do
+        sequence_ $ map (\(a,b) -> it b $ compareP (Arc 0 1) a (parseBP_E b))
+          ([(euclid 1 2 "x", "x ~"),
+            (euclid 1 3 "x", "x ~ ~"),
+            (euclid 1 4 "x", "x ~ ~ ~"),
+            (euclid 4 12 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~"),
+            (euclid 2 5 "x", "x ~ x ~ ~"),
+            -- (euclid 3 4 "x", "x ~ x x"), -- Toussaint is wrong..
+            (euclid 3 4 "x", "x x x ~"), -- correction
+            (euclid 3 5 "x", "x ~ x ~ x"),
+            (euclid 3 7 "x", "x ~ x ~ x ~ ~"),
+            (euclid 3 8 "x", "x ~ ~ x ~ ~ x ~"),
+            (euclid 4 7 "x", "x ~ x ~ x ~ x"),
+            (euclid 4 9 "x", "x ~ x ~ x ~ x ~ ~"),
+            (euclid 4 11 "x", "x ~ ~ x ~ ~ x ~ ~ x ~"),
+            -- (euclid 5 6 "x", "x ~ x x x x"), -- Toussaint is wrong..
+            (euclid 5 6 "x", "x x x x x ~"),  -- correction
+            (euclid 5 7 "x", "x ~ x x ~ x x"),
+            (euclid 5 8 "x", "x ~ x x ~ x x ~"),
+            (euclid 5 9 "x", "x ~ x ~ x ~ x ~ x"),
+            (euclid 5 11 "x", "x ~ x ~ x ~ x ~ x ~ ~"),
+            (euclid 5 12 "x", "x ~ ~ x ~ x ~ ~ x ~ x ~"),
+            -- (euclid 5 16 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~ x ~ ~ ~ ~"),  -- Toussaint is wrong..
+            (euclid 5 16 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~ x ~ ~ ~"), -- correction
+            -- (euclid 7 8 "x", "x ~ x x x x x x"), -- Toussaint is wrong..
+            (euclid 7 8 "x", "x x x x x x x ~"), -- Correction
+            (euclid 7 12 "x", "x ~ x x ~ x ~ x x ~ x ~"),
+            (euclid 7 16 "x", "x ~ ~ x ~ x ~ x ~ ~ x ~ x ~ x ~"),
+            (euclid 9 16 "x", "x ~ x x ~ x ~ x ~ x x ~ x ~ x ~"),
+            (euclid 11 24 "x", "x ~ ~ x ~ x ~ x ~ x ~ x ~ ~ x ~ x ~ x ~ x ~ x ~"),
+            (euclid 13 24 "x", "x ~ x x ~ x ~ x ~ x ~ x ~ x x ~ x ~ x ~ x ~ x ~")
+          ] :: [(Pattern String, String)])
+
+    describe "wedge" $ do
+      it "should not freeze tidal amount is 1" $ do
+        compareP (Arc 0 1)
+          (wedge (1) (s "ho ho:2 ho:3 hc") (rev $ s "ho ho:2 ho:3 hc"))
+          (s "ho ho:2 ho:3 hc")
+      it "should not freeze tidal amount is 0" $ do
+        compareP (Arc 0 1)
+          (wedge (0) (s "ho ho:2 ho:3 hc") (rev $ s "ho ho:2 ho:3 hc"))
+          (rev $ s "ho ho:2 ho:3 hc")
+

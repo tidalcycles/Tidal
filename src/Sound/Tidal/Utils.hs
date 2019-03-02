@@ -6,7 +6,7 @@ mapBoth :: (a -> a) -> (a,a) -> (a,a)
 mapBoth f (a,b) = (f a, f b)
 
 mapPartTimes :: (a -> a) -> ((a,a),(a,a)) -> ((a,a),(a,a))
-mapPartTimes f part = mapBoth (mapBoth f) part
+mapPartTimes f = mapBoth (mapBoth f)
 
 mapFst :: (a -> b) -> (a, c) -> (b, c)
 mapFst f (x,y) = (f x,y)
@@ -24,7 +24,7 @@ mid (a,b) = a + ((b - a) / 2)
 removeCommon :: Eq a => [a] -> [a] -> ([a],[a])
 removeCommon [] bs = ([],bs)
 removeCommon as [] = (as,[])
-removeCommon (a:as) bs | elem a bs = removeCommon as (delete a bs)
+removeCommon (a:as) bs | a `elem` bs = removeCommon as (delete a bs)
                        | otherwise = (a:as',bs')
                       where (as',bs') = removeCommon as bs
 
@@ -51,7 +51,7 @@ nth n (_ : xs) = nth (n - 1) xs
 accumulate :: Num t => [t] -> [t]
 accumulate = accumulate' 0
   where accumulate' _ [] = []
-        accumulate' n (a:xs) = (n+a):(accumulate' (n+a) xs)
+        accumulate' n (a:xs) = (n+a) : accumulate' (n+a) xs
 
 {- | enumerate a list of things
 

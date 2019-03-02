@@ -385,6 +385,55 @@ ringdf = pF "ringdf"
 distort :: Pattern Double -> ControlPattern
 distort = pF "distort"
 
+-- Spectral freeze
+freeze :: Pattern Double -> ControlPattern
+freeze = pF "freeze"
+
+-- Spectral delay
+xsdelay :: Pattern Double -> ControlPattern
+xsdelay = pF "xsdelay"
+
+tsdelay :: Pattern Double -> ControlPattern
+tsdelay = pF "tsdelay"
+
+-- Spectral conform
+real :: Pattern Double -> ControlPattern
+real = pF "real"
+
+imag :: Pattern Double -> ControlPattern
+imag = pF "imag"
+
+-- Spectral enhance
+enhance :: Pattern Double -> ControlPattern
+enhance = pF "enhance"
+
+partials :: Pattern Double -> ControlPattern
+partials = pF "partials"
+
+-- Spectral comb
+comb :: Pattern Double -> ControlPattern
+comb = pF "comb"
+
+-- Spectral smear
+smear :: Pattern Double -> ControlPattern
+smear = pF "smear"
+
+-- Spectral scramble
+scram :: Pattern Double -> ControlPattern
+scram = pF "scram"
+
+-- Spectral binshift
+binshift :: Pattern Double -> ControlPattern
+binshift = pF "binshift"
+
+-- High pass sort of spectral filter
+hbrick :: Pattern Double -> ControlPattern
+hbrick = pF "hbrick"
+
+-- Low pass sort of spectral filter
+lbrick :: Pattern Double -> ControlPattern
+lbrick = pF "lbrick"
+
 -- aliases
 att, bpf, bpq, chdecay, ctf, ctfg, delayfb, delayt, det, gat, hg, hpf, hpq, lag, lbd, lch, lcl, lcp, lcr, lfoc, lfoi
    , lfop, lht, llt, loh, lpf, lpq, lsn, ohdecay, phasdp, phasr, pit1, pit2, pit3, por, rel, sz, sag, scl, scp
@@ -443,10 +492,10 @@ vco = vcoegint
 voi = voice
 
 midinote :: Pattern Double -> ControlPattern
-midinote = note . ((subtract 60) <$>)
+midinote = note . (subtract 60 <$>)
 
 drum :: Pattern String -> ControlPattern
-drum = n . ((subtract 60) . drumN <$>)
+drum = n . (subtract 60 . drumN <$>)
 
 drumN :: Num a => String -> a
 drumN "bd" = 36
