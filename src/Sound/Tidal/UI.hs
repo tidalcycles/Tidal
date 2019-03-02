@@ -1045,11 +1045,6 @@ rationals are required) -}
 lindenmayerI :: Num b => Int -> String -> String -> [b]
 lindenmayerI n r s = fmap fromIntegral $ fmap digitToInt $ lindenmayer n r s
 
--- support for fit'
-unwrap' :: Pattern (Pattern a) -> Pattern a
-unwrap' pp = pp {query = \st -> query (stack $ map scalep (query pp st)) st}
-  where scalep ev = compressArcTo (whole ev) $ value ev
-
 {-|
 Removes events from second pattern that don't start during an event from first.
 
@@ -1121,7 +1116,7 @@ which uses `chop` to break a single sample into individual pieces, which `fit'` 
 
 -}
 fit' :: Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-fit' cyc n from to p = unwrap' $ fit n mapMasks to
+fit' cyc n from to p = squeezeJoin $ fit n mapMasks to
   where mapMasks = [stretch $ mask (const True <$> filterValues (== i) from') p'
                      | i <- [0..n-1]]
         p' = density cyc $ p
@@ -1266,7 +1261,7 @@ ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> (timedValues $ (getPat . spli
         timedValues = withEvent (\(Event a a' v) -> Event a a' (a,v))
 
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
-inhabit ps p = unwrap' $ (\s -> fromMaybe silence $ lookup s ps) <$> p
+inhabit ps p = squeezeJoin $ (\s -> fromMaybe silence $ lookup s ps) <$> p
 
 {- | @spaceOut xs p@ repeats a pattern @p@ at different durations given by the list of time values in @xs@ -}
 spaceOut :: [Time] -> Pattern a -> Pattern a
