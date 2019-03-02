@@ -52,7 +52,7 @@ from :: Pattern Double -> ControlPattern
 from = pF "from"
 
 to :: Pattern Double -> ControlPattern
-to = pF "from"
+to = pF "to"
 
 
 -- | a pattern of numbers that speed up (or slow down) samples while they play.
