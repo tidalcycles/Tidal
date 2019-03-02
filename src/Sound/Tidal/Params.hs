@@ -54,8 +54,6 @@ from = pF "from"
 to :: Pattern Double -> ControlPattern
 to = pF "to"
 
-to :: Pattern Int -> ControlPattern
-to = pI "psst"
 
 -- | a pattern of numbers that speed up (or slow down) samples while they play.
 accelerate :: Pattern Double -> ControlPattern
