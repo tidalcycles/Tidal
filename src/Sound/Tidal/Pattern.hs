@@ -369,17 +369,18 @@ outerJoin pp = pp {query = q}
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
 -- timespan of the outer whole (or the original query if it's a continuous pattern?)
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
-unwrapSqueeze :: Pattern (Pattern a) -> Pattern a
-unwrapSqueeze pp = pp {query = q}
+squeezeJoin :: Pattern (Pattern a) -> Pattern a
+squeezeJoin pp = pp {query = q}
   where q st = concatMap
           (\(Event w p v) ->
-             mapMaybe (munge w p) $ query (compressArc w v) st {arc = p}
+             mapMaybe (munge w p) $ query (compressArc (cycleArc w) v) st {arc = p}
           )
           (query pp st)
         munge oWhole oPart (Event iWhole iPart v) =
           do w' <- subArc oWhole iWhole
              p' <- subArc oPart iPart
              return (Event w' p' v)
+        cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e-s))
 
 noOv :: String -> a
 noOv meth = error $ meth ++ ": not supported for patterns"
@@ -707,7 +708,7 @@ tParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b ->
 tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
-tParamSqueeze f tv p = unwrapSqueeze $ (`f` p) <$> tv
+tParamSqueeze f tv p = squeezeJoin $ (`f` p) <$> tv
 
 -- | Mark values in the first pattern which match with at least one
 -- value in the second pattern.
