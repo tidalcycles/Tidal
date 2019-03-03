@@ -44,6 +44,16 @@ pI name = fmap (Map.singleton name . VI)
 pS :: String -> Pattern String -> ControlPattern
 pS name = fmap (Map.singleton name . VS)
 
+-- | patterns for internal sound routing
+toArg :: Pattern String -> ControlPattern
+toArg = pS "toArg"
+
+from :: Pattern Double -> ControlPattern
+from = pF "from"
+
+to :: Pattern Double -> ControlPattern
+to = pF "to"
+
 -- | a pattern of numbers that speed up (or slow down) samples while they play.
 accelerate :: Pattern Double -> ControlPattern
 accelerate       = pF "accelerate"
