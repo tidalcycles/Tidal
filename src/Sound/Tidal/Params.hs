@@ -46,14 +46,13 @@ pS name = fmap (Map.singleton name . VS)
 
 -- | patterns for internal sound routing
 toArg :: Pattern String -> ControlPattern
-toArg name = mS "toArg"
+toArg name = pS "toArg"
 
 from :: Pattern Double -> ControlPattern
 from = pF "from"
 
 to :: Pattern Double -> ControlPattern
 to = pF "to"
-
 
 -- | a pattern of numbers that speed up (or slow down) samples while they play.
 accelerate :: Pattern Double -> ControlPattern
