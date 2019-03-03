@@ -46,7 +46,7 @@ pS name = fmap (Map.singleton name . VS)
 
 -- | patterns for internal sound routing
 toArg :: Pattern String -> ControlPattern
-toArg name = pS "toArg"
+toArg = pS "toArg"
 
 from :: Pattern Double -> ControlPattern
 from = pF "from"
