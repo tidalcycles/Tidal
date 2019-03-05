@@ -114,7 +114,7 @@ jumpIn' n now = wash id id ((nextSam now) - now + (fromIntegral n)) 0 0 now
 
 -- | Sharp `jump` transition at next cycle boundary where cycle mod n == 0
 jumpMod :: Int -> Time -> [ControlPattern] -> ControlPattern
-jumpMod n now = jumpIn ((n-1) - ((floor now) `mod` n)) now
+jumpMod n now = jumpIn' ((n-1) - ((floor now) `mod` n)) now
 
 -- | Degrade the new pattern over time until it ends in silence
 mortal :: Time -> Time -> Time -> [ControlPattern] -> ControlPattern
