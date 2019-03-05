@@ -1,5 +1,26 @@
 # TidalCycles log of changes
 
+
+## 1.0.8 (trying to get back to doing these, 
+## see also https://tidalcycles.org/index.php/Changes_in_Tidal_1.0.x 
+## for earlier stuff)
+
+* Add 'to', 'toArg' and 'from' controls for new superdirt routing experiments - @telephon
+* Fixes for squeezeJoin (nee unwrap') - @bgold-cosmos
+* Simplify `cycleChoose`, it is now properly discrete (one event per cycle) - @yaxu
+* The return of `<>`, `infix alias for overlay` - @yaxu
+* Fix for `wedge` to allow 0 and 1 as first parameter  - @XiNNiW
+* Support for new spectral fx - @madskjeldgaard
+* Fix for _euclidInv - @dktr0
+* `chordList` for listing chords - @XiNNiW
+* new function `soak` - @XiNNiW
+* tempo fixes - @bgold-cosmos
+* miniTidal developments - @dktr0
+* potentially more efficient euclidean patternings - @dktr0
+* unit tests for euclid - @yaxu
+* fix for `sometimesBy` - @yaxu
+
+
 ## 0.9.10 (and earlier missing versions from this log)
 
 * arpg, a function to arpeggiate
