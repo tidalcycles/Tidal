@@ -20,38 +20,24 @@ import Sound.Tidal.UI (fadeOutFrom, fadeInFrom)
 import Sound.Tidal.Utils (enumerate)
 
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
-transition :: Show a => Stream -> (Time -> [ControlPattern] -> ControlPattern) -> a -> ControlPattern -> IO ()
-transition stream f patId !pat = do pMap <- takeMVar (sPMapMV stream)
-                                    let playState = updatePS $ Map.lookup (show patId) pMap
-                                    pat' <- transition' $ history playState
-                                    let pMap' =
-                                          Map.insert (show patId) (playState {pattern = pat'}) pMap
-                                    putMVar (sPMapMV stream) pMap'
-                                    calcOutput stream
-                                    return ()
-  where
-    updatePS (Just playState) = playState {history = pat:(history playState)}
-    updatePS Nothing = PlayState {pattern = silence,
-                                  mute = False,
-                                  solo = False,
-                                  history = pat:silence:[]
-                                 }
-    transition' context = do tempo <- readMVar $ sTempoMV stream
-                             now <- O.time
-                             let c = timeToCycles tempo now
-                             return $ f c context
-
-momentaryTransition :: Show a => Stream -> (Time -> [ControlPattern] -> ControlPattern) -> a -> ControlPattern -> IO ()
-momentaryTransition stream f patId !pat =
+-- the "historyFlag" determines if the new pattern should be placed on the history stack or not
+transition :: Show a => Stream -> Bool -> (Time -> [ControlPattern] -> ControlPattern) -> a -> ControlPattern -> IO ()
+transition stream historyFlag f patId !pat =
   do pMap <- takeMVar (sPMapMV stream)
-     let playState = fromMaybePS $ Map.lookup (show patId) pMap
-     pat' <- transition' $ pat:(history playState)
+     let playState = updatePS $ Map.lookup (show patId) pMap
+     pat' <- transition' $ appendPat (not historyFlag) (history playState)
      let pMap' = Map.insert (show patId) (playState {pattern = pat'}) pMap
      putMVar (sPMapMV stream) pMap'
      calcOutput stream
+     return ()
   where
-    fromMaybePS (Just playState) = playState
-    fromMaybePS Nothing = PlayState {pattern = silence, mute=False, solo=False, history=silence:[]}
+    appendPat flag = if flag then (pat:) else id
+    updatePS (Just playState) = playState {history = (appendPat historyFlag) (history playState)}
+    updatePS Nothing = PlayState {pattern = silence,
+                                  mute = False,
+                                  solo = False,
+                                  history = (appendPat historyFlag) (silence:[])
+                                 }
     transition' context = do tempo <- readMVar $ sTempoMV stream
                              now <- O.time
                              let c = timeToCycles tempo now
