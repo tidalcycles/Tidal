@@ -358,6 +358,15 @@ _stutWith count steptime f p | count <= 1 = p
 stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 stut' = stutWith
 
+-- | Turns a pattern of seconds into a pattern of (rational) cycle durations
+sec :: Fractional a => Pattern a -> Pattern a
+sec p = (realToFrac <$> cF 1 "_cps") *| p
+
+-- | Turns a pattern of milliseconds into a pattern of (rational)
+-- cycle durations, according to the current cps.
+msec :: Fractional a => Pattern a -> Pattern a
+msec p = ((realToFrac . (/1000)) <$> cF 1 "_cps") *| p
+
 cI :: String -> Pattern Int
 cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
   where f a (VI v) = [Event a a v]

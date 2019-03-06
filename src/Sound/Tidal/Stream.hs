@@ -176,7 +176,8 @@ onTick config cMapMV pMV cxs tempoMV st =
      cMap <- readMVar cMapMV
      tempo <- readMVar tempoMV
      now <- O.time
-     let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
+     let cMap' = Map.insert "_cps" (VF $ T.cps tempo) cMap
+         es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap'})
          on e = (sched tempo $ start $ whole e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
          messages target = catMaybes $ map (\e -> do m <- toMessage (on e + latency target) target tempo e
