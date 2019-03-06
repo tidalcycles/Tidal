@@ -257,14 +257,12 @@ streamSolo s k = withPatId s (show k) (\x -> x {solo = True})
 streamUnsolo :: Show a => Stream -> a -> IO ()
 streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
 
-streamOnce :: Stream -> Bool -> ControlPattern -> IO ()
-streamOnce st asap p
+streamOnce :: Stream -> ControlPattern -> IO ()
+streamOnce st p
   = do cMap <- readMVar (sInput st)
        tempo <- readMVar (sTempoMV st)
        now <- O.time
-       let latency target | asap = 0
-                          | otherwise = oLatency target
-           fakeTempo = T.Tempo {T.cps = T.cps tempo,
+       let fakeTempo = T.Tempo {T.cps = T.cps tempo,
                                 T.atCycle = 0,
                                 T.atTime = now,
                                 T.paused = False,
@@ -278,7 +276,7 @@ streamOnce st asap p
            on e = sched tempo $ start $ whole e
            cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
            messages target =
-             catMaybes $ map (\e -> do m <- toMessage (at e + (latency target)) target fakeTempo e
+             catMaybes $ map (\e -> do m <- toMessage (at e + (oLatency target)) target fakeTempo e
                                        return $ (at e, m)
                              ) es
        mapM_ (\(Cx target udp) ->
