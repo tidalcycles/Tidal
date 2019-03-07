@@ -41,6 +41,10 @@
 (require 'pulse)
 (require 'haskell-mode)
 
+(defvar tidal-path
+  "~/tidal"
+  "*The path to the tidal source directory (default=~/tidal).")
+
 (defvar tidal-buffer
   "*tidal*"
   "*The name of the tidal process buffer (default=*tidal*).")
@@ -87,6 +91,7 @@
      nil
      tidal-interpreter-arguments)
     (tidal-see-output))
+  (tidal-send-string (concat ":cd " tidal-path))
   (tidal-send-string ":script BootTidal.hs")
   )
 
