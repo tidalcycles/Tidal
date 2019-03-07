@@ -271,8 +271,9 @@ streamOnce st asap p
                                 T.paused = False,
                                 T.nudged = 0
                                }
+           cMap' = Map.insert "_cps" (VF $ T.cps tempo) cMap
            es = filter eventHasOnset $ query p (State {arc = (Arc 0 1),
-                                                       controls = cMap
+                                                       controls = cMap'
                                                       }
                                                )
            at e = sched fakeTempo $ start $ whole e
