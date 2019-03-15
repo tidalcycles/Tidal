@@ -96,7 +96,9 @@ clocked config callback
   where loop tempoMV st =
           do -- putStrLn $ show $ nowArc ts
              tempo <- readMVar tempoMV               
+             t <- O.time
              let frameTimespan = cFrameTimespan config
+                 delta = logicalNow - t
                  -- 'now' comes from clock ticks, nothing to do with cycles
                  logicalT ticks' = start st + fromIntegral ticks' * frameTimespan
                  logicalNow = logicalT $ ticks st + 1
@@ -108,8 +110,7 @@ clocked config callback
                  st' = st {ticks = ticks st + 1, nowArc = P.Arc s e,
                            starting = not (synched tempo)
                           }
-             t <- O.time
-             when (t < logicalNow) $ threadDelay (floor $ (logicalNow - t) * 1000000)
+             when (t < logicalNow) $ threadDelay (floor $ delta * 1000000)
              callback tempoMV st'
              loop tempoMV st'
 
@@ -120,7 +121,7 @@ clientListen config s =
          hostname = cTempoAddr config
          port = cTempoPort config
      (remote_addr:_) <- N.getAddrInfo Nothing (Just hostname) Nothing
-     local <- O.udpServer "127.0.0.1" tempoClientPort
+     local <- O.udpServer "0.0.0.0" tempoClientPort
      let (N.SockAddrInet _ a) = N.addrAddress remote_addr
          remote = N.SockAddrInet (fromIntegral port) a
          t = defaultTempo s local remote
