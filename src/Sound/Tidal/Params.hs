@@ -147,6 +147,11 @@ delaytime :: Pattern Double -> ControlPattern
 delaytime = pF "delaytime"
 detune :: Pattern Double -> ControlPattern
 detune = pF "detune"
+
+-- DJ filter
+djf :: Pattern Double -> ControlPattern
+djf = pF "djf"
+
 -- | when set to `1` will disable all reverb for this pattern. See `room` and `size` for more information about reverb.
 dry :: Pattern Double -> ControlPattern
 dry = pF "dry"
