@@ -11,7 +11,7 @@ import           Control.Monad.ST
 import qualified Data.Vector as V
 import           Data.Word (Word32)
 import           Data.Ratio ((%),numerator,denominator)
-import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose)
+import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
@@ -1187,6 +1187,7 @@ to change this use `toScale' size`.  Example:
 `toScale' 24 [0,4,7,10,14,17] (run 8)` turns into `"0 4 7 10 14 17 24 28"`
 -}
 toScale' :: Num a => Int -> [a] -> Pattern Int -> Pattern a
+toScale' _ [] = const silence
 toScale' o s = fmap noteInScale
   where octave x = x `div` length s
         noteInScale x = (s !!! x) + fromIntegral (o * octave x)
@@ -1737,3 +1738,16 @@ swap things p = filterJust $ (`lookup` things) <$> p
 -}
 soak ::  Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 soak depth f pattern = cat $ take depth $ iterate f pattern
+
+deconstruct :: Int -> Pattern String -> String
+deconstruct n p = intercalate " " $ map showStep $ toList n p
+  where 
+    showStep :: [String] -> String
+    showStep [] = "~"
+    showStep [x] = x
+    showStep xs = "[" ++ (intercalate ", " xs) ++ "]"
+    toList :: Int -> Pattern a -> [[a]]
+    toList n pat = map (\(s,e) -> map value $ queryArc (_segment n' pat) (Arc s e)) arcs
+      where breaks = [0, (1/n') ..]
+            arcs = zip (take n breaks) (drop 1 breaks)
+            n' = fromIntegral n
