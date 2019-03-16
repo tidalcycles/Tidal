@@ -58,6 +58,11 @@ to = pF "to"
 accelerate :: Pattern Double -> ControlPattern
 accelerate       = pF "accelerate"
 
+
+-- | Amplitude; like @gain@, but linear.
+amp :: Pattern Double -> ControlPattern
+amp = pF "amp"
+
 -- | a pattern of numbers to specify the attack time (in seconds) of an envelope applied to each sample. Only takes effect if `release` is also specified.
 attack :: Pattern Double -> ControlPattern
 attack = pF "attack"
@@ -160,9 +165,13 @@ dry = pF "dry"
 -}
 end :: Pattern Double -> ControlPattern
 end = pF "end"
--- | a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder.
+
+-- | a pattern of numbers that specify volume. Values less than 1 make
+-- the sound quieter. Values greater than 1 make the sound louder. For
+-- the linear equivalent, see @amp@.
 gain :: Pattern Double -> ControlPattern
 gain = pF "gain"
+
 gate :: Pattern Double -> ControlPattern
 gate = pF "gate"
 hatgrain :: Pattern Double -> ControlPattern
