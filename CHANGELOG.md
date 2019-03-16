@@ -1,5 +1,13 @@
 # TidalCycles log of changes
 
+## 1.0.9 - This machine kills fascists
+* sec and msec functions for converting from seconds to cycles (for stut etc) @yaxu
+* template haskell upper bounds @yaxu
+* fix for multi-laptop sync/tempo sharing @yaxu
+* fix toScale so it doesn't break on empty lists @bgold-cosmos
+* `deconstruct` function for displaying patterns stepwise @yaxu
+* `djf` control ready for new superdirt dj filter @yaxu
+* `getScale` for handrolling/adding scales to `scale` function	* Add `djf` control for upcoming superdirt dj filter @yaxu
 
 ## 1.0.8 (trying to get back to doing these, 
 ## see also https://tidalcycles.org/index.php/Changes_in_Tidal_1.0.x 
