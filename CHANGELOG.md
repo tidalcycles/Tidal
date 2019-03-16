@@ -1,5 +1,8 @@
 # TidalCycles log of changes
 
+## 1.0.10 - This machine also kills fascists
+* Add exports to Sound.Tidal.Scales for `getScale` and `scaleTable`
+
 ## 1.0.9 - This machine kills fascists
 * sec and msec functions for converting from seconds to cycles (for stut etc) @yaxu
 * template haskell upper bounds @yaxu
@@ -27,7 +30,6 @@
 * potentially more efficient euclidean patternings - @dktr0
 * unit tests for euclid - @yaxu
 * fix for `sometimesBy` - @yaxu
-
 
 ## 0.9.10 (and earlier missing versions from this log)
 

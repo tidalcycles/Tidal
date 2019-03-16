@@ -1,4 +1,4 @@
-module Sound.Tidal.Scales (scale, scaleList) where
+module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale) where
 
 import Data.Maybe
 
