@@ -100,8 +100,8 @@ clocked config callback
              let frameTimespan = cFrameTimespan config
                  logicalT ticks' = start st + fromIntegral ticks' * frameTimespan
                  logicalNow = logicalT $ ticks st + 1
-                 -- Wait maximum of eight frames
-                 delta = min (frameTimespan * 8) (logicalNow - t)
+                 -- Wait maximum of two frames
+                 delta = min (frameTimespan * 2) (logicalNow - t)
                  e = timeToCycles tempo logicalNow
                  s = if starting st && synched tempo
                      then timeToCycles tempo (logicalT $ ticks st)
