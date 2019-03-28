@@ -1101,7 +1101,7 @@ enclosingArc as = Arc (minimum (map start as)) (maximum (map stop as))
 stretch :: Pattern a -> Pattern a
 -- TODO - should that be whole or part?
 stretch p = splitQueries $ p {query = q}
-  where q st = query (zoomArc (enclosingArc $ map whole $ query p (st {arc = Arc (sam s) (nextSam s)})) p) st
+  where q st = query (zoomArc (cycleArc $ enclosingArc $ map whole $ query p (st {arc = Arc (sam s) (nextSam s)})) p) st
           where s = start $ arc st
 
 {- | `fit'` is a generalization of `fit`, where the list is instead constructed by using another integer pattern to slice up a given pattern.  The first argument is the number of cycles of that latter pattern to use when slicing.  It's easier to understand this with a few examples:

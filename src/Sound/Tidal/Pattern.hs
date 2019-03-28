@@ -88,6 +88,10 @@ instance Applicative ArcF where
 timeToCycleArc :: Time -> Arc
 timeToCycleArc t = Arc (sam t) (sam t + 1)
 
+-- | Shifts an arc to the equivalent one that starts during cycle zero
+cycleArc :: Arc -> Arc
+cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e-s))
+
 -- | A list of cycle numbers which are included in the given arc
 cyclesInArc :: Integral a => Arc -> [a]
 cyclesInArc (Arc s e)
@@ -380,7 +384,6 @@ squeezeJoin pp = pp {query = q}
           do w' <- subArc oWhole iWhole
              p' <- subArc oPart iPart
              return (Event w' p' v)
-        cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e-s))
 
 noOv :: String -> a
 noOv meth = error $ meth ++ ": not supported for patterns"
