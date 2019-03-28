@@ -237,3 +237,8 @@ run =
           (wedge (0) (s "ho ho:2 ho:3 hc") (rev $ s "ho ho:2 ho:3 hc"))
           (rev $ s "ho ho:2 ho:3 hc")
 
+    describe "bite" $ do
+      it "can slice a pattern into bits" $ do
+        compareP (Arc 0 4)
+          (bite 4 "0 2*2" (Sound.Tidal.Core.run 8))
+          ("[0 1] [4 5]*2" :: Pattern Int)

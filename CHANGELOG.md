@@ -1,5 +1,8 @@
 # TidalCycles log of changes
 
+## 1.0.11 - as yet unnamed
+* Add `bite` function for slicing patterns
+
 ## 1.0.10 - This machine also kills fascists
 * Add exports to Sound.Tidal.Scales for `getScale` and `scaleTable`
 

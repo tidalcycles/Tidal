@@ -161,7 +161,7 @@ chooseBy f xs = (xs !!) . floor <$> range 0 (fromIntegral $ length xs) f
 {- | Like @choose@, but works on an a list of tuples of values and weights
 
 @
-sound "superpiano(3,8)" # note (choose [("a",1), ("e",0.5), ("g",2), ("c",1)])
+sound "superpiano(3,8)" # note (wchoose [("a",1), ("e",0.5), ("g",2), ("c",1)])
 @
 
 In the above example, the "a" and "c" notes are twice as likely to
@@ -1388,7 +1388,6 @@ sew stitch p1 p2 = overlay (const <$> p1 <* a) (const <$> p2 <* b)
   where a = filterValues id stitch
         b = filterValues not stitch
 
-
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n-1)]
 
@@ -1729,7 +1728,7 @@ smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State 
 swap :: Eq a => [(a, b)] -> Pattern a -> Pattern b
 swap things p = filterJust $ (`lookup` things) <$> p
 
-{- @coat@ | 
+{- @soak@ | 
     applies a function to a pattern and cats the resulting pattern,
     then continues applying the function until the depth is reached
     this can be used to create a pattern that wanders away from 
@@ -1740,14 +1739,24 @@ soak ::  Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 soak depth f pattern = cat $ take depth $ iterate f pattern
 
 deconstruct :: Int -> Pattern String -> String
-deconstruct n p = intercalate " " $ map showStep $ toList n p
+deconstruct n p = intercalate " " $ map showStep $ toList p
   where 
     showStep :: [String] -> String
     showStep [] = "~"
     showStep [x] = x
     showStep xs = "[" ++ (intercalate ", " xs) ++ "]"
-    toList :: Int -> Pattern a -> [[a]]
-    toList n pat = map (\(s,e) -> map value $ queryArc (_segment n' pat) (Arc s e)) arcs
+    toList :: Pattern a -> [[a]]
+    toList pat = map (\(s,e) -> map value $ queryArc (_segment n' pat) (Arc s e)) arcs
       where breaks = [0, (1/n') ..]
             arcs = zip (take n breaks) (drop 1 breaks)
             n' = fromIntegral n
+
+{- @bite@ n ipat pat |
+  slices a pattern `pat` into `n` pieces, then uses the `ipat` pattern of integers to index into those slices.
+  So `bite 4 "0 2*2" (run 8)` is the same as `"[0 1] [4 5]*2"`.
+-}
+
+bite :: Int -> Pattern Int -> Pattern a -> Pattern a
+bite n ipat pat = squeezeJoin $ zoompat <$> ipat
+  where zoompat i = zoom (i'/(fromIntegral n), (i'+1)/(fromIntegral n)) pat
+           where i' = fromIntegral $ i `mod` n
