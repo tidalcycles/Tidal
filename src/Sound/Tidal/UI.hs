@@ -1598,13 +1598,12 @@ tabby nInt p p' = stack [maskedWarp,
     maskedWeft = mask (every 2 rev $ _fast (n % 2) $ fastCat [silence, pure True]) weftP
     maskedWarp = mask (every 2 rev $ _fast (n % 2) $ fastCat [pure True, silence]) warpP
 
-_select :: Double -> [Pattern a] -> Pattern a
-_select f ps =  ps !! floor (max 0 (min 1 f) * fromIntegral (length ps - 1))
-
 -- | chooses between a list of patterns, using a pattern of floats (from 0-1)
 select :: Pattern Double -> [Pattern a] -> Pattern a
 select = tParam _select
 
+_select :: Double -> [Pattern a] -> Pattern a
+_select f ps =  ps !! floor (max 0 (min 1 f) * fromIntegral (length ps - 1))
 
 -- | chooses between a list of functions, using a pattern of floats (from 0-1)
 selectF :: Pattern Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
@@ -1612,6 +1611,13 @@ selectF pf ps p = innerJoin $ (\f -> _selectF f ps p) <$> pf
 
 _selectF :: Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
 _selectF f ps p =  (ps !! floor (max 0 (min 0.999999 f) * fromIntegral (length ps))) p
+
+-- | chooses between a list of functions, using a pattern of integers
+pickF :: Pattern Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
+pickF pi fs pat = innerJoin $ (\i -> _pickF i fs pat) <$> pi
+
+_pickF :: Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
+_pickF i fs p =  (fs !!! i) p
 
 -- | @contrast p f f' p'@ splits controlpattern @p'@ in two, applying
 -- the function @f@ to one and @f'@ to the other. This depends on
@@ -1760,3 +1766,9 @@ bite :: Int -> Pattern Int -> Pattern a -> Pattern a
 bite n ipat pat = squeezeJoin $ zoompat <$> ipat
   where zoompat i = zoom (i'/(fromIntegral n), (i'+1)/(fromIntegral n)) pat
            where i' = fromIntegral $ i `mod` n
+
+{- @squeeze@ ipat pats | uses a pattern of integers to index into a list of patterns.
+-}
+squeeze :: Pattern Int -> [Pattern a] -> Pattern a
+squeeze _ [] = silence
+squeeze ipat pats = squeezeJoin $ (pats !!!) <$> ipat
