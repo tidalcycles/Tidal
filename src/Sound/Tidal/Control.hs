@@ -390,6 +390,14 @@ cF0 = _cF [0]
 cF_ :: String -> Pattern Double
 cF_ = _cF []
 
+cB :: Bool -> String -> Pattern Bool
+cB b = _cB [b]
+_cB :: [Bool] -> String -> Pattern Bool
+_cB = _cX f
+  where f a (VI v) = [Event a a (v /= 0)]
+        f a (VF v) = [Event a a (v >= 0.5)]
+        f a (VS v) = maybe [] (\v' -> [Event a a (v' == "t")]) (readMaybe v)
+
 cT :: Time -> String -> Pattern Time
 cT d = (toRational <$>) . cF (fromRational d)
 cT0 :: String -> Pattern Time
@@ -420,6 +428,7 @@ _cP ds s = innerJoin $ _cX f ds s
   where f a (VI v) = [Event a a (parseBP_E $ show v)]
         f a (VF v) = [Event a a (parseBP_E $ show v)]
         f a (VS v) = [Event a a (parseBP_E v)]
+
 cP :: (Enumerable a, Parseable a) => Pattern a -> String -> Pattern a
 cP d = _cP [d]
 cP_ :: (Enumerable a, Parseable a) => String -> Pattern a
