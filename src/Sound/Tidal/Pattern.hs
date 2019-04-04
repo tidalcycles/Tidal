@@ -224,7 +224,25 @@ data Pattern a = Pattern {nature :: Nature, query :: Query a}
 data Value = VS { svalue :: String }
            | VF { fvalue :: Double }
            | VI { ivalue :: Int }
-           deriving (Eq,Ord,Typeable,Data)
+           deriving (Typeable,Data)
+
+instance Eq Value where
+  (VS x) == (VS y) = x == y
+  (VF x) == (VF y) = x == y
+  (VI x) == (VI y) = x == y
+  (VS x) == _ = False
+  _ == (VS y) = False
+  (VF x) == (VI y) = x == (fromIntegral y)
+  (VI x) == (VF y) = (fromIntegral x) == y
+
+instance Ord Value where
+  compare (VS x) (VS y) = compare x y
+  compare (VF x) (VF y) = compare x y
+  compare (VI x) (VI y) = compare x y
+  compare (VS x) _ = LT
+  compare _ (VS x) = GT
+  compare (VF x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VF y) = compare (fromIntegral x) y
 
 type ControlMap = Map.Map String Value
 type ControlPattern = Pattern ControlMap
