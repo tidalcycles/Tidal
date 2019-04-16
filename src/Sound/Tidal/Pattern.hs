@@ -231,19 +231,34 @@ instance Eq Value where
   (VS x) == (VS y) = x == y
   (VF x) == (VF y) = x == y
   (VI x) == (VI y) = x == y
-  (VS x) == _ = False
-  _ == (VS y) = False
+  (VR x) == (VR y) = x == y
+  
   (VF x) == (VI y) = x == (fromIntegral y)
-  (VI x) == (VF y) = (fromIntegral x) == y
+  (VI y) == (VF x) = x == (fromIntegral y)
 
+  (VF x) == (VR y) = (toRational x) == y
+  (VR y) == (VF x) = (toRational x) == y
+  (VI x) == (VR y) = (toRational x) == y
+  (VR y) == (VI x) = (toRational x) == y
+
+  (VS _) == _ = False
+  _ == (VS _) = False
+  
 instance Ord Value where
   compare (VS x) (VS y) = compare x y
   compare (VF x) (VF y) = compare x y
   compare (VI x) (VI y) = compare x y
-  compare (VS x) _ = LT
-  compare _ (VS x) = GT
+  compare (VR x) (VR y) = compare x y
+  compare (VS _) _ = LT
+  compare _ (VS _) = GT
   compare (VF x) (VI y) = compare x (fromIntegral y)
   compare (VI x) (VF y) = compare (fromIntegral x) y
+
+  compare (VR x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VR y) = compare (fromIntegral x) y
+
+  compare (VF x) (VR y) = compare x (fromRational y)
+  compare (VR x) (VF y) = compare (fromRational x) y
 
 type ControlMap = Map.Map String Value
 type ControlPattern = Pattern ControlMap

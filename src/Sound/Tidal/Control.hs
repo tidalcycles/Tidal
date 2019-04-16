@@ -377,6 +377,7 @@ cI :: String -> Pattern Int
 cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
   where f a (VI v) = [Event a a v]
         f a (VF v) = [Event a a (floor v)]
+        f a (VR v) = [Event a a (floor v)]
         f a (VS v) = maybe [] (\v' -> [Event a a v']) (readMaybe v)
 
 _cX :: (Arc -> Value -> [Event a]) -> [a] -> String -> Pattern a
@@ -386,6 +387,7 @@ _cX f ds s = Pattern Analog $
 _cF :: [Double] -> String -> Pattern Double
 _cF = _cX f
   where f a (VI v) = [Event a a (fromIntegral v)]
+        f a (VR v) = [Event a a (fromRational v)]
         f a (VF v) = [Event a a v]
         f a (VS v) = maybe [] (\v' -> [Event a a v']) (readMaybe v)
 
