@@ -223,6 +223,7 @@ data Pattern a = Pattern {nature :: Nature, query :: Query a}
 
 data Value = VS { svalue :: String }
            | VF { fvalue :: Double }
+           | VR { rvalue :: Rational }
            | VI { ivalue :: Int }
            deriving (Eq,Ord,Typeable,Data)
 
@@ -278,7 +279,16 @@ instance Applicative Pattern where
 
 -- | Like <*>, but the structure only comes from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<*) pf@(Pattern Digital _) px = Pattern Digital q
+(<*) pf@(Pattern Analog _) px@(Pattern Analog _) = Pattern Analog q
+  where q st = concatMap match $ query pf st
+          where
+            match (Event fWhole fPart f) =
+              map
+              (Event fWhole fPart . f . value) $
+              query px st -- for continuous events, use the original query
+
+-- If one of the patterns is digital, treat both as digital.. (TODO - needs extra thought)
+(<*) pf px = Pattern Digital q
   where q st = concatMap match $ query pf st
          where
             match (Event fWhole fPart f) =
@@ -287,17 +297,17 @@ instance Applicative Pattern where
               query px $ st {arc = xQuery fWhole}
             xQuery (Arc s _) = pure s -- for discrete events, match with the onset
 
-(<*) pf px = Pattern Analog q
-  where q st = concatMap match $ query pf st
-          where
-            match (Event fWhole fPart f) =
-              map
-              (Event fWhole fPart . f . value) $
-              query px st -- for continuous events, use the original query
-
 -- | Like <*>, but the structure only comes from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(*>) pf px@(Pattern Digital _) = Pattern Digital q
+(*>) pf@(Pattern Analog _) px@(Pattern Analog _) = Pattern Analog q
+  where q st = concatMap match $ query px st
+          where
+            match (Event xWhole xPart x) =
+              map
+              (\e -> Event xWhole xPart (value e x)) $
+              query pf st -- for continuous events, use the original query
+
+(*>) pf px = Pattern Digital q
   where q st = concatMap match $ query px st
          where
             match (Event xWhole xPart x) =
@@ -305,14 +315,6 @@ instance Applicative Pattern where
               (\e -> Event xWhole xPart (value e x)) $
               query pf $ fQuery xWhole
             fQuery (Arc s _) = st {arc = pure s} -- for discrete events, match with the onset
-
-(*>) pf px = Pattern Analog q
-  where q st = concatMap match $ query px st
-          where
-            match (Event xWhole xPart x) =
-              map
-              (\e -> Event xWhole xPart (value e x)) $
-              query pf st -- for continuous events, use the original query
 
 infixl 4 <*, *>
 
@@ -394,6 +396,7 @@ class TolerantEq a where
 instance TolerantEq Value where
          (VS a) ~== (VS b) = a == b
          (VI a) ~== (VI b) = a == b
+         (VR a) ~== (VR b) = a == b
          (VF a) ~== (VF b) = abs (a - b) < 0.000001
          _ ~== _ = False
 
@@ -511,6 +514,7 @@ instance Show Value where
   show (VS s) = ('"':s) ++ "\""
   show (VI i) = show i
   show (VF f) = show f ++ "f"
+  show (VR r) = show r ++ "r"
 
 instance {-# OVERLAPPING #-} Show ControlMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
@@ -629,9 +633,10 @@ applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value ->
 applyFIS f _ _ (VF f') = VF $ f f'
 applyFIS _ f _ (VI i ) = VI $ f i
 applyFIS _ _ f (VS s ) = VS $ f s
+applyFIS _ _ _ v = v
 
 -- | Apply one of two functions to a Value, depending on its type (int
--- or float; strings are ignored)
+-- or float; strings and rationals are ignored)
 fNum2 :: (Int -> Int -> Int) -> (Double -> Double -> Double) -> Value -> Value -> Value
 fNum2 fInt _      (VI a) (VI b) = VI $ fInt a b
 fNum2 _    fFloat (VF a) (VF b) = VF $ fFloat a b
@@ -650,6 +655,10 @@ getF _  = Nothing
 getS :: Value -> Maybe String
 getS (VS s) = Just s
 getS _  = Nothing
+
+getR :: Value -> Maybe Rational
+getR (VR r) = Just r
+getR _  = Nothing
 
 compressArc :: Arc -> Pattern a -> Pattern a
 compressArc (Arc s e) p | s > e = empty
