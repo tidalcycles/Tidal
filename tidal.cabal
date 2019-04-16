@@ -27,6 +27,7 @@ library
   default-language:    Haskell2010
 
   Exposed-modules:     Sound.Tidal.Bjorklund
+                       Sound.Tidal.Carabiner
                        Sound.Tidal.Chords
                        Sound.Tidal.Config
                        Sound.Tidal.Control
@@ -60,6 +61,8 @@ library
     , bifunctors < 5.6
     , transformers < 0.5.7
     , template-haskell >= 2.10.0.0 && < 2.15
+    , bytestring < 0.11
+    , clock < 0.8
 
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups == 0.18.*
