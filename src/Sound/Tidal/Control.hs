@@ -404,6 +404,7 @@ _cB :: [Bool] -> String -> Pattern Bool
 _cB = _cX f
   where f a (VI v) = [Event a a (v /= 0)]
         f a (VF v) = [Event a a (v >= 0.5)]
+        f a (VR v) = [Event a a (v >= (1%2))]
         f a (VS v) = maybe [] (\v' -> [Event a a (v' == "t")]) (readMaybe v)
 
 cT :: Time -> String -> Pattern Time
@@ -425,6 +426,7 @@ _cS :: [String] -> String -> Pattern String
 _cS = _cX f
   where f a (VI v) = [Event a a (show v)]
         f a (VF v) = [Event a a (show v)]
+        f a (VR v) = [Event a a (show v)]
         f a (VS v) = [Event a a v]
 cS :: String -> String -> Pattern String
 cS d = _cS [d]
@@ -435,6 +437,7 @@ _cP :: (Enumerable a, Parseable a) => [Pattern a] -> String -> Pattern a
 _cP ds s = innerJoin $ _cX f ds s
   where f a (VI v) = [Event a a (parseBP_E $ show v)]
         f a (VF v) = [Event a a (parseBP_E $ show v)]
+        f a (VR v) = [Event a a (parseBP_E $ show v)]
         f a (VS v) = [Event a a (parseBP_E v)]
 
 cP :: (Enumerable a, Parseable a) => Pattern a -> String -> Pattern a
