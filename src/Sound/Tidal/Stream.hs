@@ -14,6 +14,7 @@ import qualified Control.Exception as E
 -- import qualified Data.Bifunctor as BF
 -- import qualified Data.Bool as B
 -- import qualified Data.Char as C
+import           System.IO (hPutStrLn, stderr)
 
 import qualified Sound.OSC.FD as O
 
@@ -232,13 +233,21 @@ streamList s = do pMap <- readMVar (sPMapMV s)
 streamReplace :: Show a => Stream -> a -> ControlPattern -> IO ()
 streamReplace s k pat
   = E.catch (do let x = queryArc pat (Arc 0 0)
+                tempo <- readMVar $ sTempoMV s
+                input <- takeMVar $ sInput s
+                -- put change time in control input
+                now <- O.time
+                let cycle = T.timeToCycles tempo now
+                putMVar (sInput s) $
+                  Map.insert ("_t_all") (VR cycle) $ Map.insert ("_t_" ++ show k) (VR cycle) input
+                -- update the pattern itself
                 pMap <- seq x $ takeMVar $ sPMapMV s
                 let playState = updatePS $ Map.lookup (show k) pMap
                 putMVar (sPMapMV s) $ Map.insert (show k) playState pMap
                 calcOutput s
                 return ()
           )
-    (\(e :: E.SomeException) -> putStrLn $ "Error in pattern: " ++ show e
+    (\(e :: E.SomeException) -> hPutStrLn stderr $ "Error in pattern: " ++ show e
     )
   where updatePS (Just playState) = do playState {pattern = pat, history = pat:(history playState)}
         updatePS Nothing = PlayState pat False False [pat]

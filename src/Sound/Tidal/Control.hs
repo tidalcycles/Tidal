@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings, FlexibleContexts #-}
 
 module Sound.Tidal.Control where
 
@@ -367,6 +367,12 @@ sec p = (realToFrac <$> cF 1 "_cps") *| p
 msec :: Fractional a => Pattern a -> Pattern a
 msec p = ((realToFrac . (/1000)) <$> cF 1 "_cps") *| p
 
+trigger :: Show a => a -> Pattern b -> Pattern b
+trigger k pat = pat {query = q}
+  where q st = query (rotR (offset st) pat) st
+        offset st = fromMaybe 0 $ Map.lookup ctrl (controls st) >>= getR
+        ctrl = "_t_" ++ show k
+
 cI :: String -> Pattern Int
 cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
   where f a (VI v) = [Event a a v]
@@ -691,3 +697,9 @@ in126 :: Pattern Double
 in126 = cF 0 "126"
 in127 :: Pattern Double
 in127 = cF 0 "127"
+
+splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
+splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit "c"
+  where f ev = ev {value = Map.insert "speed" (VF d) (value ev)}
+          where d = sz / (fromRational $ (wholeStop ev) - (wholeStart ev))
+                sz = 1/(fromIntegral bits)
