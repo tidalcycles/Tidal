@@ -194,12 +194,12 @@ run =
                       (Event (Arc (2 % 3) (1 % 1)) (Arc (2 % 3) (1 % 1)) "e")
                      ]
 
-    describe "unwrapSqueeze" $ do
+    describe "squeezeJoin" $ do
       it "compresses cycles to fit outer 'whole' timearc of event" $ do
         let a = fastCat [pure "a", pure "b"]
             b = fastCat [pure "c", pure "d", pure "e"]
             pp = fastCat [pure a, pure b]
-        queryArc (unwrapSqueeze pp) (Arc 0 1)
+        queryArc (squeezeJoin pp) (Arc 0 1)
           `shouldBe` [(Event (Arc (0 % 1) (1 % 4)) (Arc (0 % 1) (1 % 4)) ("a" :: String)),
                       (Event (Arc (1 % 4) (1 % 2)) (Arc (1 % 4) (1 % 2)) "b"),
                       (Event (Arc (1 % 2) (2 % 3)) (Arc (1 % 2) (2 % 3)) "c"),

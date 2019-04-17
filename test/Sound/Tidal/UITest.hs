@@ -186,6 +186,20 @@ run =
           (snowball 3 (+) (slow 2) (testPattern))
           (cat [testPattern,(testPattern+(slow 2 testPattern)),((testPattern+(slow 2 testPattern))+slow 2 (testPattern+(slow 2 testPattern)))])
 
+    describe "soak" $ do
+      it "applies a transform and then appends the result -- addition" $ do
+        compareP (Arc 0 3)
+          (soak 3 (+ 1) "4 ~ 0 1")
+          (cat ["4 ~ 0 1"::Pattern Int,"5 ~ 1 2"::Pattern Int,"6 ~ 2 3"::Pattern Int])
+      it "applies a transform and then appends the result -- slow" $ do
+        compareP (Arc 0 7)
+          (soak 3 (slow 2) "4 ~ 0 1")
+          (cat ["4 ~ 0 1"::Pattern Int, slow 2 "4 ~ 0 1"::Pattern Int, slow 4 "4 ~  0 1"::Pattern Int])
+      it "applies a transform and then appends the result -- addition patterns" $ do
+        compareP (Arc 0 3)
+          (soak 3 (+ "1 2 3") "1 1")
+          (cat ["1 1"::Pattern Int,"2 [3 3] 4"::Pattern Int,"3 [5 5] 7"::Pattern Int])
+
     describe "euclid" $ do
       it "matches examples in Toussaint's paper" $ do
         sequence_ $ map (\(a,b) -> it b $ compareP (Arc 0 1) a (parseBP_E b))
@@ -220,3 +234,18 @@ run =
             (euclid 13 24 "x", "x ~ x x ~ x ~ x ~ x ~ x ~ x x ~ x ~ x ~ x ~ x ~")
           ] :: [(Pattern String, String)])
 
+    describe "wedge" $ do
+      it "should not freeze tidal amount is 1" $ do
+        compareP (Arc 0 1)
+          (wedge (1) (s "ho ho:2 ho:3 hc") (rev $ s "ho ho:2 ho:3 hc"))
+          (s "ho ho:2 ho:3 hc")
+      it "should not freeze tidal amount is 0" $ do
+        compareP (Arc 0 1)
+          (wedge (0) (s "ho ho:2 ho:3 hc") (rev $ s "ho ho:2 ho:3 hc"))
+          (rev $ s "ho ho:2 ho:3 hc")
+
+    describe "bite" $ do
+      it "can slice a pattern into bits" $ do
+        compareP (Arc 0 4)
+          (bite 4 "0 2*2" (Sound.Tidal.Core.run 8))
+          ("[0 1] [4 5]*2" :: Pattern Int)

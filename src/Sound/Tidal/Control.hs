@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings, FlexibleContexts #-}
 
 module Sound.Tidal.Control where
 
@@ -358,10 +358,26 @@ _stutWith count steptime f p | count <= 1 = p
 stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 stut' = stutWith
 
+-- | Turns a pattern of seconds into a pattern of (rational) cycle durations
+sec :: Fractional a => Pattern a -> Pattern a
+sec p = (realToFrac <$> cF 1 "_cps") *| p
+
+-- | Turns a pattern of milliseconds into a pattern of (rational)
+-- cycle durations, according to the current cps.
+msec :: Fractional a => Pattern a -> Pattern a
+msec p = ((realToFrac . (/1000)) <$> cF 1 "_cps") *| p
+
+trigger :: Show a => a -> Pattern b -> Pattern b
+trigger k pat = pat {query = q}
+  where q st = query (rotR (offset st) pat) st
+        offset st = fromMaybe 0 $ Map.lookup ctrl (controls st) >>= getR
+        ctrl = "_t_" ++ show k
+
 cI :: String -> Pattern Int
 cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
   where f a (VI v) = [Event a a v]
         f a (VF v) = [Event a a (floor v)]
+        f a (VR v) = [Event a a (floor v)]
         f a (VS v) = maybe [] (\v' -> [Event a a v']) (readMaybe v)
 
 _cX :: (Arc -> Value -> [Event a]) -> [a] -> String -> Pattern a
@@ -371,6 +387,7 @@ _cX f ds s = Pattern Analog $
 _cF :: [Double] -> String -> Pattern Double
 _cF = _cX f
   where f a (VI v) = [Event a a (fromIntegral v)]
+        f a (VR v) = [Event a a (fromRational v)]
         f a (VF v) = [Event a a v]
         f a (VS v) = maybe [] (\v' -> [Event a a v']) (readMaybe v)
 
@@ -380,6 +397,15 @@ cF0 :: String -> Pattern Double
 cF0 = _cF [0]
 cF_ :: String -> Pattern Double
 cF_ = _cF []
+
+cB :: Bool -> String -> Pattern Bool
+cB b = _cB [b]
+_cB :: [Bool] -> String -> Pattern Bool
+_cB = _cX f
+  where f a (VI v) = [Event a a (v /= 0)]
+        f a (VF v) = [Event a a (v >= 0.5)]
+        f a (VR v) = [Event a a (v >= (1%2))]
+        f a (VS v) = maybe [] (\v' -> [Event a a (v' == "t")]) (readMaybe v)
 
 cT :: Time -> String -> Pattern Time
 cT d = (toRational <$>) . cF (fromRational d)
@@ -400,6 +426,7 @@ _cS :: [String] -> String -> Pattern String
 _cS = _cX f
   where f a (VI v) = [Event a a (show v)]
         f a (VF v) = [Event a a (show v)]
+        f a (VR v) = [Event a a (show v)]
         f a (VS v) = [Event a a v]
 cS :: String -> String -> Pattern String
 cS d = _cS [d]
@@ -410,7 +437,9 @@ _cP :: (Enumerable a, Parseable a) => [Pattern a] -> String -> Pattern a
 _cP ds s = innerJoin $ _cX f ds s
   where f a (VI v) = [Event a a (parseBP_E $ show v)]
         f a (VF v) = [Event a a (parseBP_E $ show v)]
+        f a (VR v) = [Event a a (parseBP_E $ show v)]
         f a (VS v) = [Event a a (parseBP_E v)]
+
 cP :: (Enumerable a, Parseable a) => Pattern a -> String -> Pattern a
 cP d = _cP [d]
 cP_ :: (Enumerable a, Parseable a) => String -> Pattern a
@@ -673,3 +702,9 @@ in126 :: Pattern Double
 in126 = cF 0 "126"
 in127 :: Pattern Double
 in127 = cF 0 "127"
+
+splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
+splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit "c"
+  where f ev = ev {value = Map.insert "speed" (VF d) (value ev)}
+          where d = sz / (fromRational $ (wholeStop ev) - (wholeStart ev))
+                sz = 1/(fromIntegral bits)

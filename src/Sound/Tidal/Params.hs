@@ -44,9 +44,24 @@ pI name = fmap (Map.singleton name . VI)
 pS :: String -> Pattern String -> ControlPattern
 pS name = fmap (Map.singleton name . VS)
 
+-- | patterns for internal sound routing
+toArg :: Pattern String -> ControlPattern
+toArg = pS "toArg"
+
+from :: Pattern Double -> ControlPattern
+from = pF "from"
+
+to :: Pattern Double -> ControlPattern
+to = pF "to"
+
 -- | a pattern of numbers that speed up (or slow down) samples while they play.
 accelerate :: Pattern Double -> ControlPattern
 accelerate       = pF "accelerate"
+
+
+-- | Amplitude; like @gain@, but linear.
+amp :: Pattern Double -> ControlPattern
+amp = pF "amp"
 
 -- | a pattern of numbers to specify the attack time (in seconds) of an envelope applied to each sample. Only takes effect if `release` is also specified.
 attack :: Pattern Double -> ControlPattern
@@ -137,6 +152,11 @@ delaytime :: Pattern Double -> ControlPattern
 delaytime = pF "delaytime"
 detune :: Pattern Double -> ControlPattern
 detune = pF "detune"
+
+-- DJ filter
+djf :: Pattern Double -> ControlPattern
+djf = pF "djf"
+
 -- | when set to `1` will disable all reverb for this pattern. See `room` and `size` for more information about reverb.
 dry :: Pattern Double -> ControlPattern
 dry = pF "dry"
@@ -145,9 +165,13 @@ dry = pF "dry"
 -}
 end :: Pattern Double -> ControlPattern
 end = pF "end"
--- | a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder.
+
+-- | a pattern of numbers that specify volume. Values less than 1 make
+-- the sound quieter. Values greater than 1 make the sound louder. For
+-- the linear equivalent, see @amp@.
 gain :: Pattern Double -> ControlPattern
 gain = pF "gain"
+
 gate :: Pattern Double -> ControlPattern
 gate = pF "gate"
 hatgrain :: Pattern Double -> ControlPattern
@@ -384,6 +408,55 @@ ringdf = pF "ringdf"
 -- noisy fuzzy distortion
 distort :: Pattern Double -> ControlPattern
 distort = pF "distort"
+
+-- Spectral freeze
+freeze :: Pattern Double -> ControlPattern
+freeze = pF "freeze"
+
+-- Spectral delay
+xsdelay :: Pattern Double -> ControlPattern
+xsdelay = pF "xsdelay"
+
+tsdelay :: Pattern Double -> ControlPattern
+tsdelay = pF "tsdelay"
+
+-- Spectral conform
+real :: Pattern Double -> ControlPattern
+real = pF "real"
+
+imag :: Pattern Double -> ControlPattern
+imag = pF "imag"
+
+-- Spectral enhance
+enhance :: Pattern Double -> ControlPattern
+enhance = pF "enhance"
+
+partials :: Pattern Double -> ControlPattern
+partials = pF "partials"
+
+-- Spectral comb
+comb :: Pattern Double -> ControlPattern
+comb = pF "comb"
+
+-- Spectral smear
+smear :: Pattern Double -> ControlPattern
+smear = pF "smear"
+
+-- Spectral scramble
+scram :: Pattern Double -> ControlPattern
+scram = pF "scram"
+
+-- Spectral binshift
+binshift :: Pattern Double -> ControlPattern
+binshift = pF "binshift"
+
+-- High pass sort of spectral filter
+hbrick :: Pattern Double -> ControlPattern
+hbrick = pF "hbrick"
+
+-- Low pass sort of spectral filter
+lbrick :: Pattern Double -> ControlPattern
+lbrick = pF "lbrick"
 
 -- aliases
 att, bpf, bpq, chdecay, ctf, ctfg, delayfb, delayt, det, gat, hg, hpf, hpq, lag, lbd, lch, lcl, lcp, lcr, lfoc, lfoi

@@ -1,7 +1,6 @@
-module Sound.Tidal.Scales (scale, scaleList) where
+module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale) where
 
 import Data.Maybe
-import Data.List (intercalate)
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
@@ -171,7 +170,10 @@ chromatic :: Num a => [a]
 chromatic = [0,1,2,3,4,5,6,7,8,9,10,11]
 
 scale :: Num a => Pattern String -> Pattern Int -> Pattern a
-scale sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName scaleTable) n) <$> p <*> sp
+scale = getScale scaleTable
+
+getScale :: Num a => [(String, [a])] -> Pattern String -> Pattern Int -> Pattern a
+getScale table sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName table) n) <$> p <*> sp
   where octave s x = x `div` length s
         noteInScale s x = (s !!! x) + fromIntegral (12 * octave s x)
 

@@ -232,6 +232,10 @@ overlay p@(Pattern Analog _) p'@(Pattern Analog _) = Pattern Analog $ \st -> que
 -- Otherwise digital. Won't really work to have a mixture.. Hmm
 overlay p p' = Pattern Digital $ \st -> query p st ++ query p' st
 
+-- | An infix alias of @overlay@
+(<>) :: Pattern a -> Pattern a -> Pattern a
+(<>) = overlay
+
 -- | 'stack' combines a list of 'Pattern's into a new pattern, so that
 -- their events are combined over time.
 stack :: [Pattern a] -> Pattern a

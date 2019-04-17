@@ -88,6 +88,10 @@ instance Applicative ArcF where
 timeToCycleArc :: Time -> Arc
 timeToCycleArc t = Arc (sam t) (sam t + 1)
 
+-- | Shifts an arc to the equivalent one that starts during cycle zero
+cycleArc :: Arc -> Arc
+cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e-s))
+
 -- | A list of cycle numbers which are included in the given arc
 cyclesInArc :: Integral a => Arc -> [a]
 cyclesInArc (Arc s e)
@@ -219,8 +223,42 @@ data Pattern a = Pattern {nature :: Nature, query :: Query a}
 
 data Value = VS { svalue :: String }
            | VF { fvalue :: Double }
+           | VR { rvalue :: Rational }
            | VI { ivalue :: Int }
-           deriving (Eq,Ord,Typeable,Data)
+           deriving (Typeable,Data)
+
+instance Eq Value where
+  (VS x) == (VS y) = x == y
+  (VF x) == (VF y) = x == y
+  (VI x) == (VI y) = x == y
+  (VR x) == (VR y) = x == y
+  
+  (VF x) == (VI y) = x == (fromIntegral y)
+  (VI y) == (VF x) = x == (fromIntegral y)
+
+  (VF x) == (VR y) = (toRational x) == y
+  (VR y) == (VF x) = (toRational x) == y
+  (VI x) == (VR y) = (toRational x) == y
+  (VR y) == (VI x) = (toRational x) == y
+
+  (VS _) == _ = False
+  _ == (VS _) = False
+  
+instance Ord Value where
+  compare (VS x) (VS y) = compare x y
+  compare (VF x) (VF y) = compare x y
+  compare (VI x) (VI y) = compare x y
+  compare (VR x) (VR y) = compare x y
+  compare (VS _) _ = LT
+  compare _ (VS _) = GT
+  compare (VF x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VF y) = compare (fromIntegral x) y
+
+  compare (VR x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VR y) = compare (fromIntegral x) y
+
+  compare (VF x) (VR y) = compare x (fromRational y)
+  compare (VR x) (VF y) = compare (fromRational x) y
 
 type ControlMap = Map.Map String Value
 type ControlPattern = Pattern ControlMap
@@ -274,7 +312,16 @@ instance Applicative Pattern where
 
 -- | Like <*>, but the structure only comes from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<*) pf@(Pattern Digital _) px = Pattern Digital q
+(<*) pf@(Pattern Analog _) px@(Pattern Analog _) = Pattern Analog q
+  where q st = concatMap match $ query pf st
+          where
+            match (Event fWhole fPart f) =
+              map
+              (Event fWhole fPart . f . value) $
+              query px st -- for continuous events, use the original query
+
+-- If one of the patterns is digital, treat both as digital.. (TODO - needs extra thought)
+(<*) pf px = Pattern Digital q
   where q st = concatMap match $ query pf st
          where
             match (Event fWhole fPart f) =
@@ -283,17 +330,17 @@ instance Applicative Pattern where
               query px $ st {arc = xQuery fWhole}
             xQuery (Arc s _) = pure s -- for discrete events, match with the onset
 
-(<*) pf px = Pattern Analog q
-  where q st = concatMap match $ query pf st
-          where
-            match (Event fWhole fPart f) =
-              map
-              (Event fWhole fPart . f . value) $
-              query px st -- for continuous events, use the original query
-
 -- | Like <*>, but the structure only comes from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(*>) pf px@(Pattern Digital _) = Pattern Digital q
+(*>) pf@(Pattern Analog _) px@(Pattern Analog _) = Pattern Analog q
+  where q st = concatMap match $ query px st
+          where
+            match (Event xWhole xPart x) =
+              map
+              (\e -> Event xWhole xPart (value e x)) $
+              query pf st -- for continuous events, use the original query
+
+(*>) pf px = Pattern Digital q
   where q st = concatMap match $ query px st
          where
             match (Event xWhole xPart x) =
@@ -301,14 +348,6 @@ instance Applicative Pattern where
               (\e -> Event xWhole xPart (value e x)) $
               query pf $ fQuery xWhole
             fQuery (Arc s _) = st {arc = pure s} -- for discrete events, match with the onset
-
-(*>) pf px = Pattern Analog q
-  where q st = concatMap match $ query px st
-          where
-            match (Event xWhole xPart x) =
-              map
-              (\e -> Event xWhole xPart (value e x)) $
-              query pf st -- for continuous events, use the original query
 
 infixl 4 <*, *>
 
@@ -369,11 +408,11 @@ outerJoin pp = pp {query = q}
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
 -- timespan of the outer whole (or the original query if it's a continuous pattern?)
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
-unwrapSqueeze :: Pattern (Pattern a) -> Pattern a
-unwrapSqueeze pp = pp {query = q}
+squeezeJoin :: Pattern (Pattern a) -> Pattern a
+squeezeJoin pp = pp {query = q}
   where q st = concatMap
           (\(Event w p v) ->
-             mapMaybe (munge w p) $ query (compressArc w v) st {arc = p}
+             mapMaybe (munge w p) $ query (compressArc (cycleArc w) v) st {arc = p}
           )
           (query pp st)
         munge oWhole oPart (Event iWhole iPart v) =
@@ -390,6 +429,7 @@ class TolerantEq a where
 instance TolerantEq Value where
          (VS a) ~== (VS b) = a == b
          (VI a) ~== (VI b) = a == b
+         (VR a) ~== (VR b) = a == b
          (VF a) ~== (VF b) = abs (a - b) < 0.000001
          _ ~== _ = False
 
@@ -507,6 +547,7 @@ instance Show Value where
   show (VS s) = ('"':s) ++ "\""
   show (VI i) = show i
   show (VF f) = show f ++ "f"
+  show (VR r) = show r ++ "r"
 
 instance {-# OVERLAPPING #-} Show ControlMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
@@ -625,9 +666,10 @@ applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value ->
 applyFIS f _ _ (VF f') = VF $ f f'
 applyFIS _ f _ (VI i ) = VI $ f i
 applyFIS _ _ f (VS s ) = VS $ f s
+applyFIS _ _ _ v = v
 
 -- | Apply one of two functions to a Value, depending on its type (int
--- or float; strings are ignored)
+-- or float; strings and rationals are ignored)
 fNum2 :: (Int -> Int -> Int) -> (Double -> Double -> Double) -> Value -> Value -> Value
 fNum2 fInt _      (VI a) (VI b) = VI $ fInt a b
 fNum2 _    fFloat (VF a) (VF b) = VF $ fFloat a b
@@ -646,6 +688,10 @@ getF _  = Nothing
 getS :: Value -> Maybe String
 getS (VS s) = Just s
 getS _  = Nothing
+
+getR :: Value -> Maybe Rational
+getR (VR r) = Just r
+getR _  = Nothing
 
 compressArc :: Arc -> Pattern a -> Pattern a
 compressArc (Arc s e) p | s > e = empty
@@ -707,7 +753,7 @@ tParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b ->
 tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
-tParamSqueeze f tv p = unwrapSqueeze $ (`f` p) <$> tv
+tParamSqueeze f tv p = squeezeJoin $ (`f` p) <$> tv
 
 -- | Mark values in the first pattern which match with at least one
 -- value in the second pattern.

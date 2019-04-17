@@ -11,7 +11,7 @@ import           Control.Monad.ST
 import qualified Data.Vector as V
 import           Data.Word (Word32)
 import           Data.Ratio ((%),numerator,denominator)
-import           Data.List (sort, sortBy, sortOn, findIndices, elemIndex, groupBy, transpose)
+import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
@@ -161,7 +161,7 @@ chooseBy f xs = (xs !!) . floor <$> range 0 (fromIntegral $ length xs) f
 {- | Like @choose@, but works on an a list of tuples of values and weights
 
 @
-sound "superpiano(3,8)" # note (choose [("a",1), ("e",0.5), ("g",2), ("c",1)])
+sound "superpiano(3,8)" # note (wchoose [("a",1), ("e",0.5), ("g",2), ("c",1)])
 @
 
 In the above example, the "a" and "c" notes are twice as likely to
@@ -504,6 +504,8 @@ ifp test f1 f2 p = splitQueries $ p {query = q}
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the
 -- remainer of each cycle.
 wedge :: Time -> Pattern a -> Pattern a -> Pattern a
+wedge 0 _ p' = p'
+wedge 1 p _ = p
 wedge t p p' = overlay (_fastGap (1/t) p) (t `rotR` _fastGap (1/(1-t)) p')
 
 {- | @whenmod@ has a similar form and behavior to `every`, but requires an
@@ -745,7 +747,7 @@ euclidInv = tParam2 _euclidInv
 
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
 --_euclidInv n k p = flip const <$> filterValues (== False) (fastFromList $ bjorklund (n,k)) <*> p
-_euclidInv n k a = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
+_euclidInv n k a = fastcat $ fmap (bool a silence) $ bjorklund (n,k)
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
@@ -1049,11 +1051,6 @@ rationals are required) -}
 lindenmayerI :: Num b => Int -> String -> String -> [b]
 lindenmayerI n r s = fmap (fromIntegral . digitToInt) $ lindenmayer n r s
 
--- support for fit'
-unwrap' :: Pattern (Pattern a) -> Pattern a
-unwrap' pp = pp {query = \st -> query (stack $ map scalep (query pp st)) st}
-  where scalep ev = compressArc (whole ev) $ value ev
-
 {-|
 Removes events from second pattern that don't start during an event from first.
 
@@ -1104,7 +1101,7 @@ enclosingArc as = Arc (minimum (map start as)) (maximum (map stop as))
 stretch :: Pattern a -> Pattern a
 -- TODO - should that be whole or part?
 stretch p = splitQueries $ p {query = q}
-  where q st = query (zoomArc (enclosingArc $ map whole $ query p (st {arc = Arc (sam s) (nextSam s)})) p) st
+  where q st = query (zoomArc (cycleArc $ enclosingArc $ map whole $ query p (st {arc = Arc (sam s) (nextSam s)})) p) st
           where s = start $ arc st
 
 {- | `fit'` is a generalization of `fit`, where the list is instead constructed by using another integer pattern to slice up a given pattern.  The first argument is the number of cycles of that latter pattern to use when slicing.  It's easier to understand this with a few examples:
@@ -1125,7 +1122,7 @@ which uses `chop` to break a single sample into individual pieces, which `fit'` 
 
 -}
 fit' :: Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-fit' cyc n from to p = unwrap' $ fit n mapMasks to
+fit' cyc n from to p = squeezeJoin $ fit n mapMasks to
   where mapMasks = [stretch $ mask (const True <$> filterValues (== i) from') p'
                      | i <- [0..n-1]]
         p' = density cyc p
@@ -1190,6 +1187,7 @@ to change this use `toScale' size`.  Example:
 `toScale' 24 [0,4,7,10,14,17] (run 8)` turns into `"0 4 7 10 14 17 24 28"`
 -}
 toScale' :: Num a => Int -> [a] -> Pattern Int -> Pattern a
+toScale' _ [] = const silence
 toScale' o s = fmap noteInScale
   where octave x = x `div` length s
         noteInScale x = (s !!! x) + fromIntegral (o * octave x)
@@ -1209,12 +1207,8 @@ swing = swingBy (pure $ 1%3)
 
 {- | `cycleChoose` is like `choose` but only picks a new item from the list
 once each cycle -}
-cycleChoose::[a] -> Pattern a
-cycleChoose xs = Pattern {nature = Digital, query = q}
-  where q State {arc = Arc s e} = [Event (Arc s e) (Arc s e) (xs !! floor (dlen * ctrand s))]
-        dlen = fromIntegral $ length xs
-        ctrand s = (timeToRand :: Time -> Double) $ fromIntegral $ (floor :: Time -> Int) $ sam s
-
+cycleChoose :: [a] -> Pattern a
+cycleChoose = segment 1 . choose
 
 {- | Internal function used by shuffle and scramble -}
 _rearrangeWith :: Pattern Int -> Int -> Pattern a -> Pattern a
@@ -1275,7 +1269,7 @@ ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <
         timedValues = withEvent (\(Event a a' v) -> Event a a' (a,v))
 
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
-inhabit ps p = unwrap' $ (\s -> fromMaybe silence $ lookup s ps) <$> p
+inhabit ps p = squeezeJoin $ (\s -> fromMaybe silence $ lookup s ps) <$> p
 
 {- | @spaceOut xs p@ repeats a pattern @p@ at different durations given by the list of time values in @xs@ -}
 spaceOut :: [Time] -> Pattern a -> Pattern a
@@ -1393,7 +1387,6 @@ sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 sew stitch p1 p2 = overlay (const <$> p1 <* a) (const <$> p2 <* b)
   where a = filterValues id stitch
         b = filterValues not stitch
-
 
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n-1)]
@@ -1605,13 +1598,12 @@ tabby nInt p p' = stack [maskedWarp,
     maskedWeft = mask (every 2 rev $ _fast (n % 2) $ fastCat [silence, pure True]) weftP
     maskedWarp = mask (every 2 rev $ _fast (n % 2) $ fastCat [pure True, silence]) warpP
 
-_select :: Double -> [Pattern a] -> Pattern a
-_select f ps =  ps !! floor (max 0 (min 1 f) * fromIntegral (length ps - 1))
-
 -- | chooses between a list of patterns, using a pattern of floats (from 0-1)
 select :: Pattern Double -> [Pattern a] -> Pattern a
 select = tParam _select
 
+_select :: Double -> [Pattern a] -> Pattern a
+_select f ps =  ps !! floor (max 0 (min 1 f) * fromIntegral (length ps - 1))
 
 -- | chooses between a list of functions, using a pattern of floats (from 0-1)
 selectF :: Pattern Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
@@ -1619,6 +1611,13 @@ selectF pf ps p = innerJoin $ (\f -> _selectF f ps p) <$> pf
 
 _selectF :: Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
 _selectF f ps p =  (ps !! floor (max 0 (min 0.999999 f) * fromIntegral (length ps))) p
+
+-- | chooses between a list of functions, using a pattern of integers
+pickF :: Pattern Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
+pickF pi fs pat = innerJoin $ (\i -> _pickF i fs pat) <$> pi
+
+_pickF :: Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
+_pickF i fs p =  (fs !!! i) p
 
 -- | @contrast p f f' p'@ splits controlpattern @p'@ in two, applying
 -- the function @f@ to one and @f'@ to the other. This depends on
@@ -1734,7 +1733,6 @@ smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State 
 -- | Looks up values from a list of tuples, in order to swap values in the given pattern
 swap :: Eq a => [(a, b)] -> Pattern a -> Pattern b
 swap things p = filterJust $ (`lookup` things) <$> p
-swap things p = filterJust $ (\x -> lookup x things) <$> p
 
 {-
   snowball |
@@ -1748,3 +1746,42 @@ swap things p = filterJust $ (\x -> lookup x things) <$> p
 -}
 snowball :: Int -> (Pattern a -> Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 snowball depth combinationFunction f pattern = cat $ take depth $ scanl combinationFunction pattern $ iterate f pattern
+
+{- @soak@ | 
+    applies a function to a pattern and cats the resulting pattern,
+    then continues applying the function until the depth is reached
+    this can be used to create a pattern that wanders away from 
+    the original pattern by continually adding random numbers
+    d1 $ note (scale "hexDorian" mutateBy (+ (range -1 1 $ irand 2)) 8 $ "0 1 . 2 3 4") # s "gtr"
+-}
+soak ::  Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+soak depth f pattern = cat $ take depth $ iterate f pattern
+
+deconstruct :: Int -> Pattern String -> String
+deconstruct n p = intercalate " " $ map showStep $ toList p
+  where 
+    showStep :: [String] -> String
+    showStep [] = "~"
+    showStep [x] = x
+    showStep xs = "[" ++ (intercalate ", " xs) ++ "]"
+    toList :: Pattern a -> [[a]]
+    toList pat = map (\(s,e) -> map value $ queryArc (_segment n' pat) (Arc s e)) arcs
+      where breaks = [0, (1/n') ..]
+            arcs = zip (take n breaks) (drop 1 breaks)
+            n' = fromIntegral n
+
+{- @bite@ n ipat pat |
+  slices a pattern `pat` into `n` pieces, then uses the `ipat` pattern of integers to index into those slices.
+  So `bite 4 "0 2*2" (run 8)` is the same as `"[0 1] [4 5]*2"`.
+-}
+
+bite :: Int -> Pattern Int -> Pattern a -> Pattern a
+bite n ipat pat = squeezeJoin $ zoompat <$> ipat
+  where zoompat i = zoom (i'/(fromIntegral n), (i'+1)/(fromIntegral n)) pat
+           where i' = fromIntegral $ i `mod` n
+
+{- @squeeze@ ipat pats | uses a pattern of integers to index into a list of patterns.
+-}
+squeeze :: Pattern Int -> [Pattern a] -> Pattern a
+squeeze _ [] = silence
+squeeze ipat pats = squeezeJoin $ (pats !!!) <$> ipat

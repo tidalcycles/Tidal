@@ -14,6 +14,7 @@ import qualified Control.Exception as E
 -- import qualified Data.Bifunctor as BF
 -- import qualified Data.Bool as B
 -- import qualified Data.Char as C
+import           System.IO (hPutStrLn, stderr)
 
 import qualified Sound.OSC.FD as O
 
@@ -176,7 +177,8 @@ onTick config cMapMV pMV cxs tempoMV st =
      cMap <- readMVar cMapMV
      tempo <- readMVar tempoMV
      now <- O.time
-     let es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap})
+     let cMap' = Map.insert "_cps" (VF $ T.cps tempo) cMap
+         es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap'})
          on e = (sched tempo $ start $ whole e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
          messages target = catMaybes $ map (\e -> do m <- toMessage (on e + latency target) target tempo e
@@ -231,16 +233,24 @@ streamList s = do pMap <- readMVar (sPMapMV s)
 streamReplace :: Show a => Stream -> a -> ControlPattern -> IO ()
 streamReplace s k pat
   = E.catch (do let x = queryArc pat (Arc 0 0)
+                tempo <- readMVar $ sTempoMV s
+                input <- takeMVar $ sInput s
+                -- put change time in control input
+                now <- O.time
+                let cycle = T.timeToCycles tempo now
+                putMVar (sInput s) $
+                  Map.insert ("_t_all") (VR cycle) $ Map.insert ("_t_" ++ show k) (VR cycle) input
+                -- update the pattern itself
                 pMap <- seq x $ takeMVar $ sPMapMV s
                 let playState = updatePS $ Map.lookup (show k) pMap
                 putMVar (sPMapMV s) $ Map.insert (show k) playState pMap
                 calcOutput s
                 return ()
           )
-    (\(e :: E.SomeException) -> putStrLn $ "Error in pattern: " ++ show e
+    (\(e :: E.SomeException) -> hPutStrLn stderr $ "Error in pattern: " ++ show e
     )
   where updatePS (Just playState) = do playState {pattern = pat, history = pat:(history playState)}
-        updatePS Nothing = PlayState pat False False []
+        updatePS Nothing = PlayState pat False False [pat]
 
 streamMute :: Show a => Stream -> a -> IO ()
 streamMute s k = withPatId s (show k) (\x -> x {mute = True})
@@ -257,28 +267,27 @@ streamSolo s k = withPatId s (show k) (\x -> x {solo = True})
 streamUnsolo :: Show a => Stream -> a -> IO ()
 streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
 
-streamOnce :: Stream -> Bool -> ControlPattern -> IO ()
-streamOnce st asap p
+streamOnce :: Stream -> ControlPattern -> IO ()
+streamOnce st p
   = do cMap <- readMVar (sInput st)
        tempo <- readMVar (sTempoMV st)
        now <- O.time
-       let latency target | asap = 0
-                          | otherwise = oLatency target
-           fakeTempo = T.Tempo {T.cps = T.cps tempo,
+       let fakeTempo = T.Tempo {T.cps = T.cps tempo,
                                 T.atCycle = 0,
                                 T.atTime = now,
                                 T.paused = False,
                                 T.nudged = 0
                                }
+           cMap' = Map.insert "_cps" (VF $ T.cps tempo) cMap
            es = filter eventHasOnset $ query p (State {arc = (Arc 0 1),
-                                                       controls = cMap
+                                                       controls = cMap'
                                                       }
                                                )
            at e = sched fakeTempo $ start $ whole e
            on e = sched tempo $ start $ whole e
            cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
            messages target =
-             catMaybes $ map (\e -> do m <- toMessage (at e + (latency target)) target fakeTempo e
+             catMaybes $ map (\e -> do m <- toMessage (at e + (oLatency target)) target fakeTempo e
                                        return $ (at e, m)
                              ) es
        mapM_ (\(Cx target udp) ->
@@ -308,7 +317,7 @@ streamMuteAll s = do modifyMVar_ (sOutput s) $ return . const silence
 
 streamHush :: Stream -> IO ()
 streamHush s = do modifyMVar_ (sOutput s) $ return . const silence
-                  modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {pattern = silence})
+                  modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {pattern = silence, history = silence:history x})
 
 streamUnmuteAll :: Stream -> IO ()
 streamUnmuteAll s = do modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = False})

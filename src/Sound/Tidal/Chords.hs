@@ -110,13 +110,13 @@ chordTable = [("major", major),
               ("maj", major),
               ("minor", minor),
               ("min", minor),
+              ("aug", aug),
+              ("dim", dim),
               ("major7", major7),
               ("maj7", major7),
               ("dom7", dom7),
               ("minor7", minor7),
               ("min7", minor7),
-              ("aug", aug),
-              ("dim", dim),
               ("dim7", dim7),
               ("one", one),
               ("1", one),
@@ -181,4 +181,7 @@ chordTable = [("major", major),
 
 chordL :: Num a => Pattern String -> Pattern [a]
 chordL p = (\name -> fromMaybe [] $ lookup name chordTable) <$> p
+
+chordList :: String
+chordList = unwords $ map fst (chordTable :: [(String, [Int])])
 
