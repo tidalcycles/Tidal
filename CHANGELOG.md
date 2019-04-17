@@ -1,7 +1,23 @@
 # TidalCycles log of changes
 
 ## 1.0.11 - as yet unnamed
-* Add `bite` function for slicing patterns
+
+2019-04-17  Alex McLean  <alex@slab.org>
+	* Add `bite` function for slicing patterns (rather than samples)
+	* Tweak tidal.el to attempt to infer location of default BootTidal.hs
+	* Skip time (forward or backward) if the reference clock jumps suddenly
+	* Fix `fit` - @bgold-cosmos
+	* Remove 'asap'
+	* Add cB for boolean control input
+	* `pickF` for choosing between functions with a pattern of integers
+	* `select` for choosing between list of patterns with a floating point pattern
+	* `squeeze` for choosing between list of patterns with a pattern of integers, where patterns are squeezed into the integer event duration
+	* `splice` for choosing between slices of a pattern, where the slices are squeezed into event duration
+	* Ord and Eq instances for value type @bgold-cosmos
+	* `trigger` - support for resetting envelopes on evaluation
+	* Support for rational event values
+	* Tweak how `*>` and `<*` deal with analog patterns
+	* Caribiner link bridge support
 
 ## 1.0.10 - This machine also kills fascists
 * Add exports to Sound.Tidal.Scales for `getScale` and `scaleTable`
