@@ -14,10 +14,10 @@ import qualified Sound.OSC.FD as O
 
 port = 17000
 
-start :: S.Stream -> Int -> Double -> IO Socket
-start tidal bpc latency = do sock <- client tidal bpc latency "127.0.0.1" 17000
-                             sendMsg sock "status\n"
-                             return sock
+carabiner :: S.Stream -> Int -> Double -> IO Socket
+carabiner tidal bpc latency = do sock <- client tidal bpc latency "127.0.0.1" 17000
+                                 sendMsg sock "status\n"
+                                 return sock
 
 client :: S.Stream -> Int -> Double -> String -> Int -> IO Socket
 client tidal bpc latency host port = withSocketsDo $
