@@ -1734,6 +1734,19 @@ smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State 
 swap :: Eq a => [(a, b)] -> Pattern a -> Pattern b
 swap things p = filterJust $ (`lookup` things) <$> p
 
+{-
+  snowball |
+  snowball takes a function that can combine patterns (like '+'),
+  a function that transforms a pattern (like 'slow'),
+  a depth, and a starting pattern,
+  it will then transform the pattern and combine it with the last transformation until the depth is reached
+  this is like putting an effect (like a filter) in the feedback of a delay line
+  each echo is more effected
+  d1 $ note (scale "hexDorian" $ snowball (+) (slow 2 . rev) 8 "0 ~ . -1 . 5 3 4 . ~ -2") # s "gtr"
+-}
+snowball :: Int -> (Pattern a -> Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+snowball depth combinationFunction f pattern = cat $ take depth $ scanl combinationFunction pattern $ iterate f pattern
+
 {- @soak@ | 
     applies a function to a pattern and cats the resulting pattern,
     then continues applying the function until the depth is reached
