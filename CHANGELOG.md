@@ -1,6 +1,11 @@
 # TidalCycles log of changes
 
-## 1.0.11 - as yet unnamed
+## 1.0.12 - 🐝⌛️🦋
+
+* Fix ESPGrid support - @dktr0
+* Add 'snowball' function - @XiNNiW
+
+## 1.0.11 - Cros Bríde
 
 2019-04-17  Alex McLean  <alex@slab.org>
 	* Add `bite` function for slicing patterns (rather than samples)
