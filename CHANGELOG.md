@@ -3,7 +3,7 @@
 ## 1.0.12 - 🐝⌛️🦋
 
 * Fix ESPGrid support - @dktr0
-* Add 'snowbal'' function - @XiNNiW
+* Add 'snowball' function - @XiNNiW
 
 ## 1.0.11 - Cros Bríde
 
