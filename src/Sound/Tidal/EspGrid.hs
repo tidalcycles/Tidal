@@ -1,13 +1,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Sound.Tidal.EspGrid (espgrid, tidalEspGridLink,cpsEsp) where
+module Sound.Tidal.EspGrid (tidalEspGridLink,cpsEsp) where
 
 import Control.Concurrent.MVar
 import Control.Concurrent (forkIO,threadDelay)
 import Control.Monad (forever)
 import Sound.OSC.FD
 import Sound.Tidal.Tempo
-import Sound.Tidal.Stream (Stream, sTempoMV)
 
 parseEspTempo :: [Datum] -> Maybe (Tempo -> Tempo)
 parseEspTempo d = do
@@ -35,11 +34,7 @@ changeTempo t (Packet_Message msg) =
 changeTempo _ _ = putStrLn "Serious error: Can only process Packet_Message"
 
 tidalEspGridLink :: MVar Tempo -> IO ()
-tidalEspGridLink _ = putStrLn "Function no longer supported, please use 'espgrid tidal' to connect to ESPgrid instead."
-
-espgrid :: Stream -> IO ()
-espgrid st = do
-  let t = sTempoMV st
+tidalEspGridLink t = do
   socket <- openUDP "127.0.0.1" 5510
   _ <- forkIO $ forever $ do
     _ <- sendMessage socket $ Message "/esp/tempo/q" []
