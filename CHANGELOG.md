@@ -1,5 +1,9 @@
 # TidalCycles log of changes
 
+## 1.0.13 - 🐝⌛️🦋 #2
+
+* Simplify espgrid support - @yaxu
+
 ## 1.0.12 - 🐝⌛️🦋
 
 * Fix ESPGrid support - @dktr0
