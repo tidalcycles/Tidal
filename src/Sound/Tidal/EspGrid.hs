@@ -5,6 +5,7 @@ module Sound.Tidal.EspGrid (tidalEspGridLink,cpsEsp) where
 import Control.Concurrent.MVar
 import Control.Concurrent (forkIO,threadDelay)
 import Control.Monad (forever)
+import Control.Exception
 import Sound.OSC.FD
 import Sound.Tidal.Tempo
 
@@ -25,22 +26,21 @@ parseEspTempo d = do
 
 changeTempo :: MVar Tempo -> Packet -> IO ()
 changeTempo t (Packet_Message msg) =
-    case parseEspTempo (messageDatum msg) of
-      Just f -> do
-        t0 <- takeMVar t
-        let t1 = f t0
-        putMVar t t1
-      Nothing -> putStrLn "Warning: Unable to parse message (likely from EspGrid) as Tempo"
+  case parseEspTempo (messageDatum msg) of
+    Just f -> modifyMVarMasked_ t $ \t0 -> return (f t0)
+    Nothing -> putStrLn "Warning: Unable to parse message from EspGrid as Tempo"
 changeTempo _ _ = putStrLn "Serious error: Can only process Packet_Message"
 
 tidalEspGridLink :: MVar Tempo -> IO ()
 tidalEspGridLink t = do
   socket <- openUDP "127.0.0.1" 5510
   _ <- forkIO $ forever $ do
-    _ <- sendMessage socket $ Message "/esp/tempo/q" []
-    response <- waitAddress socket "/esp/tempo/r"
-    Sound.Tidal.EspGrid.changeTempo t response
-    threadDelay 200000
+    (do
+      sendMessage socket $ Message "/esp/tempo/q" []
+      response <- waitAddress socket "/esp/tempo/r"
+      Sound.Tidal.EspGrid.changeTempo t response
+      threadDelay 200000)
+      `catch` (\e -> putStrLn $ "exception caught in tidalEspGridLink: " ++ show (e :: SomeException))
   return ()
 
 cpsEsp :: Real t => t -> IO ()
