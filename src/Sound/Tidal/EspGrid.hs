@@ -17,7 +17,7 @@ parseEspTempo d = do
   n :: Integer <- datum_integral (d!!4)
   let nanos = (t1*1000000000) + t2
   return $ \t -> t {
-    atTime = realToFrac nanos / 1000000000,
+    atTime = ut_to_ntpr $ realToFrac nanos / 1000000000,
     atCycle = fromIntegral n,
     cps = bpm/60,
     paused = on == 0
@@ -26,7 +26,10 @@ parseEspTempo d = do
 changeTempo :: MVar Tempo -> Packet -> IO ()
 changeTempo t (Packet_Message msg) =
     case parseEspTempo (messageDatum msg) of
-      Just f -> takeMVar t >>= putMVar t . f
+      Just f -> do
+        t0 <- takeMVar t
+        let t1 = f t0
+        putMVar t t1
       Nothing -> putStrLn "Warning: Unable to parse message (likely from EspGrid) as Tempo"
 changeTempo _ _ = putStrLn "Serious error: Can only process Packet_Message"
 
