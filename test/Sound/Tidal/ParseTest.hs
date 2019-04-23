@@ -34,6 +34,10 @@ run =
         compareP (Arc 0 2)
           ("a*8" :: Pattern String)
           (fast 8 "a")
+      it "can elongate with _" $ do
+        compareP (Arc 0 2)
+          ("a _ _ b _" :: Pattern String)
+          (timeCat [(3,"a"), (2,"b")])
       it "can do polymeter with {}" $ do
         compareP (Arc 0 2)
           ("{a b, c d e}" :: Pattern String)

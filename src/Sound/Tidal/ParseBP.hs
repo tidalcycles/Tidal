@@ -250,7 +250,10 @@ pSequenceN f = do spaces
                                <|> do es <- many1 (symbol "_")
                                       return [TPat_Elongate (length es)]
                   let ps' = TPat_Cat $ map elongate $ splitFeet $ concat ps
-                  return (length ps, ps')
+                      extraElongate (TPat_Elongate n) = n-1
+                      extraElongate _ = 0
+                      sumElongates x = sum (map extraElongate x)
+                  return (length ps + sumElongates (concat ps), ps')
 
 elongate :: [TPat a] -> TPat a
 elongate xs | any isElongate xs = TPat_TimeCat xs
