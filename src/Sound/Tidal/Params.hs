@@ -298,6 +298,9 @@ pitch3 :: Pattern Double -> ControlPattern
 pitch3 = pF "pitch3"
 portamento :: Pattern Double -> ControlPattern
 portamento = pF "portamento"
+-- | used in SuperDirt softsynths as a control rate or "speed"
+rate :: Pattern Double -> ControlPattern
+rate = pF "rate"
 -- | a pattern of numbers to specify the release time (in seconds) of an envelope applied to each sample. Only takes effect if `attack` is also specified.
 release :: Pattern Double -> ControlPattern
 release = pF "release"
