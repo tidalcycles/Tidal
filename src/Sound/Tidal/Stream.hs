@@ -28,7 +28,7 @@ data TimeStamp = BundleStamp | MessageStamp | NoStamp
  deriving (Eq, Show)
 
 data Stream = Stream {sConfig :: Config,
-                      sInput :: MVar ControlMap,
+                      sInput :: MVar StateMap,
                       sOutput :: MVar ControlPattern,
                       sListenTid :: Maybe ThreadId,
                       sPMapMV :: MVar PlayMap,
@@ -110,15 +110,15 @@ dirtTarget = OSCTarget {oName = "Dirt",
                          oTimestamp = MessageStamp
                        }
 
-startStream :: Config -> MVar ControlMap -> [OSCTarget] -> IO (MVar ControlPattern, MVar T.Tempo, [Cx])
-startStream config cMapMV targets
+startStream :: Config -> MVar StateMap -> [OSCTarget] -> IO (MVar ControlPattern, MVar T.Tempo, [Cx])
+startStream config sMapMV targets
   = do cxs <- mapM (\target -> do u <- O.openUDP (oAddress target) (oPort target)
                                   return $ Cx {cxUDP = u,
                                                cxTarget = target
                                               }
                    ) targets
        pMV <- newMVar empty
-       (tempoMV, _) <- T.clocked config $ onTick config cMapMV pMV cxs
+       (tempoMV, _) <- T.clocked config $ onTick config sMapMV pMV cxs
        return $ (pMV, tempoMV, cxs)
 
 
@@ -135,6 +135,9 @@ toDatum :: Value -> O.Datum
 toDatum (VF x) = O.float x
 toDatum (VI x) = O.int32 x
 toDatum (VS x) = O.string x
+toDatum (VR x) = O.float $ ((fromRational x) :: Double)
+toDatum (VB True) = O.int32 (1 :: Int)
+toDatum (VB False) = O.int32 (0 :: Int)
 
 toData :: OSCTarget -> Event ControlMap -> Maybe [O.Datum]
 toData target e
@@ -171,14 +174,14 @@ doCps tempoMV (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d *
                                       return ()
 doCps _ _ = return ()
 
-onTick :: Config -> MVar ControlMap -> MVar ControlPattern -> [Cx] -> MVar T.Tempo -> T.State -> IO ()
-onTick config cMapMV pMV cxs tempoMV st =
+onTick :: Config -> MVar StateMap -> MVar ControlPattern -> [Cx] -> MVar T.Tempo -> T.State -> IO ()
+onTick config sMapMV pMV cxs tempoMV st =
   do p <- readMVar pMV
-     cMap <- readMVar cMapMV
+     sMap <- readMVar sMapMV
      tempo <- readMVar tempoMV
      now <- O.time
-     let cMap' = Map.insert "_cps" (VF $ T.cps tempo) cMap
-         es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = cMap'})
+     let sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
+         es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = sMap'})
          on e = (sched tempo $ start $ whole e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
          messages target = catMaybes $ map (\e -> do m <- toMessage (on e + latency target) target tempo e
@@ -237,9 +240,9 @@ streamReplace s k pat
                 input <- takeMVar $ sInput s
                 -- put change time in control input
                 now <- O.time
-                let cycle = T.timeToCycles tempo now
+                let cyc = T.timeToCycles tempo now
                 putMVar (sInput s) $
-                  Map.insert ("_t_all") (VR cycle) $ Map.insert ("_t_" ++ show k) (VR cycle) input
+                  Map.insert ("_t_all") (pure $ VR cyc) $ Map.insert ("_t_" ++ show k) (pure $ VR cyc) input
                 -- update the pattern itself
                 pMap <- seq x $ takeMVar $ sPMapMV s
                 let playState = updatePS $ Map.lookup (show k) pMap
@@ -269,7 +272,7 @@ streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
 
 streamOnce :: Stream -> ControlPattern -> IO ()
 streamOnce st p
-  = do cMap <- readMVar (sInput st)
+  = do sMap <- readMVar (sInput st)
        tempo <- readMVar (sTempoMV st)
        now <- O.time
        let fakeTempo = T.Tempo {T.cps = T.cps tempo,
@@ -278,9 +281,9 @@ streamOnce st p
                                 T.paused = False,
                                 T.nudged = 0
                                }
-           cMap' = Map.insert "_cps" (VF $ T.cps tempo) cMap
+           sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
            es = filter eventHasOnset $ query p (State {arc = (Arc 0 1),
-                                                       controls = cMap'
+                                                       controls = sMap'
                                                       }
                                                )
            at e = sched fakeTempo $ start $ whole e
@@ -328,6 +331,27 @@ streamAll :: Stream -> (ControlPattern -> ControlPattern) -> IO ()
 streamAll s f = do _ <- swapMVar (sGlobalFMV s) f
                    calcOutput s
 
+streamSet :: Valuable a => Stream -> String -> Pattern a -> IO ()
+streamSet s k pat = do sMap <- takeMVar $ sInput s
+                       let pat' = toValue <$> pat
+                           sMap' = Map.insert k pat' sMap
+                       putMVar (sInput s) $ sMap'
+
+streamSetI :: Stream -> String -> Pattern Int -> IO ()
+streamSetI = streamSet
+
+streamSetF :: Stream -> String -> Pattern Double -> IO ()
+streamSetF = streamSet
+
+streamSetS :: Stream -> String -> Pattern String -> IO ()
+streamSetS = streamSet
+
+streamSetB :: Stream -> String -> Pattern Bool -> IO ()
+streamSetB = streamSet
+
+streamSetR :: Stream -> String -> Pattern Rational -> IO ()
+streamSetR = streamSet
+
 calcOutput :: Stream -> IO ()
 calcOutput s = do pMap <- readMVar $ sPMapMV s
                   globalF <- (readMVar $ sGlobalFMV s)
@@ -344,13 +368,13 @@ startTidal target config = startMulti [target] config
 
 startMulti :: [OSCTarget] -> Config -> IO Stream
 startMulti targets config =
-  do cMapMV <- newMVar (Map.empty :: ControlMap)
-     listenTid <- ctrlListen cMapMV config
-     (pMV, tempoMV, cxs) <- startStream config cMapMV targets
+  do sMapMV <- newMVar (Map.empty :: StateMap)
+     listenTid <- ctrlListen sMapMV config
+     (pMV, tempoMV, cxs) <- startStream config sMapMV targets
      pMapMV <- newMVar Map.empty
      globalFMV <- newMVar id
      return $ Stream {sConfig = config,
-                      sInput = cMapMV,
+                      sInput = sMapMV,
                       sListenTid = listenTid,
                       sOutput = pMV,
                       sPMapMV = pMapMV,
@@ -359,8 +383,8 @@ startMulti targets config =
                       sCxs = cxs
                      }
 
-ctrlListen :: MVar ControlMap -> Config -> IO (Maybe ThreadId)
-ctrlListen cMapMV c
+ctrlListen :: MVar StateMap -> Config -> IO (Maybe ThreadId)
+ctrlListen sMapMV c
   | cCtrlListen c = do putStrLn $ "Listening for controls on " ++ cCtrlAddr c ++ ":" ++ show (cCtrlPort c)
                        catchAny run (\_ -> do putStrLn $ "Control listen failed. Perhaps there's already another tidal instance listening on that port?"
                                               return Nothing
@@ -383,27 +407,12 @@ ctrlListen cMapMV c
           = add (O.ascii_to_string k) (VI $ fromIntegral v)
         act m = putStrLn $ "Unhandled OSC: " ++ show m
         add :: String -> Value -> IO ()
-        add k v = do cMap <- takeMVar cMapMV
-                     putMVar cMapMV $ Map.insert k v cMap
+        add k v = do sMap <- takeMVar sMapMV
+                     putMVar sMapMV $ Map.insert k (pure v) sMap
                      return ()
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch
 
-{-
-listenCMap :: MVar ControlMap -> IO ()
-listenCMap cMapMV = do sock <- O.udpServer "127.0.0.1" (6011)
-                       _ <- forkIO $ loop sock
-                       return ()
-  where loop sock =
-          do ms <- O.recvMessages sock
-             mapM_ readMessage ms
-             loop sock
-        readMessage (O.Message _ (O.ASCII_String k:v@(O.Float _):[])) = add (O.ascii_to_string k) (VF $ fromJust $ O.datum_floating v)
-        readMessage (O.Message _ (O.ASCII_String k:O.ASCII_String v:[])) = add (O.ascii_to_string k) (VS $ O.ascii_to_string v)
-        readMessage (O.Message _ (O.ASCII_String k:O.Int32 v:[]))  = add (O.ascii_to_string k) (VI $ fromIntegral v)
-        readMessage _ = return ()
-        add :: String -> Value -> IO ()
-        add k v = do cMap <- takeMVar cMapMV
-                     putMVar cMapMV $ Map.insert k v cMap
-                     return ()
--}
+
+
+
