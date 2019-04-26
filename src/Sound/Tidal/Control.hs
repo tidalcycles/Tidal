@@ -369,81 +369,68 @@ msec p = ((realToFrac . (/1000)) <$> cF 1 "_cps") *| p
 
 trigger :: Show a => a -> Pattern b -> Pattern b
 trigger k pat = pat {query = q}
-  where q st = query (rotR (offset st) pat) st
-        offset st = fromMaybe 0 $ Map.lookup ctrl (controls st) >>= getR
+  where q st = query ((offset st) ~> pat) st
+        offset st = fromMaybe (pure 0) $ do pat <- Map.lookup ctrl (controls st)
+                                            return $ ((fromMaybe 0 . getR) <$> pat)
         ctrl = "_t_" ++ show k
 
-cI :: String -> Pattern Int
-cI s = Pattern Analog $ \(State a m) -> maybe [] (f a) $ Map.lookup s m
-  where f a (VI v) = [Event a a v]
-        f a (VF v) = [Event a a (floor v)]
-        f a (VR v) = [Event a a (floor v)]
-        f a (VS v) = maybe [] (\v' -> [Event a a v']) (readMaybe v)
 
-_cX :: (Arc -> Value -> [Event a]) -> [a] -> String -> Pattern a
-_cX f ds s = Pattern Analog $
-               \(State a m) -> maybe (map (Event a a) ds) (f a) $ Map.lookup s m
+_getP_ :: (Value -> Maybe a) -> Pattern Value -> Pattern a
+_getP_ f pat = filterJust $ f <$> pat
 
-_cF :: [Double] -> String -> Pattern Double
-_cF = _cX f
-  where f a (VI v) = [Event a a (fromIntegral v)]
-        f a (VR v) = [Event a a (fromRational v)]
-        f a (VF v) = [Event a a v]
-        f a (VS v) = maybe [] (\v' -> [Event a a v']) (readMaybe v)
+_getP :: a -> (Value -> Maybe a) -> Pattern Value -> Pattern a
+_getP d f pat = (fromMaybe d . f) <$> pat
+
+_cX :: a -> (Value -> Maybe a) -> String -> Pattern a
+_cX d f s = Pattern Analog $ \(State a m) -> queryArc (maybe (pure d) (_getP d f) $ Map.lookup s m) a
+
+_cX_ :: (Value -> Maybe a) -> String -> Pattern a
+_cX_ f s = Pattern Analog $ \(State a m) -> queryArc (maybe silence (_getP_ f) $ Map.lookup s m) a
 
 cF :: Double -> String -> Pattern Double
-cF d = _cF [d]
-cF0 :: String -> Pattern Double
-cF0 = _cF [0]
+cF d = _cX d getF
 cF_ :: String -> Pattern Double
-cF_ = _cF []
+cF_ = _cX_ getF
+cF0 :: String -> Pattern Double
+cF0 = _cX 0 getF
+
+cI :: Int -> String -> Pattern Int
+cI d = _cX d getI
+cI_ :: String -> Pattern Int
+cI_ = _cX_ getI
+cI0 :: String -> Pattern Int
+cI0 = _cX 0 getI
 
 cB :: Bool -> String -> Pattern Bool
-cB b = _cB [b]
-_cB :: [Bool] -> String -> Pattern Bool
-_cB = _cX f
-  where f a (VI v) = [Event a a (v /= 0)]
-        f a (VF v) = [Event a a (v >= 0.5)]
-        f a (VR v) = [Event a a (v >= (1%2))]
-        f a (VS v) = maybe [] (\v' -> [Event a a (v' == "t")]) (readMaybe v)
+cB d = _cX d getB
+cB_ :: String -> Pattern Bool
+cB_ = _cX_ getB
+cB0 :: String -> Pattern Bool
+cB0 = _cX False getB
+
+cR :: Rational -> String -> Pattern Rational
+cR d = _cX d getR
+cR_ :: String -> Pattern Rational
+cR_ = _cX_ getR
+cR0 :: String -> Pattern Rational
+cR0 = _cX 0 getR
 
 cT :: Time -> String -> Pattern Time
-cT d = (toRational <$>) . cF (fromRational d)
+cT = cR
 cT0 :: String -> Pattern Time
-cT0 = (toRational <$>) . cF0
+cT0 = cR0
 cT_ :: String -> Pattern Time
-cT_ = (toRational <$>) . cF_
+cT_ = cR_
 
-
-cR :: Time -> String -> Pattern Rational
-cR = cT
-cR0 :: String -> Pattern Time
-cR0 = cT0
-cR_ :: String -> Pattern Time
-cR_ = cT_
-
-_cS :: [String] -> String -> Pattern String
-_cS = _cX f
-  where f a (VI v) = [Event a a (show v)]
-        f a (VF v) = [Event a a (show v)]
-        f a (VR v) = [Event a a (show v)]
-        f a (VS v) = [Event a a v]
 cS :: String -> String -> Pattern String
-cS d = _cS [d]
+cS d = _cX d getS
 cS_ :: String -> Pattern String
-cS_ = _cS []
+cS_ = _cX_ getS
+cS0 :: String -> Pattern String
+cS0 = _cX "" getS
 
-_cP :: (Enumerable a, Parseable a) => [Pattern a] -> String -> Pattern a
-_cP ds s = innerJoin $ _cX f ds s
-  where f a (VI v) = [Event a a (parseBP_E $ show v)]
-        f a (VF v) = [Event a a (parseBP_E $ show v)]
-        f a (VR v) = [Event a a (parseBP_E $ show v)]
-        f a (VS v) = [Event a a (parseBP_E v)]
-
-cP :: (Enumerable a, Parseable a) => Pattern a -> String -> Pattern a
-cP d = _cP [d]
-cP_ :: (Enumerable a, Parseable a) => String -> Pattern a
-cP_ = _cP []
+cP :: String -> Pattern String
+cP s = innerJoin $ parseBP_E <$> (_cX_ getS s)
 
 -- Default controller inputs (for MIDI)
 in0 :: Pattern Double

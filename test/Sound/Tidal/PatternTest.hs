@@ -248,7 +248,7 @@ run =
 
     describe "controlI" $ do
       it "can retrieve values from state" $
-       (query (pure 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (VF 0.5)))
+       (query (pure 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (pure $ VF 0.5)))
        `shouldBe` [(Event (Arc (0 % 1) (1 % 1)) (Arc (0 % 1) (1 % 1)) 3.5)]
 
     describe "wholeStart" $ do 
@@ -480,17 +480,20 @@ run =
       it "get Just value when Int value is supplied" $ do
         let res = getI (VI 3)
         property $ (Just 3) === res
-      it "get Nothing if Int value is not supplied" $ do
-        let res = getI (VF 3)
+      it "get floored value when float value is supplied" $ do
+        let res = getI (VF 3.5)
+        property $ (Just 3) === res
+      it "get Nothing if String value is supplied" $ do
+        let res = getI (VS "3")
         property $ Nothing === res
 
-    describe "getf" $ do 
+    describe "getF" $ do 
      it "get Just value when Float value is supplied" $ do
        let res = getF (VF 3)
        property $ (Just 3.0) === res
-     it "get Nothing if Int value is not supplied" $ do
+     it "get converted value if Int value is supplied" $ do
        let res = getF (VI 3)
-       property $ Nothing === res
+       property $ (Just 3.0) === res
 
     describe "getS" $ do 
      it "get Just value when String value is supplied" $ do

@@ -207,7 +207,7 @@ toEvent (((ws, we), (ps, pe)), v) = Event (Arc ws we) (Arc ps pe) v
 
 -- | an Arc and some named control values
 data State = State {arc :: Arc,
-                    controls :: ControlMap
+                    controls :: StateMap
                    }
 
 -- | A function that represents events taking place over time
@@ -225,10 +225,27 @@ data Value = VS { svalue :: String }
            | VF { fvalue :: Double }
            | VR { rvalue :: Rational }
            | VI { ivalue :: Int }
+           | VB { bvalue :: Bool }
            deriving (Typeable,Data)
+
+class Valuable a where
+  toValue :: a -> Value
+
+instance Valuable String where
+  toValue = VS
+instance Valuable Double where
+  toValue a = VF a
+instance Valuable Rational where
+  toValue a = VR a
+instance Valuable Int where
+  toValue a = VI a
+instance Valuable Bool where
+  toValue a = VB a
 
 instance Eq Value where
   (VS x) == (VS y) = x == y
+  (VB x) == (VB y) = x == y
+
   (VF x) == (VF y) = x == y
   (VI x) == (VI y) = x == y
   (VR x) == (VR y) = x == y
@@ -241,16 +258,19 @@ instance Eq Value where
   (VI x) == (VR y) = (toRational x) == y
   (VR y) == (VI x) = (toRational x) == y
 
-  (VS _) == _ = False
-  _ == (VS _) = False
+
+  _ == _ = False
   
 instance Ord Value where
   compare (VS x) (VS y) = compare x y
+  compare (VB x) (VB y) = compare x y
   compare (VF x) (VF y) = compare x y
   compare (VI x) (VI y) = compare x y
   compare (VR x) (VR y) = compare x y
   compare (VS _) _ = LT
   compare _ (VS _) = GT
+  compare (VB _) _ = LT
+  compare _ (VB _) = GT
   compare (VF x) (VI y) = compare x (fromIntegral y)
   compare (VI x) (VF y) = compare (fromIntegral x) y
 
@@ -260,6 +280,7 @@ instance Ord Value where
   compare (VF x) (VR y) = compare x (fromRational y)
   compare (VR x) (VF y) = compare (fromRational x) y
 
+type StateMap = Map.Map String (Pattern Value)
 type ControlMap = Map.Map String Value
 type ControlPattern = Pattern ControlMap
 
@@ -548,6 +569,7 @@ instance Show Value where
   show (VI i) = show i
   show (VF f) = show f ++ "f"
   show (VR r) = show r ++ "r"
+  show (VB b) = show b
 
 instance {-# OVERLAPPING #-} Show ControlMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
@@ -679,18 +701,28 @@ fNum2 _    _      x      _      = x
 
 getI :: Value -> Maybe Int
 getI (VI i) = Just i
+getI (VR x) = Just $ floor x
+getI (VF x) = Just $ floor x
 getI _  = Nothing
 
 getF :: Value -> Maybe Double
 getF (VF f) = Just f
+getF (VR x) = Just $ fromRational x
+getF (VI x) = Just $ fromIntegral x
 getF _  = Nothing
 
 getS :: Value -> Maybe String
 getS (VS s) = Just s
 getS _  = Nothing
 
+getB :: Value -> Maybe Bool
+getB (VB b) = Just b
+getB _  = Nothing
+
 getR :: Value -> Maybe Rational
 getR (VR r) = Just r
+getR (VF x) = Just $ toRational x
+getR (VI x) = Just $ toRational x
 getR _  = Nothing
 
 compressArc :: Arc -> Pattern a -> Pattern a
