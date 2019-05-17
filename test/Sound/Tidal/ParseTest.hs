@@ -38,6 +38,18 @@ run =
         compareP (Arc 0 2)
           ("a _ _ b _" :: Pattern String)
           (timeCat [(3,"a"), (2,"b")])
+      it "can replicate with !" $ do
+        compareP (Arc 0 2)
+          ("a! b" :: Pattern String)
+          (fastCat ["a", "a", "b"])
+      it "can replicate with ! and number" $ do
+        compareP (Arc 0 2)
+          ("a!3 b" :: Pattern String)
+          (fastCat ["a", "a", "a", "b"])
+      it "can stretch with @" $ do
+        comparePD (Arc 0 1)
+          ("a@2 b" :: Pattern String)
+          (timeCat [(2, "a"),(1,"b")])
       it "can do polymeter with {}" $ do
         compareP (Arc 0 2)
           ("{a b, c d e}" :: Pattern String)
