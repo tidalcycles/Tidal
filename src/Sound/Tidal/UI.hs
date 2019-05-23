@@ -11,7 +11,7 @@ import           Control.Monad.ST
 import qualified Data.Vector as V
 import           Data.Word (Word32)
 import           Data.Ratio ((%),numerator,denominator)
-import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate)
+import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
@@ -1050,6 +1050,43 @@ with @fromIntegral@ applied (so they can be used seamlessly where floats or
 rationals are required) -}
 lindenmayerI :: Num b => Int -> String -> String -> [b]
 lindenmayerI n r s = fmap (fromIntegral . digitToInt) $ lindenmayer n r s
+
+{- | @runMarkov@ n tmat xi@ generates a Markov chain (as a list) of length @n@
+using the transition matrix @tmat@ starting from initial state @xi@.
+Each entry in the chain is the index of state (starting from zero). 
+Each row of the matrix will be automatically normalized. For example:
+@
+runMarkov 8 [[2,3], [1,3]] 0
+@
+will produce a two-state chain 8 steps long, from initial state @0@, where the
+transition probability from state 0->0 is 2/5, 0->1 is 3/5, 1->0 is 1/4, and 
+1->1 is 3/4.  -}
+runMarkov :: Int -> [[Double]] -> Int -> [Int]
+runMarkov n tp xi = reverse $ (iterate (markovStep $ renorm tp) [xi])!! (n-1) where
+  markovStep tp xs = (fromJust $ findIndex (r <=) $ scanl1 (+) (tp!!(head xs))) : xs where
+    r = timeToRand $ fromIntegral $ length xs
+  renorm tp = [ map (/ sum x) x | x <- tp ]
+
+{- @markovPat n xi tp@ generates a one-cycle pattern of @n@ steps in a Markov
+chain starting from state @xi@ with transition matrix @tp@. Each row of the
+transition matrix is automaticaly normalized.  For example:
+@
+tidal> markovPat 8 1 [[3,5,2], [4,4,2], [0,1,0]]
+
+(0>⅛)|1
+(⅛>¼)|2
+(¼>⅜)|1
+(⅜>½)|1
+(½>⅝)|2
+(⅝>¾)|1
+(¾>⅞)|1
+(⅞>1)|0
+@ -}
+markovPat :: Pattern Int -> Pattern Int -> [[Double]] -> Pattern Int
+markovPat = tParam2 _markovPat
+
+_markovPat :: Int -> Int -> [[Double]] -> Pattern Int
+_markovPat n xi tp = listToPat $ runMarkov n tp xi
 
 {-|
 Removes events from second pattern that don't start during an event from first.
