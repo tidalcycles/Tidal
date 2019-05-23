@@ -1051,7 +1051,7 @@ rationals are required) -}
 lindenmayerI :: Num b => Int -> String -> String -> [b]
 lindenmayerI n r s = fmap (fromIntegral . digitToInt) $ lindenmayer n r s
 
-{- | @runMarkov@ n tmat xi@ generates a Markov chain (as a list) of length @n@
+{- | @runMarkov n tmat xi@ generates a Markov chain (as a list) of length @n@
 using the transition matrix @tmat@ starting from initial state @xi@.
 Each entry in the chain is the index of state (starting from zero). 
 Each row of the matrix will be automatically normalized. For example:
@@ -1069,7 +1069,7 @@ runMarkov n tp xi = reverse $ (iterate (markovStep $ renorm tp) [xi])!! (n-1) wh
 
 {- @markovPat n xi tp@ generates a one-cycle pattern of @n@ steps in a Markov
 chain starting from state @xi@ with transition matrix @tp@. Each row of the
-transition matrix is automaticaly normalized.  For example:
+transition matrix is automatically normalized.  For example:
 @
 tidal> markovPat 8 1 [[3,5,2], [4,4,2], [0,1,0]]
 
