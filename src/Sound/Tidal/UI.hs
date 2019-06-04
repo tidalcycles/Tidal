@@ -156,7 +156,7 @@ choose = chooseBy rand
 
 chooseBy :: Pattern Double -> [a] -> Pattern a
 chooseBy _ [] = silence
-chooseBy f xs = (xs !!) . floor <$> range 0 (fromIntegral $ length xs) f
+chooseBy f xs = (xs !!!) . floor <$> range 0 (fromIntegral $ length xs) f
 
 {- | Like @choose@, but works on an a list of tuples of values and weights
 
