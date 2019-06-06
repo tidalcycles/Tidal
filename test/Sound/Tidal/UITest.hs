@@ -249,3 +249,13 @@ run =
         compareP (Arc 0 4)
           (bite 4 "0 2*2" (Sound.Tidal.Core.run 8))
           ("[0 1] [4 5]*2" :: Pattern Int)
+
+    describe "arpeggiate" $ do
+      it "can arpeggiate" $ do
+        compareP (Arc 0 4)
+          (arpeggiate $ "[0,0] [0,0]")
+          ("0 0 0 0" :: Pattern Int)
+      it "can arpeggiate a 'sped up' pattern" $ do
+        compareP (Arc 0 4)
+          (arpeggiate $ "[0,0]*2")
+          ("0 0 0 0" :: Pattern Int)

@@ -1295,7 +1295,7 @@ layer fs p = stack $ map ($ p) fs
 -- gets turned into @"bd sn"@. Useful for creating arpeggios/broken chords.
 arpeggiate :: Pattern a -> Pattern a
 arpeggiate p = withEvents munge p
-  where munge es = concatMap spreadOut (groupBy (\a b -> whole a == whole b) es)
+  where munge es = concatMap spreadOut (groupBy (\a b -> whole a == whole b) $ sortOn whole es)
         spreadOut xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
         shiftIt n d (Event (Arc s e) a' v) =
           do
