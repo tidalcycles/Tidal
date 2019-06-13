@@ -9,6 +9,7 @@ import Prelude hiding ((<*), (*>))
 
 import Sound.Tidal.Core
 import Sound.Tidal.Pattern
+import Sound.Tidal.UI (_degradeBy)
 
 run :: Microspec ()
 run =
@@ -46,6 +47,14 @@ run =
         compareP (Arc 0 2)
           ("a!3 b" :: Pattern String)
           (fastCat ["a", "a", "a", "b"])
+      it "can degrade with ?" $ do
+        compareP (Arc 0 1)
+          ("a?" :: Pattern String)
+          (_degradeBy 0.5 "a")
+      it "can degrade with ? and number" $ do
+        compareP (Arc 0 1)
+          ("a?0.2" :: Pattern String)
+          (_degradeBy 0.2 "a")
       it "can stretch with @" $ do
         comparePD (Arc 0 1)
           ("a@2 b" :: Pattern String)

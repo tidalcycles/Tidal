@@ -417,7 +417,8 @@ pMult thing = do char '*'
 pRand :: TPat a -> Parser (TPat a)
 pRand thing = do char '?'
                  spaces
-                 return $ TPat_DegradeBy 0.5 thing
+                 r <- float <|> return 0.5
+                 return $ TPat_DegradeBy r thing
               <|> return thing
 
 pE :: TPat a -> Parser (TPat a)
