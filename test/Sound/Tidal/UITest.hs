@@ -251,8 +251,16 @@ run =
           (bite 4 "0 2*2" (Sound.Tidal.Core.run 8))
           ("[0 1] [4 5]*2" :: Pattern Int)
 
-    describe "arpeggiate" $ 
-      it "spreads out events that share a timespan over that timespan" $ 
+    describe "arpeggiate" $ do 
+      it "can arpeggiate" $ do 
          compareP (Arc 0 1) 
            (arpeggiate ("[bd, sn] [hh:1, cp]" :: Pattern String))
            ("bd sn hh:1 cp" :: Pattern String)
+      it "can arpeggiate" $ do
+        compareP (Arc 0 4)
+          (arpeggiate $ "[0,0] [0,0]")
+          ("0 0 0 0" :: Pattern Int)
+      it "can arpeggiate a 'sped up' pattern" $ do
+        compareP (Arc 0 4)
+          (arpeggiate $ "[0,0]*2")
+          ("0 0 0 0" :: Pattern Int)

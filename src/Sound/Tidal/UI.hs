@@ -1302,7 +1302,7 @@ arpg = arpeggiate
 
 arpWith :: ([EventF (ArcF Time) a] -> [EventF (ArcF Time) b]) -> Pattern a -> Pattern b
 arpWith f p = withEvents munge p
-  where munge es = concatMap (spreadOut . f) (groupBy (\a b -> whole a == whole b) es)
+  where munge es = concatMap (spreadOut . f) (groupBy (\a b -> whole a == whole b) $ sortOn whole es)
         spreadOut xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
         shiftIt n d (Event (Arc s e) a' v) =
           do
