@@ -1293,17 +1293,8 @@ layer fs p = stack $ map ($ p) fs
 -- | @arpeggiate@ finds events that share the same timespan, and spreads
 -- them out during that timespan, so for example @arpeggiate "[bd,sn]"@
 -- gets turned into @"bd sn"@. Useful for creating arpeggios/broken chords.
-arpeggiate :: Pattern a -> Pattern a
-arpeggiate p = withEvents munge p
-  where munge es = concatMap spreadOut (groupBy (\a b -> whole a == whole b) es)
-        spreadOut xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
-        shiftIt n d (Event (Arc s e) a' v) =
-          do
-            a'' <- subArc (Arc newS newE) a'
-            return (Event (Arc newS newE) a'' v)
-          where newS = s + (dur * fromIntegral n)
-                newE = newS + dur
-                dur = (e - s) / fromIntegral d
+arpeggiate :: Pattern a -> Pattern a 
+arpeggiate = arpWith id
 
 -- | Shorthand alias for arpeggiate
 arpg :: Pattern a -> Pattern a
@@ -1311,7 +1302,7 @@ arpg = arpeggiate
 
 arpWith :: ([EventF (ArcF Time) a] -> [EventF (ArcF Time) b]) -> Pattern a -> Pattern b
 arpWith f p = withEvents munge p
-  where munge es = concatMap (spreadOut . f) (groupBy (\a b -> whole a == whole b) es)
+  where munge es = concatMap (spreadOut . f) (groupBy (\a b -> whole a == whole b) $ sortOn whole es)
         spreadOut xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
         shiftIt n d (Event (Arc s e) a' v) =
           do
