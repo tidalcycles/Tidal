@@ -55,6 +55,10 @@ run =
         compareP (Arc 0 1)
           ("a?0.2" :: Pattern String)
           (_degradeBy 0.2 "a")
+      it "can degrade with ? for double patterns" $ do
+        compareP (Arc 0 1)
+          ("0.4 0.5? 0.6" :: Pattern Double)
+          (fastcat[0.4, _degradeBy 0.5 0.5, 0.6])
       it "can stretch with @" $ do
         comparePD (Arc 0 1)
           ("a@2 b" :: Pattern String)
