@@ -119,6 +119,7 @@ run =
           it "at 1/2 of a cycle" $
             (queryArc (Sound.Tidal.UI.range 10 10 saw) (Arc 0.5 0.5)) `shouldBe` fmap toEvent
               [(((0.5, 0.5), (0.5, 0.5)), 10 :: Float)]
+
     describe "rot" $ do
       it "rotates values in a pattern irrespective of structure" $
         property $ comparePD (Arc 0 2)
@@ -250,7 +251,21 @@ run =
           (bite 4 "0 2*2" (Sound.Tidal.Core.run 8))
           ("[0 1] [4 5]*2" :: Pattern Int)
 
-    describe "arpeggiate" $ do
+    describe "chooseBy" $ do
+      it "chooses from elements based on closest scaled double value" $ do
+        compareP (Arc 0 4)
+          (("0"::Pattern Int) |+ chooseBy ((/ 4)$(sig fromRational)) [0,1,2,3])
+          ("<0 1 2 3>"::Pattern Int)
+      it "never gets an index out of bounds" $ do
+        compareP (Arc 0 4)
+          (("0"::Pattern Int) |+ chooseBy (sig fromRational) [0,1,2,3])
+          ("<0>"::Pattern Int)
+
+    describe "arpeggiate" $ do 
+      it "can arpeggiate" $ do 
+         compareP (Arc 0 1) 
+           (arpeggiate ("[bd, sn] [hh:1, cp]" :: Pattern String))
+           ("bd sn hh:1 cp" :: Pattern String)
       it "can arpeggiate" $ do
         compareP (Arc 0 4)
           (arpeggiate $ "[0,0] [0,0]")
