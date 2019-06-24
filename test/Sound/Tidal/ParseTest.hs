@@ -50,7 +50,7 @@ run =
       it "can degrade with ?" $ do
         compareP (Arc 0 1)
           ("a?" :: Pattern String)
-          (_degradeBy 0.5 "a")
+          (degradeByDefault "a")
       it "can degrade with ? and number" $ do
         compareP (Arc 0 1)
           ("a?0.2" :: Pattern String)
@@ -58,7 +58,7 @@ run =
       it "can degrade with ? for double patterns" $ do
         compareP (Arc 0 1)
           ("0.4 0.5? 0.6" :: Pattern Double)
-          (fastcat[0.4, _degradeBy 0.5 0.5, 0.6])
+          (fastcat[0.4, degradeByDefault 0.5, 0.6])
       it "can stretch with @" $ do
         comparePD (Arc 0 1)
           ("a@2 b" :: Pattern String)
@@ -95,3 +95,4 @@ run =
         compareP (Arc 0 2)
           ("cp(5,c)" :: Pattern String)
           (silence)
+    where degradeByDefault = _degradeBy 0.5  
