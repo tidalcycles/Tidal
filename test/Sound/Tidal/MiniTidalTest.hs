@@ -17,6 +17,10 @@ parsesTo str p = x `shouldBe` y
 causesParseError :: String -> Property
 causesParseError str = isLeft (miniTidal str :: Either ParseError ControlPattern) `shouldBe` True
 
+-- for convenience when testing manually with GHCI
+testMiniTidal :: IO ()
+testMiniTidal = microspec Sound.Tidal.MiniTidalTest.run
+
 run :: Microspec ()
 run =
   describe "miniTidal" $ do
@@ -161,3 +165,7 @@ run =
     it "parses a pattern rotation operator (3)" $
       "\"0.25 0.125 0 0.5\" <~ s \"bd sn cp glitch\"" `parsesTo`
         ("0.25 0.125 0 0.5" <~ s "bd sn cp glitch")
+
+    it "parses a pattern rotation operator (3) applied to a transformation with $" $
+      "fast 4 $ \"<0 [0.125,0.25]>\" <~ s \"bd cp sn glitch:2\"" `parsesTo`
+        (fast 4 $ "<0 [0.125,0.25]>" <~ s "bd cp sn glitch:2")

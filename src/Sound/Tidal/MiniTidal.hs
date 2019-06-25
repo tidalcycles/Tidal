@@ -27,84 +27,235 @@ miniTidalParser = whiteSpace >> choice [
     return x
   ]
 
+
+-- A type that is an instance of the class MiniTidal is a type that we know how to parse
+-- both as an individual value and in the form of patterns. For each such type we will
+-- provide separate pattern parsers at different levels of fixity.
 class MiniTidal a where
-  literal :: Parser a -- parse an individual pure value of this type
-  simplePattern :: Parser (Pattern a) -- any way of making this pattern that wouldn't require parentheses if it was an argument
-  complexPattern :: Parser (Pattern a) -- producing this pattern by way of unary functions with an argument of a different type
-  transformationWithArguments:: Parser (Pattern a -> Pattern a) -- producing this pattern by with unary functions that take same type
-  transformationWithoutArguments :: Parser (Pattern a -> Pattern a) -- also producing this pattern by unary functions of same type
-  mergeOperator :: Parser (Pattern a -> Pattern a -> Pattern a) -- operators for combining this type of pattern, eg. # or |>
-  binaryFunctions :: Parser (a -> a -> a) -- binary functions on pure values of this type, eg. (+) for Int or other Num instances
+  literal :: Parser a
+  patternByInfixr0 :: Parser (Pattern a) -- eg. fast 4 $ s "bd cp"...
+  patternByInfixl6 :: Parser (Pattern a) -- eg. "0 1" + "2 3", "0 1" - "2 3"
+  patternByInfixl7 :: Parser (Pattern a) -- eg. "0 1" * "2 3", "0 1" / "2 3"
+  patternByInfixl9 :: Parser (Pattern a) -- eg. s "bd cp" # n "0 2"... note: almost all Tidal-specific operators are infixl 9
+  patternByApplication :: Parser (Pattern a) -- eg. s "bd cp"
+  atomicPattern :: Parser (Pattern a) -- eg. sine or "1 2 3 4" or silence, a pattern that could be an patternForApplication without parens
+
+pattern :: MiniTidal a => Parser (Pattern a)
+pattern = choice [
+  try $ parens pattern,
+  try $ patternByInfixr0,
+  try $ patternByInfixl6,
+  try $ patternByInfixl7,
+  try $ patternByInfixl9,
+  try $ patternByApplication,
+  atomicPattern
+  ]
+
+patternForInfixr0 :: MiniTidal a => Parser (Pattern a)
+patternForInfixr0 = choice [
+  try $ parens pattern,
+  try $ patternByInfixl6,
+  try $ patternByInfixl7,
+  try $ patternByInfixl9,
+  try $ patternByApplication,
+  atomicPattern
+  ]
+
+patternForInfixl6 :: MiniTidal a => Parser (Pattern a)
+patternForInfixl6 = choice [
+  try $ parens pattern,
+  try $ patternByInfixl7,
+  try $ patternByInfixl9,
+  try $ patternByApplication,
+  atomicPattern
+  ]
+
+patternForInfixl7 :: MiniTidal a => Parser (Pattern a)
+patternForInfixl7 = choice [
+  try $ parens pattern,
+  try $ patternByInfixl9,
+  try $ patternByApplication,
+  atomicPattern
+  ]
+
+patternForInfixl9 :: MiniTidal a => Parser (Pattern a)
+patternForInfixl9 = choice [
+  try $ parens pattern,
+  try $ patternByApplication,
+  atomicPattern
+  ]
+
+patternForApplication :: MiniTidal a => Parser (Pattern a)
+patternForApplication = choice [
+  try $ parens pattern,
+  atomicPattern
+  ]
 
 literalArg :: MiniTidal a => Parser a
 literalArg = choice [
-  literal,
-  nestedParens literal,
-  try $ applied $ parensOrNot literal
+  try $ parens literalArg,
+  literal
   ]
 
 listLiteralArg :: MiniTidal a => Parser [a]
-listLiteralArg = brackets (commaSep $ parensOrNot literal)
+listLiteralArg = try $ brackets $ commaSep literalArg
 
-pattern :: MiniTidal a => Parser (Pattern a)
-pattern = chainl1 pattern' mergeOperator
-
-pattern' :: MiniTidal a => Parser (Pattern a)
-pattern' = choice [
-  try $ patternOperators <*> pattern'',
-  pattern''
-  ]
-
-patternOperators :: Parser (Pattern a -> Pattern a)
-patternOperators = choice [
-  try $ pattern'' >>= (\x -> reservedOp "<~" >> return ((T.<~) x)),
-  pattern'' >>= (\x -> reservedOp "~>" >> return ((T.~>) x))
-  ]
-
-pattern'' :: MiniTidal a => Parser (Pattern a)
-pattern'' = choice [
-  try $ parens pattern,
-  transformation <*> patternArg,
-  genericComplexPattern,
-  complexPattern,
-  simplePattern,
-  silence
-  ]
-
--- as an argument, a pattern is either a simple pattern (eg. "1 2 3 4") or it is
--- anything which makes such a pattern in parentheses (or on the other side of $)
-patternArg :: MiniTidal a => Parser (Pattern a)
-patternArg = choice [
-  try $ parensOrApplied $ pattern,
-  simplePattern
-  ]
-
-transformation :: MiniTidal a => Parser (Pattern a -> Pattern a)
-transformation = transformationWithArguments <|> transformationWithoutArguments
+listPatternArg :: MiniTidal a => Parser [Pattern a]
+listPatternArg = try $ brackets $ commaSep pattern
 
 transformationArg :: MiniTidal a => Parser (Pattern a -> Pattern a)
 transformationArg = choice [
-  try $ appliedOrNot $ transformationWithoutArguments,
-  parensOrApplied $ transformationWithArguments
+  try $ appliedOrNot $ genericTransformationsWithoutArguments,
+  parensOrApplied $ genericTransformationsWithArguments
   ]
 
-listPatternArg :: MiniTidal a => Parser [Pattern a]
-listPatternArg = try $ parensOrNot $ brackets (commaSep pattern)
-
 listTransformationArg :: MiniTidal a => Parser [Pattern a -> Pattern a]
-listTransformationArg = try $ parensOrNot $ brackets (commaSep transformation)
+listTransformationArg = try $ parensOrNot $ brackets $ commaSep genericTransformations
 
 silence :: Parser (Pattern a)
 silence = $(function "silence")
 
+
+instance MiniTidal Int where
+  literal = int
+  patternByInfixr0 = appAfter genericTransformations <*> patternForInfixr0
+  patternByInfixl6 = chainl1 patternForInfixl6 (addition <|> subtraction)
+  patternByInfixl7 = chainl1 patternForInfixl7 multiplication
+  patternByInfixl9 = try $ applyOperator patternForInfixl9 rotationOperators patternForInfixl9
+  patternByApplication = genericTransformations <*> patternForApplication
+  atomicPattern = silence <|> (pure <$> literal) <|> parseBP'
+
+matchAfter :: Parser a -> Parser b -> Parser a
+matchAfter a b = do
+  a' <- a
+  b
+  return a'
+
+appAfter :: Parser a -> Parser a
+appAfter x = matchAfter x $ reservedOp "$"
+
+instance MiniTidal Integer where
+  literal = integer
+  patternByInfixr0 = appAfter genericTransformations <*> patternForInfixr0
+  patternByInfixl6 = chainl1 patternForInfixl6 (addition <|> subtraction)
+  patternByInfixl7 = chainl1 patternForInfixl7 multiplication
+  patternByInfixl9 = try $ applyOperator patternForInfixl9 rotationOperators patternForInfixl9
+  patternByApplication = genericTransformations <*> patternForApplication
+  atomicPattern = silence <|> (pure <$> literal) <|> parseBP'
+
+
+instance MiniTidal Double where
+  literal = double
+  patternByInfixr0 = appAfter genericTransformations <*> patternForInfixr0
+  patternByInfixl6 = chainl1 patternForInfixl6 (addition <|> subtraction)
+  patternByInfixl7 = chainl1 patternForInfixl7 multiplication
+  patternByInfixl9 = try $ applyOperator patternForInfixl9 rotationOperators patternForInfixl9
+  patternByApplication = genericTransformations <*> patternForApplication
+  atomicPattern = choice [
+    silence,
+    pure <$> literal,
+    parseBP',
+    $(function "rand"),
+    $(function "sine"),
+    $(function "saw"),
+    $(function "isaw"),
+    $(function "tri"),
+    $(function "square"),
+    $(function "cosine")
+    ]
+
+
+instance MiniTidal Time where
+  literal = (toRational <$> double) <|> (fromIntegral <$> integer)
+  patternByInfixr0 = appAfter genericTransformations <*> patternForInfixr0
+  patternByInfixl6 = chainl1 patternForInfixl6 (addition <|> subtraction)
+  patternByInfixl7 = chainl1 patternForInfixl7 multiplication
+  patternByInfixl9 = try $ applyOperator patternForInfixl9 rotationOperators patternForInfixl9
+  patternByApplication = genericTransformations <*> patternForApplication
+  atomicPattern = silence <|> (pure <$> literal) <|> parseBP'
+
+
+instance MiniTidal Arc where
+  literal = do
+    xs <- parens (commaSep1 literal)
+    if length xs == 2 then return (T.Arc (xs!!0) (xs!!1)) else unexpected "Arcs must contain exactly two values"
+  patternByInfixr0 = appAfter genericTransformations <*> patternForInfixr0
+  patternByInfixl6 = parserZero
+  patternByInfixl7 = parserZero
+  patternByInfixl9 = try $ applyOperator patternForInfixl9 rotationOperators patternForInfixl9
+  patternByApplication = genericTransformations <*> patternForApplication
+  atomicPattern = silence <|> (pure <$> literal)
+
+
+instance MiniTidal (Time,Time) where
+  literal = do
+    xs <- parens (commaSep1 literal)
+    if length xs == 2 then return ((xs!!0),(xs!!1)) else unexpected "(Time,Time) must contain exactly two values"
+  patternByInfixr0 = appAfter genericTransformations <*> patternForInfixr0
+  patternByInfixl6 = parserZero
+  patternByInfixl7 = parserZero
+  patternByInfixl9 = try $ applyOperator patternForInfixl9 rotationOperators patternForInfixl9
+  patternByApplication = genericTransformations <*> patternForApplication
+  atomicPattern = silence <|> (pure <$> literal)
+
+
+instance MiniTidal String where
+  literal = stringLiteral
+  patternByInfixr0 = appAfter genericTransformations <*> patternForInfixr0
+  patternByInfixl6 = parserZero
+  patternByInfixl7 = parserZero
+  patternByInfixl9 = try $ applyOperator patternForInfixl9 rotationOperators patternForInfixl9
+  patternByApplication = genericTransformations <*> patternForApplication
+  atomicPattern = parseBP' <|> silence
+
+
 instance MiniTidal ControlMap where
   literal = parserZero
-  simplePattern = parserZero
-  transformationWithArguments = p_p <|> pControl_pControl
-  transformationWithoutArguments = p_p_noArgs
-  complexPattern = specificControlPatterns
-  mergeOperator = controlPatternMergeOperator
-  binaryFunctions = parserZero
+  patternByInfixr0 = choice [
+    appAfter genericTransformations <*> patternForInfixr0, -- eg. fast 4 $ s "bd cp"
+    appAfter pInt_pControl <*> patternForInfixr0, -- eg. n $ "0 1"
+    appAfter pDouble_pControl <*> patternForInfixr0, -- eg. shape $ "0.2 0.4"
+    appAfter pString_pControl <*> patternForInfixr0 -- eg. s $ "bd cp"
+    ]
+  patternByInfixl6 = parserZero
+  patternByInfixl7 = parserZero
+  patternByInfixl9 = choice [
+    try $ applyOperator patternForInfixl9 controlPatternMergeOperator patternForInfixl9,
+    try $ applyOperator patternForInfixl9 rotationOperators patternForInfixl9
+    ]
+  patternByApplication = choice [
+    genericTransformations <*> patternForApplication, -- eg. fast 4 (s "bd cp")
+    pInt_pControl <*> patternForApplication, -- eg. n "0 1"
+    pDouble_pControl <*> patternForApplication, -- eg. shape "0.2 0.4"
+    pString_pControl <*> patternForApplication -- eg. s "bd cp"
+    ]
+  atomicPattern = silence
+
+
+{- instance (MiniTidal a) => MiniTidal [a] where
+  literal = parserZero
+  patternByInfixr0 = parserZero
+  patternByInfixl6 = parserZero
+  patternByInfixl7 = parserZero
+  patternByInfixl9 = parserZero
+  patternByApplication = parserZero
+  atomicPattern = brackets pattern -}
+
+
+applyOperator :: Parser a -> Parser (a -> b -> c) -> Parser b -> Parser c
+applyOperator a f b = do
+  a' <- a
+  f' <- f
+  b' <- b
+  return $ f' a' b'
+
+
+rotationOperators :: Parser (Pattern Time -> Pattern a -> Pattern a)
+rotationOperators = choice [
+  reservedOp "<~" >> return (T.<~),
+  reservedOp "~>" >> return (T.~>)
+  ]
+
 
 controlPatternMergeOperator :: Parser (ControlPattern -> ControlPattern -> ControlPattern)
 controlPatternMergeOperator = choice [
@@ -119,45 +270,50 @@ controlPatternMergeOperator = choice [
   $(op "|/|")
   ]
 
-specificControlPatterns :: Parser ControlPattern
-specificControlPatterns = choice [
-  try $ parens specificControlPatterns,
-  $(function "coarse") <*> patternArg,
-  $(function "cut") <*> patternArg,
-  $(function "n") <*> patternArg,
-  $(function "up") <*> patternArg,
-  $(function "speed") <*> patternArg,
-  $(function "pan") <*> patternArg,
-  $(function "shape") <*> patternArg,
-  $(function "gain") <*> patternArg,
-  $(function "accelerate") <*> patternArg,
-  $(function "bandf") <*> patternArg,
-  $(function "bandq") <*> patternArg,
-  $(function "begin") <*> patternArg,
-  $(function "crush") <*> patternArg,
-  $(function "cutoff") <*> patternArg,
-  $(function "delayfeedback") <*> patternArg,
-  $(function "delaytime") <*> patternArg,
-  $(function "delay") <*> patternArg,
-  $(function "end") <*> patternArg,
-  $(function "hcutoff") <*> patternArg,
-  $(function "hresonance") <*> patternArg,
-  $(function "resonance") <*> patternArg,
-  $(function "shape") <*> patternArg,
-  $(function "loop") <*> patternArg,
-  $(function "s") <*> patternArg,
-  $(function "sound") <*> patternArg,
-  $(function "vowel") <*> patternArg,
-  $(function "unit") <*> patternArg,
-  $(function "note") <*> patternArg
+pInt_pControl :: Parser (Pattern Int -> ControlPattern)
+pInt_pControl = choice [
+  $(function "coarse"),
+  $(function "cut")
+  ]
+
+pDouble_pControl :: Parser (Pattern Double -> ControlPattern)
+pDouble_pControl = choice [
+  $(function "n"),
+  $(function "up"),
+  $(function "speed"),
+  $(function "pan"),
+  $(function "shape"),
+  $(function "gain"),
+  $(function "accelerate"),
+  $(function "bandf"),
+  $(function "bandq"),
+  $(function "begin"),
+  $(function "crush"),
+  $(function "cutoff"),
+  $(function "delayfeedback"),
+  $(function "delaytime"),
+  $(function "delay"),
+  $(function "end"),
+  $(function "hcutoff"),
+  $(function "hresonance"),
+  $(function "resonance"),
+  $(function "loop"),
+  $(function "note")
+  ]
+
+pString_pControl :: Parser (Pattern String -> ControlPattern)
+pString_pControl = choice [
+  $(function "s"),
+  $(function "sound"),
+  $(function "vowel"),
+  $(function "unit")
   ]
 
 genericComplexPattern :: MiniTidal a => Parser (Pattern a)
 genericComplexPattern = choice [
-  try $ parens genericComplexPattern,
   lp_p <*> listPatternArg,
   l_p <*> listLiteralArg,
-  pInt_p <*> patternArg
+  pInt_p <*> patternForApplication
   ]
 
 p_p_noArgs :: Parser (Pattern a -> Pattern a)
@@ -170,22 +326,31 @@ p_p_noArgs  = choice [
   $(function "degrade")
   ]
 
-p_p :: (MiniTidal a, MiniTidal a) => Parser (Pattern a -> Pattern a)
+genericTransformations :: MiniTidal a => Parser (Pattern a -> Pattern a)
+genericTransformations = p_p
+
+genericTransformationsWithArguments :: MiniTidal a => Parser (Pattern a -> Pattern a)
+genericTransformationsWithArguments = p_p
+
+genericTransformationsWithoutArguments :: MiniTidal a => Parser (Pattern a -> Pattern a)
+genericTransformationsWithoutArguments = p_p_noArgs
+
+p_p :: MiniTidal a => Parser (Pattern a -> Pattern a)
 p_p = choice [
   try $ parens p_p,
-  p_p_p <*> patternArg,
+  p_p_p <*> patternForApplication,
   t_p_p <*> transformationArg,
   lp_p_p <*> listPatternArg,
   lt_p_p <*> listTransformationArg,
   lpInt_p_p <*> listPatternArg,
-  pTime_p_p <*> patternArg,
-  pInt_p_p <*> patternArg,
-  pString_p_p <*> patternArg,
-  pDouble_p_p <*> patternArg,
+  pTime_p_p <*> patternForApplication,
+  pInt_p_p <*> patternForApplication,
+  pString_p_p <*> patternForApplication,
+  pDouble_p_p <*> patternForApplication,
   vTime_p_p <*> literalArg,
   vInt_p_p <*> literalArg,
   vTimeTime_p_p <*> literalArg,
-  pDouble_p_p <*> patternArg,
+  pDouble_p_p <*> patternForApplication,
   lTime_p_p <*> listLiteralArg
   ]
 
@@ -220,11 +385,11 @@ pInt_p = choice [
 p_p_p :: MiniTidal a => Parser (Pattern a -> Pattern a -> Pattern a)
 p_p_p = choice [
   try $ parens p_p_p,
-  liftA2 <$> binaryFunctions,
+--  liftA2 <$> binaryFunctions,
   $(function "overlay"),
   $(function "append"),
   vTime_p_p_p <*> literalArg,
-  pInt_p_p_p <*> patternArg
+  pInt_p_p_p <*> patternForApplication
   ]
 
 pTime_p_p :: MiniTidal a => Parser (Pattern Time -> Pattern a -> Pattern a)
@@ -244,7 +409,7 @@ pTime_p_p = choice [
   $(function "discretise"),
   $(function "timeLoop"),
   $(function "swing"),
-  pTime_pTime_p_p <*> patternArg
+  pTime_pTime_p_p <*> patternForApplication
   ]
 
 lTime_p_p :: MiniTidal a => Parser ([Time] -> Pattern a -> Pattern a)
@@ -271,7 +436,7 @@ pInt_p_p = choice [
   $(function "slowstripe"),
   $(function "shuffle"),
   $(function "scramble"),
-  pInt_pInt_p_p <*> patternArg
+  pInt_pInt_p_p <*> patternForApplication
   ]
 
 pString_p_p :: MiniTidal a => Parser (Pattern String -> Pattern a -> Pattern a)
@@ -315,16 +480,16 @@ t_p_p = choice [
   $(function "always"),
   $(function "superimpose"),
   $(function "someCycles"),
-  pInt_t_p_p <*> patternArg,
-  pDouble_t_p_p <*> patternArg,
+  pInt_t_p_p <*> patternForApplication,
+  pDouble_t_p_p <*> patternForApplication,
   lvInt_t_p_p <*> listLiteralArg,
   vInt_t_p_p <*> literalArg,
   vDouble_t_p_p <*> literalArg,
   vTimeTime_t_p_p <*> literalArg,
-  pTime_t_p_p <*> patternArg
+  pTime_t_p_p <*> patternForApplication
   ]
 
-lpInt_p_p :: MiniTidal a => Parser ([Pattern Int] -> Pattern a -> Pattern a)
+lpInt_p_p :: MiniTidal a=> Parser ([Pattern Int] -> Pattern a -> Pattern a)
 lpInt_p_p = $(function "distrib")
 
 lp_p_p :: MiniTidal a => Parser ([Pattern a] -> Pattern a -> Pattern a)
@@ -333,7 +498,7 @@ lp_p_p = choice [
   try $ spreads <*> parens p_p_p
   ]
 
-l_pInt_p :: MiniTidal a => Parser ([a] -> Pattern Int -> Pattern a)
+l_pInt_p :: MiniTidal a=> Parser ([a] -> Pattern Int -> Pattern a)
 l_pInt_p = choice [
   try $ parens l_pInt_p,
   vInt_l_pInt_p <*> literalArg
@@ -355,7 +520,7 @@ pInt_t_p_p :: MiniTidal a => Parser (Pattern Int -> (Pattern a -> Pattern a) -> 
 pInt_t_p_p = choice [
   try $ parens pInt_t_p_p,
   $(function "every"),
-  pInt_pInt_t_p_p <*> patternArg
+  pInt_pInt_t_p_p <*> patternForApplication
   ]
 
 pDouble_t_p_p :: MiniTidal a => Parser (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
@@ -400,7 +565,7 @@ vInt_vInt_t_p_p = $(function "whenmod")
 pInt_p_p_p :: MiniTidal a => Parser (Pattern Int -> Pattern a -> Pattern a -> Pattern a)
 pInt_p_p_p = choice [
   try $ parens pInt_p_p_p,
-  pInt_pInt_p_p_p <*> patternArg
+  pInt_pInt_p_p_p <*> patternForApplication
   ]
 
 pInt_pInt_p_p_p :: MiniTidal a => Parser (Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a)
@@ -409,7 +574,7 @@ pInt_pInt_p_p_p = $(function "euclidFull")
 vInt_pInt_pInt_p_p :: MiniTidal a => Parser (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)
 vInt_pInt_pInt_p_p = choice [
   try $ parens vInt_pInt_pInt_p_p,
-  pTime_vInt_pInt_pInt_p_p <*> patternArg
+  pTime_vInt_pInt_pInt_p_p <*> patternForApplication
   ]
 
 pTime_vInt_pInt_pInt_p_p :: MiniTidal a => Parser (Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)
@@ -418,9 +583,9 @@ pTime_vInt_pInt_pInt_p_p = $(function "fit'")
 pControl_pControl :: Parser (ControlPattern -> ControlPattern)
 pControl_pControl = choice [
   try $ parens pControl_pControl,
-  pInt_pControl_pControl <*> patternArg,
-  pDouble_pControl_pControl <*> patternArg,
-  pTime_pControl_pControl <*> patternArg,
+  pInt_pControl_pControl <*> patternForApplication,
+  pDouble_pControl_pControl <*> patternForApplication,
+  pTime_pControl_pControl <*> patternForApplication,
   tControl_pControl_pControl <*> transformationArg
   ]
 
@@ -436,7 +601,7 @@ pInt_pControl_pControl = choice [
 pDouble_pControl_pControl :: Parser (Pattern Double -> ControlPattern -> ControlPattern)
 pDouble_pControl_pControl = choice [
   try $ parens pDouble_pControl_pControl,
-  pInt_pDouble_pControl_pControl <*> patternArg
+  pInt_pDouble_pControl_pControl <*> patternForApplication
   ]
 
 pInt_pDouble_pControl_pControl :: Parser (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern)
@@ -445,131 +610,57 @@ pInt_pDouble_pControl_pControl = $(function "striate'")
 pTime_pControl_pControl :: Parser (Pattern Time -> ControlPattern -> ControlPattern)
 pTime_pControl_pControl = choice [
   try $ parens pTime_pControl_pControl,
-  pDouble_pTime_pControl_pControl <*> patternArg
+  pDouble_pTime_pControl_pControl <*> patternForApplication
   ]
 
 pDouble_pTime_pControl_pControl :: Parser (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)
 pDouble_pTime_pControl_pControl = choice [
   try $ parens pDouble_pTime_pControl_pControl,
-  pInteger_pDouble_pTime_pControl_pControl <*> patternArg
+  pInteger_pDouble_pTime_pControl_pControl <*> patternForApplication
   ]
 
 pInteger_pDouble_pTime_pControl_pControl :: Parser (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)
 pInteger_pDouble_pTime_pControl_pControl = $(function "stut")
 
-simpleDoublePatterns :: Parser (Pattern Double)
-simpleDoublePatterns = choice [
-  $(function "rand"),
-  $(function "sine"),
-  $(function "saw"),
-  $(function "isaw"),
-  $(function "tri"),
-  $(function "square"),
-  $(function "cosine")
-  ]
 
-binaryNumFunctions :: Num a => Parser (a -> a -> a)
-binaryNumFunctions = choice [
-  try $ parens binaryNumFunctions,
-  reservedOp "+" >> return (+),
-  reservedOp "-" >> return (-),
-  reservedOp "*" >> return (*)
-  ]
 
-instance MiniTidal Int where
-  literal = int
-  simplePattern = parseBP' <|> (pure <$> int)
-  transformationWithArguments = p_p_noArgs
-  transformationWithoutArguments = p_p
-  complexPattern = (atom <*> int) <|> enumComplexPatterns <|> numComplexPatterns <|> intComplexPatterns
-  mergeOperator = numMergeOperator
-  binaryFunctions = binaryNumFunctions
 
-instance MiniTidal Integer where
-  literal = integer
-  simplePattern = parseBP' <|> (pure <$> integer)
-  transformationWithArguments = p_p_noArgs
-  transformationWithoutArguments = p_p
-  complexPattern = (atom <*> integer) <|> enumComplexPatterns <|> numComplexPatterns
-  mergeOperator = numMergeOperator
-  binaryFunctions = binaryNumFunctions
 
-instance MiniTidal Double where
-  literal = double
-  simplePattern = parseBP' <|> (try $ pure <$> double) <|> simpleDoublePatterns
-  transformationWithArguments = p_p_noArgs
-  transformationWithoutArguments = p_p
-  complexPattern = (atom <*> double) <|> enumComplexPatterns <|> numComplexPatterns
-  mergeOperator = numMergeOperator <|> fractionalMergeOperator
-  binaryFunctions = binaryNumFunctions
 
-instance MiniTidal Time where
-  literal = (toRational <$> double) <|> (fromIntegral <$> integer)
-  simplePattern = parseBP' <|> (pure <$> literal)
-  transformationWithArguments = p_p_noArgs
-  transformationWithoutArguments = p_p
-  complexPattern = atom <*> literal <|> numComplexPatterns
-  mergeOperator = numMergeOperator <|> fractionalMergeOperator
-  binaryFunctions = binaryNumFunctions
 
-instance MiniTidal Arc where
-  literal = do
-    xs <- parens (commaSep1 literal)
-    if length xs == 2 then return (T.Arc (xs!!0) (xs!!1)) else unexpected "Arcs must contain exactly two values"
-  simplePattern = pure <$> literal
-  transformationWithArguments = p_p_noArgs
-  transformationWithoutArguments = p_p
-  complexPattern = atom <*> literal
-  mergeOperator = parserZero
-  binaryFunctions = parserZero
 
-instance MiniTidal (Time,Time) where
-  literal = do
-    xs <- parens (commaSep1 literal)
-    if length xs == 2 then return ((xs!!0),(xs!!1)) else unexpected "(Time,Time) must contain exactly two values"
-  simplePattern = pure <$> literal
-  transformationWithArguments = p_p_noArgs
-  transformationWithoutArguments = p_p
-  complexPattern = atom <*> literal
-  mergeOperator = parserZero
-  binaryFunctions = parserZero
 
-instance MiniTidal String where
-  literal = stringLiteral
-  simplePattern = parseBP'
-  transformationWithArguments = p_p_noArgs
-  transformationWithoutArguments = p_p
-  complexPattern = atom <*> stringLiteral
-  mergeOperator = parserZero
-  binaryFunctions = parserZero
+addition :: Num a => Parser (a -> a -> a)
+addition = opParser "+" >> return (+)
 
-fractionalMergeOperator :: Fractional a => Parser (Pattern a -> Pattern a -> Pattern a)
-fractionalMergeOperator = opParser "/" >> return (/)
+subtraction :: Num a => Parser (a -> a -> a)
+subtraction = opParser "-" >> return (-)
 
-numMergeOperator :: Num a => Parser (Pattern a -> Pattern a -> Pattern a)
-numMergeOperator = choice [
-  opParser "+" >> return (+),
-  opParser "-" >> return (-),
-  opParser "*" >> return (*)
-  ]
+multiplication :: Num a => Parser (a -> a -> a)
+multiplication = opParser "*" >> return (*)
 
-enumComplexPatterns :: (Enum a, Num a, MiniTidal a) => Parser (Pattern a)
+division :: Fractional a => Parser (a -> a -> a)
+division = opParser "/" >> return (/)
+
+
+{- enumComplexPatterns :: (Enum a, Num a, MiniTidal a) => Parser (Pattern a -> Pattern a)
 enumComplexPatterns = choice [
-  $(function "run") <*> patternArg,
-  $(function "scan") <*> patternArg
+  $(function "run"),
+  $(function "scan")
   ]
 
 numComplexPatterns :: (Num a, MiniTidal a) => Parser (Pattern a)
 numComplexPatterns = choice [
   $(function "irand") <*> literal,
-  $(function "toScale'") <*> literalArg <*> listLiteralArg <*> patternArg,
-  $(function "toScale") <*> listLiteralArg <*> patternArg
+  $(function "toScale'") <*> literalArg <*> patternForApplication <*> patternForApplication,
+  $(function "toScale") <*> patternForApplication <*> patternForApplication
   ]
 
 intComplexPatterns :: Parser (Pattern Int)
 intComplexPatterns = choice [
   $(function "randStruct") <*> literalArg
   ]
+-}
 
 atom :: Applicative m => Parser (a -> m a)
 atom = (functionParser "pure" <|> functionParser "atom" <|> functionParser "return") >> return (pure)
@@ -596,8 +687,8 @@ miniTidalIO tidal = parse (miniTidalIOParser tidal) "miniTidal"
 miniTidalIOParser :: Stream -> Parser (IO ())
 miniTidalIOParser tidal = whiteSpace >> choice [
   eof >> return (return ()),
-  dParser tidal <*> patternArg
-{-  tParser tidal <*> transitionArg tidal <*> patternArg, -}
+  dParser tidal <*> patternForApplication
+{-  tParser tidal <*> transitionArg tidal <*> patternForApplication, -}
 --  (reserved "setcps" >> return (T.streamOnce tidal True . T.cps)) <*> literalArg
   ]
 
@@ -649,18 +740,3 @@ main = do
   forever $ do
     cmd <- miniTidalIO tidal <$> getLine
     either (\x -> putStrLn $ "error: " ++ show x) id cmd
-
--- things whose status in new tidal we are unsure of
---(function "within'" >> return T.within') <*> literalArg <*> transformationArg,
--- (function "revArc" >> return T.revArc) <*> literalArg,
---  (function "prr" >> return T.prr) <*> literalArg <*> literalArg <*> patternArg,
---  (function "preplace" >> return T.preplace) <*> literalArg <*> patternArg,
---  (function "prep" >> return T.prep) <*> literalArg <*> patternArg,
---  (function "preplace1" >> return T.preplace1) <*> patternArg,
---  (function "protate" >> return T.protate) <*> literalArg <*> literalArg,
---  (function "prot" >> return T.prot) <*> literalArg <*> literalArg,
---  (function "prot1" >> return T.prot1) <*> literalArg,
---  (function "fill" >> return T.fill) <*> patternArg,
---function "struct" >> return T.struct,
---  (function "sliceArc" >> return T.sliceArc) <*> literalArg
---  function "breakUp" >> return T.breakUp, -- removed from new Tidal?
