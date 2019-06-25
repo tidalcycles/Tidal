@@ -145,3 +145,7 @@ run =
     it "parses an $ application spread over partially applied transformations of a Control Pattern" $
       "spread ($) [density 2, rev, slow 2, striate 3] $ sound \"[bd*2 [~ bd]] [sn future]*2 cp jvbass*4\"" `parsesTo`
         (spread ($) [density 2, rev, slow 2, striate 3] $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4")
+
+    it "parses an off transformation" $
+      "off 0.125 (fast 2) $ s \"bd sn cp glitch\"" `parsesTo`
+        (off 0.125 (fast 2) $ s "bd sn cp glitch")

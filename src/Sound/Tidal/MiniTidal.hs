@@ -310,7 +310,8 @@ t_p_p = choice [
   lvInt_t_p_p <*> listLiteralArg,
   vInt_t_p_p <*> literalArg,
   vDouble_t_p_p <*> literalArg,
-  vTimeTime_t_p_p <*> literalArg
+  vTimeTime_t_p_p <*> literalArg,
+  pTime_t_p_p <*> patternArg
   ]
 
 lpInt_p_p :: MiniTidal a => Parser ([Pattern Int] -> Pattern a -> Pattern a)
@@ -327,6 +328,9 @@ l_pInt_p = choice [
   try $ parens l_pInt_p,
   vInt_l_pInt_p <*> literalArg
   ]
+
+pTime_t_p_p :: MiniTidal a => Parser (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
+pTime_t_p_p = $(function "off")
 
 vInt_l_pInt_p :: MiniTidal a => Parser (Int -> [a] -> Pattern Int -> Pattern a)
 vInt_l_pInt_p = $(function "fit")
