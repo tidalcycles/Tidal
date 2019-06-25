@@ -149,3 +149,15 @@ run =
     it "parses an off transformation" $
       "off 0.125 (fast 2) $ s \"bd sn cp glitch\"" `parsesTo`
         (off 0.125 (fast 2) $ s "bd sn cp glitch")
+
+    it "parses a pattern rotation operator (1)" $
+      "0.25 <~ (s \"bd sn cp glitch\")" `parsesTo`
+        (0.25 <~ (s "bd sn cp glitch"))
+
+    it "parses a pattern rotation operator (2)" $
+      "0.25 <~ s \"bd sn cp glitch\"" `parsesTo`
+        (0.25 <~ s "bd sn cp glitch")
+
+    it "parses a pattern rotation operator (3)" $
+      "\"0.25 0.125 0 0.5\" <~ s \"bd sn cp glitch\"" `parsesTo`
+        ("0.25 0.125 0 0.5" <~ s "bd sn cp glitch")

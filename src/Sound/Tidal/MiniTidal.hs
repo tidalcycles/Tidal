@@ -51,7 +51,19 @@ pattern = chainl1 pattern' mergeOperator
 
 pattern' :: MiniTidal a => Parser (Pattern a)
 pattern' = choice [
-  nestedParens $ chainl1 pattern mergeOperator,
+  try $ patternOperators <*> pattern'',
+  pattern''
+  ]
+
+patternOperators :: Parser (Pattern a -> Pattern a)
+patternOperators = choice [
+  try $ pattern'' >>= (\x -> reservedOp "<~" >> return ((T.<~) x)),
+  pattern'' >>= (\x -> reservedOp "~>" >> return ((T.~>) x))
+  ]
+
+pattern'' :: MiniTidal a => Parser (Pattern a)
+pattern'' = choice [
+  try $ parens pattern,
   transformation <*> patternArg,
   genericComplexPattern,
   complexPattern,
@@ -59,14 +71,12 @@ pattern' = choice [
   silence
   ]
 
+-- as an argument, a pattern is either a simple pattern (eg. "1 2 3 4") or it is
+-- anything which makes such a pattern in parentheses (or on the other side of $)
 patternArg :: MiniTidal a => Parser (Pattern a)
 patternArg = choice [
-  try $ parensOrApplied $ chainl1 pattern mergeOperator,
-  try $ parensOrApplied $ transformation <*> patternArg,
-  try $ parensOrApplied genericComplexPattern,
-  try $ parensOrApplied complexPattern,
-  try $ appliedOrNot simplePattern,
-  appliedOrNot silence
+  try $ parensOrApplied $ pattern,
+  simplePattern
   ]
 
 transformation :: MiniTidal a => Parser (Pattern a -> Pattern a)
