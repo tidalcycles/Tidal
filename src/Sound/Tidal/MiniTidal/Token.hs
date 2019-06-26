@@ -25,7 +25,7 @@ tokenParser = P.makeTokenParser $ haskellDef {
     "someCycles","somecycles","substruct'","repeatCycles","spaceOut","fill","ply","shuffle",
     "scramble","breakUp","degrade","randcat","randStruct","toScale'","toScale","cycleChoose",
     "d1","d2","d3","d4","d5","d6","d7","d8","d9","t1","t2","t3","t4","t5","t6","t7","t8","t9",
-    "cps","xfadeIn","note","spread","slowspread","fastspread"],
+    "cps","xfadeIn","note","spread","slowspread","fastspread","off"],
   P.reservedOpNames = ["+","-","*","/","<~","~>","#","|+|","|-|","|*|","|/|","$","\"","|>","<|","|>|","|<|"]
   }
 
