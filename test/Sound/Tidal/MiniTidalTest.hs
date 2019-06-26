@@ -15,11 +15,11 @@ parsesTo str p = x `shouldBe` y
         y = Right $ query p $ State (Arc 0 16) Map.empty
 
 causesParseError :: String -> Property
-causesParseError str = isLeft (miniTidal str :: Either ParseError ControlPattern) `shouldBe` True
+causesParseError str = isLeft (miniTidal str :: Either String ControlPattern) `shouldBe` True
 
 -- for convenience when testing manually with GHCI
-testMiniTidal :: IO ()
-testMiniTidal = microspec Sound.Tidal.MiniTidalTest.run
+main :: IO ()
+main = microspec Sound.Tidal.MiniTidalTest.run
 
 run :: Microspec ()
 run =
@@ -30,6 +30,9 @@ run =
 
     it "parses a string containing only spaces as silence" $
       "    " `parsesTo` silence
+
+    it "parses the identifier silence as silence" $
+      "silence" `parsesTo` silence
 
     it "parses a very simple single 's' pattern" $
       "s \"bd cp\"" `parsesTo` s "bd cp"
