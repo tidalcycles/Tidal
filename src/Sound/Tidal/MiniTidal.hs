@@ -69,9 +69,10 @@ value _ = Left "internal error: unhandled structure in Sound.Tidal.MiniTidal.val
 
 instance MiniTidal ControlPattern where
   valueByApplication e1 e2 =
-    (value e1 :: Result (Pattern String -> ControlPattern)) <*> (value e2 :: Result (Pattern String)) <|>
-    (value e1 :: Result (Pattern Double -> ControlPattern)) <*> (value e2 :: Result (Pattern Double)) <|>
-    (value e1 :: Result (Pattern Int -> ControlPattern)) <*> (value e2 :: Result (Pattern Int))
+    value e1 <*> (value e2 :: Result ControlPattern) <|>
+    value e1 <*> (value e2 :: Result (Pattern String)) <|>
+    value e1 <*> (value e2 :: Result (Pattern Double)) <|>
+    value e1 <*> (value e2 :: Result (Pattern Int))
   valueByOperator e1 op e2 =
     (unionableMergeOperator op <|> numMergeOperator op <|> fractionalMergeOperator op <|> Left "ControlPattern merge operator expected")
     <*> value e1 <*> value e2
@@ -79,11 +80,13 @@ instance MiniTidal ControlPattern where
 
 
 instance MiniTidal (Pattern String) where
+  valueByApplication e1 e2 = value e1 <*> (value e2 :: Result (Pattern String))
   valueByIdentifier "silence" = Right $ T.silence
   valueByStringLiteral x = parseBP x
 
 
 instance MiniTidal (Pattern Int) where
+  valueByApplication e1 e2 = value e1 <*> (value e2 :: Result (Pattern Int))
   valueByOperator e1 op e2 =
     (unionableMergeOperator op <|> numMergeOperator op <|> Left "Pattern Int merge operator expected")
     <*> value e1 <*> value e2
@@ -93,6 +96,7 @@ instance MiniTidal (Pattern Int) where
 
 
 instance MiniTidal (Pattern Double) where
+  valueByApplication e1 e2 = value e1 <*> (value e2 :: Result (Pattern Double))
   valueByOperator e1 op e2 =
     (unionableMergeOperator op <|> numMergeOperator op <|> realMergeOperator op <|> fractionalMergeOperator op <|> Left "Double merge operator expected")
     <*> value e1 <*> value e2
@@ -110,16 +114,28 @@ instance MiniTidal (Pattern Double) where
   valueByRationalLiteral x = pure (realToFrac x)
 
 
+instance MiniTidal (Pattern Time) where
+  valueByOperator e1 op e2 =
+    (unionableMergeOperator op <|> numMergeOperator op <|> realMergeOperator op <|> fractionalMergeOperator op <|> Left "Pattern Time merge operator expected")
+    <*> value e1 <*> value e2
+  valueByIdentifier "silence" = Right $ T.silence
+  valueByStringLiteral x = parseBP x
+  valueByIntegerLiteral x = pure (fromIntegral x)
+  valueByRationalLiteral x = pure (pure x)
+
+
 instance MiniTidal (Pattern String -> ControlPattern) where
   valueByIdentifier "s" = Right T.s
   valueByIdentifier "sound" = Right T.sound
   valueByIdentifier "vowel" = Right T.vowel
   valueByIdentifier _ = Left "expected Pattern String -> ControlPattern"
 
+
 instance MiniTidal (Pattern Int -> ControlPattern) where
   valueByIdentifier "coarse" = Right T.coarse
   valueByIdentifier "cut" = Right T.cut
   valueByIdentifier _ = Left "expected Pattern Int -> ControlPattern"
+
 
 instance MiniTidal (Pattern Double -> ControlPattern) where
   valueByIdentifier "n" = Right T.n
@@ -144,6 +160,54 @@ instance MiniTidal (Pattern Double -> ControlPattern) where
   valueByIdentifier "loop" = Right T.loop
   valueByIdentifier "note" = Right T.note
   valueByIdentifier _ = Left "expected Pattern Double -> ControlPattern"
+
+
+instance MiniTidal (Pattern a -> Pattern a) where
+  valueByApplication e1 e2 = genericTransformationsByApplication e1 e2
+  valueByIdentifier x = oneWordTransformations x
+
+instance {-# OVERLAPPING #-} MiniTidal (ControlPattern -> ControlPattern) where
+  valueByApplication e1 e2 = genericTransformationsByApplication e1 e2 <|> controlPatternTransformationsByApplication e1 e2
+  valueByIdentifier x = oneWordTransformations x
+
+instance MiniTidal ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  valueByApplication e1 e2 =
+    value e1 <*> (value e2 :: Result (Pattern Int))
+
+instance {-# OVERLAPPING #-} MiniTidal ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern) where
+  valueByIdentifier "jux" = Right T.jux
+  valueByIdentifier _ = Left "expected (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern"
+
+
+
+
+oneWordTransformations :: String -> Result (Pattern a -> Pattern a)
+oneWordTransformations "rev" = Right T.rev
+oneWordTransformations "brak" = Right T.brak
+oneWordTransformations _ = Left "expected 'oneWordTransformation', eg. rev, brak, etc"
+
+genericTransformationsByApplication :: Exp SrcSpanInfo -> Exp SrcSpanInfo -> Result (Pattern a -> Pattern a)
+genericTransformationsByApplication e1 e2 =
+  (value e1 :: Result (Pattern Time -> Pattern a -> Pattern a)) <*> value e2 -- <|>
+--  (value e1 :: Result ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> (value e2 :: Result (Pattern a -> Pattern a))
+
+
+controlPatternTransformationsByApplication :: Exp SrcSpanInfo -> Exp SrcSpanInfo -> Result (ControlPattern -> ControlPattern)
+controlPatternTransformationsByApplication e1 e2 =
+  value e1 <*> (value e2 :: Result (ControlPattern -> ControlPattern))
+
+instance MiniTidal (Pattern Time -> Pattern a -> Pattern a) where
+  valueByIdentifier "fast" = Right T.fast
+  valueByIdentifier _ = Left "expected Pattern Time -> Pattern a -> Pattern a"
+
+instance MiniTidal (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  valueByIdentifier "every" = Right T.every
+  valueByIdentifier _ = Left "expected Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a"
+
+
+-- working on every
+--  :: Pattern Int
+--     -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 
 
 unionableMergeOperator :: T.Unionable a => String -> Result (Pattern a -> Pattern a -> Pattern a)
