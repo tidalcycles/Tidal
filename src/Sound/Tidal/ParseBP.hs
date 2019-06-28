@@ -474,6 +474,24 @@ pRatio = do s <- sign
 pRational :: Parser (TPat Rational)
 pRational = TPat_Atom <$> pRatio
 
+substP :: (Enumerable a, Parseable a) => [String] -> [Char] -> Pattern a
+substP subs p = toE $ runParser sub subs "" p where
+  toE (Left e)   = E.throw $ TidalParseError e p
+  toE (Right tp) = parseBP_E tp
+  sub :: GenParser Char [String] String
+  sub = concat <$> many (
+          (many1 $ noneOf "$")
+          <|>
+          try ( do char '$'
+                   d <- read <$> sequence [digit]
+                   s <- getState
+                   return $ if (length s > 0)
+                            then "[" ++ s!!(d `mod` length s) ++ "]"
+                            else ""
+              )
+          <|> (char '$' >>  return "")
+          )
+
 {-
 pDensity :: Parser (Rational)
 pDensity = angles (pRatio <?> "ratio")
