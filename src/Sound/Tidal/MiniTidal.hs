@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances, FlexibleContexts, ScopedTypeVariables #-}
 
 module Sound.Tidal.MiniTidal (miniTidal) where
 
@@ -42,6 +42,10 @@ class MiniTidal a where
   valueByIntegerLiteral _ = Left "expected something else"
   valueByRationalLiteral :: Rational -> Result a
   valueByRationalLiteral _ = Left "expected something else"
+  valueByList :: [Exp SrcSpanInfo] -> Result a
+  valueByList _ = Left "expected something else"
+  valueByTuple :: [Exp SrcSpanInfo] -> Result a
+  valueByTuple _ = Left "expected something else"
 
 -- The function value provides a standard method of parsing from Haskell ASTs to any type
 -- that is an instance of the MiniTidal class. We will be able to use this in, for example,
@@ -58,7 +62,37 @@ value (NegApp _ (Lit _ (Int _ x _))) = valueByIntegerLiteral (x * (-1))
 value (NegApp _ (Lit _ (Frac _ x _))) = valueByRationalLiteral (x * (-1))
 value (Lit _ (Int _ x _)) = valueByIntegerLiteral x
 value (Lit _ (Frac _ x _)) = valueByRationalLiteral x
-value _ = Left "internal error: unhandled structure in Sound.Tidal.MiniTidal.value"
+value (List _ xs) = valueByList xs
+value (Tuple _ Boxed xs) = valueByTuple xs
+value _ = Left "unhandled structure in Sound.Tidal.MiniTidal.value"
+
+
+instance MiniTidal Int where
+  valueByIntegerLiteral = Right . fromIntegral
+
+instance MiniTidal Time where
+  valueByRationalLiteral = Right
+
+instance MiniTidal Double where
+  valueByIntegerLiteral = Right . fromIntegral
+  valueByRationalLiteral = Right . realToFrac
+
+instance {-# INCOHERENT #-} MiniTidal String where -- don't really think incoherent is necessary here but compiler claims about overlap with MiniTidal [a] instance...
+  valueByStringLiteral = Right
+
+instance MiniTidal a => MiniTidal (a,a) where
+  valueByTuple (a:b:[]) = (\x y -> (x,y)) <$> value a <*> value b
+  valueByTuple _ = Left "unable to parse as (,)"
+
+instance MiniTidal a => MiniTidal [a] where
+  valueByList = mapM value
+
+list :: MiniTidal a => Exp SrcSpanInfo -> Result [a]
+list (Paren _ exp) = list exp
+list (List _ xs) = mapM value xs
+list _ = Left "unhandled structure in Sound.Tidal.MiniTidal.list"
+
+instance MiniTidal ControlMap -- empty instance for the moment...
 
 -- Next, we provide MiniTidal instance declarations for as many as possible of the types
 -- that occur in typical TidalCycles usage patterns, beginning with ControlPattern, which
@@ -69,26 +103,32 @@ value _ = Left "internal error: unhandled structure in Sound.Tidal.MiniTidal.val
 
 instance MiniTidal ControlPattern where
   valueByApplication e1 e2 =
-    value e1 <*> (value e2 :: Result ControlPattern) <|>
-    value e1 <*> (value e2 :: Result (Pattern String)) <|>
-    value e1 <*> (value e2 :: Result (Pattern Double)) <|>
-    value e1 <*> (value e2 :: Result (Pattern Int))
+    (value e1 :: Result (ControlPattern -> ControlPattern)) <*> value e2 <|>
+    (value e1 :: Result (Pattern String -> ControlPattern)) <*> value e2 <|>
+    (value e1 :: Result (Pattern Double -> ControlPattern)) <*> value e2 <|>
+    (value e1 :: Result (Pattern Int -> ControlPattern)) <*> value e2 <|>
+    genericPatternExpressions e1 e2
   valueByOperator e1 op e2 =
-    (unionableMergeOperator op <|> numMergeOperator op <|> fractionalMergeOperator op <|> Left "ControlPattern merge operator expected")
+    (unionableMergeOperator op <|>
+     numMergeOperator op <|>
+     fractionalMergeOperator op <|>
+     Left "ControlPattern merge operator expected")
     <*> value e1 <*> value e2
   valueByIdentifier "silence" = Right $ T.silence
 
 
 instance MiniTidal (Pattern String) where
-  valueByApplication e1 e2 = value e1 <*> (value e2 :: Result (Pattern String))
+  valueByApplication e1 e2 = genericPatternExpressions e1 e2
   valueByIdentifier "silence" = Right $ T.silence
   valueByStringLiteral x = parseBP x
 
 
 instance MiniTidal (Pattern Int) where
-  valueByApplication e1 e2 = value e1 <*> (value e2 :: Result (Pattern Int))
+  valueByApplication e1 e2 = genericPatternExpressions e1 e2
   valueByOperator e1 op e2 =
-    (unionableMergeOperator op <|> numMergeOperator op <|> Left "Pattern Int merge operator expected")
+    (unionableMergeOperator op <|>
+     numMergeOperator op <|>
+     Left "Pattern Int merge operator expected")
     <*> value e1 <*> value e2
   valueByIdentifier "silence" = Right $ T.silence
   valueByStringLiteral x = parseBP x
@@ -96,9 +136,13 @@ instance MiniTidal (Pattern Int) where
 
 
 instance MiniTidal (Pattern Double) where
-  valueByApplication e1 e2 = value e1 <*> (value e2 :: Result (Pattern Double))
+  valueByApplication e1 e2 = genericPatternExpressions e1 e2
   valueByOperator e1 op e2 =
-    (unionableMergeOperator op <|> numMergeOperator op <|> realMergeOperator op <|> fractionalMergeOperator op <|> Left "Double merge operator expected")
+    (unionableMergeOperator op <|>
+     numMergeOperator op <|>
+     realMergeOperator op <|>
+     fractionalMergeOperator op <|>
+     Left "Double merge operator expected")
     <*> value e1 <*> value e2
   valueByIdentifier "silence" = Right $ T.silence
   valueByIdentifier "rand" = Right $ T.rand
@@ -115,8 +159,13 @@ instance MiniTidal (Pattern Double) where
 
 
 instance MiniTidal (Pattern Time) where
+  valueByApplication e1 e2 = genericPatternExpressions e1 e2
   valueByOperator e1 op e2 =
-    (unionableMergeOperator op <|> numMergeOperator op <|> realMergeOperator op <|> fractionalMergeOperator op <|> Left "Pattern Time merge operator expected")
+    (unionableMergeOperator op <|>
+     numMergeOperator op <|>
+     realMergeOperator op <|>
+     fractionalMergeOperator op <|>
+     Left "Pattern Time merge operator expected")
     <*> value e1 <*> value e2
   valueByIdentifier "silence" = Right $ T.silence
   valueByStringLiteral x = parseBP x
@@ -162,52 +211,193 @@ instance MiniTidal (Pattern Double -> ControlPattern) where
   valueByIdentifier _ = Left "expected Pattern Double -> ControlPattern"
 
 
-instance MiniTidal (Pattern a -> Pattern a) where
+instance (MiniTidal a, MiniTidal (Pattern a)) => MiniTidal (Pattern a -> Pattern a) where
   valueByApplication e1 e2 = genericTransformationsByApplication e1 e2
   valueByIdentifier x = oneWordTransformations x
 
-instance {-# OVERLAPPING #-} MiniTidal (ControlPattern -> ControlPattern) where
-  valueByApplication e1 e2 = genericTransformationsByApplication e1 e2 <|> controlPatternTransformationsByApplication e1 e2
+oneWordTransformations :: String -> Result (Pattern a -> Pattern a)
+oneWordTransformations "brak" = Right T.brak
+oneWordTransformations "rev" = Right T.rev
+oneWordTransformations "palindrome" = Right T.palindrome
+oneWordTransformations "stretch" = Right T.stretch
+oneWordTransformations "loopFirst" = Right T.loopFirst
+oneWordTransformations "degrade" = Right T.degrade
+oneWordTransformations _ = Left "expected 'oneWordTransformation', eg. rev, brak, etc"
+
+genericTransformationsByApplication :: (MiniTidal a, MiniTidal (Pattern a)) => Exp SrcSpanInfo -> Exp SrcSpanInfo -> Result (Pattern a -> Pattern a)
+genericTransformationsByApplication e1 e2 =
+  (value e1 :: Result (Time -> Pattern a -> Pattern a)) <*> value e2 <|>
+  (value e1 :: Result (Int -> Pattern a -> Pattern a)) <*> value e2 <|>
+  (value e1 :: Result ((Time,Time) -> Pattern a -> Pattern a)) <*> value e2 <|>
+  --
+  (value e1 :: Result (Pattern a -> Pattern a -> Pattern a)) <*> value e2 <|>
+  (value e1 :: Result (Pattern Time -> Pattern a -> Pattern a)) <*> value e2 <|>
+  (value e1 :: Result (Pattern Int -> Pattern a -> Pattern a)) <*> value e2 <|>
+  (value e1 :: Result (Pattern String -> Pattern a -> Pattern a)) <*> value e2 <|>
+  (value e1 :: Result (Pattern Double -> Pattern a -> Pattern a)) <*> value e2 <|>
+  (value e1 :: Result ([Pattern a] -> Pattern a -> Pattern a)) <*> value e2 <|>
+--  (value e1 :: Result ([Time] -> Pattern a -> Pattern a)) <*> value e2 <|>
+--  (value e1 :: Result ([Pattern Int] -> Pattern a -> Pattern a)) <*> value e2 <|>
+--  (value e1 :: Result ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> value e2 <|>
+  (value e1 :: Result ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> value e2
+
+instance {-# INCOHERENT #-} MiniTidal (Time -> Pattern a -> Pattern a) where
+  valueByIdentifier "rotL" = Right T.rotL
+  valueByIdentifier "rotR" = Right T.rotR
+  valueByIdentifier _ = Left "expected Time -> Pattern a -> Pattern a"
+  valueByApplication e1 e2 = (value e1 :: Result (Time -> Time -> Pattern a -> Pattern a)) <*> value e2
+
+instance MiniTidal (Time -> Time -> Pattern a -> Pattern a) where
+  valueByIdentifier "playFor" = Right T.playFor
+  valueByIdentifier _ = Left "expected Time -> Time -> Pattern a -> Pattern a"
+
+instance {-# INCOHERENT #-} MiniTidal (Int -> Pattern a -> Pattern a) where
+  valueByIdentifier "repeatCycles" = Right T.repeatCycles
+  valueByIdentifier _ = Left "expected Pattern Int -> Pattern a -> Pattern a"
+
+instance {-# INCOHERENT #-} MiniTidal ((Time,Time) -> Pattern a -> Pattern a) where
+  valueByIdentifier "compress" = Right T.compress
+  valueByIdentifier "zoom" = Right T.zoom
+  valueByIdentifier "compressTo" = Right T.compressTo
+  valueByIdentifier _ = Left "expected Pattern (Time,Time) -> Pattern a -> Pattern a"
+
+instance MiniTidal (Pattern a -> Pattern a -> Pattern a) where -- *** many binary functions, eg. Num functions, missing from this currently
+  valueByIdentifier "overlay" = Right T.overlay
+  valueByIdentifier "append" = Right T.append
+  valueByIdentifier _ = Left "expected Pattern a -> Pattern a -> Pattern a"
+
+instance {-# INCOHERENT #-} MiniTidal (Pattern Time -> Pattern a -> Pattern a) where
+  valueByIdentifier "fast" = Right T.fast
+  valueByIdentifier "fastGap" = Right T.fast
+  valueByIdentifier "density" = Right T.fast
+  valueByIdentifier "slow" = Right T.fast
+  valueByIdentifier "trunc" = Right T.fast
+  valueByIdentifier "densityGap" = Right T.fast
+  valueByIdentifier "sparsity" = Right T.fast
+  valueByIdentifier "linger" = Right T.fast
+  valueByIdentifier "segment" = Right T.fast
+  valueByIdentifier "discretise" = Right T.fast
+  valueByIdentifier "timeLoop" = Right T.fast
+  valueByIdentifier "swing" = Right T.fast
+  valueByIdentifier _ = Left "expected Pattern Time -> Pattern a -> Pattern a"
+  valueByApplication e1 e2 =
+    (value e1 :: Result (Pattern Time -> Pattern Time -> Pattern a -> Pattern a)) <*> value e2
+
+instance MiniTidal (Pattern Time -> Pattern Time -> Pattern a -> Pattern a) where
+  valueByIdentifier "swingBy" = Right T.swingBy
+  valueByIdentifier _ = Left "expected Pattern Time -> Pattern Time -> Pattern a -> Pattern a"
+
+instance {-# INCOHERENT #-} MiniTidal (Pattern Int -> Pattern a -> Pattern a) where
+  valueByIdentifier "iter" = Right T.iter
+  valueByIdentifier "iter'" = Right T.iter'
+  valueByIdentifier "ply" = Right T.ply
+  valueByIdentifier "substruct'" = Right T.substruct'
+  valueByIdentifier "slowstripe" = Right T.slowstripe
+  valueByIdentifier "shuffle" = Right T.shuffle
+  valueByIdentifier "scramble" = Right T.scramble
+  valueByIdentifier _ = Left "expected Pattern Int -> Pattern a -> Pattern a"
+  valueByApplication e1 e2 =
+    (value e1 :: Result (Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> value e2
+
+instance MiniTidal (Pattern Int -> Pattern Int -> Pattern a -> Pattern a) where
+  valueByIdentifier "euclid" = Right T.euclid
+  valueByIdentifier "euclidInv" = Right T.euclidInv
+  valueByIdentifier _ = Left "expected Pattern Int -> Pattern Int -> Pattern a -> Pattern a"
+  valueByApplication e1 e2 =
+    (value e1 :: Result (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> value e2
+
+instance MiniTidal (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a) where
+  valueByApplication e1 e2 =
+    (value e1 :: Result (Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> value e2
+
+instance MiniTidal (Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a) where
+  valueByIdentifier "fit'" = Right T.fit'
+  valueByIdentifier _ = Left "expected Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a"
+
+instance {-# INCOHERENT #-} MiniTidal (Pattern String -> Pattern a -> Pattern a) where
+  valueByIdentifier "substruct" = Right T.substruct
+  valueByIdentifier _ = Left "expected Pattern String -> Pattern a -> Pattern a"
+
+instance {-# INCOHERENT #-} MiniTidal (Pattern Double -> Pattern a -> Pattern a) where
+  valueByIdentifier "degradeBy" = Right T.degradeBy
+  valueByIdentifier "unDegradeBy" = Right T.unDegradeBy
+  valueByIdentifier _ = Left "expected Pattern Double -> Pattern a -> Pattern a"
+  valueByApplication e1 e2 =
+    (value e1 :: Result (Int -> Pattern Double -> Pattern a -> Pattern a)) <*> value e2
+
+instance MiniTidal (Int -> Pattern Double -> Pattern a -> Pattern a) where
+  valueByIdentifier "degradeOverBy" = Right T.degradeOverBy
+  valueByIdentifier _ = Left "expected Int -> Pattern Double -> Pattern a -> Pattern a"
+
+instance MiniTidal ([Pattern a] -> Pattern a -> Pattern a) where
+  valueByApplication e1 e2 =
+    (value e1 :: Result ((Pattern a -> Pattern a -> Pattern a) -> [Pattern a] -> Pattern a -> Pattern a)) <*> value e2
+
+instance MiniTidal ((a -> b -> Pattern c) -> [a] -> b -> Pattern c) where
+  valueByIdentifier "spread" = Right T.spread
+  valueByIdentifier "slowspread" = Right T.slowspread
+  valueByIdentifier "fastspread" = Right T.fastspread
+  valueByIdentifier _ = Left "expected (a -> b -> Pattern c) -> [a] -> b -> Pattern c"
+
+
+
+instance {-# INCOHERENT #-} MiniTidal (ControlPattern -> ControlPattern) where
+  valueByApplication e1 e2 =
+    genericTransformationsByApplication e1 e2 <|>
+    (value e1 :: Result ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern)) <*> value e2
   valueByIdentifier x = oneWordTransformations x
 
 instance MiniTidal ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   valueByApplication e1 e2 =
-    value e1 <*> (value e2 :: Result (Pattern Int))
+    (value e1 :: Result (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> value e2 <|>
+    (value e1 :: Result (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> value e2
 
-instance {-# OVERLAPPING #-} MiniTidal ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern) where
+instance {-# INCOHERENT #-} MiniTidal ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern) where
+  valueByApplication e1 e2 =
+    value e1 <*> (value e2 :: Result (Pattern Int)) <|>
+    value e1 <*> (value e2 :: Result (Pattern Time))
   valueByIdentifier "jux" = Right T.jux
   valueByIdentifier _ = Left "expected (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern"
-
-
-
-
-oneWordTransformations :: String -> Result (Pattern a -> Pattern a)
-oneWordTransformations "rev" = Right T.rev
-oneWordTransformations "brak" = Right T.brak
-oneWordTransformations _ = Left "expected 'oneWordTransformation', eg. rev, brak, etc"
-
-genericTransformationsByApplication :: Exp SrcSpanInfo -> Exp SrcSpanInfo -> Result (Pattern a -> Pattern a)
-genericTransformationsByApplication e1 e2 =
-  (value e1 :: Result (Pattern Time -> Pattern a -> Pattern a)) <*> value e2 -- <|>
---  (value e1 :: Result ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> (value e2 :: Result (Pattern a -> Pattern a))
-
-
-controlPatternTransformationsByApplication :: Exp SrcSpanInfo -> Exp SrcSpanInfo -> Result (ControlPattern -> ControlPattern)
-controlPatternTransformationsByApplication e1 e2 =
-  value e1 <*> (value e2 :: Result (ControlPattern -> ControlPattern))
-
-instance MiniTidal (Pattern Time -> Pattern a -> Pattern a) where
-  valueByIdentifier "fast" = Right T.fast
-  valueByIdentifier _ = Left "expected Pattern Time -> Pattern a -> Pattern a"
 
 instance MiniTidal (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   valueByIdentifier "every" = Right T.every
   valueByIdentifier _ = Left "expected Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a"
 
+instance MiniTidal (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  valueByIdentifier "off" = Right T.off
+  valueByIdentifier _ = Left "expected Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a"
 
--- working on every
---  :: Pattern Int
---     -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+
+genericPatternExpressions :: forall a. (MiniTidal a, MiniTidal (Pattern a)) => Exp SrcSpanInfo -> Exp SrcSpanInfo -> Result (Pattern a)
+genericPatternExpressions e1 e2 =
+  (value e1 :: Result (Pattern a -> Pattern a)) <*> value e2 <|>
+  (value e1 :: Result ([a] -> Pattern a)) <*> value e2 <|>
+  (value e1 :: Result ([Pattern a] -> Pattern a)) <*> value e2 <|>
+  (value e1 :: Result (Pattern Int -> Pattern a)) <*> value e2
+
+instance MiniTidal ([a] -> Pattern a) where
+  valueByIdentifier "listToPat" = Right T.listToPat
+  valueByIdentifier "choose" = Right T.choose
+  valueByIdentifier "cycleChoose" = Right T.cycleChoose
+  valueByIdentifier _ = Left "expected [a] -> Pattern a"
+
+instance MiniTidal ([Pattern a] -> Pattern a) where
+  valueByIdentifier "stack" = Right T.stack
+  valueByIdentifier "fastcat" = Right T.fastcat
+  valueByIdentifier "slowcat" = Right T.slowcat
+  valueByIdentifier "cat" = Right T.cat
+  valueByIdentifier "randcat" = Right T.randcat
+  valueByIdentifier _ = Left "expected [Pattern a] -> Pattern a"
+
+instance {-# INCOHERENT #-} MiniTidal [a] => MiniTidal (Pattern Int -> Pattern a) where
+  valueByApplication e1 e2 = (value e1 :: Result ([a] -> Pattern Int -> Pattern a)) <*> value e2
+
+instance MiniTidal ([a] -> Pattern Int -> Pattern a) where
+  valueByApplication e1 e2 = (value e1 :: Result (Int -> [a] -> Pattern Int -> Pattern a)) <*> value e2
+
+instance MiniTidal (Int -> [a] -> Pattern Int -> Pattern a) where
+  valueByIdentifier "fit" = Right T.fit
+  valueByIdentifier _ = Left "expected Int -> [a] -> Pattern Int -> Pattern a"
 
 
 unionableMergeOperator :: T.Unionable a => String -> Result (Pattern a -> Pattern a -> Pattern a)
