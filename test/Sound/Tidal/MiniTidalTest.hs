@@ -37,6 +37,9 @@ run =
     it "parses a very simple single 's' pattern" $
       "s \"bd cp\"" `parsesTo` s "bd cp"
 
+    it "parses a very simple single 'sound' pattern" $
+      "sound \"bd cp\"" `parsesTo` sound "bd cp"
+
     it "parses a single 's' pattern that uses angle brackets" $
       "s \"<bd cp>\"" `parsesTo` s "<bd cp>"
 
@@ -105,6 +108,9 @@ run =
     it "parses sine oscillators used in pan patterns" $
       "s \"arpy*8\" # pan sine" `parsesTo` (s "arpy*8" # pan sine)
 
+    it "parses striate transformations of s patterns" $
+      "striate 8 $ s \"arpy*8\"" `parsesTo` (striate 8 $ s "arpy*8")
+
     it "parses fast transformations of parampatterns" $
       "fast 2 $ s \"bd cp\"" `parsesTo` (fast 2 $ s "bd cp")
 
@@ -141,6 +147,10 @@ run =
       "up (fast 2 \"<0 2 3 5>\")" `parsesTo`
         (up (fast 2 "<0 2 3 5>"))
 
+    it "parses a partially-applied pattern transformation spread over patterns" $
+      "spread (fast) [2,1,1.5] $ s \"bd sn cp sn\"" `parsesTo`
+        (spread (fast) [2,1,1.5] $ s "bd sn cp sn")
+
     it "parses a binary Num function spread over a simple Num pattern" $
       "n (spread (+) [2,3,4] \"1 2 3\")" `parsesTo`
         (n (spread (+) [2,3,4] "1 2 3"))
@@ -148,6 +158,10 @@ run =
     it "parses an $ application spread over partially applied transformations of a non-Control Pattern" $
       "n (spread ($) [density 2, rev, slow 2] $ \"1 2 3 4\")" `parsesTo`
         (n (spread ($) [density 2, rev, slow 2] $ "1 2 3 4"))
+
+    it "parses an $ application spread over transformations of a control pattern" $
+      "spread ($) [fast 2,fast 4] $ s \"bd cp\"" `parsesTo`
+        (spread ($) [fast 2,fast 4] $ s "bd cp")
 
     it "parses an $ application spread over partially applied transformations of a Control Pattern" $
       "spread ($) [density 2, rev, slow 2, striate 3] $ sound \"[bd*2 [~ bd]] [sn future]*2 cp jvbass*4\"" `parsesTo`
