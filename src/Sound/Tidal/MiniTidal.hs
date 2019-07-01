@@ -149,6 +149,7 @@ instance MiniTidal (Pattern Double -> Pattern Double) where parser = genericTran
 genericTransformations :: forall a. (MiniTidal (Pattern a), MiniTidal (Pattern a -> Pattern a),MiniTidal (Pattern a -> Pattern a -> Pattern a), MiniTidal ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) => ExpParser (Pattern a -> Pattern a)
 genericTransformations =
     (parser :: ExpParser (Pattern a -> Pattern a -> Pattern a)) <*> parser <|>
+    asRightSection (parser :: ExpParser (Pattern a -> Pattern a -> Pattern a)) parser <|>
     (parser :: ExpParser ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
     $(fromTidal "brak") <|>
     $(fromTidal "rev") <|>

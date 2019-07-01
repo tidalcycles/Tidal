@@ -104,3 +104,17 @@ tupleOf p = ExpParser (\e -> do
     f (Paren _ x) = f x
     f (Tuple _ Boxed (a:b:[])) = Right (a,b)
     f _ = Left ""
+
+
+asRightSection :: ExpParser (a -> b -> c) -> ExpParser b -> ExpParser (a -> c)
+asRightSection opP bP = ExpParser (\e -> do
+  (opExp,bExp) <- f e
+  op <- runExpParser opP opExp
+  b <- runExpParser bP bExp
+  return $ flip op b
+  )
+  where
+    f (Paren _ x) = f x
+    f (RightSection _ (QVarOp l (UnQual _ (Symbol _ x))) e1) = Right (g l x,e1)
+    f _ = Left ""
+    g l x = (Var l (UnQual l (Ident l x)))
