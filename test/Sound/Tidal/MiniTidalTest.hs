@@ -6,7 +6,6 @@ import Test.Microspec
 import Sound.Tidal.MiniTidal
 import Sound.Tidal.Context as Tidal
 import Data.Either
-import Text.ParserCombinators.Parsec (ParseError)
 import qualified Data.Map.Strict as Map
 
 parsesTo :: String -> ControlPattern -> Property
@@ -16,10 +15,6 @@ parsesTo str p = x `shouldBe` y
 
 causesParseError :: String -> Property
 causesParseError str = isLeft (miniTidal str :: Either String ControlPattern) `shouldBe` True
-
--- for convenience when testing manually with GHCI
-main :: IO ()
-main = microspec Sound.Tidal.MiniTidalTest.run
 
 run :: Microspec ()
 run =
