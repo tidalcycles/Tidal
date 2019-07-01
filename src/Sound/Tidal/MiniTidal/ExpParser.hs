@@ -52,10 +52,11 @@ join x = ExpParser (\e -> do -- in (Either String)
 -- thus no obvious application for the idea of sequencing inherent to monads.
 
 
-identifier :: ExpParser String
+identifier :: ExpParser String -- note: we don't distinguish between identifiers and symbols
 identifier = ExpParser f
   where f (Paren _ x) = f x
         f (Var _ (UnQual _ (Ident _ x))) = Right x
+        f (Var _ (UnQual _ (Symbol _ x))) = Right x
         f _ = Left ""
 
 reserved :: String -> ExpParser ()
@@ -63,12 +64,6 @@ reserved x = ExpParser (\e -> do -- in (Either String)
    e' <- runExpParser identifier e
    if e' == x then Right () else Left ""
    )
-
-symbol :: ExpParser String
-symbol = ExpParser f
-  where f (Paren _ x) = f x
-        f (Var _ (UnQual _ (Symbol _ x))) = Right x
-        f _ = Left ""
 
 string :: ExpParser String
 string = ExpParser f

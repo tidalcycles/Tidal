@@ -111,6 +111,9 @@ run =
     it "parses striate transformations of s patterns" $
       "striate 8 $ s \"arpy*8\"" `parsesTo` (striate 8 $ s "arpy*8")
 
+    it "parses chop transformations of s patterns" $
+      "chop 8 $ s \"arpy*8\"" `parsesTo` (chop 8 $ s "arpy*8")
+
     it "parses fast transformations of parampatterns" $
       "fast 2 $ s \"bd cp\"" `parsesTo` (fast 2 $ s "bd cp")
 
@@ -186,3 +189,11 @@ run =
     it "parses a pattern rotation operator (3) applied to a transformation with $" $
       "fast 4 $ \"<0 [0.125,0.25]>\" <~ s \"bd cp sn glitch:2\"" `parsesTo`
         (fast 4 $ "<0 [0.125,0.25]>" <~ s "bd cp sn glitch:2")
+
+    it "parses a left section transformation of a controlpattern" $
+      "every 2 (s \"arpy*8\" #) $ s \"drum\"" `parsesTo`
+        (every 2 (s "arpy*8" #) $ s "drum")
+
+    it "parses a right section transformation of a controlpattern" $
+      "every 2 (# n \"3 4\") $ s \"drum\"" `parsesTo`
+        (every 2 (# n "3 4") $ s "drum")
