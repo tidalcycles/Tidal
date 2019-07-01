@@ -6,17 +6,17 @@ import           Language.Haskell.Exts
 import           Control.Applicative
 import           Data.Bifunctor
 
-import           Sound.Tidal.Context (Pattern,ControlMap,ControlPattern,Enumerable,Parseable,Time,Arc,TPat,Stream)
+import           Sound.Tidal.Context (Pattern,ControlMap,ControlPattern,Enumerable,Time)
 import qualified Sound.Tidal.Context as T
 import           Sound.Tidal.MiniTidal.TH
-import           Sound.Tidal.MiniTidal.ParseExp
+import           Sound.Tidal.MiniTidal.ExpParser
 
 
 -- This is depended upon by Estuary, and changes to its type will cause problems downstream for Estuary.
 miniTidal :: String -> Either String ControlPattern
 miniTidal = f . parseExp
   where
-    f (ParseOk x) = runParseExp parser x
+    f (ParseOk x) = runExpParser parser x
     f (ParseFailed l "Parse error: EOF") = Right $ T.silence
     f (ParseFailed l s) = Left $ show l ++ ": " ++ show s
 
@@ -33,10 +33,13 @@ test = f. parseExp
 -- via expressions in MiniTidal.
 
 class MiniTidal a where
-  parser :: ParseExp a
+  parser :: ExpParser a
 
 instance MiniTidal Int where
   parser = fromIntegral <$> integer
+
+instance MiniTidal Integer where
+  parser = integer
 
 instance MiniTidal Time where
   parser = rational
@@ -58,22 +61,24 @@ instance MiniTidal ControlMap where
 
 instance MiniTidal ControlPattern where
   parser =
-    (parser :: ParseExp (ControlPattern -> ControlPattern)) <*> parser <|>
-    (parser :: ParseExp (Pattern String -> ControlPattern)) <*> parser <|>
-    (parser :: ParseExp (Pattern Double -> ControlPattern)) <*> parser <|>
-    (parser :: ParseExp (Pattern Int -> ControlPattern)) <*> parser <|>
-    genericPatternExpressions
-    -- mising operators: former unionableMergeOperator, numMergeOperator, fractionalMergeOperator
+    (parser :: ExpParser (ControlPattern -> ControlPattern)) <*> parser <|>
+    (parser :: ExpParser (Pattern String -> ControlPattern)) <*> parser <|>
+    (parser :: ExpParser (Pattern Double -> ControlPattern)) <*> parser <|>
+    (parser :: ExpParser (Pattern Int -> ControlPattern)) <*> parser <|>
+    genericPatternExpressions <|>
+    unionableMergeOperator <*> parser <*> parser <|>
+    numMergeOperator <*> parser <*> parser <|>
+    fractionalMergeOperator <*> parser <*> parser
 
-genericPatternExpressions :: forall a. (MiniTidal a, MiniTidal (Pattern a)) => ParseExp (Pattern a)
+genericPatternExpressions :: forall a. (MiniTidal a, MiniTidal (Pattern a)) => ExpParser (Pattern a)
 genericPatternExpressions =
-  (parser :: ParseExp (Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp ([a] -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp ([Pattern a] -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp (Pattern Int -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ([a] -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ([Pattern a] -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Pattern Int -> Pattern a)) <*> parser <|>
   silence
 
-silence :: ParseExp (Pattern a)
+silence :: ExpParser (Pattern a)
 silence = $(fromTidal "silence") -- ie. T.silence <$ reserved "silence", see Sound.Tidal.MiniTidal.TH
 
 
@@ -82,7 +87,7 @@ instance MiniTidal (Pattern String) where
     parseBP <|>
     genericPatternExpressions
 
-parseBP :: (Enumerable a, T.Parseable a) => ParseExp (Pattern a)
+parseBP :: (Enumerable a, T.Parseable a) => ExpParser (Pattern a)
 parseBP = join ((first show . T.parseBP) <$> string)
 
 
@@ -90,8 +95,18 @@ instance MiniTidal (Pattern Int) where
   parser =
     (pure . fromIntegral) <$> integer <|>
     parseBP <|>
-    genericPatternExpressions
-  -- missing operators (former unionableMergeOperator, numMergeOperator)
+    genericPatternExpressions <|>
+    unionableMergeOperator <*> parser <*> parser <|>
+    numMergeOperator <*> parser <*> parser
+
+
+instance MiniTidal (Pattern Integer) where
+  parser =
+    pure <$> integer <|>
+    parseBP <|>
+    genericPatternExpressions <|>
+    unionableMergeOperator <*> parser <*> parser <|>
+    numMergeOperator <*> parser <*> parser
 
 
 instance MiniTidal (Pattern Double) where
@@ -106,8 +121,11 @@ instance MiniTidal (Pattern Double) where
     $(fromTidal "tri") <|>
     $(fromTidal "square") <|>
     $(fromTidal "cosine") <|>
-    genericPatternExpressions
-    -- missing operators (former unionableMergeOperator, numMergeOperator, realMergeOperator, fractionalMergeOperator)
+    genericPatternExpressions <|>
+    unionableMergeOperator <*> parser <*> parser <|>
+    numMergeOperator <*> parser <*> parser <|>
+    realMergeOperator <*> parser <*> parser <|>
+    fractionalMergeOperator <*> parser <*> parser
 
 
 instance MiniTidal (Pattern Time) where
@@ -115,8 +133,11 @@ instance MiniTidal (Pattern Time) where
     (pure . fromIntegral) <$> integer <|>
     pure <$> rational <|>
     parseBP <|>
-    genericPatternExpressions
-    -- missing operators (former unionableMergeOperator, numMergeOperator, realMergeOperator, fractionalMergeOperator)
+    genericPatternExpressions <|>
+    unionableMergeOperator <*> parser <*> parser <|>
+    numMergeOperator <*> parser <*> parser <|>
+    realMergeOperator <*> parser <*> parser <|>
+    fractionalMergeOperator <*> parser <*> parser
 
 
 instance MiniTidal (Pattern String -> ControlPattern) where
@@ -160,7 +181,7 @@ instance MiniTidal (Pattern Double -> ControlPattern) where
 instance (MiniTidal a, MiniTidal (Pattern a)) => MiniTidal (Pattern a -> Pattern a) where
   parser = genericTransformations
 
-genericTransformations :: (MiniTidal a, MiniTidal (Pattern a)) => ParseExp (Pattern a -> Pattern a)
+genericTransformations :: (MiniTidal a, MiniTidal (Pattern a)) => ExpParser (Pattern a -> Pattern a)
 genericTransformations =
   $(fromTidal "brak") <|>
   $(fromTidal "rev") <|>
@@ -169,30 +190,30 @@ genericTransformations =
   $(fromTidal "loopFirst") <|>
   $(fromTidal "degrade") <|>
   -- generic transformations with arguments that are a simple (ie. sub-pattern) types, including lists
-  (parser :: ParseExp (Time -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp (Int -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp ((Time,Time) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp ([Time] -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Time -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Int -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ((Time,Time) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ([Time] -> Pattern a -> Pattern a)) <*> parser <|>
   -- generic transformations with arguments that are a concrete Pattern type
-  (parser :: ParseExp (Pattern Time -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp (Pattern Int -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp (Pattern String -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp (Pattern Double -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Pattern Time -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Pattern Int -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Pattern String -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Pattern Double -> Pattern a -> Pattern a)) <*> parser <|>
   -- generic transformations with arguments that are lists of patterns or transformations
-  (parser :: ParseExp ([Pattern Time] -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp ([Pattern Int] -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp ([Pattern String] -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp ([Pattern Double] -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ([Pattern Time] -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ([Pattern Int] -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ([Pattern String] -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ([Pattern Double] -> Pattern a -> Pattern a)) <*> parser <|>
   -- generic transformations with generic transformations (or lists of them) as arguments
-  (parser :: ParseExp ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ParseExp ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
+  (parser :: ExpParser ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
 
 
 instance {-# INCOHERENT #-} MiniTidal (Time -> Pattern a -> Pattern a) where
   parser =
     $(fromTidal "rotL") <|>
     $(fromTidal "rotR") <|>
-    (parser :: ParseExp (Time -> Time -> Pattern a -> Pattern a)) <*> parser
+    (parser :: ExpParser (Time -> Time -> Pattern a -> Pattern a)) <*> parser
 
 instance MiniTidal (Time -> Time -> Pattern a -> Pattern a) where
   parser = $(fromTidal "playFor")
@@ -209,7 +230,8 @@ instance {-# INCOHERENT #-} MiniTidal ((Time,Time) -> Pattern a -> Pattern a) wh
 instance MiniTidal (Pattern a -> Pattern a -> Pattern a) where -- *** many binary functions, eg. Num functions, missing from this currently
   parser =
     $(fromTidal "overlay") <|>
-    $(fromTidal "append")
+    $(fromTidal "append") <|>
+    (parser :: ExpParser (Pattern Int -> Pattern a -> Pattern a -> Pattern a)) <*> parser
 
 instance {-# INCOHERENT #-} MiniTidal (Pattern Time -> Pattern a -> Pattern a) where
   parser =
@@ -225,7 +247,9 @@ instance {-# INCOHERENT #-} MiniTidal (Pattern Time -> Pattern a -> Pattern a) w
     $(fromTidal "discretise") <|>
     $(fromTidal "timeLoop") <|>
     $(fromTidal "swing") <|>
-    (parser :: ParseExp (Pattern Time -> Pattern Time -> Pattern a -> Pattern a)) <*> parser
+    $(fromTidal "<~") <|>
+    $(fromTidal "~>") <|>
+    (parser :: ExpParser (Pattern Time -> Pattern Time -> Pattern a -> Pattern a)) <*> parser
 
 instance MiniTidal (Pattern Time -> Pattern Time -> Pattern a -> Pattern a) where
   parser = $(fromTidal "swingBy")
@@ -239,16 +263,16 @@ instance {-# INCOHERENT #-} MiniTidal (Pattern Int -> Pattern a -> Pattern a) wh
     $(fromTidal "slowstripe") <|>
     $(fromTidal "shuffle") <|>
     $(fromTidal "scramble") <|>
-    (parser :: ParseExp (Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> parser
+    (parser :: ExpParser (Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> parser
 
 instance MiniTidal (Pattern Int -> Pattern Int -> Pattern a -> Pattern a) where
   parser =
     $(fromTidal "euclid") <|>
     $(fromTidal "euclidInv") <|>
-    (parser :: ParseExp (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> parser
+    (parser :: ExpParser (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> parser
 
 instance MiniTidal (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a) where
-  parser = (parser :: ParseExp (Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> parser
+  parser = (parser :: ExpParser (Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> parser
 
 instance MiniTidal (Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a) where
   parser = $(fromTidal "fit'")
@@ -260,7 +284,7 @@ instance {-# INCOHERENT #-} MiniTidal (Pattern Double -> Pattern a -> Pattern a)
   parser =
     $(fromTidal "degradeBy") <|>
     $(fromTidal "unDegradeBy") <|>
-    (parser :: ParseExp (Int -> Pattern Double -> Pattern a -> Pattern a)) <*> parser
+    (parser :: ExpParser (Int -> Pattern Double -> Pattern a -> Pattern a)) <*> parser
 
 instance MiniTidal (Int -> Pattern Double -> Pattern a -> Pattern a) where
   parser = $(fromTidal "degradeOverBy")
@@ -271,35 +295,65 @@ instance MiniTidal ((a -> b -> Pattern c) -> [a] -> b -> Pattern c) where
     $(fromTidal "slowspread") <|>
     $(fromTidal "fastspread")
 
-{- instance MiniTidal ((a -> b) -> a -> b) where -- not sure if this instance really gets used (probably just need multiple concrete $ placements ??? )
-  valueByIdentifier "$" = Right ($)
-  valueByIdentifier _  = Left "expected (a -> b) -> a -> b" -}
+instance MiniTidal (Pattern Int -> Pattern a -> Pattern a -> Pattern a) where
+  parser = (parser :: ExpParser (Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a)) <*> parser
+
+instance MiniTidal (Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "euclidFull")
+
+{-
+instance MiniTidal ((a -> b) -> a -> b) where -- not sure if this instance really gets used (probably just need multiple concrete $ placements ??? )
+  parser = $(fromHaskell "$")
+-}
 
 instance MiniTidal ([Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
-  parser = (parser :: ParseExp (((Pattern a -> Pattern a) -> Pattern a -> Pattern a) -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
+  parser = (parser :: ExpParser (((Pattern a -> Pattern a) -> Pattern a -> Pattern a) -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
 
 instance MiniTidal (Pattern b -> Pattern a -> Pattern a) => MiniTidal ([Pattern b] -> Pattern a -> Pattern a) where
-  parser = (parser :: ParseExp ((Pattern b -> Pattern a -> Pattern a) -> [Pattern b] -> Pattern a -> Pattern a)) <*> parser
+  parser = (parser :: ExpParser ((Pattern b -> Pattern a -> Pattern a) -> [Pattern b] -> Pattern a -> Pattern a)) <*> parser
 
 instance {-# INCOHERENT #-} MiniTidal (ControlPattern -> ControlPattern) where
   parser =
     genericTransformations <|>
-    (parser :: ParseExp ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern)) <*> parser
+    (parser :: ExpParser ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern)) <*> parser <|>
+    (parser :: ExpParser (Pattern Int -> ControlPattern -> ControlPattern)) <*> parser <|>
+    (parser :: ExpParser (Pattern Double -> ControlPattern -> ControlPattern)) <*> parser <|>
+    (parser :: ExpParser (Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
+
+instance MiniTidal (Pattern Int -> ControlPattern -> ControlPattern) where
+  parser =
+    $(fromTidal "chop") <|>
+    $(fromTidal "striate")
+
+instance MiniTidal (Pattern Double -> ControlPattern -> ControlPattern) where
+  parser = (parser :: ExpParser (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern)) <*> parser
+
+instance MiniTidal (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern) where
+  parser = $(fromTidal "striate'")
+
+instance MiniTidal (Pattern Time -> ControlPattern -> ControlPattern) where
+  parser = (parser :: ExpParser (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
+
+instance MiniTidal (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern) where
+  parser = (parser :: ExpParser (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
+
+instance MiniTidal (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern) where
+  parser = $(fromTidal "stut")
 
 instance {-# INCOHERENT #-} MiniTidal ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser =
     genericAppliedTransformations <|>
-    (parser :: ParseExp (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-    (parser :: ParseExp (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
+    (parser :: ExpParser (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: ExpParser (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance {-# INCOHERENT #-} MiniTidal ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern) where
   parser =
     genericAppliedTransformations <|>
-    parser <*> (parser :: ParseExp (Pattern Int)) <|>
-    parser <*> (parser :: ParseExp (Pattern Time)) <|>
+    parser <*> (parser :: ExpParser (Pattern Int)) <|>
+    parser <*> (parser :: ExpParser (Pattern Time)) <|>
     $(fromTidal "jux")
 
-genericAppliedTransformations :: ParseExp ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)
+genericAppliedTransformations :: ExpParser ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)
 genericAppliedTransformations =
   ($) <$ reserved "$" <|>
   $(fromTidal "sometimes") <|>
@@ -310,53 +364,45 @@ genericAppliedTransformations =
   $(fromTidal "never") <|>
   $(fromTidal "always") <|>
   $(fromTidal "superimpose") <|>
-  $(fromTidal "someCycles")
-
-
-{- stuff in this comment block transferred from old MiniTidal not reworked yet
-pInt_t_p_p :: MiniTidal a => ParseExp (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
-pInt_t_p_p = choice [
-  try $ parens pInt_t_p_p,
-  $(function "every"),
-  pInt_pInt_t_p_p <*> patternArg
-  ]
-
-pDouble_t_p_p :: MiniTidal a => ParseExp (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
-pDouble_t_p_p = $(function "sometimesBy")
-
-lvInt_t_p_p :: MiniTidal a => ParseExp ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
-lvInt_t_p_p = $(function "foldEvery")
-
-vTime_vTime_p_p :: MiniTidal a => ParseExp (Time -> Time -> Pattern a -> Pattern a)
-vTime_vTime_p_p = $(function "playFor")
-
-vTimeTime_t_p_p :: MiniTidal a => ParseExp ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
-vTimeTime_t_p_p = $(function "within")
-
-vInt_t_p_p :: MiniTidal a => ParseExp (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
-vInt_t_p_p = choice [
-  try $ parens vInt_t_p_p,
-  $(function "chunk"),
-  vInt_vInt_t_p_p <*> literalArg
-  ]
-
-vDouble_t_p_p :: MiniTidal a => ParseExp (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)
-vDouble_t_p_p = $(function "someCyclesBy")
-  pInt_t_p_p <*> patternArg,
-  pDouble_t_p_p <*> patternArg,
-  lvInt_t_p_p <*> listLiteralArg,
-  vInt_t_p_p <*> literalArg,
-  vDouble_t_p_p <*> literalArg,
-  vTimeTime_t_p_p <*> literalArg
-  ]
--}
-
-
-instance MiniTidal (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
-  parser = $(fromTidal "every")
+  $(fromTidal "someCycles") <|>
+  (parser :: ExpParser (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance MiniTidal (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "off")
+
+instance MiniTidal (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  parser =
+    $(fromTidal "every") <|>
+    (parser :: ExpParser (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
+
+instance MiniTidal (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "sometimesBy")
+
+instance MiniTidal ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "foldEvery")
+
+instance MiniTidal ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "within")
+
+instance MiniTidal (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  parser =
+    $(fromTidal "chunk") <|>
+    (parser :: ExpParser (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
+
+instance MiniTidal (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "someCyclesBy")
+
+instance MiniTidal (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "every'")
+
+instance MiniTidal (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "whenmod")
 
 instance {-# INCOHERENT #-} MiniTidal ([Pattern Int] -> Pattern a -> Pattern a) where
   parser = $(fromTidal "distrib")
@@ -376,10 +422,10 @@ instance MiniTidal ([Pattern a] -> Pattern a) where
     $(fromTidal "randcat")
 
 instance {-# INCOHERENT #-} MiniTidal [a] => MiniTidal (Pattern Int -> Pattern a) where
-  parser = (parser :: ParseExp ([a] -> Pattern Int -> Pattern a)) <*> parser
+  parser = (parser :: ExpParser ([a] -> Pattern Int -> Pattern a)) <*> parser
 
 instance MiniTidal ([a] -> Pattern Int -> Pattern a) where
-  parser = (parser :: ParseExp (Int -> [a] -> Pattern Int -> Pattern a)) <*> parser
+  parser = (parser :: ExpParser (Int -> [a] -> Pattern Int -> Pattern a)) <*> parser
 
 instance MiniTidal (Int -> [a] -> Pattern Int -> Pattern a) where
   parser = $(fromTidal "fit")
@@ -387,7 +433,7 @@ instance MiniTidal (Int -> [a] -> Pattern Int -> Pattern a) where
 instance MiniTidal ([Time] -> Pattern a -> Pattern a) where
   parser = $(fromTidal "spaceOut")
 
-unionableMergeOperator :: T.Unionable a => ParseExp (Pattern a -> Pattern a -> Pattern a)
+unionableMergeOperator :: T.Unionable a => ExpParser (Pattern a -> Pattern a -> Pattern a)
 unionableMergeOperator =
   $(fromTidal "#") <|>
   $(fromTidal "|>|") <|>
@@ -397,7 +443,7 @@ unionableMergeOperator =
   $(fromTidal "|<") <|>
   $(fromTidal "<|")
 
-numMergeOperator :: Num a => ParseExp (Pattern a -> Pattern a -> Pattern a)
+numMergeOperator :: Num a => ExpParser (Pattern a -> Pattern a -> Pattern a)
 numMergeOperator =
   $(fromTidal "|+|") <|>
   $(fromTidal "|+") <|>
@@ -412,13 +458,13 @@ numMergeOperator =
   $(fromHaskell "*") <|>
   $(fromHaskell "-")
 
-realMergeOperator :: Real a => ParseExp (Pattern a -> Pattern a -> Pattern a)
+realMergeOperator :: Real a => ExpParser (Pattern a -> Pattern a -> Pattern a)
 realMergeOperator =
   $(fromTidal "|%|") <|>
   $(fromTidal "|%") <|>
   $(fromTidal "%|")
 
-fractionalMergeOperator :: Fractional a => ParseExp (Pattern a -> Pattern a -> Pattern a)
+fractionalMergeOperator :: Fractional a => ExpParser (Pattern a -> Pattern a -> Pattern a)
 fractionalMergeOperator =
   $(fromTidal "|/|") <|>
   $(fromTidal "|/") <|>

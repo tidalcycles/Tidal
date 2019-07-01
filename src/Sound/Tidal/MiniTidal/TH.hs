@@ -3,7 +3,7 @@
 module Sound.Tidal.MiniTidal.TH where
 
 import Language.Haskell.TH
-import Sound.Tidal.MiniTidal.ParseExp
+import Sound.Tidal.MiniTidal.ExpParser
 
 -- example: $(fromTidal "jux") ...is translated as... T.jux <$ reserved "jux"
 fromTidal :: String -> Q Exp
