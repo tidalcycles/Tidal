@@ -3,16 +3,18 @@
 module Sound.Tidal.MiniTidal.TH where
 
 import Language.Haskell.TH
-import Sound.Tidal.MiniTidal.Token
+import Sound.Tidal.MiniTidal.ExpParser
 
-op :: String -> Q Exp
-op x = do -- op "x" >> return T.x
-  let y = appE [|opParser|] $ return (LitE $ StringL x)
-  let z = appE [|return|] $ return (VarE $ mkName $ "T." ++ x)
-  uInfixE y [|(>>)|] z
+-- example: $(fromTidal "jux") ...is translated as... T.jux <$ reserved "jux"
+fromTidal :: String -> Q Exp
+fromTidal x = do
+  let y = return (VarE $ mkName $ "T." ++ x)
+  let z = appE [|reserved|] $ return (LitE $ StringL x)
+  uInfixE y [|(<$)|] z
 
-function :: String -> Q Exp
-function x = do -- function "x" >> return T.x
-  let y = appE [|functionParser|] $ return (LitE $ StringL x)
-  let z = appE [|return|] $ return (VarE $ mkName $ "T." ++ x)
-  uInfixE y [|(>>)|] z
+-- example: $(fromHaskell "+") ...is translated as... + <$ reserved "+"
+fromHaskell :: String -> Q Exp
+fromHaskell x = do
+  let y = return (VarE $ mkName $ x)
+  let z = appE [|reserved|] $ return (LitE $ StringL x)
+  uInfixE y [|(<$)|] z
