@@ -2,7 +2,7 @@
 
 module Sound.Tidal.MiniTidalTest where
 
-import Test.Microspec
+import Test.Microspec hiding (run)
 import Sound.Tidal.MiniTidal
 import Sound.Tidal.Context as Tidal
 import Data.Either
@@ -192,3 +192,59 @@ run =
     it "parses a right section transformation of a controlpattern" $
       "every 2 (# n \"3 4\") $ s \"drum\"" `parsesTo`
         (every 2 (# n "3 4") $ s "drum")
+
+    it "parses right sections in a list with spread" $
+      "spread ($) [(# n \"4 5 6 7\"),(# n \"0 1 2 3\")] $ s \"drum*4\"" `parsesTo`
+            (spread ($) [(# n "4 5 6 7"),(# n "0 1 2 3")] $ s "drum*4")
+
+    it "parses pattern merges spread with #" $
+       "spread (#) [n \"4 5 6 7\",n \"0 1 2 3\"] $ s \"drum*4\"" `parsesTo`
+        (spread (#) [n "4 5 6 7",n "0 1 2 3"] $ s "drum*4")
+
+    it "parses a left section pattern rotation operator in an every expression" $
+       "every 2 (0.0625 ~>) $ (0.5 ~>) $ s \"snare\"" `parsesTo`
+        (every 2 (0.0625 ~>) $ (0.5 ~>) $ s "snare")
+
+    it "parses a right section |> operator in an every expression" $
+       "every 2 (|> speed \"2\") $ sound \"arpy*4\" |> speed \"1\"" `parsesTo`
+        (every 2 (|> speed "2") $ sound "arpy*4" |> speed "1")
+
+    it "parses a complex expression with multiple every, left sections and |>" $
+       "every 3 (|- note \"3\") $ every 2 (|+ up \"5\") $ sound \"arpy*4\" |> note \"0 2 4 5\"" `parsesTo`
+        (every 3 (|- note "3") $ every 2 (|+ up "5") $ sound "arpy*4" |> note "0 2 4 5")
+
+    it "parses an expression with run" $
+       "up (run 12) # sound \"arpy\"" `parsesTo`
+        (up (Tidal.run 12) # sound "arpy")
+
+    it "parses an expression with range" $
+       "sound \"bd*8 sn*8\" # speed (range 1 3 $ tri)" `parsesTo`
+       (sound "bd*8 sn*8" # speed (range 1 3 $ tri))
+
+    it "parses a rotation operator with BP pattern as left argument" $
+       "\"[0 0.25]/4\" <~ (sound \"bd*2 cp*2 hh sn\")" `parsesTo`
+       ("[0 0.25]/4" <~ (sound "bd*2 cp*2 hh sn"))
+
+    it "parses a sometimesBy application with a right section" $
+       "sometimesBy 0.75 (# crush 4) $ sound \"bd arpy sn ~\"" `parsesTo`
+       (sometimesBy 0.75 (# crush 4) $ sound "bd arpy sn ~")
+
+    it "parses a whenmod application" $
+       "whenmod 8 6 (rev) $ sound \"bd*2 arpy*2 cp hh*4\"" `parsesTo`
+       (whenmod 8 6 (rev) $ sound "bd*2 arpy*2 cp hh*4")
+
+    it "parses a complex example with const" $
+       "every 12 (const $ sound \"bd*4 sn*2\") $ sound \"bd sn bass2 sn\"" `parsesTo`
+       (every 12 (const $ sound "bd*4 sn*2") $ sound "bd sn bass2 sn")
+
+    it "parses an example with fastcat" $
+       "fastcat [sound \"bd sn:2\" # vowel \"[a o]/2\", sound \"casio casio:1 casio:2*2\"]" `parsesTo`
+       (fastcat [sound "bd sn:2" # vowel "[a o]/2",sound "casio casio:1 casio:2*2"])
+
+    it "parses an example with stack" $
+       "stack [s \"bd cp\",s \"arpy*8\"]" `parsesTo`
+       (stack [s "bd cp",s "arpy*8"])
+
+    it "parses an example with samples and cut" $
+       "sound (samples \"arpy*8\" (run 8)) # speed \"0.25\" # cut \"1\"" `parsesTo`
+       (sound (samples "arpy*8" (Tidal.run 8)) # speed "0.25" # cut "1")

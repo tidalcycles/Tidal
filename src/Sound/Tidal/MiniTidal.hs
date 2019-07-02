@@ -83,7 +83,8 @@ silence = $(fromTidal "silence") -- ie. T.silence <$ reserved "silence", see Sou
 instance MiniTidal (Pattern String) where
   parser =
     parseBP <|>
-    genericPatternExpressions
+    genericPatternExpressions <|>
+    pInt_pString <*> parser
 
 parseBP :: (Enumerable a, T.Parseable a) => ExpParser (Pattern a)
 parseBP = join ((first show . T.parseBP) <$> string)
@@ -141,10 +142,14 @@ instance MiniTidal (ControlPattern -> ControlPattern) where
     (parser :: ExpParser (Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
 
 instance MiniTidal (Pattern String -> Pattern String) where parser = genericTransformations
-instance MiniTidal (Pattern Int -> Pattern Int) where parser = genericTransformations
-instance MiniTidal (Pattern Integer -> Pattern Integer) where parser = genericTransformations
-instance MiniTidal (Pattern Time -> Pattern Time) where parser = genericTransformations
-instance MiniTidal (Pattern Double -> Pattern Double) where parser = genericTransformations
+instance MiniTidal (Pattern Int -> Pattern Int) where
+  parser = genericTransformations <|> numTransformations
+instance MiniTidal (Pattern Integer -> Pattern Integer) where
+  parser = genericTransformations <|> numTransformations
+instance MiniTidal (Pattern Time -> Pattern Time) where
+  parser = genericTransformations <|> numTransformations
+instance MiniTidal (Pattern Double -> Pattern Double) where
+  parser = genericTransformations <|> numTransformations
 
 genericTransformations :: forall a. (MiniTidal (Pattern a), MiniTidal (Pattern a -> Pattern a),MiniTidal (Pattern a -> Pattern a -> Pattern a), MiniTidal ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) => ExpParser (Pattern a -> Pattern a)
 genericTransformations =
@@ -157,6 +162,7 @@ genericTransformations =
     $(fromTidal "stretch") <|>
     $(fromTidal "loopFirst") <|>
     $(fromTidal "degrade") <|>
+    constParser <*> parser <|>
     -- more complex possibilities that would involve overlapped MiniTidal instances if they were instances
     pTime_p_p <*> parser <|>
     pInt_p_p <*> parser <|>
@@ -173,6 +179,10 @@ genericTransformations =
     (parser :: ExpParser ([Pattern Double] -> Pattern a -> Pattern a)) <*> parser <|>
     (parser :: ExpParser ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser <|>
     lp_p_p <*> parser
+
+numTransformations :: (Num a, Enum a) => ExpParser (Pattern a -> Pattern a)
+numTransformations =
+  $(fromTidal "run")
 
 instance MiniTidal ([a] -> Pattern a) where
   parser =
@@ -226,7 +236,8 @@ instance MiniTidal (Pattern Double -> ControlPattern) where
     $(fromTidal "loop") <|>
     $(fromTidal "note")
 
-
+pInt_pString :: ExpParser (Pattern Int -> Pattern String)
+pInt_pString = pString_pInt_pString <*> parser
 
 
 -- * -> * -> *
@@ -274,7 +285,8 @@ genericBinaryPatternFunctions =
   $(fromTidal "overlay") <|>
   $(fromTidal "append") <|>
   unionableMergeOperator <|>
-  pInt_p_p_p <*> parser
+  pInt_p_p_p <*> parser <|>
+  constParser
 
 unionableMergeOperator :: T.Unionable a => ExpParser (Pattern a -> Pattern a -> Pattern a)
 unionableMergeOperator =
@@ -286,8 +298,9 @@ unionableMergeOperator =
   $(fromTidal "|<") <|>
   $(fromTidal "<|")
 
-numMergeOperator :: Num a => ExpParser (Pattern a -> Pattern a -> Pattern a)
+numMergeOperator :: (Num a, MiniTidal (Pattern a)) => ExpParser (Pattern a -> Pattern a -> Pattern a)
 numMergeOperator =
+  numTernaryTransformations <*> parser <|>
   $(fromTidal "|+|") <|>
   $(fromTidal "|+") <|>
   $(fromTidal "+|") <|>
@@ -314,6 +327,9 @@ fractionalMergeOperator =
   $(fromTidal "/|") <|>
   $(fromHaskell "/")
 
+constParser :: ExpParser (a -> b -> a)
+constParser = $(fromHaskell "const")
+
 instance MiniTidal (Time -> Pattern a -> Pattern a) where
   parser =
     $(fromTidal "rotL") <|>
@@ -328,6 +344,9 @@ instance MiniTidal ((Time,Time) -> Pattern a -> Pattern a) where
     $(fromTidal "compress") <|>
     $(fromTidal "zoom") <|>
     $(fromTidal "compressTo")
+
+pString_pInt_pString :: ExpParser (Pattern String -> Pattern Int -> Pattern String)
+pString_pInt_pString = $(fromTidal "samples")
 
 pTime_p_p :: ExpParser (Pattern Time -> Pattern a -> Pattern a)
 pTime_p_p =
@@ -443,6 +462,9 @@ instance MiniTidal ([a] -> Pattern Int -> Pattern a) where
 
 
 -- * -> * -> * -> *
+
+numTernaryTransformations :: Num a => ExpParser (Pattern a -> Pattern a -> Pattern a -> Pattern a)
+numTernaryTransformations = $(fromTidal "range")
 
 instance MiniTidal (Time -> Time -> Pattern a -> Pattern a) where
   parser = $(fromTidal "playFor")
