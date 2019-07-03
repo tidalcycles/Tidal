@@ -1,5 +1,13 @@
 # TidalCycles log of changes
 
+## 1.0.14 - IICON
+
+* 'chew' - like bite, but speeds playback rate up and down
+* variable probability for ? in mini notation
+* chooseBy takes modulo of index to avoid out of bounds errors
+* 'rate' control param
+* Fix dependencies for parsec/colour
+
 ## 1.0.13 - 🐝⌛️🦋 #2
 
 * Simplify espgrid support - @yaxu

@@ -156,7 +156,7 @@ choose = chooseBy rand
 
 chooseBy :: Pattern Double -> [a] -> Pattern a
 chooseBy _ [] = silence
-chooseBy f xs = (xs !!) . floor <$> range 0 (fromIntegral $ length xs) f
+chooseBy f xs = (xs !!!) . floor <$> range 0 (fromIntegral $ length xs) f
 
 {- | Like @choose@, but works on an a list of tuples of values and weights
 
@@ -1776,3 +1776,21 @@ bite n ipat pat = squeezeJoin $ zoompat <$> ipat
 squeeze :: Pattern Int -> [Pattern a] -> Pattern a
 squeeze _ [] = silence
 squeeze ipat pats = squeezeJoin $ (pats !!!) <$> ipat
+
+
+squeezeJoinUp :: Pattern (ControlPattern) -> ControlPattern
+squeezeJoinUp pp = pp {query = q}
+  where q st = concatMap
+          (\(Event w p v) ->
+             mapMaybe (munge w p) $ query (compressArc (cycleArc w) (v |* P.speed (pure $ fromRational $ 1/(stop w - start w)))) st {arc = p}
+          )
+          (query pp st)
+        munge oWhole oPart (Event iWhole iPart v) =
+          do w' <- subArc oWhole iWhole
+             p' <- subArc oPart iPart
+             return (Event w' p' v)
+
+chew :: Int -> Pattern Int -> ControlPattern  -> ControlPattern
+chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)
+  where zoompat i = zoom (i'/(fromIntegral n), (i'+1)/(fromIntegral n)) (pat)
+           where i' = fromIntegral $ i `mod` n

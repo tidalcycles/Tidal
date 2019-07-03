@@ -1,5 +1,5 @@
 name:                tidal
-version:             1.0.13
+version:             1.0.15
 synopsis:            Pattern language for improvised music
 -- description:
 homepage:            http://tidalcycles.org/
@@ -46,24 +46,26 @@ library
                        Sound.Tidal.Utils
                        Sound.Tidal.Version
                        Sound.Tidal.EspGrid
+                       Sound.Tidal.TH
   other-modules: Sound.Tidal.MiniTidal.TH
-                 Sound.Tidal.MiniTidal.Token
+                 Sound.Tidal.MiniTidal.ExpParser
   Build-depends:
       base >=4.8 && <5
     , containers < 0.7
     , colour < 2.4
     , hosc < 0.18
     , text < 1.3
-    , parsec < 3.2
+    , parsec >= 3.1.12 && < 3.2
     , network < 3.2
     , mwc-random < 0.15
     , vector < 0.13
     , bifunctors < 5.6
-    , transformers < 0.5.7
+    , transformers >= 0.5 && < 0.5.7
     , template-haskell >= 2.10.0.0 && < 2.15
     , bytestring < 0.11
     , clock < 0.9
     , deepseq >= 1.1.0.0
+    , haskell-src-exts >= 1.17.1 && < 1.22
 
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups >= 0.18 && < 0.20

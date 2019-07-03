@@ -6,6 +6,8 @@ dist
 cabal
 *.o
 *.hi
+*.dyn_hi
+*.dyn_o
 .stack-work
 .DS_Store
 
