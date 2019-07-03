@@ -248,3 +248,7 @@ run =
     it "parses an example with samples and cut" $
        "sound (samples \"arpy*8\" (run 8)) # speed \"0.25\" # cut \"1\"" `parsesTo`
        (sound (samples "arpy*8" (Tidal.run 8)) # speed "0.25" # cut "1")
+
+    it "parses an example with sew" $
+       "sound \"cp*16\" |+| gain (sew \"t(3,8)\" \"1*8\" \"0.75*8\")" `parsesTo`
+       (sound "cp*16" |+| gain (sew "t(3,8)" "1*8" "0.75*8"))
