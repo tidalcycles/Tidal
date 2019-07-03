@@ -97,7 +97,9 @@ benchmark bench-speed
   main-is:          Main.hs 
   hs-source-dirs:   bench/Speed
   other-modules: Tidal.PatternB
-                 Tidal.ParseB
+                 Tidal.CoreB
+                 Tidal.UIB
+                 Tidal.Inputs
   build-depends:    
                 base == 4.*
               , criterion
@@ -109,6 +111,7 @@ benchmark bench-memory
   main-is: Main.hs 
   hs-source-dirs: bench/Memory 
   other-modules: Tidal.UIB
+                 Tidal.Inputs 
   build-depends:
                base == 4.*
              , weigh
