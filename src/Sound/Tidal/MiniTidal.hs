@@ -35,6 +35,9 @@ test = f. parseExp
 class MiniTidal a where
   parser :: ExpParser a
 
+instance MiniTidal Bool where
+  parser = (True <$ reserved "True") <|> (False <$ reserved "False")
+
 instance MiniTidal Int where
   parser = fromIntegral <$> integer
 
@@ -79,6 +82,10 @@ genericPatternExpressions =
 silence :: ExpParser (Pattern a)
 silence = $(fromTidal "silence") -- ie. T.silence <$ reserved "silence", see Sound.Tidal.MiniTidal.TH
 
+instance MiniTidal (Pattern Bool) where
+  parser =
+    parseBP <|>
+    genericPatternExpressions
 
 instance MiniTidal (Pattern String) where
   parser =
@@ -141,6 +148,7 @@ instance MiniTidal (ControlPattern -> ControlPattern) where
     (parser :: ExpParser (Pattern Double -> ControlPattern -> ControlPattern)) <*> parser <|>
     (parser :: ExpParser (Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
 
+instance MiniTidal (Pattern Bool -> Pattern Bool) where parser = genericTransformations
 instance MiniTidal (Pattern String -> Pattern String) where parser = genericTransformations
 instance MiniTidal (Pattern Int -> Pattern Int) where
   parser = genericTransformations <|> numTransformations
@@ -242,6 +250,9 @@ pInt_pString = pString_pInt_pString <*> parser
 
 -- * -> * -> *
 
+instance MiniTidal (Pattern Bool -> Pattern Bool -> Pattern Bool) where
+  parser = genericBinaryPatternFunctions
+
 instance MiniTidal (Pattern String -> Pattern String -> Pattern String) where
   parser =
     genericBinaryPatternFunctions <|>
@@ -286,6 +297,7 @@ genericBinaryPatternFunctions =
   $(fromTidal "append") <|>
   unionableMergeOperator <|>
   pInt_p_p_p <*> parser <|>
+  (parser :: ExpParser (Pattern Bool -> Pattern a -> Pattern a -> Pattern a)) <*> parser <|>
   constParser
 
 unionableMergeOperator :: T.Unionable a => ExpParser (Pattern a -> Pattern a -> Pattern a)
@@ -424,6 +436,8 @@ instance MiniTidal ((ControlPattern -> ControlPattern) -> ControlPattern -> Cont
     genericAppliedTransformations <|>
     $(fromTidal "jux")
 
+instance MiniTidal ((Pattern Bool -> Pattern Bool) -> Pattern Bool -> Pattern Bool) where
+  parser = genericAppliedTransformations
 instance MiniTidal ((Pattern String -> Pattern String) -> Pattern String -> Pattern String) where
   parser = genericAppliedTransformations
 instance MiniTidal ((Pattern Int -> Pattern Int) -> Pattern Int -> Pattern Int) where
@@ -471,6 +485,9 @@ instance MiniTidal (Time -> Time -> Pattern a -> Pattern a) where
 
 instance MiniTidal (Pattern Time -> Pattern Time -> Pattern a -> Pattern a) where
   parser = $(fromTidal "swingBy")
+
+instance MiniTidal (Pattern Bool -> Pattern a -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "sew")
 
 pInt_pInt_p_p :: ExpParser (Pattern Int -> Pattern Int -> Pattern a -> Pattern a)
 pInt_pInt_p_p =
