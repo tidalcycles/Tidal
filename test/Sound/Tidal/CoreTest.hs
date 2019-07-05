@@ -129,11 +129,11 @@ run =
       it "goes from 0 up to 1 and back every cycle" $ do
         comparePD (Arc 0 1)
           (struct "t*8" (tri :: Pattern Double))
-          ("0 0.25 0.5 0.75 1 0.75 0.5 0.25")
+          ("0.125 0.375 0.625 0.875 0.875 0.625 0.375 0.125")
       it "can be added to" $ do
         comparePD (Arc 0 1)
           (struct "t*8" $ (tri :: Pattern Double) + 1)
-          ("1 1.25 1.5 1.75 2 1.75 1.5 1.25")
+          ("1.125 1.375 1.625 1.875 1.875 1.625 1.375 1.125")
     describe "every" $ do
       it "`every n id` doesn't change the pattern's structure" $ do
         comparePD (Arc 0 4)

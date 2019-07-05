@@ -146,7 +146,9 @@ run =
           [(((0,1), (0,1)), 4  :: Int)]
       it "doesn't take structure from the right" $ do
         queryArc (pure (+1) <* (fastCat [pure 7, pure 8])) (Arc 0 1)
-          `shouldBe` fmap toEvent [(((0,1), (0,1)), 8 :: Int)]
+          `shouldBe` fmap toEvent [(((0,1), (0,0.5)), 8 :: Int),
+                                   (((0,1), (0.5,1)), 9 :: Int)
+                                  ]
 
     describe "*>" $ do
       it "can apply a pattern of values to a pattern of functions" $ do
@@ -523,7 +525,7 @@ run =
       it "filter above given threshold" $ do 
         let fil = filterWhen (>0.5) $ struct "t*4" $ (tri :: Pattern Double) + 1
         let res = queryArc fil (Arc 0.5 1.5)
-        property $ fmap toEvent [(((3%4, 1), (3%4, 1)), 1.5), (((1, 5%4), (1, 5%4)), 1.0), (((5%4, 3%2), (5%4, 3%2)), 1.5)] === res
+        property $ fmap toEvent [(((3%4, 1), (3%4, 1)), 1.25), (((1, 5%4), (1, 5%4)), 1.25), (((5%4, 3%2), (5%4, 3%2)), 1.75)] === res
 
     describe "compressArc" $ do
       it "return empty if start time is greater than end time" $ do 

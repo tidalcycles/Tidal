@@ -18,6 +18,6 @@ run =
     describe "stutWith" $ do
       it "can mimic stut" $ do
         comparePD (Arc 0 1)
-          (stutWith 4 0.25 (# gain 1) $ sound "bd")
-          (stut 4 1 0.25 $ sound "bd")
+          (filterOnsets $ stutWith 4 0.25 (# gain 1) $ sound "bd")
+          (filterOnsets $ stut 4 1 0.25 $ sound "bd")
         
