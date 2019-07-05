@@ -1080,10 +1080,7 @@ d1 $ s (mask ("1 ~ 1 ~ 1 1 ~ 1")
 -}
 
 mask :: Pattern Bool -> Pattern a -> Pattern a
-mask maskpat pat = filterJust $ toMaybe <$> pat'
-  where pat' = matchManyToOne (flip const) maskpat pat
-        toMaybe (True, a) = Just a
-        toMaybe (False, _) = Nothing
+mask b p = const <$> p <* (filterValues id b)
 
 {-
 mask :: Pattern Bool -> Pattern b -> Pattern b
@@ -1375,9 +1372,7 @@ _ply n p = arpeggiate $ stack (replicate n p)
 -- Uses the first (binary) pattern to switch between the following two
 -- patterns.
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
-sew stitch p1 p2 = overlay (const <$> p1 <* a) (const <$> p2 <* b)
-  where a = filterValues id stitch
-        b = filterValues not stitch
+sew stitch a b = overlay (mask stitch a)  (mask (inv stitch) b)
 
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n-1)]
