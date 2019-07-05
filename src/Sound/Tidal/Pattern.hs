@@ -343,13 +343,16 @@ instance Applicative Pattern where
 
 -- If one of the patterns is digital, treat both as digital.. (TODO - needs extra thought)
 (<*) pf px = Pattern Digital q
-  where q st = concatMap match $ query pf st
-         where
-            match (Event fWhole fPart f) =
-              map
-              (Event fWhole fPart . f . value) $
-              query px $ st {arc = xQuery fWhole}
-            xQuery (Arc s _) = pure s -- for discrete events, match with the onset
+    where q st = catMaybes $ concatMap match $ query pf st
+            where
+              match (Event fWhole fPart f) =
+                map
+                (\(Event xWhole xPart x) ->
+                  do let whole' = fWhole
+                     part' <- subArc fPart xPart
+                     return (Event whole' part' (f x))
+                )
+                (query px $ st {arc = fPart})
 
 -- | Like <*>, but the structure only comes from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
@@ -362,13 +365,16 @@ instance Applicative Pattern where
               query pf st -- for continuous events, use the original query
 
 (*>) pf px = Pattern Digital q
-  where q st = concatMap match $ query px st
-         where
-            match (Event xWhole xPart x) =
-              map
-              (\e -> Event xWhole xPart (value e x)) $
-              query pf $ fQuery xWhole
-            fQuery (Arc s _) = st {arc = pure s} -- for discrete events, match with the onset
+    where q st = catMaybes $ concatMap match $ query pf st
+            where
+              match (Event fWhole fPart f) =
+                map
+                (\(Event xWhole xPart x) ->
+                  do let whole' = xWhole
+                     part' <- subArc fPart xPart
+                     return (Event whole' part' (f x))
+                )
+                (query px $ st {arc = fPart})
 
 infixl 4 <*, *>
 
@@ -769,6 +775,9 @@ filterJust p = fromJust <$> filterValues isJust p
 -- formerly known as playWhen
 filterWhen :: (Time -> Bool) -> Pattern a -> Pattern a
 filterWhen test p = p {query = filter (test . wholeStart) . query p}
+
+filterOnsets :: Pattern a -> Pattern a
+filterOnsets p = p {query = filter (\e -> eventPartStart e == wholeStart e) . query p}
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
 playFor s e = filterWhen (\t -> (t >= s) && (t < e))
