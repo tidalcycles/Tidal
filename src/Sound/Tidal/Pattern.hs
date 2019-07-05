@@ -14,12 +14,14 @@ import qualified Data.Map.Strict as Map
 import           Data.Maybe (isJust, fromJust, catMaybes, fromMaybe, mapMaybe)
 import           Data.Ratio (numerator, denominator)
 import           Data.Typeable (Typeable)
+import           Control.DeepSeq (NFData(rnf))
+
 
 ------------------------------------------------------------------------
 -- * Types
 
 -- | Time is rational
-type Time = Rational
+type Time = Rational 
 
 -- | The 'sam' (start of cycle) for the given time value
 sam :: Time -> Time
@@ -44,6 +46,10 @@ data ArcF a = Arc
   } deriving (Eq, Ord, Functor)
 
 type Arc = ArcF Time
+
+instance NFData a => 
+  NFData (ArcF a) where 
+    rnf (Arc s e) = rnf s `seq` rnf e
 
 instance {-# OVERLAPPING #-} Show Arc where
   show (Arc s e) = prettyRat s ++ ">" ++ prettyRat e
@@ -135,6 +141,10 @@ data EventF a b = Event
   } deriving (Eq, Ord, Functor)
 
 type Event a = EventF (ArcF Time) a
+
+instance (NFData a, NFData b) => 
+  NFData (EventF a b) where 
+    rnf (Event w p v) = rnf w `seq` rnf p `seq` rnf v
 
 instance Bifunctor EventF where
   bimap f g (Event w p e) = Event (f w) (f p) (g e)
@@ -231,6 +241,13 @@ data Value = VS { svalue :: String }
 class Valuable a where
   toValue :: a -> Value
 
+instance NFData Value where 
+  rnf (VS s) = rnf s 
+  rnf (VF f) = rnf f 
+  rnf (VR r) = rnf r 
+  rnf (VI i) = rnf i 
+  rnf (VB b) = rnf b
+
 instance Valuable String where
   toValue = VS
 instance Valuable Double where
@@ -286,6 +303,10 @@ type ControlPattern = Pattern ControlMap
 
 ------------------------------------------------------------------------
 -- * Instances
+
+instance NFData a => 
+  NFData (Pattern a) where 
+    rnf (Pattern _ q) = rnf $ \s -> q s
 
 instance Functor Pattern where
   -- | apply a function to all the values in a pattern
