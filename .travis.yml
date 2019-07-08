@@ -65,6 +65,8 @@ script:
       cabal v2-test --enable-test
       cabal v2-install --lib
       cd tidal-parse
+      cabal configure --enable-tests
+      cabal build
       cabal v1-test
       ;;
     stack)
