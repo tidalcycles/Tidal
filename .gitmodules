@@ -1,0 +1,3 @@
+[submodule "tidal-parse"]
+	path = tidal-parse
+	url = https://github.com/tidalcycles/tidal-parse
