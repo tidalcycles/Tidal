@@ -63,6 +63,9 @@ script:
       cabal v2-update
       cabal v2-build
       cabal v2-test --enable-test
+      cabal v2-install --lib
+      cd tidal-parse
+      cabal v1-test
       ;;
     stack)
       stack --no-terminal $ARGS test --haddock --no-haddock-deps
