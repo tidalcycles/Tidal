@@ -1051,20 +1051,21 @@ rationals are required) -}
 lindenmayerI :: Num b => Int -> String -> String -> [b]
 lindenmayerI n r s = fmap (fromIntegral . digitToInt) $ lindenmayer n r s
 
-{- | @runMarkov n tmat xi@ generates a Markov chain (as a list) of length @n@
-using the transition matrix @tmat@ starting from initial state @xi@.
+{- | @runMarkov n tmat xi seed@ generates a Markov chain (as a list) of length @n@
+using the transition matrix @tmat@ starting from initial state @xi@, starting
+with random numbers generated from @seed@
 Each entry in the chain is the index of state (starting from zero). 
 Each row of the matrix will be automatically normalized. For example:
 @
-runMarkov 8 [[2,3], [1,3]] 0
+runMarkov 8 [[2,3], [1,3]] 0 0
 @
 will produce a two-state chain 8 steps long, from initial state @0@, where the
 transition probability from state 0->0 is 2/5, 0->1 is 3/5, 1->0 is 1/4, and 
 1->1 is 3/4.  -}
-runMarkov :: Int -> [[Double]] -> Int -> [Int]
-runMarkov n tp xi = reverse $ (iterate (markovStep $ renorm tp) [xi])!! (n-1) where
+runMarkov :: Int -> [[Double]] -> Int -> Time -> [Int]
+runMarkov n tp xi seed = reverse $ (iterate (markovStep $ renorm tp) [xi])!! (n-1) where
   markovStep tp xs = (fromJust $ findIndex (r <=) $ scanl1 (+) (tp!!(head xs))) : xs where
-    r = timeToRand $ fromIntegral $ length xs
+    r = timeToRand $ seed + (fromIntegral . length) xs / fromIntegral n
   renorm tp = [ map (/ sum x) x | x <- tp ]
 
 {- @markovPat n xi tp@ generates a one-cycle pattern of @n@ steps in a Markov
@@ -1086,7 +1087,8 @@ markovPat :: Pattern Int -> Pattern Int -> [[Double]] -> Pattern Int
 markovPat = tParam2 _markovPat
 
 _markovPat :: Int -> Int -> [[Double]] -> Pattern Int
-_markovPat n xi tp = listToPat $ runMarkov n tp xi
+_markovPat n xi tp = splitQueries $ Pattern Digital (\(State a@(Arc s e) _) -> 
+  queryArc (listToPat $ runMarkov n tp xi (sam s)) a)
 
 {-|
 Removes events from second pattern that don't start during an event from first.
