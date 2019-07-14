@@ -1374,6 +1374,9 @@ _ply n p = arpeggiate $ stack (replicate n p)
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 sew stitch a b = overlay (mask stitch a)  (mask (inv stitch) b)
 
+stitch :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
+stitch bool a b = overlay (struct bool a)  (struct (inv bool) b)
+
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n-1)]
 
