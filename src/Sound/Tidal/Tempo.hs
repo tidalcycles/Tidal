@@ -78,7 +78,6 @@ getCurrentCycle :: MVar Tempo -> IO Rational
 getCurrentCycle t = (readMVar t) >>= (cyclesNow) >>= (return . toRational)
 -}
 
-
 clocked :: Config -> (MVar Tempo -> State -> IO ()) -> IO (MVar Tempo, [ThreadId])
 clocked config callback
   = do s <- O.time
@@ -110,13 +109,19 @@ clocked config callback
              t' <- O.time
              let actualTick = floor $ (t' - start st) / frameTimespan
                  -- reset ticks if ahead/behind by 4 or more
-                 newTick | (abs $ actualTick - ticks st) > 4 = actualTick
+                 ahead = (abs $ actualTick - ticks st) > 4
+                 newTick | ahead = actualTick
                          | otherwise = (ticks st) + 1
                  st' = st {ticks = newTick,
                            nowArc = P.Arc s e,
                            starting = not (synched tempo)
                           }
+             when ahead $ putStrLn $ "skip: " ++ show (actualTick - ticks st)
              callback tempoMV st'
+             {-putStrLn ("actual tick: " ++ show actualTick
+                       ++ " old tick: " ++ show (ticks st)
+                       ++ " new tick: " ++ show newTick
+                      )-}
              loop tempoMV st'
 
 clientListen :: Config -> O.Time -> IO (MVar Tempo, ThreadId)
