@@ -150,7 +150,8 @@ toMessage t target tempo e = do vs <- toData target addExtra
                                 return $ O.Message (oPath target) $ oPreamble target ++ vs
   where on = sched tempo $ start $ whole e
         off = sched tempo $ stop $ whole e
-        identifier = (show (start $ whole e)
+        identifier = ((if (start $ whole e) == (start $ part e) then "X" else ">")
+                      ++ show (start $ whole e)
                       ++ "-"
                       ++ show (stop $ whole e)
                       ++ "-"
@@ -200,7 +201,9 @@ onTick config sMapMV pMV cxs tempoMV st =
      tempo <- readMVar tempoMV
      now <- O.time
      let sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
-         es = filter eventHasOnset $ query p (State {arc = T.nowArc st, controls = sMap'})
+         es = filterEvents $ query p (State {arc = T.nowArc st, controls = sMap'})
+         filterEvents | cSendParts config = id
+                      | otherwise = filter eventHasOnset
          on e = (sched tempo $ start $ whole e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
          messages target = catMaybes $ map (\e -> do m <- toMessage (on e + latency target) target tempo e
