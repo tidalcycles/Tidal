@@ -367,13 +367,23 @@ sec p = (realToFrac <$> cF 1 "_cps") *| p
 msec :: Fractional a => Pattern a -> Pattern a
 msec p = ((realToFrac . (/1000)) <$> cF 1 "_cps") *| p
 
-trigger :: Show a => a -> Pattern b -> Pattern b
-trigger k pat = pat {query = q}
+_trigger :: Show a => Bool -> a -> Pattern b -> Pattern b
+_trigger quantise k pat = pat {query = q}
   where q st = query ((offset st) ~> pat) st
+        f | quantise = fromIntegral . round
+          | otherwise = id
         offset st = fromMaybe (pure 0) $ do pat <- Map.lookup ctrl (controls st)
-                                            return $ ((fromMaybe 0 . getR) <$> pat)
+                                            return $ ((f . fromMaybe 0 . getR) <$> pat)
         ctrl = "_t_" ++ show k
 
+trigger :: Show a => a -> Pattern b -> Pattern b
+trigger = _trigger False
+
+qtrigger :: Show a => a -> Pattern b -> Pattern b
+qtrigger = _trigger True
+
+qt :: Show a => a -> Pattern b -> Pattern b
+qt = qtrigger
 
 _getP_ :: (Value -> Maybe a) -> Pattern Value -> Pattern a
 _getP_ f pat = filterJust $ f <$> pat
