@@ -103,7 +103,8 @@ dirtTarget = OSCTarget {oName = "Dirt",
                                        ("attack", Just $ VF (-1)),
                                        ("hold", Just $ VF 0),
                                        ("release", Just $ VF (-1)),
-                                       ("orbit", Just $ VI 0)
+                                       ("orbit", Just $ VI 0),
+                                       ("id", Just $ VI 0)
                                       ],
                          oLatency = 0.02,
                          oPreamble = [],
@@ -149,6 +150,23 @@ toMessage t target tempo e = do vs <- toData target addExtra
                                 return $ O.Message (oPath target) $ oPreamble target ++ vs
   where on = sched tempo $ start $ whole e
         off = sched tempo $ stop $ whole e
+        identifier = (show (start $ whole e)
+                      ++ "-"
+                      ++ show (stop $ whole e)
+                      ++ "-"
+                      ++ getString "n" e
+                      ++ "-"
+                      ++ getString "note" e
+                      ++ "-"
+                      ++ getString "s" e
+                     )
+        getString s e = fromMaybe "" $ do v <- Map.lookup s $ value e
+                                          return $ simpleShow v
+        simpleShow (VS s) = s
+        simpleShow (VI i) = show i
+        simpleShow (VF f) = show f
+        simpleShow (VR r) = show r
+        simpleShow (VB b) = show b
         delta = off - on
         messageStamp = oTimestamp target == MessageStamp
         -- If there is already cps in the event, the union will preserve that.
@@ -156,6 +174,7 @@ toMessage t target tempo e = do vs <- toData target addExtra
                           )) <$> e
         extra False = [("cps", (VF $ T.cps tempo)),
                        ("delta", VF delta),
+                       ("id", VS identifier),
                        ("cycle", VF (fromRational $ start $ whole e))
                       ]
         extra True = timestamp ++ (extra False)
