@@ -89,6 +89,13 @@ a |+  b = (+) <$> a <* b
 ( +|) :: Num a => Pattern a -> Pattern a -> Pattern a
 a  +| b = (+) <$> a *> b
 
+(|++|) :: Applicative a => a String -> a String -> a String
+a |++| b = (++) <$> a <*> b
+(|++ ) :: Pattern String -> Pattern String -> Pattern String
+a |++  b = (++) <$> a <* b
+( ++|) :: Pattern String -> Pattern String -> Pattern String
+a  ++| b = (++) <$> a *> b
+
 (|/|) :: (Applicative a, Fractional b) => a b -> a b -> a b
 a |/| b = (/) <$> a <*> b
 (|/ ) :: Fractional a => Pattern a -> Pattern a -> Pattern a
