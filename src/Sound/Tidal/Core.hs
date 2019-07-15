@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, BangPatterns #-}
 
 module Sound.Tidal.Core where
 
@@ -235,9 +235,9 @@ timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) 
 -- their events are combined over time. 
 overlay :: Pattern a -> Pattern a -> Pattern a
 -- Analog if they're both analog
-overlay p@(Pattern Analog _) p'@(Pattern Analog _) = Pattern Analog $ \st -> query p st ++ query p' st
+overlay !p@(Pattern Analog _) !p'@(Pattern Analog _) = Pattern Analog $ \st -> query p st ++ query p' st
 -- Otherwise digital. Won't really work to have a mixture.. Hmm
-overlay p p' = Pattern Digital $ \st -> query p st ++ query p' st
+overlay !p !p' = Pattern Digital $ \st -> query p st ++ query p' st
 
 -- | An infix alias of @overlay@
 (<>) :: Pattern a -> Pattern a -> Pattern a
