@@ -366,8 +366,11 @@ parseChord = do char '\''
                 name <- many1 $ letter <|> digit
                 let chord = fromMaybe [0] $ lookup name chordTable
                 do char '\''
-                   i <- integer <?> "chord range"
-                   let chord' = take (fromIntegral i) $ concatMap (\x -> map (+ x) chord) [0,12..]
+                   notFollowedBy space <?> "chord range or 'i'"
+                   let n = length chord
+                   i <- option n (fromIntegral <$> integer)
+                   j <- length <$> many (char 'i')
+                   let chord' = take i $ drop j $ concatMap (\x -> map (+ x) chord) [0,12..]
                    return chord'
                   <|> return chord
 
