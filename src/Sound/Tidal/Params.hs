@@ -4,6 +4,7 @@ import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
+import Data.Maybe (fromMaybe)
 
 -- | group multiple params into one
 grp :: [String -> ControlMap] -> Pattern String -> ControlPattern
@@ -14,10 +15,12 @@ grp fs p = splitby <$> p
         split = wordsBy (==':')
 
 mF :: String -> String -> ControlMap
-mF name v = Map.singleton name (VF $ read v)
+mF name v = fromMaybe Map.empty $ do f <- readMaybe v
+                                     return $ Map.singleton name (VF f)
 
 mI :: String -> String -> ControlMap
-mI name v = Map.singleton name (VI $ read v)
+mI name v = fromMaybe Map.empty $ do i <- readMaybe v
+                                     return $ Map.singleton name (VI i)
 
 mS :: String -> String -> ControlMap
 mS name v = Map.singleton name (VS v)
