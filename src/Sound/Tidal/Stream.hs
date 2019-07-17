@@ -1,4 +1,4 @@
-{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, BangPatterns #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
 
 module Sound.Tidal.Stream where
@@ -145,9 +145,9 @@ toData target e
   | isJust (oShape target) = fmap (fmap toDatum) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) (fromJust $ oShape target)
   | otherwise = Just $ concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ value e
 
-toMessage :: Double -> OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> Maybe O.Message
-toMessage t target tempo e = do vs <- toData target addExtra
-                                return $ O.Message (oPath target) $ oPreamble target ++ vs
+toMessage :: Config -> Double -> OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> Maybe O.Message
+toMessage config t target tempo e = do vs <- toData target addExtra
+                                       return $ O.Message (oPath target) $ oPreamble target ++ vs
   where on = sched tempo $ start $ whole e
         off = sched tempo $ stop $ whole e
         identifier = ((if (start $ whole e) == (start $ part e) then "X" else ">")
@@ -173,11 +173,12 @@ toMessage t target tempo e = do vs <- toData target addExtra
         -- If there is already cps in the event, the union will preserve that.
         addExtra = (\v -> (Map.union v $ Map.fromList (extra messageStamp)
                           )) <$> e
-        extra False = [("cps", (VF $ T.cps tempo)),
-                       ("delta", VF delta),
-                       ("id", VS identifier),
-                       ("cycle", VF (fromRational $ start $ whole e))
-                      ]
+        addIdentifier | cSendParts config = (("id", VS identifier):)
+                      | otherwise = id
+        extra False = addIdentifier [("cps", (VF $ T.cps tempo)),
+                                     ("delta", VF delta),
+                                     ("cycle", VF (fromRational $ start $ whole e))
+                                    ]
         extra True = timestamp ++ (extra False)
         timestamp = [("sec", VI sec),
                      ("usec", VI usec)
@@ -206,14 +207,14 @@ onTick config sMapMV pMV cxs tempoMV st =
                       | otherwise = filter eventHasOnset
          on e = (sched tempo $ start $ whole e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
-         messages target = catMaybes $ map (\e -> do m <- toMessage (on e + latency target) target tempo e
+         messages target = catMaybes $ map (\e -> do m <- toMessage config (on e + latency target) target tempo e
                                                      return $ (on e, m)
                                            ) es
          cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
          latency target = oLatency target + cFrameTimespan config + T.nudged tempo
      mapM_ (\(Cx target udp) -> E.catch (mapM_ (send target (latency target) udp) (messages target))
-                       (\(_ ::E.SomeException)
-                        -> putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running?"
+                       (\(e ::E.SomeException)
+                        -> putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
                        )
            ) cxs
      mapM_ (doCps tempoMV) cpsChanges
@@ -256,7 +257,7 @@ streamList s = do pMap <- readMVar (sPMapMV s)
 
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 streamReplace :: Show a => Stream -> a -> ControlPattern -> IO ()
-streamReplace s k pat
+streamReplace s k !pat
   = E.catch (do let x = queryArc pat (Arc 0 0)
                 tempo <- readMVar $ sTempoMV s
                 input <- takeMVar $ sInput s
@@ -311,14 +312,15 @@ streamOnce st p
            at e = sched fakeTempo $ start $ whole e
            on e = sched tempo $ start $ whole e
            cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
+           config = sConfig st
            messages target =
-             catMaybes $ map (\e -> do m <- toMessage (at e + (oLatency target)) target fakeTempo e
+             catMaybes $ map (\e -> do m <- toMessage config (at e + (oLatency target)) target fakeTempo e
                                        return $ (at e, m)
                              ) es
        mapM_ (\(Cx target udp) ->
                  E.catch (mapM_ (send target (oLatency target) udp) (messages target))
-                 (\(_ ::E.SomeException)
-                   -> putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running?"
+                 (\(e ::E.SomeException)
+                   -> putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
                  )
              ) (sCxs st)
        mapM_ (doCps $ sTempoMV st) cpsChanges
