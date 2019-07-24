@@ -1,0 +1,60 @@
+name:                tidal-parse
+version:             0.0.1
+synopsis:            Parser for TidalCycles
+-- description:
+homepage:            http://tidalcycles.org/
+license:             GPL-3
+license-file:        LICENSE
+author:              David Ogborn
+maintainer:          David Ogborn <ogbornd@mcmaster.ca>, Alex McLean <alex@slab.org>
+Stability:           Experimental
+Copyright:           (c) David Ogborn and contributors, 2019
+category:            Sound
+build-type:          Simple
+cabal-version:       >=1.10
+tested-with:         GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.3
+
+Extra-source-files: README.md
+
+Description: A parser for TidalCycles, used for example to interpret Tidal in a web browser (via ghcjs)
+
+library
+  ghc-options: -Wall
+  hs-source-dirs:
+                 src
+
+  default-language:    Haskell2010
+
+  Exposed-modules:     Sound.Tidal.Parse
+  other-modules: Sound.Tidal.Parse.TH
+                 Sound.Tidal.Parse.ExpParser
+  Build-depends:
+      base >=4.8 && <5
+    , tidal > 0.1.14
+    , parsec >= 3.1.12 && < 3.2
+    , transformers >= 0.5 && < 0.5.7
+    , template-haskell >= 2.10.0.0 && < 2.15
+    , haskell-src-exts >= 1.17.1 && < 1.22
+
+  if !impl(ghc >= 8.4.1)
+    build-depends: semigroups >= 0.18 && < 0.20
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  hs-source-dirs:
+      test
+  ghc-options: -Wall
+  other-modules: Sound.Tidal.TidalParseTest
+  build-depends:
+                base ==4.*
+              , microspec >= 0.2.0.1
+              , containers
+              , parsec
+              , tidal-parse
+              , tidal
+
+source-repository head
+  type:     git
+  location: https://github.com/tidalcycles/tidal-parse
+
