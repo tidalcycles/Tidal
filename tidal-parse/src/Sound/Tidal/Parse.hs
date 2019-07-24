@@ -17,7 +17,7 @@ parseTidal :: String -> Either String ControlPattern
 parseTidal = f . parseExp
   where
     f (ParseOk x) = runExpParser parser x
-    f (ParseFailed l "Parse error: EOF") = Right $ T.silence
+    f (ParseFailed _ "Parse error: EOF") = Right $ T.silence
     f (ParseFailed l s) = Left $ show l ++ ": " ++ show s
 
 {- test :: Parse a => String -> Either String a

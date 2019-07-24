@@ -1,6 +1,6 @@
 module Sound.Tidal.Parse.ExpParser where
 
-import           Language.Haskell.Exts
+import           Language.Haskell.Exts hiding (op)
 import           Control.Applicative
 import           Data.Either (isRight)
 
