@@ -1,5 +1,24 @@
 # TidalCycles log of changes
 
+## 1.1.0 - Brincliffe Edge
+
+* `binary` and `ascii` functions for playing with bit patterns
+* support chord inversions in chord parser @bgold-cosmos
+* skip ticks when system clock jumps @yaxu
+* fix crash bugs in mini notation parser and grp @yaxu
+* new stitch function @yaxu
+* |++, ++| and |++| for combining patterns of strings by concatenation @yaxu
+* send best effort of a sound id to dirt / superdirt if sendParts is on, allowing parameter adjustment of previously triggered sound (without chopping) @yaxu
+* qtrigger - quantise trigger to nearest cycle @yaxu
+* add setI, setF et al to BootTidal.hs for setting state variables @yaxu
+* BootTidal.hs now sends d1 .. d12 to orbits 0 .. 11 respectively @yaxu
+* markov chain support with runMarkov and markovPat @bgold-cosmos
+* simplify / fix mask and sew @yaxu
+* Adjust <* and *> (and therefore |+, +| etc) to be closer to <*>, explanation here: https://penelope.hypotheses.org/1722 @yaxu
+* extract minitidal into its own package tidal-parse (using cabal multipackages), renaming to Sound.Tidal.Parse @yaxu @dktr0
+* benchmarking @nini-faroux
+* minitidal refactor, support for parsing more of tidal, tests @dktr0
+
 ## 1.0.14 - IICON
 
 * 'chew' - like bite, but speeds playback rate up and down
