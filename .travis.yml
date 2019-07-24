@@ -61,7 +61,7 @@ script:
   case "$BUILD" in
     cabal)
       cabal v2-update
-      cabal v2-build --enable-tests --enable-benchmarks
+      cabal v2-build --enable-tests --enable-benchmarks all
       # cabal v2-test --enable-test
       # cd tidal-parse
       # cabal configure --enable-tests
