@@ -155,14 +155,14 @@ toMessage config t target tempo e = do vs <- toData target addExtra
                       ++ "-"
                       ++ show (stop $ whole e)
                       ++ "-"
-                      ++ getString "n" e
+                      ++ getString "n"
                       ++ "-"
-                      ++ getString "note" e
+                      ++ getString "note"
                       ++ "-"
-                      ++ getString "s" e
+                      ++ getString "s"
                      )
-        getString s e = fromMaybe "" $ do v <- Map.lookup s $ value e
-                                          return $ simpleShow v
+        getString s = fromMaybe "" $ do v <- Map.lookup s $ value e
+                                        return $ simpleShow v
         simpleShow (VS s) = s
         simpleShow (VI i) = show i
         simpleShow (VF f) = show f

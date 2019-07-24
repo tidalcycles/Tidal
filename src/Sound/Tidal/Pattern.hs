@@ -368,7 +368,7 @@ instance Applicative Pattern where
             where
               match (Event fWhole fPart f) =
                 map
-                (\(Event xWhole xPart x) ->
+                (\(Event _ xPart x) ->
                   do let whole' = fWhole
                      part' <- subArc fPart xPart
                      return (Event whole' part' (f x))
@@ -388,7 +388,7 @@ instance Applicative Pattern where
 (*>) pf px = Pattern Digital q
     where q st = catMaybes $ concatMap match $ query pf st
             where
-              match (Event fWhole fPart f) =
+              match (Event _ fPart f) =
                 map
                 (\(Event xWhole xPart x) ->
                   do let whole' = xWhole

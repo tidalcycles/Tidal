@@ -12,6 +12,7 @@ import Control.Monad (when, forever)
 import Data.Maybe (isJust, fromJust)
 import qualified Sound.OSC.FD as O
 
+port :: Int
 port = 17000
 
 carabiner :: S.Stream -> Int -> Double -> IO Socket
