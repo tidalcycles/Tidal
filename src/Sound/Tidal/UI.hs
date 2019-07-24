@@ -4,7 +4,8 @@ module Sound.Tidal.UI where
 
 import           Prelude hiding ((<*), (*>))
 
-import           Data.Char (digitToInt, isDigit)
+import           Data.Char (digitToInt, isDigit, ord)
+import           Data.Bits (testBit, Bits)
 -- import           System.Random (randoms, mkStdGen)
 import           System.Random.MWC
 import           Control.Monad.ST
@@ -1831,3 +1832,18 @@ chew :: Int -> Pattern Int -> ControlPattern  -> ControlPattern
 chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)
   where zoompat i = zoom (i'/(fromIntegral n), (i'+1)/(fromIntegral n)) (pat)
            where i' = fromIntegral $ i `mod` n
+
+__binary :: Data.Bits.Bits b => Int -> b -> [Bool]
+__binary n num = map (testBit num) $ reverse [0 .. n-1]
+
+_binary :: Data.Bits.Bits b => Int -> b -> Pattern Bool
+_binary n num = listToPat $ __binary n num
+
+binaryN :: Data.Bits.Bits b => Int -> Pattern b -> Pattern Bool
+binaryN n p = innerJoin $ _binary n <$> p
+
+binary :: Data.Bits.Bits b => Pattern b -> Pattern Bool
+binary = binaryN 8
+
+ascii :: Pattern String -> Pattern Bool
+ascii p = innerJoin $ (listToPat . concatMap (__binary 8 . ord)) <$> p
