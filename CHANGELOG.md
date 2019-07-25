@@ -2,7 +2,7 @@
 
 ## 1.1.0 - Brincliffe Edge
 
-* `binary` and `ascii` functions for playing with bit patterns
+* `binary` and `ascii` functions for playing with bit patterns @yaxu
 * support chord inversions in chord parser @bgold-cosmos
 * skip ticks when system clock jumps @yaxu
 * fix crash bugs in mini notation parser and grp @yaxu
