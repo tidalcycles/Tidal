@@ -1839,10 +1839,10 @@ __binary n num = map (testBit num) $ reverse [0 .. n-1]
 _binary :: Data.Bits.Bits b => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
 
-binaryN :: Data.Bits.Bits b => Int -> Pattern b -> Pattern Bool
+binaryN :: Int -> Pattern Int -> Pattern Bool
 binaryN n p = innerJoin $ _binary n <$> p
 
-binary :: Data.Bits.Bits b => Pattern b -> Pattern Bool
+binary :: Pattern Int -> Pattern Bool
 binary = binaryN 8
 
 ascii :: Pattern String -> Pattern Bool
