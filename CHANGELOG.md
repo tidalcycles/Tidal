@@ -1,5 +1,9 @@
 # TidalCycles log of changes
 
+## 1.1.1 - Chelsea Park
+
+* Useability fixes for `binary` / `binaryN` / `ascii` @yaxu
+
 ## 1.1.0 - Brincliffe Edge
 
 * `binary` and `ascii` functions for playing with bit patterns @yaxu
