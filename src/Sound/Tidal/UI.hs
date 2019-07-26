@@ -1846,4 +1846,4 @@ binary :: Pattern Int -> Pattern Bool
 binary = binaryN 8
 
 ascii :: Pattern String -> Pattern Bool
-ascii p = innerJoin $ (listToPat . concatMap (__binary 8 . ord)) <$> p
+ascii p = squeezeJoin $ (listToPat . concatMap (__binary 8 . ord)) <$> p
