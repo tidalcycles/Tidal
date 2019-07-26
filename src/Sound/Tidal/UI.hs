@@ -1840,7 +1840,7 @@ _binary :: Data.Bits.Bits b => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
 
 binaryN :: Int -> Pattern Int -> Pattern Bool
-binaryN n p = innerJoin $ _binary n <$> p
+binaryN n p = squeezeJoin $ _binary n <$> p
 
 binary :: Pattern Int -> Pattern Bool
 binary = binaryN 8

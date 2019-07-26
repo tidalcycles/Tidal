@@ -1,8 +1,12 @@
 # TidalCycles log of changes
 
+## 1.1.2 - Eccy Road
+
+* Usability fix for `binary` / `binaryN` (use squeezeJoin on input pattern)
+
 ## 1.1.1 - Chelsea Park
 
-* Useability fixes for `binary` / `binaryN` / `ascii` @yaxu
+* Usability fixes for `binary` / `binaryN` / `ascii` @yaxu
 
 ## 1.1.0 - Brincliffe Edge
 
