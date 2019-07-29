@@ -373,7 +373,7 @@ instance Applicative Pattern where
                      part' <- subArc fPart xPart
                      return (Event whole' part' (f x))
                 )
-                (query px $ st {arc = fPart})
+                (query px $ st {arc = fWhole})
 
 -- | Like <*>, but the structure only comes from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
