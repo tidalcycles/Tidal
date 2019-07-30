@@ -223,13 +223,8 @@ data State = State {arc :: Arc,
 -- | A function that represents events taking place over time
 type Query a = (State -> [Event a])
 
--- | Also known as Continuous vs Discrete/Amorphous vs Pulsating etc.
-data Nature = Analog | Digital
-            deriving (Eq, Show)
-
--- | A datatype that's basically a query, plus a hint about whether its events
--- are Analogue or Digital by nature
-data Pattern a = Pattern {nature :: Nature, query :: Query a}
+-- | A datatype that's basically a query
+data Pattern a = Pattern {query :: Query a}
 
 data Value = VS { svalue :: String }
            | VF { fvalue :: Double }
@@ -306,7 +301,7 @@ type ControlPattern = Pattern ControlMap
 
 instance NFData a => 
   NFData (Pattern a) where 
-    rnf (Pattern _ q) = rnf $ \s -> q s
+    rnf (Pattern q) = rnf $ \s -> q s
 
 instance Functor Pattern where
   -- | apply a function to all the values in a pattern
@@ -314,10 +309,10 @@ instance Functor Pattern where
 
 instance Applicative Pattern where
   -- | Repeat the given value once per cycle, forever
-  pure v = Pattern Digital $ \(State a _) ->
+  pure v = Pattern $ \(State a _) ->
     map (\a' -> Event a' (sect a a') v) $ cycleArcsInArc a
 
-  (<*>) pf px = Pattern (nature pf) q
+  (<*>) pf px = Pattern q
     where q st = catMaybes $ concatMap match $ query pf st
             where
               match (Event fWhole fPart f) =
@@ -331,7 +326,7 @@ instance Applicative Pattern where
 
 -- | Like <*>, but the 'wholes' come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<*) pf px = Pattern (nature pf) q
+(<*) pf px = Pattern q
     where q st = catMaybes $ concatMap match $ query pf st
             where
               match (Event fWhole fPart f) =
@@ -345,7 +340,7 @@ instance Applicative Pattern where
 
 -- | Like <*>, but the 'wholes' come from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(*>) pf px = Pattern (nature pf) q
+(*>) pf px = Pattern q
     where q st = catMaybes $ concatMap match $ query pf st
             where
               match (Event fWhole fPart f) =
@@ -619,16 +614,10 @@ showFrac n d = fromMaybe plain $ do n' <- up n
 -- * Internal functions
 
 empty :: Pattern a
-empty = Pattern {nature = Digital, query = const []}
+empty = Pattern {query = const []}
 
 queryArc :: Pattern a -> Arc -> [Event a]
 queryArc p a = query p $ State a Map.empty 
-
-isDigital :: Pattern a -> Bool
-isDigital = (== Digital) . nature
-
-isAnalog :: Pattern a -> Bool
-isAnalog = not . isDigital
 
 -- | Splits queries that span cycles. For example `query p (0.5, 1.5)` would be
 -- turned into two queries, `(0.5,1)` and `(1,1.5)`, and the results

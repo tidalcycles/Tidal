@@ -17,7 +17,7 @@ silence = empty
 
 -- | Takes a function from time to values, and turns it into a 'Pattern'.
 sig :: (Time -> a) -> Pattern a
-sig f = Pattern Analog q
+sig f = Pattern q
   where q (State (Arc s e) _)
           | s > e = []
           | otherwise = [Event (Arc s e) (Arc s e) (f (s+((e-s)/2)))]
@@ -190,8 +190,7 @@ append a b = cat [a,b]
 -- in turn, then the second cycle from each, and so on.
 cat :: [Pattern a] -> Pattern a
 cat [] = silence
--- TODO I *guess* it would be digital..
-cat ps = Pattern Digital q
+cat ps = Pattern $ q
   where n = length ps
         q st = concatMap (f st) $ arcCyclesZW (arc st)
         f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (stop a))}
@@ -234,10 +233,7 @@ timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) 
 -- | 'overlay' combines two 'Pattern's into a new pattern, so that
 -- their events are combined over time. 
 overlay :: Pattern a -> Pattern a -> Pattern a
--- Analog if they're both analog
-overlay !p@(Pattern Analog _) !p'@(Pattern Analog _) = Pattern Analog $ \st -> query p st ++ query p' st
--- Otherwise digital. Won't really work to have a mixture.. Hmm
-overlay !p !p' = Pattern Digital $ \st -> query p st ++ query p' st
+overlay !p !p' = Pattern $ \st -> query p st ++ query p' st
 
 -- | An infix alias of @overlay@
 (<>) :: Pattern a -> Pattern a -> Pattern a

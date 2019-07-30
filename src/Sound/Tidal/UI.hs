@@ -79,7 +79,7 @@ jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 @
 -}
 rand :: Fractional a => Pattern a
-rand = Pattern Analog (\(State a@(Arc s e) _) -> [Event a a (realToFrac $ timeToRand $ (e + s)/2)])
+rand = Pattern (\(State a@(Arc s e) _) -> [Event a a (realToFrac $ timeToRand $ (e + s)/2)])
 
 {- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:
@@ -987,7 +987,7 @@ randArcs n =
 
 -- TODO - what does this do? Something for @stripe@ ..
 randStruct :: Int -> Pattern Int
-randStruct n = splitQueries $ Pattern {nature = Digital, query = f}
+randStruct n = splitQueries $ Pattern {query = f}
   where f st = map (\(a,b,c) -> Event a (fromJust b) c) $ filter (\(_,x,_) -> isJust x) as
           where as = map (\(i, Arc s' e') ->
                     (Arc (s' + sam s) (e' + sam s),
@@ -1088,7 +1088,7 @@ markovPat :: Pattern Int -> Pattern Int -> [[Double]] -> Pattern Int
 markovPat = tParam2 _markovPat
 
 _markovPat :: Int -> Int -> [[Double]] -> Pattern Int
-_markovPat n xi tp = splitQueries $ Pattern Digital (\(State a@(Arc s e) _) -> 
+_markovPat n xi tp = splitQueries $ Pattern (\(State a@(Arc s e) _) -> 
   queryArc (listToPat $ runMarkov n tp xi (sam s)) a)
 
 {-|
@@ -1281,7 +1281,7 @@ _scramble n = _rearrangeWith (_segment (fromIntegral n) $ irand n) n
 randrun :: Int -> Pattern Int
 randrun 0 = silence
 randrun n' =
-  splitQueries $ Pattern Digital (\(State a@(Arc s _) _) -> events a $ sam s)
+  splitQueries $ Pattern (\(State a@(Arc s _) _) -> events a $ sam s)
   where events a seed = mapMaybe toEv $ zip arcs shuffled
           where shuffled = map snd $ sortOn fst $ zip rs [0 .. (n'-1)]
                 rs = timeToRands seed n'
@@ -1718,7 +1718,7 @@ inv = (not <$>)
 -- | Serialises a pattern so there's only one event playing at any one
 -- time, making it 'monophonic'. Events which start/end earlier are given priority.
 mono :: Pattern a -> Pattern a
-mono p = Pattern Digital $ \(State a cm) -> flatten $ query p (State a cm) where
+mono p = Pattern $ \(State a cm) -> flatten $ query p (State a cm) where
   flatten :: [Event a] -> [Event a]
   flatten = mapMaybe constrainPart . truncateOverlaps . sortOn whole
   truncateOverlaps [] = []
@@ -1739,7 +1739,7 @@ mono p = Pattern Digital $ \(State a cm) -> flatten $ query p (State a cm) where
 -- smooth :: Pattern Double -> Pattern Double
 
 smooth :: Fractional a => Pattern a -> Pattern a
-smooth p = Pattern Analog $ \st@(State a cm) -> tween st a $ query monoP (State (midArc a) cm)
+smooth p = Pattern $ \st@(State a cm) -> tween st a $ query monoP (State (midArc a) cm)
   where
     midArc a = Arc (mid (start a, stop a)) (mid (start a, stop a))
     tween _ _ [] = []
