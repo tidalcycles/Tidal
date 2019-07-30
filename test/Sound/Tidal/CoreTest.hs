@@ -105,14 +105,14 @@ run =
         (map value $ queryArc ((+1) <$> saw) (Arc 0.5 0.5)) `shouldBe` [1.5 :: Float]
       it "works on the left of <*>" $ do
         (queryArc ((+) <$> saw <*> pure 3) (Arc 0 1))
-          `shouldBe` fmap toEvent [(((0,1), (0,1)), 3 :: Float)]
+          `shouldBe` fmap toEvent [(((0,1), (0,1)), 3.5 :: Float)]
       it "works on the right of <*>" $ do
         (queryArc ((fast 4 $ pure (+3)) <*> saw) (Arc 0 1))
           `shouldBe` fmap toEvent
-          [(((0,0.25), (0,0.25)), 3 :: Float),
-            (((0.25,0.5), (0.25,0.5)), 3.25),
-            (((0.5,0.75), (0.5,0.75)), 3.5),
-            (((0.75,1), (0.75,1)), 3.75)
+          [(((0,0.25), (0,0.25)), 3.125 :: Float),
+            (((0.25,0.5), (0.25,0.5)), 3.375),
+            (((0.5,0.75), (0.5,0.75)), 3.625),
+            (((0.75,1), (0.75,1)), 3.875)
           ]
       it "can be reversed" $ do
         it "works with whole cycles" $
