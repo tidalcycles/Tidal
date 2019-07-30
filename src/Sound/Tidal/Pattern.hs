@@ -317,7 +317,7 @@ instance Applicative Pattern where
   pure v = Pattern Digital $ \(State a _) ->
     map (\a' -> Event a' (sect a a') v) $ cycleArcsInArc a
 
-  (<*>) pf@(Pattern Digital _) px@(Pattern Digital _) = Pattern Digital q
+  (<*>) pf px = Pattern (nature pf) q
     where q st = catMaybes $ concatMap match $ query pf st
             where
               match (Event fWhole fPart f) =
@@ -327,43 +327,11 @@ instance Applicative Pattern where
                      part' <- subArc fPart xPart
                      return (Event whole' part' (f x))
                 )
-                (query px $ st {arc = fPart})
-  (<*>) pf@(Pattern Digital _) px@(Pattern Analog _) = Pattern Digital q
-    where q st = concatMap match $ query pf st
-            where
-              match (Event fWhole fPart f) =
-                map
-                (Event fWhole fPart . f . value)
-                (query px $ st {arc = pure (start fPart)})
+                (query px $ st {arc = fWhole})
 
-  (<*>) pf@(Pattern Analog _) px@(Pattern Digital _) = Pattern Digital q
-    where q st = concatMap match $ query px st
-            where
-              match (Event xWhole xPart x) =
-                map
-                (\e -> Event xWhole xPart (value e x))
-                (query pf st {arc = pure (start xPart)})
-
-  (<*>) pf px = Pattern Analog q
-    where q st = concatMap match $ query pf st
-            where
-              match ef =
-                map
-                (Event (arc st) (arc st) . value ef . value)
-                (query px st)
-
--- | Like <*>, but the structure only comes from the left
+-- | Like <*>, but the 'wholes' come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<*) pf@(Pattern Analog _) px@(Pattern Analog _) = Pattern Analog q
-  where q st = concatMap match $ query pf st
-          where
-            match (Event fWhole fPart f) =
-              map
-              (Event fWhole fPart . f . value) $
-              query px st -- for continuous events, use the original query
-
--- If one of the patterns is digital, treat both as digital.. (TODO - needs extra thought)
-(<*) pf px = Pattern Digital q
+(<*) pf px = Pattern (nature pf) q
     where q st = catMaybes $ concatMap match $ query pf st
             where
               match (Event fWhole fPart f) =
@@ -375,27 +343,19 @@ instance Applicative Pattern where
                 )
                 (query px $ st {arc = fWhole})
 
--- | Like <*>, but the structure only comes from the right
+-- | Like <*>, but the 'wholes' come from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(*>) pf@(Pattern Analog _) px@(Pattern Analog _) = Pattern Analog q
-  where q st = concatMap match $ query px st
-          where
-            match (Event xWhole xPart x) =
-              map
-              (\e -> Event xWhole xPart (value e x)) $
-              query pf st -- for continuous events, use the original query
-
-(*>) pf px = Pattern Digital q
+(*>) pf px = Pattern (nature pf) q
     where q st = catMaybes $ concatMap match $ query pf st
             where
-              match (Event _ fPart f) =
+              match (Event fWhole fPart f) =
                 map
                 (\(Event xWhole xPart x) ->
                   do let whole' = xWhole
                      part' <- subArc fPart xPart
                      return (Event whole' part' (f x))
                 )
-                (query px $ st {arc = fPart})
+                (query px $ st {arc = fWhole})
 
 infixl 4 <*, *>
 
