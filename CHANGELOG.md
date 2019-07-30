@@ -1,5 +1,9 @@
 # TidalCycles log of changes
 
+## 1.2.0 - Hunters Bar
+
+* Simplify <* and *>, removing any distinction between analogue and digital patterns
+
 ## 1.1.2 - Eccy Road
 
 * Usability fix for `binary` / `binaryN` (use squeezeJoin on input pattern)
