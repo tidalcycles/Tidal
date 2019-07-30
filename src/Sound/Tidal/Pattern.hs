@@ -307,50 +307,33 @@ instance Functor Pattern where
   -- | apply a function to all the values in a pattern
   fmap f p = p {query = fmap (fmap f) . query p}
 
+applyPatToPat :: (Arc -> Arc -> Maybe Arc) -> Pattern (a -> b) -> Pattern a -> Pattern b
+applyPatToPat combineWholes pf px = Pattern q
+    where q st = catMaybes $ concatMap match $ query pf st
+            where
+              match (Event fWhole fPart f) =
+                map
+                (\(Event xWhole xPart x) ->
+                  do whole' <- combineWholes fWhole xWhole
+                     part' <- subArc fPart xPart
+                     return (Event whole' part' (f x))
+                )
+                (query px $ st {arc = fWhole})
+
 instance Applicative Pattern where
   -- | Repeat the given value once per cycle, forever
   pure v = Pattern $ \(State a _) ->
     map (\a' -> Event a' (sect a a') v) $ cycleArcsInArc a
 
-  (<*>) pf px = Pattern q
-    where q st = catMaybes $ concatMap match $ query pf st
-            where
-              match (Event fWhole fPart f) =
-                map
-                (\(Event xWhole xPart x) ->
-                  do whole' <- subArc xWhole fWhole
-                     part' <- subArc fPart xPart
-                     return (Event whole' part' (f x))
-                )
-                (query px $ st {arc = fWhole})
+  (<*>) = applyPatToPat subArc
 
 -- | Like <*>, but the 'wholes' come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<*) pf px = Pattern q
-    where q st = catMaybes $ concatMap match $ query pf st
-            where
-              match (Event fWhole fPart f) =
-                map
-                (\(Event _ xPart x) ->
-                  do let whole' = fWhole
-                     part' <- subArc fPart xPart
-                     return (Event whole' part' (f x))
-                )
-                (query px $ st {arc = fWhole})
+(<*) = applyPatToPat (\a _ -> Just a)
 
 -- | Like <*>, but the 'wholes' come from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(*>) pf px = Pattern q
-    where q st = catMaybes $ concatMap match $ query pf st
-            where
-              match (Event fWhole fPart f) =
-                map
-                (\(Event xWhole xPart x) ->
-                  do let whole' = xWhole
-                     part' <- subArc fPart xPart
-                     return (Event whole' part' (f x))
-                )
-                (query px $ st {arc = fWhole})
+(*>) = applyPatToPat (\_ b -> Just b)
 
 infixl 4 <*, *>
 
