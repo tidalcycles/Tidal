@@ -318,7 +318,7 @@ applyPatToPat combineWholes pf px = Pattern q
                      part' <- subArc fPart xPart
                      return (Event whole' part' (f x))
                 )
-                (query px $ st {arc = fWhole})
+                (query px $ st {arc = fPart})
 
 instance Applicative Pattern where
   -- | Repeat the given value once per cycle, forever
