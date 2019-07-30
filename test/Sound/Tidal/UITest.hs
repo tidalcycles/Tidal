@@ -44,7 +44,7 @@ run =
       it "can hold a value over multiple cycles" $ do
         comparePD (Arc 0 8)
           (segment 0.5 saw)
-          (slow 2 "0.5" :: Pattern Double)
+          (slow 2 "0" :: Pattern Double)
       {-
       -- not sure what this is supposed to do!
       it "holding values over multiple cycles works in combination" $ do
