@@ -79,7 +79,7 @@ jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 @
 -}
 rand :: Fractional a => Pattern a
-rand = Pattern (\(State a@(Arc s e) _) -> [Event a a (realToFrac $ timeToRand $ (e + s)/2)])
+rand = Pattern (\(State a@(Arc s e) _) -> [Event Nothing a (realToFrac $ timeToRand $ (e + s)/2)])
 
 {- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:
@@ -969,7 +969,7 @@ struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <* p
 substruct :: Pattern String -> Pattern b -> Pattern b
 substruct s p = p {query = f}
   where f st =
-          concatMap ((\a' -> queryArc (compressArcTo a' p) a') . whole) (query s st)
+          concatMap ((\a' -> queryArc (compressArcTo a' p) a') . fromJust . whole) $ filter isDigital $ (query s st)
 
 randArcs :: Int -> Pattern [Arc]
 randArcs n =
@@ -988,7 +988,7 @@ randArcs n =
 -- TODO - what does this do? Something for @stripe@ ..
 randStruct :: Int -> Pattern Int
 randStruct n = splitQueries $ Pattern {query = f}
-  where f st = map (\(a,b,c) -> Event a (fromJust b) c) $ filter (\(_,x,_) -> isJust x) as
+  where f st = map (\(a,b,c) -> Event (Just a) (fromJust b) c) $ filter (\(_,x,_) -> isJust x) as
           where as = map (\(i, Arc s' e') ->
                     (Arc (s' + sam s) (e' + sam s),
                        subArc (Arc s e) (Arc (s' + sam s) (e' + sam s)), i)) $
@@ -998,7 +998,10 @@ randStruct n = splitQueries $ Pattern {query = f}
 
 -- TODO - what does this do?
 substruct' :: Pattern Int -> Pattern a -> Pattern a
-substruct' s p = p {query = \st -> concatMap (\(Event a' _ i) -> queryArc (compressArcTo a' (inside (pure $ 1/toRational(length (queryArc s (Arc (sam (start $ arc st)) (nextSam (start $ arc st)))))) (rotR (toRational i)) p)) a') (query s st)}
+substruct' s p = p {query = \st -> concatMap (f st) (query s st)}
+  where f st (Event (Just a') _ i) = queryArc (compressArcTo a' (inside (pure $ 1/toRational(length (queryArc s (Arc (sam (start $ arc st)) (nextSam (start $ arc st)))))) (rotR (toRational i)) p)) a'
+        -- Ignore analog events (ones without wholes)
+        f _ _ = []
 
 -- | @stripe n p@: repeats pattern @p@, @n@ times per cycle. So
 -- similar to @fast@, but with random durations. The repetitions will
@@ -1138,7 +1141,7 @@ enclosingArc as = Arc (minimum (map start as)) (maximum (map stop as))
 stretch :: Pattern a -> Pattern a
 -- TODO - should that be whole or part?
 stretch p = splitQueries $ p {query = q}
-  where q st = query (zoomArc (cycleArc $ enclosingArc $ map whole $ query p (st {arc = Arc (sam s) (nextSam s)})) p) st
+  where q st = query (zoomArc (cycleArc $ enclosingArc $ map wholeOrPart $ query p (st {arc = Arc (sam s) (nextSam s)})) p) st
           where s = start $ arc st
 
 {- | `fit'` is a generalization of `fit`, where the list is instead constructed by using another integer pattern to slice up a given pattern.  The first argument is the number of cycles of that latter pattern to use when slicing.  It's easier to understand this with a few examples:
@@ -1203,7 +1206,7 @@ loopFirst :: Pattern a -> Pattern a
 loopFirst p = splitQueries $ p {query = f}
   where f st = map
           (\(Event w p' v) ->
-             Event (plus w) (plus p') v) $
+             Event (plus <$> w) (plus p') v) $
           query p (st {arc = minus $ arc st})
           where minus = fmap (subtract (sam s))
                 plus = fmap (+ sam s)
@@ -1288,7 +1291,7 @@ randrun n' =
                 arcs = zipWith Arc fractions (tail fractions)
                 fractions = map (+ (sam $ start a)) [0, 1 / fromIntegral n' .. 1]
                 toEv (a',v) = do a'' <- subArc a a'
-                                 return $ Event a' a'' v
+                                 return $ Event (Just a') a'' v
 
 ur :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
 ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <$> outer_p)
@@ -1303,7 +1306,7 @@ ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <
         transform _ _ = id
         transform' str (Arc s e) p = s `rotR` inside (pure $ 1/(e-s)) (matchF str) p
         matchF str = fromMaybe id $ lookup str fs
-        timedValues = withEvent (\(Event a a' v) -> Event a a' (a,v))
+        timedValues = withEvent (\(Event (Just a) a' v) -> Event (Just a) a' (a,v)) . filterDigital
 
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
 inhabit ps p = squeezeJoin $ (\s -> fromMaybe silence $ lookup s ps) <$> p
@@ -1341,13 +1344,15 @@ arpWith :: ([EventF (ArcF Time) a] -> [EventF (ArcF Time) b]) -> Pattern a -> Pa
 arpWith f p = withEvents munge p
   where munge es = concatMap (spreadOut . f) (groupBy (\a b -> whole a == whole b) $ sortOn whole es)
         spreadOut xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
-        shiftIt n d (Event (Arc s e) a' v) =
+        shiftIt n d (Event (Just (Arc s e)) a' v) =
           do
             a'' <- subArc (Arc newS newE) a'
-            return (Event (Arc newS newE) a'' v)
+            return (Event (Just $ Arc newS newE) a'' v)
           where newS = s + (dur * fromIntegral n)
                 newE = newS + dur
                 dur = (e - s) / fromIntegral d
+        -- TODO ignoring analog events.. Should we just leave them as-is?
+        shiftIt _ _ e = Nothing
 
 arp :: Pattern String -> Pattern a -> Pattern a
 arp = tParam _arp
@@ -1723,11 +1728,12 @@ mono p = Pattern $ \(State a cm) -> flatten $ query p (State a cm) where
   flatten = mapMaybe constrainPart . truncateOverlaps . sortOn whole
   truncateOverlaps [] = []
   truncateOverlaps (e:es) = e : truncateOverlaps (mapMaybe (snip e) es)
-  snip a b | start (whole b) >= stop (whole a) = Just b
-           | stop (whole b) <= stop (whole a) = Nothing
-           | otherwise = Just b {whole = Arc (stop $ whole a) (stop $ whole b)}
+  -- TODO - decide what to do about analog events..
+  snip a b | start (wholeOrPart b) >= stop (wholeOrPart a) = Just b
+           | stop (wholeOrPart b) <= stop (wholeOrPart a) = Nothing
+           | otherwise = Just b {whole = Just $ Arc (stop $ wholeOrPart a) (stop $ wholeOrPart b)}
   constrainPart :: Event a -> Maybe (Event a)
-  constrainPart e = do a <- subArc (whole e) (part e)
+  constrainPart e = do a <- subArc (wholeOrPart e) (part e)
                        return $ e {part = a}
 
 -- serialize the given pattern
@@ -1738,24 +1744,25 @@ mono p = Pattern $ \(State a cm) -> flatten $ query p (State a cm) where
 -- if there is, check where we are in the 'whole' of the event, and use that to tween between the values of the event and the next event
 -- smooth :: Pattern Double -> Pattern Double
 
+-- TODO - test this with analog events
 smooth :: Fractional a => Pattern a -> Pattern a
 smooth p = Pattern $ \st@(State a cm) -> tween st a $ query monoP (State (midArc a) cm)
   where
     midArc a = Arc (mid (start a, stop a)) (mid (start a, stop a))
     tween _ _ [] = []
-    tween st queryA (e:_) = maybe [e {whole = queryA, part = queryA}] (tween' queryA) (nextV st)
+    tween st queryA (e:_) = maybe [e {whole = Just queryA, part = queryA}] (tween' queryA) (nextV st)
       where aStop = Arc (wholeStop e) (wholeStop e)
             nextEs st' = query monoP (st' {arc = aStop})
             nextV st' | null (nextEs st') = Nothing
                       | otherwise = Just $ value (head (nextEs st'))
             tween' queryA' v =
               [ Event
-                { whole = queryA'
+                { whole = Just queryA'
                 , part = queryA'
                 , value = value e + ((v - value e) * pc)}
               ]
-            pc | delta' (whole e) == 0 = 0
-               | otherwise = fromRational $ (eventPartStart e - wholeStart e) / delta' (whole e)
+            pc | delta' (wholeOrPart e) == 0 = 0
+               | otherwise = fromRational $ (eventPartStart e - wholeStart e) / delta' (wholeOrPart e)
             delta' a = stop a - start a
     monoP = mono p
 
@@ -1818,15 +1825,15 @@ squeeze ipat pats = squeezeJoin $ (pats !!!) <$> ipat
 
 squeezeJoinUp :: Pattern (ControlPattern) -> ControlPattern
 squeezeJoinUp pp = pp {query = q}
-  where q st = concatMap
-          (\(Event w p v) ->
-             mapMaybe (munge w p) $ query (compressArc (cycleArc w) (v |* P.speed (pure $ fromRational $ 1/(stop w - start w)))) st {arc = p}
-          )
-          (query pp st)
-        munge oWhole oPart (Event iWhole iPart v) =
+  where q st = concatMap (f st) (query (filterDigital pp) st)
+        f st (Event (Just w) p v) =
+          mapMaybe (munge w p) $ query (compressArc (cycleArc w) (v |* P.speed (pure $ fromRational $ 1/(stop w - start w)))) st {arc = p}
+        -- already ignoring analog events, but for completeness..
+        f _ _ = []
+        munge oWhole oPart (Event (Just iWhole) iPart v) =
           do w' <- subArc oWhole iWhole
              p' <- subArc oPart iPart
-             return (Event w' p' v)
+             return (Event (Just w') p' v)
 
 chew :: Int -> Pattern Int -> ControlPattern  -> ControlPattern
 chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)

@@ -65,7 +65,9 @@ _chop :: Int -> ControlPattern -> ControlPattern
 _chop n = withEvents (concatMap chopEvent)
   where -- for each part,
         chopEvent :: Event ControlMap -> [Event ControlMap]
-        chopEvent (Event w p' v) = map (chomp v (length $ chopArc w n)) $ arcs w p'
+        chopEvent (Event (Just w) p' v) = map (chomp v (length $ chopArc w n)) $ arcs w p'
+        -- ignoring 'analog' events (those without wholes),
+        chopEvent _ = []
         -- cut whole into n bits, and number them
         arcs w' p' = numberedArcs p' $ chopArc w' n
         -- each bit is a new whole, with part that's the intersection of old part and new whole
@@ -77,7 +79,7 @@ _chop n = withEvents (concatMap chopEvent)
         -- begin and end values by the old difference (end-begin), and
         -- add the old begin
         chomp :: ControlMap -> Int -> (Int, (Arc, Arc)) -> Event ControlMap
-        chomp v n' (i, (w,p')) = Event w p' (Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v)
+        chomp v n' (i, (w,p')) = Event (Just w) p' (Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v)
           where b = fromMaybe 0 $ do v' <- Map.lookup "begin" v
                                      getF v'
                 e = fromMaybe 1 $ do v' <- Map.lookup "end" v
@@ -439,7 +441,7 @@ cS_ = _cX_ getS
 cS0 :: String -> Pattern String
 cS0 = _cX "" getS
 
-cP :: String -> Pattern String
+cP :: (Enumerable a, Parseable a) => String -> Pattern a
 cP s = innerJoin $ parseBP_E <$> (_cX_ getS s)
 
 -- Default controller inputs (for MIDI)

@@ -1,4 +1,4 @@
 module Sound.Tidal.Version where
 
 tidal_version :: String
-tidal_version = "1.2.1"
+tidal_version = "1.4.0"
