@@ -81,26 +81,26 @@ run =
     describe "rand" $ do
       it "generates a (pseudo-)random number between zero & one" $ do
         it "at the start of a cycle" $
-          (queryArc rand (Arc 0 0)) `shouldBe` fmap toEvent [(((0, 0), (0, 0)), 0.5000844 :: Float)]
+          (queryArc rand (Arc 0 0)) `shouldBe` [Event Nothing (Arc 0 0) (0.5000844 :: Float)]
         it "at 1/4 of a cycle" $
-          (queryArc rand (Arc 0.25 0.25)) `shouldBe` fmap toEvent
-            [(((0.25, 0.25), (0.25, 0.25)), 0.8587171 :: Float)]
+          (queryArc rand (Arc 0.25 0.25)) `shouldBe` 
+            [Event Nothing (Arc 0.25 0.25) (0.8587171 :: Float)]
         it "at 3/4 of a cycle" $
-          (queryArc rand (Arc 0.75 0.75)) `shouldBe` fmap toEvent
-            [(((0.75, 0.75), (0.75, 0.75)), 0.7277789 :: Float)]
+          (queryArc rand (Arc 0.75 0.75)) `shouldBe` 
+          [Event Nothing (Arc 0.75 0.75) (0.7277789 :: Float)]
 
     describe "range" $ do
       describe "scales a pattern to the supplied range" $ do
         describe "from 3 to 4" $ do
           it "at the start of a cycle" $
-            (queryArc (Sound.Tidal.UI.range 3 4 saw) (Arc 0 0)) `shouldBe` fmap toEvent
-              [(((0, 0), (0, 0)), 3 :: Float)]
+            (queryArc (Sound.Tidal.UI.range 3 4 saw) (Arc 0 0)) `shouldBe` 
+              [Event Nothing (Arc 0 0) (3 :: Float)]
           it "at 1/4 of a cycle" $
-            (queryArc (Sound.Tidal.UI.range 3 4 saw) (Arc 0.25  0.25)) `shouldBe` fmap toEvent
-              [(((0.25, 0.25), (0.25, 0.25)), 3.25 :: Float)]
+            (queryArc (Sound.Tidal.UI.range 3 4 saw) (Arc 0.25  0.25)) `shouldBe`
+              [Event Nothing (Arc 0.25 0.25) (3.25 :: Float)]
           it "at 3/4 of a cycle" $
-            (queryArc (Sound.Tidal.UI.range 3 4 saw) (Arc 0.75 0.75)) `shouldBe` fmap toEvent
-              [(((0.75, 0.75), (0.75, 0.75)), 3.75 :: Float)]
+            (queryArc (Sound.Tidal.UI.range 3 4 saw) (Arc 0.75 0.75)) `shouldBe` 
+              [Event Nothing (Arc 0.75 0.75) (3.75 :: Float)]
 
         describe "from -1 to 1" $ do
           it "at 1/2 of a cycle" $
