@@ -305,7 +305,7 @@ rev p =
   where makeWholeRelative :: Event a -> Event a
         makeWholeRelative (e@(Event Nothing _ _)) = e
         makeWholeRelative (Event (Just (Arc s e)) p'@(Arc s' e') v) =
-          Event (Just $ Arc (s'-s) (e'-e)) p' v
+          Event (Just $ Arc (s'-s) (e-e')) p' v
         makeWholeAbsolute :: Event a -> Event a
         makeWholeAbsolute (e@(Event Nothing _ _)) = e
         makeWholeAbsolute (Event (Just (Arc s e)) p'@(Arc s' e') v) =
