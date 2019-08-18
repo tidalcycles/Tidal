@@ -232,7 +232,7 @@ eventHasOnset :: Event a -> Bool
 eventHasOnset e | isAnalog e = False
                 | otherwise = start (fromJust $ whole e) == start (part e)
 
--- TODO - Is this used anywhere?
+-- TODO - Is this used anywhere? Just tests, it seems
 toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
 toEvent (((ws, we), (ps, pe)), v) = Event (Just $ Arc ws we) (Arc ps pe) v
 
@@ -328,25 +328,25 @@ instance Functor Pattern where
   -- | apply a function to all the values in a pattern
   fmap f p = p {query = fmap (fmap f) . query p}
 
-applyPatToPat :: (Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)) -> Pattern (a -> b) -> Pattern a -> Pattern b
+applyPatToPat :: (Arc -> Arc -> Maybe Arc) -> Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPat combineWholes pf px = Pattern q
     where q st = catMaybes $ concatMap match $ query pf st
             where
-              match (e@(Event fWhole fPart f)) =
+              match (ef@(Event _ fPart f)) =
                 map
-                (\(Event xWhole xPart x) ->
-                  do whole' <- combineWholes fWhole xWhole
+                (\ex@(Event _ xPart x) ->
+                  do whole' <- combineWholes (wholeOrPart ef) (wholeOrPart ex)
                      part' <- subArc fPart xPart
-                     return (Event whole' part' (f x))
+                     return (Event (Just whole') part' (f x))
                 )
-                (query px $ st {arc = wholeOrPart e})
+                (query px $ st {arc = (wholeOrPart ef)})
 
 instance Applicative Pattern where
   -- | Repeat the given value once per cycle, forever
   pure v = Pattern $ \(State a _) ->
     map (\a' -> Event (Just a') (sect a a') v) $ cycleArcsInArc a
 
-  (<*>) = applyPatToPat subMaybeArc
+  (<*>) = applyPatToPat subArc
 
 -- | Like <*>, but the 'wholes' come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
