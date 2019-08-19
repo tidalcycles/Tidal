@@ -87,10 +87,9 @@ subArc a@(Arc s e) b@(Arc s' e')
   where (Arc s'' e'') = sect a b
 
 subMaybeArc :: Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)
-subMaybeArc Nothing b = Just b
-subMaybeArc a Nothing = Just a
 subMaybeArc (Just a) (Just b) = do sa <- subArc a b
                                    return $ Just sa
+subMaybeArc _ _ = Just Nothing
 
 instance Applicative ArcF where
   pure t = Arc t t
@@ -328,16 +327,16 @@ instance Functor Pattern where
   -- | apply a function to all the values in a pattern
   fmap f p = p {query = fmap (fmap f) . query p}
 
-applyPatToPat :: (Arc -> Arc -> Maybe Arc) -> Pattern (a -> b) -> Pattern a -> Pattern b
+applyPatToPat :: (Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)) -> Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPat combineWholes pf px = Pattern q
     where q st = catMaybes $ concatMap match $ query pf st
             where
               match (ef@(Event _ fPart f)) =
                 map
                 (\ex@(Event _ xPart x) ->
-                  do whole' <- combineWholes (wholeOrPart ef) (wholeOrPart ex)
+                  do whole' <- combineWholes (whole ef) (whole ex)
                      part' <- subArc fPart xPart
-                     return (Event (Just whole') part' (f x))
+                     return (Event whole' part' (f x))
                 )
                 (query px $ st {arc = (wholeOrPart ef)})
 
@@ -346,15 +345,49 @@ instance Applicative Pattern where
   pure v = Pattern $ \(State a _) ->
     map (\a' -> Event (Just a') (sect a a') v) $ cycleArcsInArc a
 
-  (<*>) = applyPatToPat subArc
+  (<*>) = applyPatToPatBoth
+
+applyPatToPatBoth :: Pattern (a -> b) -> Pattern a -> Pattern b
+applyPatToPatBoth pf px = Pattern q
+    where q st = catMaybes $ (concatMap match $ query pf st) ++ (concatMap matchX $ query (filterAnalog px) st)
+            where
+              -- match analog events from pf with all events from px
+              match ef@(Event Nothing fPart _)   = map (withFX ef) (query px $ st {arc = fPart}) -- analog
+              -- match digital events from pf with digital events from px
+              match ef@(Event (Just fWhole) _ _) = map (withFX ef) (query (filterDigital px) $ st {arc = fWhole}) -- digital
+              -- match analog events from px (constrained above) with digital events from px
+              matchX ex@(Event Nothing fPart _)  = map (\ef -> withFX ef ex) (query (filterDigital pf) $ st {arc = fPart}) -- digital
+              matchX _ = error "can't happen"
+              withFX ef ex = do whole' <- subMaybeArc (whole ef) (whole ex)
+                                part' <- subArc (part ef) (part ex)
+                                return (Event whole' part' (value ef $ value ex))
+
+applyPatToPatLeft :: Pattern (a -> b) -> Pattern a -> Pattern b
+applyPatToPatLeft pf px = Pattern q
+    where q st = catMaybes $ (concatMap match $ query pf st)
+            where
+              match ef = map (withFX ef) (query px $ st {arc = wholeOrPart ef})
+              withFX ef ex = do let whole' = whole ef
+                                part' <- subArc (part ef) (part ex)
+                                return (Event whole' part' (value ef $ value ex))
+
+applyPatToPatRight :: Pattern (a -> b) -> Pattern a -> Pattern b
+applyPatToPatRight pf px = Pattern q
+    where q st = catMaybes $ (concatMap match $ query px st)
+            where
+              match ex = map (\ef -> withFX ef ex) (query pf $ st {arc = wholeOrPart ex})
+              withFX ef ex = do let whole' = whole ex
+                                part' <- subArc (part ef) (part ex)
+                                return (Event whole' part' (value ef $ value ex))
+
 
 -- | Like <*>, but the 'wholes' come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<*) = applyPatToPat (\a _ -> Just a)
+(<*) = applyPatToPatLeft
 
 -- | Like <*>, but the 'wholes' come from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(*>) = applyPatToPat (\_ b -> Just b)
+(*>) = applyPatToPatRight
 
 infixl 4 <*, *>
 
