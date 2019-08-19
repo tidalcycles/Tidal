@@ -104,26 +104,26 @@ run =
 
         describe "from -1 to 1" $ do
           it "at 1/2 of a cycle" $
-            (queryArc (Sound.Tidal.UI.range (-1) 1 saw) (Arc 0.5 0.5)) `shouldBe` fmap toEvent
-              [(((0.5, 0.5), (0.5, 0.5)), 0 :: Float)]
+            (queryArc (Sound.Tidal.UI.range (-1) 1 saw) (Arc 0.5 0.5)) `shouldBe`
+              [Event Nothing (Arc 0.5 0.5) (0 :: Float)]
 
         describe "from 4 to 2" $ do
           it "at the start of a cycle" $
-            (queryArc (Sound.Tidal.UI.range 4 2 saw) (Arc 0 0)) `shouldBe` fmap toEvent
-              [(((0, 0), (0, 0)), 4 :: Float)]
+            (queryArc (Sound.Tidal.UI.range 4 2 saw) (Arc 0 0)) `shouldBe` 
+              [Event Nothing (Arc 0 0) (4 :: Float)]
           it "at 1/4 of a cycle" $
-            (queryArc (Sound.Tidal.UI.range 4 2 saw) (Arc 0.25 0.25)) `shouldBe` fmap toEvent
-              [(((0.25, 0.25), (0.25, 0.25)), 3.5 :: Float)]
+            (queryArc (Sound.Tidal.UI.range 4 2 saw) (Arc 0.25 0.25)) `shouldBe` 
+              [Event Nothing (Arc 0.25 0.25) (3.5 :: Float)]
           it "at 3/4 of a cycle" $
-            (queryArc (Sound.Tidal.UI.range 4 2 saw) (Arc 0.75 0.75)) `shouldBe` fmap toEvent
-              [(((0.75, 0.75), (0.75, 0.75)), 2.5 :: Float)]
+            (queryArc (Sound.Tidal.UI.range 4 2 saw) (Arc 0.75 0.75)) `shouldBe` 
+              [Event Nothing (Arc 0.75 0.75) (2.5 :: Float)]
 
         describe "from 10 to 10" $ do
           it "at 1/2 of a cycle" $
-            (queryArc (Sound.Tidal.UI.range 10 10 saw) (Arc 0.5 0.5)) `shouldBe` fmap toEvent
-              [(((0.5, 0.5), (0.5, 0.5)), 10 :: Float)]
+            (queryArc (Sound.Tidal.UI.range 10 10 saw) (Arc 0.5 0.5)) `shouldBe` 
+              [Event Nothing (Arc 0.5 0.5) (10 :: Float)]
 
-    describe "rot" $ do
+    describe "rot" $ do 
       it "rotates values in a pattern irrespective of structure" $
         property $ comparePD (Arc 0 2)
           (rot 1 "a ~ b c" :: Pattern String)
