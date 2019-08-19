@@ -25,53 +25,54 @@ run =
         let res = fmap (+1) (Arc 3 5)
         property $ ((Arc 4 6) :: Arc) === res
 
+  {-
     describe "Event" $ do
       it "(Bifunctor) first: Apply a function to the Arc elements: whole and part" $ do
-        let res = Event (Arc 1 2) (Arc 3 4) 5 :: Event Int
+        let res = Event (Just $ Arc 1 2) (Arc 3 4) 5 :: Event Int
             f = (+1)
         property $
           first f res ===
-          Event (Arc 2 3) (Arc 4 5) 5
+          Event (Just $ Arc 2 3) (Arc 4 5) 5
       it "(Bifunctor) second: Apply a function to the event element" $ do
-        let res = Event (Arc 1 2) (Arc 3 4) 5 :: Event Int
+        let res = Event (Just $ Arc 1 2) (Arc 3 4) 5 :: Event Int
             f = (+1)
         property $
           second f res ===
-          Event (Arc 1 2) (Arc 3 4) 6
+          Event (Just $ Arc 1 2) (Arc 3 4) 6-}
 
     describe "whole" $ do
       it "returns the whole Arc in an Event" $ do
-        property $ Arc 1 2 === whole (Event (Arc 1 2) (Arc 3 4) 5 :: Event Int)
+        property $ (Just $ Arc 1 2) === whole (Event (Just $ Arc 1 2) (Arc 3 4) 5 :: Event Int)
 
     describe "part" $ do
       it "returns the part Arc in an Event" $ do
-        property $ Arc 3 4 === part (Event (Arc 1 2) (Arc 3 4) 5 :: Event Int)
+        property $ (Arc 3 4) === part (Event (Just $ Arc 1 2) (Arc 3 4) 5 :: Event Int)
 
     describe "value" $ do
       it "returns the event value in an Event" $ do
-        property $ 5 === value (Event (Arc 1 2 :: Arc) (Arc 3 4) ( 5 :: Int))
+        property $ 5 === value (Event (Just $ Arc 1 2) (Arc 3 4) ( 5 :: Int))
 
     describe "wholeStart" $ do 
       it "retrieve the onset of an event: the start of the whole Arc" $ do 
-        property $ 1 === wholeStart (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 1 === wholeStart (Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "eventHasOnset" $ do 
       it "return True when the start values of the two arcs in an event are equal" $ do 
-        let ev = (Event (Arc 1 2) (Arc 1 3) (4 :: Int)) 
+        let ev = (Event (Just $ Arc 1 2) (Arc 1 3) (4 :: Int)) 
         property $ True === eventHasOnset ev 
       it "return False when the start values of the two arcs in an event are not equal" $ do 
-        let ev = (Event (Arc 1 2) (Arc 3 4) (5 :: Int)) 
+        let ev = (Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)) 
         property $ False === eventHasOnset ev
 
     describe "pure" $ do
       it "fills a whole cycle" $ do
-        property $ queryArc (pure 0) (Arc 0 1) === [(Event (Arc 0 1) (Arc 0 1) (0 :: Int))]
+        property $ queryArc (pure 0) (Arc 0 1) === [(Event (Just $ Arc 0 1) (Arc 0 1) (0 :: Int))]
       it "returns the part of an pure that you ask for, preserving the whole" $ do
-        property $ queryArc (pure 0) (Arc 0.25 0.75) === [(Event (Arc 0 1) (Arc 0.25 0.75) (0 :: Int))]
+        property $ queryArc (pure 0) (Arc 0.25 0.75) === [(Event (Just $ Arc 0 1) (Arc 0.25 0.75) (0 :: Int))]
       it "gives correct fragments when you go over cycle boundaries" $ do
         property $ queryArc (pure 0) (Arc 0.25 1.25) ===
-          [ (Event (Arc 0 1) (Arc 0.25 1) (0 :: Int)),
-            (Event (Arc 1 2) (Arc 1 1.25) 0)
+          [ (Event (Just $ Arc 0 1) (Arc 0.25 1) (0 :: Int)),
+            (Event (Just $ Arc 1 2) (Arc 1 1.25) 0)
           ]
       it "works with zero-length queries" $ do
         it "0" $
@@ -85,8 +86,8 @@ run =
       it "copes with cross-cycle queries" $ do
         (queryArc(_fastGap 2 $ fastCat [pure "a", pure "b"]) (Arc 0.5 1.5))
           `shouldBe`
-          [(Event (Arc (1 % 1) (5 % 4)) (Arc (1 % 1) (5 % 4)) ("a" :: String)),
-           (Event (Arc (5 % 4) (3 % 2)) (Arc (5 % 4) (3 % 2)) "b")
+          [(Event (Just $ Arc (1 % 1) (5 % 4)) (Arc (1 % 1) (5 % 4)) ("a" :: String)),
+           (Event (Just $ Arc (5 % 4) (3 % 2)) (Arc (5 % 4) (3 % 2)) "b")
           ]
       it "does not return events outside of the query" $ do
         (queryArc(_fastGap 2 $ fastCat [pure "a", pure ("b" :: String)]) (Arc 0.5 0.9))
@@ -191,9 +192,9 @@ run =
             b = fastCat [pure "c", pure "d", pure "e"]
             pp = fastCat [pure a, pure b]
         queryArc (unwrap pp) (Arc 0 1)
-          `shouldBe` [(Event (Arc (0 % 1) (1 % 2)) (Arc (0 % 1) (1 % 2)) ("a" :: String)),
-                      (Event (Arc (1 % 2) (2 % 3)) (Arc (1 % 2) (2 % 3)) "d"),
-                      (Event (Arc (2 % 3) (1 % 1)) (Arc (2 % 3) (1 % 1)) "e")
+          `shouldBe` [(Event (Just $ Arc (0 % 1) (1 % 2)) (Arc (0 % 1) (1 % 2)) ("a" :: String)),
+                      (Event (Just $ Arc (1 % 2) (2 % 3)) (Arc (1 % 2) (2 % 3)) "d"),
+                      (Event (Just $ Arc (2 % 3) (1 % 1)) (Arc (2 % 3) (1 % 1)) "e")
                      ]
 
     describe "squeezeJoin" $ do
@@ -202,11 +203,11 @@ run =
             b = fastCat [pure "c", pure "d", pure "e"]
             pp = fastCat [pure a, pure b]
         queryArc (squeezeJoin pp) (Arc 0 1)
-          `shouldBe` [(Event (Arc (0 % 1) (1 % 4)) (Arc (0 % 1) (1 % 4)) ("a" :: String)),
-                      (Event (Arc (1 % 4) (1 % 2)) (Arc (1 % 4) (1 % 2)) "b"),
-                      (Event (Arc (1 % 2) (2 % 3)) (Arc (1 % 2) (2 % 3)) "c"),
-                      (Event (Arc (2 % 3) (5 % 6)) (Arc (2 % 3) (5 % 6)) "d"),
-                      (Event (Arc (5 % 6) (1 % 1)) (Arc (5 % 6) (1 % 1)) "e")
+          `shouldBe` [(Event (Just $ Arc (0 % 1) (1 % 4)) (Arc (0 % 1) (1 % 4)) ("a" :: String)),
+                      (Event (Just $ Arc (1 % 4) (1 % 2)) (Arc (1 % 4) (1 % 2)) "b"),
+                      (Event (Just $ Arc (1 % 2) (2 % 3)) (Arc (1 % 2) (2 % 3)) "c"),
+                      (Event (Just $ Arc (2 % 3) (5 % 6)) (Arc (2 % 3) (5 % 6)) "d"),
+                      (Event (Just $ Arc (5 % 6) (1 % 1)) (Arc (5 % 6) (1 % 1)) "e")
                      ]
 
     describe ">>=" $ do
@@ -251,38 +252,38 @@ run =
     describe "controlI" $ do
       it "can retrieve values from state" $
        (query (pure 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (pure $ VF 0.5)))
-       `shouldBe` [(Event (Arc (0 % 1) (1 % 1)) (Arc (0 % 1) (1 % 1)) 3.5)]
+       `shouldBe` [(Event (Just $ Arc (0 % 1) (1 % 1)) (Arc (0 % 1) (1 % 1)) 3.5)]
 
     describe "wholeStart" $ do 
       it "retrieve first element of a tuple, inside first element of a tuple, inside the first of another" $ do 
-        property $ 1 === wholeStart (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 1 === wholeStart (Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "wholeStop" $ do
       it "retrieve the end time from the first Arc in an Event" $ do
-        property $ 2 === wholeStop (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 2 === wholeStop (Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "eventPartStart" $ do 
       it "retrieve the start time of the second Arc in an Event" $ do 
-        property $ 3 === eventPartStart (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 3 === eventPartStart (Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "eventPartStop" $ do 
       it "retrieve the end time of the second Arc in an Event" $ do 
-        property $ 4 === eventPartStop (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 4 === eventPartStop (Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
     
     describe "eventPart" $ do 
       it "retrieve the second Arc in an Event" $ do 
-        property $ Arc 3 4 === eventPart (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ Arc 3 4 === eventPart (Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
     
     describe "eventValue" $ do
       it "retrieve the second value from a tuple" $ do 
-        property $ 5 === eventValue (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 5 === eventValue (Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "eventHasOnset" $ do 
       it "return True when the start values of the two arcs in an event are equal" $ do 
-        let ev = (Event (Arc 1 2) (Arc 1 3) (4 :: Int)) 
+        let ev = (Event (Just $ Arc 1 2) (Arc 1 3) (4 :: Int)) 
         property $ True === eventHasOnset ev 
       it "return False when the start values of the two arcs in an event are not equal" $ do 
-        let ev = (Event (Arc 1 2) (Arc 3 4) (5 :: Int)) 
+        let ev = (Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)) 
         property $ False === eventHasOnset ev
 
     describe "sam" $ do
@@ -360,16 +361,16 @@ run =
 
     describe "onsetIn" $ do
       it "If the beginning of an Event is within a given Arc, same rules as 'isIn'" $ do 
-         let res = onsetIn (Arc 2.0 2.8) (Event (Arc 2.2 2.7) (Arc 3.3 3.8) (5 :: Int))
+         let res = onsetIn (Arc 2.0 2.8) (Event (Just $ Arc 2.2 2.7) (Arc 3.3 3.8) (5 :: Int))
          property $ True === res 
       it "Beginning of Event is equal to beggining of given Arc" $ do 
-         let res = onsetIn (Arc 2.0 2.8) (Event (Arc 2.0 2.7) (Arc 3.3 3.8) (5 :: Int))
+         let res = onsetIn (Arc 2.0 2.8) (Event (Just $ Arc 2.0 2.7) (Arc 3.3 3.8) (5 :: Int))
          property $ True === res 
       it "Beginning of an Event is less than the start of the Arc" $ do 
-         let res = onsetIn (Arc 2.0 2.8) (Event (Arc 1.2 1.7) (Arc 3.3 3.8) (5 :: Int))
+         let res = onsetIn (Arc 2.0 2.8) (Event (Just $ Arc 1.2 1.7) (Arc 3.3 3.8) (5 :: Int))
          property $ False === res
       it "Start of Event is greater than the start of the given Arc" $ do 
-         let res = onsetIn (Arc 2.0 2.8) (Event (Arc 3.1 3.5) (Arc 4.0 4.6) (5 :: Int))
+         let res = onsetIn (Arc 2.0 2.8) (Event (Just $ Arc 3.1 3.5) (Arc 4.0 4.6) (5 :: Int))
          property $ False === res
 
     describe "subArc" $ do
@@ -403,16 +404,16 @@ run =
 
     describe "isAdjacent" $ do
       it "if the given Events are adjacent parts of the same whole" $ do 
-        let res = isAdjacent (Event (Arc 1 2) (Arc 3 4) 5) (Event (Arc 1 2) (Arc 4 3) (5 :: Int))
+        let res = isAdjacent (Event (Just $ Arc 1 2) (Arc 3 4) 5) (Event (Just $ Arc 1 2) (Arc 4 3) (5 :: Int))
         property $ True === res 
       it "if first Arc of of first Event is not equal to first Arc of second Event" $ do
-        let res = isAdjacent (Event (Arc 1 2) (Arc 3 4) 5) (Event (Arc 7 8) (Arc 4 3) (5 :: Int))
+        let res = isAdjacent (Event (Just $ Arc 1 2) (Arc 3 4) 5) (Event (Just $ Arc 7 8) (Arc 4 3) (5 :: Int))
         property $ False === res  
       it "if the value of the first Event does not equal the value of the second Event" $ do 
-        let res = isAdjacent (Event (Arc 1 2) (Arc 3 4) 5) (Event (Arc 1 2) (Arc 4 3) (6 :: Int))
+        let res = isAdjacent (Event (Just $ Arc 1 2) (Arc 3 4) 5) (Event (Just $ Arc 1 2) (Arc 4 3) (6 :: Int))
         property $ False === res 
       it "second value of second Arc of first Event not equal to first value of second Arc in second Event..." $ do
-        let res = isAdjacent (Event (Arc 1 2) (Arc 3 4) 5) (Event (Arc 1 2) (Arc 3 4) (5 :: Int))
+        let res = isAdjacent (Event (Just $ Arc 1 2) (Arc 3 4) 5) (Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
         property $ False === res 
 
     describe "defragParts" $ do 
@@ -420,24 +421,24 @@ run =
         let res = defragParts ([] :: [Event Int]) 
         property $ [] === res
       it "if list consists of only one Event return it as is" $ do 
-        let res = defragParts [(Event (Arc 1 2) (Arc 3 4) (5 :: Int))]
-        property $ [Event (Arc 1 2) (Arc 3 4) (5 :: Int)] === res 
+        let res = defragParts [(Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))]
+        property $ [Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)] === res 
       it "if list contains adjacent Events return list with Parts combined" $ do 
-        let res = defragParts [(Event (Arc 1 2) (Arc 3 4) (5 :: Int)), (Event (Arc 1 2) (Arc 4 3) (5 :: Int))]
-        property $ [(Event (Arc 1 2) (Arc 3 4) 5)] === res
+        let res = defragParts [(Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)), (Event (Just $ Arc 1 2) (Arc 4 3) (5 :: Int))]
+        property $ [(Event (Just $ Arc 1 2) (Arc 3 4) 5)] === res
       it "if list contains more than one Event none of which are adjacent, return List as is" $ do 
-        let res = defragParts [(Event (Arc 1 2) (Arc 3 4) 5), (Event (Arc 7 8) (Arc 4 3) (5 :: Int))]
-        property $ [Event (Arc 1 2) (Arc 3 4) 5, Event (Arc 7 8) (Arc 4 3) (5 :: Int)] === res
+        let res = defragParts [(Event (Just $ Arc 1 2) (Arc 3 4) 5), (Event (Just $ Arc 7 8) (Arc 4 3) (5 :: Int))]
+        property $ [Event (Just $ Arc 1 2) (Arc 3 4) 5, Event (Just $ Arc 7 8) (Arc 4 3) (5 :: Int)] === res
 
     describe "compareDefrag" $ do 
       it "compare list with Events with empty list of Events" $ do
-        let res = compareDefrag [Event (Arc 1 2) (Arc 3 4) (5 :: Int), Event (Arc 1 2) (Arc 4 3) (5 :: Int)] []
+        let res = compareDefrag [Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int), Event (Just $ Arc 1 2) (Arc 4 3) (5 :: Int)] []
         property $ False === res 
       it "compare lists containing same Events but of different length" $ do 
-        let res = compareDefrag [Event (Arc 1 2) (Arc 3 4) (5 :: Int), Event (Arc 1 2) (Arc 4 3) 5] [Event (Arc 1 2) (Arc 3 4) (5 :: Int)]
+        let res = compareDefrag [Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int), Event (Just $ Arc 1 2) (Arc 4 3) 5] [Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)]
         property $ True === res
       it "compare lists of same length with same Events" $ do 
-        let res = compareDefrag [Event (Arc 1 2) (Arc 3 4) (5 :: Int)] [Event (Arc 1 2) (Arc 3 4) (5 :: Int)]
+        let res = compareDefrag [Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)] [Event (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)]
         property $ True === res 
 
     describe "sect" $ do 
@@ -549,8 +550,8 @@ run =
 
     -- pending "Sound.Tidal.Pattern.eventL" $ do
     --  it "succeeds if the first event 'whole' is shorter" $ do
-    --    property $ eventL (Event (Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 1.1)) "x")
+    --    property $ eventL (Event (Just $ Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 1.1)) "x")
     --  it "fails if the events are the same length" $ do
-    --    property $ not $ eventL (Event (Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 1)) "x")
+    --    property $ not $ eventL (Event (Just $ Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 1)) "x")
     --  it "fails if the second event is shorter" $ do
-    --    property $ not $ eventL (Event (Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 0.5)) "x")
+    --    property $ not $ eventL (Event (Just $ Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 0.5)) "x")

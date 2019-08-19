@@ -148,12 +148,12 @@ toData target e
 toMessage :: Config -> Double -> OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> Maybe O.Message
 toMessage config t target tempo e = do vs <- toData target addExtra
                                        return $ O.Message (oPath target) $ oPreamble target ++ vs
-  where on = sched tempo $ start $ whole e
-        off = sched tempo $ stop $ whole e
-        identifier = ((if (start $ whole e) == (start $ part e) then "X" else ">")
-                      ++ show (start $ whole e)
+  where on = sched tempo $ start $ wholeOrPart e
+        off = sched tempo $ stop $ wholeOrPart e
+        identifier = ((if (start $ wholeOrPart e) == (start $ part e) then "X" else ">")
+                      ++ show (start $ wholeOrPart e)
                       ++ "-"
-                      ++ show (stop $ whole e)
+                      ++ show (stop $ wholeOrPart e)
                       ++ "-"
                       ++ getString "n"
                       ++ "-"
@@ -177,7 +177,7 @@ toMessage config t target tempo e = do vs <- toData target addExtra
                       | otherwise = id
         extra False = addIdentifier [("cps", (VF $ T.cps tempo)),
                                      ("delta", VF delta),
-                                     ("cycle", VF (fromRational $ start $ whole e))
+                                     ("cycle", VF (fromRational $ start $ wholeOrPart e))
                                     ]
         extra True = timestamp ++ (extra False)
         timestamp = [("sec", VI sec),
@@ -205,7 +205,8 @@ onTick config sMapMV pMV cxs tempoMV st =
          es = filterEvents $ query p (State {arc = T.nowArc st, controls = sMap'})
          filterEvents | cSendParts config = id
                       | otherwise = filter eventHasOnset
-         on e = (sched tempo $ start $ whole e) + eventNudge e
+           -- there should always be a whole (due to the eventHasOnset filter)
+         on e = (sched tempo $ start $ wholeOrPart e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
          messages target = catMaybes $ map (\e -> do m <- toMessage config (on e + latency target) target tempo e
                                                      return $ (on e, m)
@@ -309,8 +310,10 @@ streamOnce st p
                                                        controls = sMap'
                                                       }
                                                )
-           at e = sched fakeTempo $ start $ whole e
-           on e = sched tempo $ start $ whole e
+           -- there should always be a whole (due to the eventHasOnset filter)
+           at e = sched fakeTempo $ start $ wholeOrPart e
+           -- there should always be a whole (due to the eventHasOnset filter)
+           on e = sched tempo $ start $ wholeOrPart e
            cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
            config = sConfig st
            messages target =
