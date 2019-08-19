@@ -196,16 +196,16 @@ degradeBy :: Pattern Double -> Pattern a -> Pattern a
 degradeBy = tParam _degradeBy
 
 _degradeBy :: Double -> Pattern a -> Pattern a
-_degradeBy x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <*> rand
+_degradeBy x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* rand
 
 unDegradeBy :: Pattern Double -> Pattern a -> Pattern a
 unDegradeBy = tParam _unDegradeBy
 
 _unDegradeBy :: Double -> Pattern a -> Pattern a
-_unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <*> rand
+_unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <* rand
 
 degradeOverBy :: Int -> Pattern Double -> Pattern a -> Pattern a
-degradeOverBy i tx p = unwrap $ (\x -> fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <*> fastRepeatCycles i rand) <$> slow (fromIntegral i) tx
+degradeOverBy i tx p = unwrap $ (\x -> fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* fastRepeatCycles i rand) <$> slow (fromIntegral i) tx
 
 
 {- | Use @sometimesBy@ to apply a given function "sometimes". For example, the
