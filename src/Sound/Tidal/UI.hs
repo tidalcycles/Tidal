@@ -1565,10 +1565,7 @@ d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
 -}
 
 range :: Num a => Pattern a -> Pattern a -> Pattern a -> Pattern a
-range fromP toP p = do
-  from <- fromP
-  to <- toP
-  _range from to p
+range fromP toP p = (\from to v -> ((v * (to-from)) + from)) <$> fromP *> toP *> p
 
 _range :: (Functor f, Num b) => b -> b -> f b -> f b
 _range from to p = (+ from) . (* (to-from)) <$> p
