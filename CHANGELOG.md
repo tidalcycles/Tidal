@@ -1,5 +1,11 @@
 # TidalCycles log of changes
 
+## 1.4.0 - Padley Gorge
+
+* fix representation to handle continuous and analog events properly @yaxu
+
+## 1.3.0 - rolled back to 1.1.2
+
 ## 1.2.0 - Hunters Bar
 
 * Simplify <* and *>, removing any distinction between analogue and digital patterns
