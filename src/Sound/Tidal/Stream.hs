@@ -202,9 +202,9 @@ onTick config sMapMV pMV cxs tempoMV st =
      tempo <- readMVar tempoMV
      now <- O.time
      let sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
-         es = filterEvents $ query p (State {arc = T.nowArc st, controls = sMap'})
-         filterEvents | cSendParts config = id
-                      | otherwise = filter eventHasOnset
+         es = filterOns $ query p (State {arc = T.nowArc st, controls = sMap'})
+         filterOns | cSendParts config = id
+                   | otherwise = filter eventHasOnset
            -- there should always be a whole (due to the eventHasOnset filter)
          on e = (sched tempo $ start $ wholeOrPart e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e

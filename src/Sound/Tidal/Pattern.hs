@@ -7,7 +7,7 @@ module Sound.Tidal.Pattern where
 import           Prelude hiding ((<*), (*>))
 
 import           Control.Applicative (liftA2)
-import           Data.Bifunctor (Bifunctor(..))
+--import           Data.Bifunctor (Bifunctor(..))
 import           Data.Data (Data) -- toConstr
 import           Data.List (delete, findIndex, sort, intercalate)
 import qualified Data.Map.Strict as Map
@@ -161,7 +161,7 @@ instance {-# OVERLAPPING #-} Show a => Show (Event a) where
             | otherwise = prettyRat ws ++ "-"
           t | we == pe = ""
             | otherwise = "-" ++ prettyRat we
-  show (Event Nothing a@(Arc ps pe) e) =
+  show (Event Nothing a e) =
     "~" ++ show a ++ "~|" ++ show e
 
 isAnalog :: Event a -> Bool

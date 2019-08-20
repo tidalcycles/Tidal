@@ -9,6 +9,7 @@ import           Data.Bits (testBit, Bits)
 -- import           System.Random (randoms, mkStdGen)
 import           System.Random.MWC
 import           Control.Monad.ST
+import           Control.Monad.Primitive (PrimState, PrimMonad)
 import qualified Data.Vector as V
 import           Data.Word (Word32)
 import           Data.Ratio ((%),numerator,denominator)
@@ -28,7 +29,7 @@ import           Sound.Tidal.Utils
 -- * UI
 
 -- | Randomisation
-
+timeToSeed :: (PrimMonad m, Real a) => a -> m (Gen (PrimState m))
 timeToSeed x = do
   let x' = toRational (x*x) / 1000000
   let n' = fromIntegral $ numerator x'
@@ -1067,10 +1068,10 @@ will produce a two-state chain 8 steps long, from initial state @0@, where the
 transition probability from state 0->0 is 2/5, 0->1 is 3/5, 1->0 is 1/4, and 
 1->1 is 3/4.  -}
 runMarkov :: Int -> [[Double]] -> Int -> Time -> [Int]
-runMarkov n tp xi seed = reverse $ (iterate (markovStep $ renorm tp) [xi])!! (n-1) where
-  markovStep tp xs = (fromJust $ findIndex (r <=) $ scanl1 (+) (tp!!(head xs))) : xs where
+runMarkov n tp xi seed = reverse $ (iterate (markovStep $ renorm) [xi])!! (n-1) where
+  markovStep tp' xs = (fromJust $ findIndex (r <=) $ scanl1 (+) (tp'!!(head xs))) : xs where
     r = timeToRand $ seed + (fromIntegral . length) xs / fromIntegral n
-  renorm tp = [ map (/ sum x) x | x <- tp ]
+  renorm = [ map (/ sum x) x | x <- tp ]
 
 {- @markovPat n xi tp@ generates a one-cycle pattern of @n@ steps in a Markov
 chain starting from state @xi@ with transition matrix @tp@. Each row of the
@@ -1091,7 +1092,7 @@ markovPat :: Pattern Int -> Pattern Int -> [[Double]] -> Pattern Int
 markovPat = tParam2 _markovPat
 
 _markovPat :: Int -> Int -> [[Double]] -> Pattern Int
-_markovPat n xi tp = splitQueries $ Pattern (\(State a@(Arc s e) _) -> 
+_markovPat n xi tp = splitQueries $ Pattern (\(State a@(Arc s _) _) -> 
   queryArc (listToPat $ runMarkov n tp xi (sam s)) a)
 
 {-|
@@ -1352,7 +1353,7 @@ arpWith f p = withEvents munge p
                 newE = newS + dur
                 dur = (e - s) / fromIntegral d
         -- TODO ignoring analog events.. Should we just leave them as-is?
-        shiftIt _ _ e = Nothing
+        shiftIt _ _ _ = Nothing
 
 arp :: Pattern String -> Pattern a -> Pattern a
 arp = tParam _arp
@@ -1417,10 +1418,10 @@ _ply n p = arpeggiate $ stack (replicate n p)
 -- Uses the first (binary) pattern to switch between the following two
 -- patterns.
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
-sew stitch a b = overlay (mask stitch a)  (mask (inv stitch) b)
+sew pb a b = overlay (mask pb a) (mask (inv pb) b)
 
 stitch :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
-stitch bool a b = overlay (struct bool a)  (struct (inv bool) b)
+stitch pb a b = overlay (struct pb a)  (struct (inv pb) b)
 
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n-1)]
@@ -1648,7 +1649,7 @@ _selectF f ps p =  (ps !! floor (max 0 (min 0.999999 f) * fromIntegral (length p
 
 -- | chooses between a list of functions, using a pattern of integers
 pickF :: Pattern Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
-pickF pi fs pat = innerJoin $ (\i -> _pickF i fs pat) <$> pi
+pickF pInt fs pat = innerJoin $ (\i -> _pickF i fs pat) <$> pInt
 
 _pickF :: Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
 _pickF i fs p =  (fs !!! i) p
@@ -1834,6 +1835,7 @@ squeezeJoinUp pp = pp {query = q}
           do w' <- subArc oWhole iWhole
              p' <- subArc oPart iPart
              return (Event (Just w') p' v)
+        munge _ _ _ = Nothing
 
 chew :: Int -> Pattern Int -> ControlPattern  -> ControlPattern
 chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)

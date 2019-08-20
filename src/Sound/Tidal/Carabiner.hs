@@ -1,9 +1,10 @@
+{-# OPTIONS_GHC -fno-warn-dodgy-imports -fno-warn-name-shadowing #-}
 module Sound.Tidal.Carabiner where
 
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Network.Socket.ByteString (send, recv)
 import qualified Data.ByteString.Char8 as B8
-import Control.Concurrent (forkIO, threadDelay, takeMVar, putMVar)
+import Control.Concurrent (forkIO, takeMVar, putMVar)
 import qualified Sound.Tidal.Stream as S
 import Sound.Tidal.Tempo
 import System.Clock
@@ -11,9 +12,6 @@ import Text.Read (readMaybe)
 import Control.Monad (when, forever)
 import Data.Maybe (isJust, fromJust)
 import qualified Sound.OSC.FD as O
-
-port :: Int
-port = 17000
 
 carabiner :: S.Stream -> Int -> Double -> IO Socket
 carabiner tidal bpc latency = do sock <- client tidal bpc latency "127.0.0.1" 17000
@@ -53,7 +51,7 @@ act tidal bpc latency "status" pairs
              d = nowO - m
              start' = ((fromIntegral $ fromJust start) / 1000000)
              startO = start' + d
-             cyc = toRational $ (fromJust beat) / (fromIntegral bpc)
+             -- cyc = toRational $ (fromJust beat) / (fromIntegral bpc)
          tempo <- takeMVar (S.sTempoMV tidal)
          let tempo' = tempo {atTime = startO + latency,
                              atCycle = 0,
@@ -63,5 +61,5 @@ act tidal bpc latency "status" pairs
 act _ _ _ name _ = putStr $ "Unhandled thingie " ++ name
 
 sendMsg :: Socket -> String -> IO ()
-sendMsg sock msg = do send sock $ B8.pack msg
+sendMsg sock msg = do _ <- send sock $ B8.pack msg
                       return ()
