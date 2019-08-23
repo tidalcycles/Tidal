@@ -393,7 +393,7 @@ infixl 4 <*, *>
 
 instance Monad Pattern where
   return = pure
-  p >>= f = unwrap (f <$> p)
+  p >>= f = innerJoin (f <$> p)
 
 -- | Turns a pattern of patterns into a single pattern.
 -- (this is actually 'join')
