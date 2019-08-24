@@ -23,6 +23,7 @@ import           Sound.Tidal.Core (stack, silence)
 import           Sound.Tidal.Pattern
 import qualified Sound.Tidal.Tempo as T
 -- import qualified Sound.OSC.Datum as O
+import           Data.List (sortOn)
 
 data TimeStamp = BundleStamp | MessageStamp | NoStamp
  deriving (Eq, Show)
@@ -199,26 +200,34 @@ onTick :: Config -> MVar StateMap -> MVar ControlPattern -> [Cx] -> MVar T.Tempo
 onTick config sMapMV pMV cxs tempoMV st =
   do p <- readMVar pMV
      sMap <- readMVar sMapMV
-     tempo <- readMVar tempoMV
+     tempo <- takeMVar tempoMV
      now <- O.time
      let sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
-         es = filterOns $ query p (State {arc = T.nowArc st, controls = sMap'})
+         es = sortOn (start . part) $ filterOns $ query p (State {arc = T.nowArc st, controls = sMap'})
          filterOns | cSendParts config = id
                    | otherwise = filter eventHasOnset
            -- there should always be a whole (due to the eventHasOnset filter)
-         on e = (sched tempo $ start $ wholeOrPart e) + eventNudge e
+         on e tempo' = (sched tempo' $ start $ wholeOrPart e) + eventNudge e
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
-         messages target = catMaybes $ map (\e -> do m <- toMessage config (on e + latency target) target tempo e
-                                                     return $ (on e, m)
-                                           ) es
-         cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
+         processCps :: T.Tempo -> [Event ControlMap] -> ([(T.Tempo, Event ControlMap)], T.Tempo)
+         processCps tempo [] = ([], tempo)
+         processCps tempo (e:es) = (((tempo', e):es'), tempo'')
+           where cps' = do x <- Map.lookup "cps" $ value e
+                           getF x
+                 tempo' = (maybe tempo (\newCps -> T.changeTempo' tempo newCps (eventPartStart e)) cps')
+                 (es', tempo'') = processCps tempo' es
          latency target = oLatency target + cFrameTimespan config + T.nudged tempo
-     mapM_ (\(Cx target udp) -> E.catch (mapM_ (send target (latency target) udp) (messages target))
+         (tes, tempo') = processCps tempo es
+     mapM_ (\(Cx target udp) -> (do let ms = catMaybes $ map (\(t, e) -> do m <- toMessage config (on e t + latency target) target tempo e
+                                                                            return (on e t, m)
+                                                             ) tes
+                                    E.catch (mapM_ (send target (latency target) udp) ms)
+                                )
                        (\(e ::E.SomeException)
                         -> putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
                        )
            ) cxs
-     mapM_ (doCps tempoMV) cpsChanges
+     putMVar tempoMV tempo'
      return ()
 
 send :: O.Transport t => OSCTarget -> Double -> t -> (Double, O.Message) -> IO ()

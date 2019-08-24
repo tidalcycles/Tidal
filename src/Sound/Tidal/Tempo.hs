@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Sound.Tidal.Tempo where
 
@@ -11,10 +12,13 @@ import qualified Sound.OSC.FD as O
 import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
 import Control.Monad (forever, when, foldM)
-import Data.List (isPrefixOf, nub)
+import Data.List (isPrefixOf, nub, intercalate)
 import qualified Control.Exception as E
 
 import Sound.Tidal.Config
+
+instance Show O.UDP where
+  show x = "-unshowable-"
 
 data Tempo = Tempo {atTime  :: O.Time,
                     atCycle :: Rational,
@@ -25,7 +29,7 @@ data Tempo = Tempo {atTime  :: O.Time,
                     remoteAddr :: N.SockAddr,
                     synched :: Bool
                    }
-           -- deriving Show
+  deriving Show
 
 -- sendTempo udp tempo remote_sockaddr            
 -- 
@@ -45,6 +49,11 @@ changeTempo tempoMV f = do t <- O.time
                            putMVar tempoMV tempo'
                            return tempo'
 
+changeTempo' :: Tempo -> O.Time -> Rational -> Tempo
+changeTempo' tempo newCps cyc = tempo {atTime = cyclesToTime tempo cyc,
+                                       cps = newCps,
+                                       atCycle = cyc
+                                      }
 
 resetCycles :: MVar Tempo -> IO Tempo
 resetCycles tempoMV = changeTempo tempoMV (\t tempo -> tempo {atTime = t, atCycle = 0})
@@ -72,6 +81,11 @@ timeToCycles :: Tempo -> O.Time -> Rational
 timeToCycles tempo t = atCycle tempo + toRational cycleDelta
   where delta = t - atTime tempo
         cycleDelta = realToFrac (cps tempo) * delta
+
+cyclesToTime :: Tempo -> Rational -> O.Time
+cyclesToTime tempo cyc = atTime tempo + (fromRational timeDelta)
+  where cycleDelta = cyc - atCycle tempo
+        timeDelta = cycleDelta / (toRational $ cps tempo)
 
 {-
 getCurrentCycle :: MVar Tempo -> IO Rational
