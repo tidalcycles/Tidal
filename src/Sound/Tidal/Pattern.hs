@@ -422,7 +422,7 @@ unwrap pp = pp {query = q}
 innerJoin :: Pattern (Pattern a) -> Pattern a
 innerJoin pp = pp {query = q}
   where q st = concatMap
-               (\(Event _ p v) -> mapMaybe munge $ query v st {arc = p}
+               (\(Event _ op v) -> mapMaybe munge $ query v st {arc = op}
           )
           (query pp st)
           where munge (Event iw ip v) =
