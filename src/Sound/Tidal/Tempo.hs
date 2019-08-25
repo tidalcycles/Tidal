@@ -36,7 +36,7 @@ data Tempo = Tempo {atTime  :: O.Time,
 
 data State = State {ticks   :: Int,
                     start   :: O.Time,
-                    nowTime :: O.Time,
+                    nowTimespan :: (O.Time, O.Time),
                     nowArc  :: P.Arc,
                     starting :: Bool
                    }
@@ -100,18 +100,19 @@ clocked config callback
        (tempoMV, listenTid) <- clientListen config s
        let st = State {ticks = 0,
                        start = s,
-                       nowTime = s,
+                       nowTimespan = (s, s + frameTimespan),
                        nowArc = P.Arc 0 0,
                        starting = True
                       }
        clockTid <- forkIO $ loop tempoMV st
        return (tempoMV, [listenTid, clockTid])
-  where loop tempoMV st =
+  where frameTimespan :: Double
+        frameTimespan = cFrameTimespan config
+        loop tempoMV st =
           do -- putStrLn $ show $ nowArc ts
              tempo <- readMVar tempoMV               
              t <- O.time
-             let frameTimespan = cFrameTimespan config
-                 logicalT ticks' = start st + fromIntegral ticks' * frameTimespan
+             let logicalT ticks' = start st + fromIntegral ticks' *  frameTimespan
                  logicalNow = logicalT $ ticks st + 1
                  -- Wait maximum of two frames
                  delta = min (frameTimespan * 2) (logicalNow - t)
@@ -128,6 +129,7 @@ clocked config callback
                          | otherwise = (ticks st) + 1
                  st' = st {ticks = newTick,
                            nowArc = P.Arc s e,
+                           nowTimespan = (logicalNow,  logicalNow + frameTimespan),
                            starting = not (synched tempo)
                           }
              when ahead $ putStrLn $ "skip: " ++ show (actualTick - ticks st)

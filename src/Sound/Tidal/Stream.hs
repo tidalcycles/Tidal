@@ -202,7 +202,8 @@ onTick config sMapMV pMV cxs tempoMV st =
      sMap <- readMVar sMapMV
      tempo <- takeMVar tempoMV
      now <- O.time
-     let sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
+     let frameEnd = snd $ T.nowTimespan st
+         sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
          es = sortOn (start . part) $ filterOns $ query p (State {arc = T.nowArc st, controls = sMap'})
          filterOns | cSendParts config = id
                    | otherwise = filter eventHasOnset
@@ -219,7 +220,12 @@ onTick config sMapMV pMV cxs tempoMV st =
          latency target = oLatency target + cFrameTimespan config + T.nudged tempo
          (tes, tempo') = processCps tempo es
      mapM_ (\(Cx target udp) -> (do let ms = catMaybes $ map (\(t, e) -> do m <- toMessage config (on e t + latency target) target tempo e
-                                                                            return (on e t, m)
+                                                                            let onset = on e t
+                                                                            -- drop events that have gone out of frame (due to tempo
+                                                                            -- changes during the frame)
+                                                                            if (onset < frameEnd)
+                                                                              then Just (onset, m)
+                                                                              else  Nothing
                                                              ) tes
                                     E.catch (mapM_ (send target (latency target) udp) ms)
                                 )
