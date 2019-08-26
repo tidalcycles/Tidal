@@ -1,5 +1,9 @@
 # TidalCycles log of changes
 
+## 1.4.2 - Higger Tor
+
+* Fix for 'nudge'
+
 ## 1.4.1 - Carl Wark
 
 * improvements to handling of cps changes @yaxu #501
