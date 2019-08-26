@@ -208,7 +208,7 @@ onTick config sMapMV pMV cxs tempoMV st =
          filterOns | cSendParts config = id
                    | otherwise = filter eventHasOnset
            -- there should always be a whole (due to the eventHasOnset filter)
-         on e tempo' = (sched tempo' $ start $ wholeOrPart e) + eventNudge e
+         on e tempo' = (sched tempo' $ start $ wholeOrPart e)
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
          processCps :: T.Tempo -> [Event ControlMap] -> ([(T.Tempo, Event ControlMap)], T.Tempo)
          processCps tempo [] = ([], tempo)
@@ -219,12 +219,13 @@ onTick config sMapMV pMV cxs tempoMV st =
                  (es', tempo'') = processCps tempo' es
          latency target = oLatency target + cFrameTimespan config + T.nudged tempo
          (tes, tempo') = processCps tempo es
-     mapM_ (\(Cx target udp) -> (do let ms = catMaybes $ map (\(t, e) -> do m <- toMessage config (on e t + latency target) target tempo e
+     mapM_ (\(Cx target udp) -> (do let ms = catMaybes $ map (\(t, e) -> do let nudge = eventNudge e
                                                                             let onset = on e t
+                                                                            m <- toMessage config (onset + nudge + latency target) target tempo e
                                                                             -- drop events that have gone out of frame (due to tempo
                                                                             -- changes during the frame)
                                                                             if (onset < frameEnd)
-                                                                              then Just (onset, m)
+                                                                              then Just (onset + nudge, m)
                                                                               else  Nothing
                                                              ) tes
                                     E.catch (mapM_ (send target (latency target) udp) ms)
