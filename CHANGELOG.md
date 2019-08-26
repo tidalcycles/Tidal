@@ -1,5 +1,10 @@
 # TidalCycles log of changes
 
+## 1.4.1 - Carl Wark
+
+* improvements to handling of cps changes @yaxu #501
+* fix for parameter patterning in 'range' @yaxu #547
+
 ## 1.4.0 - Padley Gorge
 
 * fix representation to handle continuous and analog events properly @yaxu
