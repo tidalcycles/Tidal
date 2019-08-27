@@ -72,7 +72,7 @@ washIn f durin now pats = wash f id 0 durin 0 now pats
 xfadeIn :: Time -> Time -> [ControlPattern] -> ControlPattern
 xfadeIn _ _ [] = silence
 xfadeIn _ _ (pat:[]) = pat
-xfadeIn t now (pat:pat':_) = overlay (pat |*| gain (now `rotR` (_slow t envEqR))) (pat' |*| gain (now `rotR` (_slow t (envEq))))
+xfadeIn t now (pat:pat':_) = overlay (pat |* gain (now `rotR` (_slow t envEqR))) (pat' |* gain (now `rotR` (_slow t (envEq))))
 
 -- | Pans the last n versions of the pattern across the field
 histpan :: Int -> Time -> [ControlPattern] -> ControlPattern
