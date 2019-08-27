@@ -1415,6 +1415,15 @@ ply = tParam _ply
 _ply :: Int -> Pattern a -> Pattern a
 _ply n p = arpeggiate $ stack (replicate n p)
 
+-- Like ply, but applies a function each time. The applications are compounded.
+plyWith :: (Ord t, Num t) => Pattern t -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+plyWith np f p = innerJoin $ (\n -> _plyWith n f p) <$> np
+
+_plyWith :: (Ord t, Num t) => t -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_plyWith numPat f p = arpeggiate $ compound numPat f p
+  where compound n f p | n <= 1 = p
+                       | otherwise = overlay p (f (compound (n-1) f p))
+
 -- Uses the first (binary) pattern to switch between the following two
 -- patterns.
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
