@@ -1,5 +1,10 @@
 # TidalCycles log of changes
 
+## 1.4.3 - Stanage Edge
+
+* Fix for xfade / xfadein transition
+* New function plyWith
+
 ## 1.4.2 - Higger Tor
 
 * Fix for 'nudge'
