@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns -fno-warn-orphans #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Sound.Tidal.Tempo where
@@ -12,13 +12,13 @@ import qualified Sound.OSC.FD as O
 import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
 import Control.Monad (forever, when, foldM)
-import Data.List (isPrefixOf, nub, intercalate)
+import Data.List (isPrefixOf, nub)
 import qualified Control.Exception as E
 
 import Sound.Tidal.Config
 
 instance Show O.UDP where
-  show x = "-unshowable-"
+  show _ = "-unshowable-"
 
 data Tempo = Tempo {atTime  :: O.Time,
                     atCycle :: Rational,

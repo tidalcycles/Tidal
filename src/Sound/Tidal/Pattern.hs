@@ -290,7 +290,6 @@ instance Eq Value where
   (VI x) == (VR y) = (toRational x) == y
   (VR y) == (VI x) = (toRational x) == y
 
-
   _ == _ = False
   
 instance Ord Value where
