@@ -24,6 +24,8 @@ import           Sound.Tidal.Pattern
 import qualified Sound.Tidal.Tempo as T
 -- import qualified Sound.OSC.Datum as O
 import           Data.List (sortOn)
+import           System.Random (getStdRandom, randomR)
+
 
 data TimeStamp = BundleStamp | MessageStamp | NoStamp
  deriving (Eq, Show)
@@ -201,7 +203,6 @@ onTick config sMapMV pMV cxs tempoMV st =
   do p <- readMVar pMV
      sMap <- readMVar sMapMV
      tempo <- takeMVar tempoMV
-     now <- O.time
      let frameEnd = snd $ T.nowTimespan st
          sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
          es = sortOn (start . part) $ filterOns $ query p (State {arc = T.nowArc st, controls = sMap'})
@@ -311,7 +312,11 @@ streamUnsolo :: Show a => Stream -> a -> IO ()
 streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
 
 streamOnce :: Stream -> ControlPattern -> IO ()
-streamOnce st p
+streamOnce st p = do i <- getStdRandom $ randomR (0, 8192)
+                     streamFirst st $ rotL (toRational (i :: Int)) p
+
+streamFirst :: Stream -> ControlPattern -> IO ()
+streamFirst st p
   = do sMap <- readMVar (sInput st)
        tempo <- readMVar (sTempoMV st)
        now <- O.time
