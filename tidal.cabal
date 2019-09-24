@@ -62,6 +62,7 @@ library
     , clock < 0.9
     , deepseq >= 1.1.0.0
     , primitive < 0.8
+    , random < 1.2
 
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups >= 0.18 && < 0.20
