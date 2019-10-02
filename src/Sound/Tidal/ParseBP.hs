@@ -52,6 +52,7 @@ data TPat a = TPat_Atom a
             | TPat_TimeCat [TPat a]
             | TPat_Overlay (TPat a) (TPat a)
             | TPat_Stack [TPat a]
+            | TPat_CycleChoose [TPat a]
             | TPat_ShiftL Time (TPat a)
               -- TPat_E Int Int (TPat a)
             | TPat_pE (TPat Int) (TPat Int) (TPat Int) (TPat a)
@@ -69,6 +70,7 @@ toPat = \case
    TPat_TimeCat xs -> timeCat $ map (\(n, pat) -> (toRational n, toPat pat)) $ durations xs
    TPat_Overlay x0 x1 -> overlay (toPat x0) (toPat x1)
    TPat_Stack xs -> stack $ map toPat xs
+   TPat_CycleChoose xs -> unwrap $ cycleChoose $ map toPat xs
    TPat_ShiftL t x -> t `rotL` toPat x
    TPat_pE n k s thing ->
       doEuclid (toPat n) (toPat k) (toPat s) (toPat thing)
@@ -297,9 +299,17 @@ pPart f = do pt <- pSingle f <|> pPolyIn f <|> pPolyOut f
              return pts
 
 pPolyIn :: Parseable a => Parser (TPat a) -> Parser (TPat a)
-pPolyIn f = do ps <- brackets (pSequence f `sepBy` symbol ",")
-               spaces
-               pMult $ TPat_Stack ps
+pPolyIn f = do x <- brackets $ do p <- pSequence f <?> "sequence"
+                                  stackTail p <|> chooseTail p <|> return p
+               pMult x
+  where stackTail p = do symbol ","
+                         ps <- pSequence f `sepBy` symbol ","
+                         spaces
+                         return $ TPat_Stack (p:ps)
+        chooseTail p = do symbol "|"
+                          ps <- pSequence f `sepBy` symbol "|"
+                          spaces
+                          return $ TPat_CycleChoose (p:ps)
 
 pPolyOut :: Parseable a => Parser (TPat a) -> Parser (TPat a)
 pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
