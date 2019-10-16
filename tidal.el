@@ -58,12 +58,22 @@
   "*Arguments to the haskell interpreter (default=none).")
 
 (defvar tidal-boot-script-path
-  (concat (substring
-           (shell-command-to-string
-            "ghc-pkg describe $(ghc-pkg latest tidal) | grep data-dir | cut -f2 -d' '") 0 -1)
-          "/BootTidal.hs")
-  "*Full path to BootTidal.hs (inferred by introspecting ghc-pkg package db)."
+  (let ((filepath
+         (cond
+          ((string-equal system-type "windows-nt")
+           '(("path" . "echo off && for /f %a in ('ghc-pkg latest tidal') do (for /f \"tokens=2\" %i in ('ghc-pkg describe %a ^| findstr data-dir') do (echo %i))")
+             ("separator" . "\\")
+             ))
+          ((or (string-equal system-type "darwin") (string-equal system-type "gnu/linux"))
+           '(("path" . "ghc-pkg describe $(ghc-pkg latest tidal) | grep data-dir | cut -f2 -d' '")
+             ("separator" . "/")
+             ))
+          )
+         ))
+    (concat (substring (shell-command-to-string (cdr (assoc "path" filepath))) 0 -1) (cdr (assoc "separator" filepath)) "BootTidal.hs")
   )
+  "*Full path to BootTidal.hs (inferred by introspecting ghc-pkg package db)."
+)
 
 (defvar tidal-literate-p
   t
