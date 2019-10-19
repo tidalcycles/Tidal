@@ -148,29 +148,42 @@ toData target e
   | isJust (oShape target) = fmap (fmap toDatum) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) (fromJust $ oShape target)
   | otherwise = Just $ concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ value e
 
+substitutePath :: String -> ControlMap -> String
+substitutePath path cm = parse path
+  where parse [] = []
+        parse ('{':xs) = parseWord xs
+        parse (x:xs) = x:(parse xs)
+        parseWord xs | b == [] = getString cm a
+                     | otherwise = getString cm a ++ parse (tail b)
+          where (a,b) = break (== '}') xs
+
+getString :: ControlMap -> String -> String
+getString cm s = fromMaybe "" $ do v <- Map.lookup s cm
+                                   return $ simpleShow v
+                                    where simpleShow :: Value -> String
+                                          simpleShow (VS s) = s
+                                          simpleShow (VI i) = show i
+                                          simpleShow (VF f) = show f
+                                          simpleShow (VR r) = show r
+                                          simpleShow (VB b) = show b
+
 toMessage :: Config -> Double -> OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> Maybe O.Message
 toMessage config t target tempo e = do vs <- toData target addExtra
                                        return $ O.Message (oPath target) $ oPreamble target ++ vs
   where on = sched tempo $ start $ wholeOrPart e
         off = sched tempo $ stop $ wholeOrPart e
+        cm = value e
         identifier = ((if (start $ wholeOrPart e) == (start $ part e) then "X" else ">")
                       ++ show (start $ wholeOrPart e)
                       ++ "-"
                       ++ show (stop $ wholeOrPart e)
                       ++ "-"
-                      ++ getString "n"
+                      ++ getString cm "n"
                       ++ "-"
-                      ++ getString "note"
+                      ++ getString cm "note"
                       ++ "-"
-                      ++ getString "s"
+                      ++ getString cm "s"
                      )
-        getString s = fromMaybe "" $ do v <- Map.lookup s $ value e
-                                        return $ simpleShow v
-        simpleShow (VS s) = s
-        simpleShow (VI i) = show i
-        simpleShow (VF f) = show f
-        simpleShow (VR r) = show r
-        simpleShow (VB b) = show b
         delta = off - on
         messageStamp = oTimestamp target == MessageStamp
         -- If there is already cps in the event, the union will preserve that.
