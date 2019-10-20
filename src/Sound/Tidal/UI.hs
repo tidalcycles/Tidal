@@ -902,6 +902,9 @@ discretise = segment
 randcat :: [Pattern a] -> Pattern a
 randcat ps = spread' rotL (_segment 1 $ (%1) . fromIntegral <$> (irand (length ps) :: Pattern Int)) (slowcat ps)
 
+wrandcat :: [(Pattern a, Double)] -> Pattern a
+wrandcat ps = unwrap $ wchooseBy (segment 1 rand) ps
+
 -- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
 -- in the 2nd octave with the result of @11@, and @"b-3"@ as
