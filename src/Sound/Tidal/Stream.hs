@@ -169,7 +169,7 @@ getString cm s = fromMaybe "" $ do v <- Map.lookup s cm
 
 toMessage :: Config -> Double -> OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> Maybe O.Message
 toMessage config t target tempo e = do vs <- toData target addExtra
-                                       return $ O.Message (oPath target) $ oPreamble target ++ vs
+                                       return $ O.Message (substitutePath (oPath target) (value e)) $ oPreamble target ++ vs
   where on = sched tempo $ start $ wholeOrPart e
         off = sched tempo $ stop $ wholeOrPart e
         cm = value e
