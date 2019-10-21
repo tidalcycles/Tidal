@@ -1,5 +1,5 @@
 name:                tidal
-version:             1.4.3
+version:             1.4.4
 synopsis:            Pattern language for improvised music
 -- description:
 homepage:            http://tidalcycles.org/
@@ -45,6 +45,7 @@ library
                        Sound.Tidal.Utils
                        Sound.Tidal.Version
                        Sound.Tidal.EspGrid
+                       -- Sound.Tidal.Light
                        -- Sound.Tidal.TH
   Build-depends:
       base >=4.8 && <5
@@ -63,6 +64,8 @@ library
     , deepseq >= 1.1.0.0
     , primitive < 0.8
     , random < 1.2
+    -- , serialport
+    -- , hashable
 
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups >= 0.18 && < 0.20
