@@ -161,7 +161,7 @@ getString :: ControlMap -> String -> String
 getString cm s = fromMaybe "" $ do v <- Map.lookup s cm
                                    return $ simpleShow v
                                     where simpleShow :: Value -> String
-                                          simpleShow (VS s) = s
+                                          simpleShow (VS str) = str
                                           simpleShow (VI i) = show i
                                           simpleShow (VF f) = show f
                                           simpleShow (VR r) = show r
@@ -222,15 +222,17 @@ onTick config sMapMV pMV cxs tempoMV st =
          filterOns | cSendParts config = id
                    | otherwise = filter eventHasOnset
            -- there should always be a whole (due to the eventHasOnset filter)
-         on e tempo' = (sched tempo' $ start $ wholeOrPart e)
+         on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
          eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
          processCps :: T.Tempo -> [Event ControlMap] -> ([(T.Tempo, Event ControlMap)], T.Tempo)
-         processCps tempo [] = ([], tempo)
-         processCps tempo (e:es) = (((tempo', e):es'), tempo'')
+         processCps t [] = ([], t)
+         -- If an event has a tempo change, that affects the following
+         -- events..
+         processCps t (e:evs) = (((t', e):es'), t'')
            where cps' = do x <- Map.lookup "cps" $ value e
                            getF x
-                 tempo' = (maybe tempo (\newCps -> T.changeTempo' tempo newCps (eventPartStart e)) cps')
-                 (es', tempo'') = processCps tempo' es
+                 t' = (maybe t (\newCps -> T.changeTempo' t newCps (eventPartStart e)) cps')
+                 (es', t'') = processCps t' evs
          latency target = oLatency target + cFrameTimespan config + T.nudged tempo
          (tes, tempo') = processCps tempo es
      mapM_ (\(Cx target udp) -> (do let ms = catMaybes $ map (\(t, e) -> do let nudge = eventNudge e
