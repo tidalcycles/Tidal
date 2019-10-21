@@ -544,7 +544,7 @@ drumN _ = 0
 -- SuperDirt MIDI Params
 
 array :: Pattern Double -> ControlPattern
-array = pF "array"
+array = pS "array"
 midichan :: Pattern Double -> ControlPattern
 midichan = pF "midichan"
 control :: Pattern Double -> ControlPattern
