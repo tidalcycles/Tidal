@@ -15,7 +15,7 @@ import           Data.Maybe (isJust, fromJust, catMaybes, fromMaybe, mapMaybe)
 import           Data.Ratio (numerator, denominator)
 import           Data.Typeable (Typeable)
 import           Control.DeepSeq (NFData(rnf))
-
+import           Data.Word (Word8)
 
 ------------------------------------------------------------------------
 -- * Types
@@ -251,6 +251,7 @@ data Value = VS { svalue :: String }
            | VR { rvalue :: Rational }
            | VI { ivalue :: Int }
            | VB { bvalue :: Bool }
+           | VX { xvalue :: [Word8] } -- Used for OSC 'blobs'
            deriving (Typeable,Data)
 
 class Valuable a where
@@ -262,6 +263,7 @@ instance NFData Value where
   rnf (VR r) = rnf r 
   rnf (VI i) = rnf i 
   rnf (VB b) = rnf b
+  rnf (VX xs) = rnf xs
 
 instance Valuable String where
   toValue = VS
@@ -273,14 +275,16 @@ instance Valuable Int where
   toValue a = VI a
 instance Valuable Bool where
   toValue a = VB a
+instance Valuable [Word8] where
+  toValue a = VX a
 
 instance Eq Value where
   (VS x) == (VS y) = x == y
   (VB x) == (VB y) = x == y
-
   (VF x) == (VF y) = x == y
   (VI x) == (VI y) = x == y
   (VR x) == (VR y) = x == y
+  (VX x) == (VX y) = x == y
   
   (VF x) == (VI y) = x == (fromIntegral y)
   (VI y) == (VF x) = x == (fromIntegral y)
@@ -298,10 +302,13 @@ instance Ord Value where
   compare (VF x) (VF y) = compare x y
   compare (VI x) (VI y) = compare x y
   compare (VR x) (VR y) = compare x y
+  compare (VX x) (VX y) = compare x y
   compare (VS _) _ = LT
   compare _ (VS _) = GT
   compare (VB _) _ = LT
   compare _ (VB _) = GT
+  compare (VX _) _ = LT
+  compare _ (VX _) = GT
   compare (VF x) (VI y) = compare x (fromIntegral y)
   compare (VI x) (VF y) = compare (fromIntegral x) y
 
@@ -588,6 +595,7 @@ instance Show Value where
   show (VF f) = show f ++ "f"
   show (VR r) = show r ++ "r"
   show (VB b) = show b
+  show (VX xs) = show xs
 
 instance {-# OVERLAPPING #-} Show ControlMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
@@ -736,6 +744,10 @@ getR (VR r) = Just r
 getR (VF x) = Just $ toRational x
 getR (VI x) = Just $ toRational x
 getR _  = Nothing
+
+getBlob :: Value -> Maybe [Word8]
+getBlob (VX xs) = Just xs
+getBlob _  = Nothing
 
 compressArc :: Arc -> Pattern a -> Pattern a
 compressArc (Arc s e) p | s > e = empty

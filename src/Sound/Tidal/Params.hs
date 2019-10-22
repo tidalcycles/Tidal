@@ -5,6 +5,7 @@ import qualified Data.Map.Strict as Map
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
 import Data.Maybe (fromMaybe)
+import Data.Word (Word8)
 
 -- | group multiple params into one
 grp :: [String -> ControlMap] -> Pattern String -> ControlPattern
@@ -46,6 +47,9 @@ pI name = fmap (Map.singleton name . VI)
 
 pS :: String -> Pattern String -> ControlPattern
 pS name = fmap (Map.singleton name . VS)
+
+pX :: String -> Pattern [Word8] -> ControlPattern
+pX name = fmap (Map.singleton name . VX)
 
 -- | patterns for internal sound routing
 toArg :: Pattern String -> ControlPattern
@@ -543,8 +547,8 @@ drumN _ = 0
 
 -- SuperDirt MIDI Params
 
-array :: Pattern Double -> ControlPattern
-array = pS "array"
+array :: Pattern [Word8] -> ControlPattern
+array = pX "array"
 midichan :: Pattern Double -> ControlPattern
 midichan = pF "midichan"
 control :: Pattern Double -> ControlPattern

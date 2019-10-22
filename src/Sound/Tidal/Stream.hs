@@ -25,7 +25,7 @@ import qualified Sound.Tidal.Tempo as T
 -- import qualified Sound.OSC.Datum as O
 import           Data.List (sortOn)
 import           System.Random (getStdRandom, randomR)
-
+import           Data.Word (Word8)
 
 data TimeStamp = BundleStamp | MessageStamp | NoStamp
  deriving (Eq, Show)
@@ -142,6 +142,7 @@ toDatum (VS x) = O.string x
 toDatum (VR x) = O.float $ ((fromRational x) :: Double)
 toDatum (VB True) = O.int32 (1 :: Int)
 toDatum (VB False) = O.int32 (0 :: Int)
+toDatum (VX xs) = O.Blob $ O.blob_pack xs
 
 toData :: OSCTarget -> Event ControlMap -> Maybe [O.Datum]
 toData target e
@@ -166,6 +167,7 @@ getString cm s = fromMaybe "" $ do v <- Map.lookup s cm
                                           simpleShow (VF f) = show f
                                           simpleShow (VR r) = show r
                                           simpleShow (VB b) = show b
+                                          simpleShow (VX xs) = show xs
 
 toMessage :: Config -> Double -> OSCTarget -> T.Tempo -> Event (Map.Map String Value) -> Maybe O.Message
 toMessage config t target tempo e = do vs <- toData target addExtra
