@@ -1,5 +1,15 @@
 # TidalCycles log of changes
 
+## 1.4.4 - Chee Dale
+
+* wrandcat (weighted randcat) @yaxu
+* MIDI Sysex support #558 @yaxu
+* Elements in an Open Sound Control path address can now be patterned #557
+* 'once' now chooses a random cycle to play. To get the old behaviour of playing the first cycle, use 'first' @yaxu #476
+* Make random choices in mini-notation behave independently @yaxu #560
+* Add [a|b|c] syntax to mini notation for randomly choosing between subsequences @yaxu #555
+* Add power pattern operators |**, **| and |**| @yaxu
+
 ## 1.4.3 - Stanage Edge
 
 * Fix for xfade / xfadein transition
