@@ -197,7 +197,11 @@ degradeBy :: Pattern Double -> Pattern a -> Pattern a
 degradeBy = tParam _degradeBy
 
 _degradeBy :: Double -> Pattern a -> Pattern a
-_degradeBy x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* rand
+_degradeBy = _degradeByUsing rand
+
+-- Useful for manipulating random stream, e.g. to change 'seed'
+_degradeByUsing :: Pattern Double -> Double -> Pattern a -> Pattern a
+_degradeByUsing prand x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* prand
 
 unDegradeBy :: Pattern Double -> Pattern a -> Pattern a
 unDegradeBy = tParam _unDegradeBy
