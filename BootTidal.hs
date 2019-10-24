@@ -16,6 +16,7 @@ let p = streamReplace tidal
     solo = streamSolo tidal
     unsolo = streamUnsolo tidal
     once = streamOnce tidal
+    first = streamFirst tidal
     asap = once
     nudgeAll = streamNudgeAll tidal
     all = streamAll tidal
