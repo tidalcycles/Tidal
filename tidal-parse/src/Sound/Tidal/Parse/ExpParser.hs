@@ -93,11 +93,11 @@ listOf p = ExpParser (\e -> f e >>= mapM (runExpParser p))
     f _ = Left ""
 
 
-tupleOf :: ExpParser a -> ExpParser (a,a)
-tupleOf p = ExpParser (\e -> do
+tupleOf :: ExpParser a -> ExpParser b -> ExpParser (a,b)
+tupleOf p1 p2 = ExpParser (\e -> do
   (a,b) <- f e
-  a' <- runExpParser p a
-  b' <- runExpParser p b
+  a' <- runExpParser p1 a
+  b' <- runExpParser p2 b
   return (a',b')
   )
   where

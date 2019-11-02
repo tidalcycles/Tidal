@@ -51,8 +51,8 @@ instance Parse Double where
 instance {-# INCOHERENT #-} Parse String where
   parser = string
 
-instance Parse a => Parse (a,a) where
-  parser = tupleOf parser
+instance (Parse a, Parse b) => Parse (a,b) where
+  parser = tupleOf parser parser
 
 instance Parse a => Parse [a] where
   parser = listOf parser
@@ -74,6 +74,7 @@ genericPatternExpressions =
   (parser :: ExpParser (Pattern a -> Pattern a)) <*> parser <|>
   (parser :: ExpParser ([a] -> Pattern a)) <*> parser <|>
   (parser :: ExpParser ([Pattern a] -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser ([(Pattern a, Double)] -> Pattern a)) <*> parser <|>
   pInt_p <*> parser <|>
   silence
 
@@ -83,6 +84,8 @@ silence = $(fromTidal "silence") -- ie. T.silence <$ reserved "silence", see Sou
 instance Parse (Pattern Bool) where
   parser =
     parseBP <|>
+    (parser :: ExpParser (Pattern String -> Pattern Bool)) <*> parser <|>
+    (parser :: ExpParser (Pattern Int -> Pattern Bool)) <*> parser <|>
     genericPatternExpressions
 
 instance Parse (Pattern String) where
@@ -155,7 +158,7 @@ instance Parse (Pattern Integer -> Pattern Integer) where
 instance Parse (Pattern Time -> Pattern Time) where
   parser = genericTransformations <|> numTransformations
 instance Parse (Pattern Double -> Pattern Double) where
-  parser = genericTransformations <|> numTransformations
+  parser = genericTransformations <|> numTransformations <|> floatingTransformations
 
 genericTransformations :: forall a. (Parse (Pattern a), Parse (Pattern a -> Pattern a),Parse (Pattern a -> Pattern a -> Pattern a), Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) => ExpParser (Pattern a -> Pattern a)
 genericTransformations =
@@ -190,6 +193,9 @@ numTransformations :: (Num a, Enum a) => ExpParser (Pattern a -> Pattern a)
 numTransformations =
   $(fromTidal "run")
 
+floatingTransformations :: (Floating a, Parse (Pattern a)) => ExpParser (Pattern a -> Pattern a)
+floatingTransformations = floatingMergeOperator <*> parser
+
 instance Parse ([a] -> Pattern a) where
   parser =
     $(fromTidal "listToPat") <|>
@@ -203,6 +209,9 @@ instance Parse ([Pattern a] -> Pattern a) where
     $(fromTidal "slowcat") <|>
     $(fromTidal "cat") <|>
     $(fromTidal "randcat")
+
+instance Parse ([(Pattern a, Double)] -> Pattern a) where
+  parser = $(fromTidal "wrandcat")
 
 pInt_p :: Parse a => ExpParser (Pattern Int -> Pattern a)
 pInt_p = (parser :: ExpParser ([a] -> Pattern Int -> Pattern a)) <*> parser
@@ -218,6 +227,14 @@ instance Parse (Pattern Int -> ControlPattern) where
     $(fromTidal "coarse") <|>
     $(fromTidal "cut")
 
+instance Parse (Pattern String -> Pattern Bool) where
+  parser = $(fromTidal "ascii")
+
+instance Parse (Pattern Int -> Pattern Bool) where
+  parser =
+    $(fromTidal "binary") <|>
+    (parser :: ExpParser (Int -> Pattern Int -> Pattern Bool)) <*> parser
+
 instance Parse (Pattern Double -> ControlPattern) where
   parser =
     $(fromTidal "n") <|>
@@ -231,6 +248,7 @@ instance Parse (Pattern Double -> ControlPattern) where
     $(fromTidal "bandq") <|>
     $(fromTidal "begin") <|>
     $(fromTidal "crush") <|>
+    $(fromTidal "legato") <|>
     $(fromTidal "cutoff") <|>
     $(fromTidal "delayfeedback") <|>
     $(fromTidal "delaytime") <|>
@@ -337,6 +355,12 @@ fractionalMergeOperator =
   $(fromTidal "/|") <|>
   $(fromHaskell "/")
 
+floatingMergeOperator :: Floating a => ExpParser (Pattern a -> Pattern a -> Pattern a)
+floatingMergeOperator =
+  $(fromTidal "|**") <|>
+  $(fromTidal "**|") <|>
+  $(fromTidal "|**|")
+
 constParser :: ExpParser (a -> b -> a)
 constParser = $(fromHaskell "const")
 
@@ -348,6 +372,9 @@ instance Parse (Time -> Pattern a -> Pattern a) where
 
 instance Parse (Int -> Pattern a -> Pattern a) where
   parser = $(fromTidal "repeatCycles")
+
+instance Parse (Int -> Pattern Int -> Pattern Bool) where
+  parser = $(fromTidal "binaryN")
 
 instance Parse ((Time,Time) -> Pattern a -> Pattern a) where
   parser =
@@ -421,7 +448,8 @@ instance Parse ([Time] -> Pattern a -> Pattern a) where
 instance Parse (Pattern Int -> ControlPattern -> ControlPattern) where
   parser =
     $(fromTidal "chop") <|>
-    $(fromTidal "striate")
+    $(fromTidal "striate") <|>
+    (parser :: ExpParser (Int -> Pattern Int -> ControlPattern -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Double -> ControlPattern -> ControlPattern) where
   parser = (parser :: ExpParser (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern)) <*> parser
@@ -508,19 +536,27 @@ pInt_p_p_p = (parser :: ExpParser (Pattern Int -> Pattern Int -> Pattern a -> Pa
 instance Parse (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern) where
   parser = $(fromTidal "striate'")
 
+instance Parse (Int -> Pattern Int -> ControlPattern  -> ControlPattern) where
+  parser = $(fromTidal "chew")
+
 instance Parse (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern) where
   parser = (parser :: ExpParser (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
-  parser = $(fromTidal "off")
+  parser =
+    $(fromTidal "off") <|>
+    $(fromTidal "plyWith")
 
 instance Parse (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser =
     $(fromTidal "every") <|>
+    $(fromTidal "plyWith") <|>
     (parser :: ExpParser (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
-  parser = $(fromTidal "sometimesBy")
+  parser =
+    $(fromTidal "sometimesBy") <|>
+    $(fromTidal "plyWith")
 
 instance Parse ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "foldEvery")
@@ -538,8 +574,6 @@ instance Parse (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) wh
 
 instance Parse (Int -> [a] -> Pattern Int -> Pattern a) where
   parser = $(fromTidal "fit")
-
-
 
 
 -- * -> * -> * -> * -> *
