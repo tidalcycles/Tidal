@@ -1431,13 +1431,25 @@ _plyWith numPat f p = arpeggiate $ compound numPat
   where compound n | n <= 1 = p
                    | otherwise = overlay p (f $ compound $ n-1)
 
--- Uses the first (binary) pattern to switch between the following two
--- patterns.
+-- | Uses the first (binary) pattern to switch between the following
+-- two patterns. The resulting structure comes from the source patterns, not the
+-- binary pattern. See also @stitch@.
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 sew pb a b = overlay (mask pb a) (mask (inv pb) b)
 
+-- | Uses the first (binary) pattern to switch between the following
+-- two patterns. The resulting structure comes from the binary
+-- pattern, not the source patterns. See also @sew@.
 stitch :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 stitch pb a b = overlay (struct pb a)  (struct (inv pb) b)
+
+-- | A binary pattern is used to conditionally apply a function to a
+-- source pattern. The function is applied when a @True@ value is
+-- active, and the pattern is let through unchanged when a @False@
+-- value is active. No events are let through where no binary values
+-- are active.
+while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+while b f pat = sew b (f pat) pat
 
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n-1)]
