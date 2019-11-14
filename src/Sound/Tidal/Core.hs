@@ -215,10 +215,14 @@ slowcat = slowCat
 -- | Alias for 'append'
 slowAppend :: Pattern a -> Pattern a -> Pattern a
 slowAppend = append
+slowappend :: Pattern a -> Pattern a -> Pattern a
+slowappend = append
 
 -- | Like 'append', but twice as fast
 fastAppend :: Pattern a -> Pattern a -> Pattern a
 fastAppend a b = _fast 2 $ append a b
+fastappend :: Pattern a -> Pattern a -> Pattern a
+fastappend = fastAppend
 
 -- | The same as 'cat', but speeds up the result by the number of
 -- patterns there are, so the cycles from each are squashed to fit a
