@@ -12,9 +12,9 @@ import qualified Sound.OSC.FD as O
 import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
 import Control.Monad (forever, when, foldM)
-import Data.List (isPrefixOf, nub)
+import Data.List (nub)
 import qualified Control.Exception as E
-
+import Data.Maybe (fromJust)
 import Sound.Tidal.Config
 
 instance Show O.UDP where
@@ -64,10 +64,13 @@ setCps tempoMV newCps = changeTempo tempoMV (\t tempo -> tempo {atTime = t,
                                                                 cps = newCps
                                                                })
 
+defaultCps :: O.Time
+defaultCps = 0.5625
+  
 defaultTempo :: O.Time -> O.UDP -> N.SockAddr -> Tempo
 defaultTempo t local remote = Tempo {atTime   = t,
                                      atCycle  = 0,
-                                     cps      = 0.5625,
+                                     cps      = defaultCps,
                                      paused   = False,
                                      nudged   = 0,
                                      localUDP   = local,
@@ -165,7 +168,7 @@ sendTempo tempo = O.sendTo (localUDP tempo) (O.p_bundle (atTime tempo) [m]) (rem
                                              O.Float $ realToFrac $ cps tempo,
                                              O.Int32 $ if paused tempo then 1 else 0
                                             ]
-
+  
 listenTempo :: O.UDP -> MVar Tempo -> IO ()
 listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
                                        act Nothing pkt
@@ -184,7 +187,7 @@ listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
                                       paused = paused' == 1,
                                       synched = True
                                      }
-        act _ pkt = putStrLn $ "Unknown packet: " ++ show pkt
+        act _ pkt = putStrLn $ "Unknown packet (client): " ++ show pkt
 
 serverListen :: Config -> IO (Maybe ThreadId)
 serverListen config = catchAny run (\_ -> do putStrLn "Tempo listener failed (is one already running?)"
@@ -193,24 +196,31 @@ serverListen config = catchAny run (\_ -> do putStrLn "Tempo listener failed (is
   where run = do let port = cTempoPort config
                  -- iNADDR_ANY deprecated - what's the right way to do this?
                  udp <- O.udpServer "0.0.0.0" port
-                 tid <- forkIO $ loop udp []
+                 cpsMessage <- defaultCpsMessage
+                 tid <- forkIO $ loop udp ([], cpsMessage)
                  return $ Just tid
-        loop udp cs = do (pkt,c) <- O.recvFrom udp
-                         cs' <- act udp c Nothing cs pkt
-                         loop udp cs'
-        act :: O.UDP -> N.SockAddr -> Maybe O.Time -> [N.SockAddr] -> O.Packet -> IO [N.SockAddr]
-        act udp c _ cs (O.Packet_Bundle (O.Bundle ts ms)) = foldM (act udp c (Just ts)) cs $ map O.Packet_Message ms
-        act _ c _ cs (O.Packet_Message (O.Message "/hello" []))
-          = return $ nub $ c:cs
-        act udp _ (Just ts) cs (O.Packet_Message (O.Message path params))
-          | "/transmit" `isPrefixOf` path =
-              do let path' = drop 9 path
-                     msg = O.Message path' params
-                 mapM_ (O.sendTo udp $ O.p_bundle ts [msg]) cs
-                 return cs
-        act _ _ _ cs pkt = do putStrLn $ "Unknown packet: " ++ show pkt
-                              return cs
+        loop udp (cs, msg) = do (pkt,c) <- O.recvFrom udp
+                                (cs', msg') <- act udp c Nothing (cs,msg) pkt
+                                loop udp (cs', msg')
+        act :: O.UDP -> N.SockAddr -> Maybe O.Time -> ([N.SockAddr], O.Packet) -> O.Packet -> IO ([N.SockAddr], O.Packet)
+        act udp c _ (cs,msg) (O.Packet_Bundle (O.Bundle ts ms)) = foldM (act udp c (Just ts)) (cs,msg) $ map O.Packet_Message ms
+        act udp c _ (cs,msg) (O.Packet_Message (O.Message "/hello" []))
+          = do O.sendTo udp msg c 
+               return (nub (c:cs),msg)
+        act udp _ (Just ts) (cs,_) (O.Packet_Message (O.Message "/transmit/cps/cycle" params)) =
+          do let path' = "/cps/cycle"
+                 msg' = O.p_bundle ts [O.Message path' params]
+             mapM_ (O.sendTo udp msg') cs
+             return (cs, msg')
+        act _ x _ (cs,msg) pkt = do putStrLn $ "Unknown packet (serv): " ++ show pkt ++ " / " ++ (show x)
+                                    return (cs,msg)
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch
+        defaultCpsMessage = do ts <- O.time
+                               return $ O.p_bundle ts [O.Message "/cps/cycle" [O.Float $ 0,
+                                                                               O.Float $ realToFrac $ defaultCps,
+                                                                               O.Int32 0
+                                                                              ]
+                                                    ]
 
 
