@@ -16,6 +16,7 @@ import Data.List (nub)
 import qualified Control.Exception as E
 import Data.Maybe (fromJust)
 import Sound.Tidal.Config
+import Sound.Tidal.Utils (writeError)
 
 instance Show O.UDP where
   show _ = "-unshowable-"
@@ -126,8 +127,8 @@ clocked config callback
              when (t < logicalNow) $ threadDelay (floor $ delta * 1000000)
              t' <- O.time
              let actualTick = floor $ (t' - start st) / frameTimespan
-                 -- reset ticks if ahead/behind by 4 or more
-                 ahead = (abs $ actualTick - ticks st) > 4
+                 -- reset ticks if ahead/behind by skipTicks or more
+                 ahead = (abs $ actualTick - ticks st) > (cSkipTicks config)
                  newTick | ahead = actualTick
                          | otherwise = (ticks st) + 1
                  st' = st {ticks = newTick,
@@ -135,7 +136,7 @@ clocked config callback
                            nowTimespan = (logicalNow,  logicalNow + frameTimespan),
                            starting = not (synched tempo)
                           }
-             when ahead $ putStrLn $ "skip: " ++ show (actualTick - ticks st)
+             when ahead $ writeError $ "skip: " ++ show (actualTick - ticks st)
              callback tempoMV st'
              {-putStrLn ("actual tick: " ++ show actualTick
                        ++ " old tick: " ++ show (ticks st)
@@ -187,12 +188,10 @@ listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
                                       paused = paused' == 1,
                                       synched = True
                                      }
-        act _ pkt = putStrLn $ "Unknown packet (client): " ++ show pkt
+        act _ pkt = writeError $ "Unknown packet (client): " ++ show pkt
 
 serverListen :: Config -> IO (Maybe ThreadId)
-serverListen config = catchAny run (\_ -> do putStrLn "Tempo listener failed (is one already running?)"
-                                             return Nothing
-                                   )
+serverListen config = catchAny run (\_ -> return Nothing) -- probably just already running)
   where run = do let port = cTempoPort config
                  -- iNADDR_ANY deprecated - what's the right way to do this?
                  udp <- O.udpServer "0.0.0.0" port
@@ -212,7 +211,7 @@ serverListen config = catchAny run (\_ -> do putStrLn "Tempo listener failed (is
                  msg' = O.p_bundle ts [O.Message path' params]
              mapM_ (O.sendTo udp msg') cs
              return (cs, msg')
-        act _ x _ (cs,msg) pkt = do putStrLn $ "Unknown packet (serv): " ++ show pkt ++ " / " ++ (show x)
+        act _ x _ (cs,msg) pkt = do writeError $ "Unknown packet (serv): " ++ show pkt ++ " / " ++ (show x)
                                     return (cs,msg)
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch

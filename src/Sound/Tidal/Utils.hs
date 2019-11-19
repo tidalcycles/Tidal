@@ -1,6 +1,10 @@
 module Sound.Tidal.Utils where
 
 import Data.List (delete)
+import System.IO (hPutStrLn, stderr)
+
+writeError :: String -> IO ()
+writeError = hPutStrLn stderr
 
 mapBoth :: (a -> a) -> (a,a) -> (a,a)
 mapBoth f (a,b) = (f a, f b)
