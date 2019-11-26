@@ -220,12 +220,14 @@ instance Parse (Pattern String -> ControlPattern) where
   parser =
     $(fromTidal "s") <|>
     $(fromTidal "sound") <|>
-    $(fromTidal "vowel")
+    $(fromTidal "vowel") <|>
+    (parser :: ExpParser (String -> Pattern String -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Int -> ControlPattern) where
   parser =
     $(fromTidal "coarse") <|>
-    $(fromTidal "cut")
+    $(fromTidal "cut") <|>
+    (parser :: ExpParser (String -> Pattern Int -> ControlPattern)) <*> parser
 
 instance Parse (Pattern String -> Pattern Bool) where
   parser = $(fromTidal "ascii")
@@ -258,7 +260,8 @@ instance Parse (Pattern Double -> ControlPattern) where
     $(fromTidal "hresonance") <|>
     $(fromTidal "resonance") <|>
     $(fromTidal "loop") <|>
-    $(fromTidal "note")
+    $(fromTidal "note") <|>
+    (parser :: ExpParser (String -> Pattern Double -> ControlPattern)) <*> parser
 
 pInt_pString :: ExpParser (Pattern Int -> Pattern String)
 pInt_pString = pString_pInt_pString <*> parser
@@ -311,6 +314,10 @@ genericBinaryPatternFunctions :: T.Unionable a => ExpParser (Pattern a -> Patter
 genericBinaryPatternFunctions =
   $(fromTidal "overlay") <|>
   $(fromTidal "append") <|>
+  $(fromTidal "slowAppend") <|>
+  $(fromTidal "slowappend") <|>
+  $(fromTidal "fastAppend") <|>
+  $(fromTidal "fastappend") <|>
   unionableMergeOperator <|>
   pInt_p_p_p <*> parser <|>
   (parser :: ExpParser (Pattern Bool -> Pattern a -> Pattern a -> Pattern a)) <*> parser <|>
@@ -493,12 +500,20 @@ genericAppliedTransformations =
   (parser :: ExpParser ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
   (parser :: ExpParser ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
   (parser :: ExpParser (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: ExpParser (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
+  (parser :: ExpParser (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: ExpParser (Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse ([a] -> Pattern Int -> Pattern a) where
   parser = (parser :: ExpParser (Int -> [a] -> Pattern Int -> Pattern a)) <*> parser
 
+instance Parse (String -> Pattern Double -> ControlPattern) where
+  parser = $(fromTidal "pF")
 
+instance Parse (String -> Pattern Int -> ControlPattern) where
+  parser = $(fromTidal "pI")
+
+instance Parse (String -> Pattern String -> ControlPattern) where
+  parser = $(fromTidal "pS")
 
 
 -- * -> * -> * -> *
@@ -514,6 +529,9 @@ instance Parse (Pattern Time -> Pattern Time -> Pattern a -> Pattern a) where
 
 instance Parse (Pattern Bool -> Pattern a -> Pattern a -> Pattern a) where
   parser = $(fromTidal "sew")
+
+instance Parse (Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "while")
 
 pInt_pInt_p_p :: ExpParser (Pattern Int -> Pattern Int -> Pattern a -> Pattern a)
 pInt_pInt_p_p =
