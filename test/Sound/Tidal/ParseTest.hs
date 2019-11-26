@@ -43,6 +43,10 @@ run =
         compareP (Arc 0 2)
           ("a! b" :: Pattern String)
           (fastCat ["a", "a", "b"])
+      it "can replicate with ! inside {}" $ do
+        compareP (Arc 0 2)
+          ("{a a}%2" :: Pattern String)
+          ("{a !}%2" :: Pattern String)
       it "can replicate with ! and number" $ do
         compareP (Arc 0 2)
           ("a!3 b" :: Pattern String)
