@@ -61,7 +61,7 @@ let p = streamReplace tidal
 let setI = streamSetI tidal
     setF = streamSetF tidal
     setS = streamSetS tidal
-    setR = streamSetI tidal
+    setR = streamSetR tidal
     setB = streamSetB tidal
 :}
 
