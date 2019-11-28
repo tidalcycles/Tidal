@@ -41,50 +41,92 @@ type MyParser = Text.Parsec.Prim.Parsec String Int
 -- | AST representation of patterns
 
 data TPat a = TPat_Atom a
-            | TPat_Density (TPat Time) (TPat a)
+            | TPat_Fast (TPat Time) (TPat a)
             | TPat_Slow (TPat Time) (TPat a)
-            | TPat_Zoom Arc (TPat a)
             | TPat_DegradeBy Int Double (TPat a)
+            | TPat_CycleChoose Int [TPat a]
+            | TPat_Euclid (TPat Int) (TPat Int) (TPat Int) (TPat a)
+            | TPat_Stack [TPat a]
+            | TPat_Polyrhythm (Maybe (TPat Rational)) [TPat a]
+            | TPat_Seq [TPat a]
             | TPat_Silence
             | TPat_Foot
-            | TPat_Elongate Int
+            | TPat_Elongate Rational (TPat a)
+            | TPat_Repeat Int (TPat a)
             | TPat_EnumFromTo (TPat a) (TPat a)
-            | TPat_Cat [TPat a]
-            | TPat_TimeCat [TPat a]
-            | TPat_Overlay (TPat a) (TPat a)
-            | TPat_Stack [TPat a]
-            | TPat_CycleChoose Int [TPat a]
-            | TPat_ShiftL Time (TPat a)
-              -- TPat_E Int Int (TPat a)
-            | TPat_pE (TPat Int) (TPat Int) (TPat Int) (TPat a)
             deriving (Show)
+
+{-
+patLen :: TPat a -> Rational
+patLen (TPat_Seq xs) = toRational $ sum $ map patLen xs
+patLen TPat_Foot = error "Feet (.) aren't allowed here"
+patLen (TPat_Elongate r) = r - 1
+patLen (TPat_Repeat n) = toRational $ n - 1
+patLen _ = 1
+-}
+
+{-
+resolve a@(TPat_Atom _)         = a
+resolve (TPat_Fast a b)         = TPat_Fast (resolve a) (resolve b)
+resolve (TPat_Slow a b)         = TPat_Slow (resolve a) (resolve b)
+resolve (TPat_DegradeBy a b c)  = TPat_DegradeBy a b (resolve c)
+resolve (TPat_CycleChoose a bs) = TPat_CycleChoose a (map resolve bs)
+resolve (TPat_Euclid a b c d)   = TPat_Euclid (resolve a) (resolve b) (resolve c) (resolve d)
+resolve (TPat_Stack as)         = TPat_Stack resolve
+            | TPat_Polyrhythm (Maybe (TPat Rational)) [TPat a]
+            | TPat_Seq [TPat a]
+            | TPat_Silence
+            | TPat_Foot
+            | TPat_Elongate Rational
+            | TPat_Repeat Int
+            | TPat_EnumFromTo (TPat a) (TPat a)
+-}
 
 toPat :: (Enumerable a, Parseable a) => TPat a -> Pattern a
 toPat = \case
    TPat_Atom x -> pure x
-   TPat_Density t x -> fast (toPat t) $ toPat x
+   TPat_Fast t x -> fast (toPat t) $ toPat x
    TPat_Slow t x -> slow (toPat t) $ toPat x
-   TPat_Zoom a x -> zoomArc a $ toPat x
    TPat_DegradeBy seed amt x -> _degradeByUsing (rotL (0.0001 * (fromIntegral seed)) rand) amt $ toPat x
-   TPat_Silence -> silence
-   TPat_Cat xs -> fastcat $ map toPat xs
-   TPat_TimeCat xs -> timeCat $ map (\(n, pat) -> (toRational n, toPat pat)) $ durations xs
-   TPat_Overlay x0 x1 -> overlay (toPat x0) (toPat x1)
-   TPat_Stack xs -> stack $ map toPat xs
    TPat_CycleChoose seed xs -> unwrap $ segment 1 $ chooseBy (rotL (0.0001 * (fromIntegral seed)) rand) $ map toPat xs
-   TPat_ShiftL t x -> t `rotL` toPat x
-   TPat_pE n k s thing ->
+   TPat_Euclid n k s thing ->
       doEuclid (toPat n) (toPat k) (toPat s) (toPat thing)
-   TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
+   TPat_Stack xs -> stack $ map toPat xs
+   TPat_Silence -> silence
    TPat_EnumFromTo a b -> unwrap $ fromTo <$> toPat a <*> toPat b
-   -- TPat_EnumFromThenTo a b c -> unwrap $ fromThenTo <$> (toPat a) <*> (toPat b) <*> (toPat c)
+   TPat_Foot -> error "Can't happen, feet are pre-processed."
+   TPat_Polyrhythm mSteprate ps -> stack $ map adjust_speed pats
+     where adjust_speed (sz, pat) = fast ((/sz) <$> steprate) pat
+           pats = map resolve_tpat ps
+           steprate :: Pattern Rational
+           steprate = fromMaybe base_first (toPat <$> mSteprate)
+           base_first | null pats = pure 0
+                      | otherwise = pure $ fst $ head pats
+   TPat_Seq xs -> snd $ resolve_seq xs
    _ -> silence
 
+resolve_tpat :: (Enumerable a, Parseable a) => TPat a -> (Rational, Pattern a)
+resolve_tpat (TPat_Seq xs) = resolve_seq xs
+resolve_tpat a = (1, toPat a)
+
+resolve_seq :: (Enumerable a, Parseable a) => [TPat a] -> (Rational, Pattern a)
+resolve_seq xs = (total_size, timeCat sized_pats)
+  where sized_pats = map (toPat <$>) $ resolve_size xs
+        total_size = sum $ map fst sized_pats
+
+resolve_size :: [TPat a] -> [(Rational, TPat a)]
+resolve_size [] = []
+resolve_size ((TPat_Elongate r p):ps) = (r, p):(resolve_size ps)
+resolve_size ((TPat_Repeat n p):ps) = replicate n (1,p) ++ (resolve_size ps)
+resolve_size (p:ps) = (1,p):(resolve_size ps)
+
+{-
 durations :: [TPat a] -> [(Int, TPat a)]
 durations [] = []
 durations (TPat_Elongate n : xs) = (n, TPat_Silence) : durations xs
 durations (a : TPat_Elongate n : xs) = (n+1,a) : durations xs
 durations (a:xs) = (1,a) : durations xs
+-}
 
 parseBP :: (Enumerable a, Parseable a) => String -> Either ParseError (Pattern a)
 parseBP s = toPat <$> parseTPat s
@@ -225,79 +267,53 @@ intOrFloat =  do s   <- sign
                             Left  x -> fromIntegral $ applySign s x
                         )
 
-{-
-r :: (Enumerable a, Parseable a) => String -> Pattern a -> IO (Pattern a)
-r s orig = do E.handle
-                (\err -> do putStrLn (show (err :: E.SomeException))
-                            return orig
-                )
-                (return $ p s)
--}
-
 parseRhythm :: Parseable a => MyParser (TPat a) -> String -> Either ParseError (TPat a)
 parseRhythm f = runParser (pSequence f') (0 :: Int) ""
   where f' = do f
                 <|> do symbol "~" <?> "rest"
                        return TPat_Silence
 
-pSequenceN :: Parseable a => MyParser (TPat a) -> GenParser Char Int (Int, TPat a)
-pSequenceN f = do spaces
-                  -- d <- pDensity
-                  ps <- many $ do a <- pPart f
-                                  do Text.ParserCombinators.Parsec.try $ symbol ".."
-                                     b <- pPart f
-                                     return [TPat_EnumFromTo (TPat_Cat a) (TPat_Cat b)]
-                                    <|> return a
-                               <|> do symbol "."
-                                      return [TPat_Foot]
-                               <|> do es <- many1 (symbol "_")
-                                      return [TPat_Elongate (length es)]
-                  let ps' = TPat_Cat $ map elongate $ splitFeet $ concat ps
-                      extraElongate (TPat_Elongate n) = n-1
-                      extraElongate _ = 0
-                      sumElongates x = sum (map extraElongate x)
-                  return (length ps + sumElongates (concat ps), ps')
-
-elongate :: [TPat a] -> TPat a
-elongate xs | any isElongate xs = TPat_TimeCat xs
-            | otherwise = TPat_Cat xs
-  where isElongate (TPat_Elongate _) = True
-        isElongate _ = False
-{-
-expandEnum :: Parseable t => Maybe (TPat t) -> [TPat t] -> [TPat t]
-expandEnum a [] = [a]
-expandEnum (Just a) (TPat_Enum:b:ps) = (TPat_EnumFromTo a b) : (expandEnum Nothing ps)
--- ignore ..s in other places
-expandEnum a (TPat_Enum:ps) = expandEnum a ps
-expandEnum (Just a) (b:ps) = a:(expandEnum b (Just c) ps)
-expandEnum Nothing (c:ps) = expandEnum (Just c) ps
--}
-
--- could use splitOn here but `TPat a` isn't a member of `EQ`..
-splitFeet :: [TPat t] -> [[TPat t]]
-splitFeet [] = []
-splitFeet pats = foot : splitFeet pats'
-  where (foot, pats') = takeFoot pats
-        takeFoot [] = ([], [])
-        takeFoot (TPat_Foot:pats'') = ([], pats'')
-        takeFoot (pat:pats'') = (\(a,b) -> (pat:a,b)) $ takeFoot pats''
-
 pSequence :: Parseable a => MyParser (TPat a) -> GenParser Char Int (TPat a)
-pSequence f = do (_, pat) <- pSequenceN f
-                 return pat
+pSequence f = do spaces -- TODO is this needed?
+                 -- d <- pFast
+                 s <- many $ do a <- pPart f
+                                spaces
+                                do try $ symbol ".."
+                                   b <- pPart f
+                                   return $ TPat_EnumFromTo a b
+                                 <|> do rs <- many1 $ do oneOf "@_"
+                                                         n <- (((subtract 1) . read) <$> many1 digit) <|> return 1
+                                                         spaces
+                                                         return $ toRational (n :: Int)
+                                        return $ TPat_Elongate (1 + sum rs) a
+                                 <|> do es <- many1 $ do char '!'
+                                                         n <- (((subtract 1) . read) <$> many1 digit) <|> return 1
+                                                         spaces
+                                                         return n
+                                        return $ TPat_Repeat (1 + sum es) a
+                                 <|> return a
+                             <|> do symbol "."
+                                    return TPat_Foot
+                 return $ resolve_feet s
+      where resolve_feet ps | length ss > 1 = TPat_Seq $ map TPat_Seq ss
+                            | otherwise = TPat_Seq ps
+              where ss = splitFeet ps
+            splitFeet :: [TPat t] -> [[TPat t]]
+            splitFeet [] = []
+            splitFeet pats = foot : splitFeet pats'
+              where (foot, pats') = takeFoot pats
+                    takeFoot [] = ([], [])
+                    takeFoot (TPat_Foot:pats'') = ([], pats'')
+                    takeFoot (pat:pats'') = (\(a,b) -> (pat:a,b)) $ takeFoot pats''
+
 
 pSingle :: MyParser (TPat a) -> MyParser (TPat a)
 pSingle f = f >>= pRand >>= pMult
 
-pPart :: Parseable a => MyParser (TPat a) -> MyParser [TPat a]
-pPart f = do pt <- pSingle f <|> pPolyIn f <|> pPolyOut f
-             pt' <- pE pt
-             pt'' <- pRand pt'
-             spaces
-             pts <- pStretch pt
-                    <|> pReplicate pt''
-             spaces
-             return pts
+pPart :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
+pPart f = do pt <- (pSingle f <|> pPolyIn f <|> pPolyOut f) >>= pE >>= pRand
+             spaces -- TODO is this needed?
+             return pt
 
 newSeed :: MyParser Int
 newSeed = do seed <- Text.Parsec.Prim.getState
@@ -306,34 +322,32 @@ newSeed = do seed <- Text.Parsec.Prim.getState
 
 
 pPolyIn :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
-pPolyIn f = do x <- brackets $ do p <- pSequence f <?> "sequence"
-                                  stackTail p <|> chooseTail p <|> return p
+pPolyIn f = do x <- brackets $ do s <- pSequence f <?> "sequence"
+                                  stackTail s <|> chooseTail s <|> return s
                pMult x
-  where stackTail p = do symbol ","
-                         ps <- pSequence f `sepBy` symbol ","
-                         spaces
-                         return $ TPat_Stack (p:ps)
-        chooseTail p = do symbol "|"
-                          ps <- pSequence f `sepBy` symbol "|"
-                          spaces
+  where stackTail s = do symbol ","
+                         ss <- pSequence f `sepBy` symbol ","
+                         spaces -- TODO needed?
+                         return $ TPat_Stack (s:ss)
+        chooseTail s = do symbol "|"
+                          ss <- pSequence f `sepBy` symbol "|"
+                          spaces -- TODO needed?
                           seed <- newSeed
-                          return $ TPat_CycleChoose seed (p:ps)
+                          return $ TPat_CycleChoose seed (s:ss)
 
 pPolyOut :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
-pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
-                spaces
+pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
+                spaces -- TODO needed?
                 base <- do char '%'
-                           spaces
-                           i <- integer <?> "integer"
-                           return $ Just (fromIntegral i)
+                           spaces -- TODO needed/wanted?
+                           r <- pRational <?> "rational" -- TODO does rational work ok here?
+                           return $ Just r
                         <|> return Nothing
-                pMult $ TPat_Stack $ scale' base ps
+                pMult $ TPat_Polyrhythm base ss
              <|>
-             do ps <- angles (pSequenceN f `sepBy` symbol ",")
-                spaces
-                pMult $ TPat_Stack $ scale' (Just 1) ps
-  where scale' _ [] = []
-        scale' base pats@((n,_):_) = map (\(n',pat) -> TPat_Density (TPat_Atom $ fromIntegral (fromMaybe n base)/ fromIntegral n') pat) pats
+             do ss <- angles (pSequence f `sepBy` symbol ",")
+                spaces -- TODO needed/wanted?
+                pMult $ TPat_Polyrhythm (Just $ TPat_Atom 1) ss
 
 pString :: MyParser String
 pString = do c <- (letter <|> oneOf "0123456789") <?> "charnum"
@@ -426,7 +440,7 @@ pMult :: TPat a -> MyParser (TPat a)
 pMult thing = do char '*'
                  spaces
                  r <- pRational <|> pPolyIn pRational <|> pPolyOut pRational
-                 return $ TPat_Density r thing
+                 return $ TPat_Fast r thing
               <|>
               do char '/'
                  spaces
@@ -445,7 +459,7 @@ pRand thing = do char '?'
 
 pE :: TPat a -> MyParser (TPat a)
 pE thing = do (n,k,s) <- parens pair
-              pure $ TPat_pE n k s thing
+              pure $ TPat_Euclid n k s thing
             <|> return thing
    where pair :: MyParser (TPat Int, TPat Int, TPat Int)
          pair = do a <- pSequence pIntegral
@@ -458,24 +472,6 @@ pE thing = do (n,k,s) <- parens pair
                            pSequence pIntegral
                         <|> return (TPat_Atom 0)
                    return (a, b, c)
-
-pReplicate :: TPat a -> MyParser [TPat a]
-pReplicate thing =
-  do extras <- many $ do char '!'
-                         -- if a number is given (without a space)slow 2 $ fast
-                         -- replicate that number of times
-                         n <- (read <$> many1 digit) <|> return (2 :: Int)
-                         spaces
-                         thing' <- pRand thing
-                         -- -1 because we already have parsed the original one
-                         return $ replicate (fromIntegral (n-1)) thing'
-     return (thing:concat extras)
-
-pStretch :: TPat a -> MyParser [TPat a]
-pStretch thing =
-  do char '@'
-     n <- (read <$> many1 digit) <|> return 1
-     return $ map (\x -> TPat_Zoom (Arc (x%n) ((x+1)%n)) thing) [0 .. (n-1)]
 
 pRatio :: MyParser Rational
 pRatio = do s <- sign
@@ -496,10 +492,4 @@ pRatio = do s <- sign
 pRational :: MyParser (TPat Rational)
 pRational = TPat_Atom <$> pRatio
 
-{-
-pDensity :: MyParser (Rational)
-pDensity = angles (pRatio <?> "ratio")
-           <|>
-           return (1 % 1)
--}
 
