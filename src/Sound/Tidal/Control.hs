@@ -387,6 +387,14 @@ qtrigger = _trigger True
 qt :: Show a => a -> Pattern b -> Pattern b
 qt = qtrigger
 
+reset :: Show a => a -> Pattern b -> Pattern b
+reset k pat = pat {query = q}
+  where q st = query ((offset st) ~> (when (<=0) (const silence) pat)) st
+        f = (fromIntegral :: Int -> Rational) . floor
+        offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
+                                            return $ ((f . fromMaybe 0 . getR) <$> p)
+        ctrl = "_t_" ++ show k
+
 _getP_ :: (Value -> Maybe a) -> Pattern Value -> Pattern a
 _getP_ f pat = filterJust $ f <$> pat
 
