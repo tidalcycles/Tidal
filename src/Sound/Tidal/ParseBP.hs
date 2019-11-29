@@ -282,9 +282,9 @@ pSequence f = do spaces -- TODO is this needed?
                                    b <- pPart f
                                    return $ TPat_EnumFromTo a b
                                  <|> do rs <- many1 $ do oneOf "@_"
-                                                         n <- (((subtract 1) . read) <$> many1 digit) <|> return 1
+                                                         r <- ((subtract 1) <$> pRatio) <|> return 1
                                                          spaces
-                                                         return $ toRational (n :: Int)
+                                                         return $ r
                                         return $ TPat_Elongate (1 + sum rs) a
                                  <|> do es <- many1 $ do char '!'
                                                          n <- (((subtract 1) . read) <$> many1 digit) <|> return 1
@@ -319,7 +319,6 @@ newSeed :: MyParser Int
 newSeed = do seed <- Text.Parsec.Prim.getState
              Text.Parsec.Prim.modifyState (+1)
              return seed
-
 
 pPolyIn :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
 pPolyIn f = do x <- brackets $ do s <- pSequence f <?> "sequence"
