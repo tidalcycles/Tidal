@@ -1,5 +1,17 @@
 # TidalCycles log of changes
 
+## 1.4.5 - Porter Brook
+
+* Mini notation - `@` (and its alias `_`) now accepts rational relative durations. E.g. `a b@0.5 c d` to make `b` have a half step (that would be the same as `a@2 b c@2 c@d`). This can also be patterned `a b@<0.5 2> c d` @yaxu #435
+* Experimental `reset` function - stick in a pattern so it acts as though the cycle number was reset to 0, from the next cycle @yaxu
+* Bugfix for setR in BootTidal.hs @yaxu
+* Mini notation - `!`, `@` and `_` now work properly within `{}` and `<>`, e.g. `<a b ! c!3 d>` will repeat every 7 cycles @yaxu #369 #248
+* Mini notation - `@` and `_` are now aliases for each other, e.g. `a_3` is the same as `a@3` as are `_` and `@` @yaxu #369
+* Frame skipping on clock jumps now configurable @yaxu #567
+* Sync between tidal instances now works straight away, without having to setcps @yaxu #569
+* New `while` function for applying a function selectively according to a binary pattern @yaxu
+* Lowercases aliases `slowappend` and `fastappend` for `slowAppend` and `fastAppend` respectively @yaxu
+
 ## 1.4.4 - Chee Dale
 
 * wrandcat (weighted randcat) @yaxu
