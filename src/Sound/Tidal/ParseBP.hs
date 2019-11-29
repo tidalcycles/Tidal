@@ -486,7 +486,21 @@ pRatio = do s <- sign
                          return (toRational ((read $ show n ++ "." ++ frac)  :: Double))
                       <|>
                       return (n%1)
-            return $ applySign s result
+            c <- (ratioChar <|> return 1)
+            return $ applySign s (result * c)
+         <|> ratioChar
+  where ratioChar = do char 'h'
+                       return $ 1%2
+                    <|> do char 'q'
+                           return $ 1%4
+                    <|> do char 'e'
+                           return $ 1%8
+                    <|> do char 's'
+                           return $ 1%16
+                    <|> do char 't'
+                           return $ 1%3
+                    <|> do char 'f'
+                           return $ 1%5
 
 pRational :: MyParser (TPat Rational)
 pRational = TPat_Atom <$> pRatio
