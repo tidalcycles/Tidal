@@ -11,6 +11,7 @@
 * Sync between tidal instances now works straight away, without having to setcps @yaxu #569
 * New `while` function for applying a function selectively according to a binary pattern @yaxu
 * Lowercases aliases `slowappend` and `fastappend` for `slowAppend` and `fastAppend` respectively @yaxu
+* Many tidal-parse updates @dktr0
 
 ## 1.4.4 - Chee Dale
 
