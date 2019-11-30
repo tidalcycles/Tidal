@@ -236,9 +236,10 @@ angles = P.angles lexer
 symbol :: String -> MyParser String
 symbol  = P.symbol lexer
 
-natural, integer :: MyParser Integer
+natural, integer, decimal :: MyParser Integer
 natural = P.natural lexer
 integer = P.integer lexer
+decimal = P.integer lexer
 
 float :: MyParser Double
 float = P.float lexer
@@ -474,9 +475,9 @@ pE thing = do (n,k,s) <- parens pair
 
 pRatio :: MyParser Rational
 pRatio = do s <- sign
-            n <- natural
+            n <- read <$> many1 digit
             result <- do char '%'
-                         d <- natural
+                         d <- decimal
                          return (n%d)
                       <|>
                       do char '.'
