@@ -71,6 +71,30 @@ run =
         compareP (Arc 0 2)
           ("{a b, c d e}" :: Pattern String)
           (stack [fastcat [pure "a", pure "b"], slow 1.5 $ fastcat [pure "c", pure "d", pure "e"]])
+      it "can parse .. with ints" $ do
+        compareP (Arc 0 2)
+          ("0 .. 8" :: Pattern Int)
+          ("0 1 2 3 4 5 6 7 8")
+      it "can parse .. with rationals" $ do
+        compareP (Arc 0 2)
+          ("0 .. 8" :: Pattern Rational)
+          ("0 1 2 3 4 5 6 7 8")
+      it "can handle repeats (!) and durations (@) with <>" $ do
+        compareP (Arc 0 31)
+          ("<a!3 b ! c@5>" :: Pattern String)
+          (slow 10 "[a a a b b] c")
+      it "can handle repeats (!) and durations (@) with <> (with ints)" $ do
+        compareP (Arc 0 31)
+          ("<1!3 2 ! 3@5>" :: Pattern Int)
+          (slow 10 "[1 1 1 2 2] 3")
+      it "can handle fractional durations" $ do
+        compareP (Arc 0 2)
+          ("a@0.5 b@1%6 b@1%6 b@1%6" :: Pattern String)
+          ("a b*3")
+      it "can handle fractional durations (with rationals)" $ do
+        compareP (Arc 0 2)
+          ("1%3@0.5 3%4@1%6 3%4@1%6 3%4@1%6" :: Pattern Rational)
+          ("1%3 0.75*3")
       it "can parse a chord" $ do
         compareP (Arc 0 2)
           ("'major" :: Pattern Int)
