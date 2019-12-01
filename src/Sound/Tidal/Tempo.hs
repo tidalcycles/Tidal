@@ -3,18 +3,14 @@
 
 module Sound.Tidal.Tempo where
 
--- import Data.Time (getCurrentTime, UTCTime, NominalDiffTime, diffUTCTime, addUTCTime)
--- import Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import Control.Concurrent.MVar
 import qualified Sound.Tidal.Pattern as P
 import qualified Sound.OSC.FD as O
--- import qualified Sound.OSC.Transport.FD.UDP as O
 import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
 import Control.Monad (forever, when, foldM)
 import Data.List (nub)
 import qualified Control.Exception as E
-import Data.Maybe (fromJust)
 import Sound.Tidal.Config
 import Sound.Tidal.Utils (writeError)
 
@@ -31,9 +27,6 @@ data Tempo = Tempo {atTime  :: O.Time,
                     synched :: Bool
                    }
   deriving Show
-
--- sendTempo udp tempo remote_sockaddr            
--- 
 
 data State = State {ticks   :: Int,
                     start   :: O.Time,
