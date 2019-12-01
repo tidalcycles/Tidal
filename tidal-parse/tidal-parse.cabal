@@ -34,7 +34,7 @@ library
     , parsec >= 3.1.12 && < 3.2
     , transformers >= 0.5 && < 0.5.7
     , template-haskell >= 2.10.0.0 && < 2.15
-    , haskell-src-exts >= 1.17.1 && < 1.22
+    , haskell-src-exts >= 1.17.1 && < 1.23
 
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups >= 0.18 && < 0.20
