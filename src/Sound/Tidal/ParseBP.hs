@@ -334,7 +334,7 @@ wrapPos p = do b <- getPosition
                tpat <- p
                e <- getPosition
                let addPos (TPat_Atom _ v') =
-                     TPat_Atom (Just ((sourceLine b, sourceColumn b), (sourceLine e, sourceColumn e))) v'
+                     TPat_Atom (Just ((sourceColumn b, sourceLine b), (sourceColumn e, sourceLine e))) v'
                    addPos x = x -- shouldn't happen..
                return $ addPos tpat
 

@@ -151,6 +151,9 @@ combineContexts = Context . concatMap contextPosition
 addContext :: Context -> Pattern a -> Pattern a
 addContext c pat = withEvents (map (\e -> e {context = c})) pat
 
+withContext :: (Context -> Context) -> Pattern a -> Pattern a
+withContext f pat = withEvents (map (\e -> e {context = f $ context e})) pat
+
 -- | An event is a value that's active during a timespan. If a whole
 -- is present, the part should be equal to or fit inside it.
 data EventF a b = Event
