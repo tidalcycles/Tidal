@@ -40,7 +40,7 @@ type MyParser = Text.Parsec.Prim.Parsec String Int
   
 -- | AST representation of patterns
 
-data TPat a = TPat_Atom a
+data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
             | TPat_Fast (TPat Time) (TPat a)
             | TPat_Slow (TPat Time) (TPat a)
             | TPat_DegradeBy Int Double (TPat a)
@@ -56,35 +56,10 @@ data TPat a = TPat_Atom a
             | TPat_EnumFromTo (TPat a) (TPat a)
             deriving (Show)
 
-{-
-patLen :: TPat a -> Rational
-patLen (TPat_Seq xs) = toRational $ sum $ map patLen xs
-patLen TPat_Foot = error "Feet (.) aren't allowed here"
-patLen (TPat_Elongate r) = r - 1
-patLen (TPat_Repeat n) = toRational $ n - 1
-patLen _ = 1
--}
-
-{-
-resolve a@(TPat_Atom _)         = a
-resolve (TPat_Fast a b)         = TPat_Fast (resolve a) (resolve b)
-resolve (TPat_Slow a b)         = TPat_Slow (resolve a) (resolve b)
-resolve (TPat_DegradeBy a b c)  = TPat_DegradeBy a b (resolve c)
-resolve (TPat_CycleChoose a bs) = TPat_CycleChoose a (map resolve bs)
-resolve (TPat_Euclid a b c d)   = TPat_Euclid (resolve a) (resolve b) (resolve c) (resolve d)
-resolve (TPat_Stack as)         = TPat_Stack resolve
-            | TPat_Polyrhythm (Maybe (TPat Rational)) [TPat a]
-            | TPat_Seq [TPat a]
-            | TPat_Silence
-            | TPat_Foot
-            | TPat_Elongate Rational
-            | TPat_Repeat Int
-            | TPat_EnumFromTo (TPat a) (TPat a)
--}
-
 toPat :: (Enumerable a, Parseable a) => TPat a -> Pattern a
 toPat = \case
-   TPat_Atom x -> pure x
+   TPat_Atom (Just loc) x -> addContext (Context [loc]) $ pure x
+   TPat_Atom Nothing x -> pure x
    TPat_Fast t x -> fast (toPat t) $ toPat x
    TPat_Slow t x -> slow (toPat t) $ toPat x
    TPat_DegradeBy seed amt x -> _degradeByUsing (rotL (0.0001 * (fromIntegral seed)) rand) amt $ toPat x
@@ -347,32 +322,41 @@ pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
              <|>
              do ss <- angles (pSequence f `sepBy` symbol ",")
                 spaces -- TODO needed/wanted?
-                pMult $ TPat_Polyrhythm (Just $ TPat_Atom 1) ss
+                pMult $ TPat_Polyrhythm (Just $ TPat_Atom Nothing 1) ss
 
 pString :: MyParser String
 pString = do c <- (letter <|> oneOf "0123456789") <?> "charnum"
              cs <- many (letter <|> oneOf "0123456789:.-_") <?> "string"
              return (c:cs)
 
+wrapPos :: MyParser (TPat a) -> MyParser (TPat a)
+wrapPos p = do b <- getPosition
+               tpat <- p
+               e <- getPosition
+               let addPos (TPat_Atom _ v') =
+                     TPat_Atom (Just ((sourceLine b, sourceColumn b), (sourceLine e, sourceColumn e))) v'
+                   addPos x = x -- shouldn't happen..
+               return $ addPos tpat
+
 pVocable :: MyParser (TPat String)
-pVocable = TPat_Atom <$> pString
+pVocable = wrapPos $ (TPat_Atom Nothing) <$> pString
 
 pDouble :: MyParser (TPat Double)
-pDouble = do f <- choice [intOrFloat, parseNote] <?> "float"
-             do c <- parseChord
-                return $ TPat_Stack $ map (TPat_Atom . (+f)) c
-               <|> return (TPat_Atom f)
-            <|>
-               do c <- parseChord
-                  return $ TPat_Stack $ map TPat_Atom c
+pDouble = wrapPos $ do f <- choice [intOrFloat, parseNote] <?> "float"
+                       do c <- parseChord
+                          return $ TPat_Stack $ map ((TPat_Atom Nothing) . (+f)) c
+                         <|> return (TPat_Atom Nothing f)
+                      <|>
+                         do c <- parseChord
+                            return $ TPat_Stack $ map (TPat_Atom Nothing) c
 
 
 pBool :: MyParser (TPat Bool)
-pBool = do oneOf "t1"
-           return $ TPat_Atom True
-        <|>
-        do oneOf "f0"
-           return $ TPat_Atom False
+pBool = wrapPos $ do oneOf "t1"
+                     return $ TPat_Atom Nothing True
+                  <|>
+                  do oneOf "f0"
+                     return $ TPat_Atom Nothing False
 
 parseIntNote  :: Integral i => MyParser i
 parseIntNote = do s <- sign
@@ -385,13 +369,13 @@ parseInt = do s <- sign
               return $ applySign s $ fromIntegral i
 
 pIntegral :: Integral a => MyParser (TPat a)
-pIntegral = do i <- parseIntNote
-               do c <- parseChord
-                  return $ TPat_Stack $ map (TPat_Atom . (+i)) c
-                 <|> return (TPat_Atom i)
-            <|>
-               do c <- parseChord
-                  return $ TPat_Stack $ map TPat_Atom c
+pIntegral = wrapPos $ do i <- parseIntNote
+                         do c <- parseChord
+                            return $ TPat_Stack $ map ((TPat_Atom Nothing) . (+i)) c
+                           <|> return (TPat_Atom Nothing i)
+                      <|>
+                         do c <- parseChord
+                            return $ TPat_Stack $ map (TPat_Atom Nothing) c
 
 parseChord :: (Enum a, Num a) => MyParser [a]
 parseChord = do char '\''
@@ -432,9 +416,9 @@ fromNote :: Num a => Pattern String -> Pattern a
 fromNote pat = either (const 0) id . runParser parseNote 0 "" <$> pat
 
 pColour :: MyParser (TPat ColourD)
-pColour = do name <- many1 letter <?> "colour name"
-             colour <- readColourName name <?> "known colour"
-             return $ TPat_Atom colour
+pColour = wrapPos $ do name <- many1 letter <?> "colour name"
+                       colour <- readColourName name <?> "known colour"
+                       return $ TPat_Atom Nothing colour
 
 pMult :: TPat a -> MyParser (TPat a)
 pMult thing = do char '*'
@@ -470,7 +454,7 @@ pE thing = do (n,k,s) <- parens pair
                    c <- do symbol ","
                            spaces
                            pSequence pIntegral
-                        <|> return (TPat_Atom 0)
+                        <|> return (TPat_Atom Nothing 0)
                    return (a, b, c)
 
 pRatio :: MyParser Rational
@@ -504,6 +488,6 @@ pRatio = do s <- sign
                            return $ 1%5
 
 pRational :: MyParser (TPat Rational)
-pRational = TPat_Atom <$> pRatio
+pRational = wrapPos $ (TPat_Atom Nothing) <$> pRatio
 
 

@@ -136,7 +136,7 @@ mapCycle f (Arc s e) = Arc (sam' + f (s - sam')) (sam' + f (e - sam'))
 isIn :: Arc -> Time -> Bool
 isIn (Arc s e) t = t >= s && t < e
 
-data Context = Context {contextPosition :: [(Int, Int, Int)]}
+data Context = Context {contextPosition :: [((Int, Int), (Int, Int))]}
   deriving (Eq, Ord)
 
 instance NFData Context where 
@@ -147,6 +147,9 @@ instance Show Context where
 
 combineContexts :: [Context] -> Context
 combineContexts = Context . concatMap contextPosition
+
+addContext :: Context -> Pattern a -> Pattern a
+addContext c pat = withEvents (map (\e -> e {context = c})) pat
 
 -- | An event is a value that's active during a timespan. If a whole
 -- is present, the part should be equal to or fit inside it.
