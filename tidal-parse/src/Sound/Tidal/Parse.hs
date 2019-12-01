@@ -462,7 +462,9 @@ instance Parse (Pattern Double -> ControlPattern -> ControlPattern) where
   parser = (parser :: ExpParser (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Time -> ControlPattern -> ControlPattern) where
-  parser = (parser :: ExpParser (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
+  parser =
+    $(fromTidal "hurry") <|>
+    (parser :: ExpParser (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
 
 instance Parse ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern) where
   parser =
