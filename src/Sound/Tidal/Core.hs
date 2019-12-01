@@ -20,7 +20,7 @@ sig :: (Time -> a) -> Pattern a
 sig f = Pattern q
   where q (State (Arc s e) _)
           | s > e = []
-          | otherwise = [Event Nothing (Arc s e) (f (s+((e-s)/2)))]
+          | otherwise = [Event (Context []) Nothing (Arc s e) (f (s+((e-s)/2)))]
 
 -- | @sine@ returns a 'Pattern' of continuous 'Fractional' values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
@@ -314,17 +314,17 @@ rev p =
         })
     }
   where makeWholeRelative :: Event a -> Event a
-        makeWholeRelative (e@(Event Nothing _ _)) = e
-        makeWholeRelative (Event (Just (Arc s e)) p'@(Arc s' e') v) =
-          Event (Just $ Arc (s'-s) (e-e')) p' v
+        makeWholeRelative (e@(Event {whole = Nothing})) = e
+        makeWholeRelative (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
+          Event c (Just $ Arc (s'-s) (e-e')) p' v
         makeWholeAbsolute :: Event a -> Event a
-        makeWholeAbsolute (e@(Event Nothing _ _)) = e
-        makeWholeAbsolute (Event (Just (Arc s e)) p'@(Arc s' e') v) =
-          Event (Just $ Arc (s'-e) (e'+s)) p' v
+        makeWholeAbsolute (e@(Event {whole = Nothing})) = e
+        makeWholeAbsolute (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
+          Event c (Just $ Arc (s'-e) (e'+s)) p' v
         midCycle :: Arc -> Time
         midCycle (Arc s _) = sam s + 0.5
         mapParts :: (Arc -> Arc) -> [Event a] -> [Event a]
-        mapParts f es = (\(Event w p' v) -> Event w (f p') v) <$> es
+        mapParts f es = (\(Event c w p' v) -> Event c w (f p') v) <$> es
         -- | Returns the `mirror image' of a 'Arc' around the given point in time
         mirrorArc :: Time -> Arc -> Arc
         mirrorArc mid' (Arc s e) = Arc (mid' - (e-mid')) (mid'+(mid'-s))

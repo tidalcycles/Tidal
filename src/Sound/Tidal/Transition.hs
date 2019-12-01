@@ -38,10 +38,10 @@ transition stream historyFlag f patId !pat =
                                   solo = False,
                                   history = (appendPat historyFlag) (silence:[])
                                  }
-    transition' context = do tempo <- readMVar $ sTempoMV stream
-                             now <- O.time
-                             let c = timeToCycles tempo now
-                             return $ f c context
+    transition' pat' = do tempo <- readMVar $ sTempoMV stream
+                          now <- O.time
+                          let c = timeToCycles tempo now
+                          return $ f c pat'
 
 mortalOverlay :: Time -> Time -> [Pattern a] -> Pattern a
 mortalOverlay _ _ [] = silence
