@@ -177,6 +177,7 @@ genericTransformations =
     pInt_p_p <*> parser <|>
     pString_p_p <*> parser <|>
     pDouble_p_p <*> parser <|>
+    pBool_p_p <*> parser <|>
     lpInt_p_p <*> parser <|>
     -- more complex possibilities that wouldn't involve overlapped Parse instances
     (parser :: ExpParser (Time -> Pattern a -> Pattern a)) <*> parser <|>
@@ -429,6 +430,11 @@ pDouble_p_p =
     $(fromTidal "degradeBy") <|>
     $(fromTidal "unDegradeBy") <|>
     (parser :: ExpParser (Int -> Pattern Double -> Pattern a -> Pattern a)) <*> parser
+
+pBool_p_p :: ExpParser (Pattern Bool -> Pattern a -> Pattern a)
+pBool_p_p =
+    $(fromTidal "mask") <|>
+    $(fromTidal "struct")
 
 instance Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) => Parse ([Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
   parser = (parser :: ExpParser (((Pattern a -> Pattern a) -> Pattern a -> Pattern a) -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
