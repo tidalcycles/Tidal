@@ -83,11 +83,11 @@ deltaMini = outside 0 0
   where outside :: Int -> Int -> String -> String
         outside _ _ [] = []
         outside column line ('"':xs) = ("(deltaContext "
-                                        ++ show column
-                                        ++ " "
-                                        ++ show line
-                                        ++ " "
-                                        ++ inside (column+1) line xs
+                                         ++ show column
+                                         ++ " "
+                                         ++ show line
+                                         ++ " \""
+                                         ++ inside (column+1) line xs
                                        )
         outside column line ('\n':xs) = '\n':(outside 0 (line+1) xs)
         outside column line (x:xs) = x:(outside (column+1) line xs)

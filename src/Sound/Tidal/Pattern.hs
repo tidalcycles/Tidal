@@ -154,6 +154,11 @@ addContext c pat = withEvents (map (\e -> e {context = c})) pat
 withContext :: (Context -> Context) -> Pattern a -> Pattern a
 withContext f pat = withEvents (map (\e -> e {context = f $ context e})) pat
 
+deltaContext :: Int -> Int -> Pattern a -> Pattern a
+deltaContext column line pat = withEvents (map (\e -> e {context = f $ context e})) pat
+  where f :: Context -> Context
+        f (Context xs) = Context $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
+
 -- | An event is a value that's active during a timespan. If a whole
 -- is present, the part should be equal to or fit inside it.
 data EventF a b = Event
