@@ -127,7 +127,12 @@ instance Parse (Pattern Double) where
     $(fromTidal "isaw") <|>
     $(fromTidal "tri") <|>
     $(fromTidal "square") <|>
-    $(fromTidal "cosine")
+    $(fromTidal "cosine") <|>
+    $(fromTidal "envEq") <|>
+    $(fromTidal "envEqR") <|>
+    $(fromTidal "envL") <|>
+    $(fromTidal "envLR") <|>
+    $(fromTidal "perlin")
 
 instance Parse (Pattern Time) where
   parser =
@@ -462,6 +467,9 @@ instance Parse (Pattern Int -> ControlPattern -> ControlPattern) where
   parser =
     $(fromTidal "chop") <|>
     $(fromTidal "striate") <|>
+    $(fromTidal "gap") <|>
+    $(fromTidal "randslice") <|>
+    $(fromTidal "spin") <|>
     (parser :: ExpParser (Int -> Pattern Int -> ControlPattern -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Double -> ControlPattern -> ControlPattern) where
@@ -471,6 +479,9 @@ instance Parse (Pattern Time -> ControlPattern -> ControlPattern) where
   parser =
     $(fromTidal "hurry") <|>
     (parser :: ExpParser (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
+
+instance Parse (Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern) where
+  parser = $(fromTidal "slice")
 
 instance Parse ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern) where
   parser =
@@ -618,9 +629,6 @@ instance Parse (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Patter
 
 instance Parse (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "whenmod")
-
-
-
 
 -- * -> * -> * -> * -> * -> *
 
