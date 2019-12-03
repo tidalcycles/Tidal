@@ -449,7 +449,7 @@ pDouble_p_p =
     $(fromTidal "unDegradeBy") <|>
     (parser :: Haskellish (Int -> Pattern Double -> Pattern a -> Pattern a)) <*> parser
 
-pBool_p_p :: ExpParser (Pattern Bool -> Pattern a -> Pattern a)
+pBool_p_p :: Haskellish (Pattern Bool -> Pattern a -> Pattern a)
 pBool_p_p =
     $(fromTidal "mask") <|>
     $(fromTidal "struct")
