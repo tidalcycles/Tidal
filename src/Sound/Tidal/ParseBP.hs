@@ -37,7 +37,7 @@ instance Show TidalParseError where
           perr = parsecError err
 
 type MyParser = Text.Parsec.Prim.Parsec String Int
-  
+
 -- | AST representation of patterns
 
 data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
@@ -56,7 +56,33 @@ data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
             | TPat_EnumFromTo (TPat a) (TPat a)
             deriving (Show)
 
-toPat :: (Enumerable a, Parseable a) => TPat a -> Pattern a
+{-
+patLen :: TPat a -> Rational
+patLen (TPat_Seq xs) = toRational $ sum $ map patLen xs
+patLen TPat_Foot = error "Feet (.) aren't allowed here"
+patLen (TPat_Elongate r) = r - 1
+patLen (TPat_Repeat n) = toRational $ n - 1
+patLen _ = 1
+-}
+
+{-
+resolve a@(TPat_Atom _)         = a
+resolve (TPat_Fast a b)         = TPat_Fast (resolve a) (resolve b)
+resolve (TPat_Slow a b)         = TPat_Slow (resolve a) (resolve b)
+resolve (TPat_DegradeBy a b c)  = TPat_DegradeBy a b (resolve c)
+resolve (TPat_CycleChoose a bs) = TPat_CycleChoose a (map resolve bs)
+resolve (TPat_Euclid a b c d)   = TPat_Euclid (resolve a) (resolve b) (resolve c) (resolve d)
+resolve (TPat_Stack as)         = TPat_Stack resolve
+            | TPat_Polyrhythm (Maybe (TPat Rational)) [TPat a]
+            | TPat_Seq [TPat a]
+            | TPat_Silence
+            | TPat_Foot
+            | TPat_Elongate Rational
+            | TPat_Repeat Int
+            | TPat_EnumFromTo (TPat a) (TPat a)
+-}
+
+toPat :: (Parseable a, Enumerable a) => TPat a -> Pattern a
 toPat = \case
    TPat_Atom (Just loc) x -> addContext (Context [loc]) $ pure x
    TPat_Atom Nothing x -> pure x
@@ -120,7 +146,7 @@ parseTPat = parseRhythm tPatParser
 class Parseable a where
   tPatParser :: MyParser (TPat a)
   doEuclid :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-  -- toEuclid :: a -> 
+  -- toEuclid :: a ->
 
 class Enumerable a where
   fromTo :: a -> a -> Pattern a
@@ -129,7 +155,7 @@ class Enumerable a where
 instance Parseable Double where
   tPatParser = pDouble
   doEuclid = euclidOff
-  
+
 instance Enumerable Double where
   fromTo = enumFromTo'
   fromThenTo = enumFromThenTo'
@@ -314,8 +340,7 @@ pPolyOut :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
 pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
                 spaces -- TODO needed?
                 base <- do char '%'
-                           spaces -- TODO needed/wanted?
-                           r <- pRational <?> "rational" -- TODO does rational work ok here?
+                           r <- pSequence pRational <?> "rational number"
                            return $ Just r
                         <|> return Nothing
                 pMult $ TPat_Polyrhythm base ss
@@ -489,5 +514,3 @@ pRatio = do s <- sign
 
 pRational :: MyParser (TPat Rational)
 pRational = wrapPos $ (TPat_Atom Nothing) <$> pRatio
-
-
