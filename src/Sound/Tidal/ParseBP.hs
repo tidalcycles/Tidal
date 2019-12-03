@@ -82,7 +82,7 @@ resolve (TPat_Stack as)         = TPat_Stack resolve
             | TPat_EnumFromTo (TPat a) (TPat a)
 -}
 
-toPat :: (Enumerable a, Parseable a) => TPat a -> Pattern a
+toPat :: (Parseable a, Enumerable a) => TPat a -> Pattern a
 toPat = \case
    TPat_Atom x -> pure x
    TPat_Fast t x -> fast (toPat t) $ toPat x
@@ -339,8 +339,7 @@ pPolyOut :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
 pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
                 spaces -- TODO needed?
                 base <- do char '%'
-                           spaces -- TODO needed/wanted?
-                           r <- pRational <?> "rational" -- TODO does rational work ok here?
+                           r <- pSequence pRational <?> "rational number"
                            return $ Just r
                         <|> return Nothing
                 pMult $ TPat_Polyrhythm base ss
