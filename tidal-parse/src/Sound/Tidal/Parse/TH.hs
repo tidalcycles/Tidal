@@ -3,7 +3,7 @@
 module Sound.Tidal.Parse.TH where
 
 import Language.Haskell.TH
-import Sound.Tidal.Parse.ExpParser
+import Language.Haskellish
 
 -- example: $(fromTidal "jux") ...is translated as... T.jux <$ reserved "jux"
 fromTidal :: String -> Q Exp
