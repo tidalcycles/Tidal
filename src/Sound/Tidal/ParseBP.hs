@@ -56,7 +56,7 @@ data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
             | TPat_EnumFromTo (TPat a) (TPat a)
             deriving (Show)
 
-toPat :: (Enumerable a, Parseable a) => TPat a -> Pattern a
+toPat :: (Parseable a, Enumerable a) => TPat a -> Pattern a
 toPat = \case
    TPat_Atom (Just loc) x -> setContext (Context [loc]) $ pure x
    TPat_Atom Nothing x -> pure x
@@ -314,8 +314,7 @@ pPolyOut :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
 pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
                 spaces -- TODO needed?
                 base <- do char '%'
-                           spaces -- TODO needed/wanted?
-                           r <- pRational <?> "rational" -- TODO does rational work ok here?
+                           r <- pSequence pRational <?> "rational number"
                            return $ Just r
                         <|> return Nothing
                 pMult $ TPat_Polyrhythm base ss
