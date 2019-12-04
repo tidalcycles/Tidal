@@ -37,7 +37,7 @@ instance Show TidalParseError where
           perr = parsecError err
 
 type MyParser = Text.Parsec.Prim.Parsec String Int
-  
+
 -- | AST representation of patterns
 
 data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
@@ -120,7 +120,7 @@ parseTPat = parseRhythm tPatParser
 class Parseable a where
   tPatParser :: MyParser (TPat a)
   doEuclid :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-  -- toEuclid :: a -> 
+  -- toEuclid :: a ->
 
 class Enumerable a where
   fromTo :: a -> a -> Pattern a
@@ -129,7 +129,7 @@ class Enumerable a where
 instance Parseable Double where
   tPatParser = pDouble
   doEuclid = euclidOff
-  
+
 instance Enumerable Double where
   fromTo = enumFromTo'
   fromThenTo = enumFromThenTo'
@@ -488,5 +488,4 @@ pRatio = do s <- sign
 
 pRational :: MyParser (TPat Rational)
 pRational = wrapPos $ (TPat_Atom Nothing) <$> pRatio
-
 
