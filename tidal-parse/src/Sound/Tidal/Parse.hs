@@ -95,14 +95,7 @@ instance Parse (Pattern String) where
     pInt_pString <*> parser
 
 parseBP :: (Enumerable a, T.Parseable a) => ExpParser (Pattern a)
-parseBP = do b <- getPosition
-             p <- join ((first show . T.parseBP) <$> string)
-             return $ T.withContext (updateContext b) p
-               where updateContext b (c@(T.Context {T.contextPosition = poss})) =
-                       c {T.contextPosition = map (\((bx,by), (ex,ey)) -> ((bx+dx,by+dy),(ex+dx,ey+dy))) poss}
-                        where dx = sourceColumn b
-                              dy = sourceLine b
-                     updateContext _ c = c -- shouldn't happen..
+parseBP = join ((first show . T.parseBP) <$> string)
 
 instance Parse (Pattern Int) where
   parser =
