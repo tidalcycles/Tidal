@@ -89,10 +89,10 @@ deltaMini = outside 0 0
                                          ++ " \""
                                          ++ inside (column+1) line xs
                                        )
-        outside column line ('\n':xs) = '\n':(outside 0 (line+1) xs)
+        outside _ line ('\n':xs) = '\n':(outside 0 (line+1) xs)
         outside column line (x:xs) = x:(outside (column+1) line xs)
         inside :: Int -> Int -> String -> String
         inside _ _ [] = []
         inside column line ('"':xs) = '"':')':(outside (column+1) line xs)
-        inside column line ('\n':xs) = '\n':(inside 0 (line+1) xs)
+        inside _ line ('\n':xs) = '\n':(inside 0 (line+1) xs)
         inside column line (x:xs) = x:(inside (column+1) line xs)

@@ -81,47 +81,47 @@ run =
     describe "rand" $ do
       it "generates a (pseudo-)random number between zero & one" $ do
         it "at the start of a cycle" $
-          (queryArc rand (Arc 0 0)) `shouldBe` [Event Nothing (Arc 0 0) (0.5000844 :: Float)]
+          (queryArc rand (Arc 0 0)) `shouldBe` [Event (Context []) Nothing (Arc 0 0) (0.5000844 :: Float)]
         it "at 1/4 of a cycle" $
           (queryArc rand (Arc 0.25 0.25)) `shouldBe` 
-            [Event Nothing (Arc 0.25 0.25) (0.8587171 :: Float)]
+            [Event (Context []) Nothing (Arc 0.25 0.25) (0.8587171 :: Float)]
         it "at 3/4 of a cycle" $
           (queryArc rand (Arc 0.75 0.75)) `shouldBe` 
-          [Event Nothing (Arc 0.75 0.75) (0.7277789 :: Float)]
+          [Event (Context []) Nothing (Arc 0.75 0.75) (0.7277789 :: Float)]
 
     describe "range" $ do
       describe "scales a pattern to the supplied range" $ do
         describe "from 3 to 4" $ do
           it "at the start of a cycle" $
             (queryArc (Sound.Tidal.UI.range 3 4 saw) (Arc 0 0)) `shouldBe` 
-              [Event Nothing (Arc 0 0) (3 :: Float)]
+              [Event (Context []) Nothing (Arc 0 0) (3 :: Float)]
           it "at 1/4 of a cycle" $
             (queryArc (Sound.Tidal.UI.range 3 4 saw) (Arc 0.25  0.25)) `shouldBe`
-              [Event Nothing (Arc 0.25 0.25) (3.25 :: Float)]
+              [Event (Context []) Nothing (Arc 0.25 0.25) (3.25 :: Float)]
           it "at 3/4 of a cycle" $
             (queryArc (Sound.Tidal.UI.range 3 4 saw) (Arc 0.75 0.75)) `shouldBe` 
-              [Event Nothing (Arc 0.75 0.75) (3.75 :: Float)]
+              [Event (Context []) Nothing (Arc 0.75 0.75) (3.75 :: Float)]
 
         describe "from -1 to 1" $ do
           it "at 1/2 of a cycle" $
             (queryArc (Sound.Tidal.UI.range (-1) 1 saw) (Arc 0.5 0.5)) `shouldBe`
-              [Event Nothing (Arc 0.5 0.5) (0 :: Float)]
+              [Event (Context []) Nothing (Arc 0.5 0.5) (0 :: Float)]
 
         describe "from 4 to 2" $ do
           it "at the start of a cycle" $
             (queryArc (Sound.Tidal.UI.range 4 2 saw) (Arc 0 0)) `shouldBe` 
-              [Event Nothing (Arc 0 0) (4 :: Float)]
+              [Event (Context []) Nothing (Arc 0 0) (4 :: Float)]
           it "at 1/4 of a cycle" $
             (queryArc (Sound.Tidal.UI.range 4 2 saw) (Arc 0.25 0.25)) `shouldBe` 
-              [Event Nothing (Arc 0.25 0.25) (3.5 :: Float)]
+              [Event (Context []) Nothing (Arc 0.25 0.25) (3.5 :: Float)]
           it "at 3/4 of a cycle" $
             (queryArc (Sound.Tidal.UI.range 4 2 saw) (Arc 0.75 0.75)) `shouldBe` 
-              [Event Nothing (Arc 0.75 0.75) (2.5 :: Float)]
+              [Event (Context []) Nothing (Arc 0.75 0.75) (2.5 :: Float)]
 
         describe "from 10 to 10" $ do
           it "at 1/2 of a cycle" $
             (queryArc (Sound.Tidal.UI.range 10 10 saw) (Arc 0.5 0.5)) `shouldBe` 
-              [Event Nothing (Arc 0.5 0.5) (10 :: Float)]
+              [Event (Context []) Nothing (Arc 0.5 0.5) (10 :: Float)]
 
     describe "rot" $ do 
       it "rotates values in a pattern irrespective of structure" $

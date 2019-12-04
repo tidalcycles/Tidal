@@ -94,36 +94,36 @@ run =
     describe "saw" $ do
       it "goes from 0 up to 1 every cycle" $ do
         it "0" $
-          (queryArc saw (Arc 0 0)) `shouldBe` [(Event Nothing (Arc 0 0) 0)]
+          (queryArc saw (Arc 0 0)) `shouldBe` [(Event (Context []) Nothing (Arc 0 0) 0 :: Event Double)]
         it "0.25" $
-          (queryArc saw (Arc 0.25 0.25)) `shouldBe` [(Event Nothing (Arc 0.25 0.25) 0.25)]
+          (queryArc saw (Arc 0.25 0.25)) `shouldBe` [(Event (Context []) Nothing (Arc 0.25 0.25) 0.25 :: Event Double)]
         it "0.5" $
-          (queryArc saw (Arc 0.5 0.5))  `shouldBe` [(Event Nothing (Arc 0.5 0.5) 0.5)]
+          (queryArc saw (Arc 0.5 0.5))  `shouldBe` [(Event (Context []) Nothing (Arc 0.5 0.5) 0.5 :: Event Double)]
         it "0.75" $
-          (queryArc saw (Arc 0.75 0.75)) `shouldBe` [(Event Nothing (Arc 0.75 0.75) 0.75)]
+          (queryArc saw (Arc 0.75 0.75)) `shouldBe` [(Event (Context []) Nothing (Arc 0.75 0.75) 0.75 :: Event Double)]
       it "can be added to" $ do
         (map value $ queryArc ((+1) <$> saw) (Arc 0.5 0.5)) `shouldBe` [1.5 :: Float]
       it "works on the left of <*>" $ do
         (queryArc ((+) <$> saw <*> pure 3) (Arc 0 1))
-          `shouldBe` [Event Nothing (Arc 0 1) 3.5]
+          `shouldBe` [Event (Context []) Nothing (Arc 0 1) 3.5 :: Event Double]
       it "works on the right of <*>" $ do
         (queryArc ((fast 4 $ pure (+3)) <*> saw) (Arc 0 1))
           `shouldBe` 
-          [Event Nothing (Arc 0 0.25) 3.5,
-           Event Nothing (Arc 0.25 0.5) 3.5,
-           Event Nothing (Arc 0.5 0.75) 3.5,
-           Event Nothing (Arc 0.75 1) 3.5
+          [Event (Context []) Nothing (Arc 0 0.25) 3.5 :: Event Double,
+           Event (Context []) Nothing (Arc 0.25 0.5) 3.5,
+           Event (Context []) Nothing (Arc 0.5 0.75) 3.5,
+           Event (Context []) Nothing (Arc 0.75 1) 3.5
           ]
       it "can be reversed" $ do
         it "works with whole cycles" $
           (queryArc (rev saw) (Arc 0 1))
-            `shouldBe` [(Event Nothing (Arc 0 1) 0.5)]
+            `shouldBe` [(Event (Context []) Nothing (Arc 0 1) 0.5 :: Event Double)]
         it "works with half cycles" $
           (queryArc (rev saw) (Arc 0 0.5))
-            `shouldBe` [(Event Nothing (Arc 0 0.5) 0.75)]
+            `shouldBe` [(Event (Context []) Nothing (Arc 0 0.5) 0.75 :: Event Double)]
         it "works with inset points" $
           (queryArc (rev saw) (Arc 0.25 0.25))
-            `shouldBe` [(Event Nothing (Arc 0.25 0.25) 0.75)]
+            `shouldBe` [(Event (Context []) Nothing (Arc 0.25 0.25) 0.75 :: Event Double)]
 
     describe "tri" $ do
       it "goes from 0 up to 1 and back every cycle" $ do
