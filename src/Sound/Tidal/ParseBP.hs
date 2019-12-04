@@ -56,35 +56,9 @@ data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
             | TPat_EnumFromTo (TPat a) (TPat a)
             deriving (Show)
 
-{-
-patLen :: TPat a -> Rational
-patLen (TPat_Seq xs) = toRational $ sum $ map patLen xs
-patLen TPat_Foot = error "Feet (.) aren't allowed here"
-patLen (TPat_Elongate r) = r - 1
-patLen (TPat_Repeat n) = toRational $ n - 1
-patLen _ = 1
--}
-
-{-
-resolve a@(TPat_Atom _)         = a
-resolve (TPat_Fast a b)         = TPat_Fast (resolve a) (resolve b)
-resolve (TPat_Slow a b)         = TPat_Slow (resolve a) (resolve b)
-resolve (TPat_DegradeBy a b c)  = TPat_DegradeBy a b (resolve c)
-resolve (TPat_CycleChoose a bs) = TPat_CycleChoose a (map resolve bs)
-resolve (TPat_Euclid a b c d)   = TPat_Euclid (resolve a) (resolve b) (resolve c) (resolve d)
-resolve (TPat_Stack as)         = TPat_Stack resolve
-            | TPat_Polyrhythm (Maybe (TPat Rational)) [TPat a]
-            | TPat_Seq [TPat a]
-            | TPat_Silence
-            | TPat_Foot
-            | TPat_Elongate Rational
-            | TPat_Repeat Int
-            | TPat_EnumFromTo (TPat a) (TPat a)
--}
-
 toPat :: (Parseable a, Enumerable a) => TPat a -> Pattern a
 toPat = \case
-   TPat_Atom (Just loc) x -> addContext (Context [loc]) $ pure x
+   TPat_Atom (Just loc) x -> setContext (Context [loc]) $ pure x
    TPat_Atom Nothing x -> pure x
    TPat_Fast t x -> fast (toPat t) $ toPat x
    TPat_Slow t x -> slow (toPat t) $ toPat x
@@ -514,3 +488,4 @@ pRatio = do s <- sign
 
 pRational :: MyParser (TPat Rational)
 pRational = wrapPos $ (TPat_Atom Nothing) <$> pRatio
+

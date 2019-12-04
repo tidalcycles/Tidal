@@ -31,7 +31,6 @@ library
   Build-depends:
       base >=4.8 && <5
     , tidal >= 1.4.6
-    , parsec >= 3.1.12 && < 3.2
     , transformers >= 0.5 && < 0.5.7
     , template-haskell >= 2.10.0.0 && < 2.15
     , haskell-src-exts >= 1.17.1 && < 1.23
@@ -51,7 +50,6 @@ test-suite tests
                 base ==4.*
               , microspec >= 0.2.0.1
               , containers
-              , parsec
               , tidal-parse
               , tidal
 
