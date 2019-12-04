@@ -8,10 +8,13 @@ import Sound.Tidal.Context as Tidal
 import Data.Either
 import qualified Data.Map.Strict as Map
 
+stripContext :: Pattern a -> Pattern a
+stripContext = setContext $ Context []
+
 parsesTo :: String -> ControlPattern -> Property
 parsesTo str p = x `shouldBe` y
-  where x = query <$> parseTidal str <*> Right (State (Arc 0 16) Map.empty)
-        y = Right $ query p $ State (Arc 0 16) Map.empty
+  where x = (\p' st -> query (stripContext p') st) <$> parseTidal str <*> Right (State (Arc 0 16) Map.empty)
+        y = Right $ query (stripContext p) $ State (Arc 0 16) Map.empty
 
 causesParseError :: String -> Property
 causesParseError str = isLeft (parseTidal str :: Either String ControlPattern) `shouldBe` True
@@ -49,7 +52,6 @@ run =
 
     it "parses a literal int as a double pattern" $
       "pan 0" `parsesTo` (pan 0)
-
     it "parses a literal double as a double pattern" $
       "pan 1.0" `parsesTo` (pan 1.0)
 
