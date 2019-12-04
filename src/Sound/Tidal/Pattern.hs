@@ -148,8 +148,8 @@ instance Show Context where
 combineContexts :: [Context] -> Context
 combineContexts = Context . concatMap contextPosition
 
-addContext :: Context -> Pattern a -> Pattern a
-addContext c pat = withEvents (map (\e -> e {context = c})) pat
+setContext :: Context -> Pattern a -> Pattern a
+setContext c pat = withEvents (map (\e -> e {context = c})) pat
 
 withContext :: (Context -> Context) -> Pattern a -> Pattern a
 withContext f pat = withEvents (map (\e -> e {context = f $ context e})) pat

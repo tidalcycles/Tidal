@@ -405,10 +405,10 @@ run =
       it "if the given Events are adjacent parts of the same whole" $ do 
         let res = isAdjacent (Event (Context []) (Just $ Arc 1 2) (Arc 3 4) 5) (Event (Context []) (Just $ Arc 1 2) (Arc 4 3) (5 :: Int))
         property $ True === res 
-      it "if first Arc of of first Event (Context []) is not equal to first Arc of second Event" $ do
+      it "if first Arc of of first Event is not equal to first Arc of second Event" $ do
         let res = isAdjacent (Event (Context []) (Just $ Arc 1 2) (Arc 3 4) 5) (Event (Context []) (Just $ Arc 7 8) (Arc 4 3) (5 :: Int))
         property $ False === res  
-      it "if the value of the first Event (Context []) does not equal the value of the second Event" $ do 
+      it "if the value of the first Event does not equal the value of the second Event" $ do 
         let res = isAdjacent (Event (Context []) (Just $ Arc 1 2) (Arc 3 4) 5) (Event (Context []) (Just $ Arc 1 2) (Arc 4 3) (6 :: Int))
         property $ False === res 
       it "second value of second Arc of first Event not equal to first value of second Arc in second Event..." $ do
@@ -452,7 +452,7 @@ run =
 
     describe "withResultArc" $ do 
      it "apply given function to the Arcs" $ do
-      let p = withResultArc (+5) (fast "1 2" "3 4" :: Pattern Int) 
+      let p = withResultArc (+5) (stripContext $ fast "1 2" "3 4" :: Pattern Int) 
       let res = queryArc p (Arc 0 1)
       property $ res === fmap toEvent [(((5, 11%2), (5, 11%2)), 3), (((11%2, 23%4), (11%2, 23%4)), 3), (((23%4, 6), (23%4, 6)), 4)]
 
@@ -523,7 +523,7 @@ run =
         property $ [] === res
 
       it "filter above given threshold" $ do 
-        let fil = filterWhen (>0.5) $ struct "t*4" $ (tri :: Pattern Double) + 1
+        let fil = stripContext $ filterWhen (>0.5) $ struct "t*4" $ (tri :: Pattern Double) + 1
         let res = queryArc fil (Arc 0.5 1.5)
         property $ fmap toEvent [(((3%4, 1), (3%4, 1)), 1.25), (((1, 5%4), (1, 5%4)), 1.25), (((5%4, 3%2), (5%4, 3%2)), 1.75)] === res
 
@@ -542,7 +542,7 @@ run =
       
       it "otherwise compress difference between start and end values of Arc" $ do
         let p = fast "1 2" "3 4" :: Pattern Time
-        let res = queryArc (compressArc (Arc 0.2 0.8) p) (Arc 0 1)
+        let res = queryArc (stripContext $ compressArc (Arc 0.2 0.8) p) (Arc 0 1)
         let expected = fmap toEvent [(((1%5, 1%2), (1%5, 1%2)), 3%1), (((1%2, 13%20), (1%2, 13%20)), 3%1), (((13%20, 4%5), (13%20, 4%5)), 4%1)]
         property $ expected === res
         

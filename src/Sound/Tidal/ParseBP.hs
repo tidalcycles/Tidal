@@ -58,7 +58,7 @@ data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
 
 toPat :: (Enumerable a, Parseable a) => TPat a -> Pattern a
 toPat = \case
-   TPat_Atom (Just loc) x -> addContext (Context [loc]) $ pure x
+   TPat_Atom (Just loc) x -> setContext (Context [loc]) $ pure x
    TPat_Atom Nothing x -> pure x
    TPat_Fast t x -> fast (toPat t) $ toPat x
    TPat_Slow t x -> slow (toPat t) $ toPat x
