@@ -34,7 +34,7 @@ library
     , transformers >= 0.5 && < 0.5.7
     , template-haskell >= 2.10.0.0 && < 2.15
     , haskell-src-exts >= 1.17.1 && < 1.23
-    , haskellish >= 0.1.0 && < 0.2
+    , haskellish >= 0.1.1 && < 0.2
 
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups >= 0.18 && < 0.20
