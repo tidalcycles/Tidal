@@ -65,7 +65,7 @@
              ("separator" . "\\")
              ))
           ((or (string-equal system-type "darwin") (string-equal system-type "gnu/linux"))
-           '(("path" . "ghc-pkg describe $(ghc-pkg latest tidal) | grep data-dir | cut -f2 -d' '")
+           '(("path" . "ghc-pkg describe -f ~/.cabal/store/ghc-$(ghc --numeric-version)/package.db tidal | grep data-dir | cut -f2 -d':'")
              ("separator" . "/")
              ))
           )
