@@ -70,8 +70,11 @@
              ))
           )
          ))
-    (concat (substring (shell-command-to-string (cdr (assoc "path" filepath))) 0 -1) (cdr (assoc "separator" filepath)) "BootTidal.hs")
-  )
+    (concat
+     (string-trim (shell-command-to-string (cdr (assoc "path" filepath))))
+     (cdr (assoc "separator" filepath))
+     "BootTidal.hs")
+    )
   "*Full path to BootTidal.hs (inferred by introspecting ghc-pkg package db)."
 )
 
