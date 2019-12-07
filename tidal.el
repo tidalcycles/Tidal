@@ -1,5 +1,28 @@
-;; tidal.el - (c) alex@slab.org, 20012, based heavily on...
-;; hsc3.el - (c) rohan drape, 2006-2008
+;;; tidal.el --- Interact with TidalCycles for live coding patterns  -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2012  alex@slab.org
+;; Copyright (C) 2006-2008  rohan drape (hsc3.el)
+
+;; Author: alex@slab.org
+;; Homepage: https://github.com/tidalcycles/Tidal
+;; Version: 0
+;; Keywords: tools
+;; Package-Requires: ((haskell-mode "16") (emacs "24"))
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
 
 ;; notes from hsc3:
 ;; This mode is implemented as a derivation of `haskell' mode,
@@ -8,11 +31,15 @@
 ;; point acquisition is courtesy `thingatpt'.  The directory search
 ;; facilities are courtesy `find-lisp'.
 
+;;; Code:
+
+
 (require 'scheme)
 (require 'comint)
 (require 'thingatpt)
 (require 'find-lisp)
 (require 'pulse)
+(require 'haskell-mode)
 
 (defvar tidal-buffer
   "*tidal*"
@@ -22,24 +49,48 @@
   "ghci"
   "*The haskell interpeter to use (default=ghci).")
 
+(defvar tidal-interpreter-version
+  (substring (shell-command-to-string (concat tidal-interpreter " --numeric-version")) 0 -1)
+  "*The version of tidal interpreter as a string.")
+
 (defvar tidal-interpreter-arguments
-  (list "-XOverloadedStrings"
-        )
+  ()
   "*Arguments to the haskell interpreter (default=none).")
+
+(defvar tidal-boot-script-path
+  (let ((filepath
+         (cond
+          ((string-equal system-type "windows-nt")
+           '(("path" . "echo off && for /f %a in ('ghc-pkg latest tidal') do (for /f \"tokens=2\" %i in ('ghc-pkg describe %a ^| findstr data-dir') do (echo %i))")
+             ("separator" . "\\")
+             ))
+          ((or (string-equal system-type "darwin") (string-equal system-type "gnu/linux"))
+           '(("path" . "ghc-pkg describe $(ghc-pkg latest tidal) | grep data-dir | cut -f2 -d' '")
+             ("separator" . "/")
+             ))
+          )
+         ))
+    (concat (substring (shell-command-to-string (cdr (assoc "path" filepath))) 0 -1) (cdr (assoc "separator" filepath)) "BootTidal.hs")
+  )
+  "*Full path to BootTidal.hs (inferred by introspecting ghc-pkg package db)."
+)
 
 (defvar tidal-literate-p
   t
   "*Flag to indicate if we are in literate mode (default=t).")
 
+(defvar tidal-modules nil
+  "Additional module imports.  See `tidal-run-region'.")
+
 (make-variable-buffer-local 'tidal-literate-p)
 
 (defun tidal-unlit (s)
-  "Remove bird literate marks"
+  "Remove bird literate marks in S."
   (replace-regexp-in-string "^> " "" s))
 
 (defun tidal-intersperse (e l)
-  (if (null l)
-      '()
+  "Insert E between every element of list L."
+  (when l
     (cons e (cons (car l) (tidal-intersperse e (cdr l))))))
 
 (defun tidal-start-haskell ()
@@ -54,33 +105,7 @@
      nil
      tidal-interpreter-arguments)
     (tidal-see-output))
-  (tidal-send-string ":set prompt \"\"")
-  (tidal-send-string ":module Sound.Tidal.Context")
-  (tidal-send-string "(cps, getNow) <- bpsUtils")
-  (tidal-send-string "(d1,t1) <- superDirtSetters getNow")
-  (tidal-send-string "(d2,t2) <- superDirtSetters getNow")
-  (tidal-send-string "(d3,t3) <- superDirtSetters getNow")
-  (tidal-send-string "(d4,t4) <- superDirtSetters getNow")
-  (tidal-send-string "(d5,t5) <- superDirtSetters getNow")
-  (tidal-send-string "(d6,t6) <- superDirtSetters getNow")
-  (tidal-send-string "(d7,t7) <- superDirtSetters getNow")
-  (tidal-send-string "(d8,t8) <- superDirtSetters getNow")
-  (tidal-send-string "(d9,t9) <- superDirtSetters getNow")
-  (tidal-send-string "(d10,t10) <- superDirtSetters getNow")
-  (tidal-send-string "(c1,ct1) <- dirtSetters getNow")
-  (tidal-send-string "(c2,ct2) <- dirtSetters getNow")
-  (tidal-send-string "(c3,ct3) <- dirtSetters getNow")
-  (tidal-send-string "(c4,ct4) <- dirtSetters getNow")
-  (tidal-send-string "(c5,ct5) <- dirtSetters getNow")
-  (tidal-send-string "(c6,ct6) <- dirtSetters getNow")
-  (tidal-send-string "(c7,ct7) <- dirtSetters getNow")
-  (tidal-send-string "(c8,ct8) <- dirtSetters getNow")
-  (tidal-send-string "(c9,ct9) <- dirtSetters getNow")
-  (tidal-send-string "(c10,ct10) <- dirtSetters getNow")
-  (tidal-send-string "let bps x = cps (x/2)")
-  (tidal-send-string "let hush = mapM_ ($ silence) [c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,d1,d2,d3,d4,d5,d6,d7,d8,d9,d10]")
-  (tidal-send-string "let solo = (>>) hush")
-  (tidal-send-string ":set prompt \"tidal> \"")
+  (tidal-send-string (concat ":script " tidal-boot-script-path))
 )
 
 (defun tidal-see-output ()
@@ -101,28 +126,18 @@
   (kill-buffer tidal-buffer)
   (delete-other-windows))
 
-(defun tidal-help ()
-  "Lookup up the name at point in the Help files."
-  (interactive)
-  (mapc (lambda (filename)
-	  (find-file-other-window filename))
-	(find-lisp-find-files tidal-help-directory
-			      (concat "^"
-				      (thing-at-point 'symbol)
-				      "\\.help\\.lhs"))))
-
-(defun chunk-string (n s)
-  "Split a string into chunks of 'n' characters."
+(defun tidal-chunk-string (n s)
+  "Split a string S into chunks of N characters."
   (let* ((l (length s))
          (m (min l n))
          (c (substring s 0 m)))
     (if (<= l n)
         (list c)
-      (cons c (chunk-string n (substring s n))))))
+      (cons c (tidal-chunk-string n (substring s n))))))
 
 (defun tidal-send-string (s)
   (if (comint-check-proc tidal-buffer)
-      (let ((cs (chunk-string 64 (concat s "\n"))))
+      (let ((cs (tidal-chunk-string 64 (concat s "\n"))))
         (mapcar (lambda (c) (comint-send-string tidal-buffer c)) cs))
     (error "no tidal process running?")))
 
@@ -141,16 +156,16 @@
   (interactive)
   (tidal-send-string "now' <- getNow")
   (tidal-send-string "let now = nextSam now'")
-  (tidal-send-string "let retrig = (now ~>)")
-  (tidal-send-string "let fadeOut n = spread' (degradeBy) (retrig $ slow n $ envL)")
-  (tidal-send-string "let fadeIn n = spread' (degradeBy) (retrig $ slow n $ (1-) <$> envL)")
+  (tidal-send-string "let retrig = (now `rotR`)")
+  (tidal-send-string "let fadeOut n = spread' (_degradeBy) (retrig $ slow n $ envL)")
+  (tidal-send-string "let fadeIn n = spread' (_degradeBy) (retrig $ slow n $ (1-) <$> envL)")
 
   )
 
 (defun tidal-run-line ()
   "Send the current line to the interpreter."
   (interactive)
-  (tidal-get-now)
+  ;(tidal-get-now)
   (let* ((s (buffer-substring (line-beginning-position)
 			      (line-end-position)))
 	 (s* (if tidal-literate-p
@@ -158,28 +173,35 @@
 	       s)))
     (tidal-send-string s*))
   (pulse-momentary-highlight-one-line (point))
-  (next-line)
+  (forward-line)
+  )
+
+(defun tidal-eval-multiple-lines ()
+  "Eval the current region in the interpreter as a single line."
+  ;(tidal-get-now)
+  (mark-paragraph)
+  (let* ((s (buffer-substring-no-properties (region-beginning)
+                                            (region-end)))
+         (s* (if tidal-literate-p
+                 (tidal-unlit s)
+               s)))
+    (tidal-send-string ":{")
+    (tidal-send-string s*)
+    (tidal-send-string ":}")
+    (mark-paragraph)
+    (pulse-momentary-highlight-region (mark) (point))
+    )
   )
 
 (defun tidal-run-multiple-lines ()
   "Send the current region to the interpreter as a single line."
   (interactive)
-  (tidal-get-now)
-  (save-excursion
-   (mark-paragraph)
-   (let* ((s (buffer-substring-no-properties (region-beginning)
-                                             (region-end)))
-          (s* (if tidal-literate-p
-                  (tidal-unlit s)
-                s)))
-     (tidal-send-string ":{")
-     (tidal-send-string s*)
-     (tidal-send-string ":}")
-     (mark-paragraph)
-     (pulse-momentary-highlight-region (mark) (point))
-     )
-    ;(tidal-send-string (replace-regexp-in-string "\n" " " s*))
-   )
+  (if (>= emacs-major-version 25)
+      (save-mark-and-excursion
+       (tidal-eval-multiple-lines))
+    (save-excursion
+     (tidal-eval-multiple-lines))
+    )
   )
 
 (defun tidal-run-d1 ()
@@ -362,7 +384,6 @@
   (define-key map [?\C-c ?\C-l] 'tidal-load-buffer)
   (define-key map [?\C-c ?\C-i] 'tidal-interrupt-haskell)
   (define-key map [?\C-c ?\C-m] 'tidal-run-main)
-  (define-key map [?\C-c ?\C-h] 'tidal-help)
   (define-key map [?\C-c ?\C-1] 'tidal-run-d1)
   (define-key map [?\C-c ?\C-2] 'tidal-run-d2)
   (define-key map [?\C-c ?\C-3] 'tidal-run-d3)
@@ -394,7 +415,6 @@
   (local-set-key [?\C-c ?\C-l] 'tidal-load-buffer)
   (local-set-key [?\C-c ?\C-i] 'tidal-interrupt-haskell)
   (local-set-key [?\C-c ?\C-m] 'tidal-run-main)
-  (local-set-key [?\C-c ?\C-h] 'tidal-help)
   (local-set-key [?\C-c ?\C-1] 'tidal-run-d1)
   (local-set-key [?\C-c ?\C-2] 'tidal-run-d2)
   (local-set-key [?\C-c ?\C-3] 'tidal-run-d3)
@@ -441,13 +461,13 @@
   (define-key map [menu-bar tidal haskell start-haskell]
     '("Start haskell" . tidal-start-haskell)))
 
-(if tidal-mode-map
-    ()
+(unless tidal-mode-map
   (let ((map (make-sparse-keymap "Haskell-Tidal")))
     (tidal-mode-keybindings map)
     (tidal-mode-menu map)
     (setq tidal-mode-map map)))
 
+;;;###autoload
 (define-derived-mode
   literate-tidal-mode
   tidal-mode
@@ -459,9 +479,12 @@
   (setq haskell-literate 'bird)
   (turn-on-font-lock))
 
+;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.ltidal$" . literate-tidal-mode))
-;(add-to-list 'load-path "/usr/share/emacs/site-lisp/haskell-mode/") ;required by olig1905 on linux
-;(require 'haskell-mode) ;required by olig1905 on linux
+;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/haskell-mode/") ;required by olig1905 on linux
+;;(require 'haskell-mode) ;required by olig1905 on linux
+
+;;;###autoload
 (define-derived-mode
   tidal-mode
   haskell-mode
@@ -472,6 +495,8 @@
   (setq tidal-literate-p nil)
   (turn-on-font-lock))
 
+;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.tidal$" . tidal-mode))
 
 (provide 'tidal)
+;;; tidal.el ends here

@@ -1,12 +1,16 @@
-Tidal [![Build Status](https://travis-ci.org/tidalcycles/Tidal.svg?branch=master)](https://travis-ci.org/tidalcycles/Tidal)
+
+Tidal [![Build Status](https://travis-ci.org/tidalcycles/Tidal.svg)](https://travis-ci.org/tidalcycles/Tidal)
 =====
 
 Language for live coding of pattern
 
 For documentation, mailing list and more info see here:
-  http://tidal.lurk.org/
+  https://tidalcycles.org/
 
-(c) Alex McLean and contributors, 2016
+You can help speed up Tidal development by sending coffee here:
+  https://ko-fi.com/yaxulive#
+
+(c) Alex McLean and contributors, 2019
 
 Distributed under the terms of the GNU Public license version 3 (or
 later).
