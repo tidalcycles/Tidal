@@ -189,7 +189,7 @@ vol = gain . clip 0 1.999
 -- specified by lowerBound and upperBound.
 clip :: Ord a => Pattern a -> Pattern a -> Pattern a -> Pattern a
 clip lowerBound upperBound x = f <$> lowerBound <*> upperBound <*> x
- where f u l x = min u (max l x)
+ where f l u x = min u (max l x)
 
 gate :: Pattern Double -> ControlPattern
 gate = pF "gate"
