@@ -71,7 +71,8 @@
           )
          ))
     (concat
-     (cadr (split-string (shell-command-to-string (cdr (assoc "path" filepath)))))
+     (string-trim (cadr (split-string
+                         (shell-command-to-string (cdr (assoc "path" filepath))) ":")))
      (cdr (assoc "separator" filepath))
      "BootTidal.hs")
     )
