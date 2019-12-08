@@ -230,8 +230,8 @@ instance Parse ([a] -> Pattern a) where
 instance Parse ([Pattern a] -> Pattern a) where
   parser =
     $(fromTidal "stack") <|>
-    $(fromTidal "fastcat") <|>
-    $(fromTidal "slowcat") <|>
+    $(fromTidal "fastcat") <|> $(fromTidal "fastCat") <|>
+    $(fromTidal "slowcat") <|> $(fromTidal "slowCat") <|>
     $(fromTidal "cat") <|>
     $(fromTidal "randcat")
 
