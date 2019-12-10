@@ -40,6 +40,7 @@
 (require 'find-lisp)
 (require 'pulse)
 (require 'haskell-mode)
+(require 'subr-x)
 
 (defvar tidal-buffer
   "*tidal*"
