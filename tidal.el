@@ -65,13 +65,17 @@
              ("separator" . "\\")
              ))
           ((or (string-equal system-type "darwin") (string-equal system-type "gnu/linux"))
-           '(("path" . "ghc-pkg describe $(ghc-pkg latest tidal) | grep data-dir | cut -f2 -d' '")
+           '(("path" . "ghc-pkg field -f ~/.cabal/store/ghc-$(ghc --numeric-version)/package.db tidal data-dir")
              ("separator" . "/")
              ))
           )
          ))
-    (concat (substring (shell-command-to-string (cdr (assoc "path" filepath))) 0 -1) (cdr (assoc "separator" filepath)) "BootTidal.hs")
-  )
+    (concat
+     (string-trim (cadr (split-string
+                         (shell-command-to-string (cdr (assoc "path" filepath))) ":")))
+     (cdr (assoc "separator" filepath))
+     "BootTidal.hs")
+    )
   "*Full path to BootTidal.hs (inferred by introspecting ghc-pkg package db)."
 )
 
