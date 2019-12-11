@@ -37,6 +37,9 @@ s = sound
 cc :: Pattern String -> ControlPattern
 cc = grp [mF "ccn", mF "ccv"]
 
+nrpn :: Pattern String -> ControlPattern
+nrpn = grp [mI "nrpn", mI "val"]
+
 -- | Singular params
 
 pF :: String -> Pattern Double -> ControlPattern
@@ -558,6 +561,11 @@ ccn :: Pattern Double -> ControlPattern
 ccn = pF "ccn"
 ccv :: Pattern Double -> ControlPattern
 ccv = pF "ccv"
+
+nrpnn :: Pattern Int -> ControlPattern
+nrpnn = pI "nrpn"
+nrpnv :: Pattern Int -> ControlPattern
+nrpnv = pI "val"
 
 ctlNum :: Pattern Double -> ControlPattern
 ctlNum = pF "ctlNum"
