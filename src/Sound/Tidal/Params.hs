@@ -287,6 +287,13 @@ ophatdecay = pF "ophatdecay"
 -}
 orbit :: Pattern Int -> ControlPattern
 orbit = pI "orbit"
+
+overgain :: Pattern Double -> ControlPattern
+overgain = pF "overgain"
+
+overshape :: Pattern Double -> ControlPattern
+overshape = pF "overshape"
+
 -- | a pattern of numbers between 0 and 1, from left to right (assuming stereo), once round a circle (assuming multichannel)
 pan :: Pattern Double -> ControlPattern
 pan = pF "pan"
