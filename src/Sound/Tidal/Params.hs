@@ -176,6 +176,9 @@ dry = pF "dry"
 end :: Pattern Double -> ControlPattern
 end = pF "end"
 
+freq :: Pattern Double -> ControlPattern
+freq = pF "freq"
+
 -- | a pattern of numbers that specify volume. Values less than 1 make
 -- the sound quieter. Values greater than 1 make the sound louder. For
 -- the linear equivalent, see @amp@.
@@ -561,6 +564,15 @@ ccn :: Pattern Double -> ControlPattern
 ccn = pF "ccn"
 ccv :: Pattern Double -> ControlPattern
 ccv = pF "ccv"
+
+polyTouch :: Pattern Double -> ControlPattern
+polyTouch = pF "polyTouch"
+
+midibend :: Pattern Double -> ControlPattern
+midibend = pF "midibend"
+
+miditouch :: Pattern Double -> ControlPattern
+miditouch = pF "miditouch"
 
 nrpnn :: Pattern Int -> ControlPattern
 nrpnn = pI "nrpn"
