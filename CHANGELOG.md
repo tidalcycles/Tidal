@@ -7,7 +7,7 @@
 	* Add more things to tidal-parse @dktr0 @yaxu
 	* Separate out haskell parser from tidal-parse into new hackage module called 'haskellish' @dktr0
 	* Support patterning polyrhythmic % steps in mininotation @yaxu
-	* Fixes to emacs plugin (tidal.el)
+	* Fixes to emacs plugin (tidal.el) @xmacex
 	* New parameters for freq, overgain, overshape, and missing midi params including the new nrpn ones @yaxu
 
 ## 1.4.5 - Porter Brook
