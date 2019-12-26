@@ -185,6 +185,18 @@ freq = pF "freq"
 gain :: Pattern Double -> ControlPattern
 gain = pF "gain"
 
+-- | 'vol' is a version of gain with a built-in limiting that clips the provided
+-- values to stay between 0 and 1.999 in order to protect against common
+-- typing errors causing dangerously or uncomfortably loud sounds.
+vol :: Pattern Double -> ControlPattern
+vol = gain . clip 0 1.999
+
+-- | clip constrains a fractional pattern to stay within the limits
+-- specified by lowerBound and upperBound.
+clip :: Ord a => Pattern a -> Pattern a -> Pattern a -> Pattern a
+clip lowerBound upperBound x = f <$> lowerBound <*> upperBound <*> x
+ where f l u x = min u (max l x)
+
 gate :: Pattern Double -> ControlPattern
 gate = pF "gate"
 hatgrain :: Pattern Double -> ControlPattern

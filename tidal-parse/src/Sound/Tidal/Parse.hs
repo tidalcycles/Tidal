@@ -167,16 +167,18 @@ instance Parse (ControlPattern -> ControlPattern) where
     (parser :: Haskellish (Pattern Double -> ControlPattern -> ControlPattern)) <*> parser <|>
     (parser :: Haskellish (Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
 
-instance Parse (Pattern Bool -> Pattern Bool) where parser = genericTransformations
-instance Parse (Pattern String -> Pattern String) where parser = genericTransformations
+instance Parse (Pattern Bool -> Pattern Bool) where
+  parser = genericTransformations <|> ordTransformations
+instance Parse (Pattern String -> Pattern String) where
+  parser = genericTransformations <|> ordTransformations
 instance Parse (Pattern Int -> Pattern Int) where
-  parser = genericTransformations <|> numTransformations
+  parser = genericTransformations <|> numTransformations <|> ordTransformations
 instance Parse (Pattern Integer -> Pattern Integer) where
-  parser = genericTransformations <|> numTransformations
+  parser = genericTransformations <|> numTransformations <|> ordTransformations
 instance Parse (Pattern Time -> Pattern Time) where
-  parser = genericTransformations <|> numTransformations
+  parser = genericTransformations <|> numTransformations <|> ordTransformations
 instance Parse (Pattern Double -> Pattern Double) where
-  parser = genericTransformations <|> numTransformations <|> floatingTransformations
+  parser = genericTransformations <|> numTransformations <|> floatingTransformations <|> ordTransformations
 
 genericTransformations :: forall a. (Parse (Pattern a), Parse (Pattern a -> Pattern a),Parse (Pattern a -> Pattern a -> Pattern a), Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) => Haskellish (Pattern a -> Pattern a)
 genericTransformations =
@@ -212,6 +214,10 @@ numTransformations :: (Num a, Enum a) => Haskellish (Pattern a -> Pattern a)
 numTransformations =
   $(fromTidal "run")
 
+ordTransformations :: Ord a => Haskellish (Pattern a -> Pattern a)
+ordTransformations =
+  pInt_pOrd_pOrd <*> parser
+
 floatingTransformations :: (Floating a, Parse (Pattern a)) => Haskellish (Pattern a -> Pattern a)
 floatingTransformations = floatingMergeOperator <*> parser
 
@@ -224,8 +230,8 @@ instance Parse ([a] -> Pattern a) where
 instance Parse ([Pattern a] -> Pattern a) where
   parser =
     $(fromTidal "stack") <|>
-    $(fromTidal "fastcat") <|>
-    $(fromTidal "slowcat") <|>
+    $(fromTidal "fastcat") <|> $(fromTidal "fastCat") <|>
+    $(fromTidal "slowcat") <|> $(fromTidal "slowCat") <|>
     $(fromTidal "cat") <|>
     $(fromTidal "randcat")
 
@@ -264,6 +270,7 @@ instance Parse (Pattern Double -> ControlPattern) where
     $(fromTidal "pan") <|>
     $(fromTidal "shape") <|>
     $(fromTidal "gain") <|>
+    $(fromTidal "vol") <|>
     $(fromTidal "accelerate") <|>
     $(fromTidal "bandf") <|>
     $(fromTidal "bandq") <|>
@@ -300,11 +307,13 @@ instance Parse (Pattern Int -> Pattern Int -> Pattern Int) where
   parser =
     genericBinaryPatternFunctions <|>
     numMergeOperator <|>
+    ordMergeOperator <|>
     pInt_p_p
 
 instance Parse (Pattern Integer -> Pattern Integer -> Pattern Integer) where
   parser =
     genericBinaryPatternFunctions <|>
+    ordMergeOperator <|>
     numMergeOperator
 
 instance Parse (Pattern Time -> Pattern Time -> Pattern Time) where
@@ -313,6 +322,7 @@ instance Parse (Pattern Time -> Pattern Time -> Pattern Time) where
     numMergeOperator <|>
     realMergeOperator <|>
     fractionalMergeOperator <|>
+    ordMergeOperator <|>
     pTime_p_p
 
 instance Parse (Pattern Double -> Pattern Double -> Pattern Double) where
@@ -321,13 +331,15 @@ instance Parse (Pattern Double -> Pattern Double -> Pattern Double) where
     numMergeOperator <|>
     realMergeOperator <|>
     fractionalMergeOperator <|>
+    ordMergeOperator <|>
     pDouble_p_p
 
 instance Parse (ControlPattern -> ControlPattern -> ControlPattern) where
   parser =
     genericBinaryPatternFunctions <|>
     numMergeOperator <|>
-    fractionalMergeOperator
+    fractionalMergeOperator <|>
+    ordMergeOperator
 
 genericBinaryPatternFunctions :: T.Unionable a => Haskellish (Pattern a -> Pattern a -> Pattern a)
 genericBinaryPatternFunctions =
@@ -380,6 +392,9 @@ fractionalMergeOperator =
   $(fromTidal "|/") <|>
   $(fromTidal "/|") <|>
   $(fromHaskell "/")
+
+ordMergeOperator :: (Parse (Pattern a), Ord a) => Haskellish (Pattern a -> Pattern a -> Pattern a)
+ordMergeOperator = ordTernaryTransformations <*> parser
 
 floatingMergeOperator :: Floating a => Haskellish (Pattern a -> Pattern a -> Pattern a)
 floatingMergeOperator =
@@ -440,6 +455,9 @@ pInt_p_p =
     $(fromTidal "scramble") <|>
     pInt_pInt_p_p <*> parser
 
+pInt_pOrd_pOrd :: Ord a => Haskellish (Pattern Int -> Pattern a -> Pattern a)
+pInt_pOrd_pOrd = $(fromTidal "rot")
+
 pString_p_p :: Haskellish (Pattern String -> Pattern a -> Pattern a)
 pString_p_p = $(fromTidal "substruct")
 
@@ -493,8 +511,6 @@ instance Parse (Pattern Time -> ControlPattern -> ControlPattern) where
     $(fromTidal "hurry") <|>
     (parser :: Haskellish (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
 
-instance Parse (Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern) where
-  parser = $(fromTidal "slice")
 
 instance Parse ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern) where
   parser =
@@ -552,6 +568,12 @@ instance Parse (String -> Pattern String -> ControlPattern) where
 
 numTernaryTransformations :: Num a => Haskellish (Pattern a -> Pattern a -> Pattern a -> Pattern a)
 numTernaryTransformations = $(fromTidal "range")
+
+ordTernaryTransformations :: Ord a => Haskellish (Pattern a -> Pattern a -> Pattern a -> Pattern a)
+ordTernaryTransformations = $(fromTidal "clip")
+
+instance Parse (Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern) where
+  parser = $(fromTidal "slice")
 
 instance Parse (Time -> Time -> Pattern a -> Pattern a) where
   parser = $(fromTidal "playFor")
