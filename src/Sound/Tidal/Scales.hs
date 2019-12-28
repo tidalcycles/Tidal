@@ -165,6 +165,20 @@ messiaen6 = [0, 2, 4, 5, 6, 8, 10, 11]
 messiaen7 :: Fractional a => [a]
 messiaen7 = [0, 1, 2, 3, 5, 6, 7, 8, 9, 11]
 
+-- Arabic maqams taken from SuperCollider's Scale.sc
+bayati :: Fractional a => [a]
+bayati = [0, 1.5, 3, 5, 7, 8, 10]
+hijaz :: Fractional a => [a]
+hijaz = [0, 1, 4, 5, 7, 8.5, 10]
+sikah :: Fractional a => [a]
+sikah = [0, 1.5, 3.5, 5.5, 7, 8.5, 10.5]
+rast :: Fractional a => [a]
+rast = [0, 2, 3.5, 5, 7, 9, 10.5]
+iraq :: Fractional a => [a]
+iraq = [0, 1.5, 3.5, 5, 6.5, 8.5, 10.5]
+saba :: Fractional a => [a]
+saba = [0, 1.5, 3, 4, 6, 8, 10]
+
 -- 12 note scales
 chromatic :: Fractional a => [a]
 chromatic = [0,1,2,3,4,5,6,7,8,9,10,11]
@@ -251,5 +265,11 @@ scaleTable = [("minPent", minPent),
               ("messiaen5", messiaen5),
               ("messiaen6", messiaen6),
               ("messiaen7", messiaen7),
-              ("chromatic", chromatic)
+              ("chromatic", chromatic),
+              ("bayati", bayati),
+              ("hijaz", hijaz),
+              ("sikah", sikah),
+              ("rast", rast),
+              ("saba", saba),
+              ("iraq", iraq)
              ]
