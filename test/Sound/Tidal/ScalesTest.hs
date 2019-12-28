@@ -300,14 +300,12 @@ run =
                 compareP (Arc 0 1)
                     (Sound.Tidal.Scales.scale "messiaen7" twoOctavesOf10NoteScale)
                     ("0 1 2 3 5 6 7 8 9 11 12 13 14 15 17 18 19 20 21 23"::Pattern Rational)
--- {-                    
         describe "12 note scales" $ do
             let twoOctavesOf12NoteScale = "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23"
             it "can transform notes correctly over 2 octaves - chromatic" $ do
                 compareP (Arc 0 1)
                     (Sound.Tidal.Scales.scale "chromatic" twoOctavesOf12NoteScale)
                     ("0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23"::Pattern Rational)
--- -}
         describe "edge cases" $ do
             it "responds to unknown scales by mapping to octaves" $ do
                 compareP (Arc 0 1)
