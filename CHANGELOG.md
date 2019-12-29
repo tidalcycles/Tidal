@@ -1,5 +1,10 @@
 # TidalCycles log of changes
 
+## 1.4.7 - Bleep
+
+	* Fix BootTidal.hs - make loadable in atom @bgold-cosmos
+	* More additions to tidal-parse @dktr0
+
 ## 1.4.6 - Megatron
 
 	* Experimental ratio shorthand ref #573 @yaxu
