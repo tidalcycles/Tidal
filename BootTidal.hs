@@ -3,6 +3,7 @@
 :set prompt-cont ""
 
 import Sound.Tidal.Context
+
 import System.IO (hSetEncoding, stdout, utf8)
 
 hSetEncoding stdout utf8
