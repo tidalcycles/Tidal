@@ -8,19 +8,21 @@ import           Control.Applicative
 import           Data.Bifunctor
 import           Control.Monad
 import           Data.Either
+import           Control.Monad.Except
 
 import           Sound.Tidal.Context (Pattern,ControlMap,ControlPattern,Enumerable,Time)
 import qualified Sound.Tidal.Context as T
 import           Sound.Tidal.Parse.TH
 
+type H = Haskellish ()
 
 -- This is depended upon by Estuary, and changes to its type will cause problems downstream for Estuary.
 parseTidal :: String -> Either String ControlPattern
 parseTidal = f . parseExp
   where
-    f (ParseOk x) = runHaskellish parser x
-    f (ParseFailed _ "Parse error: EOF") = Right $ T.silence
-    f (ParseFailed l s) = Left $ show l ++ ": " ++ show s
+    f (ParseOk x) = second fst $ runHaskellish parser () x
+    f (ParseFailed _ "Parse error: EOF") = return T.silence
+    f (ParseFailed l s) = throwError $ show l ++ ": " ++ show s
 
 {- test :: Parse a => String -> Either String a
 test = f. parseExp
@@ -33,7 +35,7 @@ test = f. parseExp
 -- via expressions in Parse.
 
 class Parse a where
-  parser :: Haskellish a
+  parser :: H a
 
 instance Parse Bool where
   parser = (True <$ reserved "True") <|> (False <$ reserved "False")
@@ -65,29 +67,29 @@ instance Parse ControlMap where
 
 instance Parse ControlPattern where
   parser =
-    (parser :: Haskellish (Pattern String -> ControlPattern)) <*> parser <|>
-    (parser :: Haskellish (Pattern Double -> ControlPattern)) <*> parser <|>
-    (parser :: Haskellish (Pattern Int -> ControlPattern)) <*> parser <|>
+    (parser :: H (Pattern String -> ControlPattern)) <*> parser <|>
+    (parser :: H (Pattern Double -> ControlPattern)) <*> parser <|>
+    (parser :: H (Pattern Int -> ControlPattern)) <*> parser <|>
     genericPatternExpressions
 
 
-genericPatternExpressions :: forall a. (Parse a, Parse (Pattern a),Parse (Pattern a -> Pattern a)) => Haskellish (Pattern a)
+genericPatternExpressions :: forall a. (Parse a, Parse (Pattern a),Parse (Pattern a -> Pattern a)) => H (Pattern a)
 genericPatternExpressions =
-  (parser :: Haskellish (Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: Haskellish ([a] -> Pattern a)) <*> parser <|>
-  (parser :: Haskellish ([Pattern a] -> Pattern a)) <*> parser <|>
-  (parser :: Haskellish ([(Pattern a, Double)] -> Pattern a)) <*> parser <|>
+  (parser :: H (Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: H ([a] -> Pattern a)) <*> parser <|>
+  (parser :: H ([Pattern a] -> Pattern a)) <*> parser <|>
+  (parser :: H ([(Pattern a, Double)] -> Pattern a)) <*> parser <|>
   pInt_p <*> parser <|>
   silence
 
-silence :: Haskellish (Pattern a)
+silence :: H (Pattern a)
 silence = $(fromTidal "silence") -- ie. T.silence <$ reserved "silence", see Sound.Tidal.Parse.TH
 
 instance Parse (Pattern Bool) where
   parser =
     parseBP <|>
-    (parser :: Haskellish (Pattern String -> Pattern Bool)) <*> parser <|>
-    (parser :: Haskellish (Pattern Int -> Pattern Bool)) <*> parser <|>
+    (parser :: H (Pattern String -> Pattern Bool)) <*> parser <|>
+    (parser :: H (Pattern Int -> Pattern Bool)) <*> parser <|>
     genericPatternExpressions
 
 instance Parse (Pattern String) where
@@ -96,12 +98,12 @@ instance Parse (Pattern String) where
     genericPatternExpressions <|>
     pInt_pString <*> parser
 
-parseBP :: (Enumerable a, T.Parseable a) => Haskellish (Pattern a)
+parseBP :: (Enumerable a, T.Parseable a) => H (Pattern a)
 parseBP = do
-  (b,_) <- askSpan
+  (b,_) <- Haskellish.span
   p <- T.parseBP <$> string
   case p of
-    Left e -> Haskellish (\_ -> Left (show e))
+    Left e -> throwError $ show e
     Right p' -> do
       return $ T.withContext (updateContext b) p'
       where
@@ -117,7 +119,7 @@ instance Parse (Pattern Int) where
     genericPatternExpressions <|>
     irand <*> parser
 
-irand :: Num a => Haskellish (Int -> Pattern a)
+irand :: Num a => H (Int -> Pattern a)
 irand = $(fromTidal "irand")
 
 instance Parse (Pattern Integer) where
@@ -163,9 +165,9 @@ instance Parse (Pattern Time) where
 instance Parse (ControlPattern -> ControlPattern) where
   parser =
     genericTransformations <|>
-    (parser :: Haskellish (Pattern Int -> ControlPattern -> ControlPattern)) <*> parser <|>
-    (parser :: Haskellish (Pattern Double -> ControlPattern -> ControlPattern)) <*> parser <|>
-    (parser :: Haskellish (Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
+    (parser :: H (Pattern Int -> ControlPattern -> ControlPattern)) <*> parser <|>
+    (parser :: H (Pattern Double -> ControlPattern -> ControlPattern)) <*> parser <|>
+    (parser :: H (Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Bool -> Pattern Bool) where
   parser = genericTransformations <|> ordTransformations
@@ -180,11 +182,11 @@ instance Parse (Pattern Time -> Pattern Time) where
 instance Parse (Pattern Double -> Pattern Double) where
   parser = genericTransformations <|> numTransformations <|> floatingTransformations <|> ordTransformations
 
-genericTransformations :: forall a. (Parse (Pattern a), Parse (Pattern a -> Pattern a),Parse (Pattern a -> Pattern a -> Pattern a), Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) => Haskellish (Pattern a -> Pattern a)
+genericTransformations :: forall a. (Parse (Pattern a), Parse (Pattern a -> Pattern a),Parse (Pattern a -> Pattern a -> Pattern a), Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) => H (Pattern a -> Pattern a)
 genericTransformations =
-    (parser :: Haskellish (Pattern a -> Pattern a -> Pattern a)) <*> parser <|>
-    asRightSection (parser :: Haskellish (Pattern a -> Pattern a -> Pattern a)) parser <|>
-    (parser :: Haskellish ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: H (Pattern a -> Pattern a -> Pattern a)) <*> parser <|>
+    asRightSection (parser :: H (Pattern a -> Pattern a -> Pattern a)) parser <|>
+    (parser :: H ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
     $(fromTidal "brak") <|>
     $(fromTidal "rev") <|>
     $(fromTidal "palindrome") <|>
@@ -200,25 +202,25 @@ genericTransformations =
     pBool_p_p <*> parser <|>
     lpInt_p_p <*> parser <|>
     -- more complex possibilities that wouldn't involve overlapped Parse instances
-    (parser :: Haskellish (Time -> Pattern a -> Pattern a)) <*> parser <|>
-    (parser :: Haskellish (Int -> Pattern a -> Pattern a)) <*> parser <|>
-    (parser :: Haskellish ((Time,Time) -> Pattern a -> Pattern a)) <*> parser <|>
-    (parser :: Haskellish ([Time] -> Pattern a -> Pattern a)) <*> parser <|>
-    (parser :: Haskellish ([Pattern Time] -> Pattern a -> Pattern a)) <*> parser <|>
-    (parser :: Haskellish ([Pattern String] -> Pattern a -> Pattern a)) <*> parser <|>
-    (parser :: Haskellish ([Pattern Double] -> Pattern a -> Pattern a)) <*> parser <|>
-    (parser :: Haskellish ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: H (Time -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: H (Int -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: H ((Time,Time) -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: H ([Time] -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: H ([Pattern Time] -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: H ([Pattern String] -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: H ([Pattern Double] -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: H ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser <|>
     lp_p_p <*> parser
 
-numTransformations :: (Num a, Enum a) => Haskellish (Pattern a -> Pattern a)
+numTransformations :: (Num a, Enum a) => H (Pattern a -> Pattern a)
 numTransformations =
   $(fromTidal "run")
 
-ordTransformations :: Ord a => Haskellish (Pattern a -> Pattern a)
+ordTransformations :: Ord a => H (Pattern a -> Pattern a)
 ordTransformations =
   pInt_pOrd_pOrd <*> parser
 
-floatingTransformations :: (Floating a, Parse (Pattern a)) => Haskellish (Pattern a -> Pattern a)
+floatingTransformations :: (Floating a, Parse (Pattern a)) => H (Pattern a -> Pattern a)
 floatingTransformations = floatingMergeOperator <*> parser
 
 instance Parse ([a] -> Pattern a) where
@@ -238,21 +240,21 @@ instance Parse ([Pattern a] -> Pattern a) where
 instance Parse ([(Pattern a, Double)] -> Pattern a) where
   parser = $(fromTidal "wrandcat")
 
-pInt_p :: Parse a => Haskellish (Pattern Int -> Pattern a)
-pInt_p = (parser :: Haskellish ([a] -> Pattern Int -> Pattern a)) <*> parser
+pInt_p :: Parse a => H (Pattern Int -> Pattern a)
+pInt_p = (parser :: H ([a] -> Pattern Int -> Pattern a)) <*> parser
 
 instance Parse (Pattern String -> ControlPattern) where
   parser =
     $(fromTidal "s") <|>
     $(fromTidal "sound") <|>
     $(fromTidal "vowel") <|>
-    (parser :: Haskellish (String -> Pattern String -> ControlPattern)) <*> parser
+    (parser :: H (String -> Pattern String -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Int -> ControlPattern) where
   parser =
     $(fromTidal "coarse") <|>
     $(fromTidal "cut") <|>
-    (parser :: Haskellish (String -> Pattern Int -> ControlPattern)) <*> parser
+    (parser :: H (String -> Pattern Int -> ControlPattern)) <*> parser
 
 instance Parse (Pattern String -> Pattern Bool) where
   parser = $(fromTidal "ascii")
@@ -260,7 +262,7 @@ instance Parse (Pattern String -> Pattern Bool) where
 instance Parse (Pattern Int -> Pattern Bool) where
   parser =
     $(fromTidal "binary") <|>
-    (parser :: Haskellish (Int -> Pattern Int -> Pattern Bool)) <*> parser
+    (parser :: H (Int -> Pattern Int -> Pattern Bool)) <*> parser
 
 instance Parse (Pattern Double -> ControlPattern) where
   parser =
@@ -270,7 +272,8 @@ instance Parse (Pattern Double -> ControlPattern) where
     $(fromTidal "pan") <|>
     $(fromTidal "shape") <|>
     $(fromTidal "gain") <|>
-    $(fromTidal "vol") <|>
+    $(fromTidal "overgain") <|>
+    $(fromTidal "overshape") <|>
     $(fromTidal "accelerate") <|>
     $(fromTidal "bandf") <|>
     $(fromTidal "bandq") <|>
@@ -287,9 +290,9 @@ instance Parse (Pattern Double -> ControlPattern) where
     $(fromTidal "resonance") <|>
     $(fromTidal "loop") <|>
     $(fromTidal "note") <|>
-    (parser :: Haskellish (String -> Pattern Double -> ControlPattern)) <*> parser
+    (parser :: H (String -> Pattern Double -> ControlPattern)) <*> parser
 
-pInt_pString :: Haskellish (Pattern Int -> Pattern String)
+pInt_pString :: H (Pattern Int -> Pattern String)
 pInt_pString = pString_pInt_pString <*> parser
 
 
@@ -341,7 +344,7 @@ instance Parse (ControlPattern -> ControlPattern -> ControlPattern) where
     fractionalMergeOperator <|>
     ordMergeOperator
 
-genericBinaryPatternFunctions :: T.Unionable a => Haskellish (Pattern a -> Pattern a -> Pattern a)
+genericBinaryPatternFunctions :: T.Unionable a => H (Pattern a -> Pattern a -> Pattern a)
 genericBinaryPatternFunctions =
   $(fromTidal "overlay") <|>
   $(fromTidal "append") <|>
@@ -351,10 +354,10 @@ genericBinaryPatternFunctions =
   $(fromTidal "fastappend") <|>
   unionableMergeOperator <|>
   pInt_p_p_p <*> parser <|>
-  (parser :: Haskellish (Pattern Bool -> Pattern a -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: H (Pattern Bool -> Pattern a -> Pattern a -> Pattern a)) <*> parser <|>
   constParser
 
-unionableMergeOperator :: T.Unionable a => Haskellish (Pattern a -> Pattern a -> Pattern a)
+unionableMergeOperator :: T.Unionable a => H (Pattern a -> Pattern a -> Pattern a)
 unionableMergeOperator =
   $(fromTidal "#") <|>
   $(fromTidal "|>|") <|>
@@ -364,7 +367,7 @@ unionableMergeOperator =
   $(fromTidal "|<") <|>
   $(fromTidal "<|")
 
-numMergeOperator :: (Num a, Parse (Pattern a)) => Haskellish (Pattern a -> Pattern a -> Pattern a)
+numMergeOperator :: (Num a, Parse (Pattern a)) => H (Pattern a -> Pattern a -> Pattern a)
 numMergeOperator =
   numTernaryTransformations <*> parser <|>
   $(fromTidal "|+|") <|>
@@ -380,36 +383,36 @@ numMergeOperator =
   $(fromHaskell "*") <|>
   $(fromHaskell "-")
 
-realMergeOperator :: Real a => Haskellish (Pattern a -> Pattern a -> Pattern a)
+realMergeOperator :: Real a => H (Pattern a -> Pattern a -> Pattern a)
 realMergeOperator =
   $(fromTidal "|%|") <|>
   $(fromTidal "|%") <|>
   $(fromTidal "%|")
 
-fractionalMergeOperator :: Fractional a => Haskellish (Pattern a -> Pattern a -> Pattern a)
+fractionalMergeOperator :: Fractional a => H (Pattern a -> Pattern a -> Pattern a)
 fractionalMergeOperator =
   $(fromTidal "|/|") <|>
   $(fromTidal "|/") <|>
   $(fromTidal "/|") <|>
   $(fromHaskell "/")
 
-ordMergeOperator :: (Parse (Pattern a), Ord a) => Haskellish (Pattern a -> Pattern a -> Pattern a)
+ordMergeOperator :: (Parse (Pattern a), Ord a) => H (Pattern a -> Pattern a -> Pattern a)
 ordMergeOperator = ordTernaryTransformations <*> parser
 
-floatingMergeOperator :: Floating a => Haskellish (Pattern a -> Pattern a -> Pattern a)
+floatingMergeOperator :: Floating a => H (Pattern a -> Pattern a -> Pattern a)
 floatingMergeOperator =
   $(fromTidal "|**") <|>
   $(fromTidal "**|") <|>
   $(fromTidal "|**|")
 
-constParser :: Haskellish (a -> b -> a)
+constParser :: H (a -> b -> a)
 constParser = $(fromHaskell "const")
 
 instance Parse (Time -> Pattern a -> Pattern a) where
   parser =
     $(fromTidal "rotL") <|>
     $(fromTidal "rotR") <|>
-    (parser :: Haskellish (Time -> Time -> Pattern a -> Pattern a)) <*> parser
+    (parser :: H (Time -> Time -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse (Int -> Pattern a -> Pattern a) where
   parser = $(fromTidal "repeatCycles")
@@ -423,10 +426,10 @@ instance Parse ((Time,Time) -> Pattern a -> Pattern a) where
     $(fromTidal "zoom") <|>
     $(fromTidal "compressTo")
 
-pString_pInt_pString :: Haskellish (Pattern String -> Pattern Int -> Pattern String)
+pString_pInt_pString :: H (Pattern String -> Pattern Int -> Pattern String)
 pString_pInt_pString = $(fromTidal "samples")
 
-pTime_p_p :: Haskellish (Pattern Time -> Pattern a -> Pattern a)
+pTime_p_p :: H (Pattern Time -> Pattern a -> Pattern a)
 pTime_p_p =
     $(fromTidal "fast") <|>
     $(fromTidal "fastGap") <|>
@@ -442,9 +445,9 @@ pTime_p_p =
     $(fromTidal "swing") <|>
     $(fromTidal "<~") <|>
     $(fromTidal "~>") <|>
-    (parser :: Haskellish (Pattern Time -> Pattern Time -> Pattern a -> Pattern a)) <*> parser
+    (parser :: H (Pattern Time -> Pattern Time -> Pattern a -> Pattern a)) <*> parser
 
-pInt_p_p :: Haskellish (Pattern Int -> Pattern a -> Pattern a)
+pInt_p_p :: H (Pattern Int -> Pattern a -> Pattern a)
 pInt_p_p =
     $(fromTidal "iter") <|>
     $(fromTidal "iter'") <|>
@@ -455,41 +458,41 @@ pInt_p_p =
     $(fromTidal "scramble") <|>
     pInt_pInt_p_p <*> parser
 
-pInt_pOrd_pOrd :: Ord a => Haskellish (Pattern Int -> Pattern a -> Pattern a)
+pInt_pOrd_pOrd :: Ord a => H (Pattern Int -> Pattern a -> Pattern a)
 pInt_pOrd_pOrd = $(fromTidal "rot")
 
-pString_p_p :: Haskellish (Pattern String -> Pattern a -> Pattern a)
+pString_p_p :: H (Pattern String -> Pattern a -> Pattern a)
 pString_p_p = $(fromTidal "substruct")
 
-pDouble_p_p :: Haskellish (Pattern Double -> Pattern a -> Pattern a)
+pDouble_p_p :: H (Pattern Double -> Pattern a -> Pattern a)
 pDouble_p_p =
     $(fromTidal "degradeBy") <|>
     $(fromTidal "unDegradeBy") <|>
-    (parser :: Haskellish (Int -> Pattern Double -> Pattern a -> Pattern a)) <*> parser
+    (parser :: H (Int -> Pattern Double -> Pattern a -> Pattern a)) <*> parser
 
-pBool_p_p :: Haskellish (Pattern Bool -> Pattern a -> Pattern a)
+pBool_p_p :: H (Pattern Bool -> Pattern a -> Pattern a)
 pBool_p_p =
     $(fromTidal "mask") <|>
     $(fromTidal "struct")
 
 instance Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) => Parse ([Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
-  parser = (parser :: Haskellish (((Pattern a -> Pattern a) -> Pattern a -> Pattern a) -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
+  parser = (parser :: H (((Pattern a -> Pattern a) -> Pattern a -> Pattern a) -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
 
-lp_p_p :: Parse (Pattern a -> Pattern a -> Pattern a) => Haskellish ([Pattern a] -> Pattern a -> Pattern a)
-lp_p_p = (parser :: Haskellish ((Pattern a -> Pattern a -> Pattern a) -> [Pattern a] -> Pattern a -> Pattern a)) <*> parser
+lp_p_p :: Parse (Pattern a -> Pattern a -> Pattern a) => H ([Pattern a] -> Pattern a -> Pattern a)
+lp_p_p = (parser :: H ((Pattern a -> Pattern a -> Pattern a) -> [Pattern a] -> Pattern a -> Pattern a)) <*> parser
 
 
 instance Parse ([Pattern Double] -> Pattern a -> Pattern a) where
-  parser = (parser :: Haskellish ((Pattern Double -> Pattern a -> Pattern a) -> [Pattern Double] -> Pattern a -> Pattern a)) <*> pDouble_p_p
+  parser = (parser :: H ((Pattern Double -> Pattern a -> Pattern a) -> [Pattern Double] -> Pattern a -> Pattern a)) <*> pDouble_p_p
 instance Parse ([Pattern Time] -> Pattern a -> Pattern a) where
-  parser = (parser :: Haskellish ((Pattern Time -> Pattern a -> Pattern a) -> [Pattern Time] -> Pattern a -> Pattern a)) <*> pTime_p_p
+  parser = (parser :: H ((Pattern Time -> Pattern a -> Pattern a) -> [Pattern Time] -> Pattern a -> Pattern a)) <*> pTime_p_p
 instance Parse ([Pattern String] -> Pattern a -> Pattern a) where
-  parser = (parser :: Haskellish ((Pattern String -> Pattern a -> Pattern a) -> [Pattern String] -> Pattern a -> Pattern a)) <*> pString_p_p
+  parser = (parser :: H ((Pattern String -> Pattern a -> Pattern a) -> [Pattern String] -> Pattern a -> Pattern a)) <*> pString_p_p
 
-lpInt_p_p :: Haskellish ([Pattern Int] -> Pattern a -> Pattern a)
+lpInt_p_p :: H ([Pattern Int] -> Pattern a -> Pattern a)
 lpInt_p_p =
   $(fromTidal "distrib") <|>
-  (parser :: Haskellish ((Pattern Int -> Pattern a -> Pattern a) -> [Pattern Int] -> Pattern a -> Pattern a)) <*> pInt_p_p
+  (parser :: H ((Pattern Int -> Pattern a -> Pattern a) -> [Pattern Int] -> Pattern a -> Pattern a)) <*> pInt_p_p
 
 instance Parse ([Time] -> Pattern a -> Pattern a) where
   parser = $(fromTidal "spaceOut")
@@ -501,15 +504,15 @@ instance Parse (Pattern Int -> ControlPattern -> ControlPattern) where
     $(fromTidal "gap") <|>
     $(fromTidal "randslice") <|>
     $(fromTidal "spin") <|>
-    (parser :: Haskellish (Int -> Pattern Int -> ControlPattern -> ControlPattern)) <*> parser
+    (parser :: H (Int -> Pattern Int -> ControlPattern -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Double -> ControlPattern -> ControlPattern) where
-  parser = (parser :: Haskellish (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern)) <*> parser
+  parser = (parser :: H (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Time -> ControlPattern -> ControlPattern) where
   parser =
     $(fromTidal "hurry") <|>
-    (parser :: Haskellish (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
+    (parser :: H (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
 
 
 instance Parse ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern) where
@@ -530,7 +533,7 @@ instance Parse ((Pattern Time -> Pattern Time) -> Pattern Time -> Pattern Time) 
 instance Parse ((Pattern Double -> Pattern Double) -> Pattern Double -> Pattern Double) where
   parser = genericAppliedTransformations
 
-genericAppliedTransformations :: Haskellish ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)
+genericAppliedTransformations :: H ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)
 genericAppliedTransformations =
   $(fromHaskell "$") <|>
   $(fromTidal "sometimes") <|>
@@ -542,17 +545,17 @@ genericAppliedTransformations =
   $(fromTidal "always") <|>
   $(fromTidal "superimpose") <|>
   $(fromTidal "someCycles") <|>
-  (parser :: Haskellish (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: Haskellish (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: Haskellish (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: Haskellish ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: Haskellish ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: Haskellish (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: Haskellish (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: Haskellish (Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
+  (parser :: H (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: H (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: H (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: H ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: H ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: H (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: H (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: H (Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse ([a] -> Pattern Int -> Pattern a) where
-  parser = (parser :: Haskellish (Int -> [a] -> Pattern Int -> Pattern a)) <*> parser
+  parser = (parser :: H (Int -> [a] -> Pattern Int -> Pattern a)) <*> parser
 
 instance Parse (String -> Pattern Double -> ControlPattern) where
   parser = $(fromTidal "pF")
@@ -566,10 +569,10 @@ instance Parse (String -> Pattern String -> ControlPattern) where
 
 -- * -> * -> * -> *
 
-numTernaryTransformations :: Num a => Haskellish (Pattern a -> Pattern a -> Pattern a -> Pattern a)
+numTernaryTransformations :: Num a => H (Pattern a -> Pattern a -> Pattern a -> Pattern a)
 numTernaryTransformations = $(fromTidal "range")
 
-ordTernaryTransformations :: Ord a => Haskellish (Pattern a -> Pattern a -> Pattern a -> Pattern a)
+ordTernaryTransformations :: Ord a => H (Pattern a -> Pattern a -> Pattern a -> Pattern a)
 ordTernaryTransformations = $(fromTidal "clip")
 
 instance Parse (Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern) where
@@ -587,11 +590,11 @@ instance Parse (Pattern Bool -> Pattern a -> Pattern a -> Pattern a) where
 instance Parse (Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "while")
 
-pInt_pInt_p_p :: Haskellish (Pattern Int -> Pattern Int -> Pattern a -> Pattern a)
+pInt_pInt_p_p :: H (Pattern Int -> Pattern Int -> Pattern a -> Pattern a)
 pInt_pInt_p_p =
   $(fromTidal "euclid") <|>
   $(fromTidal "euclidInv") <|>
-  (parser :: Haskellish (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> parser
+  (parser :: H (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse (Int -> Pattern Double -> Pattern a -> Pattern a) where
   parser = $(fromTidal "degradeOverBy")
@@ -602,8 +605,8 @@ instance Parse ((a -> b -> Pattern c) -> [a] -> b -> Pattern c) where
     $(fromTidal "slowspread") <|>
     $(fromTidal "fastspread")
 
-pInt_p_p_p :: Haskellish (Pattern Int -> Pattern a -> Pattern a -> Pattern a)
-pInt_p_p_p = (parser :: Haskellish (Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a)) <*> parser
+pInt_p_p_p :: H (Pattern Int -> Pattern a -> Pattern a -> Pattern a)
+pInt_p_p_p = (parser :: H (Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern) where
   parser = $(fromTidal "striate'")
@@ -612,7 +615,7 @@ instance Parse (Int -> Pattern Int -> ControlPattern  -> ControlPattern) where
   parser = $(fromTidal "chew")
 
 instance Parse (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern) where
-  parser = (parser :: Haskellish (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
+  parser = (parser :: H (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser =
@@ -623,7 +626,7 @@ instance Parse (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern 
   parser =
     $(fromTidal "every") <|>
     $(fromTidal "plyWith") <|>
-    (parser :: Haskellish (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
+    (parser :: H (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser =
@@ -639,7 +642,7 @@ instance Parse ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern 
 instance Parse (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser =
     $(fromTidal "chunk") <|>
-    (parser :: Haskellish (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
+    (parser :: H (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "someCyclesBy")
@@ -654,7 +657,7 @@ instance Parse (Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern 
   parser = $(fromTidal "euclidFull")
 
 instance Parse (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a) where
-  parser = (parser :: Haskellish (Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> parser
+  parser = (parser :: H (Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern) where
   parser = $(fromTidal "stut")

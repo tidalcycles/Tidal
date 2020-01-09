@@ -37,6 +37,9 @@ s = sound
 cc :: Pattern String -> ControlPattern
 cc = grp [mF "ccn", mF "ccv"]
 
+nrpn :: Pattern String -> ControlPattern
+nrpn = grp [mI "nrpn", mI "val"]
+
 -- | Singular params
 
 pF :: String -> Pattern Double -> ControlPattern
@@ -173,6 +176,9 @@ dry = pF "dry"
 end :: Pattern Double -> ControlPattern
 end = pF "end"
 
+freq :: Pattern Double -> ControlPattern
+freq = pF "freq"
+
 -- | a pattern of numbers that specify volume. Values less than 1 make
 -- the sound quieter. Values greater than 1 make the sound louder. For
 -- the linear equivalent, see @amp@.
@@ -293,6 +299,13 @@ ophatdecay = pF "ophatdecay"
 -}
 orbit :: Pattern Int -> ControlPattern
 orbit = pI "orbit"
+
+overgain :: Pattern Double -> ControlPattern
+overgain = pF "overgain"
+
+overshape :: Pattern Double -> ControlPattern
+overshape = pF "overshape"
+
 -- | a pattern of numbers between 0 and 1, from left to right (assuming stereo), once round a circle (assuming multichannel)
 pan :: Pattern Double -> ControlPattern
 pan = pF "pan"
@@ -570,6 +583,20 @@ ccn :: Pattern Double -> ControlPattern
 ccn = pF "ccn"
 ccv :: Pattern Double -> ControlPattern
 ccv = pF "ccv"
+
+polyTouch :: Pattern Double -> ControlPattern
+polyTouch = pF "polyTouch"
+
+midibend :: Pattern Double -> ControlPattern
+midibend = pF "midibend"
+
+miditouch :: Pattern Double -> ControlPattern
+miditouch = pF "miditouch"
+
+nrpnn :: Pattern Int -> ControlPattern
+nrpnn = pI "nrpn"
+nrpnv :: Pattern Int -> ControlPattern
+nrpnv = pI "val"
 
 ctlNum :: Pattern Double -> ControlPattern
 ctlNum = pF "ctlNum"

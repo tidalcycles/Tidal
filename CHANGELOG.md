@@ -1,5 +1,20 @@
 # TidalCycles log of changes
 
+## 1.4.7 - Bleep
+
+	* Fix BootTidal.hs - make loadable in atom @bgold-cosmos
+	* More additions to tidal-parse @dktr0
+
+## 1.4.6 - Megatron
+
+	* Experimental ratio shorthand ref #573 @yaxu
+	* Store mininotation source location(s) in events ref #245 @yaxu
+	* Add more things to tidal-parse @dktr0 @yaxu
+	* Separate out haskell parser from tidal-parse into new hackage module called 'haskellish' @dktr0
+	* Support patterning polyrhythmic % steps in mininotation @yaxu
+	* Fixes to emacs plugin (tidal.el) @xmacex
+	* New parameters for freq, overgain, overshape, and missing midi params including the new nrpn ones @yaxu
+
 ## 1.4.5 - Porter Brook
 
 * Mini notation - `@` (and its alias `_`) now accepts rational relative durations. E.g. `a b@0.5 c d` to make `b` have a half step (that would be the same as `a@2 b c@2 c@d`). This can also be patterned `a b@<0.5 2> c d` @yaxu #435
