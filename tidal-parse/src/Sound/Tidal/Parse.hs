@@ -573,7 +573,7 @@ numTernaryTransformations :: Num a => H (Pattern a -> Pattern a -> Pattern a -> 
 numTernaryTransformations = $(fromTidal "range")
 
 ordTernaryTransformations :: Ord a => H (Pattern a -> Pattern a -> Pattern a -> Pattern a)
-ordTernaryTransformations = $(fromTidal "clip")
+ordTernaryTransformations = empty
 
 instance Parse (Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern) where
   parser = $(fromTidal "slice")
