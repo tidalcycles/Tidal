@@ -1,7 +1,7 @@
 module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale) where
 
+import Prelude hiding ((<*), (*>))
 import Data.Maybe
-
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
 
@@ -173,7 +173,7 @@ scale :: Num a => Pattern String -> Pattern Int -> Pattern a
 scale = getScale scaleTable
 
 getScale :: Num a => [(String, [a])] -> Pattern String -> Pattern Int -> Pattern a
-getScale table sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName table) n) <$> p <*> sp
+getScale table sp p = (\n scaleName -> noteInScale (fromMaybe [0] $ lookup scaleName table) n) <$> p <* sp
   where octave s x = x `div` length s
         noteInScale s x = (s !!! x) + fromIntegral (12 * octave s x)
 
