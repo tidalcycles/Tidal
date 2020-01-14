@@ -348,7 +348,9 @@ pDouble = wrapPos $ do f <- choice [intOrFloat, parseNote] <?> "float"
                       <|>
                          do c <- parseChord
                             return $ TPat_Stack $ map (TPat_Atom Nothing) c
-
+                      <|>
+                         do r <- pRatioChar
+                            return $ TPat_Atom Nothing r
 
 pBool :: MyParser (TPat Bool)
 pBool = wrapPos $ do oneOf "t1"
@@ -470,21 +472,23 @@ pRatio = do s <- sign
                          return (toRational ((read $ show n ++ "." ++ frac)  :: Double))
                       <|>
                       return (n%1)
-            c <- (ratioChar <|> return 1)
+            c <- (pRatioChar <|> return 1)
             return $ applySign s (result * c)
-         <|> ratioChar
-  where ratioChar = do char 'h'
-                       return $ 1%2
-                    <|> do char 'q'
-                           return $ 1%4
-                    <|> do char 'e'
-                           return $ 1%8
-                    <|> do char 's'
-                           return $ 1%16
-                    <|> do char 't'
-                           return $ 1%3
-                    <|> do char 'f'
-                           return $ 1%5
+         <|> pRatioChar
+
+pRatioChar :: Fractional a => MyParser a
+pRatioChar = do char 'h'
+                return $ 0.5
+             <|> do char 'q'
+                    return $ 0.25
+             <|> do char 'e'
+                    return $ 0.125
+             <|> do char 's'
+                    return $ 0.625
+             <|> do char 't'
+                    return $ 1/3
+             <|> do char 'f'
+                    return $ 0.25
 
 pRational :: MyParser (TPat Rational)
 pRational = wrapPos $ (TPat_Atom Nothing) <$> pRatio
