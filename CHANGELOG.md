@@ -1,6 +1,6 @@
 # TidalCycles log of changes
 
-## 1.4.8 - 
+## 1.4.8 - Limerick
         * Add ratio shorthand to floating point patterns @yaxu
         * Support fractional scales, add Arabic scales @quakehead
         * Additions to tidal-parse including support from overgain, overshape adn rot @dktr0
