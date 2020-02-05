@@ -1,5 +1,10 @@
 # TidalCycles log of changes
 
+## 1.4.8 - 
+        * Add ratio shorthand to floating point patterns @yaxu
+        * Support fractional scales, add Arabic scales @quakehead
+        * Additions to tidal-parse including support from overgain, overshape adn rot @dktr0
+        * Move prompt-cont setting to end of BootTidal.hs (older versions of Haskell crash out at this point) @ndr-brt
 ## 1.4.7 - Bleep
 
 	* Fix BootTidal.hs - make loadable in atom @bgold-cosmos
