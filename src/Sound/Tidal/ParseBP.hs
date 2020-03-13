@@ -244,7 +244,7 @@ intOrFloat =  do s   <- sign
                         )
 
 parseRhythm :: Parseable a => MyParser (TPat a) -> String -> Either ParseError (TPat a)
-parseRhythm f = runParser (pSequence f') (0 :: Int) ""
+parseRhythm f = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
   where f' = do f
                 <|> do symbol "~" <?> "rest"
                        return TPat_Silence

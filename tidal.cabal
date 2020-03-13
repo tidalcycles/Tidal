@@ -37,6 +37,7 @@ library
                        Sound.Tidal.ParseBP
                        Sound.Tidal.Pattern
                        Sound.Tidal.Scales
+                       Sound.Tidal.Show
                        Sound.Tidal.Simple
                        Sound.Tidal.Stream
                        Sound.Tidal.Tempo
