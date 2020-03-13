@@ -8,8 +8,7 @@ import Prelude hiding ((<*), (*>))
 
 import Data.List (sort)
 
-import Sound.Tidal.ParseBP (parseBP_E)
-import Sound.Tidal.Pattern
+import Sound.Tidal.Context
 
 import qualified Data.Map.Strict as Map
 
