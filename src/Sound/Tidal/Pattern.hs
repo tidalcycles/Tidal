@@ -139,9 +139,6 @@ data Context = Context {contextPosition :: [((Int, Int), (Int, Int))]}
 instance NFData Context where 
     rnf (Context c) = rnf c
 
-instance Show Context where
-  show (Context cs) = show cs
-
 combineContexts :: [Context] -> Context
 combineContexts = Context . concatMap contextPosition
 

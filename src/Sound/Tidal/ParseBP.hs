@@ -126,6 +126,14 @@ class Enumerable a where
   fromTo :: a -> a -> Pattern a
   fromThenTo :: a -> a -> a -> Pattern a
 
+instance Parseable Char where
+  tPatParser = pChar
+  doEuclid = euclidOff
+
+instance Enumerable Char where
+  fromTo = enumFromTo'
+  fromThenTo a b c = fastFromList [a,b,c]
+
 instance Parseable Double where
   tPatParser = pDouble
   doEuclid = euclidOff
@@ -323,8 +331,12 @@ pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
                 spaces -- TODO needed/wanted?
                 pMult $ TPat_Polyrhythm (Just $ TPat_Atom Nothing 1) ss
 
+
+pCharNum :: MyParser Char
+pCharNum = (letter <|> oneOf "0123456789") <?> "letter or number"
+
 pString :: MyParser String
-pString = do c <- (letter <|> oneOf "0123456789") <?> "charnum"
+pString = do c <- pCharNum <?> "charnum"
              cs <- many (letter <|> oneOf "0123456789:.-_") <?> "string"
              return (c:cs)
 
@@ -339,6 +351,9 @@ wrapPos p = do b <- getPosition
 
 pVocable :: MyParser (TPat String)
 pVocable = wrapPos $ (TPat_Atom Nothing) <$> pString
+
+pChar :: MyParser (TPat Char)
+pChar = wrapPos $ (TPat_Atom Nothing) <$> pCharNum
 
 pDouble :: MyParser (TPat Double)
 pDouble = wrapPos $ do f <- choice [intOrFloat, parseNote] <?> "float"

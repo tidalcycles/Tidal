@@ -10,11 +10,14 @@ import Data.Maybe (fromMaybe, isJust)
 
 import qualified Data.Map.Strict as Map
 
+instance (Show a) => Show (Pattern a) where
+  show = showPattern (Arc 0 1)
+
 showPattern :: Show a => Arc -> Pattern a -> String
 showPattern a p = intercalate "\n" $ map show $ queryArc p a
 
-instance (Show a) => Show (Pattern a) where
-  show = showPattern (Arc 0 1)
+instance Show Context where
+  show (Context cs) = show cs
 
 instance Show Value where
   show (VS s) = ('"':s) ++ "\""
@@ -98,20 +101,26 @@ stepcount :: Pattern a -> Int
 stepcount pat = fromIntegral $ eventSteps $ concatMap (\ev -> [start ev, stop ev]) $ map part $ filter eventHasOnset $ queryArc pat (Arc 0 1)
   where eventSteps xs = foldr lcm 1 $ map denominator xs
 
-draw :: Pattern String -> IO ()
-draw pat = putStrLn $ "\n" ++ (intercalate "\n" $ map drawLevel ls)
+data Render = Render Int String
+
+instance Show Render where
+  show (Render i render) | i <= 1024 = show i ++ " steps per cycle \n" ++ render
+                         | otherwise = show i ++ " steps per cycle, too many to render.."
+
+
+draw :: Pattern Char -> Render
+draw pat = Render s $ (intercalate "\n" $ map ((\x -> ('|':x) ++ "|") .drawLevel) ls)
   where ls = levelsWhole pat
         s = stepcount pat
         rs = toRational s
-        drawLevel :: [Event String] -> String
+        drawLevel :: [Event Char] -> String
         drawLevel [] = replicate s ' '
         drawLevel (e:es) = map f $ take s $ zip (drawLevel es ++ repeat ' ') (drawEvent e ++ repeat ' ')
         f (' ', x) = x
         f (x, _) = x
-        drawEvent :: Event String -> String
+        drawEvent :: Event Char -> String
         drawEvent ev = (replicate (floor $ rs * evStart) ' ')
-                       ++ value ev
-                       ++ (replicate ((floor $ rs * (evStop - evStart)) - 1) '-')
+                       ++ (value ev:(replicate ((floor $ rs * (evStop - evStart)) - 1) '-'))
           where evStart = start $ wholeOrPart ev
                 evStop = stop $ wholeOrPart ev
 
