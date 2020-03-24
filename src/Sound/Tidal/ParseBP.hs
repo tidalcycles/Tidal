@@ -499,7 +499,7 @@ pRatioChar = do char 'h'
              <|> do char 'e'
                     return $ 0.125
              <|> do char 's'
-                    return $ 0.625
+                    return $ 0.0625
              <|> do char 't'
                     return $ 1/3
              <|> do char 'f'
