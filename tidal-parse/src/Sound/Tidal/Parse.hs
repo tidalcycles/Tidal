@@ -644,7 +644,7 @@ instance Parse (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
     $(fromTidal "chunk") <|>
     (parser :: H (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
-instance Parse (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+instance Parse (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "someCyclesBy")
 
 instance Parse (Int -> [a] -> Pattern Int -> Pattern a) where
