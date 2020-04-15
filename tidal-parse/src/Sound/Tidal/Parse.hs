@@ -551,7 +551,6 @@ genericAppliedTransformations =
   (parser :: H ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
   (parser :: H ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
   (parser :: H (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: H (Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
   (parser :: H (Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse ([a] -> Pattern Int -> Pattern a) where
@@ -631,6 +630,7 @@ instance Parse (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern 
 instance Parse (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser =
     $(fromTidal "sometimesBy") <|>
+    $(fromTidal "someCyclesBy") <|>
     $(fromTidal "plyWith")
 
 instance Parse ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
@@ -643,9 +643,6 @@ instance Parse (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser =
     $(fromTidal "chunk") <|>
     (parser :: H (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
-
-instance Parse (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
-  parser = $(fromTidal "someCyclesBy")
 
 instance Parse (Int -> [a] -> Pattern Int -> Pattern a) where
   parser = $(fromTidal "fit")
