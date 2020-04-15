@@ -14,7 +14,31 @@ instance (Show a) => Show (Pattern a) where
   show = showPattern (Arc 0 1)
 
 showPattern :: Show a => Arc -> Pattern a -> String
-showPattern a p = intercalate "\n" $ map show $ queryArc p a
+showPattern a p = intercalate "\n" evStrings
+  where evs = map showEvent $ sortOn part $ queryArc p a
+        maxPartLength :: Int
+        maxPartLength = maximum $ map (length . fst) evs
+        evString :: (String, String) -> String
+        evString ev = ((replicate (maxPartLength - (length (fst ev))) ' ')
+                       ++ fst ev
+                       ++ snd ev
+                      )
+        evStrings = map evString evs
+
+showEvent :: Show a => Event a -> (String, String)
+showEvent (Event _ (Just (Arc ws we)) a@(Arc ps pe) e) =
+  (h ++ "(" ++ show a ++ ")" ++ t ++ "|", show e)
+  where h | ws == ps = ""
+          | otherwise = prettyRat ws ++ "-"
+        t | we == pe = ""
+          | otherwise = "-" ++ prettyRat we
+
+showEvent (Event _ Nothing a e) =
+  ("~" ++ show a ++ "~|", show e)
+
+-- Show everything, including event context
+showAll :: Show a => Arc -> Pattern a -> String
+showAll a p = intercalate "\n" $ map show $ sortOn part $ queryArc p a
 
 instance Show Context where
   show (Context cs) = show cs
@@ -34,14 +58,7 @@ instance {-# OVERLAPPING #-} Show Arc where
   show (Arc s e) = prettyRat s ++ ">" ++ prettyRat e
 
 instance {-# OVERLAPPING #-} Show a => Show (Event a) where
-  show (Event c (Just (Arc ws we)) a@(Arc ps pe) e) =
-    show c ++ h ++ "(" ++ show a ++ ")" ++ t ++ "|" ++ show e
-    where h | ws == ps = ""
-            | otherwise = prettyRat ws ++ "-"
-          t | we == pe = ""
-            | otherwise = "-" ++ prettyRat we
-  show (Event c Nothing a e) =
-    show c ++ "~" ++ show a ++ "~|" ++ show e
+  show e = show (context e) ++ ((\(a,b) -> a ++ b) $ showEvent e)
 
 prettyRat :: Rational -> String
 prettyRat r | unit == 0 && frac > 0 = showFrac (numerator frac) (denominator frac)
@@ -73,7 +90,7 @@ showFrac 1 10 = "⅒"
 showFrac n d = fromMaybe plain $ do n' <- up n
                                     d' <- down d
                                     return $ n' ++ d'
-  where plain = " " ++ show n ++ "/" ++ show d
+  where plain = show n ++ "/" ++ show d
         up 1 = Just "¹"
         up 2 = Just "²"
         up 3 = Just "³"
