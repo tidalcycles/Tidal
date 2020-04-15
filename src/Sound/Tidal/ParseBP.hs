@@ -492,8 +492,10 @@ pRatio = do s <- sign
          <|> pRatioChar
 
 pRatioChar :: Fractional a => MyParser a
-pRatioChar = do char 'h'
-                return $ 0.5
+pRatioChar = do char 'w'
+                return $ 1
+             <|> do char 'h'
+                    return $ 0.5
              <|> do char 'q'
                     return $ 0.25
              <|> do char 'e'
@@ -503,7 +505,7 @@ pRatioChar = do char 'h'
              <|> do char 't'
                     return $ 1/3
              <|> do char 'f'
-                    return $ 0.25
+                    return $ 0.2
 
 pRational :: MyParser (TPat Rational)
 pRational = wrapPos $ (TPat_Atom Nothing) <$> pRatio
