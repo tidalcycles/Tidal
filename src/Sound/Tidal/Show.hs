@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, RecordWildCards #-}
 
-module Sound.Tidal.Show (show, draw) where
+module Sound.Tidal.Show (show, draw, drawLine) where
 
 import Sound.Tidal.Pattern
 
@@ -118,16 +118,34 @@ stepcount :: Pattern a -> Int
 stepcount pat = fromIntegral $ eventSteps $ concatMap (\ev -> [start ev, stop ev]) $ map part $ filter eventHasOnset $ queryArc pat (Arc 0 1)
   where eventSteps xs = foldr lcm 1 $ map denominator xs
 
-data Render = Render Int String
+data Render = Render Int Int String
 
 instance Show Render where
-  show (Render i render) | i <= 1024 = "\n" ++ show i ++ " steps per cycle \n" ++ render
-                         | otherwise = show i ++ " steps per cycle, too many to render.."
+  show (Render cyc i render) | i <= 1024 = "\nDrawing " ++ show cyc ++ " cycles:\n" ++ render
+                             | otherwise = show i ++ " too long to render.."
+
+
+drawLine :: Pattern Char -> Render
+drawLine pat = joinCycles 78 $ drawCycles pat
+  where
+    drawCycles :: Pattern Char -> [Render]
+    drawCycles pat' = (draw pat'):(drawCycles $ rotL 1 pat')
+    joinCycles :: Int -> [Render] -> Render
+    joinCycles n ((Render cyc l s):cs) | l > n = Render 0 0 ""
+                                       | otherwise = Render (cyc+cyc') (l + l' + 1) $ intercalate "\n" $ map (\(a,b) -> a ++ b) lineZip
+      where 
+        (Render cyc' l' s') = joinCycles (n-l-1) cs
+        linesN = max (length $ lines s) (length $ lines s')
+        lineZip = take linesN $
+          zip (lines s ++ (repeat $ replicate l ' '))
+              (lines s' ++ (repeat $ replicate l' ' '))
+        
+      -- where maximum (map (length . head . (++ [""]) . lines) cs)
 
 
 draw :: Pattern Char -> Render
-draw pat = Render s $ (intercalate "\n" $ map ((\x -> ('|':x) ++ "|") .drawLevel) ls)
-  where ls = levelsWhole pat
+draw pat = Render 1 s $ (intercalate "\n" $ map ((\x -> ('|':x)) .drawLevel) ls)
+  where ls = levels pat
         s = stepcount pat
         rs = toRational s
         drawLevel :: [Event Char] -> String
@@ -163,3 +181,16 @@ fits (Event _ _ part' _) events = not $ any (\Event{..} -> isJust $ subArc part'
 
 levelsWhole :: Eq a => Pattern a -> [[Event a]]
 levelsWhole pat = arrangeEventsWhole $ sortOn' ((\Arc{..} -> 0 - (stop - start)) . wholeOrPart) (defragParts $ queryArc pat (Arc 0 1))
+
+addEvent :: Event b -> [[Event b]] -> [[Event b]]
+addEvent e [] = [[e]]
+addEvent e (level:ls)
+    | fits e level = (e:level) : ls
+    | otherwise = level : addEvent e ls
+
+arrangeEvents :: [Event b] -> [[Event b]]
+arrangeEvents = foldr addEvent []
+
+levels :: Eq a => Pattern a -> [[Event a]]
+-- levels pat = arrangeEvents $ sortOn' ((\Arc{..} -> stop - start) . part) (defragParts $ queryArc pat (Arc 0 1))
+levels pat = arrangeEvents $ reverse $ defragParts $ queryArc pat (Arc 0 1)
