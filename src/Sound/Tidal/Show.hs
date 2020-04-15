@@ -104,7 +104,7 @@ stepcount pat = fromIntegral $ eventSteps $ concatMap (\ev -> [start ev, stop ev
 data Render = Render Int String
 
 instance Show Render where
-  show (Render i render) | i <= 1024 = show i ++ " steps per cycle \n" ++ render
+  show (Render i render) | i <= 1024 = "\n" ++ show i ++ " steps per cycle \n" ++ render
                          | otherwise = show i ++ " steps per cycle, too many to render.."
 
 
