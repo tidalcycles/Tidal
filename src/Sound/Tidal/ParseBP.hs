@@ -126,6 +126,14 @@ class Enumerable a where
   fromTo :: a -> a -> Pattern a
   fromThenTo :: a -> a -> a -> Pattern a
 
+instance Parseable Char where
+  tPatParser = pChar
+  doEuclid = euclidOff
+
+instance Enumerable Char where
+  fromTo = enumFromTo'
+  fromThenTo a b c = fastFromList [a,b,c]
+
 instance Parseable Double where
   tPatParser = pDouble
   doEuclid = euclidOff
@@ -244,7 +252,7 @@ intOrFloat =  do s   <- sign
                         )
 
 parseRhythm :: Parseable a => MyParser (TPat a) -> String -> Either ParseError (TPat a)
-parseRhythm f = runParser (pSequence f') (0 :: Int) ""
+parseRhythm f = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
   where f' = do f
                 <|> do symbol "~" <?> "rest"
                        return TPat_Silence
@@ -323,8 +331,12 @@ pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
                 spaces -- TODO needed/wanted?
                 pMult $ TPat_Polyrhythm (Just $ TPat_Atom Nothing 1) ss
 
+
+pCharNum :: MyParser Char
+pCharNum = (letter <|> oneOf "0123456789") <?> "letter or number"
+
 pString :: MyParser String
-pString = do c <- (letter <|> oneOf "0123456789") <?> "charnum"
+pString = do c <- pCharNum <?> "charnum"
              cs <- many (letter <|> oneOf "0123456789:.-_") <?> "string"
              return (c:cs)
 
@@ -340,6 +352,9 @@ wrapPos p = do b <- getPosition
 pVocable :: MyParser (TPat String)
 pVocable = wrapPos $ (TPat_Atom Nothing) <$> pString
 
+pChar :: MyParser (TPat Char)
+pChar = wrapPos $ (TPat_Atom Nothing) <$> pCharNum
+
 pDouble :: MyParser (TPat Double)
 pDouble = wrapPos $ do f <- choice [intOrFloat, parseNote] <?> "float"
                        do c <- parseChord
@@ -348,7 +363,9 @@ pDouble = wrapPos $ do f <- choice [intOrFloat, parseNote] <?> "float"
                       <|>
                          do c <- parseChord
                             return $ TPat_Stack $ map (TPat_Atom Nothing) c
-
+                      <|>
+                         do r <- pRatioChar
+                            return $ TPat_Atom Nothing r
 
 pBool :: MyParser (TPat Bool)
 pBool = wrapPos $ do oneOf "t1"
@@ -470,21 +487,25 @@ pRatio = do s <- sign
                          return (toRational ((read $ show n ++ "." ++ frac)  :: Double))
                       <|>
                       return (n%1)
-            c <- (ratioChar <|> return 1)
+            c <- (pRatioChar <|> return 1)
             return $ applySign s (result * c)
-         <|> ratioChar
-  where ratioChar = do char 'h'
-                       return $ 1%2
-                    <|> do char 'q'
-                           return $ 1%4
-                    <|> do char 'e'
-                           return $ 1%8
-                    <|> do char 's'
-                           return $ 1%16
-                    <|> do char 't'
-                           return $ 1%3
-                    <|> do char 'f'
-                           return $ 1%5
+         <|> pRatioChar
+
+pRatioChar :: Fractional a => MyParser a
+pRatioChar = do char 'w'
+                return $ 1
+             <|> do char 'h'
+                    return $ 0.5
+             <|> do char 'q'
+                    return $ 0.25
+             <|> do char 'e'
+                    return $ 0.125
+             <|> do char 's'
+                    return $ 0.0625
+             <|> do char 't'
+                    return $ 1/3
+             <|> do char 'f'
+                    return $ 0.2
 
 pRational :: MyParser (TPat Rational)
 pRational = wrapPos $ (TPat_Atom Nothing) <$> pRatio

@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, TypeSynonymInstances #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -9,10 +9,9 @@ import           Prelude hiding ((<*), (*>))
 import           Control.Applicative (liftA2)
 --import           Data.Bifunctor (Bifunctor(..))
 import           Data.Data (Data) -- toConstr
-import           Data.List (delete, findIndex, sort, intercalate)
+import           Data.List (delete, findIndex, sort)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (isJust, fromJust, catMaybes, fromMaybe, mapMaybe)
-import           Data.Ratio (numerator, denominator)
+import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
 import           Data.Typeable (Typeable)
 import           Control.DeepSeq (NFData(rnf))
 import           Data.Word (Word8)
@@ -50,9 +49,6 @@ type Arc = ArcF Time
 instance NFData a => 
   NFData (ArcF a) where 
     rnf (Arc s e) = rnf s `seq` rnf e
-
-instance {-# OVERLAPPING #-} Show Arc where
-  show (Arc s e) = prettyRat s ++ ">" ++ prettyRat e
 
 instance Num a => Num (ArcF a) where
   negate      = fmap negate
@@ -142,9 +138,6 @@ data Context = Context {contextPosition :: [((Int, Int), (Int, Int))]}
 instance NFData Context where 
     rnf (Context c) = rnf c
 
-instance Show Context where
-  show (Context cs) = show cs
-
 combineContexts :: [Context] -> Context
 combineContexts = Context . concatMap contextPosition
 
@@ -178,15 +171,6 @@ instance (NFData a, NFData b) =>
   bimap f g (Event w p e) = Event (f w) (f p) (g e)
 -}
 
-instance {-# OVERLAPPING #-} Show a => Show (Event a) where
-  show (Event c (Just (Arc ws we)) a@(Arc ps pe) e) =
-    show c ++ h ++ "(" ++ show a ++ ")" ++ t ++ "|" ++ show e
-    where h | ws == ps = ""
-            | otherwise = prettyRat ws ++ "-"
-          t | we == pe = ""
-            | otherwise = "-" ++ prettyRat we
-  show (Event c Nothing a e) =
-    show c ++ "~" ++ show a ++ "~|" ++ show e
 
 isAnalog :: Event a -> Bool
 isAnalog (Event {whole = Nothing}) = True
@@ -607,77 +591,6 @@ instance Num ControlMap where
 instance Fractional ControlMap where
   recip        = fmap (applyFIS recip id id)
   fromRational = Map.singleton "speed" . VF . fromRational
-
-showPattern :: Show a => Arc -> Pattern a -> String
-showPattern a p = intercalate "\n" $ map show $ queryArc p a
-
-instance (Show a) => Show (Pattern a) where
-  show = showPattern (Arc 0 1)
-
-instance Show Value where
-  show (VS s) = ('"':s) ++ "\""
-  show (VI i) = show i
-  show (VF f) = show f ++ "f"
-  show (VR r) = show r ++ "r"
-  show (VB b) = show b
-  show (VX xs) = show xs
-
-instance {-# OVERLAPPING #-} Show ControlMap where
-  show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
-
-prettyRat :: Rational -> String
-prettyRat r | unit == 0 && frac > 0 = showFrac (numerator frac) (denominator frac)
-            | otherwise =  show unit ++ showFrac (numerator frac) (denominator frac)
-  where unit = floor r :: Int
-        frac = r - toRational unit
-
-showFrac :: Integer -> Integer -> String
-showFrac 0 _ = ""
-showFrac 1 2 = "½"
-showFrac 1 3 = "⅓"
-showFrac 2 3 = "⅔"
-showFrac 1 4 = "¼"
-showFrac 3 4 = "¾"
-showFrac 1 5 = "⅕"
-showFrac 2 5 = "⅖"
-showFrac 3 5 = "⅗"
-showFrac 4 5 = "⅘"
-showFrac 1 6 = "⅙"
-showFrac 5 6 = "⅚"
-showFrac 1 7 = "⅐"
-showFrac 1 8 = "⅛"
-showFrac 3 8 = "⅜"
-showFrac 5 8 = "⅝"
-showFrac 7 8 = "⅞"
-showFrac 1 9 = "⅑"
-showFrac 1 10 = "⅒"
-
-showFrac n d = fromMaybe plain $ do n' <- up n
-                                    d' <- down d
-                                    return $ n' ++ d'
-  where plain = " " ++ show n ++ "/" ++ show d
-        up 1 = Just "¹"
-        up 2 = Just "²"
-        up 3 = Just "³"
-        up 4 = Just "⁴"
-        up 5 = Just "⁵"
-        up 6 = Just "⁶"
-        up 7 = Just "⁷"
-        up 8 = Just "⁸"
-        up 9 = Just "⁹"
-        up 0 = Just "⁰"
-        up _ = Nothing
-        down 1 = Just "₁"
-        down 2 = Just "₂"
-        down 3 = Just "₃"
-        down 4 = Just "₄"
-        down 5 = Just "₅"
-        down 6 = Just "₆"
-        down 7 = Just "₇"
-        down 8 = Just "₈"
-        down 9 = Just "₉"
-        down 0 = Just "₀"
-        down _ = Nothing
 
 ------------------------------------------------------------------------
 -- * Internal functions

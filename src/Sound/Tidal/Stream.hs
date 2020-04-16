@@ -25,6 +25,7 @@ import qualified Sound.Tidal.Tempo as T
 -- import qualified Sound.OSC.Datum as O
 import           Data.List (sortOn)
 import           System.Random (getStdRandom, randomR)
+import           Sound.Tidal.Show ()
 
 data TimeStamp = BundleStamp | MessageStamp | NoStamp
  deriving (Eq, Show)

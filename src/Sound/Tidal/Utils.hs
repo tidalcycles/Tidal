@@ -53,9 +53,8 @@ nth 0 (x : _)  = Just x
 nth n (_ : xs) = nth (n - 1) xs
 
 accumulate :: Num t => [t] -> [t]
-accumulate = accumulate' 0
-  where accumulate' _ [] = []
-        accumulate' n (a:xs) = (n+a) : accumulate' (n+a) xs
+accumulate [] = []
+accumulate (x:xs) = scanl (+) x xs
 
 {- | enumerate a list of things
 
