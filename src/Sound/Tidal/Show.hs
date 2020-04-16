@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, RecordWildCards #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Sound.Tidal.Show (show, draw, drawLine) where
+module Sound.Tidal.Show (show, showAll, draw, drawLine) where
 
 import Sound.Tidal.Pattern
 
@@ -134,6 +135,7 @@ drawLineSz sz pat = joinCycles sz $ drawCycles pat
     drawCycles :: Pattern Char -> [Render]
     drawCycles pat' = (draw pat'):(drawCycles $ rotL 1 pat')
     joinCycles :: Int -> [Render] -> Render
+    joinCycles _ [] = Render 0 0 ""
     joinCycles n ((Render cyc l s):cs) | l > n = Render 0 0 ""
                                        | otherwise = Render (cyc+cyc') (l + l' + 1) $ intercalate "\n" $ map (\(a,b) -> a ++ b) lineZip
       where 
@@ -162,6 +164,7 @@ draw pat = Render 1 s $ (intercalate "\n" $ map ((\x -> ('|':x)) .drawLevel) ls)
           where evStart = start $ wholeOrPart ev
                 evStop = stop $ wholeOrPart ev
 
+{-
 fitsWhole :: Event b -> [Event b] -> Bool
 fitsWhole event events =
   not $ any (\event' -> isJust $ subArc (wholeOrPart event) (wholeOrPart event')) events
@@ -176,14 +179,15 @@ addEventWhole e (level:ls)
 arrangeEventsWhole :: [Event b] -> [[Event b]]
 arrangeEventsWhole = foldr addEventWhole []
 
+levelsWhole :: Eq a => Pattern a -> [[Event a]]
+levelsWhole pat = arrangeEventsWhole $ sortOn' ((\Arc{..} -> 0 - (stop - start)) . wholeOrPart) (defragParts $ queryArc pat (Arc 0 1))
+
 sortOn' :: Ord a => (b -> a) -> [b] -> [b]
 sortOn' f = map snd . sortOn fst . map (\x -> let y = f x in y `seq` (y, x))
+-}
 
 fits :: Event b -> [Event b] -> Bool
 fits (Event _ _ part' _) events = not $ any (\Event{..} -> isJust $ subArc part' part) events
-
-levelsWhole :: Eq a => Pattern a -> [[Event a]]
-levelsWhole pat = arrangeEventsWhole $ sortOn' ((\Arc{..} -> 0 - (stop - start)) . wholeOrPart) (defragParts $ queryArc pat (Arc 0 1))
 
 addEvent :: Event b -> [[Event b]] -> [[Event b]]
 addEvent e [] = [[e]]

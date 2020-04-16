@@ -9,10 +9,9 @@ import           Prelude hiding ((<*), (*>))
 import           Control.Applicative (liftA2)
 --import           Data.Bifunctor (Bifunctor(..))
 import           Data.Data (Data) -- toConstr
-import           Data.List (delete, findIndex, sort, intercalate)
+import           Data.List (delete, findIndex, sort)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (isJust, fromJust, catMaybes, fromMaybe, mapMaybe)
-import           Data.Ratio (numerator, denominator)
+import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
 import           Data.Typeable (Typeable)
 import           Control.DeepSeq (NFData(rnf))
 import           Data.Word (Word8)
