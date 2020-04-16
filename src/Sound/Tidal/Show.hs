@@ -121,12 +121,15 @@ stepcount pat = fromIntegral $ eventSteps $ concatMap (\ev -> [start ev, stop ev
 data Render = Render Int Int String
 
 instance Show Render where
-  show (Render cyc i render) | i <= 1024 = "\nDrawing " ++ show cyc ++ " cycles:\n" ++ render
-                             | otherwise = show i ++ " too long to render.."
+  show (Render cyc i render) | i <= 1024 = "\n[" ++ show cyc ++ (if cyc == 1 then " cycle" else " cycles") ++ "]\n" ++ render
+                             | otherwise = "That pattern is too complex to draw."
 
 
 drawLine :: Pattern Char -> Render
-drawLine pat = joinCycles 78 $ drawCycles pat
+drawLine = drawLineSz 78
+
+drawLineSz :: Int -> Pattern Char -> Render
+drawLineSz sz pat = joinCycles sz $ drawCycles pat
   where
     drawCycles :: Pattern Char -> [Render]
     drawCycles pat' = (draw pat'):(drawCycles $ rotL 1 pat')
