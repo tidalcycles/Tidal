@@ -235,7 +235,9 @@ instance Parse ([Pattern a] -> Pattern a) where
     $(fromTidal "fastcat") <|> $(fromTidal "fastCat") <|>
     $(fromTidal "slowcat") <|> $(fromTidal "slowCat") <|>
     $(fromTidal "cat") <|>
-    $(fromTidal "randcat")
+    $(fromTidal "randcat") <|>
+    (parser :: H (Pattern Double -> [Pattern a] -> Pattern a)) <*> parser <|>
+    (parser :: H (Pattern Int -> [Pattern a] -> Pattern a)) <*> parser
 
 instance Parse ([(Pattern a, Double)] -> Pattern a) where
   parser = $(fromTidal "wrandcat")
@@ -456,6 +458,7 @@ pInt_p_p =
     $(fromTidal "slowstripe") <|>
     $(fromTidal "shuffle") <|>
     $(fromTidal "scramble") <|>
+    int_pInt_p_p <*> parser <|>
     pInt_pInt_p_p <*> parser
 
 pInt_pOrd_pOrd :: Ord a => H (Pattern Int -> Pattern a -> Pattern a)
@@ -476,7 +479,9 @@ pBool_p_p =
     $(fromTidal "struct")
 
 instance Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) => Parse ([Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
-  parser = (parser :: H (((Pattern a -> Pattern a) -> Pattern a -> Pattern a) -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
+  parser =
+    (parser :: H (((Pattern a -> Pattern a) -> Pattern a -> Pattern a) -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: H (Pattern Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
 
 lp_p_p :: Parse (Pattern a -> Pattern a -> Pattern a) => H ([Pattern a] -> Pattern a -> Pattern a)
 lp_p_p = (parser :: H ((Pattern a -> Pattern a -> Pattern a) -> [Pattern a] -> Pattern a -> Pattern a)) <*> parser
@@ -504,7 +509,8 @@ instance Parse (Pattern Int -> ControlPattern -> ControlPattern) where
     $(fromTidal "gap") <|>
     $(fromTidal "randslice") <|>
     $(fromTidal "spin") <|>
-    (parser :: H (Int -> Pattern Int -> ControlPattern -> ControlPattern)) <*> parser
+    (parser :: H (Int -> Pattern Int -> ControlPattern -> ControlPattern)) <*> parser <|>
+    (parser :: H (Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Double -> ControlPattern -> ControlPattern) where
   parser = (parser :: H (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern)) <*> parser
@@ -565,6 +571,12 @@ instance Parse (String -> Pattern Int -> ControlPattern) where
 instance Parse (String -> Pattern String -> ControlPattern) where
   parser = $(fromTidal "pS")
 
+instance Parse (Pattern Double -> [Pattern a] -> Pattern a) where
+  parser = $(fromTidal "select")
+
+instance Parse (Pattern Int -> [Pattern a] -> Pattern a) where
+  parser = $(fromTidal "squeeze")
+
 
 -- * -> * -> * -> *
 
@@ -589,6 +601,10 @@ instance Parse (Pattern Bool -> Pattern a -> Pattern a -> Pattern a) where
 instance Parse (Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "while")
 
+int_pInt_p_p :: H (Int -> Pattern Int -> Pattern a -> Pattern a)
+int_pInt_p_p =
+  $(fromTidal "bite")
+
 pInt_pInt_p_p :: H (Pattern Int -> Pattern Int -> Pattern a -> Pattern a)
 pInt_pInt_p_p =
   $(fromTidal "euclid") <|>
@@ -610,8 +626,10 @@ pInt_p_p_p = (parser :: H (Pattern Int -> Pattern Int -> Pattern a -> Pattern a 
 instance Parse (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern) where
   parser = $(fromTidal "striate'")
 
-instance Parse (Int -> Pattern Int -> ControlPattern  -> ControlPattern) where
-  parser = $(fromTidal "chew")
+instance Parse (Int -> Pattern Int -> ControlPattern -> ControlPattern) where
+  parser =
+    $(fromTidal "chew") <|>
+    $(fromTidal "splice")
 
 instance Parse (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern) where
   parser = (parser :: H (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
@@ -646,6 +664,9 @@ instance Parse (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
 
 instance Parse (Int -> [a] -> Pattern Int -> Pattern a) where
   parser = $(fromTidal "fit")
+
+instance Parse (Pattern Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "pickF")
 
 
 -- * -> * -> * -> * -> *

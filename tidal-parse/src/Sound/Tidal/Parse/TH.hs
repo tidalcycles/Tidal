@@ -20,12 +20,3 @@ fromHaskell x = do
   let y = return (VarE $ mkName $ x)
   let z = appE [|reserved|] $ return (LitE $ StringL x)
   uInfixE y [|(<$)|] z
-
--- given the name of a Tidal function, get info about it
-reifyTidal :: String -> Q Info
-reifyTidal x = reify (mkName $ "T." ++ x)
-
--- given a list of names of Tidal functions, make a map of that info
--- eg. as a splice that becomes a String: $(reifyTidals ["s","n","jux"] >>= (stringE . show))
-reifyTidals :: [String] -> Q (Map String Info)
-reifyTidals = sequence . fromList . fmap (\x -> (x,reifyTidal x))
