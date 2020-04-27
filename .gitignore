@@ -11,6 +11,7 @@ cabal
 *.dyn_o
 .stack-work
 .DS_Store
+.ghc.environment.*
 
 # text editor temp files
 *~
