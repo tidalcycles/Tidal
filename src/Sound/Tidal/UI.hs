@@ -39,21 +39,21 @@ xorwise x =
 
 -- stretch 300 cycles over the range of [0,2**29 == 536870912) then apply the xorshift algorithm
 timeToIntSeed :: RealFrac a => a -> Int
-timeToIntSeed = xorwise . truncate . (* 536870912) . snd . properFraction . (/ 300)
+timeToIntSeed = xorwise . truncate . (* 536870912) . snd . (properFraction :: (RealFrac a => a -> (Int,a))) . (/ 300)
 
-intSeedToDouble :: Int -> Double
-intSeedToDouble = (/ 536870912) . realToFrac . (`mod` 536870912)
+intSeedToRand :: Fractional a => Int -> a
+intSeedToRand = (/ 536870912) . realToFrac . (`mod` 536870912)
 
-timeToRand :: RealFrac a => a -> Double
-timeToRand = intSeedToDouble . timeToIntSeed
+timeToRand :: (RealFrac a, Fractional b) => a -> b
+timeToRand = intSeedToRand . timeToIntSeed
 
-timeToRands :: RealFrac a => a -> Int -> [Double]
+timeToRands :: (RealFrac a, Fractional b) => a -> Int -> [b]
 timeToRands t n = timeToRands' (timeToIntSeed t) n
 
-timeToRands' :: Int -> Int -> [Double]
+timeToRands' :: Fractional a => Int -> Int -> [a]
 timeToRands' seed n
   | n <= 0 = []
-  | otherwise = (intSeedToDouble seed) : (timeToRands' (xorwise seed) (n-1))
+  | otherwise = (intSeedToRand seed) : (timeToRands' (xorwise seed) (n-1))
 
 {-|
 
@@ -91,7 +91,7 @@ jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 @
 -}
 rand :: Fractional a => Pattern a
-rand = Pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ timeToRand $ (e + s)/2)])
+rand = Pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ (timeToRand ((e + s)/2) :: Double))])
 
 {- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:
@@ -1309,7 +1309,7 @@ randrun n' =
   splitQueries $ Pattern (\(State a@(Arc s _) _) -> events a $ sam s)
   where events a seed = mapMaybe toEv $ zip arcs shuffled
           where shuffled = map snd $ sortOn fst $ zip rs [0 .. (n'-1)]
-                rs = timeToRands seed n'
+                rs = timeToRands seed n' :: [Double]
                 arcs = zipWith Arc fractions (tail fractions)
                 fractions = map (+ (sam $ start a)) [0, 1 / fromIntegral n' .. 1]
                 toEv (a',v) = do a'' <- subArc a a'
