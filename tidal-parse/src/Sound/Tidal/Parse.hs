@@ -518,6 +518,7 @@ instance Parse (Pattern Double -> ControlPattern -> ControlPattern) where
 instance Parse (Pattern Time -> ControlPattern -> ControlPattern) where
   parser =
     $(fromTidal "hurry") <|>
+    $(fromTidal "loopAt") <|>
     (parser :: H (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
 
 
