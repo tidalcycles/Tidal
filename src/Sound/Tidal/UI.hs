@@ -273,7 +273,7 @@ always = id
 {- | @someCyclesBy@ is a cycle-by-cycle version of @sometimesBy@. It has a
 `someCycles = someCyclesBy 0.5` alias -}
 someCyclesBy :: Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-someCyclesBy pd f p = do {d <- pd; _someCyclesBy d f p}
+someCyclesBy pd f p = tParam (\d p -> _someCyclesBy d f p) pd p
 
 _someCyclesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _someCyclesBy x = when test
