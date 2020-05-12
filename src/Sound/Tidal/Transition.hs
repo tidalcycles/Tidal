@@ -28,7 +28,6 @@ transition stream historyFlag f patId !pat =
      pat' <- transition' $ appendPat (not historyFlag) (history playState)
      let pMap' = Map.insert (show patId) (playState {pattern = pat'}) pMap
      putMVar (sPMapMV stream) pMap'
-     calcOutput stream
      return ()
   where
     appendPat flag = if flag then (pat:) else id
