@@ -43,6 +43,7 @@ data Cx = Cx {cxTarget :: Target,
               cxUDP :: O.UDP,
               cxOSCs :: [OSC]
              }
+  deriving (Show)
 
 data StampStyle = BundleStamp
                 | MessageStamp
@@ -84,7 +85,7 @@ superdirtTarget :: Target
 superdirtTarget = Target {name = "SuperDirt",
                           hostname = "127.0.0.1",
                           port = 57120,
-                          latency = 0.02,
+                          latency = 0.2,
                           window = Nothing,
                           schedule = Pre BundleStamp
                          }
@@ -139,14 +140,36 @@ dirtShape = OSC "/play" $ ArgList [("sec", Just $ VI 0),
                                    ("id", Just $ VI 0)
                                   ]
 
-startStream :: Config -> [(Target, [OSC])] -> MVar StateMap -> IO (MVar PlayMap, MVar T.Tempo, [Cx])
-startStream config oscmap sMapMV
+startStream :: Config -> [(Target, [OSC])] -> IO Stream
+startStream config oscmap 
   = do cxs <- mapM (\(target, os) -> do u <- O.openUDP (hostname target) (port target)
                                         return $ Cx {cxUDP = u, cxTarget = target, cxOSCs = os}
                    ) oscmap
+
+       sMapMV <- newMVar Map.empty
        pMapMV <- newMVar Map.empty
+       globalFMV <- newMVar id
        (tempoMV, _) <- T.clocked config $ onTick config sMapMV pMapMV cxs
-       return (pMapMV, tempoMV, cxs)
+       listenTid <- ctrlListen sMapMV config
+
+       return $ Stream {sConfig = config,
+                        sInput = sMapMV,
+                        sListenTid = listenTid,
+                        sPMapMV = pMapMV,
+                        sTempoMV = tempoMV,
+                        sGlobalFMV = globalFMV,
+                        sCxs = cxs
+                       }
+{-
+startTidal :: Target -> Config -> IO Stream
+startTidal target config = startMulti [target] config
+
+startMulti :: [Target] -> Config -> IO Stream
+startMulti targets config =
+  do (pMapMV, tempoMV, cxs) <- startStream config sMapMV targets
+     
+-}
+
 
 toDatum :: Value -> O.Datum
 toDatum (VF x) = O.float x
@@ -159,7 +182,12 @@ toDatum (VX xs) = O.Blob $ O.blob_pack xs
 
 toData :: OSC -> Event ControlMap -> Maybe [O.Datum]
 toData (OSC {args = ArgList as}) e = fmap (fmap toDatum) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
-toData _ e = Just $ concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ value e
+toData (OSC {args = Named rqrd}) e
+  | hasRequired rqrd = Just $ concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ value e
+  | otherwise = Nothing
+  where hasRequired [] = True
+        hasRequired xs = null $ filter (not . (`elem` ks)) xs
+        ks = Map.keys (value e)
 
 substitutePath :: String -> ControlMap -> String
 substitutePath path cm = parse path
@@ -272,8 +300,6 @@ onTick config sMapMV pMapMV cxs tempoMV st =
          es = sortOn (start . part) $ filterOns $ query pat (State {arc = T.nowArc st, controls = sMap'})
          -- TODO onset is calculated in toOSC as well..
          on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
-         -- TODO, preserve nudge and cps from event controlmap
-         -- eventNudge e = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
          processCps :: T.Tempo -> [Event ControlMap] -> ([(T.Tempo, Event ControlMap)], T.Tempo)
          processCps t [] = ([], t)
          -- If an event has a tempo change, that affects the following events..
@@ -284,12 +310,13 @@ onTick config sMapMV pMapMV cxs tempoMV st =
                  (es', t'') = processCps t' evs
          latency target = latency target + cFrameTimespan config + T.nudged tempo
          (tes, tempo') = processCps tempo es
-     mapM_ (\(Cx target udp oscs) ->
+     -- putStrLn $ "processing " ++ (show tes)
+     mapM_ (\cx@(Cx target _ oscs) ->
               (do let ms = concatMap (\(t, e) -> if ((on e t) < frameEnd)
                                                  then catMaybes $ map (toOSC e tempo) oscs
                                                  else []
                                      ) tes
-                  E.catch (mapM_ (send target (latency target) udp) ms)
+                  E.catch (mapM_ (send cx) ms)
               )
               (\(e ::E.SomeException)
                 -> putStrLn $ "Failed to send. Is the '" ++ name target ++ "' target running? " ++ show e
@@ -298,18 +325,21 @@ onTick config sMapMV pMapMV cxs tempoMV st =
      putMVar tempoMV tempo'
      return ()
 
-send :: O.Transport t => Target -> Double -> t -> (Double, O.Message) -> IO ()
-send target latency u (time, m)
-  | schedule target == Pre BundleStamp = O.sendBundle u $ O.Bundle (time + latency) [m]
+send :: Cx -> (Double, O.Message) -> IO ()
+send cx (time, m)
+  | schedule target == Pre BundleStamp = O.sendBundle u $ O.Bundle (time + l) [m]
   | schedule target == Pre MessageStamp = O.sendMessage u $ addtime m
   | otherwise = do _ <- forkIO $ do now <- O.time
-                                    threadDelay $ floor $ ((time+latency) - now) * 1000000
+                                    threadDelay $ floor $ ((time+l) - now) * 1000000
                                     O.sendMessage u m
                    return ()
     where addtime (O.Message path params) = O.Message path ((O.int32 sec):((O.int32 usec):params))
-          ut = O.ntpr_to_ut (time + latency)
+          ut = O.ntpr_to_ut (time + l)
           sec = floor ut
           usec = floor $ 1000000 * (ut - (fromIntegral sec))
+          u = cxUDP cx
+          target = cxTarget cx
+          l = latency target
 
 sched :: T.Tempo -> Rational -> Double
 sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)
@@ -460,26 +490,6 @@ streamSetB = streamSet
 
 streamSetR :: Stream -> String -> Pattern Rational -> IO ()
 streamSetR = streamSet
-
-{-
-startTidal :: Target -> Config -> IO Stream
-startTidal target config = startMulti [target] config
-
-startMulti :: [Target] -> Config -> IO Stream
-startMulti targets config =
-  do sMapMV <- newMVar (Map.empty :: StateMap)
-     listenTid <- ctrlListen sMapMV config
-     (pMapMV, tempoMV, cxs) <- startStream config sMapMV targets
-     globalFMV <- newMVar id
-     return $ Stream {sConfig = config,
-                      sInput = sMapMV,
-                      sListenTid = listenTid,
-                      sPMapMV = pMapMV,
-                      sTempoMV = tempoMV,
-                      sGlobalFMV = globalFMV,
-                      sCxs = cxs
-                     }
--}
 
 ctrlListen :: MVar StateMap -> Config -> IO (Maybe ThreadId)
 ctrlListen sMapMV c
