@@ -42,7 +42,7 @@ cyclePos t = t - sam t
 data ArcF a = Arc
   { start :: a
   , stop :: a
-  } deriving (Eq, Ord, Functor)
+  } deriving (Eq, Ord, Functor, Show)
 
 type Arc = ArcF Time
 

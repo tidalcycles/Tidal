@@ -54,12 +54,12 @@ data Schedule = Pre StampStyle
               | Live
   deriving (Eq, Show)
 
-data Target = Target {name :: String,
-                      hostname :: String,
-                      port :: Int,
-                      latency :: Double,
-                      window :: Maybe Arc,
-                      schedule :: Schedule
+data Target = Target {oName :: String,
+                      oAddress :: String,
+                      oPort :: Int,
+                      oLatency :: Double,
+                      oWindow :: Maybe Arc,
+                      oSchedule :: Schedule
                      }
                  deriving Show
 
@@ -82,24 +82,24 @@ data PlayState = PlayState {pattern :: ControlPattern,
 type PlayMap = Map.Map PatId PlayState
 
 superdirtTarget :: Target
-superdirtTarget = Target {name = "SuperDirt",
-                          hostname = "127.0.0.1",
-                          port = 57120,
-                          latency = 0.2,
-                          window = Nothing,
-                          schedule = Pre BundleStamp
+superdirtTarget = Target {oName = "SuperDirt",
+                          oAddress = "127.0.0.1",
+                          oPort = 57120,
+                          oLatency = 0.2,
+                          oWindow = Nothing,
+                          oSchedule = Pre BundleStamp
                          }
 
 superdirtShape :: OSC
 superdirtShape = OSC "/play2" $ Named {required = []}
 
 dirtTarget :: Target
-dirtTarget = Target {name = "Dirt",
-                     hostname = "127.0.0.1",
-                     port = 7771,
-                     latency = 0.02,
-                     window = Nothing,
-                     schedule = Pre MessageStamp
+dirtTarget = Target {oName = "Dirt",
+                     oAddress = "127.0.0.1",
+                     oPort = 7771,
+                     oLatency = 0.02,
+                     oWindow = Nothing,
+                     oSchedule = Pre MessageStamp
                     }
 
 dirtShape :: OSC
@@ -142,34 +142,31 @@ dirtShape = OSC "/play" $ ArgList [("sec", Just $ VI 0),
 
 startStream :: Config -> [(Target, [OSC])] -> IO Stream
 startStream config oscmap 
-  = do cxs <- mapM (\(target, os) -> do u <- O.openUDP (hostname target) (port target)
+  = do cxs <- mapM (\(target, os) -> do u <- O.openUDP (oAddress target) (oPort target)
                                         return $ Cx {cxUDP = u, cxTarget = target, cxOSCs = os}
                    ) oscmap
 
        sMapMV <- newMVar Map.empty
        pMapMV <- newMVar Map.empty
        globalFMV <- newMVar id
-       (tempoMV, _) <- T.clocked config $ onTick config sMapMV pMapMV cxs
        listenTid <- ctrlListen sMapMV config
+       tempoMV <- newEmptyMVar
+       let stream = Stream {sConfig = config,
+                            sInput = sMapMV,
+                            sListenTid = listenTid,
+                            sPMapMV = pMapMV,
+                            sTempoMV = tempoMV,
+                            sGlobalFMV = globalFMV,
+                            sCxs = cxs
+                           }
+       T.clocked config tempoMV $ onTick stream
+       return stream
 
-       return $ Stream {sConfig = config,
-                        sInput = sMapMV,
-                        sListenTid = listenTid,
-                        sPMapMV = pMapMV,
-                        sTempoMV = tempoMV,
-                        sGlobalFMV = globalFMV,
-                        sCxs = cxs
-                       }
-{-
 startTidal :: Target -> Config -> IO Stream
-startTidal target config = startMulti [target] config
+startTidal target config = startStream config [(target, [superdirtShape])]
 
-startMulti :: [Target] -> Config -> IO Stream
-startMulti targets config =
-  do (pMapMV, tempoMV, cxs) <- startStream config sMapMV targets
-     
--}
-
+startMulti :: [a] -> Config -> IO ()
+startMulti _ _ = putStrLn $ "startMulti has been removed, please check the latest documentation on tidalcycles.org"
 
 toDatum :: Value -> O.Datum
 toDatum (VF x) = O.float x
@@ -210,28 +207,6 @@ getString cm s = fromMaybe "" $ do v <- Map.lookup s cm
                                           simpleShow (VX xs) = show xs
 
 
-{-
-calcOutput :: Stream -> IO ()
-calcOutput s = do pMap <- readMVar $ sPMapMV s
-                  globalF <- (readMVar $ sGlobalFMV s)
-                  _ <- swapMVar (sOutput s) $ globalF $ toPat $ pMap
-                  return ()
-  where toPat pMap =
-          stack $ map pattern $ filter (\pState -> if hasSolo pMap
-                                                   then solo pState
-                                                   else not (mute pState)
-                                       ) (Map.elems pMap)
--}
-
-{-
-play :: Cx -> PlayMap -> Pattern [(Cx, O.Message)]
-play cx tempo pMap = a($ tempo) <$> (stack $ map (\ps -> controlToMessage (oscs cx) (pattern ps)) active)
-  where active = filter (\pState -> if hasSolo pMap
-                                    then solo pState
-                                    else not (mute pState)
-                        ) $ Map.elems pMap
--}
-
 playStack :: PlayMap -> ControlPattern
 playStack pMap = stack $ map pattern active
   where active = filter (\pState -> if hasSolo pMap
@@ -239,43 +214,20 @@ playStack pMap = stack $ map pattern active
                                     else not (mute pState)
                         ) $ Map.elems pMap
 
-{-
-controlToMessage :: [OSC] -> ControlPattern -> Pattern (T.Tempo -> [O.Message])
-controlToMessage shapes pat = withEvent (eventToMessage shapes) pat
-
-eventToMessage :: [OSC] -> Event (Map.Map String Value) -> Event (T.Tempo -> [O.Message])
-eventToMessage oscs ev = ev {value = \tempo -> val tempo}
-  where val tempo = catMaybes $ map (\o -> do vs <- toData o addExtra
-                                              return $ O.Message (substitutePath (path o) (value ev)) vs
-                                    ) oscs
-          where on = sched tempo $ start $ wholeOrPart ev
-                off = sched tempo $ stop $ wholeOrPart ev
-                delta = off - on
-                -- If there is already cps in the event, the union will preserve that.
-                addExtra = (\v -> (Map.union v $ Map.fromList extra)) <$> ev
-                extra = [("cps", (VF $ T.cps tempo)),
-                         ("delta", VF delta),
-                         ("cycle", VF (fromRational $ start $ wholeOrPart ev))
-                        ]
-
--}
-
-toOSC :: Event ControlMap -> T.Tempo -> OSC -> Maybe (Double, O.Message)
-toOSC e tempo osc = do vs <- toData osc addExtra
-                       return (ts, O.Message (substitutePath (path osc) (value e)) vs)
+toOSC :: Double -> Event ControlMap -> T.Tempo -> OSC -> Maybe (Double, O.Message)
+toOSC latency e tempo osc = do vs <- toData osc addExtra
+                               return (ts, O.Message (substitutePath (path osc) (value e)) vs)
        where on = sched tempo $ start $ wholeOrPart e
              off = sched tempo $ stop $ wholeOrPart e
              delta = off - on
              -- If there is already cps in the event, the union will preserve that.
              addExtra = (\v -> (Map.union v extra)) <$> e
              extra = Map.fromList [("cps", (VF $ T.cps tempo)),
-                                    ("delta", VF delta),
-                                    ("cycle", VF (fromRational $ start $ wholeOrPart e))
+                                   ("delta", VF delta),
+                                   ("cycle", VF (fromRational $ start $ wholeOrPart e))
                                   ]
-             ts = on + nudge
+             ts = on + nudge + latency
              nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
-         
-
 
 doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
 doCps tempoMV (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
@@ -285,64 +237,102 @@ doCps tempoMV (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d *
                                       return ()
 doCps _ _ = return ()
 
-onTick :: Config -> MVar StateMap -> MVar PlayMap -> [Cx] -> MVar T.Tempo -> T.State -> IO ()
-onTick config sMapMV pMapMV cxs tempoMV st =
-  do pMap <- readMVar pMapMV
-     sMap <- readMVar sMapMV
-     tempo <- takeMVar tempoMV
-     let pat = playStack pMap
+onTick :: Stream -> T.State -> IO ()
+onTick stream st
+  = do doTick False stream st
+
+processCps :: T.Tempo -> [Event ControlMap] -> ([(T.Tempo, Event ControlMap)], T.Tempo)
+processCps t [] = ([], t)
+-- If an event has a tempo change, that affects the following events..
+processCps t (e:evs) = (((t', e):es'), t'')
+  where cps' = do x <- Map.lookup "cps" $ value e
+                  getF x
+        t' = (maybe t (\newCps -> T.changeTempo' t newCps (eventPartStart e)) cps')
+        (es', t'') = processCps t' evs
+
+streamOnce :: Stream -> ControlPattern -> IO ()
+streamOnce st p = do i <- getStdRandom $ randomR (0, 8192)
+                     streamFirst st $ rotL (toRational (i :: Int)) p
+
+streamFirst :: Stream -> ControlPattern -> IO ()
+streamFirst stream pat = do now <- O.time
+                            tempo <- readMVar (sTempoMV stream)
+                            pMapMV <- newMVar $ Map.singleton "fake"
+                                      (PlayState {pattern = pat,
+                                                  mute = False,
+                                                  solo = False,
+                                                  history = []
+                                                 }
+                                      )
+                            let cps = T.cps tempo
+                                state = T.State {T.ticks = 0,
+                                                 T.start = now,
+                                                 T.nowTimespan = (now, now + (1/cps)),
+                                                 T.nowArc = (Arc 0 1)
+                                                }
+                            doTick True (stream {sPMapMV = pMapMV}) state
+
+doTick :: Bool -> Stream -> T.State -> IO ()
+doTick first stream st =
+  do tempo <- takeMVar (sTempoMV stream)
+     pMap <- readMVar (sPMapMV stream)
+     sMap <- readMVar (sInput stream)
+     -- putStrLn $ show st
+     let config = sConfig stream
+         cxs = sCxs stream
+         pat = playStack pMap
          frameEnd = snd $ T.nowTimespan st
          -- add cps to state
          sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
          filterOns = filter eventHasOnset
          --filterOns | cSendParts config = id
          --          | otherwise = filter eventHasOnset
-         es = sortOn (start . part) $ filterOns $ query pat (State {arc = T.nowArc st, controls = sMap'})
+         es = sortOn (start . part) $ filterOns $ query pat (State {arc = T.nowArc st,
+                                                                    controls = sMap'
+                                                                   }
+                                                            )
+         schedtempo | first = tempo {T.atCycle = 0,
+                                     T.atTime = T.start st
+                                    }
+                    | otherwise = tempo
          -- TODO onset is calculated in toOSC as well..
          on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
-         processCps :: T.Tempo -> [Event ControlMap] -> ([(T.Tempo, Event ControlMap)], T.Tempo)
-         processCps t [] = ([], t)
-         -- If an event has a tempo change, that affects the following events..
-         processCps t (e:evs) = (((t', e):es'), t'')
-           where cps' = do x <- Map.lookup "cps" $ value e
-                           getF x
-                 t' = (maybe t (\newCps -> T.changeTempo' t newCps (eventPartStart e)) cps')
-                 (es', t'') = processCps t' evs
-         latency target = latency target + cFrameTimespan config + T.nudged tempo
          (tes, tempo') = processCps tempo es
-     -- putStrLn $ "processing " ++ (show tes)
      mapM_ (\cx@(Cx target _ oscs) ->
-              (do let ms = concatMap (\(t, e) -> if ((on e t) < frameEnd)
-                                                 then catMaybes $ map (toOSC e tempo) oscs
-                                                 else []
+              (do let latency = oLatency target + cFrameTimespan config + T.nudged tempo
+                      ms = concatMap (\(t, e) ->
+                                        if (first || (on e t) < frameEnd)
+                                        then catMaybes $ map (toOSC latency e schedtempo) oscs
+                                        else []
                                      ) tes
                   E.catch (mapM_ (send cx) ms)
               )
               (\(e ::E.SomeException)
-                -> putStrLn $ "Failed to send. Is the '" ++ name target ++ "' target running? " ++ show e
+                -> putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
               )
            ) cxs
-     putMVar tempoMV tempo'
+     putMVar (sTempoMV stream) tempo'
      return ()
 
 send :: Cx -> (Double, O.Message) -> IO ()
 send cx (time, m)
-  | schedule target == Pre BundleStamp = O.sendBundle u $ O.Bundle (time + l) [m]
-  | schedule target == Pre MessageStamp = O.sendMessage u $ addtime m
+  | oSchedule target == Pre BundleStamp = O.sendBundle u $ O.Bundle time [m]
+  | oSchedule target == Pre MessageStamp = O.sendMessage u $ addtime m
   | otherwise = do _ <- forkIO $ do now <- O.time
-                                    threadDelay $ floor $ ((time+l) - now) * 1000000
+                                    threadDelay $ floor $ (time - now) * 1000000
                                     O.sendMessage u m
                    return ()
     where addtime (O.Message path params) = O.Message path ((O.int32 sec):((O.int32 usec):params))
-          ut = O.ntpr_to_ut (time + l)
+          ut = O.ntpr_to_ut time
           sec = floor ut
           usec = floor $ 1000000 * (ut - (fromIntegral sec))
           u = cxUDP cx
           target = cxTarget cx
-          l = latency target
+         -- latency target = oLatency target + cFrameTimespan config + T.nudged tempo
 
 sched :: T.Tempo -> Rational -> Double
-sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo) + (T.atTime tempo)
+sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo)
+                + (T.atTime tempo)
 
 -- Interaction
 
@@ -404,47 +394,6 @@ streamSolo s k = withPatId s (show k) (\x -> x {solo = True})
 
 streamUnsolo :: Show a => Stream -> a -> IO ()
 streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
-
-{-
-streamOnce :: Stream -> ControlPattern -> IO ()
-streamOnce st p = do i <- getStdRandom $ randomR (0, 8192)
-                     streamFirst st $ rotL (toRational (i :: Int)) p
-
-streamFirst :: Stream -> ControlPattern -> IO ()
-streamFirst st p
-  = do sMap <- readMVar (sInput st)
-       tempo <- readMVar (sTempoMV st)
-       now <- O.time
-       let fakeTempo = T.Tempo {T.cps = T.cps tempo,
-                                T.atCycle = 0,
-                                T.atTime = now,
-                                T.paused = False,
-                                T.nudged = 0
-                               }
-           sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
-           es = filter eventHasOnset $ query p (State {arc = (Arc 0 1),
-                                                       controls = sMap'
-                                                      }
-                                               )
-           -- there should always be a whole (due to the eventHasOnset filter)
-           at e = sched fakeTempo $ start $ wholeOrPart e
-           -- there should always be a whole (due to the eventHasOnset filter)
-           on e = sched tempo $ start $ wholeOrPart e
-           cpsChanges = map (\e -> (on e - now, Map.lookup "cps" $ value e)) es
-           config = sConfig st
-           messages target =
-             catMaybes $ map (\e -> do m <- toMessage config (at e + (oLatency target)) target fakeTempo e
-                                       return $ (at e, m)
-                             ) es
-       mapM_ (\(Cx target udp oscs) ->
-                 E.catch (mapM_ (send target (oLatency target) udp) (messages target))
-                 (\(e ::E.SomeException)
-                   -> putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
-                 )
-             ) (sCxs st)
-       mapM_ (doCps $ sTempoMV st) cpsChanges
-       return ()
--}
 
 withPatId :: Stream -> PatId -> (PlayState -> PlayState) -> IO ()
 withPatId s k f = withPatIds s [k] f
