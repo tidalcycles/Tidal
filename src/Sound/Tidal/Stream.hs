@@ -91,7 +91,7 @@ superdirtTarget = Target {oName = "SuperDirt",
                          }
 
 superdirtShape :: OSC
-superdirtShape = OSC "/play2" $ Named {required = []}
+superdirtShape = OSC "/play2" $ Named {required = ["s"]}
 
 dirtTarget :: Target
 dirtTarget = Target {oName = "Dirt",
@@ -165,7 +165,7 @@ startStream config oscmap
 startTidal :: Target -> Config -> IO Stream
 startTidal target config = startStream config [(target, [superdirtShape])]
 
-startMulti :: [a] -> Config -> IO ()
+startMulti :: [Target] -> Config -> IO ()
 startMulti _ _ = putStrLn $ "startMulti has been removed, please check the latest documentation on tidalcycles.org"
 
 toDatum :: Value -> O.Datum
