@@ -186,26 +186,32 @@ toData (OSC {args = Named rqrd}) e
         hasRequired xs = null $ filter (not . (`elem` ks)) xs
         ks = Map.keys (value e)
 
-substitutePath :: String -> ControlMap -> String
+substitutePath :: String -> ControlMap -> Maybe String
 substitutePath path cm = parse path
-  where parse [] = []
+  where parse [] = Just []
         parse ('{':xs) = parseWord xs
-        parse (x:xs) = x:(parse xs)
+        parse (x:xs) = do xs' <- parse xs
+                          return (x:xs')
         parseWord xs | b == [] = getString cm a
-                     | otherwise = getString cm a ++ parse (tail b)
+                     | otherwise = do value <- getString cm a
+                                      xs' <- parse (tail b)
+                                      return $ value ++ xs'
           where (a,b) = break (== '}') xs
 
-getString :: ControlMap -> String -> String
-getString cm s = fromMaybe "" $ do v <- Map.lookup s cm
-                                   return $ simpleShow v
-                                    where simpleShow :: Value -> String
-                                          simpleShow (VS str) = str
-                                          simpleShow (VI i) = show i
-                                          simpleShow (VF f) = show f
-                                          simpleShow (VR r) = show r
-                                          simpleShow (VB b) = show b
-                                          simpleShow (VX xs) = show xs
-
+getString :: ControlMap -> String -> Maybe String
+getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
+                      where simpleShow :: Value -> String
+                            simpleShow (VS str) = str
+                            simpleShow (VI i) = show i
+                            simpleShow (VF f) = show f
+                            simpleShow (VR r) = show r
+                            simpleShow (VB b) = show b
+                            simpleShow (VX xs) = show xs
+                            (name,dflt) = break (== '=') s
+                            defaultValue :: Maybe String -> Maybe String
+                            defaultValue Nothing | null dflt = Nothing
+                                                 | otherwise = Just $ tail dflt
+                            defaultValue x = x
 
 playStack :: PlayMap -> ControlPattern
 playStack pMap = stack $ map pattern active
@@ -216,7 +222,8 @@ playStack pMap = stack $ map pattern active
 
 toOSC :: Double -> Event ControlMap -> T.Tempo -> OSC -> Maybe (Double, O.Message)
 toOSC latency e tempo osc = do vs <- toData osc addExtra
-                               return (ts, O.Message (substitutePath (path osc) (value e)) vs)
+                               path <- substitutePath (path osc) (value e)
+                               return (ts, O.Message path vs)
        where on = sched tempo $ start $ wholeOrPart e
              off = sched tempo $ stop $ wholeOrPart e
              delta = off - on
@@ -305,7 +312,7 @@ doTick first stream st =
                                         then catMaybes $ map (toOSC latency e schedtempo) oscs
                                         else []
                                      ) tes
-                  E.catch (mapM_ (send cx) ms)
+                  E.catch $ mapM_ (send cx) ms
               )
               (\(e ::E.SomeException)
                 -> putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
