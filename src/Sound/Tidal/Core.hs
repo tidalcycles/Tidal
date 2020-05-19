@@ -157,7 +157,7 @@ a  <| b = union <$> a *> b
 fromList :: [a] -> Pattern a
 fromList = cat . map pure
 
--- | Turns a list of values into a pattern, playing one of them per cycle.
+-- | Turns a list of values into a pattern, playing all of them per cycle.
 fastFromList :: [a] -> Pattern a
 fastFromList = fastcat . map pure
 

@@ -42,7 +42,7 @@ cyclePos t = t - sam t
 data ArcF a = Arc
   { start :: a
   , stop :: a
-  } deriving (Eq, Ord, Functor)
+  } deriving (Eq, Ord, Functor, Show)
 
 type Arc = ArcF Time
 
@@ -723,7 +723,7 @@ rotR t = rotL (negate t)
 filterValues :: (a -> Bool) -> Pattern a -> Pattern a
 filterValues f p = p {query = filter (f . value) . query p}
 
--- | Turns a pattern of 'Maybe' values in to a pattern of values,
+-- | Turns a pattern of 'Maybe' values into a pattern of values,
 -- dropping the events of 'Nothing'.
 filterJust :: Pattern (Maybe a) -> Pattern a
 filterJust p = fromJust <$> filterValues isJust p
