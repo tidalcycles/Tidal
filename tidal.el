@@ -66,7 +66,7 @@
              ("separator" . "\\")
              ))
           ((or (string-equal system-type "darwin") (string-equal system-type "gnu/linux"))
-           '(("path" . "ghc-pkg field -f ~/.cabal/store/ghc-$(ghc --numeric-version)/package.db tidal data-dir")
+           '(("path" . "ghc-pkg field tidal data-dir")
              ("separator" . "/")
              ))
           )
