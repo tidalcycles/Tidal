@@ -280,36 +280,37 @@ streamFirst stream pat = do now <- O.time
                             doTick True (stream {sPMapMV = pMapMV}) state
 
 doTick :: Bool -> Stream -> T.State -> IO ()
-doTick first stream st =
+doTick fake stream st =
   do tempo <- takeMVar (sTempoMV stream)
      pMap <- readMVar (sPMapMV stream)
      sMap <- readMVar (sInput stream)
      -- putStrLn $ show st
      let config = sConfig stream
          cxs = sCxs stream
-         pat = playStack pMap
+         cycleNow = T.timeToCycles tempo $ T.start st
+         -- If a 'fake' tick, it'll be aligned with cycle zero
+         pat | fake = withResultTime (+ cycleNow) $ playStack pMap
+             | otherwise = playStack pMap
          frameEnd = snd $ T.nowTimespan st
          -- add cps to state
          sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
          filterOns = filter eventHasOnset
+         extraLatency | fake = 0
+                      | otherwise = cFrameTimespan config + T.nudged tempo
          --filterOns | cSendParts config = id
          --          | otherwise = filter eventHasOnset
          es = sortOn (start . part) $ filterOns $ query pat (State {arc = T.nowArc st,
                                                                     controls = sMap'
                                                                    }
                                                             )
-         schedtempo | first = tempo {T.atCycle = 0,
-                                     T.atTime = T.start st
-                                    }
-                    | otherwise = tempo
          -- TODO onset is calculated in toOSC as well..
          on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
          (tes, tempo') = processCps tempo es
      mapM_ (\cx@(Cx target _ oscs) ->
-              (do let latency = oLatency target + cFrameTimespan config + T.nudged tempo
+              (do let latency = oLatency target + extraLatency
                       ms = concatMap (\(t, e) ->
-                                        if (first || (on e t) < frameEnd)
-                                        then catMaybes $ map (toOSC latency e schedtempo) oscs
+                                        if (fake || (on e t) < frameEnd)
+                                        then catMaybes $ map (toOSC latency e t) oscs
                                         else []
                                      ) tes
                   E.catch $ mapM_ (send cx) ms
