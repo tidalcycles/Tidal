@@ -13,7 +13,6 @@ import Sound.Tidal.Core
 import Sound.Tidal.UI
 import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Utils
-import Sound.Tidal.ParseBP (Parseable, Enumerable, parseBP_E)
 
 {- | `spin` will "spin" a layer up a pattern the given number of times,
 with each successive layer offset in time by an additional `1/n` of a
@@ -265,7 +264,7 @@ randslice :: Pattern Int -> ControlPattern -> ControlPattern
 randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> irand n
 
 splice :: Pattern Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
-splice bits ipat pat = withEvent f (slice bits ipat pat) # P.unit "c"
+splice bits ipat pat = withEvent f (slice bits ipat pat) # P.unit (pure "c")
   where f ev = ev {value = Map.insert "speed" (VF d) (value ev)}
           where d = sz / (fromRational $ (wholeStop ev) - (wholeStart ev))
                 sz = 1/(fromIntegral bits)

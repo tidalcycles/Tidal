@@ -9,7 +9,6 @@ import           Prelude             hiding ((*>), (<*))
 
 import           Data.Ratio
 
-import           Sound.Tidal.Control
 import           Sound.Tidal.Core
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.UI

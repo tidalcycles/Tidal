@@ -102,11 +102,11 @@ clocked config tempoMV callback
                        nowArc = P.Arc 0 0,
                        starting = True
                       }
-       clockTid <- forkIO $ loop tempoMV st
+       clockTid <- forkIO $ loop st
        return [listenTid, clockTid]
   where frameTimespan :: Double
         frameTimespan = cFrameTimespan config
-        loop tempoMV st =
+        loop st =
           do -- putStrLn $ show $ nowArc ts
              tempo <- readMVar tempoMV               
              t <- O.time
@@ -136,7 +136,7 @@ clocked config tempoMV callback
                        ++ " old tick: " ++ show (ticks st)
                        ++ " new tick: " ++ show newTick
                       )-}
-             loop tempoMV st'
+             loop st'
 
 clientListen :: Config -> MVar Tempo -> O.Time -> IO (ThreadId)
 clientListen config tempoMV s =
