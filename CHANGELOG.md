@@ -1,6 +1,6 @@
 # TidalCycles log of changes
 
-## 1.5.0 - Produce, care, enjoy
+## 1.5.0 - 
 	* Export drawLineSz @mxmxyz
 	* tidal-parse additions (bite, splice, pickF, select, squeeze; fixed slice) @dktr0
 	* New, more efficient pseudorandom number generator @dktr0
@@ -9,6 +9,7 @@
 	* Simplify tidal-boot-script in tidal.el @jamagin
 	* Support state substitution in mininotation #530 @yaxu
 	* Pattern first parameter of splice #656 @yaxu
+	* Pattern first parameter of chew @yaxu
 	* add 'x' fraction alias for 1/6 @yaxu
 	* add dfb alias for delayfeedback param, dt for delaytime @yaxu
 	* add unmuteAll and only to BootTidal.hs @yaxu
