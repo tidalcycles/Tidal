@@ -9,6 +9,8 @@
 	* Simplify tidal-boot-script in tidal.el @jamagin
 	* Support state substitution in mininotation #530 @yaxu
 	* Pattern first parameter of splice #656 @yaxu
+	* add 'x' fraction alias for 1/6 @yaxu
+	* add dfb alias for delayfeedback param, dt for delaytime @yaxu
 
 ## 1.4.9 - Housebound spirit
 	* Simplify 'show'ing of patterns @yaxu
