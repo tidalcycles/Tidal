@@ -8,14 +8,24 @@ import System.IO (hSetEncoding, stdout, utf8)
 hSetEncoding stdout utf8
 
 -- total latency = oLatency + cFrameTimespan
-tidal <- startTidal (superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oPort = 57120}) (defaultConfig {cFrameTimespan = 1/20})
+tidal <- startTidal (superdirtTarget {oLatency = 0.2, oAddress = "127.0.0.1", oPort = 57120}) (defaultConfig {cFrameTimespan = 1/20})
+:{
+{-tidal <- startMulti [superdirtTarget {oLatency = 0.2, oAddress = "127.0.0.1", oPort = 57120
+                                     },
+                     superdirtTarget {oLatency = 0.2, oAddress = "127.0.0.1", oPort = 2020,
+                                      oTimestamp = NoStamp
+                                     }
+                    ] (defaultConfig {cFrameTimespan = 1/20})-}
+:}
 
 :{
-let p = streamReplace tidal
+let only = (hush >>)
+    p = streamReplace tidal
     hush = streamHush tidal
     list = streamList tidal
     mute = streamMute tidal
     unmute = streamUnmute tidal
+    unmuteAll = streamUnmuteAll tidal
     solo = streamSolo tidal
     unsolo = streamUnsolo tidal
     once = streamOnce tidal
@@ -42,14 +52,15 @@ let p = streamReplace tidal
     anticipate i = transition tidal True (Sound.Tidal.Transition.anticipate) i
     anticipateIn i t = transition tidal True (Sound.Tidal.Transition.anticipateIn t) i
     forId i t = transition tidal False (Sound.Tidal.Transition.mortalOverlay t) i
-    d1 = p 1 . (|< orbit 0)
-    d2 = p 2 . (|< orbit 1)
-    d3 = p 3 . (|< orbit 2)
-    d4 = p 4 . (|< orbit 3)
-    d5 = p 5 . (|< orbit 4)
-    d6 = p 6 . (|< orbit 5)
-    d7 = p 7 . (|< orbit 6)
-    d8 = p 8 . (|< orbit 7)
+    munge i = selectF (cF 0 (show $ 50 + i)) [id, (# (delayfb (cF 0 (show $ 30 + i)) # delayt (select (cF 0 (show $ 70+i)) [1/3, 1/6]) # lock 1 # delay (cF 0 (show $ 20 + i))))] . selectF (cF 0 (show $ 90 + i)) [id, (# (room (cF 0 (show $ 40 + i)) # sz 0.8))] . selectF (cF 0 (show $ 80 + i)) [id, (# djf (cF 0.5 (show $ 40 + i)))]
+    d1 = p 1 . munge 1 . (|< orbit 0) 
+    d2 = p 2 . munge 2 . (|< orbit 1) 
+    d3 = p 3 . munge 3 . (|< orbit 2) 
+    d4 = p 4 . munge 4 . (|< orbit 3) 
+    d5 = p 5 . munge 5 . (|< orbit 4) 
+    d6 = p 6 . munge 6 . (|< orbit 5) 
+    d7 = p 7 . munge 7 . (|< orbit 6) 
+    d8 = p 8 . munge 8 . (|< orbit 7) 
     d9 = p 9 . (|< orbit 8)
     d10 = p 10 . (|< orbit 9)
     d11 = p 11 . (|< orbit 10)
