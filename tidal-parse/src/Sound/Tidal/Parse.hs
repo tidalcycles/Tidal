@@ -509,7 +509,6 @@ instance Parse (Pattern Int -> ControlPattern -> ControlPattern) where
     $(fromTidal "gap") <|>
     $(fromTidal "randslice") <|>
     $(fromTidal "spin") <|>
-    (parser :: H (Int -> Pattern Int -> ControlPattern -> ControlPattern)) <*> parser <|>
     (parser :: H (Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern)) <*> parser
 
 instance Parse (Pattern Double -> ControlPattern -> ControlPattern) where
@@ -587,7 +586,9 @@ ordTernaryTransformations :: Ord a => H (Pattern a -> Pattern a -> Pattern a -> 
 ordTernaryTransformations = empty
 
 instance Parse (Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern) where
-  parser = $(fromTidal "slice")
+  parser = $(fromTidal "slice") <|>
+           $(fromTidal "chew") <|>
+           $(fromTidal "splice")
 
 instance Parse (Time -> Time -> Pattern a -> Pattern a) where
   parser = $(fromTidal "playFor")
@@ -625,11 +626,6 @@ pInt_p_p_p = (parser :: H (Pattern Int -> Pattern Int -> Pattern a -> Pattern a 
 
 instance Parse (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern) where
   parser = $(fromTidal "striate'")
-
-instance Parse (Int -> Pattern Int -> ControlPattern -> ControlPattern) where
-  parser =
-    $(fromTidal "chew") <|>
-    $(fromTidal "splice")
 
 instance Parse (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern) where
   parser = (parser :: H (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*> parser

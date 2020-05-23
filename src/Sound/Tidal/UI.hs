@@ -1877,10 +1877,14 @@ squeezeJoinUp pp = pp {query = q}
              return (Event (combineContexts [ci,co]) (Just w') p' v)
         munge _ _ _ _ = Nothing
 
-chew :: Int -> Pattern Int -> ControlPattern  -> ControlPattern
-chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)
+_chew :: Int -> Pattern Int -> ControlPattern  -> ControlPattern
+_chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)
   where zoompat i = zoom (i'/(fromIntegral n), (i'+1)/(fromIntegral n)) (pat)
            where i' = fromIntegral $ i `mod` n
+
+-- TODO maybe _chew could pattern the first parameter directly..
+chew :: Pattern Int -> Pattern Int -> ControlPattern  -> ControlPattern
+chew npat ipat pat = innerJoin $ (\n -> _chew n ipat pat) <$> npat
 
 __binary :: Data.Bits.Bits b => Int -> b -> [Bool]
 __binary n num = map (testBit num) $ reverse [0 .. n-1]
