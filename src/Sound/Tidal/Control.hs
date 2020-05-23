@@ -264,6 +264,12 @@ _slice n i p =
 randslice :: Pattern Int -> ControlPattern -> ControlPattern
 randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> irand n
 
+splice :: Pattern Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
+splice bits ipat pat = withEvent f (slice bits ipat pat) # P.unit "c"
+  where f ev = ev {value = Map.insert "speed" (VF d) (value ev)}
+          where d = sz / (fromRational $ (wholeStop ev) - (wholeStart ev))
+                sz = 1/(fromIntegral bits)
+
 {- |
 `loopAt` makes a sample fit the given number of cycles. Internally, it
 works by setting the `unit` parameter to "c", changing the playback
@@ -394,9 +400,3 @@ reset k pat = pat {query = q}
         offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
                                             return $ ((f . fromMaybe 0 . getR) <$> p)
         ctrl = "_t_" ++ show k
-
-splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
-splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit "c"
-  where f ev = ev {value = Map.insert "speed" (VF d) (value ev)}
-          where d = sz / (fromRational $ (wholeStop ev) - (wholeStart ev))
-                sz = 1/(fromIntegral bits)
