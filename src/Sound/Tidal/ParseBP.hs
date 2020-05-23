@@ -506,6 +506,8 @@ pRatioChar = do char 'w'
                     return $ 1/3
              <|> do char 'f'
                     return $ 0.2
+             <|> do char 'x'
+                    return $ 1/6
 
 pRational :: MyParser (TPat Rational)
 pRational = wrapPos $ (TPat_Atom Nothing) <$> pRatio
