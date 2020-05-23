@@ -7,11 +7,11 @@ import           Prelude hiding ((<*), (*>))
 import           Data.Char (digitToInt, isDigit, ord)
 import           Data.Bits (testBit, Bits, xor, shiftL, shiftR)
 -- import           System.Random (randoms, mkStdGen)
-import           Control.Monad.ST
-import           Control.Monad.Primitive (PrimState, PrimMonad)
-import qualified Data.Vector as V
-import           Data.Word (Word32)
-import           Data.Ratio ((%),numerator,denominator)
+-- import           Control.Monad.ST
+-- import           Control.Monad.Primitive (PrimState, PrimMonad)
+-- import qualified Data.Vector as V
+-- import           Data.Word (Word32)
+import           Data.Ratio ((%))
 import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
@@ -273,7 +273,7 @@ always = id
 {- | @someCyclesBy@ is a cycle-by-cycle version of @sometimesBy@. It has a
 `someCycles = someCyclesBy 0.5` alias -}
 someCyclesBy :: Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-someCyclesBy pd f p = tParam (\d p -> _someCyclesBy d f p) pd p
+someCyclesBy pd f pat = innerJoin $ (\d -> _someCyclesBy d f pat) <$> pd
 
 _someCyclesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _someCyclesBy x = when test
@@ -1877,10 +1877,14 @@ squeezeJoinUp pp = pp {query = q}
              return (Event (combineContexts [ci,co]) (Just w') p' v)
         munge _ _ _ _ = Nothing
 
-chew :: Int -> Pattern Int -> ControlPattern  -> ControlPattern
-chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)
+_chew :: Int -> Pattern Int -> ControlPattern  -> ControlPattern
+_chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)
   where zoompat i = zoom (i'/(fromIntegral n), (i'+1)/(fromIntegral n)) (pat)
            where i' = fromIntegral $ i `mod` n
+
+-- TODO maybe _chew could pattern the first parameter directly..
+chew :: Pattern Int -> Pattern Int -> ControlPattern  -> ControlPattern
+chew npat ipat pat = innerJoin $ (\n -> _chew n ipat pat) <$> npat
 
 __binary :: Data.Bits.Bits b => Int -> b -> [Bool]
 __binary n num = map (testBit num) $ reverse [0 .. n-1]

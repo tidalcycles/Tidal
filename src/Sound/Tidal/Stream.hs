@@ -7,7 +7,7 @@ import           Control.Applicative ((<|>))
 import           Control.Concurrent.MVar
 import           Control.Concurrent
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust, fromMaybe, isJust, catMaybes)
+import           Data.Maybe (fromJust, fromMaybe, catMaybes)
 import qualified Control.Exception as E
 -- import Control.Monad.Reader
 -- import Control.Monad.Except
@@ -159,7 +159,7 @@ startStream config oscmap
                             sGlobalFMV = globalFMV,
                             sCxs = cxs
                            }
-       T.clocked config tempoMV $ onTick stream
+       _ <- T.clocked config tempoMV $ onTick stream
        return stream
 
 startTidal :: Target -> Config -> IO Stream
@@ -187,15 +187,15 @@ toData (OSC {args = Named rqrd}) e
         ks = Map.keys (value e)
 
 substitutePath :: String -> ControlMap -> Maybe String
-substitutePath path cm = parse path
+substitutePath str cm = parse str
   where parse [] = Just []
         parse ('{':xs) = parseWord xs
         parse (x:xs) = do xs' <- parse xs
                           return (x:xs')
         parseWord xs | b == [] = getString cm a
-                     | otherwise = do value <- getString cm a
+                     | otherwise = do v <- getString cm a
                                       xs' <- parse (tail b)
-                                      return $ value ++ xs'
+                                      return $ v ++ xs'
           where (a,b) = break (== '}') xs
 
 getString :: ControlMap -> String -> Maybe String
@@ -207,7 +207,7 @@ getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
                             simpleShow (VR r) = show r
                             simpleShow (VB b) = show b
                             simpleShow (VX xs) = show xs
-                            (name,dflt) = break (== '=') s
+                            (_, dflt) = break (== '=') s
                             defaultValue :: Maybe String -> Maybe String
                             defaultValue Nothing | null dflt = Nothing
                                                  | otherwise = Just $ tail dflt
@@ -222,8 +222,8 @@ playStack pMap = stack $ map pattern active
 
 toOSC :: Double -> Event ControlMap -> T.Tempo -> OSC -> Maybe (Double, O.Message)
 toOSC latency e tempo osc = do vs <- toData osc addExtra
-                               path <- substitutePath (path osc) (value e)
-                               return (ts, O.Message path vs)
+                               mungedPath <- substitutePath (path osc) (value e)
+                               return (ts, O.Message mungedPath vs)
        where on = sched tempo $ start $ wholeOrPart e
              off = sched tempo $ stop $ wholeOrPart e
              delta = off - on
@@ -330,9 +330,11 @@ send cx (time, m)
                                     threadDelay $ floor $ (time - now) * 1000000
                                     O.sendMessage u m
                    return ()
-    where addtime (O.Message path params) = O.Message path ((O.int32 sec):((O.int32 usec):params))
+    where addtime (O.Message mpath params) = O.Message mpath ((O.int32 sec):((O.int32 usec):params))
           ut = O.ntpr_to_ut time
+          sec :: Int
           sec = floor ut
+          usec :: Int
           usec = floor $ 1000000 * (ut - (fromIntegral sec))
           u = cxUDP cx
           target = cxTarget cx
