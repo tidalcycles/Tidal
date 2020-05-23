@@ -11,6 +11,7 @@
 	* Pattern first parameter of splice #656 @yaxu
 	* add 'x' fraction alias for 1/6 @yaxu
 	* add dfb alias for delayfeedback param, dt for delaytime @yaxu
+	* add unmuteAll and only to BootTidal.hs @yaxu
 
 ## 1.4.9 - Housebound spirit
 	* Simplify 'show'ing of patterns @yaxu
