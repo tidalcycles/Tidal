@@ -308,7 +308,7 @@ pSingle f = f >>= pRand >>= pMult
 
 pVar :: MyParser (TPat a)
 pVar = wrapPos $ do char '^'
-                    name <- pString
+                    name <- many (letter <|> oneOf "0123456789:.-_") <?> "string"
                     return $ TPat_Var name
 
 pPart :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
