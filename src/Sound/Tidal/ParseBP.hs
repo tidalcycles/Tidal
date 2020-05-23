@@ -54,6 +54,7 @@ data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
             | TPat_Elongate Rational (TPat a)
             | TPat_Repeat Int (TPat a)
             | TPat_EnumFromTo (TPat a) (TPat a)
+            | TPat_Var String
             deriving (Show)
 
 toPat :: (Parseable a, Enumerable a) => TPat a -> Pattern a
@@ -78,6 +79,7 @@ toPat = \case
            base_first | null pats = pure 0
                       | otherwise = pure $ fst $ head pats
    TPat_Seq xs -> snd $ resolve_seq xs
+   TPat_Var s -> getControl s
    _ -> silence
 
 resolve_tpat :: (Enumerable a, Parseable a) => TPat a -> (Rational, Pattern a)
@@ -117,10 +119,14 @@ parseBP_E s = toE parsed
 parseTPat :: Parseable a => String -> Either ParseError (TPat a)
 parseTPat = parseRhythm tPatParser
 
+cP :: (Enumerable a, Parseable a) => String -> Pattern a
+cP s = innerJoin $ parseBP_E <$> (_cX_ getS s)
+
 class Parseable a where
   tPatParser :: MyParser (TPat a)
   doEuclid :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-  -- toEuclid :: a ->
+  getControl :: String -> Pattern a
+  getControl _ = silence
 
 class Enumerable a where
   fromTo :: a -> a -> Pattern a
@@ -137,6 +143,7 @@ instance Enumerable Char where
 instance Parseable Double where
   tPatParser = pDouble
   doEuclid = euclidOff
+  getControl = cF_
 
 instance Enumerable Double where
   fromTo = enumFromTo'
@@ -145,6 +152,7 @@ instance Enumerable Double where
 instance Parseable String where
   tPatParser = pVocable
   doEuclid = euclidOff
+  getControl = cS_
 
 instance Enumerable String where
   fromTo a b = fastFromList [a,b]
@@ -153,6 +161,7 @@ instance Enumerable String where
 instance Parseable Bool where
   tPatParser = pBool
   doEuclid = euclidOffBool
+  getControl = cB_
 
 instance Enumerable Bool where
   fromTo a b = fastFromList [a,b]
@@ -161,6 +170,7 @@ instance Enumerable Bool where
 instance Parseable Int where
   tPatParser = pIntegral
   doEuclid = euclidOff
+  getControl = cI_
 
 instance Enumerable Int where
   fromTo = enumFromTo'
@@ -169,6 +179,7 @@ instance Enumerable Int where
 instance Parseable Integer where
   tPatParser = pIntegral
   doEuclid = euclidOff
+  getControl = (fmap fromIntegral) . cI_
 
 instance Enumerable Integer where
   fromTo = enumFromTo'
@@ -177,6 +188,7 @@ instance Enumerable Integer where
 instance Parseable Rational where
   tPatParser = pRational
   doEuclid = euclidOff
+  getControl = cR_
 
 instance Enumerable Rational where
   fromTo = enumFromTo'
@@ -294,8 +306,13 @@ pSequence f = do spaces -- TODO is this needed?
 pSingle :: MyParser (TPat a) -> MyParser (TPat a)
 pSingle f = f >>= pRand >>= pMult
 
+pVar :: MyParser (TPat a)
+pVar = wrapPos $ do char '^'
+                    name <- many (letter <|> oneOf "0123456789:.-_") <?> "string"
+                    return $ TPat_Var name
+
 pPart :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
-pPart f = do pt <- (pSingle f <|> pPolyIn f <|> pPolyOut f) >>= pE >>= pRand
+pPart f = do pt <- (pSingle f <|> pPolyIn f <|> pPolyOut f <|> pVar) >>= pE >>= pRand
              spaces -- TODO is this needed?
              return pt
 

@@ -6,7 +6,7 @@ import           Prelude hiding ((<*), (*>))
 
 import           Data.Fixed (mod')
 import qualified Data.Map.Strict as Map
-
+import           Data.Maybe (fromMaybe)
 import           Sound.Tidal.Pattern
 
 -- ** Elemental patterns
@@ -157,7 +157,7 @@ a  <| b = union <$> a *> b
 fromList :: [a] -> Pattern a
 fromList = cat . map pure
 
--- | Turns a list of values into a pattern, playing one of them per cycle.
+-- | Turns a list of values into a pattern, playing all of them per cycle.
 fastFromList :: [a] -> Pattern a
 fastFromList = fastcat . map pure
 
@@ -424,3 +424,315 @@ whenT :: (Time -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
 whenT test f p = splitQueries $ p {query = apply}
   where apply st | test (start $ arc st) = query (f p) st
                  | otherwise = query p st
+
+_getP_ :: (Value -> Maybe a) -> Pattern Value -> Pattern a
+_getP_ f pat = filterJust $ f <$> pat
+
+_getP :: a -> (Value -> Maybe a) -> Pattern Value -> Pattern a
+_getP d f pat = (fromMaybe d . f) <$> pat
+
+_cX :: a -> (Value -> Maybe a) -> String -> Pattern a
+_cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f) $ Map.lookup s m) a
+
+_cX_ :: (Value -> Maybe a) -> String -> Pattern a
+_cX_ f s = Pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f) $ Map.lookup s m) a
+
+cF :: Double -> String -> Pattern Double
+cF d = _cX d getF
+cF_ :: String -> Pattern Double
+cF_ = _cX_ getF
+cF0 :: String -> Pattern Double
+cF0 = _cX 0 getF
+
+cI :: Int -> String -> Pattern Int
+cI d = _cX d getI
+cI_ :: String -> Pattern Int
+cI_ = _cX_ getI
+cI0 :: String -> Pattern Int
+cI0 = _cX 0 getI
+
+cB :: Bool -> String -> Pattern Bool
+cB d = _cX d getB
+cB_ :: String -> Pattern Bool
+cB_ = _cX_ getB
+cB0 :: String -> Pattern Bool
+cB0 = _cX False getB
+
+cR :: Rational -> String -> Pattern Rational
+cR d = _cX d getR
+cR_ :: String -> Pattern Rational
+cR_ = _cX_ getR
+cR0 :: String -> Pattern Rational
+cR0 = _cX 0 getR
+
+cT :: Time -> String -> Pattern Time
+cT = cR
+cT0 :: String -> Pattern Time
+cT0 = cR0
+cT_ :: String -> Pattern Time
+cT_ = cR_
+
+cS :: String -> String -> Pattern String
+cS d = _cX d getS
+cS_ :: String -> Pattern String
+cS_ = _cX_ getS
+cS0 :: String -> Pattern String
+cS0 = _cX "" getS
+
+-- Default controller inputs (for MIDI)
+in0 :: Pattern Double
+in0 = cF 0 "0"
+in1 :: Pattern Double
+in1 = cF 0 "1"
+in2 :: Pattern Double
+in2 = cF 0 "2"
+in3 :: Pattern Double
+in3 = cF 0 "3"
+in4 :: Pattern Double
+in4 = cF 0 "4"
+in5 :: Pattern Double
+in5 = cF 0 "5"
+in6 :: Pattern Double
+in6 = cF 0 "6"
+in7 :: Pattern Double
+in7 = cF 0 "7"
+in8 :: Pattern Double
+in8 = cF 0 "8"
+in9 :: Pattern Double
+in9 = cF 0 "9"
+in10 :: Pattern Double
+in10 = cF 0 "10"
+in11 :: Pattern Double
+in11 = cF 0 "11"
+in12 :: Pattern Double
+in12 = cF 0 "12"
+in13 :: Pattern Double
+in13 = cF 0 "13"
+in14 :: Pattern Double
+in14 = cF 0 "14"
+in15 :: Pattern Double
+in15 = cF 0 "15"
+in16 :: Pattern Double
+in16 = cF 0 "16"
+in17 :: Pattern Double
+in17 = cF 0 "17"
+in18 :: Pattern Double
+in18 = cF 0 "18"
+in19 :: Pattern Double
+in19 = cF 0 "19"
+in20 :: Pattern Double
+in20 = cF 0 "20"
+in21 :: Pattern Double
+in21 = cF 0 "21"
+in22 :: Pattern Double
+in22 = cF 0 "22"
+in23 :: Pattern Double
+in23 = cF 0 "23"
+in24 :: Pattern Double
+in24 = cF 0 "24"
+in25 :: Pattern Double
+in25 = cF 0 "25"
+in26 :: Pattern Double
+in26 = cF 0 "26"
+in27 :: Pattern Double
+in27 = cF 0 "27"
+in28 :: Pattern Double
+in28 = cF 0 "28"
+in29 :: Pattern Double
+in29 = cF 0 "29"
+in30 :: Pattern Double
+in30 = cF 0 "30"
+in31 :: Pattern Double
+in31 = cF 0 "31"
+in32 :: Pattern Double
+in32 = cF 0 "32"
+in33 :: Pattern Double
+in33 = cF 0 "33"
+in34 :: Pattern Double
+in34 = cF 0 "34"
+in35 :: Pattern Double
+in35 = cF 0 "35"
+in36 :: Pattern Double
+in36 = cF 0 "36"
+in37 :: Pattern Double
+in37 = cF 0 "37"
+in38 :: Pattern Double
+in38 = cF 0 "38"
+in39 :: Pattern Double
+in39 = cF 0 "39"
+in40 :: Pattern Double
+in40 = cF 0 "40"
+in41 :: Pattern Double
+in41 = cF 0 "41"
+in42 :: Pattern Double
+in42 = cF 0 "42"
+in43 :: Pattern Double
+in43 = cF 0 "43"
+in44 :: Pattern Double
+in44 = cF 0 "44"
+in45 :: Pattern Double
+in45 = cF 0 "45"
+in46 :: Pattern Double
+in46 = cF 0 "46"
+in47 :: Pattern Double
+in47 = cF 0 "47"
+in48 :: Pattern Double
+in48 = cF 0 "48"
+in49 :: Pattern Double
+in49 = cF 0 "49"
+in50 :: Pattern Double
+in50 = cF 0 "50"
+in51 :: Pattern Double
+in51 = cF 0 "51"
+in52 :: Pattern Double
+in52 = cF 0 "52"
+in53 :: Pattern Double
+in53 = cF 0 "53"
+in54 :: Pattern Double
+in54 = cF 0 "54"
+in55 :: Pattern Double
+in55 = cF 0 "55"
+in56 :: Pattern Double
+in56 = cF 0 "56"
+in57 :: Pattern Double
+in57 = cF 0 "57"
+in58 :: Pattern Double
+in58 = cF 0 "58"
+in59 :: Pattern Double
+in59 = cF 0 "59"
+in60 :: Pattern Double
+in60 = cF 0 "60"
+in61 :: Pattern Double
+in61 = cF 0 "61"
+in62 :: Pattern Double
+in62 = cF 0 "62"
+in63 :: Pattern Double
+in63 = cF 0 "63"
+in64 :: Pattern Double
+in64 = cF 0 "64"
+in65 :: Pattern Double
+in65 = cF 0 "65"
+in66 :: Pattern Double
+in66 = cF 0 "66"
+in67 :: Pattern Double
+in67 = cF 0 "67"
+in68 :: Pattern Double
+in68 = cF 0 "68"
+in69 :: Pattern Double
+in69 = cF 0 "69"
+in70 :: Pattern Double
+in70 = cF 0 "70"
+in71 :: Pattern Double
+in71 = cF 0 "71"
+in72 :: Pattern Double
+in72 = cF 0 "72"
+in73 :: Pattern Double
+in73 = cF 0 "73"
+in74 :: Pattern Double
+in74 = cF 0 "74"
+in75 :: Pattern Double
+in75 = cF 0 "75"
+in76 :: Pattern Double
+in76 = cF 0 "76"
+in77 :: Pattern Double
+in77 = cF 0 "77"
+in78 :: Pattern Double
+in78 = cF 0 "78"
+in79 :: Pattern Double
+in79 = cF 0 "79"
+in80 :: Pattern Double
+in80 = cF 0 "80"
+in81 :: Pattern Double
+in81 = cF 0 "81"
+in82 :: Pattern Double
+in82 = cF 0 "82"
+in83 :: Pattern Double
+in83 = cF 0 "83"
+in84 :: Pattern Double
+in84 = cF 0 "84"
+in85 :: Pattern Double
+in85 = cF 0 "85"
+in86 :: Pattern Double
+in86 = cF 0 "86"
+in87 :: Pattern Double
+in87 = cF 0 "87"
+in88 :: Pattern Double
+in88 = cF 0 "88"
+in89 :: Pattern Double
+in89 = cF 0 "89"
+in90 :: Pattern Double
+in90 = cF 0 "90"
+in91 :: Pattern Double
+in91 = cF 0 "91"
+in92 :: Pattern Double
+in92 = cF 0 "92"
+in93 :: Pattern Double
+in93 = cF 0 "93"
+in94 :: Pattern Double
+in94 = cF 0 "94"
+in95 :: Pattern Double
+in95 = cF 0 "95"
+in96 :: Pattern Double
+in96 = cF 0 "96"
+in97 :: Pattern Double
+in97 = cF 0 "97"
+in98 :: Pattern Double
+in98 = cF 0 "98"
+in99 :: Pattern Double
+in99 = cF 0 "99"
+in100 :: Pattern Double
+in100 = cF 0 "100"
+in101 :: Pattern Double
+in101 = cF 0 "101"
+in102 :: Pattern Double
+in102 = cF 0 "102"
+in103 :: Pattern Double
+in103 = cF 0 "103"
+in104 :: Pattern Double
+in104 = cF 0 "104"
+in105 :: Pattern Double
+in105 = cF 0 "105"
+in106 :: Pattern Double
+in106 = cF 0 "106"
+in107 :: Pattern Double
+in107 = cF 0 "107"
+in108 :: Pattern Double
+in108 = cF 0 "108"
+in109 :: Pattern Double
+in109 = cF 0 "109"
+in110 :: Pattern Double
+in110 = cF 0 "110"
+in111 :: Pattern Double
+in111 = cF 0 "111"
+in112 :: Pattern Double
+in112 = cF 0 "112"
+in113 :: Pattern Double
+in113 = cF 0 "113"
+in114 :: Pattern Double
+in114 = cF 0 "114"
+in115 :: Pattern Double
+in115 = cF 0 "115"
+in116 :: Pattern Double
+in116 = cF 0 "116"
+in117 :: Pattern Double
+in117 = cF 0 "117"
+in118 :: Pattern Double
+in118 = cF 0 "118"
+in119 :: Pattern Double
+in119 = cF 0 "119"
+in120 :: Pattern Double
+in120 = cF 0 "120"
+in121 :: Pattern Double
+in121 = cF 0 "121"
+in122 :: Pattern Double
+in122 = cF 0 "122"
+in123 :: Pattern Double
+in123 = cF 0 "123"
+in124 :: Pattern Double
+in124 = cF 0 "124"
+in125 :: Pattern Double
+in125 = cF 0 "125"
+in126 :: Pattern Double
+in126 = cF 0 "126"
+in127 :: Pattern Double
+in127 = cF 0 "127"

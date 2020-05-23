@@ -160,6 +160,10 @@ delayfeedback = pF "delayfeedback"
 -- | a pattern of numbers from 0 to 1. Sets the length of the delay.
 delaytime :: Pattern Double -> ControlPattern
 delaytime = pF "delaytime"
+
+dt :: Pattern Double -> ControlPattern
+dt = delaytime
+
 detune :: Pattern Double -> ControlPattern
 detune = pF "detune"
 
@@ -381,6 +385,10 @@ voice = pF "voice"
 -- | formant filter to make things sound like vowels, a pattern of either `a`, `e`, `i`, `o` or `u`. Use a rest (`~`) for no effect.
 vowel :: Pattern String -> ControlPattern
 vowel = pS "vowel"
+
+voweli :: Pattern Int -> ControlPattern
+voweli = pI "vowel"
+
 waveloss :: Pattern Double -> ControlPattern
 waveloss = pF "waveloss"
 

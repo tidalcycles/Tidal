@@ -34,6 +34,7 @@ data State = State {ticks   :: Int,
                     nowArc  :: P.Arc,
                     starting :: Bool
                    }
+  deriving Show
 
 changeTempo :: MVar Tempo -> (O.Time -> Tempo -> Tempo) -> IO Tempo
 changeTempo tempoMV f = do t <- O.time
@@ -60,7 +61,7 @@ setCps tempoMV newCps = changeTempo tempoMV (\t tempo -> tempo {atTime = t,
 
 defaultCps :: O.Time
 defaultCps = 0.5625
-  
+
 defaultTempo :: O.Time -> O.UDP -> N.SockAddr -> Tempo
 defaultTempo t local remote = Tempo {atTime   = t,
                                      atCycle  = 0,
@@ -89,12 +90,12 @@ getCurrentCycle :: MVar Tempo -> IO Rational
 getCurrentCycle t = (readMVar t) >>= (cyclesNow) >>= (return . toRational)
 -}
 
-clocked :: Config -> (MVar Tempo -> State -> IO ()) -> IO (MVar Tempo, [ThreadId])
-clocked config callback
+clocked :: Config -> MVar Tempo -> (State -> IO ()) -> IO [ThreadId]
+clocked config tempoMV callback
   = do s <- O.time
        -- TODO - do something with thread id
        _ <- serverListen config
-       (tempoMV, listenTid) <- clientListen config s
+       listenTid <- clientListen config tempoMV s
        let st = State {ticks = 0,
                        start = s,
                        nowTimespan = (s, s + frameTimespan),
@@ -102,7 +103,7 @@ clocked config callback
                        starting = True
                       }
        clockTid <- forkIO $ loop tempoMV st
-       return (tempoMV, [listenTid, clockTid])
+       return [listenTid, clockTid]
   where frameTimespan :: Double
         frameTimespan = cFrameTimespan config
         loop tempoMV st =
@@ -130,15 +131,15 @@ clocked config callback
                            starting = not (synched tempo)
                           }
              when ahead $ writeError $ "skip: " ++ show (actualTick - ticks st)
-             callback tempoMV st'
+             callback st'
              {-putStrLn ("actual tick: " ++ show actualTick
                        ++ " old tick: " ++ show (ticks st)
                        ++ " new tick: " ++ show newTick
                       )-}
              loop tempoMV st'
 
-clientListen :: Config -> O.Time -> IO (MVar Tempo, ThreadId)
-clientListen config s =
+clientListen :: Config -> MVar Tempo -> O.Time -> IO (ThreadId)
+clientListen config tempoMV s =
   do -- Listen on random port
      let tempoClientPort = cTempoClientPort config
          hostname = cTempoAddr config
@@ -148,13 +149,13 @@ clientListen config s =
      let (N.SockAddrInet _ a) = N.addrAddress remote_addr
          remote = N.SockAddrInet (fromIntegral port) a
          t = defaultTempo s local remote
+     putMVar tempoMV t
      -- Send to clock port from same port that's listened to
      O.sendTo local (O.p_message "/hello" []) remote
      -- Make tempo mvar
-     tempoMV <- newMVar t
      -- Listen to tempo changes
      tempoChild <- forkIO $ listenTempo local tempoMV
-     return (tempoMV, tempoChild)
+     return tempoChild
 
 sendTempo :: Tempo -> IO ()
 sendTempo tempo = O.sendTo (localUDP tempo) (O.p_bundle (atTime tempo) [m]) (remoteAddr tempo)
