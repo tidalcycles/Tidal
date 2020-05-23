@@ -161,9 +161,6 @@ delayfeedback = pF "delayfeedback"
 delaytime :: Pattern Double -> ControlPattern
 delaytime = pF "delaytime"
 
-dt :: Pattern Double -> ControlPattern
-dt = delaytime
-
 detune :: Pattern Double -> ControlPattern
 detune = pF "detune"
 
