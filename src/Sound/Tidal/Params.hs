@@ -482,7 +482,7 @@ lbrick :: Pattern Double -> ControlPattern
 lbrick = pF "lbrick"
 
 -- aliases
-att, bpf, bpq, chdecay, ctf, ctfg, delayfb, delayt, det, gat, hg, hpf, hpq, lag, lbd, lch, lcl, lcp, lcr, lfoc, lfoi
+att, bpf, bpq, chdecay, ctf, ctfg, delayfb, dfb, delayt, dt, det, gat, hg, hpf, hpq, lag, lbd, lch, lcl, lcp, lcr, lfoc, lfoi
    , lfop, lht, llt, loh, lpf, lpq, lsn, ohdecay, phasdp, phasr, pit1, pit2, pit3, por, rel, sz, sag, scl, scp
    , scr, sld, std, stt, sus, tdecay, tremdp, tremr, vcf, vco, voi
  :: Pattern Double -> ControlPattern
@@ -493,7 +493,9 @@ chdecay = clhatdecay
 ctf = cutoff
 ctfg = cutoffegint
 delayfb = delayfeedback
+dfb = delayfeedback
 delayt = delaytime
+dt = delaytime
 det = detune
 gat = gate
 hg = hatgrain
