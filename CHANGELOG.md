@@ -1,5 +1,8 @@
 # TidalCycles log of changes
 
+## 1.5.1 - Blacka Moor
+	* Bugfix splice
+
 ## 1.5.0 - Active travel
 	* Export drawLineSz @mxmxyz
 	* tidal-parse additions (bite, splice, pickF, select, squeeze; fixed slice) @dktr0

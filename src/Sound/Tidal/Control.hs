@@ -263,11 +263,14 @@ _slice n i p =
 randslice :: Pattern Int -> ControlPattern -> ControlPattern
 randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> irand n
 
-splice :: Pattern Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
-splice bits ipat pat = withEvent f (slice bits ipat pat) # P.unit (pure "c")
+_splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
+_splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure "c")
   where f ev = ev {value = Map.insert "speed" (VF d) (value ev)}
           where d = sz / (fromRational $ (wholeStop ev) - (wholeStart ev))
                 sz = 1/(fromIntegral bits)
+
+splice :: Pattern Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
+splice bitpat ipat pat = innerJoin $ (\bits -> _splice bits ipat pat) <$> bitpat
 
 {- |
 `loopAt` makes a sample fit the given number of cycles. Internally, it
