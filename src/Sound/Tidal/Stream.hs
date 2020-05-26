@@ -284,13 +284,15 @@ doTick fake stream st =
   do tempo <- takeMVar (sTempoMV stream)
      pMap <- readMVar (sPMapMV stream)
      sMap <- readMVar (sInput stream)
+     sGlobalF <- readMVar (sGlobalFMV stream)
      -- putStrLn $ show st
      let config = sConfig stream
          cxs = sCxs stream
          cycleNow = T.timeToCycles tempo $ T.start st
+         patstack = sGlobalF $ playStack pMap
          -- If a 'fake' tick, it'll be aligned with cycle zero
-         pat | fake = withResultTime (+ cycleNow) $ playStack pMap
-             | otherwise = playStack pMap
+         pat | fake = withResultTime (+ cycleNow) patstack
+             | otherwise = patstack
          frameEnd = snd $ T.nowTimespan st
          -- add cps to state
          sMap' = Map.insert "_cps" (pure $ VF $ T.cps tempo) sMap
