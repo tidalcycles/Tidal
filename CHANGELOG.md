@@ -1,5 +1,8 @@
 # TidalCycles log of changes
 
+## 1.5.2 - Rivelin
+        * Fix streamAll
+
 ## 1.5.1 - Blacka Moor
 	* Bugfix splice
 
