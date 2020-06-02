@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings, FlexibleContexts #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings, FlexibleContexts, BangPatterns #-}
 
 module Sound.Tidal.Control where
 
@@ -287,7 +287,7 @@ loopAt :: Pattern Time -> ControlPattern -> ControlPattern
 loopAt n p = slow n p |* P.speed (fromRational <$> (1/n)) # P.unit (pure "c")
 
 hurry :: Pattern Rational -> ControlPattern -> ControlPattern
-hurry x = (|* P.speed (fromRational <$> x)) . fast x
+hurry !x = (|* P.speed (fromRational <$> x)) . fast x
 
 {- | Smash is a combination of `spread` and `striate` - it cuts the samples
 into the given number of bits, and then cuts between playing the loop
@@ -402,3 +402,6 @@ reset k pat = pat {query = q}
         offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
                                             return $ ((f . fromMaybe 0 . getR) <$> p)
         ctrl = "_t_" ++ show k
+
+splat :: Pattern Int -> ControlPattern -> ControlPattern -> ControlPattern
+splat slices epat pat = (chop slices pat) # bite 1 (const 0 <$> pat) epat
