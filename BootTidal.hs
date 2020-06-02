@@ -14,6 +14,8 @@ tidal <- startTidal (superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oP
 let only = (hush >>)
     p = streamReplace tidal
     hush = streamHush tidal
+    panic = do hush
+               once $ sound "superpanic"
     list = streamList tidal
     mute = streamMute tidal
     unmute = streamUnmute tidal
