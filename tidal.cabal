@@ -83,6 +83,7 @@ test-suite tests
                  Sound.Tidal.ScalesTest
                  Sound.Tidal.UITest
                  Sound.Tidal.UtilsTest
+                 Sound.Tidal.ExceptionsTest
                  TestUtils
   build-depends:
                 base ==4.*
@@ -90,6 +91,7 @@ test-suite tests
               , containers
               , parsec
               , tidal
+              , deepseq
 
   default-language: Haskell2010
 
