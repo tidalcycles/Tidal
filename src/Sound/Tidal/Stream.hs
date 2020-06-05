@@ -8,9 +8,7 @@ import           Control.Applicative ((<|>))
 import           Control.Concurrent.MVar
 import           Control.Concurrent
 import           Control.Monad (forM_)
-import           Control.Parallel.Strategies (rdeepseq, runEvalIO)
-import           Control.DeepSeq (NFData (..))
-import           GHC.Generics
+import           Control.Parallel.Strategies (rseq, evalList, runEvalIO)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (fromJust, fromMaybe, catMaybes)
 import qualified Control.Exception as E
@@ -320,24 +318,14 @@ doTick fake stream st =
                               then catMaybes $ map (toOSC latency e t) oscs
                               else []
                           ) tes
-         runEvalIO (rdeepseq ms) -- might raise exception, will be caught below (B)
          forM_ ms $ \ m -> send cx m `E.catch` \ (e :: E.SomeException) -> do
            putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
-       ) `E.catch` \ (e ::E.SomeException) -> do -- (B)
+       ) `E.catch` \ (e ::E.SomeException) -> do
            putStrLn $ "Failed to evaluate. Returning to previous pattern. " ++ show e
            setPreviousPatternOrSilence stream
                
      putMVar (sTempoMV stream) tempo'
      return ()
-
-deriving instance Generic O.Message
-instance NFData O.Message
-
-deriving instance Generic O.Datum
-instance NFData O.Datum
-
-deriving instance Generic O.MIDI
-instance NFData O.MIDI
 
 setPreviousPatternOrSilence :: Stream -> IO ()
 setPreviousPatternOrSilence stream =

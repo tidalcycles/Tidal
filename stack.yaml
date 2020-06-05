@@ -4,5 +4,7 @@ packages:
   - '.'
 
 extra-deps:
-  - hosc-0.17
+  - git: https://github.com/rd--/hosc
+    commit: f8716423013c5a333d036daefc3c0265d8a05d3e
+  # - hosc-0.17
   - microspec-0.2.1.3
