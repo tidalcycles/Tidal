@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleInstances, TypeSynonymInstances #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Sound.Tidal.Pattern where
@@ -9,6 +10,7 @@ import           Prelude hiding ((<*), (*>))
 import           Control.Applicative (liftA2)
 --import           Data.Bifunctor (Bifunctor(..))
 import           Data.Data (Data) -- toConstr
+import           GHC.Generics
 import           Data.List (delete, findIndex, sort)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
@@ -42,13 +44,11 @@ cyclePos t = t - sam t
 data ArcF a = Arc
   { start :: a
   , stop :: a
-  } deriving (Eq, Ord, Functor, Show)
+  } deriving (Eq, Ord, Functor, Show, Generic)
 
 type Arc = ArcF Time
 
-instance NFData a => 
-  NFData (ArcF a) where 
-    rnf (Arc s e) = rnf s `seq` rnf e
+instance NFData a => NFData (ArcF a)
 
 instance Num a => Num (ArcF a) where
   negate      = fmap negate
@@ -133,10 +133,9 @@ isIn :: Arc -> Time -> Bool
 isIn (Arc s e) t = t >= s && t < e
 
 data Context = Context {contextPosition :: [((Int, Int), (Int, Int))]}
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Generic)
 
-instance NFData Context where 
-    rnf (Context c) = rnf c
+instance NFData Context
 
 combineContexts :: [Context] -> Context
 combineContexts = Context . concatMap contextPosition
@@ -159,13 +158,11 @@ data EventF a b = Event
   , whole :: Maybe a
   , part :: a
   , value :: b
-  } deriving (Eq, Ord, Functor)
+  } deriving (Eq, Ord, Functor, Generic)
 
 type Event a = EventF (ArcF Time) a
 
-instance (NFData a, NFData b) => 
-  NFData (EventF a b) where 
-    rnf (Event c w p v) = rnf c `seq` rnf w `seq` rnf p `seq` rnf v
+instance (NFData a, NFData b) => NFData (EventF a b)
 
 {-instance Bifunctor EventF where
   bimap f g (Event w p e) = Event (f w) (f p) (g e)
@@ -254,6 +251,7 @@ type Query a = (State -> [Event a])
 
 -- | A datatype that's basically a query
 data Pattern a = Pattern {query :: Query a}
+  deriving Generic
 
 data Value = VS { svalue :: String }
            | VF { fvalue :: Double }
@@ -261,18 +259,12 @@ data Value = VS { svalue :: String }
            | VI { ivalue :: Int }
            | VB { bvalue :: Bool }
            | VX { xvalue :: [Word8] } -- Used for OSC 'blobs'
-           deriving (Typeable,Data)
+           deriving (Typeable,Data, Generic)
 
 class Valuable a where
   toValue :: a -> Value
 
-instance NFData Value where 
-  rnf (VS s) = rnf s 
-  rnf (VF f) = rnf f 
-  rnf (VR r) = rnf r 
-  rnf (VI i) = rnf i 
-  rnf (VB b) = rnf b
-  rnf (VX xs) = rnf xs
+instance NFData Value
 
 instance Valuable String where
   toValue = VS
@@ -334,9 +326,7 @@ type ControlPattern = Pattern ControlMap
 ------------------------------------------------------------------------
 -- * Instances
 
-instance NFData a => 
-  NFData (Pattern a) where 
-    rnf (Pattern q) = rnf q
+instance NFData a => NFData (Pattern a)
 
 instance Functor Pattern where
   -- | apply a function to all the values in a pattern
