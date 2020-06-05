@@ -9,6 +9,7 @@ import Sound.Tidal.ControlTest
 import Sound.Tidal.ScalesTest
 import Sound.Tidal.UITest
 import Sound.Tidal.UtilsTest
+import Sound.Tidal.ExceptionsTest
 
 main :: IO ()
 main = microspec $ do
@@ -19,3 +20,4 @@ main = microspec $ do
   Sound.Tidal.ScalesTest.run
   Sound.Tidal.UITest.run
   Sound.Tidal.UtilsTest.run
+  Sound.Tidal.ExceptionsTest.run

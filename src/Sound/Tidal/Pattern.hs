@@ -336,7 +336,7 @@ type ControlPattern = Pattern ControlMap
 
 instance NFData a => 
   NFData (Pattern a) where 
-    rnf (Pattern q) = rnf $ \s -> q s
+    rnf (Pattern q) = rnf q
 
 instance Functor Pattern where
   -- | apply a function to all the values in a pattern
