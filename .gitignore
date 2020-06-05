@@ -3,10 +3,15 @@
 .cabal-sandbox
 cabal.sandbox.config
 dist
+dist-newstyle
 cabal
 *.o
 *.hi
+*.dyn_hi
+*.dyn_o
 .stack-work
+.DS_Store
+.ghc.environment.*
 
 # text editor temp files
 *~

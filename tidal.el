@@ -40,6 +40,7 @@
 (require 'find-lisp)
 (require 'pulse)
 (require 'haskell-mode)
+(require 'subr-x)
 
 (defvar tidal-buffer
   "*tidal*"
@@ -54,9 +55,30 @@
   "*The version of tidal interpreter as a string.")
 
 (defvar tidal-interpreter-arguments
-  (list "-XOverloadedStrings"
-        )
+  ()
   "*Arguments to the haskell interpreter (default=none).")
+
+(defvar tidal-boot-script-path
+  (let ((filepath
+         (cond
+          ((string-equal system-type "windows-nt")
+           '(("path" . "echo off && for /f %a in ('ghc-pkg latest tidal') do (for /f \"tokens=2\" %i in ('ghc-pkg describe %a ^| findstr data-dir') do (echo %i))")
+             ("separator" . "\\")
+             ))
+          ((or (string-equal system-type "darwin") (string-equal system-type "gnu/linux"))
+           '(("path" . "ghc-pkg field tidal data-dir")
+             ("separator" . "/")
+             ))
+          )
+         ))
+    (concat
+     (string-trim (cadr (split-string
+                         (shell-command-to-string (cdr (assoc "path" filepath))) ":")))
+     (cdr (assoc "separator" filepath))
+     "BootTidal.hs")
+    )
+  "*Full path to BootTidal.hs (inferred by introspecting ghc-pkg package db)."
+)
 
 (defvar tidal-literate-p
   t
@@ -88,38 +110,7 @@
      nil
      tidal-interpreter-arguments)
     (tidal-see-output))
-  (tidal-send-string ":set prompt \"\"")
-  (if (string< tidal-interpreter-version "8.2.0")
-      (tidal-send-string ":set prompt2 \"\"")
-    (tidal-send-string ":set prompt-cont \"\""))
-  (tidal-send-string ":module Sound.Tidal.Context")
-  (tidal-send-string "import qualified Sound.Tidal.Scales as Scales")
-  (tidal-send-string "import qualified Sound.Tidal.Chords as Chords")
-  (tidal-send-string "(cps, nudger, getNow) <- cpsUtils'")
-  (tidal-send-string "(d1,t1) <- superDirtSetters getNow")
-  (tidal-send-string "(d2,t2) <- superDirtSetters getNow")
-  (tidal-send-string "(d3,t3) <- superDirtSetters getNow")
-  (tidal-send-string "(d4,t4) <- superDirtSetters getNow")
-  (tidal-send-string "(d5,t5) <- superDirtSetters getNow")
-  (tidal-send-string "(d6,t6) <- superDirtSetters getNow")
-  (tidal-send-string "(d7,t7) <- superDirtSetters getNow")
-  (tidal-send-string "(d8,t8) <- superDirtSetters getNow")
-  (tidal-send-string "(d9,t9) <- superDirtSetters getNow")
-  (tidal-send-string "(d10,t10) <- superDirtSetters getNow")
-  (tidal-send-string "(c1,ct1) <- dirtSetters getNow")
-  (tidal-send-string "(c2,ct2) <- dirtSetters getNow")
-  (tidal-send-string "(c3,ct3) <- dirtSetters getNow")
-  (tidal-send-string "(c4,ct4) <- dirtSetters getNow")
-  (tidal-send-string "(c5,ct5) <- dirtSetters getNow")
-  (tidal-send-string "(c6,ct6) <- dirtSetters getNow")
-  (tidal-send-string "(c7,ct7) <- dirtSetters getNow")
-  (tidal-send-string "(c8,ct8) <- dirtSetters getNow")
-  (tidal-send-string "(c9,ct9) <- dirtSetters getNow")
-  (tidal-send-string "(c10,ct10) <- dirtSetters getNow")
-  (tidal-send-string "let bps x = cps (x/2)")
-  (tidal-send-string "let hush = mapM_ ($ silence) [c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,d1,d2,d3,d4,d5,d6,d7,d8,d9,d10]")
-  (tidal-send-string "let solo = (>>) hush")
-  (tidal-send-string ":set prompt \"tidal> \"")
+  (tidal-send-string (concat ":script " tidal-boot-script-path))
 )
 
 (defun tidal-see-output ()
@@ -179,7 +170,7 @@
 (defun tidal-run-line ()
   "Send the current line to the interpreter."
   (interactive)
-  (tidal-get-now)
+  ;(tidal-get-now)
   (let* ((s (buffer-substring (line-beginning-position)
 			      (line-end-position)))
 	 (s* (if tidal-literate-p
@@ -192,7 +183,7 @@
 
 (defun tidal-eval-multiple-lines ()
   "Eval the current region in the interpreter as a single line."
-  (tidal-get-now)
+  ;(tidal-get-now)
   (mark-paragraph)
   (let* ((s (buffer-substring-no-properties (region-beginning)
                                             (region-end)))

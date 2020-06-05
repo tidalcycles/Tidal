@@ -19,7 +19,7 @@ import Data.Maybe
 import Data.List
 
 import Sound.Tidal.Pattern
-import Sound.Tidal.Time (Arc, Time)
+-- import Sound.Tidal.Time (Span, Time)
 
 {-
 #ifdef TIDAL_SEMIGROUP
@@ -30,9 +30,9 @@ import qualified Data.Semigroup as Sem
 -- | AST representation of patterns
 
 data TPat a = TPat_Atom a
-            | TPat_Density (TPat Time) (TPat a)
+            | TPat_Fast (TPat Time) (TPat a)
             | TPat_Slow (TPat Time) (TPat a)
-            | TPat_Zoom Arc (TPat a)
+            | TPat_Zoom Span (TPat a)
             | TPat_DegradeBy Double (TPat a)
             | TPat_Silence
             | TPat_Foot
@@ -64,9 +64,9 @@ instance Parseable a => Monoid (TPat a) where
 toPat :: Enumerable a => TPat a -> Pattern a
 toPat = \case
    TPat_Atom x -> atom x
-   TPat_Density t x -> density (toPat t) $ toPat x
+   TPat_Fast t x -> fast (toPat t) $ toPat x
    TPat_Slow t x -> slow (toPat t) $ toPat x
-   TPat_Zoom arc x -> zoom arc $ toPat x
+   TPat_Zoom span x -> zoom span $ toPat x
    TPat_DegradeBy amt x -> _degradeBy amt $ toPat x
    TPat_Silence -> silence
    TPat_Cat xs -> fastcat $ map toPat xs
@@ -74,7 +74,7 @@ toPat = \case
    TPat_Overlay x0 x1 -> overlay (toPat x0) (toPat x1)
    TPat_ShiftL t x -> t `rotL` toPat x
    TPat_pE n k s thing ->
-      unwrap $ _eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
+      unwrap $ eoff <$> toPat n <*> toPat k <*> toPat s <*> pure (toPat thing)
    TPat_Foot -> error "Can't happen, feet (.'s) only used internally.."
    TPat_EnumFromTo a b -> unwrap $ fromTo <$> (toPat a) <*> (toPat b)
    -- TPat_EnumFromThenTo a b c -> unwrap $ fromThenTo <$> (toPat a) <*> (toPat b) <*> (toPat c)
@@ -208,7 +208,7 @@ parseRhythm f input = either (const TPat_Silence) id $ parse (pSequence f') "" i
 
 pSequenceN :: Parseable a => Parser (TPat a) -> GenParser Char () (Int, TPat a)
 pSequenceN f = do spaces
-                  -- d <- pDensity
+                  -- d <- pFast
                   ps <- many $ do a <- pPart f
                                   do Text.ParserCombinators.Parsec.try $ symbol ".."
                                      b <- pPart f
@@ -280,7 +280,7 @@ pPolyOut f = do ps <- braces (pSequenceN f `sepBy` symbol ",")
                 spaces
                 pMult $ foldr TPat_Overlay TPat_Silence $ scale (Just 1) ps
   where scale _ [] = []
-        scale base (ps@((n,_):_)) = map (\(n',p) -> TPat_Density (TPat_Atom $ fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
+        scale base (ps@((n,_):_)) = map (\(n',p) -> TPat_Fast (TPat_Atom $ fromIntegral (fromMaybe n base)/ fromIntegral n') p) ps
 
 pString :: Parser (String)
 pString = do c <- (letter <|> oneOf "0123456789") <?> "charnum"
@@ -349,7 +349,7 @@ pMult :: Parseable a => TPat a -> Parser (TPat a)
 pMult thing = do char '*'
                  spaces
                  r <- (pRational <|> pPolyIn pRational  <|> pPolyOut pRational)
-                 return $ TPat_Density r thing
+                 return $ TPat_Fast r thing
               <|>
               do char '/'
                  spaces
@@ -381,13 +381,6 @@ pE thing = do (n,k,s) <- parens (pair)
                            pSequence pIntegral
                         <|> return (TPat_Atom 0)
                    return (a, b, c)
-
-eoff :: Pattern Int -> Pattern Int -> Pattern Integer -> Pattern a -> Pattern a
-eoff = temporalParam3 _eoff
-
-_eoff :: Int -> Int -> Integer -> Pattern a -> Pattern a
-_eoff n k s p = ((s%(fromIntegral k)) `rotL`) (_e n k p)
-   -- TPat_ShiftL (s%(fromIntegral k)) (TPat_E n k p)
 
 pReplicate :: Parseable a => TPat a -> Parser [TPat a]
 pReplicate thing =
@@ -429,8 +422,8 @@ pRational = do r <- pRatio
                return $ TPat_Atom r
 
 {-
-pDensity :: Parser (Rational)
-pDensity = angles (pRatio <?> "ratio")
+pFast :: Parser (Rational)
+pFast = angles (pRatio <?> "ratio")
            <|>
            return (1 % 1)
 -}

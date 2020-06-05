@@ -1,5 +1,5 @@
 name:                tidal
-version:             0.9.11
+version:             1.5.3
 synopsis:            Pattern language for improvised music
 -- description:
 homepage:            http://tidalcycles.org/
@@ -8,78 +8,121 @@ license-file:        LICENSE
 author:              Alex McLean
 maintainer:          Alex McLean <alex@slab.org>, Mike Hodnick <mike.hodnick@gmail.com>
 Stability:           Experimental
-Copyright:           (c) Tidal contributors, 2017
+Copyright:           (c) Tidal contributors, 2019
 category:            Sound
 build-type:          Simple
 cabal-version:       >=1.10
-tested-with:         GHC == 7.10.3, GHC == 8.0.1, GHC == 8.4.1
+tested-with:         GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.3
+data-files:          BootTidal.hs
 
-Extra-source-files: README.md CHANGELOG.md tidal.el doc/tidal.md
+Extra-source-files: README.md CHANGELOG.md tidal.el
 
 Description: Tidal is a domain specific language for live coding pattern.
 
 library
-  if impl(ghc == 8.4.1)
-    cpp-options: -DTIDAL_SEMIGROUP
+  ghc-options: -Wall
+  hs-source-dirs:
+                 src
 
   default-language:    Haskell2010
 
   Exposed-modules:     Sound.Tidal.Bjorklund
-                       Sound.Tidal.Strategies
-                       Sound.Tidal.Dirt
-                       Sound.Tidal.Pattern
-                       Sound.Tidal.Stream
-                       Sound.Tidal.OscStream
-                       Sound.Tidal.Parse
-                       Sound.Tidal.Tempo
-                       Sound.Tidal.Time
-                       Sound.Tidal.Context
-                       Sound.Tidal.Utils
-                       Sound.Tidal.SuperCollider
-                       Sound.Tidal.Params
-                       Sound.Tidal.Transition
-                       Sound.Tidal.EspGrid
-                       Sound.Tidal.MultiMode
-                       Sound.Tidal.Scales
+                       Sound.Tidal.Carabiner
                        Sound.Tidal.Chords
-                       Sound.Tidal.Sieve
-                       Sound.Tidal.Version
+                       Sound.Tidal.Config
+                       Sound.Tidal.Control
+                       Sound.Tidal.Context
+                       Sound.Tidal.Core
+                       Sound.Tidal.Params
+                       Sound.Tidal.ParseBP
+                       Sound.Tidal.Pattern
+                       Sound.Tidal.Scales
+                       Sound.Tidal.Show
                        Sound.Tidal.Simple
-                       -- Sound.Tidal.PatternList
-
+                       Sound.Tidal.Stream
+                       Sound.Tidal.Tempo
+                       Sound.Tidal.Transition
+                       Sound.Tidal.UI
+                       Sound.Tidal.Utils
+                       Sound.Tidal.Version
+                       Sound.Tidal.EspGrid
+                       -- Sound.Tidal.Light
+                       -- Sound.Tidal.TH
   Build-depends:
-      base < 5
-    , containers
-    , hashable
-    , colour
-    , hosc >= 0.16
-    , text
-    , mersenne-random-pure64
-    , time
-    , parsec
-    , safe
-    , websockets > 0.8
-    , mtl >= 2.1
-    , monad-loops
+      base >=4.8 && <5
+    , containers < 0.7
+    , colour < 2.4
+    , hosc >= 0.17 && < 0.18
+    , text < 1.3
+    , parsec >= 3.1.12 && < 3.2
+    , network < 3.2
+    , vector < 0.13
+    , bifunctors < 5.6
+    , transformers >= 0.5 && < 0.5.7
+    , bytestring < 0.11
+    , clock < 0.9
+    , deepseq >= 1.1.0.0
+    , primitive < 0.8
+    , random < 1.2
+    -- , serialport
+    -- , hashable
 
   if !impl(ghc >= 8.4.1)
-    build-depends: semigroups == 0.18.*
+    build-depends: semigroups >= 0.18 && < 0.20
+
+test-suite tests
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  hs-source-dirs:
+      test
+  ghc-options: -Wall
+  other-modules: Sound.Tidal.ControlTest
+                 Sound.Tidal.CoreTest
+                 Sound.Tidal.ParseTest
+                 Sound.Tidal.PatternTest
+                 Sound.Tidal.ScalesTest
+                 Sound.Tidal.UITest
+                 Sound.Tidal.UtilsTest
+                 TestUtils
+  build-depends:
+                base ==4.*
+              , microspec >= 0.2.0.1
+              , containers
+              , parsec
+              , tidal
+
+  default-language: Haskell2010
+
+benchmark bench-speed
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  hs-source-dirs:   bench/Speed
+  other-modules: Tidal.PatternB
+                 Tidal.CoreB
+                 Tidal.UIB
+                 Tidal.Inputs
+  build-depends:
+                base == 4.*
+              , criterion
+              , tidal
+  ghc-options: -Wall -O2
+
+  default-language: Haskell2010
+
+benchmark bench-memory
+  type:    exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs: bench/Memory
+  other-modules: Tidal.UIB
+                 Tidal.Inputs
+  build-depends:
+               base == 4.*
+             , weigh
+             , tidal
+  ghc-options: -Wall -O2
+
+  default-language: Haskell2010
 
 source-repository head
   type:     git
   location: https://github.com/tidalcycles/Tidal
-
-test-suite test
-  default-language:
-    Haskell2010
-  type:
-    exitcode-stdio-1.0
-  hs-source-dirs:
-    tests
-  main-is:
-    test.hs
-  build-depends:
-      base >= 4 && < 5
-              , tasty 
-              , tasty-hunit
-    , tidal

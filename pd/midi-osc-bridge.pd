@@ -1,0 +1,46 @@
+#N canvas 911 204 450 300 10;
+#X obj 170 9 ctlin;
+#X floatatom 16 74 5 0 0 0 - - -;
+#X floatatom 151 97 5 0 0 0 - - -;
+#X floatatom 296 74 5 0 0 0 - - -;
+#X obj 96 158 oscformat ctrl;
+#X obj 96 180 list prepend send;
+#X obj 96 202 list trim;
+#X obj 96 224 netsend -u -b;
+#X msg 233 164 connect localhost 6010;
+#X obj 55 225 print;
+#X obj 11 50 hsl 128 15 0 127 0 0 empty empty empty -2 -8 0 10 -262144
+-1 -1 1200 1;
+#X obj 154 49 hsl 128 15 0 127 0 0 empty empty empty -2 -8 0 10 -262144
+-1 -1 7100 1;
+#X obj 298 50 hsl 128 15 0 127 0 0 empty empty empty -2 -8 0 10 -262144
+-1 -1 100 1;
+#X obj 96 136 pack 1 2;
+#X text 44 73 control number;
+#X text 194 85 control value;
+#X text 336 74 midi channel (not used);
+#X obj 152 72 / 127;
+#X msg 195 134 format if;
+#X obj 259 109 loadbang;
+#X obj 115 110 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
+-1 -1;
+#X connect 0 0 11 0;
+#X connect 0 1 10 0;
+#X connect 0 2 12 0;
+#X connect 1 0 13 0;
+#X connect 2 0 13 1;
+#X connect 2 0 20 0;
+#X connect 4 0 5 0;
+#X connect 5 0 6 0;
+#X connect 6 0 7 0;
+#X connect 8 0 7 0;
+#X connect 10 0 1 0;
+#X connect 11 0 17 0;
+#X connect 12 0 3 0;
+#X connect 13 0 4 0;
+#X connect 13 0 9 0;
+#X connect 17 0 2 0;
+#X connect 18 0 4 0;
+#X connect 19 0 8 0;
+#X connect 19 0 18 0;
+#X connect 20 0 13 0;

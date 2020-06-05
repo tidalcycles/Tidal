@@ -1,5 +1,8 @@
-flags: {}
+resolver: lts-12.20
+
 packages:
-- '.'
+  - '.'
+
 extra-deps:
-resolver: lts-9.6
+  - hosc-0.17
+  - microspec-0.2.1.3
