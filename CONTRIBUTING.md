@@ -3,19 +3,17 @@ The main website is here: http://tidalcycles.org/
 # Community
 
 The below might help, but to find people to ask questions about
-getting started, join the tidal-innards channel on the TOPLAP slack:
-  http://toplap.org/toplap-on-slack/
+getting started, visit the "innards" category in the tidalclub forum:
+  https://club.tidalcycles.org/c/innards/11
 
-You can also ask on the mailing list:
-  https://we.lurk.org/postorius/lists/tidal.we.lurk.org/
+and/or the tidal-innards channel on the TOPLAP slack:
+  http://chat.toplap.org/
 
 # Tidal
 
 Tidal is written in the Haskell language, in particular using the ghc
-compiler/interpreter. Some resources for learning Haskell:
-
-* http://learnyouahaskell.com/
-* http://haskellbook.com/
+compiler/interpreter. Some resources for learning Haskell can be found here: 
+  https://tidalcycles.org/index.php/Haskell_resources
 
 # Quick guide to contributing a change to Tidal
 
@@ -55,9 +53,7 @@ cabal test --show-details=streaming
 firefox dist/hpc/prof/html/tests/hpc_index.html
 ```
 
-To run up your changes locally, install Tidal with `cabal install`. To remove
-them again and revert to the latest release, run `ghc-pkg unregister tidal-1.0.0`
-being sure to match up the version numbers.
+To run up your changes locally, install Tidal with `cabal install`. To remove them again and revert to the latest release, run `ghc-pkg unregister tidal-1.0.0` being sure to match up the version numbers. (note that ghc packaging is in a state of flux at the moment - this command might not actually work..)
 
 # A process for making a release
 
@@ -66,4 +62,4 @@ describe how to..
 
 * Share with others for testing
 * Tag a release
-* Distribute via to hackage / stackage
+* Distribute via hackage / stackage
