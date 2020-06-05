@@ -40,6 +40,26 @@ development workflow, you are very welcome to join the
 `#tidal-innards` channel on http://talk.lurk.org/ and ask questions
 there.
 
+# Recommendations to handle forks and branches
+
+In your forked repository: before doing anything,
+make sure that local files are up to date:
+```
+git checkout master
+git fetch upstream
+git pull upstream master
+git push
+```
+Then to work on something, create a fresh branch:
+```
+git checkout -b fix-some-issue
+```
+edit files, test, etc. Finally:
+```
+git commit -a
+git push --set-upstream origin fix-some-issue
+```
+
 # Testing
 
 Use `cabal test` to run the test suite to look for regressions. Please
