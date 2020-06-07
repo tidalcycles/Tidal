@@ -13,10 +13,10 @@ cabal: "2.4"
 matrix:
   include:
     - env: BUILD=cabal-allow-newer
-      ghc: "8.8.3"
+      ghc: "8.10.1"
       cabal: "3.0"
     - env: BUILD=cabal-allow-newer
-      ghc: "8.10.1"
+      ghc: "8.8.3"
       cabal: "3.0"
     - env: BUILD=cabal
       ghc: "8.6.5"
@@ -75,7 +75,7 @@ script:
       ;;
     cabal-allow-newer)
       cabal v2-update
-      cabal v2-build --allow-newer --enable-tests --enable-benchmarks all
+      cabal v2-build --allow-newer=base,template-haskell --enable-tests --enable-benchmarks all
       ;;
     stack)
       stack --no-terminal $ARGS test --haddock --no-haddock-deps
