@@ -72,10 +72,12 @@ script:
     cabal)
       cabal v2-update
       cabal v2-build --enable-tests --enable-benchmarks all
+      cabal v2-test  --enable-tests --enable-benchmarks all
       ;;
     cabal-allow-newer)
       cabal v2-update
       cabal v2-build --allow-newer=base,template-haskell --enable-tests --enable-benchmarks all
+      cabal v2-test  --allow-newer=base,template-haskell --enable-tests --enable-benchmarks all
       ;;
     stack)
       stack --no-terminal $ARGS test --haddock --no-haddock-deps
