@@ -14,6 +14,13 @@ matrix:
   include:
     - env: BUILD=cabal
       ghc: "8.8.3"
+      cabal: "3.0"
+    - env: BUILD=cabal
+      ghc: "8.8.3"
+      cabal: "3.2"
+    - env: BUILD=cabal
+      ghc: "8.10.1"
+      cabal: "3.2"
     - env: BUILD=cabal
       ghc: "8.6.5"
     - env: BUILD=cabal
