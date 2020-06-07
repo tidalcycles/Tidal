@@ -1754,7 +1754,17 @@ unfixRange = contrastRange id
 -- | limit values in a Pattern (or other Functor) to n equally spaced
 -- divisions of 1.
 quantise :: (Functor f, RealFrac b) => b -> f b -> f b
-quantise n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . floor . (*n))
+quantise n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . round . (*n))
+
+-- quantise but with floor
+qfloor :: (Functor f, RealFrac b) => b -> f b -> f b
+qfloor n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . floor . (*n))
+
+qceiling :: (Functor f, RealFrac b) => b -> f b -> f b
+qceiling n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . ceiling . (*n))
+
+qround :: (Functor f, RealFrac b) => b -> f b -> f b
+qround = quantise
 
 -- | Inverts all the values in a boolean pattern
 inv :: Functor f => f Bool -> f Bool
