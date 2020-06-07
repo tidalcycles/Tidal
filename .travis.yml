@@ -12,15 +12,12 @@ cabal: "2.4"
 
 matrix:
   include:
-    - env: BUILD=cabal
+    - env: BUILD=cabal-allow-newer
       ghc: "8.8.3"
       cabal: "3.0"
-    - env: BUILD=cabal
-      ghc: "8.8.3"
-      cabal: "3.2"
-    - env: BUILD=cabal
+    - env: BUILD=cabal-allow-newer
       ghc: "8.10.1"
-      cabal: "3.2"
+      cabal: "3.0"
     - env: BUILD=cabal
       ghc: "8.6.5"
     - env: BUILD=cabal
@@ -51,7 +48,7 @@ matrix:
 install:
 - |
   case "$BUILD" in
-    cabal)
+    cabal*)
       cabal --version
       ghc --version
       cabal outdated --exit-code
@@ -75,6 +72,10 @@ script:
     cabal)
       cabal v2-update
       cabal v2-build --enable-tests --enable-benchmarks all
+      ;;
+    cabal-allow-newer)
+      cabal v2-update
+      cabal v2-build --allow-newer --enable-tests --enable-benchmarks all
       ;;
     stack)
       stack --no-terminal $ARGS test --haddock --no-haddock-deps
