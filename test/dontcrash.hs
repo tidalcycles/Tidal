@@ -24,12 +24,12 @@ main = do
         d1 $ p      ; wait 2
         putStrLn $ "---------------- playing simple pattern"
         d1 $ simple ; wait 2
-  
+
   go [ "cr"
-     
+
        -- https://github.com/tidalcycles/Tidal/issues/606#issue-563234396
-     , gain (unwrap $ fmap (["1", "0."]!!) $ "{0 0@7 0 1@7}%16") # s "harmor" # midichan 11  
-    
+     , gain (unwrap $ fmap (["1", "0."]!!) $ "{0 0@7 0 1@7}%16") # s "harmor" # midichan 11
+
        -- https://github.com/tidalcycles/Tidal/issues/606#issuecomment-598776256
      , superimpose (hurry "<0.5 2?") $ sound "bd"
 
@@ -44,4 +44,3 @@ main = do
            fx = [ mkfx "r" (# speed "-1") ]
        in ur 16 structure pats fx
      ]
-

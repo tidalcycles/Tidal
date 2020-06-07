@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns -fno-warn-orphans #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# language StrictData #-}
 
 module Sound.Tidal.Tempo where
 
