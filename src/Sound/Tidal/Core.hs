@@ -367,8 +367,11 @@ compress (s,e) = compressArc (Arc s e)
 compressTo :: (Time,Time) -> Pattern a -> Pattern a
 compressTo (s,e) = compressArcTo (Arc s e)
 
-repeatCycles :: Int -> Pattern a -> Pattern a
-repeatCycles n p = cat (replicate n p)
+repeatCycles :: Pattern Int -> Pattern a -> Pattern a
+repeatCycles = tParam _repeatCycles
+
+_repeatCycles :: Int -> Pattern a -> Pattern a
+_repeatCycles n p = cat (replicate n p)
 
 fastRepeatCycles :: Int -> Pattern a -> Pattern a
 fastRepeatCycles n p = cat (replicate n p)
