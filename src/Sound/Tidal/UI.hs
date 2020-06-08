@@ -988,10 +988,11 @@ struct :: Pattern Bool -> Pattern a -> Pattern a
 struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <* pv
 
 -- | @substruct a b@: similar to @struct@, but each event in pattern @a@ gets replaced with pattern @b@, compressed to fit the timespan of the event.
-substruct :: Pattern String -> Pattern b -> Pattern b
+
+substruct :: Pattern Bool -> Pattern b -> Pattern b
 substruct s p = p {query = f}
   where f st =
-          concatMap ((\a' -> queryArc (compressArcTo a' p) a') . fromJust . whole) $ filter isDigital $ (query s st)
+          concatMap ((\a' -> queryArc (compressArcTo a' p) a') . wholeOrPart) $ filter value $ query s st
 
 randArcs :: Int -> Pattern [Arc]
 randArcs n =
@@ -1006,6 +1007,7 @@ randArcs n =
              pairUp' [_] = []
              pairUp' [a, _] = [Arc a 1]
              pairUp' (a:b:xs) = Arc a b: pairUp' (b:xs)
+
 
 -- TODO - what does this do? Something for @stripe@ ..
 randStruct :: Int -> Pattern Int
@@ -1274,7 +1276,7 @@ cycleChoose = segment 1 . choose
 
 {- | Internal function used by shuffle and scramble -}
 _rearrangeWith :: Pattern Int -> Int -> Pattern a -> Pattern a
-_rearrangeWith ipat n pat = innerJoin $ (\i -> _fast nT $ repeatCycles n $ pats !! i) <$> ipat
+_rearrangeWith ipat n pat = innerJoin $ (\i -> _fast nT $ _repeatCycles n $ pats !! i) <$> ipat
   where
     pats = map (\i -> zoom (fromIntegral i / nT, fromIntegral (i+1) / nT) pat) [0 .. (n-1)]
     nT :: Time
@@ -1314,6 +1316,7 @@ randrun n' =
                 fractions = map (+ (sam $ start a)) [0, 1 / fromIntegral n' .. 1]
                 toEv (a',v) = do a'' <- subArc a a'
                                  return $ Event (Context []) (Just a') a'' v
+
 
 ur :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
 ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <$> outer_p)
