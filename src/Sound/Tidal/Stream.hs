@@ -1,11 +1,13 @@
 {-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, BangPatterns #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
+{-# language DeriveGeneric, StandaloneDeriving #-}
 
 module Sound.Tidal.Stream where
 
 import           Control.Applicative ((<|>))
 import           Control.Concurrent.MVar
 import           Control.Concurrent
+import           Control.Monad (forM_)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (fromJust, fromMaybe, catMaybes)
 import qualified Control.Exception as E
@@ -275,13 +277,32 @@ streamFirst stream pat = do now <- O.time
                                 state = T.State {T.ticks = 0,
                                                  T.start = now,
                                                  T.nowTimespan = (now, now + (1/cps)),
+                                                 T.starting = True, -- really?
                                                  T.nowArc = (Arc 0 1)
                                                 }
                             doTick True (stream {sPMapMV = pMapMV}) state
 
+-- | Query the current pattern (contained in argument @stream :: Stream@)
+-- for the events in the current arc (contained in argument @st :: T.State@),
+-- translate them to OSC messages, and send these.
+--
+-- If an exception occurs during sending,
+-- this functions prints a warning and continues, because
+-- the likely reason is that the backend (supercollider) isn't running.
+-- 
+-- If any exception occurs before or outside sending
+-- (e.g., while querying the pattern, while computing a message),
+-- this function prints a warning and resets the current pattern
+-- to the previous one (or to silence if there isn't one) and continues,
+-- because the likely reason is that something is wrong with the current pattern.
 doTick :: Bool -> Stream -> T.State -> IO ()
 doTick fake stream st =
-  do tempo <- takeMVar (sTempoMV stream)
+  E.handle (\ (e :: E.SomeException) -> do
+    putStrLn $ "Failed to Stream.doTick: " ++ show e
+    putStrLn $ "Return to previous pattern."
+    setPreviousPatternOrSilence stream
+           ) $
+  modifyMVar_ (sTempoMV stream) $ \ tempo -> do
      pMap <- readMVar (sPMapMV stream)
      sMap <- readMVar (sInput stream)
      sGlobalF <- readMVar (sGlobalFMV stream)
@@ -308,22 +329,27 @@ doTick fake stream st =
          -- TODO onset is calculated in toOSC as well..
          on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
          (tes, tempo') = processCps tempo es
-     mapM_ (\cx@(Cx target _ oscs) ->
-              (do let latency = oLatency target + extraLatency
-                      ms = concatMap (\(t, e) ->
-                                        if (fake || (on e t) < frameEnd)
-                                        then catMaybes $ map (toOSC latency e t) oscs
-                                        else []
-                                     ) tes
-                  E.catch $ mapM_ (send cx) ms
-              )
-              (\(e ::E.SomeException)
-                -> putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
-              )
-           ) cxs
-     putMVar (sTempoMV stream) tempo'
-     return ()
+     forM_ cxs $ \cx@(Cx target _ oscs) -> do
+         let latency = oLatency target + extraLatency
+             ms = concatMap (\(t, e) ->
+                              if (fake || (on e t) < frameEnd)
+                              then catMaybes $ map (toOSC latency e t) oscs
+                              else []
+                          ) tes
+         forM_ ms $ \ m -> send cx m `E.catch` \ (e :: E.SomeException) -> do
+           putStrLn $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
 
+     tempo' `seq` return tempo'
+
+
+setPreviousPatternOrSilence :: Stream -> IO ()
+setPreviousPatternOrSilence stream =
+  modifyMVar_ (sPMapMV stream) $ return
+    . Map.map ( \ pMap -> case history pMap of
+      _:p:ps -> pMap { pattern = p, history = p:ps }
+      _ -> pMap { pattern = silence, history = [silence] }
+              )
+      
 send :: Cx -> (Double, O.Message) -> IO ()
 send cx (time, m)
   | oSchedule target == Pre BundleStamp = O.sendBundle u $ O.Bundle time [m]
