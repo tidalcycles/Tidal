@@ -1,5 +1,16 @@
 # TidalCycles log of changes
 
+
+## 1.6.0 - Keep live coding live
+	* Rollback to previous pattern on parse error @jwaldmann
+	* Increased strictness to catch parse errors earlier @jwaldmann @yaxu
+	* Support for superdirt 'panic' @yaxu
+	* Increase hosc upper bounds to admin 0.18
+	* New function 'splat' @yaxu
+	* `quantise` now uses round, add qfloor, qceiling variants and qround alis @lwlsn
+	* Add ghc 8.8.3 to travis @jwaldmann
+	* Switch `substruct` to use binary pattern @yaxu
+
 ## 1.5.2 - Rivelin
         * Fix streamAll
 
