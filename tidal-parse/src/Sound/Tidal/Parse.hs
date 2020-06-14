@@ -197,17 +197,14 @@ genericTransformations =
     -- more complex possibilities that would involve overlapped Parse instances if they were instances
     pTime_p_p <*> parser <|>
     pInt_p_p <*> parser <|>
-    pString_p_p <*> parser <|>
     pDouble_p_p <*> parser <|>
     pBool_p_p <*> parser <|>
     lpInt_p_p <*> parser <|>
     -- more complex possibilities that wouldn't involve overlapped Parse instances
     (parser :: H (Time -> Pattern a -> Pattern a)) <*> parser <|>
-    (parser :: H (Int -> Pattern a -> Pattern a)) <*> parser <|>
     (parser :: H ((Time,Time) -> Pattern a -> Pattern a)) <*> parser <|>
     (parser :: H ([Time] -> Pattern a -> Pattern a)) <*> parser <|>
     (parser :: H ([Pattern Time] -> Pattern a -> Pattern a)) <*> parser <|>
-    (parser :: H ([Pattern String] -> Pattern a -> Pattern a)) <*> parser <|>
     (parser :: H ([Pattern Double] -> Pattern a -> Pattern a)) <*> parser <|>
     (parser :: H ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser <|>
     lp_p_p <*> parser
@@ -305,8 +302,7 @@ instance Parse (Pattern Bool -> Pattern Bool -> Pattern Bool) where
 
 instance Parse (Pattern String -> Pattern String -> Pattern String) where
   parser =
-    genericBinaryPatternFunctions <|>
-    pString_p_p
+    genericBinaryPatternFunctions
 
 instance Parse (Pattern Int -> Pattern Int -> Pattern Int) where
   parser =
@@ -416,9 +412,6 @@ instance Parse (Time -> Pattern a -> Pattern a) where
     $(fromTidal "rotR") <|>
     (parser :: H (Time -> Time -> Pattern a -> Pattern a)) <*> parser
 
-instance Parse (Int -> Pattern a -> Pattern a) where
-  parser = $(fromTidal "repeatCycles")
-
 instance Parse (Int -> Pattern Int -> Pattern Bool) where
   parser = $(fromTidal "binaryN")
 
@@ -458,14 +451,12 @@ pInt_p_p =
     $(fromTidal "slowstripe") <|>
     $(fromTidal "shuffle") <|>
     $(fromTidal "scramble") <|>
+    $(fromTidal "repeatCycles") <|>
     int_pInt_p_p <*> parser <|>
     pInt_pInt_p_p <*> parser
 
 pInt_pOrd_pOrd :: Ord a => H (Pattern Int -> Pattern a -> Pattern a)
 pInt_pOrd_pOrd = $(fromTidal "rot")
-
-pString_p_p :: H (Pattern String -> Pattern a -> Pattern a)
-pString_p_p = $(fromTidal "substruct")
 
 pDouble_p_p :: H (Pattern Double -> Pattern a -> Pattern a)
 pDouble_p_p =
@@ -476,7 +467,8 @@ pDouble_p_p =
 pBool_p_p :: H (Pattern Bool -> Pattern a -> Pattern a)
 pBool_p_p =
     $(fromTidal "mask") <|>
-    $(fromTidal "struct")
+    $(fromTidal "struct") <|>
+    $(fromTidal "substruct")
 
 instance Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) => Parse ([Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
   parser =
@@ -491,8 +483,6 @@ instance Parse ([Pattern Double] -> Pattern a -> Pattern a) where
   parser = (parser :: H ((Pattern Double -> Pattern a -> Pattern a) -> [Pattern Double] -> Pattern a -> Pattern a)) <*> pDouble_p_p
 instance Parse ([Pattern Time] -> Pattern a -> Pattern a) where
   parser = (parser :: H ((Pattern Time -> Pattern a -> Pattern a) -> [Pattern Time] -> Pattern a -> Pattern a)) <*> pTime_p_p
-instance Parse ([Pattern String] -> Pattern a -> Pattern a) where
-  parser = (parser :: H ((Pattern String -> Pattern a -> Pattern a) -> [Pattern String] -> Pattern a -> Pattern a)) <*> pString_p_p
 
 lpInt_p_p :: H ([Pattern Int] -> Pattern a -> Pattern a)
 lpInt_p_p =
