@@ -23,12 +23,12 @@ The main repository is maintained on github:
 The SuperDirt repository is here:
   https://github.com/musikinformatik/SuperDirt
 
-In both cases development takes place on the master branch. To make a
+In both cases development takes place on the main branch. To make a
 contribution, you could:
 
 * Fork the repository
 * Make and test a change locally
-* Keep your fork up to date with the master
+* Keep your fork up to date with the main branch
 * Make a pull request
 
 Others may then review and comment on your pull request. Please do say
@@ -45,9 +45,9 @@ there.
 In your forked repository: before doing anything,
 make sure that local files are up to date:
 ```
-git checkout master
+git checkout main
 git fetch upstream
-git pull upstream master
+git pull upstream main
 git push
 ```
 Then to work on something, create a fresh branch:
