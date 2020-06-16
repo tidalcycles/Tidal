@@ -26,8 +26,6 @@ matrix:
       ghc: "8.2.2"
     - env: BUILD=cabal
       ghc: "8.0.2"
-    - env: BUILD=cabal
-      ghc: "7.10.3"
       # --system-ghc is used to take advantage of language: haskell and save build time. If the stack resolver ghc and system-ghc become different, stack will download the right ghc
     - env: BUILD=stack ARGS="--resolver lts-15.15 --system-ghc"
       ghc: "8.8.3"
