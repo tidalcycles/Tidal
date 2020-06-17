@@ -1196,8 +1196,14 @@ fit' cyc n from to p = squeezeJoin $ fit n mapMasks to
 d1 $ chunk 4 (density 4) $ sound "cp sn arpy [mt lt]"
 @
 -}
-chunk :: Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-chunk n f p = cat [withinArc (Arc (i % fromIntegral n) ((i+1) % fromIntegral n)) f p | i <- [0 .. fromIntegral n - 1]]
+_chunk :: Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+_chunk n f p = cat [withinArc (Arc (i % fromIntegral n) ((i+1) % fromIntegral n)) f p | i <- [0 .. fromIntegral n - 1]]
+
+
+chunk :: Pattern Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+chunk npat f p  = innerJoin $ (\n -> _chunk n f p) <$> npat
+
+
 
 {-
 chunk n f p = do i <- _slow (toRational n) $ run (fromIntegral n)
@@ -1206,17 +1212,28 @@ chunk n f p = do i <- _slow (toRational n) $ run (fromIntegral n)
 
 -- deprecated (renamed to chunk)
 runWith :: Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-runWith = chunk
+runWith = _chunk
 
 {-| @chunk'@ works much the same as `chunk`, but runs from right to left.
 -}
-chunk' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-chunk' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
-                  withinArc (Arc (i % fromIntegral n) ((i+)1 % fromIntegral n)) f p
+-- this was throwing a parse error when I ran it in tidal whenever I changed the function name..
+_chunk' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+_chunk' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
+                   withinArc (Arc (i % fromIntegral n) ((i+)1 % fromIntegral n)) f p
+
+chunk' :: Integral a1 => Pattern a1 -> (Pattern a2 -> Pattern a2) -> Pattern a2 -> Pattern a2
+chunk' npat f p = innerJoin $ (\n -> _chunk' n f p) <$> npat
+
 
 -- deprecated (renamed to chunk')
-runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-runWith' = chunk'
+-- runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+-- runWith' = chunk'
+
+--
+
+
+
+
 
 inside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 inside n f p = density n $ f (slow n p)
