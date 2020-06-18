@@ -277,3 +277,14 @@ run =
         compareP (Arc 0 4)
           (arpeggiate $ "[0,0]*2")
           ("0 0 0 0" :: Pattern Int)
+
+
+      describe "chunk" $ do
+        it "can chunk a rev pattern" $ do
+          compareP (Arc 0 4)
+            (chunk 2 (rev) $  ("a b c d" :: Pattern String))
+            (slow 2 $ "d c c d a b b a" :: Pattern String)
+        it "can chunk a fast pattern" $ do
+          compareP (Arc 0 4)
+            (chunk 2 (fast 2) $ "a b" :: Pattern String)
+            (slow 2 $ "a b b _ a _ a b" :: Pattern String)
