@@ -629,6 +629,7 @@ instance Parse (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern 
   parser =
     $(fromTidal "every") <|>
     $(fromTidal "plyWith") <|>
+    $(fromTidal "chunk") <|>
     (parser :: H (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
@@ -644,9 +645,7 @@ instance Parse ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern 
   parser = $(fromTidal "within")
 
 instance Parse (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
-  parser =
-    $(fromTidal "chunk") <|>
-    (parser :: H (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
+  parser = (parser :: H (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse (Int -> [a] -> Pattern Int -> Pattern a) where
   parser = $(fromTidal "fit")
