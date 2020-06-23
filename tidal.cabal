@@ -63,7 +63,7 @@ library
     , clock < 0.9
     , deepseq >= 1.1.0.0
     , primitive < 0.8
-    , random < 1.2
+    , random < 1.3
     -- , serialport
     -- , hashable
 
