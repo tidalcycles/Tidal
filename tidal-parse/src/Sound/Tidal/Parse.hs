@@ -549,7 +549,7 @@ genericAppliedTransformations =
   (parser :: H (Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse ([a] -> Pattern Int -> Pattern a) where
-  parser = (parser :: H (Int -> [a] -> Pattern Int -> Pattern a)) <*> parser
+  parser = (parser :: H (Pattern Int -> [a] -> Pattern Int -> Pattern a)) <*> parser
 
 instance Parse (String -> Pattern Double -> ControlPattern) where
   parser = $(fromTidal "pF")
@@ -647,7 +647,7 @@ instance Parse ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern 
 instance Parse (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = (parser :: H (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
-instance Parse (Int -> [a] -> Pattern Int -> Pattern a) where
+instance Parse (Pattern Int -> [a] -> Pattern Int -> Pattern a) where
   parser = $(fromTidal "fit")
 
 instance Parse (Pattern Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
