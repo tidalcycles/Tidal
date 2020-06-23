@@ -968,9 +968,12 @@ d1 $ sound (fit 3 ["bd", "sn", "arpy", "arpy:1", "casio"] "0 [~ 1] 2 1")
 The above fits three samples into the pattern, i.e. for the first cycle this will be `"bd"`, `"sn"` and `"arpy"`, giving the result `"bd [~ sn] arpy sn"` (note that we start counting at zero, so that `0` picks the first value). The following cycle the *next* three values in the list will be picked, i.e. `"arpy:1"`, `"casio"` and `"bd"`, giving the pattern `"arpy:1 [~ casio] bd casio"` (note that the list wraps round here).
 
 -}
-fit :: Int -> [a] -> Pattern Int -> Pattern a
-fit perCycle xs p = (xs !!!) <$> (p {query = map (\e -> fmap (+ pos e) e) . query p})
+_fit :: Int -> [a] -> Pattern Int -> Pattern a
+_fit perCycle xs p = (xs !!!) <$> (p {query = map (\e -> fmap (+ pos e) e) . query p})
   where pos e = perCycle * floor (start $ part e)
+
+fit :: Pattern Int -> [a] -> Pattern Int -> Pattern a
+fit pi xs p = (tParam ( \i x@(xs,p) -> _fit i xs p )) pi (xs,p)
 
 permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
 permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! floor (n * fromIntegral (length ps - 1))) things) <$> _segment 1 p
@@ -1186,7 +1189,7 @@ which uses `chop` to break a single sample into individual pieces, which `fit'` 
 
 -}
 fit' :: Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-fit' cyc n from to p = squeezeJoin $ fit n mapMasks to
+fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
   where mapMasks = [stretch $ mask (const True <$> filterValues (== i) from') p'
                      | i <- [0..n-1]]
         p' = density cyc p
