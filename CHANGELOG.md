@@ -1,5 +1,10 @@
 # TidalCycles log of changes
 
+## 1.6.1 - We are not DJs
+	* Patternise first parameter of chunk @lwlsn
+	* Patternise fit parameter @bgold-cosmos
+	* Increase upper bounds of random @yaxu
+	* Switch travis to ubuntu bionic @yaxu
 
 ## 1.6.0 - Keep live coding live
 	* Rollback to previous pattern on parse error @jwaldmann
