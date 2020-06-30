@@ -19,6 +19,24 @@ import Sound.Tidal.Tempo (timeToCycles)
 import Sound.Tidal.UI (fadeOutFrom, fadeInFrom)
 import Sound.Tidal.Utils (enumerate)
 
+{-
+    Transition.hs - A library for handling transitions between patterns
+    Copyright (C) 2020, Alex McLean and contributors
+
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library.  If not, see <http://www.gnu.org/licenses/>.
+-}
+
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 -- the "historyFlag" determines if the new pattern should be placed on the history stack or not
 transition :: Show a => Stream -> Bool -> (Time -> [ControlPattern] -> ControlPattern) -> a -> ControlPattern -> IO ()
