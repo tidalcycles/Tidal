@@ -29,10 +29,9 @@ listen = do (mIn, mOut) <- startHint
                      act mIn mOut udp m
                      loop mIn mOut udp
 
-
 startHint = do mIn <- newEmptyMVar
                mOut <- newEmptyMVar
-               hintJob mIn mOut
+               forkIO $ hintJob mIn mOut
                return (mIn, mOut)
 
 act :: MVar String -> MVar Response -> UDP -> Maybe O.Message -> IO ()
