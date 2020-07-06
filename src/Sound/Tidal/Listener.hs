@@ -7,13 +7,7 @@ import Control.Concurrent.MVar
 import qualified Network.Socket as N
 
 {-
-
-Run code, get ok or errors back
-
-/highlights on, get stream of active code spans+durations back
-/highlights off, 
-
-
+https://github.com/tidalcycles/tidal-listener/wiki
 -}
 
 listenPort = 6011
