@@ -1,0 +1,10 @@
+-- run the following in ghci..
+
+import Sound.OSC.FD as O
+
+r <- openUDP  "127.0.0.1" 6011
+
+sendMessage  r $ Message "/run" [string "hello", string "sound \"bd sn\""]
+
+m <- recvMessage u
+
