@@ -40,14 +40,14 @@ hintControlPattern s = Hint.runInterpreter $ do
 
 hintJob  :: MVar String -> MVar Response -> IO ()
 hintJob mIn mOut =
-  do installHandler sigINT Ignore Nothing
+  do {-installHandler sigINT Ignore Nothing
      installHandler sigTERM Ignore Nothing
      installHandler sigPIPE Ignore Nothing
      installHandler sigHUP Ignore Nothing
      installHandler sigKILL Ignore Nothing
-     installHandler sigSTOP Ignore Nothing
+     installHandler sigSTOP Ignore Nothing-}
      result <- catch (do Hint.runInterpreter $ do
-                           _ <- liftIO $ installHandler sigINT Ignore Nothing
+                           --_ <- liftIO $ installHandler sigINT Ignore Nothing
                            Hint.set [languageExtensions := [OverloadedStrings]]
                            --Hint.setImports libs
                            Hint.setImportsQ $ (Prelude.map (\x -> (x, Nothing)) libs) ++ [("Data.Map", Nothing)]
