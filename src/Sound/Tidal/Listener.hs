@@ -1,5 +1,6 @@
 module Sound.Tidal.Listener where
 
+import qualified Sound.Tidal.Context as T
 import Sound.Tidal.Hint
 import Sound.OSC.FD as O
 import Control.Concurrent
@@ -13,7 +14,8 @@ https://github.com/tidalcycles/tidal-listener/wiki
 data State = State {sIn :: MVar String,
                     sOut :: MVar Response,
                     sLocal :: UDP,
-                    sRemote :: N.SockAddr
+                    sRemote :: N.SockAddr,
+                    sStream :: T.Stream
                    }
 
 listenPort = 6011
@@ -26,9 +28,10 @@ listen = do -- start Haskell interpreter, with input and output mutable variable
             -- listen
             (remote_addr:_) <- N.getAddrInfo Nothing (Just "127.0.0.1") Nothing
             local <- udpServer "127.0.0.1" listenPort
+            stream <- T.startTidal (T.superdirtTarget {T.oLatency = 0.1}) T.defaultConfig
             let (N.SockAddrInet _ a) = N.addrAddress remote_addr
-                remote = N.SockAddrInet (fromIntegral remotePort) a
-                st = State mIn mOut local remote
+                remote  = N.SockAddrInet (fromIntegral remotePort) a
+                st      = State mIn mOut local remote stream
             loop st
               where
                 loop st = 
