@@ -50,15 +50,14 @@ act :: State -> Maybe O.Message -> IO State
 act st (Just (Message "/code" [ASCII_String a_ident, ASCII_String a_code])) =
   do let ident = ascii_to_string a_ident
          code = ascii_to_string a_code
-         respond (HintOK pat) = sendOK ident
-         respond (HintError s) = sendError ident s
      putMVar (sIn st) code
      r <- takeMVar (sOut st)
-     respond r
+     respond ident r
      return st
-       where sendOK ident =
-               O.sendTo (sLocal st) (O.p_message "/code/ok" [string ident]) (sRemote st)
-             sendError ident s =
+       where respond ident (HintOK pat) =
+               do T.streamReplace (sStream st) ident pat
+                  O.sendTo (sLocal st) (O.p_message "/code/ok" [string ident]) (sRemote st)
+             respond ident (HintError s) = 
                O.sendTo (sLocal st) (O.p_message "/code/error" [string ident, string s]) (sRemote st)
 
 act st (Just (Message "/ping" [])) =
