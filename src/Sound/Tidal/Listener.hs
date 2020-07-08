@@ -1,5 +1,6 @@
 module Sound.Tidal.Listener where
 
+import qualified Sound.Tidal.Context as T
 import Sound.Tidal.Hint
 import Sound.OSC.FD as O
 import Control.Concurrent
@@ -9,6 +10,13 @@ import qualified Network.Socket as N
 {-
 https://github.com/tidalcycles/tidal-listener/wiki
 -}
+
+data State = State {sIn :: MVar String,
+                    sOut :: MVar Response,
+                    sLocal :: UDP,
+                    sRemote :: N.SockAddr,
+                    sStream :: T.Stream
+                   }
 
 listenPort = 6011
 remotePort = 6012
@@ -20,37 +28,43 @@ listen = do -- start Haskell interpreter, with input and output mutable variable
             -- listen
             (remote_addr:_) <- N.getAddrInfo Nothing (Just "127.0.0.1") Nothing
             local <- udpServer "127.0.0.1" listenPort
+            stream <- T.startTidal (T.superdirtTarget {T.oLatency = 0.1}) T.defaultConfig
             let (N.SockAddrInet _ a) = N.addrAddress remote_addr
-                remote = N.SockAddrInet (fromIntegral remotePort) a
-            loop mIn mOut local remote
+                remote  = N.SockAddrInet (fromIntegral remotePort) a
+                st      = State mIn mOut local remote stream
+            loop st
               where
-                loop mIn mOut local remote = 
+                loop st = 
                   do -- wait for, read and act on OSC message
-                     m <- recvMessage local
-                     act mIn mOut local remote m
-                     loop mIn mOut local remote
+                     m <- recvMessage (sLocal st)
+                     st' <- act st m
+                     loop st'
 
+-- TODO - use Chan or TChan for in/out channels instead of mvars directly?
 startHint = do mIn <- newEmptyMVar
                mOut <- newEmptyMVar
                forkIO $ hintJob mIn mOut
                return (mIn, mOut)
 
-act :: MVar String -> MVar Response -> UDP -> N.SockAddr -> Maybe O.Message -> IO ()
-act mIn mOut local remote (Just (Message "/code" [ASCII_String a_ident, ASCII_String a_code])) =
+act :: State -> Maybe O.Message -> IO State
+act st (Just (Message "/code" [ASCII_String a_ident, ASCII_String a_code])) =
   do let ident = ascii_to_string a_ident
          code = ascii_to_string a_code
-         respond (HintOK pat) = sendOK remote ident
-         respond (HintError s) = sendError remote ident s
-     putMVar mIn code
-     r <- takeMVar mOut
-     respond r
-     return ()
-       where sendOK remote ident = O.sendTo local (O.p_message "/code/ok" [string ident]) remote
-             sendError remote ident s = O.sendTo local (O.p_message "/code/error" [string ident, string s]) remote
+     putMVar (sIn st) code
+     r <- takeMVar (sOut st)
+     respond ident r
+     return st
+       where respond ident (HintOK pat) =
+               do T.streamReplace (sStream st) ident pat
+                  O.sendTo (sLocal st) (O.p_message "/code/ok" [string ident]) (sRemote st)
+             respond ident (HintError s) = 
+               O.sendTo (sLocal st) (O.p_message "/code/error" [string ident, string s]) (sRemote st)
 
-act mIn mOut local remote (Just (Message "/ping" [])) = O.sendTo local (O.p_message "/pong" []) remote
+act st (Just (Message "/ping" [])) =
+  do O.sendTo (sLocal st) (O.p_message "/pong" []) (sRemote st)
+     return st
 
-act _ _ _ _ Nothing = do putStrLn "not a message?"
-                         return ()
-act _ _ _ _ (Just m) = do putStrLn $ "Unhandled message: " ++ show m
-                          return ()
+act st Nothing = do putStrLn "not a message?"
+                    return st
+act st (Just m) = do putStrLn $ "Unhandled message: " ++ show m
+                     return st
