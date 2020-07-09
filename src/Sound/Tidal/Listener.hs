@@ -28,7 +28,14 @@ listen = do -- start Haskell interpreter, with input and output mutable variable
             -- listen
             (remote_addr:_) <- N.getAddrInfo Nothing (Just "127.0.0.1") Nothing
             local <- udpServer "127.0.0.1" listenPort
-            stream <- T.startTidal (T.superdirtTarget {T.oLatency = 0.1}) T.defaultConfig
+            let remoteTarget = T.Target "atom" "127.0.0.1" remotePort 0.1 Nothing T.Live
+            stream <- T.startStream T.defaultConfig [(T.superdirtTarget {T.oLatency = 0.1},
+                                                      [T.superdirtShape]
+                                                     ),
+                                                     (remoteTarget,
+                                                      [T.OSCContext "/highlight"]
+                                                     )
+                                                    ]
             let (N.SockAddrInet _ a) = N.addrAddress remote_addr
                 remote  = N.SockAddrInet (fromIntegral remotePort) a
                 st      = State mIn mOut local remote stream
