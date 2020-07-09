@@ -27,7 +27,7 @@ import           Control.Concurrent.MVar
 import           Control.Concurrent
 import           Control.Monad (forM_)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust, fromMaybe, catMaybes)
+import           Data.Maybe (fromJust, fromMaybe, catMaybes, maybeToList)
 import qualified Control.Exception as E
 -- import Control.Monad.Reader
 -- import Control.Monad.Except
@@ -69,7 +69,6 @@ data StampStyle = BundleStamp
                 | MessageStamp
   deriving (Eq, Show)
 
-
 data Schedule = Pre StampStyle
               | Live
   deriving (Eq, Show)
@@ -90,6 +89,7 @@ data Args = Named {required :: [String]}
 data OSC = OSC {path :: String,
                 args :: Args
                }
+         | OSCContext {path :: String}
          deriving Show
 
 data PlayState = PlayState {pattern :: ControlPattern,
@@ -205,6 +205,7 @@ toData (OSC {args = Named rqrd}) e
   where hasRequired [] = True
         hasRequired xs = null $ filter (not . (`elem` ks)) xs
         ks = Map.keys (value e)
+toData _ _ = Nothing
 
 substitutePath :: String -> ControlMap -> Maybe String
 substitutePath str cm = parse str
@@ -240,10 +241,11 @@ playStack pMap = stack $ map pattern active
                                     else not (mute pState)
                         ) $ Map.elems pMap
 
-toOSC :: Double -> Event ControlMap -> T.Tempo -> OSC -> Maybe (Double, O.Message)
-toOSC latency e tempo osc = do vs <- toData osc addExtra
-                               mungedPath <- substitutePath (path osc) (value e)
-                               return (ts, O.Message mungedPath vs)
+toOSC :: Double -> Event ControlMap -> T.Tempo -> OSC -> [(Double, O.Message)]
+toOSC latency e tempo osc@(OSC _ _)
+  = maybeToList $ do vs <- toData osc addExtra
+                     mungedPath <- substitutePath (path osc) (value e)
+                     return (ts, O.Message mungedPath vs)
        where on = sched tempo $ start $ wholeOrPart e
              off = sched tempo $ stop $ wholeOrPart e
              delta = off - on
@@ -251,10 +253,21 @@ toOSC latency e tempo osc = do vs <- toData osc addExtra
              addExtra = (\v -> (Map.union v extra)) <$> e
              extra = Map.fromList [("cps", (VF $ T.cps tempo)),
                                    ("delta", VF delta),
-                                   ("cycle", VF (fromRational $ start $ wholeOrPart e))
-                                  ]
-             ts = on + nudge + latency
+                                   ("cycle", VF (fromRational $ start $ wholeOrPart e)) 
+                                 ]
              nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
+             ts = on + nudge + latency
+
+toOSC latency e tempo osc@(OSCContext path)
+  = map cToM $ contextPosition $ context e
+  where cToM :: ((Int,Int),(Int,Int)) -> (Double,O.Message)
+        cToM ((x, y), (x',y')) = (ts, O.Message path $ (O.float delta):(O.float cycle):(map O.int32 [x,y,x',y']))
+        on = sched tempo $ start $ wholeOrPart e
+        off = sched tempo $ stop $ wholeOrPart e
+        delta = off - on
+        cycle = fromRational $ start $ wholeOrPart e
+        nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
+        ts = on + nudge + latency
 
 doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
 doCps tempoMV (d, Just (VF cps)) = do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
@@ -351,7 +364,7 @@ doTick fake stream st =
          let latency = oLatency target + extraLatency
              ms = concatMap (\(t, e) ->
                               if (fake || (on e t) < frameEnd)
-                              then catMaybes $ map (toOSC latency e t) oscs
+                              then concatMap (toOSC latency e t) oscs
                               else []
                           ) tes
          forM_ ms $ \ m -> send cx m `E.catch` \ (e :: E.SomeException) -> do
