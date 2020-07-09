@@ -24,3 +24,7 @@ m <- recvMessage udp
 m
 
      
+-- receive cps values 
+sendMessage r $ Message "/cps" []
+m <- recvMessage udp
+m
