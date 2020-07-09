@@ -251,7 +251,6 @@ instance Parse (Pattern String -> ControlPattern) where
 
 instance Parse (Pattern Int -> ControlPattern) where
   parser =
-    $(fromTidal "coarse") <|>
     $(fromTidal "cut") <|>
     (parser :: H (String -> Pattern Int -> ControlPattern)) <*> parser
 
@@ -289,6 +288,7 @@ instance Parse (Pattern Double -> ControlPattern) where
     $(fromTidal "resonance") <|>
     $(fromTidal "loop") <|>
     $(fromTidal "note") <|>
+    $(fromTidal "coarse") <|>
     (parser :: H (String -> Pattern Double -> ControlPattern)) <*> parser
 
 pInt_pString :: H (Pattern Int -> Pattern String)
