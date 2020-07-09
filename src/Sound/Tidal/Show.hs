@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz) where
+module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz, stepcount) where
 
 
 {-
