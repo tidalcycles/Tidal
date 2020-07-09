@@ -29,6 +29,8 @@ let only = (hush >>)
     all = streamAll tidal
     resetCycles = streamResetCycles tidal
     setcps = asap . cps
+    getcps = do tempo <- readMVar $ sTempoMV tidal
+                return $ Tempo.cps tempo
     xfade i = transition tidal True (Sound.Tidal.Transition.xfadeIn 4) i
     xfadeIn i t = transition tidal True (Sound.Tidal.Transition.xfadeIn t) i
     histpan i t = transition tidal True (Sound.Tidal.Transition.histpan t) i
