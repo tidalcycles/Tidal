@@ -121,8 +121,8 @@ d1 $ (chop 8 $ sounds "breaks125") # unit "c" # coarse "1 2 4 8 16 32 64 128"
 
 which performs a similar effect, but due to differences in implementation sounds different.
 -}
-begin, legato, clhatdecay, crush :: Pattern Double -> ControlPattern
-channel, coarse :: Pattern Int -> ControlPattern
+begin, legato, clhatdecay, crush, coarse :: Pattern Double -> ControlPattern
+channel :: Pattern Int -> ControlPattern
 begin = pF "begin"
 -- | choose the physical channel the pattern is sent to, this is super dirt specific
 channel = pI "channel"
@@ -132,7 +132,7 @@ legato = pF "legato"
 
 clhatdecay = pF "clhatdecay"
 -- | fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
-coarse = pI "coarse"
+coarse = pF "coarse"
 -- | bit crushing, a pattern of numbers from 1 (for drastic reduction in bit-depth) to 16 (for barely no reduction).
 crush = pF "crush"
 {- |
