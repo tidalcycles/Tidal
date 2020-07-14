@@ -14,6 +14,8 @@ sendMessage r $ Message "/code" [string "hello", string "sound \"bd sn\""]
 m <- recvMessage udp
 m
 
+sendMessage r $ Message "/code" [string "hello", string "sound silence"]
+
 -- error..
 sendMessage r $ Message "/code" [string "hello", string "sund \"bd sn\""]
 m <- recvMessage udp
