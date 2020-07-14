@@ -6,6 +6,7 @@ import Sound.OSC.FD as O
 import Control.Concurrent
 import Control.Concurrent.MVar
 import qualified Network.Socket as N
+import qualified Sound.Tidal.Tempo as Tempo
 
 {-
 https://github.com/tidalcycles/tidal-listener/wiki
@@ -56,6 +57,9 @@ startHint = do mIn <- newEmptyMVar
                forkIO $ hintJob mIn mOut
                return (mIn, mOut)
 
+getcps st = do tempo <- readMVar $ T.sTempoMV (sStream st)
+               return (Tempo.cps tempo)
+
 act :: State -> Maybe O.Message -> IO State
 act st (Just (Message "/code" [ASCII_String a_ident, ASCII_String a_code])) =
   do let ident = ascii_to_string a_ident
@@ -72,6 +76,11 @@ act st (Just (Message "/code" [ASCII_String a_ident, ASCII_String a_code])) =
 
 act st (Just (Message "/ping" [])) =
   do O.sendTo (sLocal st) (O.p_message "/pong" []) (sRemote st)
+     return st
+
+act st (Just (Message "/cps" [])) =
+  do cps <- getcps (st)
+     O.sendTo (sLocal st) (O.p_message "/cps" [float (cps)]) (sRemote st)
      return st
 
 act st Nothing = do putStrLn "not a message?"
