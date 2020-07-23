@@ -281,7 +281,7 @@ _slice n i p =
       # P.end (pure $ fromIntegral (i+1) / fromIntegral n)
 
 randslice :: Pattern Int -> ControlPattern -> ControlPattern
-randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> irand n
+randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> _irand n
 
 _splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
 _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure "c")

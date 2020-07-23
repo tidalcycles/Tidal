@@ -119,11 +119,11 @@ samples from a folder:
 d1 $ segment 4 $ n (irand 5) # sound "drum"
 @
 -}
-irand :: Integral a => a -> Pattern a
-irand i = fromIntegral . (floor :: Double -> Int) . (* fromIntegral i) <$> rand
+irand :: Num a => Pattern Int -> Pattern a
+irand = (>>= _irand)
 
-irand' :: Integral a => Pattern a -> Pattern a
-irand' = (>>= irand)
+_irand :: Num a => Int -> Pattern a
+_irand i = fromIntegral . (floor :: Double -> Int) . (* fromIntegral i) <$> rand
 
 {- | 1D Perlin (smooth) noise, works like rand but smoothly moves between random
 values each cycle. `perlinWith` takes a pattern as the RNG's "input" instead
@@ -940,7 +940,7 @@ discretise = segment
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' rotL (_segment 1 $ (%1) . fromIntegral <$> (irand (length ps) :: Pattern Int)) (slowcat ps)
+randcat ps = spread' rotL (_segment 1 $ (%1) . fromIntegral <$> (_irand (length ps) :: Pattern Int)) (slowcat ps)
 
 wrandcat :: [(Pattern a, Double)] -> Pattern a
 wrandcat ps = unwrap $ wchooseBy (segment 1 rand) ps
@@ -1345,7 +1345,7 @@ scramble :: Pattern Int -> Pattern a -> Pattern a
 scramble = tParam _scramble
 
 _scramble :: Int -> Pattern a -> Pattern a
-_scramble n = _rearrangeWith (_segment (fromIntegral n) $ irand n) n
+_scramble n = _rearrangeWith (_segment (fromIntegral n) $ _irand n) n
 
 randrun :: Int -> Pattern Int
 randrun 0 = silence
