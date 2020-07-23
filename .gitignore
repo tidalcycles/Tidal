@@ -12,6 +12,10 @@ cabal
 .stack-work
 .DS_Store
 .ghc.environment.*
+out/
+.idea/
+*.lock
+*.iml
 
 # text editor temp files
 *~
