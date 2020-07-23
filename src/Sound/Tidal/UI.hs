@@ -119,8 +119,11 @@ samples from a folder:
 d1 $ segment 4 $ n (irand 5) # sound "drum"
 @
 -}
-irand :: Num a => Int -> Pattern a
+irand :: Integral a => a -> Pattern a
 irand i = fromIntegral . (floor :: Double -> Int) . (* fromIntegral i) <$> rand
+
+irand' :: Integral a => Pattern a -> Pattern a
+irand' = (>>= irand)
 
 {- | 1D Perlin (smooth) noise, works like rand but smoothly moves between random
 values each cycle. `perlinWith` takes a pattern as the RNG's "input" instead
