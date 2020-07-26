@@ -119,7 +119,7 @@ instance Parse (Pattern Int) where
     genericPatternExpressions <|>
     irand <*> parser
 
-irand :: Num a => H (Int -> Pattern a)
+irand :: Num a => H (Pattern Int -> Pattern a)
 irand = $(fromTidal "irand")
 
 instance Parse (Pattern Integer) where

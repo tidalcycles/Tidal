@@ -89,6 +89,17 @@ run =
           (queryArc rand (Arc 0.75 0.75)) `shouldBe`
           [Event (Context []) Nothing (Arc 0.75 0.75) (0.20052618719637394 :: Float)]
 
+    describe "irand" $ do
+      it "generates a (pseudo-random) integer between zero & i" $ do
+        it "at the start of a cycle" $
+          (queryArc (irand 10) (Arc 0 0)) `shouldBe` [Event (Context []) Nothing (Arc 0 0) (0 :: Int)]
+        it "at 1/4 of a cycle" $
+          (queryArc (irand 10) (Arc 0.25 0.25)) `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (6 :: Int)]
+        it "is patternable" $
+          (queryArc (irand "10 2") (Arc 0 1)) `shouldBe` [
+            Event (Context [((1,1),(4,1))]) Nothing (Arc 0 0.5) (6 :: Int), Event (Context [((4,1),(5,1))]) Nothing (Arc 0.5 1) (0 :: Int)
+          ]
+
     describe "range" $ do
       describe "scales a pattern to the supplied range" $ do
         describe "from 3 to 4" $ do
