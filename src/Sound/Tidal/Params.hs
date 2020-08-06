@@ -206,6 +206,15 @@ gain = pF "gain"
 
 gate :: Pattern Double -> ControlPattern
 gate = pF "gate"
+
+-- Remaps begin and end to begin and width, to create a granulising effect that
+-- can be patterned
+{-
+  d1 $ s "bev" >| grain ((1/16) * "0 3 4 6*<1 2 3>") (1/64)
+-}
+grain' = grp [mF "begin", mF "end"]
+grain s w = begin s # end (s + w)
+
 hatgrain :: Pattern Double -> ControlPattern
 hatgrain = pF "hatgrain"
 -- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter.
