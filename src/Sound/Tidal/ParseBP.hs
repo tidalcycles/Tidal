@@ -28,6 +28,7 @@ import qualified Control.Exception as E
 import           Data.Colour
 import           Data.Colour.Names
 import           Data.Functor.Identity (Identity)
+import           Data.List (intercalate)
 import           Data.Maybe
 import           Data.Ratio
 import           Data.Typeable (Typeable)
@@ -76,6 +77,38 @@ data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
             | TPat_Var String
             deriving (Show)
 
+tShowList :: (Show a) => [TPat a] -> String
+tShowList vs = "[" ++ (intercalate "," $ map tShow vs) ++ "]"
+
+tShow :: (Show a) => TPat a -> String
+tShow (TPat_Atom _ v) = "pure " ++ show v
+tShow (TPat_Fast t v) = "fast " ++ show t ++ " $ " ++ tShow v
+tShow (TPat_Slow t v) = "slow " ++ show t ++ " $ " ++ tShow v
+-- TODO - should be _degradeByUsing, but needs a simplified version..
+tShow (TPat_DegradeBy _ r v) = "degradeBy " ++ show r ++ " $ " ++ tShow v
+-- TODO - ditto
+tShow (TPat_CycleChoose _ vs) = "cycleChoose " ++ tShowList vs
+
+tShow (TPat_Euclid a b c v) = "doEuclid (" ++ intercalate ") (" (map tShow [a,b,c])  ++ ") $ " ++ tShow v
+tShow (TPat_Stack vs) = "stack " ++ tShowList vs
+
+tShow (TPat_Polyrhythm mSteprate vs) = "stack [" ++ (intercalate ", " (map adjust_speed pats)) ++ "]"
+  where adjust_speed (sz, pat) = "(fast (" ++ (steprate ++ "/" ++ (show sz)) ++ ") $ " ++ pat ++ ")"
+        steprate :: String
+        steprate = fromMaybe base_first (tShow <$> mSteprate)
+        base_first | null pats = "0"
+                   | otherwise = show $ fst $ head pats
+        pats = map steps_tpat vs
+
+-- tShow (TPat_Seq vs) = "fastcat " ++ tShowList vs
+tShow (TPat_Seq vs) = snd $ steps_seq vs
+
+tShow TPat_Silence = "silence"
+tShow (TPat_EnumFromTo a b) = "unwrap $ fromTo <$> (" ++ tShow a ++ ") <*> (" ++ tShow b ++ ")"
+tShow (TPat_Var s) = "getControl " ++ s
+tShow a = "can't happen? " ++ show a
+
+
 toPat :: (Parseable a, Enumerable a) => TPat a -> Pattern a
 toPat = \case
    TPat_Atom (Just loc) x -> setContext (Context [loc]) $ pure x
@@ -115,6 +148,22 @@ resolve_size [] = []
 resolve_size ((TPat_Elongate r p):ps) = (r, p):(resolve_size ps)
 resolve_size ((TPat_Repeat n p):ps) = replicate n (1,p) ++ (resolve_size ps)
 resolve_size (p:ps) = (1,p):(resolve_size ps)
+
+
+steps_tpat :: (Show a) => TPat a -> (Rational, String)
+steps_tpat (TPat_Seq xs) = steps_seq xs
+steps_tpat a = (1, tShow a)
+
+steps_seq :: (Show a) => [TPat a] -> (Rational, String)
+steps_seq xs = (total_size, "timeCat [" ++ (intercalate "," $ map (\(r,s) -> "(" ++ show r ++ ", " ++ s ++ ")") sized_pats) ++ "]")
+  where sized_pats = steps_size xs
+        total_size = sum $ map fst sized_pats
+
+steps_size :: Show a => [TPat a] -> [(Rational, String)]
+steps_size [] = []
+steps_size ((TPat_Elongate r p):ps) = (r, tShow p):(steps_size ps)
+steps_size ((TPat_Repeat n p):ps) = replicate n (1, tShow p) ++ (steps_size ps)
+steps_size (p:ps) = (1,tShow p):(steps_size ps)
 
 {-
 durations :: [TPat a] -> [(Int, TPat a)]
