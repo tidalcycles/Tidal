@@ -64,12 +64,12 @@ instance Show Context where
   show (Context cs) = show cs
 
 instance Show Value where
-  show (VS s) = ('"':s) ++ "\""
-  show (VI i) = show i
-  show (VF f) = show f ++ "f"
-  show (VR r) = show r ++ "r"
-  show (VB b) = show b
-  show (VX xs) = show xs
+  show (VS s _) = ('"':s) ++ "\""
+  show (VI i _) = show i
+  show (VF f _) = show f ++ "f"
+  show (VR r _) = show r ++ "r"
+  show (VB b _) = show b
+  show (VX xs _) = show xs
 
 instance {-# OVERLAPPING #-} Show ControlMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m

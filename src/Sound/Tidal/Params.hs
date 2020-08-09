@@ -35,14 +35,14 @@ grp fs p = splitby <$> p
 
 mF :: String -> String -> ControlMap
 mF name v = fromMaybe Map.empty $ do f <- readMaybe v
-                                     return $ Map.singleton name (VF f)
+                                     return $ Map.singleton name (VF f Nothing)
 
 mI :: String -> String -> ControlMap
 mI name v = fromMaybe Map.empty $ do i <- readMaybe v
-                                     return $ Map.singleton name (VI i)
+                                     return $ Map.singleton name (VI i Nothing)
 
 mS :: String -> String -> ControlMap
-mS name v = Map.singleton name (VS v)
+mS name v = Map.singleton name (VS v Nothing)
 
 -- | Grouped params
 
@@ -61,16 +61,16 @@ nrpn = grp [mI "nrpn", mI "val"]
 -- | Singular params
 
 pF :: String -> Pattern Double -> ControlPattern
-pF name = fmap (Map.singleton name . VF)
+pF name = fmap (Map.singleton name . (flip VF) Nothing)
 
 pI :: String -> Pattern Int -> ControlPattern
-pI name = fmap (Map.singleton name . VI)
+pI name = fmap (Map.singleton name . (flip VI) Nothing)
 
 pS :: String -> Pattern String -> ControlPattern
-pS name = fmap (Map.singleton name . VS)
+pS name = fmap (Map.singleton name . (flip VS) Nothing)
 
 pX :: String -> Pattern [Word8] -> ControlPattern
-pX name = fmap (Map.singleton name . VX)
+pX name = fmap (Map.singleton name . (flip VX) Nothing)
 
 -- | patterns for internal sound routing
 toArg :: Pattern String -> ControlPattern

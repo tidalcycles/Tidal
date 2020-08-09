@@ -98,7 +98,7 @@ _chop n = withEvents (concatMap chopEvent)
         -- begin and end values by the old difference (end-begin), and
         -- add the old begin
         chomp :: Context -> ControlMap -> Int -> (Int, (Arc, Arc)) -> Event ControlMap
-        chomp c v n' (i, (w,p')) = Event c (Just w) p' (Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v)
+        chomp c v n' (i, (w,p')) = Event c (Just w) p' (Map.insert "begin" (VF b' Nothing) $ Map.insert "end" (VF e' Nothing) v)
           where b = fromMaybe 0 $ do v' <- Map.lookup "begin" v
                                      getF v'
                 e = fromMaybe 1 $ do v' <- Map.lookup "end" v
@@ -150,7 +150,7 @@ _striate n p = fastcat $ map offset [0 .. n-1]
   where offset i = mergePlayRange (fromIntegral i / fromIntegral n, fromIntegral (i+1) / fromIntegral n) <$> p
 
 mergePlayRange :: (Double, Double) -> ControlMap -> ControlMap
-mergePlayRange (b,e) cm = Map.insert "begin" (VF $ (b*d')+b') $ Map.insert "end" (VF $ (e*d')+b') cm
+mergePlayRange (b,e) cm = Map.insert "begin" (VF ((b*d')+b') Nothing) $ Map.insert "end" (VF ((e*d')+b') Nothing) cm
   where b' = fromMaybe 0 $ Map.lookup "begin" cm >>= getF
         e' = fromMaybe 1 $ Map.lookup "end" cm >>= getF
         d' = e' - b'
@@ -285,7 +285,7 @@ randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> _irand n
 
 _splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
 _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure "c")
-  where f ev = ev {value = Map.insert "speed" (VF d) (value ev)}
+  where f ev = ev {value = Map.insert "speed" (VF d Nothing) (value ev)}
           where d = sz / (fromRational $ (wholeStop ev) - (wholeStart ev))
                 sz = 1/(fromIntegral bits)
 
