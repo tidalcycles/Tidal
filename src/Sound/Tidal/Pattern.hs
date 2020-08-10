@@ -271,12 +271,12 @@ type Query a = (State -> [Event a])
 data Pattern a = Pattern {query :: Query a}
   deriving Generic
 
-data Value = VS { svalue :: String, bus :: Maybe Int }
-           | VF { fvalue :: Double, bus :: Maybe Int }
-           | VR { rvalue :: Rational, bus :: Maybe Int }
-           | VI { ivalue :: Int, bus :: Maybe Int }
-           | VB { bvalue :: Bool, bus :: Maybe Int }
-           | VX { xvalue :: [Word8], bus :: Maybe Int } -- Used for OSC 'blobs'
+data Value = VS { svalue :: String,   vbus :: Maybe Int }
+           | VF { fvalue :: Double,   vbus :: Maybe Int }
+           | VR { rvalue :: Rational, vbus :: Maybe Int }
+           | VI { ivalue :: Int,      vbus :: Maybe Int }
+           | VB { bvalue :: Bool,     vbus :: Maybe Int }
+           | VX { xvalue :: [Word8],  vbus :: Maybe Int } -- Used for OSC 'blobs'
            deriving (Typeable,Data, Generic)
 
 class Valuable a where
@@ -780,3 +780,7 @@ matchManyToOne f pa pb = pa {query = q}
                 where as' = as $ start $ wholeOrPart ex
             as s = query pa $ fQuery s
             fQuery s = st {arc = Arc s s}
+
+-- Set the bus for values within a control pattern
+bus :: Int -> ControlPattern -> ControlPattern
+bus i = fmap (fmap (\v -> v {vbus = Just i}))
