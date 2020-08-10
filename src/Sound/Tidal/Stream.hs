@@ -27,7 +27,7 @@ import           Control.Concurrent.MVar
 import           Control.Concurrent
 import           Control.Monad (forM_)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust, fromMaybe, maybeToList)
+import           Data.Maybe (fromJust, fromMaybe, maybeToList, catMaybes, isJust)
 import qualified Control.Exception as E
 -- import Control.Monad.Reader
 -- import Control.Monad.Except
@@ -207,13 +207,14 @@ startMulti :: [Target] -> Config -> IO ()
 startMulti _ _ = putStrLn $ "startMulti has been removed, please check the latest documentation on tidalcycles.org"
 
 toDatum :: Value -> O.Datum
-toDatum (VF x _) = O.float x
-toDatum (VI x _) = O.int32 x
-toDatum (VS x _) = O.string x
-toDatum (VR x _) = O.float $ ((fromRational x) :: Double)
-toDatum (VB True _) = O.int32 (1 :: Int)
-toDatum (VB False _) = O.int32 (0 :: Int)
-toDatum (VX xs _) = O.Blob $ O.blob_pack xs
+toDatum (VF x Nothing) = O.float x
+toDatum (VI x Nothing) = O.int32 x
+toDatum (VS x Nothing) = O.string x
+toDatum (VR x Nothing) = O.float $ ((fromRational x) :: Double)
+toDatum (VB True Nothing) = O.int32 (1 :: Int)
+toDatum (VB False Nothing) = O.int32 (0 :: Int)
+toDatum (VX xs Nothing) = O.Blob $ O.blob_pack xs
+toDatum v = O.string ('c':(show $ fromJust $ vbus v))
 
 toData :: OSC -> Event ControlMap -> Maybe [O.Datum]
 toData (OSC {args = ArgList as}) e = fmap (fmap toDatum) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
@@ -261,10 +262,17 @@ playStack pMap = stack $ map pattern active
 
 toOSC :: Double -> Event ControlMap -> T.Tempo -> OSC -> [(Double, O.Message)]
 toOSC latency e tempo osc@(OSC _ _)
-  = maybeToList $ do vs <- toData osc addExtra
-                     mungedPath <- substitutePath (path osc) (value e)
-                     return (ts, O.Message mungedPath vs)
-       where on = sched tempo $ start $ wholeOrPart e
+  = catMaybes $ playmsg:busmsgs
+       where playmsg | eventHasOnset e = do vs <- toData osc addExtra
+                                            mungedPath <- substitutePath (path osc) (value e)
+                                            return (ts, O.Message mungedPath vs)
+                     | otherwise = Nothing
+             busmsgs = map
+                         (\v -> do b <- vbus v
+                                   return $ (ts, O.Message "/bus" [O.int32 b, toDatum $ v {vbus = Nothing}])
+                         )
+                         (Map.elems $ value e)
+             on = sched tempo $ start $ wholeOrPart e
              off = sched tempo $ stop $ wholeOrPart e
              delta = off - on
              -- If there is already cps in the event, the union will preserve that.
@@ -306,8 +314,9 @@ processCps :: T.Tempo -> [Event ControlMap] -> ([(T.Tempo, Event ControlMap)], T
 processCps t [] = ([], t)
 -- If an event has a tempo change, that affects the following events..
 processCps t (e:evs) = (((t', e):es'), t'')
-  where cps' = do x <- Map.lookup "cps" $ value e
-                  getF x
+  where cps' | eventHasOnset e = do x <- Map.lookup "cps" $ value e
+                                    getF x
+             | otherwise = Nothing
         t' = (maybe t (\newCps -> T.changeTempo' t newCps (eventPartStart e)) cps')
         (es', t'') = processCps t' evs
 
@@ -374,13 +383,13 @@ doTick fake stream st =
                       | otherwise = cFrameTimespan config + T.nudged tempo
          --filterOns | cSendParts config = id
          --          | otherwise = filter eventHasOnset
-         es = sortOn (start . part) $ filterOns $ query pat (State {arc = T.nowArc st,
-                                                                    controls = sMap'
-                                                                   }
-                                                            )
+         es = sortOn (start . part) $ query pat (State {arc = T.nowArc st,
+                                                        controls = sMap'
+                                                       }
+                                                )
          -- TODO onset is calculated in toOSC as well..
          on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
-         (tes, tempo') = processCps tempo es
+         (tes, tempo') = processCps tempo $ es
      forM_ cxs $ \cx@(Cx target _ oscs) -> do
          let latency = oLatency target + extraLatency
              ms = concatMap (\(t, e) ->
