@@ -639,6 +639,11 @@ withQueryTime f = withQueryArc (\(Arc s e) -> Arc (f s) (f e))
 withEvent :: (Event a -> Event b) -> Pattern a -> Pattern b
 withEvent f p = p {query = map f . query p}
 
+-- | @withEvent f p@ returns a new @Pattern@ with each value mapped over
+-- function @f@.
+withValue :: (a -> b) -> Pattern a -> Pattern b
+withValue f pat = withEvent (fmap f) pat
+
 -- | @withEvent f p@ returns a new @Pattern@ with f applied to the resulting list of events for each query
 -- function @f@.
 withEvents :: ([Event a] -> [Event b]) -> Pattern a -> Pattern b
@@ -690,6 +695,30 @@ getR (VR r _) = Just r
 getR (VF x _) = Just $ toRational x
 getR (VI x _) = Just $ toRational x
 getR _  = Nothing
+
+
+_extract :: (Value -> Maybe a) -> String -> ControlPattern -> Pattern a
+_extract f name pat = filterJust $ withValue (\v -> (Map.lookup name v >>= f)) pat
+
+-- | Extract a pattern of integer values by from a control pattern, given the name of the control
+extractI :: String -> ControlPattern -> Pattern Int
+extractI = _extract getI
+
+-- | Extract a pattern of floating point values by from a control pattern, given the name of the control
+extractF :: String -> ControlPattern -> Pattern Double
+extractF = _extract getF
+
+-- | Extract a pattern of string values by from a control pattern, given the name of the control
+extractS :: String -> ControlPattern -> Pattern String
+extractS = _extract getS
+
+-- | Extract a pattern of boolean values by from a control pattern, given the name of the control
+extractB :: String -> ControlPattern -> Pattern Bool
+extractB = _extract getB
+
+-- | Extract a pattern of rational values by from a control pattern, given the name of the control
+extractR :: String -> ControlPattern -> Pattern Rational
+extractR = _extract getR
 
 getBlob :: Value -> Maybe [Word8]
 getBlob (VX xs _) = Just xs
