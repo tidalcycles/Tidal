@@ -66,6 +66,10 @@ pF name = fmap (Map.singleton name . (flip VF) Nothing)
 pI :: String -> Pattern Int -> ControlPattern
 pI name = fmap (Map.singleton name . (flip VI) Nothing)
 
+-- | params for note
+pN :: String -> Pattern Note -> ControlPattern
+pN name = fmap (Map.singleton name . (flip VN) Nothing)
+
 pS :: String -> Pattern String -> ControlPattern
 pS name = fmap (Map.singleton name . (flip VS) Nothing)
 

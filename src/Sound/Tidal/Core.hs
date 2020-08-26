@@ -465,6 +465,13 @@ cF_ = _cX_ getF
 cF0 :: String -> Pattern Double
 cF0 = _cX 0 getF
 
+cN :: Note -> String -> Pattern Note
+cN d = _cX d getN
+cN_ :: String -> Pattern Note
+cN_ = _cX_ getN
+cN0 :: String -> Pattern Note
+cN0 = _cX (Note 0) getN
+
 cI :: Int -> String -> Pattern Int
 cI d = _cX d getI
 cI_ :: String -> Pattern Int

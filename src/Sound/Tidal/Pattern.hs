@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -40,7 +41,14 @@ import           Sound.Tidal.Utils (matchMaybe)
 -- * Types
 
 -- | Time is rational
-type Time = Rational 
+type Time = Rational
+
+-- | Note is Double, but with a different parsing
+newtype Note = Note Double deriving (Typeable, Data, Generic, Eq, Ord, Show, Enum, Num)
+instance NFData Note
+
+unNote :: Note -> Double
+unNote (Note d) = d
 
 -- | The 'sam' (start of cycle) for the given time value
 sam :: Time -> Time
@@ -273,11 +281,12 @@ data Pattern a = Pattern {query :: Query a}
 
 data Value = VS { svalue :: String,   vbus :: Maybe Int }
            | VF { fvalue :: Double,   vbus :: Maybe Int }
+           | VN { nvalue :: Note,     vbus :: Maybe Int }
            | VR { rvalue :: Rational, vbus :: Maybe Int }
            | VI { ivalue :: Int,      vbus :: Maybe Int }
            | VB { bvalue :: Bool,     vbus :: Maybe Int }
            | VX { xvalue :: [Word8],  vbus :: Maybe Int } -- Used for OSC 'blobs'
-           deriving (Typeable,Data, Generic)
+           deriving (Typeable, Data, Generic)
 
 class Valuable a where
   toValue :: a -> Value
@@ -319,15 +328,21 @@ instance Ord Value where
   compare (VS x _) (VS y _) = compare x y
   compare (VB x _) (VB y _) = compare x y
   compare (VF x _) (VF y _) = compare x y
+  compare (VN x _) (VN y _) = compare x y
   compare (VI x _) (VI y _) = compare x y
   compare (VR x _) (VR y _) = compare x y
   compare (VX x _) (VX y _) = compare x y
+
   compare (VS _ _) _ = LT
   compare _ (VS _ _) = GT
   compare (VB _ _) _ = LT
   compare _ (VB _ _) = GT
   compare (VX _ _) _ = LT
   compare _ (VX _ _) = GT
+
+  -- compare (VF x _) (VN y _) = compare x y
+  -- compare (VN x _) (VF y _) = compare x y
+
   compare (VF x _) (VI y _) = compare x (fromIntegral y)
   compare (VI x _) (VF y _) = compare (fromIntegral x) y
 
@@ -336,6 +351,13 @@ instance Ord Value where
 
   compare (VF x _) (VR y _) = compare x (fromRational y)
   compare (VR x _) (VF y _) = compare (fromRational x) y
+
+--  compare (VN x _) (VI y _) = compare x (fromIntegral y)
+--  compare (VI x _) (VN y _) = compare (fromIntegral x) y
+
+--  compare (VN x _) (VR y _) = compare x (fromRational y)
+--  compare (VR x _) (VN y _) = compare (fromRational x) y
+
 
 type StateMap = Map.Map String (Pattern Value)
 type ControlMap = Map.Map String Value
@@ -676,6 +698,12 @@ getF (VF f _) = Just f
 getF (VR x _) = Just $ fromRational x
 getF (VI x _) = Just $ fromIntegral x
 getF _  = Nothing
+
+getN :: Value -> Maybe Note
+getN (VF f _) = Just $ Note f
+getN (VR x _) = Just $ Note $ fromRational x
+getN (VI x _) = Just $ Note $ fromIntegral x
+getN _  = Nothing
 
 getS :: Value -> Maybe String
 getS (VS s _) = Just s

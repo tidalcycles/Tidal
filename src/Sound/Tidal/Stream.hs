@@ -244,6 +244,7 @@ getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
                             simpleShow (VS str _) = str
                             simpleShow (VI i _) = show i
                             simpleShow (VF f _) = show f
+                            simpleShow (VN n _) = show n
                             simpleShow (VR r _) = show r
                             simpleShow (VB b _) = show b
                             simpleShow (VX xs _) = show xs
