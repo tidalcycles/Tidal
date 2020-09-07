@@ -19,7 +19,7 @@ executable tidal-listener
   other-modules:       Sound.Tidal.Listener
                        Sound.Tidal.Hint
   -- other-extensions:
-  build-depends:       base >=4.12 && <4.13,
+  build-depends:       base ==4.*,
                        tidal >=1.6.1,
                        hosc,
                        unix,
