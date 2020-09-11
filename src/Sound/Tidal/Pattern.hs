@@ -311,16 +311,17 @@ instance Eq Value where
   (VB x _) == (VB y _) = x == y
   (VF x _) == (VF y _) = x == y
   (VI x _) == (VI y _) = x == y
+  (VN x _) == (VN y _) = x == y
   (VR x _) == (VR y _) = x == y
   (VX x _) == (VX y _) = x == y
   
-  (VF x _) == (VI y _) = x == (fromIntegral y)
-  (VI y _) == (VF x _) = x == (fromIntegral y)
+  (VF x _) == (VI y _) = x == fromIntegral y
+  (VI y _) == (VF x _) = x == fromIntegral y
 
-  (VF x _) == (VR y _) = (toRational x) == y
-  (VR y _) == (VF x _) = (toRational x) == y
-  (VI x _) == (VR y _) = (toRational x) == y
-  (VR y _) == (VI x _) = (toRational x) == y
+  (VF x _) == (VR y _) = toRational x == y
+  (VR y _) == (VF x _) = toRational x == y
+  (VI x _) == (VR y _) = toRational x == y
+  (VR y _) == (VI x _) = toRational x == y
 
   _ == _ = False
   
@@ -328,7 +329,7 @@ instance Ord Value where
   compare (VS x _) (VS y _) = compare x y
   compare (VB x _) (VB y _) = compare x y
   compare (VF x _) (VF y _) = compare x y
-  compare (VN x _) (VN y _) = compare x y
+  compare (VN x _) (VN y _) = compare (unNote x) (unNote y)
   compare (VI x _) (VI y _) = compare x y
   compare (VR x _) (VR y _) = compare x y
   compare (VX x _) (VX y _) = compare x y
