@@ -44,7 +44,7 @@ import           Sound.Tidal.Utils (matchMaybe)
 type Time = Rational
 
 -- | Note is Double, but with a different parsing
-newtype Note = Note Double deriving (Typeable, Data, Generic, Eq, Ord, Show, Enum, Num)
+newtype Note = Note Double deriving (Typeable, Data, Generic, Eq, Ord, Show, Enum, Num, Fractional)
 instance NFData Note
 
 unNote :: Note -> Double
@@ -340,9 +340,6 @@ instance Ord Value where
   compare (VX _ _) _ = LT
   compare _ (VX _ _) = GT
 
-  -- compare (VF x _) (VN y _) = compare x y
-  -- compare (VN x _) (VF y _) = compare x y
-
   compare (VF x _) (VI y _) = compare x (fromIntegral y)
   compare (VI x _) (VF y _) = compare (fromIntegral x) y
 
@@ -352,11 +349,14 @@ instance Ord Value where
   compare (VF x _) (VR y _) = compare x (fromRational y)
   compare (VR x _) (VF y _) = compare (fromRational x) y
 
---  compare (VN x _) (VI y _) = compare x (fromIntegral y)
---  compare (VI x _) (VN y _) = compare (fromIntegral x) y
+  compare (VN x _) (VI y _) = compare x (fromIntegral y)
+  compare (VI x _) (VN y _) = compare (fromIntegral x) y
 
---  compare (VN x _) (VR y _) = compare x (fromRational y)
---  compare (VR x _) (VN y _) = compare (fromRational x) y
+  compare (VN x _) (VR y _) = compare x (Note (fromRational y))
+  compare (VR x _) (VN y _) = compare (Note (fromRational x)) y
+
+  compare (VF x _) (VN y _) = compare x (unNote y)
+  compare (VN x _) (VF y _) = compare (unNote x) y
 
 
 type StateMap = Map.Map String (Pattern Value)
