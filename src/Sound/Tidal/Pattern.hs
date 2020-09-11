@@ -353,8 +353,8 @@ instance Ord Value where
   compare (VN x _) (VI y _) = compare x (fromIntegral y)
   compare (VI x _) (VN y _) = compare (fromIntegral x) y
 
-  compare (VN x _) (VR y _) = compare x (Note (fromRational y))
-  compare (VR x _) (VN y _) = compare (Note (fromRational x)) y
+  compare (VN x _) (VR y _) = compare (unNote x) (fromRational y)
+  compare (VR x _) (VN y _) = compare (fromRational x) (unNote y)
 
   compare (VF x _) (VN y _) = compare x (unNote y)
   compare (VN x _) (VF y _) = compare (unNote x) y
