@@ -274,8 +274,8 @@ lsnare = pF "lsnare"
 -- | specifies the sample or note number to be used
 n :: Pattern Double -> ControlPattern
 n = pF "n"
-note :: Pattern Double -> ControlPattern
-note = pF "note"
+note :: Pattern Note -> ControlPattern
+note = pN "note"
 {- |
 Pushes things forward (or backwards within built-in latency) in time. Allows for nice things like _swing_ feeling:
 
@@ -568,7 +568,7 @@ vcf = vcfegint
 vco = vcoegint
 voi = voice
 
-midinote :: Pattern Double -> ControlPattern
+midinote :: Pattern Note -> ControlPattern
 midinote = note . (subtract 60 <$>)
 
 drum :: Pattern String -> ControlPattern
@@ -696,7 +696,7 @@ val :: Pattern Double -> ControlPattern
 val = pF "val"
 
 {- | `up` is now an alias of `note`. -}
-up :: Pattern Double -> ControlPattern
+up :: Pattern Note -> ControlPattern
 up = note
 
 cps :: Pattern Double -> ControlPattern
