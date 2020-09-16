@@ -26,7 +26,7 @@ runJob job = do putStrLn $ "Parsing: " ++ job
                 return response
 -}
 
-libs = ["Prelude","Sound.Tidal.Context","Sound.OSC.Datum",
+libs = ["Prelude","Sound.Tidal.Context", -- ,"Sound.OSC.Datum",
         "Sound.Tidal.Simple"
        ]
 
