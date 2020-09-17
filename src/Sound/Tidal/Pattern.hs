@@ -47,8 +47,8 @@ type Time = Rational
 newtype Note = Note Double deriving (Typeable, Data, Generic, Eq, Ord, Show, Enum, Num, Fractional)
 instance NFData Note
 
-fromNote :: Note -> Double
-fromNote (Note d) = d
+unNote :: Note -> Double
+unNote (Note d) = d
 
 -- | The 'sam' (start of cycle) for the given time value
 sam :: Time -> Time
@@ -329,7 +329,7 @@ instance Ord Value where
   compare (VS x _) (VS y _) = compare x y
   compare (VB x _) (VB y _) = compare x y
   compare (VF x _) (VF y _) = compare x y
-  compare (VN x _) (VN y _) = compare (fromNote x) (fromNote y)
+  compare (VN x _) (VN y _) = compare (unNote x) (unNote y)
   compare (VI x _) (VI y _) = compare x y
   compare (VR x _) (VR y _) = compare x y
   compare (VX x _) (VX y _) = compare x y
@@ -353,11 +353,11 @@ instance Ord Value where
   compare (VN x _) (VI y _) = compare x (fromIntegral y)
   compare (VI x _) (VN y _) = compare (fromIntegral x) y
 
-  compare (VN x _) (VR y _) = compare (fromNote x) (fromRational y)
-  compare (VR x _) (VN y _) = compare (fromRational x) (fromNote y)
+  compare (VN x _) (VR y _) = compare (unNote x) (fromRational y)
+  compare (VR x _) (VN y _) = compare (fromRational x) (unNote y)
 
-  compare (VF x _) (VN y _) = compare x (fromNote y)
-  compare (VN x _) (VF y _) = compare (fromNote x) y
+  compare (VF x _) (VN y _) = compare x (unNote y)
+  compare (VN x _) (VF y _) = compare (unNote x) y
 
 
 type StateMap = Map.Map String (Pattern Value)
