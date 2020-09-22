@@ -31,7 +31,7 @@ import           Data.Bits (testBit, Bits, xor, shiftL, shiftR)
 -- import qualified Data.Vector as V
 -- import           Data.Word (Word32)
 import           Data.Ratio ((%))
-import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
+import           Data.List (sort, sortBy, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
@@ -797,24 +797,23 @@ index sz indexpat pat =
   where
     zoom' tSz s = zoomArc (Arc s (s+tSz))
 
-{-
 -- | @prrw f rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
 prrw :: (a -> b -> c) -> Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
 prrw f rot (blen, vlen) beatPattern valuePattern =
   let
-    ecompare (_,e1,_) (_,e2,_) = compare (fst e1) (fst e2)
-    beats  = sortBy ecompare $ arc beatPattern (0, blen)
-    values = fmap thd' . sortBy ecompare $ arc valuePattern (0, vlen)
+    ecompare ev1 ev2 = compare (start $ part ev1) (start $ part ev2)
+    beats = sortBy ecompare $ queryArc beatPattern (Arc 0 blen)
+    values = fmap value . sortBy ecompare $ queryArc valuePattern (Arc 0 vlen)
     cycles = blen * (fromIntegral $ lcm (length beats) (length values) `div` (length beats))
   in
     _slow cycles $ stack $ zipWith
-    (\( _, (start, end), v') v -> (start `rotR`) $ densityGap (1 / (end - start)) $ pure (f v' v))
-    (sortBy ecompare $ arc (_fast cycles $ beatPattern) (0, blen))
-    (drop (rot `mod` length values) $ cycle values)
+      (\ev v -> ((start $ part ev) `rotR`) $ _fastGap (1 / ((stop $ part ev) - (start $ part ev))) $ pure (f (value ev) v))
+      (sortBy ecompare $ queryArc (_fast cycles $ beatPattern) (Arc 0 blen))
+      (drop (rot `mod` length values) $ cycle values)
 
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
-prr :: Int -> (Time, Time) -> Pattern String -> Pattern b -> Pattern b
-prr = prrw $ flip const
+prr :: Int -> (Time, Time) -> Pattern Bool -> Pattern a -> Pattern a
+prr rot (blen, vlen) beatPattern = prrw (flip const) rot (blen, vlen) (filterValues id beatPattern)
 
 {-|
 @preplace (blen, plen) beats values@ combines the timing of @beats@ with the values
@@ -840,14 +839,14 @@ let p = slow 2 $ "x x x"
 d1 $ sound $ preplace (2,1) p "bd sn"
 @
 -}
-preplace :: (Time, Time) -> Pattern String -> Pattern b -> Pattern b
-preplace = preplaceWith $ flip const
+preplace :: (Time, Time) -> Pattern Bool -> Pattern b -> Pattern b
+preplace = prr 0
 
 -- | @prep@ is an alias for preplace.
-prep :: (Time, Time) -> Pattern String -> Pattern b -> Pattern b
+prep :: (Time, Time) -> Pattern Bool -> Pattern b -> Pattern b
 prep = preplace
 
-preplace1 :: Pattern String -> Pattern b -> Pattern b
+preplace1 :: Pattern Bool -> Pattern b -> Pattern b
 preplace1 = preplace (1, 1)
 
 preplaceWith :: (a -> b -> c) -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
@@ -862,14 +861,14 @@ preplaceWith1 f = prrw f 0 (1, 1)
 prw1 :: (a -> b -> c) -> Pattern a -> Pattern b -> Pattern c
 prw1 = preplaceWith1
 
-(<~>) :: Pattern String -> Pattern b -> Pattern b
+(<~>) :: Pattern Bool -> Pattern b -> Pattern b
 (<~>) = preplace (1, 1)
 
 -- | @protate len rot p@ rotates pattern @p@ by @rot@ beats to the left.
 -- @len@: length of the pattern, in cycles.
 -- Example: @d1 $ every 4 (protate 2 (-1)) $ slow 2 $ sound "bd hh hh hh"@
 protate :: Time -> Int -> Pattern a -> Pattern a
-protate len rot p = prrw (flip const) rot (len, len) p p
+protate len rot p = prr rot (len, len) (const True <$> p) p
 
 prot :: Time -> Int -> Pattern a -> Pattern a
 prot = protate
@@ -893,6 +892,7 @@ d1 $ sound "sn ~ hh bd"
 (~>>) :: Int -> Pattern a -> Pattern a
 (~>>) = (<<~) . (0-)
 
+{-
 -- | @pequal cycles p1 p2@: quickly test if @p1@ and @p2@ are the same.
 pequal :: Ord a => Time -> Pattern a -> Pattern a -> Bool
 pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
