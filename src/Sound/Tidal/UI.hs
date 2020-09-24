@@ -798,8 +798,8 @@ index sz indexpat pat =
     zoom' tSz s = zoomArc (Arc s (s+tSz))
 
 -- | @prrw f rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
-prrw :: (a -> b -> c) -> Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
-prrw f rot (blen, vlen) beatPattern valuePattern =
+_prrw :: (a -> b -> c) -> Int -> (Time, Time) -> Pattern a -> Pattern b -> Pattern c
+_prrw f rot (blen, vlen) beatPattern valuePattern =
   let
     ecompare ev1 ev2 = compare (start $ part ev1) (start $ part ev2)
     beats = sortBy ecompare $ queryArc beatPattern (Arc 0 blen)
@@ -811,8 +811,11 @@ prrw f rot (blen, vlen) beatPattern valuePattern =
       (sortBy ecompare $ queryArc (_fast cycles $ beatPattern) (Arc 0 blen))
       (drop (rot `mod` length values) $ cycle values)
 
+prrw f pi (b,v) bp vp = do i <- pi
+                           _prrw f i (b,v) bp vp
+
 -- | @prr rot (blen, vlen) beatPattern valuePattern@: pattern rotate/replace.
-prr :: Int -> (Time, Time) -> Pattern Bool -> Pattern a -> Pattern a
+prr :: Pattern Int -> (Time, Time) -> Pattern Bool -> Pattern a -> Pattern a
 prr rot (blen, vlen) beatPattern = prrw (flip const) rot (blen, vlen) (filterValues id beatPattern)
 
 {-|
@@ -867,13 +870,13 @@ prw1 = preplaceWith1
 -- | @protate len rot p@ rotates pattern @p@ by @rot@ beats to the left.
 -- @len@: length of the pattern, in cycles.
 -- Example: @d1 $ every 4 (protate 2 (-1)) $ slow 2 $ sound "bd hh hh hh"@
-protate :: Time -> Int -> Pattern a -> Pattern a
+protate :: Time -> Pattern Int -> Pattern a -> Pattern a
 protate len rot p = prr rot (len, len) (const True <$> p) p
 
-prot :: Time -> Int -> Pattern a -> Pattern a
+prot :: Time -> Pattern Int -> Pattern a -> Pattern a
 prot = protate
 
-prot1 :: Int -> Pattern a -> Pattern a
+prot1 :: Pattern Int -> Pattern a -> Pattern a
 prot1 = protate 1
 
 {-| The @<<~@ operator rotates a unit pattern to the left, similar to @<~@,
@@ -885,11 +888,11 @@ d1 $ (1 <<~) $ sound "bd ~ sn hh"
 d1 $ sound "sn ~ hh bd"
 @ -}
 
-(<<~) :: Int -> Pattern a -> Pattern a
+(<<~) :: Pattern Int -> Pattern a -> Pattern a
 (<<~) = protate 1
 
 -- | @~>>@ is like @<<~@ but for shifting to the right.
-(~>>) :: Int -> Pattern a -> Pattern a
+(~>>) :: Pattern Int -> Pattern a -> Pattern a
 (~>>) = (<<~) . (0-)
 
 {-
