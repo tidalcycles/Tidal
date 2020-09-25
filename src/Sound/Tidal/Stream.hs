@@ -214,7 +214,7 @@ toDatum (VR x Nothing) = O.float $ ((fromRational x) :: Double)
 toDatum (VB True Nothing) = O.int32 (1 :: Int)
 toDatum (VB False Nothing) = O.int32 (0 :: Int)
 toDatum (VX xs Nothing) = O.Blob $ O.blob_pack xs
-toDatum v = O.string ('c':(show $ fromJust $ vbus v))
+toDatum v = O.string ('c':'_':(show $ fromJust $ vbus v))
 
 toData :: OSC -> Event ControlMap -> Maybe [O.Datum]
 toData (OSC {args = ArgList as}) e = fmap (fmap toDatum) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
@@ -269,7 +269,7 @@ toOSC latency e tempo osc@(OSC _ _)
                      | otherwise = Nothing
              busmsgs = map
                          (\v -> do b <- vbus v
-                                   return $ (ts, O.Message "/bus" [O.int32 b, toDatum $ v {vbus = Nothing}])
+                                   return $ (ts, O.Message "/setControlBus" [O.int32 b, toDatum $ v {vbus = Nothing}])
                          )
                          (Map.elems $ value e)
              on = sched tempo $ start $ wholeOrPart e

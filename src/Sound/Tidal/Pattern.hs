@@ -811,5 +811,5 @@ matchManyToOne f pa pb = pa {query = q}
             fQuery s = st {arc = Arc s s}
 
 -- Set the bus for values within a control pattern
-bus :: Int -> ControlPattern -> ControlPattern
-bus i = fmap (fmap (\v -> v {vbus = Just i}))
+dial :: Int -> ControlPattern -> ControlPattern
+dial i = fmap (fmap (\v -> v {vbus = Just i}))
