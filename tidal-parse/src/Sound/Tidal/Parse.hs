@@ -47,7 +47,7 @@ instance Parse Integer where
   parser = integer
 
 instance Parse Time where
-  parser = rational
+  parser = (fromIntegral <$> integer) <|> rational
 
 instance Parse Double where
   parser = (fromIntegral <$> integer) <|> (realToFrac <$> rational)
