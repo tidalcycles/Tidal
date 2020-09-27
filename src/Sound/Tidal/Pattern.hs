@@ -1,6 +1,25 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleInstances, TypeSynonymInstances #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+
+{-
+    Pattern.hs - core representation of Tidal patterns
+    Copyright (C) 2020 Alex McLean and contributors
+
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library.  If not, see <http://www.gnu.org/licenses/>.
+-}
 
 module Sound.Tidal.Pattern where
 
@@ -9,13 +28,14 @@ import           Prelude hiding ((<*), (*>))
 import           Control.Applicative (liftA2)
 --import           Data.Bifunctor (Bifunctor(..))
 import           Data.Data (Data) -- toConstr
+import           GHC.Generics
 import           Data.List (delete, findIndex, sort)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
 import           Data.Typeable (Typeable)
 import           Control.DeepSeq (NFData(rnf))
 import           Data.Word (Word8)
-
+import           Sound.Tidal.Utils (matchMaybe)
 ------------------------------------------------------------------------
 -- * Types
 
@@ -42,13 +62,11 @@ cyclePos t = t - sam t
 data ArcF a = Arc
   { start :: a
   , stop :: a
-  } deriving (Eq, Ord, Functor, Show)
+  } deriving (Eq, Ord, Functor, Show, Generic)
 
 type Arc = ArcF Time
 
-instance NFData a => 
-  NFData (ArcF a) where 
-    rnf (Arc s e) = rnf s `seq` rnf e
+instance NFData a => NFData (ArcF a)
 
 instance Num a => Num (ArcF a) where
   negate      = fmap negate
@@ -133,10 +151,9 @@ isIn :: Arc -> Time -> Bool
 isIn (Arc s e) t = t >= s && t < e
 
 data Context = Context {contextPosition :: [((Int, Int), (Int, Int))]}
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Generic)
 
-instance NFData Context where 
-    rnf (Context c) = rnf c
+instance NFData Context
 
 combineContexts :: [Context] -> Context
 combineContexts = Context . concatMap contextPosition
@@ -159,13 +176,11 @@ data EventF a b = Event
   , whole :: Maybe a
   , part :: a
   , value :: b
-  } deriving (Eq, Ord, Functor)
+  } deriving (Eq, Ord, Functor, Generic)
 
 type Event a = EventF (ArcF Time) a
 
-instance (NFData a, NFData b) => 
-  NFData (EventF a b) where 
-    rnf (Event c w p v) = rnf c `seq` rnf w `seq` rnf p `seq` rnf v
+instance (NFData a, NFData b) => NFData (EventF a b)
 
 {-instance Bifunctor EventF where
   bimap f g (Event w p e) = Event (f w) (f p) (g e)
@@ -254,78 +269,73 @@ type Query a = (State -> [Event a])
 
 -- | A datatype that's basically a query
 data Pattern a = Pattern {query :: Query a}
+  deriving Generic
 
-data Value = VS { svalue :: String }
-           | VF { fvalue :: Double }
-           | VR { rvalue :: Rational }
-           | VI { ivalue :: Int }
-           | VB { bvalue :: Bool }
-           | VX { xvalue :: [Word8] } -- Used for OSC 'blobs'
-           deriving (Typeable,Data)
+data Value = VS { svalue :: String,   vbus :: Maybe Int }
+           | VF { fvalue :: Double,   vbus :: Maybe Int }
+           | VR { rvalue :: Rational, vbus :: Maybe Int }
+           | VI { ivalue :: Int,      vbus :: Maybe Int }
+           | VB { bvalue :: Bool,     vbus :: Maybe Int }
+           | VX { xvalue :: [Word8],  vbus :: Maybe Int } -- Used for OSC 'blobs'
+           deriving (Typeable,Data, Generic)
 
 class Valuable a where
   toValue :: a -> Value
 
-instance NFData Value where 
-  rnf (VS s) = rnf s 
-  rnf (VF f) = rnf f 
-  rnf (VR r) = rnf r 
-  rnf (VI i) = rnf i 
-  rnf (VB b) = rnf b
-  rnf (VX xs) = rnf xs
+instance NFData Value
 
 instance Valuable String where
-  toValue = VS
+  toValue a = VS a Nothing
 instance Valuable Double where
-  toValue a = VF a
+  toValue a = VF a Nothing
 instance Valuable Rational where
-  toValue a = VR a
+  toValue a = VR a Nothing
 instance Valuable Int where
-  toValue a = VI a
+  toValue a = VI a Nothing
 instance Valuable Bool where
-  toValue a = VB a
+  toValue a = VB a Nothing
 instance Valuable [Word8] where
-  toValue a = VX a
+  toValue a = VX a Nothing
 
 instance Eq Value where
-  (VS x) == (VS y) = x == y
-  (VB x) == (VB y) = x == y
-  (VF x) == (VF y) = x == y
-  (VI x) == (VI y) = x == y
-  (VR x) == (VR y) = x == y
-  (VX x) == (VX y) = x == y
+  (VS x _) == (VS y _) = x == y
+  (VB x _) == (VB y _) = x == y
+  (VF x _) == (VF y _) = x == y
+  (VI x _) == (VI y _) = x == y
+  (VR x _) == (VR y _) = x == y
+  (VX x _) == (VX y _) = x == y
   
-  (VF x) == (VI y) = x == (fromIntegral y)
-  (VI y) == (VF x) = x == (fromIntegral y)
+  (VF x _) == (VI y _) = x == (fromIntegral y)
+  (VI y _) == (VF x _) = x == (fromIntegral y)
 
-  (VF x) == (VR y) = (toRational x) == y
-  (VR y) == (VF x) = (toRational x) == y
-  (VI x) == (VR y) = (toRational x) == y
-  (VR y) == (VI x) = (toRational x) == y
+  (VF x _) == (VR y _) = (toRational x) == y
+  (VR y _) == (VF x _) = (toRational x) == y
+  (VI x _) == (VR y _) = (toRational x) == y
+  (VR y _) == (VI x _) = (toRational x) == y
 
   _ == _ = False
   
 instance Ord Value where
-  compare (VS x) (VS y) = compare x y
-  compare (VB x) (VB y) = compare x y
-  compare (VF x) (VF y) = compare x y
-  compare (VI x) (VI y) = compare x y
-  compare (VR x) (VR y) = compare x y
-  compare (VX x) (VX y) = compare x y
-  compare (VS _) _ = LT
-  compare _ (VS _) = GT
-  compare (VB _) _ = LT
-  compare _ (VB _) = GT
-  compare (VX _) _ = LT
-  compare _ (VX _) = GT
-  compare (VF x) (VI y) = compare x (fromIntegral y)
-  compare (VI x) (VF y) = compare (fromIntegral x) y
+  compare (VS x _) (VS y _) = compare x y
+  compare (VB x _) (VB y _) = compare x y
+  compare (VF x _) (VF y _) = compare x y
+  compare (VI x _) (VI y _) = compare x y
+  compare (VR x _) (VR y _) = compare x y
+  compare (VX x _) (VX y _) = compare x y
+  compare (VS _ _) _ = LT
+  compare _ (VS _ _) = GT
+  compare (VB _ _) _ = LT
+  compare _ (VB _ _) = GT
+  compare (VX _ _) _ = LT
+  compare _ (VX _ _) = GT
+  compare (VF x _) (VI y _) = compare x (fromIntegral y)
+  compare (VI x _) (VF y _) = compare (fromIntegral x) y
 
-  compare (VR x) (VI y) = compare x (fromIntegral y)
-  compare (VI x) (VR y) = compare (fromIntegral x) y
+  compare (VR x _) (VI y _) = compare x (fromIntegral y)
+  compare (VI x _) (VR y _) = compare (fromIntegral x) y
 
-  compare (VF x) (VR y) = compare x (fromRational y)
-  compare (VR x) (VF y) = compare (fromRational x) y
+  compare (VF x _) (VR y _) = compare x (fromRational y)
+  compare (VR x _) (VF y _) = compare (fromRational x) y
 
 type StateMap = Map.Map String (Pattern Value)
 type ControlMap = Map.Map String Value
@@ -334,9 +344,7 @@ type ControlPattern = Pattern ControlMap
 ------------------------------------------------------------------------
 -- * Instances
 
-instance NFData a => 
-  NFData (Pattern a) where 
-    rnf (Pattern q) = rnf $ \s -> q s
+instance NFData a => NFData (Pattern a)
 
 instance Functor Pattern where
   -- | apply a function to all the values in a pattern
@@ -482,10 +490,10 @@ class TolerantEq a where
    (~==) :: a -> a -> Bool
 
 instance TolerantEq Value where
-         (VS a) ~== (VS b) = a == b
-         (VI a) ~== (VI b) = a == b
-         (VR a) ~== (VR b) = a == b
-         (VF a) ~== (VF b) = abs (a - b) < 0.000001
+         (VS a _) ~== (VS b _) = a == b
+         (VI a _) ~== (VI b _) = a == b
+         (VR a _) ~== (VR b _) = a == b
+         (VF a _) ~== (VF b _) = abs (a - b) < 0.000001
          _ ~== _ = False
 
 instance TolerantEq ControlMap where
@@ -584,13 +592,13 @@ instance Num ControlMap where
   negate      = (applyFIS negate negate id <$>)
   (+)         = Map.unionWith (fNum2 (+) (+))
   (*)         = Map.unionWith (fNum2 (*) (*))
-  fromInteger i = Map.singleton "n" $ VI $ fromInteger i
+  fromInteger i = Map.singleton "n" $ VI (fromInteger i) Nothing
   signum      = (applyFIS signum signum id <$>)
   abs         = (applyFIS abs abs id <$>)
 
 instance Fractional ControlMap where
   recip        = fmap (applyFIS recip id id)
-  fromRational = Map.singleton "speed" . VF . fromRational
+  fromRational r = Map.singleton "speed" $ VF (fromRational r) Nothing
 
 ------------------------------------------------------------------------
 -- * Internal functions
@@ -631,6 +639,11 @@ withQueryTime f = withQueryArc (\(Arc s e) -> Arc (f s) (f e))
 withEvent :: (Event a -> Event b) -> Pattern a -> Pattern b
 withEvent f p = p {query = map f . query p}
 
+-- | @withEvent f p@ returns a new @Pattern@ with each value mapped over
+-- function @f@.
+withValue :: (a -> b) -> Pattern a -> Pattern b
+withValue f pat = withEvent (fmap f) pat
+
 -- | @withEvent f p@ returns a new @Pattern@ with f applied to the resulting list of events for each query
 -- function @f@.
 withEvents :: ([Event a] -> [Event b]) -> Pattern a -> Pattern b
@@ -643,48 +656,72 @@ withPart f = withEvent (\(Event c w p v) -> Event c w (f p) v)
 
 -- | Apply one of three functions to a Value, depending on its type
 applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value -> Value
-applyFIS f _ _ (VF f') = VF $ f f'
-applyFIS _ f _ (VI i ) = VI $ f i
-applyFIS _ _ f (VS s ) = VS $ f s
+applyFIS f _ _ (VF f' b) = VF (f f') b
+applyFIS _ f _ (VI i  b) = VI (f i) b
+applyFIS _ _ f (VS s  b) = VS (f s) b
 applyFIS _ _ _ v = v
 
 -- | Apply one of two functions to a Value, depending on its type (int
 -- or float; strings and rationals are ignored)
 fNum2 :: (Int -> Int -> Int) -> (Double -> Double -> Double) -> Value -> Value -> Value
-fNum2 fInt _      (VI a) (VI b) = VI $ fInt a b
-fNum2 _    fFloat (VF a) (VF b) = VF $ fFloat a b
-fNum2 _    fFloat (VI a) (VF b) = VF $ fFloat (fromIntegral a) b
-fNum2 _    fFloat (VF a) (VI b) = VF $ fFloat a (fromIntegral b)
+fNum2 fInt _      (VI a abus) (VI b bbus) = VI (fInt a b) (matchMaybe abus bbus)
+fNum2 _    fFloat (VF a abus) (VF b bbus) = VF (fFloat a b) (matchMaybe abus bbus)
+fNum2 _    fFloat (VI a abus) (VF b bbus) = VF (fFloat (fromIntegral a) b) (matchMaybe abus bbus)
+fNum2 _    fFloat (VF a abus) (VI b bbus) = VF (fFloat a (fromIntegral b)) (matchMaybe abus bbus)
 fNum2 _    _      x      _      = x
 
 getI :: Value -> Maybe Int
-getI (VI i) = Just i
-getI (VR x) = Just $ floor x
-getI (VF x) = Just $ floor x
+getI (VI i _) = Just i
+getI (VR x _) = Just $ floor x
+getI (VF x _) = Just $ floor x
 getI _  = Nothing
 
 getF :: Value -> Maybe Double
-getF (VF f) = Just f
-getF (VR x) = Just $ fromRational x
-getF (VI x) = Just $ fromIntegral x
+getF (VF f _) = Just f
+getF (VR x _) = Just $ fromRational x
+getF (VI x _) = Just $ fromIntegral x
 getF _  = Nothing
 
 getS :: Value -> Maybe String
-getS (VS s) = Just s
+getS (VS s _) = Just s
 getS _  = Nothing
 
 getB :: Value -> Maybe Bool
-getB (VB b) = Just b
+getB (VB b _) = Just b
 getB _  = Nothing
 
 getR :: Value -> Maybe Rational
-getR (VR r) = Just r
-getR (VF x) = Just $ toRational x
-getR (VI x) = Just $ toRational x
+getR (VR r _) = Just r
+getR (VF x _) = Just $ toRational x
+getR (VI x _) = Just $ toRational x
 getR _  = Nothing
 
+
+_extract :: (Value -> Maybe a) -> String -> ControlPattern -> Pattern a
+_extract f name pat = filterJust $ withValue (\v -> (Map.lookup name v >>= f)) pat
+
+-- | Extract a pattern of integer values by from a control pattern, given the name of the control
+extractI :: String -> ControlPattern -> Pattern Int
+extractI = _extract getI
+
+-- | Extract a pattern of floating point values by from a control pattern, given the name of the control
+extractF :: String -> ControlPattern -> Pattern Double
+extractF = _extract getF
+
+-- | Extract a pattern of string values by from a control pattern, given the name of the control
+extractS :: String -> ControlPattern -> Pattern String
+extractS = _extract getS
+
+-- | Extract a pattern of boolean values by from a control pattern, given the name of the control
+extractB :: String -> ControlPattern -> Pattern Bool
+extractB = _extract getB
+
+-- | Extract a pattern of rational values by from a control pattern, given the name of the control
+extractR :: String -> ControlPattern -> Pattern Rational
+extractR = _extract getR
+
 getBlob :: Value -> Maybe [Word8]
-getBlob (VX xs) = Just xs
+getBlob (VX xs _) = Just xs
 getBlob _  = Nothing
 
 compressArc :: Arc -> Pattern a -> Pattern a
@@ -772,3 +809,7 @@ matchManyToOne f pa pb = pa {query = q}
                 where as' = as $ start $ wholeOrPart ex
             as s = query pa $ fQuery s
             fQuery s = st {arc = Arc s s}
+
+-- Set the bus for values within a control pattern
+dial :: Int -> ControlPattern -> ControlPattern
+dial i = fmap (fmap (\v -> v {vbus = Just i}))

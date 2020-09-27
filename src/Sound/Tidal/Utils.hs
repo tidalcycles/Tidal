@@ -1,5 +1,23 @@
 module Sound.Tidal.Utils where
 
+{-
+    Utils.hs - A library of handy Haskell utility functions
+    Copyright (C) 2020, Alex McLean and contributors
+
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library.  If not, see <http://www.gnu.org/licenses/>.
+-}
+
 import Data.List (delete)
 import System.IO (hPutStrLn, stderr)
 
@@ -95,3 +113,8 @@ deltaMini = outside 0 0
         inside column line ('"':xs) = '"':')':(outside (column+1) line xs)
         inside _ line ('\n':xs) = '\n':(inside 0 (line+1) xs)
         inside column line (x:xs) = x:(inside (column+1) line xs)
+
+
+matchMaybe :: Maybe a -> Maybe a -> Maybe a
+matchMaybe Nothing y = y
+matchMaybe x       _ = x

@@ -1,5 +1,23 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, BangPatterns #-}
 
+{-
+    Core.hs - For functions judged to be 'core' to tidal functionality.
+    Copyright (C) 2020, Alex McLean and contributors
+
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library.  If not, see <http://www.gnu.org/licenses/>.
+-}
+
 module Sound.Tidal.Core where
 
 import           Prelude hiding ((<*), (*>))
@@ -367,8 +385,11 @@ compress (s,e) = compressArc (Arc s e)
 compressTo :: (Time,Time) -> Pattern a -> Pattern a
 compressTo (s,e) = compressArcTo (Arc s e)
 
-repeatCycles :: Int -> Pattern a -> Pattern a
-repeatCycles n p = cat (replicate n p)
+repeatCycles :: Pattern Int -> Pattern a -> Pattern a
+repeatCycles = tParam _repeatCycles
+
+_repeatCycles :: Int -> Pattern a -> Pattern a
+_repeatCycles n p = cat (replicate n p)
 
 fastRepeatCycles :: Int -> Pattern a -> Pattern a
 fastRepeatCycles n p = cat (replicate n p)

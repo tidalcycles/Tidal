@@ -1,6 +1,28 @@
 # TidalCycles log of changes
 
-## 1.5.0 - 
+## 1.6.1 - We are not DJs
+	* Patternise first parameter of chunk @lwlsn
+	* Patternise fit parameter @bgold-cosmos
+	* Increase upper bounds of random @yaxu
+	* Switch travis to ubuntu bionic @yaxu
+
+## 1.6.0 - Keep live coding live
+	* Rollback to previous pattern on parse error @jwaldmann
+	* Increased strictness to catch parse errors earlier @jwaldmann @yaxu
+	* Support for superdirt 'panic' @yaxu
+	* Increase hosc upper bounds to admin 0.18
+	* New function 'splat' @yaxu
+	* `quantise` now uses round, add qfloor, qceiling variants and qround alis @lwlsn
+	* Add ghc 8.8.3 to travis @jwaldmann
+	* Switch `substruct` to use binary pattern @yaxu
+
+## 1.5.2 - Rivelin
+        * Fix streamAll
+
+## 1.5.1 - Blacka Moor
+	* Bugfix splice
+
+## 1.5.0 - Active travel
 	* Export drawLineSz @mxmxyz
 	* tidal-parse additions (bite, splice, pickF, select, squeeze; fixed slice) @dktr0
 	* New, more efficient pseudorandom number generator @dktr0

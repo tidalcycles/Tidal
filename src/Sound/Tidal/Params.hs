@@ -1,5 +1,23 @@
 module Sound.Tidal.Params where
 
+{-
+    Params.hs - Provides the basic control patterns available to TidalCycles by default
+    Copyright (C) 2020, Alex McLean and contributors
+
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library.  If not, see <http://www.gnu.org/licenses/>.
+-}
+
 import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Pattern
@@ -17,14 +35,14 @@ grp fs p = splitby <$> p
 
 mF :: String -> String -> ControlMap
 mF name v = fromMaybe Map.empty $ do f <- readMaybe v
-                                     return $ Map.singleton name (VF f)
+                                     return $ Map.singleton name (VF f Nothing)
 
 mI :: String -> String -> ControlMap
 mI name v = fromMaybe Map.empty $ do i <- readMaybe v
-                                     return $ Map.singleton name (VI i)
+                                     return $ Map.singleton name (VI i Nothing)
 
 mS :: String -> String -> ControlMap
-mS name v = Map.singleton name (VS v)
+mS name v = Map.singleton name (VS v Nothing)
 
 -- | Grouped params
 
@@ -43,16 +61,16 @@ nrpn = grp [mI "nrpn", mI "val"]
 -- | Singular params
 
 pF :: String -> Pattern Double -> ControlPattern
-pF name = fmap (Map.singleton name . VF)
+pF name = fmap (Map.singleton name . (flip VF) Nothing)
 
 pI :: String -> Pattern Int -> ControlPattern
-pI name = fmap (Map.singleton name . VI)
+pI name = fmap (Map.singleton name . (flip VI) Nothing)
 
 pS :: String -> Pattern String -> ControlPattern
-pS name = fmap (Map.singleton name . VS)
+pS name = fmap (Map.singleton name . (flip VS) Nothing)
 
 pX :: String -> Pattern [Word8] -> ControlPattern
-pX name = fmap (Map.singleton name . VX)
+pX name = fmap (Map.singleton name . (flip VX) Nothing)
 
 -- | patterns for internal sound routing
 toArg :: Pattern String -> ControlPattern
@@ -103,8 +121,8 @@ d1 $ (chop 8 $ sounds "breaks125") # unit "c" # coarse "1 2 4 8 16 32 64 128"
 
 which performs a similar effect, but due to differences in implementation sounds different.
 -}
-begin, legato, clhatdecay, crush :: Pattern Double -> ControlPattern
-channel, coarse :: Pattern Int -> ControlPattern
+begin, legato, clhatdecay, crush, coarse :: Pattern Double -> ControlPattern
+channel :: Pattern Int -> ControlPattern
 begin = pF "begin"
 -- | choose the physical channel the pattern is sent to, this is super dirt specific
 channel = pI "channel"
@@ -114,7 +132,7 @@ legato = pF "legato"
 
 clhatdecay = pF "clhatdecay"
 -- | fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
-coarse = pI "coarse"
+coarse = pF "coarse"
 -- | bit crushing, a pattern of numbers from 1 (for drastic reduction in bit-depth) to 16 (for barely no reduction).
 crush = pF "crush"
 {- |
@@ -188,6 +206,7 @@ gain = pF "gain"
 
 gate :: Pattern Double -> ControlPattern
 gate = pF "gate"
+
 hatgrain :: Pattern Double -> ControlPattern
 hatgrain = pF "hatgrain"
 -- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter.
@@ -552,16 +571,67 @@ drum :: Pattern String -> ControlPattern
 drum = n . (subtract 60 . drumN <$>)
 
 drumN :: Num a => String -> a
+drumN "hq" = 27
+drumN "sl" = 28
+drumN "ps" = 29
+drumN "pl" = 30
+drumN "st" = 31
+drumN "sq" = 32
+drumN "ml" = 33
+drumN "mb" = 34
+drumN "ab" = 35
 drumN "bd" = 36
+drumN "rm" = 37
 drumN "sn" = 38
-drumN "lt" = 43
-drumN "ht" = 50
-drumN "ch" = 42
-drumN "oh" = 46
 drumN "cp" = 39
-drumN "cl" = 75
-drumN "ag" = 67
+drumN "es" = 40
+drumN "lf" = 41
+drumN "ch" = 42
+drumN "lt" = 43
+drumN "hh" = 44
+drumN "ft" = 45
+drumN "oh" = 46
+drumN "mt" = 47
+drumN "hm" = 48
 drumN "cr" = 49
+drumN "ht" = 50
+drumN "ri" = 51
+drumN "cy" = 52
+drumN "be" = 53
+drumN "ta" = 54
+drumN "sc" = 55
+drumN "cb" = 56
+drumN "cs" = 57
+drumN "vi" = 58
+drumN "rc" = 59
+drumN "hb" = 60
+drumN "lb" = 61
+drumN "mh" = 62
+drumN "oh" = 63
+drumN "lc" = 64
+drumN "he" = 65
+drumN "le" = 66
+drumN "ag" = 67
+drumN "la" = 68
+drumN "ca" = 69
+drumN "ma" = 70
+drumN "sw" = 71
+drumN "lw" = 72
+drumN "sg" = 73
+drumN "lg" = 74
+drumN "cl" = 75
+drumN "hi" = 76
+drumN "li" = 77
+drumN "mc" = 78
+drumN "oc" = 79
+drumN "tr" = 80
+drumN "ot" = 81
+drumN "sh" = 82
+drumN "jb" = 83
+drumN "bt" = 84
+drumN "ct" = 85
+drumN "ms" = 86
+drumN "os" = 87
 drumN _ = 0
 
 

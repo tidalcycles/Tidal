@@ -89,6 +89,17 @@ run =
           (queryArc rand (Arc 0.75 0.75)) `shouldBe`
           [Event (Context []) Nothing (Arc 0.75 0.75) (0.20052618719637394 :: Float)]
 
+    describe "irand" $ do
+      it "generates a (pseudo-random) integer between zero & i" $ do
+        it "at the start of a cycle" $
+          (queryArc (irand 10) (Arc 0 0)) `shouldBe` [Event (Context []) Nothing (Arc 0 0) (0 :: Int)]
+        it "at 1/4 of a cycle" $
+          (queryArc (irand 10) (Arc 0.25 0.25)) `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (6 :: Int)]
+        it "is patternable" $
+          (queryArc (irand "10 2") (Arc 0 1)) `shouldBe` [
+            Event (Context [((1,1),(4,1))]) Nothing (Arc 0 0.5) (6 :: Int), Event (Context [((4,1),(5,1))]) Nothing (Arc 0.5 1) (0 :: Int)
+          ]
+
     describe "range" $ do
       describe "scales a pattern to the supplied range" $ do
         describe "from 3 to 4" $ do
@@ -174,7 +185,7 @@ run =
     describe "contrastRange" $ do
       it "matches using a pattern of ranges" $ do
         compareP (Arc 0 1)
-          (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VF 0, VF 3)) $ s "bd" >| n "1 4")
+          (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VF 0 Nothing, VF 3 Nothing)) $ s "bd" >| n "1 4")
           (s "bd" >| n "1 4" >| crush "3 0")
 
     describe "euclidFull" $ do
@@ -277,3 +288,14 @@ run =
         compareP (Arc 0 4)
           (arpeggiate $ "[0,0]*2")
           ("0 0 0 0" :: Pattern Int)
+
+
+      describe "chunk" $ do
+        it "can chunk a rev pattern" $ do
+          compareP (Arc 0 4)
+            (chunk 2 (rev) $  ("a b c d" :: Pattern String))
+            (slow 2 $ "d c c d a b b a" :: Pattern String)
+        it "can chunk a fast pattern" $ do
+          compareP (Arc 0 4)
+            (chunk 2 (fast 2) $ "a b" :: Pattern String)
+            (slow 2 $ "a b b _ a _ a b" :: Pattern String)

@@ -1,10 +1,26 @@
 module Sound.Tidal.Bjorklund (bjorklund) where
 
--- The below is (c) Rohan Drape, taken from the hmt library and
--- distributed here under the terms of the GNU Public Licence.  Tidal
--- used to just include the library but removed for now due to
--- dependency problems.. We could however likely benefit from other
--- parts of the library..
+{-
+    Bjorklund.hs - Euclidean patterns
+    Copyright (C) 2006-2020, Rohan Drape and contributors
+
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library.  If not, see <http://www.gnu.org/licenses/>.
+-}
+
+-- The below is taken from the hmt library. Tidal used to just include
+-- the library but removed for now due to dependency problems.. We
+-- could however likely benefit from other parts of the library..
 
 type STEP a = ((Int,Int),([[a]],[[a]]))
 

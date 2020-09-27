@@ -1,7 +1,26 @@
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz) where
+module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz, stepcount) where
+
+
+{-
+    Show.hs - Library for visualising Tidal patterns as text
+    Copyright (C) 2020, Alex McLean and contributors
+
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library.  If not, see <http://www.gnu.org/licenses/>.
+-}
 
 import Sound.Tidal.Pattern
 
@@ -45,12 +64,16 @@ instance Show Context where
   show (Context cs) = show cs
 
 instance Show Value where
-  show (VS s) = ('"':s) ++ "\""
-  show (VI i) = show i
-  show (VF f) = show f ++ "f"
-  show (VR r) = show r ++ "r"
-  show (VB b) = show b
-  show (VX xs) = show xs
+  show (VS s bus)  = showbus bus $ ('"':s) ++ "\""
+  show (VI i bus)  = showbus bus $ show i
+  show (VF f bus)  = showbus bus $ show f ++ "f"
+  show (VR r bus)  = showbus bus $ show r ++ "r"
+  show (VB b bus)  = showbus bus $ show b
+  show (VX xs bus) = showbus bus $ show xs
+
+showbus :: Maybe Int -> String -> String
+showbus Nothing s  = s
+showbus (Just i) s = s ++ "(" ++ show i ++ ")"
 
 instance {-# OVERLAPPING #-} Show ControlMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m

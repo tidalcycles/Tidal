@@ -1,6 +1,26 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings, FlexibleContexts #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings, FlexibleContexts, BangPatterns #-}
 
 module Sound.Tidal.Control where
+
+{-
+    Control.hs - Functions which concern control patterns, which are
+    patterns of hashmaps, used for synth control values.
+
+    Copyright (C) 2020, Alex McLean and contributors
+
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library.  If not, see <http://www.gnu.org/licenses/>.
+-}
 
 import           Prelude hiding ((<*), (*>))
 
@@ -78,7 +98,7 @@ _chop n = withEvents (concatMap chopEvent)
         -- begin and end values by the old difference (end-begin), and
         -- add the old begin
         chomp :: Context -> ControlMap -> Int -> (Int, (Arc, Arc)) -> Event ControlMap
-        chomp c v n' (i, (w,p')) = Event c (Just w) p' (Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v)
+        chomp c v n' (i, (w,p')) = Event c (Just w) p' (Map.insert "begin" (VF b' Nothing) $ Map.insert "end" (VF e' Nothing) v)
           where b = fromMaybe 0 $ do v' <- Map.lookup "begin" v
                                      getF v'
                 e = fromMaybe 1 $ do v' <- Map.lookup "end" v
@@ -130,7 +150,7 @@ _striate n p = fastcat $ map offset [0 .. n-1]
   where offset i = mergePlayRange (fromIntegral i / fromIntegral n, fromIntegral (i+1) / fromIntegral n) <$> p
 
 mergePlayRange :: (Double, Double) -> ControlMap -> ControlMap
-mergePlayRange (b,e) cm = Map.insert "begin" (VF $ (b*d')+b') $ Map.insert "end" (VF $ (e*d')+b') cm
+mergePlayRange (b,e) cm = Map.insert "begin" (VF ((b*d')+b') Nothing) $ Map.insert "end" (VF ((e*d')+b') Nothing) cm
   where b' = fromMaybe 0 $ Map.lookup "begin" cm >>= getF
         e' = fromMaybe 1 $ Map.lookup "end" cm >>= getF
         d' = e' - b'
@@ -261,13 +281,16 @@ _slice n i p =
       # P.end (pure $ fromIntegral (i+1) / fromIntegral n)
 
 randslice :: Pattern Int -> ControlPattern -> ControlPattern
-randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> irand n
+randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> _irand n
 
-splice :: Pattern Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
-splice bits ipat pat = withEvent f (slice bits ipat pat) # P.unit (pure "c")
-  where f ev = ev {value = Map.insert "speed" (VF d) (value ev)}
+_splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
+_splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure "c")
+  where f ev = ev {value = Map.insert "speed" (VF d Nothing) (value ev)}
           where d = sz / (fromRational $ (wholeStop ev) - (wholeStart ev))
                 sz = 1/(fromIntegral bits)
+
+splice :: Pattern Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
+splice bitpat ipat pat = innerJoin $ (\bits -> _splice bits ipat pat) <$> bitpat
 
 {- |
 `loopAt` makes a sample fit the given number of cycles. Internally, it
@@ -284,7 +307,7 @@ loopAt :: Pattern Time -> ControlPattern -> ControlPattern
 loopAt n p = slow n p |* P.speed (fromRational <$> (1/n)) # P.unit (pure "c")
 
 hurry :: Pattern Rational -> ControlPattern -> ControlPattern
-hurry x = (|* P.speed (fromRational <$> x)) . fast x
+hurry !x = (|* P.speed (fromRational <$> x)) . fast x
 
 {- | Smash is a combination of `spread` and `striate` - it cuts the samples
 into the given number of bits, and then cuts between playing the loop
@@ -399,3 +422,6 @@ reset k pat = pat {query = q}
         offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
                                             return $ ((f . fromMaybe 0 . getR) <$> p)
         ctrl = "_t_" ++ show k
+
+splat :: Pattern Int -> ControlPattern -> ControlPattern -> ControlPattern
+splat slices epat pat = (chop slices pat) # bite 1 (const 0 <$> pat) epat

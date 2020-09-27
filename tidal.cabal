@@ -1,5 +1,5 @@
 name:                tidal
-version:             1.5.0
+version:             1.6.2
 synopsis:            Pattern language for improvised music
 -- description:
 homepage:            http://tidalcycles.org/
@@ -8,11 +8,11 @@ license-file:        LICENSE
 author:              Alex McLean
 maintainer:          Alex McLean <alex@slab.org>, Mike Hodnick <mike.hodnick@gmail.com>
 Stability:           Experimental
-Copyright:           (c) Tidal contributors, 2019
+Copyright:           (c) Alex McLean and other contributors, 2020
 category:            Sound
 build-type:          Simple
 cabal-version:       >=1.10
-tested-with:         GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.3
+tested-with:         GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.3, GHC == 8.10.1
 data-files:          BootTidal.hs
 
 Extra-source-files: README.md CHANGELOG.md tidal.el
@@ -52,7 +52,7 @@ library
       base >=4.8 && <5
     , containers < 0.7
     , colour < 2.4
-    , hosc >= 0.17 && < 0.18
+    , hosc >= 0.17 && < 0.19
     , text < 1.3
     , parsec >= 3.1.12 && < 3.2
     , network < 3.2
@@ -63,7 +63,7 @@ library
     , clock < 0.9
     , deepseq >= 1.1.0.0
     , primitive < 0.8
-    , random < 1.2
+    , random < 1.3
     -- , serialport
     -- , hashable
 
@@ -83,6 +83,7 @@ test-suite tests
                  Sound.Tidal.ScalesTest
                  Sound.Tidal.UITest
                  Sound.Tidal.UtilsTest
+                 Sound.Tidal.ExceptionsTest
                  TestUtils
   build-depends:
                 base ==4.*
@@ -90,8 +91,17 @@ test-suite tests
               , containers
               , parsec
               , tidal
+              , deepseq
 
   default-language: Haskell2010
+
+-- not useful for automation since it requires running sclang
+test-suite dontcrash
+  type: exitcode-stdio-1.0
+  main-is: dontcrash.hs
+  hs-source-dirs: test
+  build-depends: base, tidal
+  default-language:    Haskell2010
 
 benchmark bench-speed
   type:             exitcode-stdio-1.0
