@@ -207,6 +207,9 @@ gain = pF "gain"
 gate :: Pattern Double -> ControlPattern
 gate = pF "gate"
 
+grain' :: Pattern String -> ControlPattern
+grain' = grp [mF "begin", mF "end"]
+
 hatgrain :: Pattern Double -> ControlPattern
 hatgrain = pF "hatgrain"
 -- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter.

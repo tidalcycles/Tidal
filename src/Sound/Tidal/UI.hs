@@ -1955,3 +1955,9 @@ binary = binaryN 8
 
 ascii :: Pattern String -> Pattern Bool
 ascii p = squeezeJoin $ (listToPat . concatMap (__binary 8 . ord)) <$> p
+
+grain :: Pattern Double -> Pattern Double -> ControlPattern
+grain s w = P.begin b # P.end e
+  where b = s
+        e = s + w
+        
