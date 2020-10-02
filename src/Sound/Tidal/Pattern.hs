@@ -44,7 +44,7 @@ import           Sound.Tidal.Utils (matchMaybe)
 type Time = Rational
 
 -- | Note is Double, but with a different parsing
-newtype Note = Note { unNote :: Double } deriving (Typeable, Data, Generic, Eq, Ord, Show, Enum, Num, Fractional)
+newtype Note = Note { unNote :: Double } deriving (Typeable, Data, Generic, Eq, Ord, Show, Enum, Num, Fractional, Floating, Real)
 instance NFData Note
 
 -- | The 'sam' (start of cycle) for the given time value
