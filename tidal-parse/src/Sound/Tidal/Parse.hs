@@ -710,7 +710,7 @@ instance Parse (Int -> Pattern Double -> Pattern a -> Pattern a) where
   parser = $(fromTidal "degradeOverBy")
 
 instance Parse (Int -> Pattern T.Note -> Pattern a -> Pattern a) where
-  parser = parser
+  parser = empty
 
 instance Parse ((a -> b -> Pattern c) -> [a] -> b -> Pattern c) where
   parser =
@@ -751,7 +751,7 @@ instance Parse (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Patte
     $(fromTidal "plyWith")
 
 instance Parse (Pattern T.Note -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
-  parser = parser
+  parser = empty
 
 instance Parse ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "foldEvery")
