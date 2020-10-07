@@ -400,7 +400,7 @@ msec p = ((realToFrac . (/1000)) <$> cF 1 "_cps") *| p
 _trigger :: Show a => Bool -> a -> Pattern b -> Pattern b
 _trigger quant k pat = pat {query = q}
   where q st = query ((offset st) ~> pat) st
-        f | quant = (fromIntegral :: Int -> Rational) . round
+        f | quant = (fromIntegral :: Int -> Rational) . ceiling
           | otherwise = id
         offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
                                             return $ ((f . fromMaybe 0 . getR) <$> p)
