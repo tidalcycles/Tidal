@@ -216,12 +216,11 @@ startStream config oscmap
                             sCxs = cxs
                            }
        _ <- T.clocked config tempoMV $ onTick stream
-       ctrlResponder stream
+       _ <- forkIO $ ctrlResponder stream
        return stream
 
 sendO :: (Maybe O.UDP) -> Cx -> O.Message -> IO ()
-sendO (Just listen) cx msg = do putStrLn $ show msg
-                                O.sendTo listen (O.Packet_Message msg) (N.addrAddress $ cxAddr cx)
+sendO (Just listen) cx msg = O.sendTo listen (O.Packet_Message msg) (N.addrAddress $ cxAddr cx)
 sendO Nothing cx msg = O.sendMessage (cxUDP cx) msg
 
 sendBndl :: (Maybe O.UDP) -> Cx -> O.Bundle -> IO ()
@@ -300,12 +299,11 @@ toOSC latency busses e tempo osc@(OSC _ _)
                                             mungedPath <- substitutePath (path osc) (value e)
                                             return (ts, O.Message mungedPath vs)
                      | otherwise = Nothing
-             toBus (VI n _) | null busses = VI 0 Nothing
-                            | otherwise = VI (busses !!! n) Nothing
-             toBus _ = VI 0 Nothing
+             toBus n | null busses = 0
+                     | otherwise = busses !!! n
              busmsgs = map
-                         (\v -> do b <- vbus v
-                                   return $ (ts, O.Message "/setControlBus" [O.int32 b, toDatum $ toBus v])
+                         (\v -> do b <- toBus <$> vbus v
+                                   return $ (ts, O.Message "/setControlBus" [O.int32 b, toDatum $ v {vbus = Nothing}])
                          )
                          (Map.elems $ value e)
              on = sched tempo $ start $ wholeOrPart e
@@ -427,7 +425,6 @@ doTick fake stream st =
          -- TODO onset is calculated in toOSC as well..
          on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
          (tes, tempo') = processCps tempo $ es
-     putStrLn $ "Sending " ++ show tes
      forM_ cxs $ \cx@(Cx target _ oscs _) -> do
          let latency = oLatency target + extraLatency
              ms = concatMap (\(t, e) ->
@@ -451,8 +448,7 @@ setPreviousPatternOrSilence stream =
       
 send :: Maybe O.UDP -> Cx -> (Double, O.Message) -> IO ()
 send listen cx (time, m)
-  | oSchedule target == Pre BundleStamp = do putStrLn $ "send: " ++ show m
-                                             sendBndl listen cx $ O.Bundle time [m]
+  | oSchedule target == Pre BundleStamp = sendBndl listen cx $ O.Bundle time [m]
   | oSchedule target == Pre MessageStamp = sendO listen cx $ addtime m
   | otherwise = do _ <- forkIO $ do now <- O.time
                                     threadDelay $ floor $ (time - now) * 1000000
@@ -597,7 +593,6 @@ openListener c
 ctrlResponder :: Stream -> IO ()
 ctrlResponder (stream@(Stream {sListen = Nothing})) = return ()
 ctrlResponder (stream@(Stream {sListen = Just sock})) = do ms <- O.recvMessages sock
-                                                           putStrLn $ show ms
                                                            mapM_ act ms
                                                            ctrlResponder stream
      where
