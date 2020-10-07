@@ -201,7 +201,7 @@ startStream config oscmap
                                           then                                            
                                             do -- send it _from_ the udp socket we're listening to, so the
                                                -- replies go back there
-                                              sendMsg listen cx $ O.Message "/dirt/handshake" []
+                                              sendO listen cx $ O.Message "/dirt/handshake" []
                                           else
                                             hPutStrLn stderr "Can't handshake with SuperCollider without control port."
                                         return cx
@@ -219,9 +219,10 @@ startStream config oscmap
        ctrlResponder stream
        return stream
 
-sendMsg :: (Maybe O.UDP) -> Cx -> O.Message -> IO ()
-sendMsg (Just listen) cx msg = O.sendTo listen (O.Packet_Message msg) (N.addrAddress $ cxAddr cx)
-sendMsg Nothing cx msg = O.sendMessage (cxUDP cx) msg
+sendO :: (Maybe O.UDP) -> Cx -> O.Message -> IO ()
+sendO (Just listen) cx msg = do putStrLn $ show msg
+                                O.sendTo listen (O.Packet_Message msg) (N.addrAddress $ cxAddr cx)
+sendO Nothing cx msg = O.sendMessage (cxUDP cx) msg
 
 sendBndl :: (Maybe O.UDP) -> Cx -> O.Bundle -> IO ()
 sendBndl (Just listen) cx bndl = O.sendTo listen (O.Packet_Bundle bndl) (N.addrAddress $ cxAddr cx)
@@ -426,6 +427,7 @@ doTick fake stream st =
          -- TODO onset is calculated in toOSC as well..
          on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
          (tes, tempo') = processCps tempo $ es
+     putStrLn $ "Sending " ++ show tes
      forM_ cxs $ \cx@(Cx target _ oscs _) -> do
          let latency = oLatency target + extraLatency
              ms = concatMap (\(t, e) ->
@@ -449,11 +451,12 @@ setPreviousPatternOrSilence stream =
       
 send :: Maybe O.UDP -> Cx -> (Double, O.Message) -> IO ()
 send listen cx (time, m)
-  | oSchedule target == Pre BundleStamp = sendBndl listen cx $ O.Bundle time [m]
-  | oSchedule target == Pre MessageStamp = sendMsg listen cx $ addtime m
+  | oSchedule target == Pre BundleStamp = do putStrLn $ "send: " ++ show m
+                                             sendBndl listen cx $ O.Bundle time [m]
+  | oSchedule target == Pre MessageStamp = sendO listen cx $ addtime m
   | otherwise = do _ <- forkIO $ do now <- O.time
                                     threadDelay $ floor $ (time - now) * 1000000
-                                    sendMsg listen cx m
+                                    sendO listen cx m
                    return ()
     where addtime (O.Message mpath params) = O.Message mpath ((O.int32 sec):((O.int32 usec):params))
           ut = O.ntpr_to_ut time
@@ -594,6 +597,7 @@ openListener c
 ctrlResponder :: Stream -> IO ()
 ctrlResponder (stream@(Stream {sListen = Nothing})) = return ()
 ctrlResponder (stream@(Stream {sListen = Just sock})) = do ms <- O.recvMessages sock
+                                                           putStrLn $ show ms
                                                            mapM_ act ms
                                                            ctrlResponder stream
      where
