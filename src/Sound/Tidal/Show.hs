@@ -67,6 +67,7 @@ instance Show Value where
   show (VS s bus)  = showbus bus $ ('"':s) ++ "\""
   show (VI i bus)  = showbus bus $ show i
   show (VF f bus)  = showbus bus $ show f ++ "f"
+  show (VN n bus)  = showbus bus $ show n ++ "n"
   show (VR r bus)  = showbus bus $ show r ++ "r"
   show (VB b bus)  = showbus bus $ show b
   show (VX xs bus) = showbus bus $ show xs
