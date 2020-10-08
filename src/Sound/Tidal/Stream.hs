@@ -66,7 +66,8 @@ type PatId = String
 data Cx = Cx {cxTarget :: Target,
               cxUDP :: O.UDP,
               cxOSCs :: [OSC],
-              cxAddr :: N.AddrInfo
+              cxAddr :: N.AddrInfo,
+              cxBusAddr :: Maybe N.AddrInfo
              }
   deriving (Show)
 
@@ -81,6 +82,7 @@ data Schedule = Pre StampStyle
 data Target = Target {oName :: String,
                       oAddress :: String,
                       oPort :: Int,
+                      oBusPort :: Maybe Int,
                       oLatency :: Double,
                       oWindow :: Maybe Arc,
                       oSchedule :: Schedule,
@@ -128,6 +130,7 @@ superdirtTarget :: Target
 superdirtTarget = Target {oName = "SuperDirt",
                           oAddress = "127.0.0.1",
                           oPort = 57120,
+                          oBusPort = Just 57110,
                           oLatency = 0.2,
                           oWindow = Nothing,
                           oSchedule = Pre BundleStamp,
@@ -141,6 +144,7 @@ dirtTarget :: Target
 dirtTarget = Target {oName = "Dirt",
                      oAddress = "127.0.0.1",
                      oPort = 7771,
+                     oBusPort = Nothing,
                      oLatency = 0.02,
                      oWindow = Nothing,
                      oSchedule = Pre MessageStamp,
@@ -194,14 +198,17 @@ startStream config oscmap
        tempoMV <- newEmptyMVar
        listen <- openListener config
        cxs <- mapM (\(target, os) -> do remote_addr <- resolve (oAddress target) (show $ oPort target)
+                                        remote_bus_addr <- if isJust $ oBusPort target
+                                                           then Just <$> resolve (oAddress target) (show $ fromJust $ oBusPort target)
+                                                           else return Nothing
                                         u <- O.openUDP (oAddress target) (oPort target)
-                                        let cx = Cx {cxUDP = u, cxAddr = remote_addr, cxTarget = target, cxOSCs = os}                                        
+                                        let cx = Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}                                        
                                         when (oHandshake target) $
                                           if (isJust listen)
                                           then                                            
                                             do -- send it _from_ the udp socket we're listening to, so the
                                                -- replies go back there
-                                              sendO listen cx $ O.Message "/dirt/handshake" []
+                                              sendO False listen cx $ O.Message "/dirt/handshake" []
                                           else
                                             hPutStrLn stderr "Can't handshake with SuperCollider without control port."
                                         return cx
@@ -219,13 +226,17 @@ startStream config oscmap
        _ <- forkIO $ ctrlResponder stream
        return stream
 
-sendO :: (Maybe O.UDP) -> Cx -> O.Message -> IO ()
-sendO (Just listen) cx msg = O.sendTo listen (O.Packet_Message msg) (N.addrAddress $ cxAddr cx)
-sendO Nothing cx msg = O.sendMessage (cxUDP cx) msg
+sendO :: Bool -> (Maybe O.UDP) -> Cx -> O.Message -> IO ()
+sendO isBusMsg (Just listen) cx msg = O.sendTo listen (O.Packet_Message msg) (N.addrAddress addr)
+  where addr | isBusMsg && isJust (cxBusAddr cx) = fromJust $ cxBusAddr cx
+             | otherwise = cxAddr cx
+sendO _ Nothing cx msg = O.sendMessage (cxUDP cx) msg
 
-sendBndl :: (Maybe O.UDP) -> Cx -> O.Bundle -> IO ()
-sendBndl (Just listen) cx bndl = O.sendTo listen (O.Packet_Bundle bndl) (N.addrAddress $ cxAddr cx)
-sendBndl Nothing cx bndl = O.sendBundle (cxUDP cx) bndl
+sendBndl :: Bool -> (Maybe O.UDP) -> Cx -> O.Bundle -> IO ()
+sendBndl isBusMsg (Just listen) cx bndl = O.sendTo listen (O.Packet_Bundle bndl) (N.addrAddress addr)
+  where addr | isBusMsg && isJust (cxBusAddr cx) = fromJust $ cxBusAddr cx
+             | otherwise = cxAddr cx
+sendBndl _ Nothing cx bndl = O.sendBundle (cxUDP cx) bndl
 
 resolve :: String -> String -> IO N.AddrInfo
 resolve host port = do let hints = N.defaultHints { N.addrSocketType = N.Stream }
@@ -238,25 +249,26 @@ startTidal target config = startStream config [(target, [superdirtShape])]
 startMulti :: [Target] -> Config -> IO ()
 startMulti _ _ = hPutStrLn stderr $ "startMulti has been removed, please check the latest documentation on tidalcycles.org"
 
-toDatum :: Value -> O.Datum
-toDatum (VF x Nothing) = O.float x
-toDatum (VI x Nothing) = O.int32 x
-toDatum (VS x Nothing) = O.string x
-toDatum (VR x Nothing) = O.float $ ((fromRational x) :: Double)
-toDatum (VB True Nothing) = O.int32 (1 :: Int)
-toDatum (VB False Nothing) = O.int32 (0 :: Int)
-toDatum (VX xs Nothing) = O.Blob $ O.blob_pack xs
-toDatum v = O.string ('c':'_':(show $ fromJust $ vbus v))
+toDatum :: [Int] -> Value -> O.Datum
+toDatum _ (VF x Nothing) = O.float x
+toDatum _ (VI x Nothing) = O.int32 x
+toDatum _ (VS x Nothing) = O.string x
+toDatum _ (VR x Nothing) = O.float $ ((fromRational x) :: Double)
+toDatum _ (VB True Nothing) = O.int32 (1 :: Int)
+toDatum _ (VB False Nothing) = O.int32 (0 :: Int)
+toDatum _ (VX xs Nothing) = O.Blob $ O.blob_pack xs
+toDatum [] v = O.string ('c':(show $ (fromJust $ vbus v)))
+toDatum busses v = O.string ('c':(show $ busses !!! (fromJust $ vbus v)))
 
-toData :: OSC -> Event ControlMap -> Maybe [O.Datum]
-toData (OSC {args = ArgList as}) e = fmap (fmap toDatum) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
-toData (OSC {args = Named rqrd}) e
-  | hasRequired rqrd = Just $ concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ value e
+toData :: [Int] -> OSC -> Event ControlMap -> Maybe [O.Datum]
+toData busses (OSC {args = ArgList as}) e = fmap (fmap (toDatum busses)) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
+toData busses (OSC {args = Named rqrd}) e
+  | hasRequired rqrd = Just $ concatMap (\(n,v) -> [O.string n, toDatum busses v]) $ Map.toList $ value e
   | otherwise = Nothing
   where hasRequired [] = True
         hasRequired xs = null $ filter (not . (`elem` ks)) xs
         ks = Map.keys (value e)
-toData _ _ = Nothing
+toData _ _ _ = Nothing
 
 substitutePath :: String -> ControlMap -> Maybe String
 substitutePath str cm = parse str
@@ -292,20 +304,27 @@ playStack pMap = stack $ map pattern active
                                     else not (mute pState)
                         ) $ Map.elems pMap
 
-toOSC :: Double -> [Int] -> Event ControlMap -> T.Tempo -> OSC -> [(Double, O.Message)]
+toOSC :: Double -> [Int] -> Event ControlMap -> T.Tempo -> OSC -> [(Double, Bool, O.Message)]
 toOSC latency busses e tempo osc@(OSC _ _)
-  = catMaybes $ playmsg:busmsgs
-       where playmsg | eventHasOnset e = do vs <- toData osc addExtra
+  = catMaybes (playmsg:busmsgs)
+       where playmsg | eventHasOnset e = do vs <- toData busses osc addExtra
                                             mungedPath <- substitutePath (path osc) (value e)
-                                            return (ts, O.Message mungedPath vs)
+                                            return (ts,
+                                                    False, -- bus message ?
+                                                    O.Message mungedPath vs
+                                                   )
                      | otherwise = Nothing
-             toBus n | null busses = 0
+             toBus n | null busses = n
                      | otherwise = busses !!! n
              busmsgs = map
                          (\v -> do b <- toBus <$> vbus v
-                                   return $ (ts, O.Message "/setControlBus" [O.int32 b, toDatum $ v {vbus = Nothing}])
+                                   return $ (tsPart,
+                                             True, -- bus message ?
+                                             O.Message "/c_set" [O.int32 b, toDatum busses $ v {vbus = Nothing}]
+                                            )
                          )
                          (Map.elems $ value e)
+             onPart = sched tempo $ start $ part e
              on = sched tempo $ start $ wholeOrPart e
              off = sched tempo $ stop $ wholeOrPart e
              delta = off - on
@@ -317,11 +336,15 @@ toOSC latency busses e tempo osc@(OSC _ _)
                                  ]
              nudge = fromJust $ getF $ fromMaybe (VF 0 Nothing) $ Map.lookup "nudge" $ value e
              ts = on + nudge + latency
+             tsPart = onPart + nudge + latency
 
 toOSC latency _ e tempo (OSCContext oscpath)
   = map cToM $ contextPosition $ context e
-  where cToM :: ((Int,Int),(Int,Int)) -> (Double,O.Message)
-        cToM ((x, y), (x',y')) = (ts, O.Message oscpath $ (O.float delta):(O.float cyc):(map O.int32 [x,y,x',y']))
+  where cToM :: ((Int,Int),(Int,Int)) -> (Double, Bool, O.Message)
+        cToM ((x, y), (x',y')) = (ts,
+                                  False, -- bus message ?
+                                  O.Message oscpath $ (O.float delta):(O.float cyc):(map O.int32 [x,y,x',y'])
+                                 )
         on = sched tempo $ start $ wholeOrPart e
         off = sched tempo $ stop $ wholeOrPart e
         delta = off - on
@@ -425,7 +448,7 @@ doTick fake stream st =
          -- TODO onset is calculated in toOSC as well..
          on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
          (tes, tempo') = processCps tempo $ es
-     forM_ cxs $ \cx@(Cx target _ oscs _) -> do
+     forM_ cxs $ \cx@(Cx target _ oscs _ _) -> do
          let latency = oLatency target + extraLatency
              ms = concatMap (\(t, e) ->
                               if (fake || (on e t) < frameEnd)
@@ -446,13 +469,13 @@ setPreviousPatternOrSilence stream =
       _ -> pMap { pattern = silence, history = [silence] }
               )
       
-send :: Maybe O.UDP -> Cx -> (Double, O.Message) -> IO ()
-send listen cx (time, m)
-  | oSchedule target == Pre BundleStamp = sendBndl listen cx $ O.Bundle time [m]
-  | oSchedule target == Pre MessageStamp = sendO listen cx $ addtime m
+send :: Maybe O.UDP -> Cx -> (Double, Bool, O.Message) -> IO ()
+send listen cx (time, isBusMsg, m)
+  | oSchedule target == Pre BundleStamp = sendBndl isBusMsg listen cx $ O.Bundle time [m]
+  | oSchedule target == Pre MessageStamp = sendO isBusMsg listen cx $ addtime m
   | otherwise = do _ <- forkIO $ do now <- O.time
                                     threadDelay $ floor $ (time - now) * 1000000
-                                    sendO listen cx m
+                                    sendO isBusMsg listen cx m
                    return ()
     where addtime (O.Message mpath params) = O.Message mpath ((O.int32 sec):((O.int32 usec):params))
           ut = O.ntpr_to_ut time
