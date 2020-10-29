@@ -319,6 +319,7 @@ instance Parse (Pattern Double -> ControlPattern) where
     $(fromTidal "resonance") <|>
     $(fromTidal "loop") <|>
     $(fromTidal "coarse") <|>
+    $(fromTidal "nudge") <|>
     (parser :: H (String -> Pattern Double -> ControlPattern)) <*> parser <|>
     pA_pB
 
