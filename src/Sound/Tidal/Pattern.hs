@@ -677,15 +677,17 @@ withPart f = withEvent (\(Event c w p v) -> Event c w (f p) v)
 -- | Apply one of three functions to a Value, depending on its type
 applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value -> Value
 applyFIS f _ _ (VF f' b) = VF (f f') b
+applyFIS f _ _ (VN (Note f') b) = VN (Note $ f f') b
 applyFIS _ f _ (VI i  b) = VI (f i) b
 applyFIS _ _ f (VS s  b) = VS (f s) b
 applyFIS _ _ _ v = v
 
--- | Apply one of two functions to a Value, depending on its type (int
+-- | Apply one of two functions to a pair of Values, depending on their types (int
 -- or float; strings and rationals are ignored)
 fNum2 :: (Int -> Int -> Int) -> (Double -> Double -> Double) -> Value -> Value -> Value
 fNum2 fInt _      (VI a abus) (VI b bbus) = VI (fInt a b) (matchMaybe abus bbus)
 fNum2 _    fFloat (VF a abus) (VF b bbus) = VF (fFloat a b) (matchMaybe abus bbus)
+fNum2 _    fFloat (VN (Note a) abus) (VN (Note b) bbus) = VN (Note $ fFloat a b) (matchMaybe abus bbus)
 fNum2 _    fFloat (VI a abus) (VF b bbus) = VF (fFloat (fromIntegral a) b) (matchMaybe abus bbus)
 fNum2 _    fFloat (VF a abus) (VI b bbus) = VF (fFloat a (fromIntegral b)) (matchMaybe abus bbus)
 fNum2 _    _      x      _      = x
