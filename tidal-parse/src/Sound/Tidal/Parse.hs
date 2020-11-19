@@ -181,7 +181,8 @@ instance Parse (ControlPattern -> ControlPattern) where
     $(fromTidal "ghost") <|>
     (parser :: H (Pattern Int -> ControlPattern -> ControlPattern)) <*> parser <|>
     (parser :: H (Pattern Double -> ControlPattern -> ControlPattern)) <*> parser <|>
-    (parser :: H (Pattern Time -> ControlPattern -> ControlPattern)) <*> parser
+    (parser :: H (Pattern Time -> ControlPattern -> ControlPattern)) <*> parser <|>
+    lCpCp_cp_cp <*> parser
 
 instance Parse (Pattern Bool -> Pattern Bool) where
   parser = genericTransformations <|> ordTransformations <|> fBool_fBool
@@ -200,6 +201,8 @@ instance Parse (Pattern T.Note -> Pattern T.Note) where
 
 genericTransformations :: forall a. (Parse (Pattern a), Parse (Pattern a -> Pattern a), Parse (Pattern a -> Pattern a -> Pattern a), Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) => H (Pattern a -> Pattern a)
 genericTransformations =
+    simpleComposition <|>
+    $(fromHaskell "id") <|>
     (parser :: H (Pattern a -> Pattern a -> Pattern a)) <*> parser <|>
     asRightSection (parser :: H (Pattern a -> Pattern a -> Pattern a)) parser <|>
     (parser :: H ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
@@ -227,6 +230,11 @@ genericTransformations =
     (parser :: H ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser <|>
     lp_p_p <*> parser <|>
     pA_pB
+
+-- this only matches the case where the functions being composed are both a -> a (with the same a)
+-- nonetheless, this is an extremely common case with Tidal
+simpleComposition :: forall a. Parse (a -> a) => H (a -> a)
+simpleComposition = $(fromHaskell ".") <*> (parser :: H (a -> a)) <*> (parser :: H (a -> a))
 
 numTransformations :: (Num a, Enum a) => H (Pattern a -> Pattern a)
 numTransformations =
@@ -565,7 +573,10 @@ instance Parse (Pattern Time -> ControlPattern -> ControlPattern) where
 instance Parse ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern) where
   parser =
     genericAppliedTransformations <|>
-    $(fromTidal "jux")
+    $(fromTidal "jux") <|>
+    $(fromTidal "juxcut") <|>
+    $(fromTidal "jux4") <|>
+    pDouble_controlMapToControlMap_controlMap_controlMap <*> parser
 
 instance Parse ((Pattern Bool -> Pattern Bool) -> Pattern Bool -> Pattern Bool) where
   parser = genericAppliedTransformations
@@ -641,6 +652,11 @@ instance Parse (Pattern a -> [Pattern a -> Pattern a] -> Pattern a) where
 pAB_pA_pB :: H ((Pattern a -> Pattern b) -> Pattern a -> Pattern b)
 pAB_pA_pB = pTime_pAB_pA_pB <*> parser
 
+lCpCp_cp_cp :: H ([ControlPattern -> ControlPattern] -> ControlPattern -> ControlPattern)
+lCpCp_cp_cp = $(fromTidal "jux'") <|> $(fromTidal "juxcut'")
+
+-- * -> * -> * -> *
+
 numTernaryTransformations :: Num a => H (Pattern a -> Pattern a -> Pattern a -> Pattern a)
 numTernaryTransformations = $(fromTidal "range")
 
@@ -711,6 +727,11 @@ instance Parse (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Patte
     $(fromTidal "sometimesBy") <|>
     $(fromTidal "someCyclesBy") <|>
     $(fromTidal "plyWith")
+
+pDouble_controlMapToControlMap_controlMap_controlMap :: H (Pattern Double -> (Pattern ControlMap -> Pattern ControlMap) -> Pattern ControlMap -> Pattern ControlMap)
+pDouble_controlMapToControlMap_controlMap_controlMap =
+  $(fromTidal "juxBy") <|>
+  (parser :: H (Pattern Double -> (Pattern ControlMap -> Pattern ControlMap) -> Pattern ControlMap -> Pattern ControlMap))
 
 instance Parse ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "foldEvery")
