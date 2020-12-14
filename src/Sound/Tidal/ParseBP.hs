@@ -95,12 +95,11 @@ tShow (TPat_Stack vs) = "stack " ++ tShowList vs
 tShow (TPat_Polyrhythm mSteprate vs) = "stack [" ++ (intercalate ", " (map adjust_speed pats)) ++ "]"
   where adjust_speed (sz, pat) = "(fast (" ++ (steprate ++ "/" ++ (show sz)) ++ ") $ " ++ pat ++ ")"
         steprate :: String
-        steprate = fromMaybe base_first (tShow <$> mSteprate)
+        steprate = maybe base_first tShow mSteprate
         base_first | null pats = "0"
                    | otherwise = show $ fst $ head pats
         pats = map steps_tpat vs
 
--- tShow (TPat_Seq vs) = "fastcat " ++ tShowList vs
 tShow (TPat_Seq vs) = snd $ steps_seq vs
 
 tShow TPat_Silence = "silence"
@@ -115,10 +114,9 @@ toPat = \case
    TPat_Atom Nothing x -> pure x
    TPat_Fast t x -> fast (toPat t) $ toPat x
    TPat_Slow t x -> slow (toPat t) $ toPat x
-   TPat_DegradeBy seed amt x -> _degradeByUsing (rotL (0.0001 * (fromIntegral seed)) rand) amt $ toPat x
-   TPat_CycleChoose seed xs -> unwrap $ segment 1 $ chooseBy (rotL (0.0001 * (fromIntegral seed)) rand) $ map toPat xs
-   TPat_Euclid n k s thing ->
-      doEuclid (toPat n) (toPat k) (toPat s) (toPat thing)
+   TPat_DegradeBy seed amt x -> _degradeByUsing (rotL (0.0001 * fromIntegral seed) rand) amt $ toPat x
+   TPat_CycleChoose seed xs -> unwrap $ segment 1 $ chooseBy (rotL (0.0001 * fromIntegral seed) rand) $ map toPat xs
+   TPat_Euclid n k s thing -> doEuclid (toPat n) (toPat k) (toPat s) (toPat thing)
    TPat_Stack xs -> stack $ map toPat xs
    TPat_Silence -> silence
    TPat_EnumFromTo a b -> unwrap $ fromTo <$> toPat a <*> toPat b
@@ -127,7 +125,7 @@ toPat = \case
      where adjust_speed (sz, pat) = fast ((/sz) <$> steprate) pat
            pats = map resolve_tpat ps
            steprate :: Pattern Rational
-           steprate = fromMaybe base_first (toPat <$> mSteprate)
+           steprate = (maybe base_first toPat mSteprate)
            base_first | null pats = pure 0
                       | otherwise = pure $ fst $ head pats
    TPat_Seq xs -> snd $ resolve_seq xs
@@ -164,14 +162,6 @@ steps_size [] = []
 steps_size ((TPat_Elongate r p):ps) = (r, tShow p):(steps_size ps)
 steps_size ((TPat_Repeat n p):ps) = replicate n (1, tShow p) ++ (steps_size ps)
 steps_size (p:ps) = (1,tShow p):(steps_size ps)
-
-{-
-durations :: [TPat a] -> [(Int, TPat a)]
-durations [] = []
-durations (TPat_Elongate n : xs) = (n, TPat_Silence) : durations xs
-durations (a : TPat_Elongate n : xs) = (n+1,a) : durations xs
-durations (a:xs) = (1,a) : durations xs
--}
 
 parseBP :: (Enumerable a, Parseable a) => String -> Either ParseError (Pattern a)
 parseBP s = toPat <$> parseTPat s
@@ -275,8 +265,7 @@ enumFromTo' :: (Ord a, Enum a) => a -> a -> Pattern a
 enumFromTo' a b | a > b = fastFromList $ reverse $ enumFromTo b a
                 | otherwise = fastFromList $ enumFromTo a b
 
-enumFromThenTo'
-  :: (Ord a, Enum a, Num a) => a -> a -> a -> Pattern a
+enumFromThenTo' :: (Ord a, Enum a, Num a) => a -> a -> a -> Pattern a
 enumFromThenTo' a b c | a > c = fastFromList $ reverse $ enumFromThenTo c (c + (a-b)) a
                       | otherwise = fastFromList $ enumFromThenTo a b c
 
@@ -292,9 +281,6 @@ instance Enumerable ColourD where
 
 instance (Enumerable a, Parseable a) => IsString (Pattern a) where
   fromString = parseBP_E
-
---instance (Parseable a, Pattern p) => IsString (p a) where
---  fromString = p :: String -> p a
 
 lexer :: P.GenTokenParser String u Data.Functor.Identity.Identity
 lexer   = P.makeTokenParser haskellDef
@@ -422,7 +408,6 @@ pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
              do ss <- angles (pSequence f `sepBy` symbol ",")
                 pMult $ TPat_Polyrhythm (Just $ TPat_Atom Nothing 1) ss
 
-
 pCharNum :: MyParser Char
 pCharNum = (letter <|> oneOf "0123456789") <?> "letter or number"
 
@@ -455,10 +440,10 @@ pDouble = wrapPos $ do f <- choice [intOrFloat, pRatioChar, parseNote] <?> "floa
  
 pNote :: MyParser (TPat Note)
 pNote = wrapPos $ fmap (fmap Note) $ do f <- choice [intOrFloat, parseNote] <?> "float"
-                                        do TPat_Stack . map (TPat_Atom Nothing . (+ f)) <$> parseChord <|> return (TPat_Atom Nothing f)
+                                        do TPat_Stack . map (TPat_Atom Nothing . (+ f)) <$> parseChord
+                                           <|> return (TPat_Atom Nothing f)
                                            <|> do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
                                            <|> do TPat_Atom Nothing <$> pRatioChar
-                      
 
 pBool :: MyParser (TPat Bool)
 pBool = wrapPos $ do oneOf "t1"
@@ -479,12 +464,10 @@ parseInt = do s <- sign
 
 pIntegral :: Integral a => MyParser (TPat a)
 pIntegral = wrapPos $ do i <- parseIntNote
-                         do c <- parseChord
-                            return $ TPat_Stack $ map ((TPat_Atom Nothing) . (+i)) c
+                         do TPat_Stack . map (TPat_Atom Nothing . (+i)) <$> parseChord
                            <|> return (TPat_Atom Nothing i)
                       <|>
-                         do c <- parseChord
-                            return $ TPat_Stack $ map (TPat_Atom Nothing) c
+                         do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
 
 parseChord :: (Enum a, Num a) => MyParser [a]
 parseChord = do char '\''
@@ -580,28 +563,27 @@ pRatio = do s <- sign
                          return (toRational ((read $ show n ++ "." ++ frac)  :: Double))
                       <|>
                       return (n%1)
-            c <- (pRatioChar <|> return 1)
+            c <- pRatioChar <|> return 1
             return $ applySign s (result * c)
          <|> pRatioChar
 
 pRatioChar :: Fractional a => MyParser a
 pRatioChar = do char 'w'
-                return $ 1
+                return 1
              <|> do char 'h'
-                    return $ 0.5
+                    return 0.5
              <|> do char 'q'
-                    return $ 0.25
+                    return 0.25
              <|> do char 'e'
-                    return $ 0.125
+                    return 0.125
              <|> do char 's'
-                    return $ 0.0625
+                    return 0.0625
              <|> do char 't'
-                    return $ 1/3
+                    return (1/3)
              <|> do char 'f'
-                    return $ 0.2
+                    return 0.2
              <|> do char 'x'
-                    return $ 1/6
+                    return (1/6)
 
 pRational :: MyParser (TPat Rational)
-pRational = wrapPos $ (TPat_Atom Nothing) <$> pRatio
-
+pRational = wrapPos $ TPat_Atom Nothing <$> pRatio
