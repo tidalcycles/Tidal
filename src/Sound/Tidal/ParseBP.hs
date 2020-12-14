@@ -354,20 +354,12 @@ pSequence f = do spaces -- TODO is this needed?
                                 do try $ symbol ".."
                                    b <- pPart f
                                    return $ TPat_EnumFromTo a b
-                                 <|> do rs <- many1 $ do oneOf "@_"
-                                                         r <- ((subtract 1) <$> pRatio) <|> return 1
-                                                         spaces
-                                                         return $ r
-                                        return $ TPat_Elongate (1 + sum rs) a
-                                 <|> do es <- many1 $ do char '!'
-                                                         n <- (((subtract 1) . read) <$> many1 digit) <|> return 1
-                                                         spaces
-                                                         return n
-                                        return $ TPat_Repeat (1 + sum es) a
+                                 <|> pElongate a
+                                 <|> pRepeat a
                                  <|> return a
                              <|> do symbol "."
                                     return TPat_Foot
-                 return $ resolve_feet s
+                 pRand $ resolve_feet s
       where resolve_feet ps | length ss > 1 = TPat_Seq $ map TPat_Seq ss
                             | otherwise = TPat_Seq ps
               where ss = splitFeet ps
@@ -379,6 +371,19 @@ pSequence f = do spaces -- TODO is this needed?
                     takeFoot (TPat_Foot:pats'') = ([], pats'')
                     takeFoot (pat:pats'') = (\(a,b) -> (pat:a,b)) $ takeFoot pats''
 
+pRepeat :: TPat a -> MyParser (TPat a)
+pRepeat a = do es <- many1 $ do char '!'
+                                n <- (subtract 1 . read <$> many1 digit) <|> return 1
+                                spaces
+                                return n
+               return $ TPat_Repeat (1 + sum es) a
+
+pElongate :: TPat a -> MyParser (TPat a)
+pElongate a = do rs <- many1 $ do oneOf "@_"
+                                  r <- (subtract 1 <$> pRatio) <|> return 1
+                                  spaces
+                                  return r
+                 return $ TPat_Elongate (1 + sum rs) a
 
 pSingle :: MyParser (TPat a) -> MyParser (TPat a)
 pSingle f = f >>= pRand >>= pMult
