@@ -188,7 +188,7 @@ parseTPat :: Parseable a => String -> Either ParseError (TPat a)
 parseTPat = parseRhythm tPatParser
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
-cP s = innerJoin $ parseBP_E <$> (_cX_ getS s)
+cP s = innerJoin $ parseBP_E <$> _cX_ getS s
 
 class Parseable a where
   tPatParser :: MyParser (TPat a)
@@ -256,7 +256,7 @@ instance Enumerable Int where
 instance Parseable Integer where
   tPatParser = pIntegral
   doEuclid = euclidOff
-  getControl = (fmap fromIntegral) . cI_
+  getControl = fmap fromIntegral . cI_
 
 instance Enumerable Integer where
   fromTo = enumFromTo'
@@ -347,9 +347,7 @@ parseRhythm f = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
                        return TPat_Silence
 
 pSequence :: Parseable a => MyParser (TPat a) -> GenParser Char Int (TPat a)
-pSequence f = do spaces -- TODO is this needed?
-                 -- d <- pFast
-                 s <- many $ do a <- pPart f
+pSequence f = do s <- many $ do a <- pPart f
                                 spaces
                                 do try $ symbol ".."
                                    b <- pPart f
@@ -394,9 +392,7 @@ pVar = wrapPos $ do char '^'
                     return $ TPat_Var name
 
 pPart :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
-pPart f = do pt <- (pSingle f <|> pPolyIn f <|> pPolyOut f <|> pVar) >>= pE >>= pRand
-             spaces -- TODO is this needed?
-             return pt
+pPart f = (pSingle f <|> pPolyIn f <|> pPolyOut f <|> pVar) >>= pE >>= pRand
 
 newSeed :: MyParser Int
 newSeed = do seed <- Text.Parsec.Prim.getState
@@ -409,17 +405,14 @@ pPolyIn f = do x <- brackets $ do s <- pSequence f <?> "sequence"
                pMult x
   where stackTail s = do symbol ","
                          ss <- pSequence f `sepBy` symbol ","
-                         spaces -- TODO needed?
                          return $ TPat_Stack (s:ss)
         chooseTail s = do symbol "|"
                           ss <- pSequence f `sepBy` symbol "|"
-                          spaces -- TODO needed?
                           seed <- newSeed
                           return $ TPat_CycleChoose seed (s:ss)
 
 pPolyOut :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
 pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
-                spaces -- TODO needed?
                 base <- do char '%'
                            r <- pSequence pRational <?> "rational number"
                            return $ Just r
@@ -427,7 +420,6 @@ pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
                 pMult $ TPat_Polyrhythm base ss
              <|>
              do ss <- angles (pSequence f `sepBy` symbol ",")
-                spaces -- TODO needed/wanted?
                 pMult $ TPat_Polyrhythm (Just $ TPat_Atom Nothing 1) ss
 
 
@@ -449,21 +441,21 @@ wrapPos p = do b <- getPosition
                return $ addPos tpat
 
 pVocable :: MyParser (TPat String)
-pVocable = wrapPos $ (TPat_Atom Nothing) <$> pString
+pVocable = wrapPos $ TPat_Atom Nothing <$> pString
 
 pChar :: MyParser (TPat Char)
-pChar = wrapPos $ (TPat_Atom Nothing) <$> pCharNum
+pChar = wrapPos $ TPat_Atom Nothing <$> pCharNum
 
 pDouble :: MyParser (TPat Double)
 pDouble = wrapPos $ do f <- choice [intOrFloat, pRatioChar, parseNote] <?> "float"
-                       do TPat_Stack . map ((TPat_Atom Nothing) . (+ f)) <$> parseChord
+                       do TPat_Stack . map (TPat_Atom Nothing . (+ f)) <$> parseChord
                          <|> return (TPat_Atom Nothing f)
                       <|>
                          do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
  
 pNote :: MyParser (TPat Note)
 pNote = wrapPos $ fmap (fmap Note) $ do f <- choice [intOrFloat, parseNote] <?> "float"
-                                        do TPat_Stack . map ((TPat_Atom Nothing) . (+ f)) <$> parseChord <|> return (TPat_Atom Nothing f)
+                                        do TPat_Stack . map (TPat_Atom Nothing . (+ f)) <$> parseChord <|> return (TPat_Atom Nothing f)
                                            <|> do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
                                            <|> do TPat_Atom Nothing <$> pRatioChar
                       
