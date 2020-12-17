@@ -79,10 +79,14 @@ genericPatternExpressions =
   silence
 
 numPatternExpressions :: (Num a,Parse a) => H (Pattern a)
-numPatternExpressions = pInt_pNumA <*> parser
+numPatternExpressions =
+  $(fromTidal "irand") <*> parser <|>
+  pInt_pNumA <*> parser
 
 fractionalPatternExpressions :: Fractional a => H (Pattern a)
-fractionalPatternExpressions = pInt_pFractionalA <*> parser
+fractionalPatternExpressions =
+  $(fromTidal "rand") <|>
+  pInt_pFractionalA <*> parser
 
 silence :: H (Pattern a)
 silence = $(fromTidal "silence") -- ie. T.silence <$ reserved "silence", see Sound.Tidal.Parse.TH
@@ -117,19 +121,14 @@ instance Parse (Pattern Int) where
     pure . fromIntegral <$> integer <|>
     parseBP <|>
     genericPatternExpressions <|>
-    numPatternExpressions <|>
-    irand <*> parser
-
-irand :: Num a => H (Pattern Int -> Pattern a)
-irand = $(fromTidal "irand")
+    numPatternExpressions
 
 instance Parse (Pattern Integer) where
   parser =
     pure <$> integer <|>
     parseBP <|>
     genericPatternExpressions <|>
-    numPatternExpressions <|>
-    irand <*> parser
+    numPatternExpressions
 
 instance Parse (Pattern Double) where
   parser =
@@ -139,8 +138,6 @@ instance Parse (Pattern Double) where
     genericPatternExpressions <|>
     numPatternExpressions <|>
     fractionalPatternExpressions <|>
-    irand <*> parser <|>
-    $(fromTidal "rand") <|>
     $(fromTidal "sine") <|>
     $(fromTidal "saw") <|>
     $(fromTidal "isaw") <|>
@@ -160,8 +157,7 @@ instance Parse (Pattern T.Note) where
     parseBP <|>
     genericPatternExpressions <|>
     numPatternExpressions <|>
-    fractionalPatternExpressions <|>
-    irand <*> parser
+    fractionalPatternExpressions
 
 instance Parse (Pattern Time) where
   parser =
@@ -170,8 +166,7 @@ instance Parse (Pattern Time) where
     parseBP <|>
     genericPatternExpressions <|>
     numPatternExpressions <|>
-    fractionalPatternExpressions <|>
-    irand <*> parser
+    fractionalPatternExpressions
 
 -- * -> *
 
