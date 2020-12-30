@@ -42,7 +42,6 @@ import           Sound.Tidal.Config
 import           Sound.Tidal.Core (stack, silence)
 import           Sound.Tidal.Pattern
 import qualified Sound.Tidal.Tempo as T
--- import qualified Sound.OSC.Datum as O
 import           Data.List (sortOn)
 import           System.Random (getStdRandom, randomR)
 import           Sound.Tidal.Show ()
@@ -208,6 +207,7 @@ startMulti _ _ = putStrLn $ "startMulti has been removed, please check the lates
 
 toDatum :: Value -> O.Datum
 toDatum (VF x Nothing) = O.float x
+toDatum (VN x Nothing) = O.float x
 toDatum (VI x Nothing) = O.int32 x
 toDatum (VS x Nothing) = O.string x
 toDatum (VR x Nothing) = O.float $ ((fromRational x) :: Double)
@@ -569,7 +569,3 @@ ctrlListen sMapMV c
                      return ()
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch
-
-
-
-
