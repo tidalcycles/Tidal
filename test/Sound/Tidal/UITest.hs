@@ -185,7 +185,7 @@ run =
     describe "contrastRange" $ do
       it "matches using a pattern of ranges" $ do
         compareP (Arc 0 1)
-          (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VF 0 Nothing, VF 3 Nothing)) $ s "bd" >| n "1 4")
+          (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VN 0 Nothing, VN 3 Nothing)) $ s "bd" >| n "1 4")
           (s "bd" >| n "1 4" >| crush "3 0")
 
     describe "euclidFull" $ do
