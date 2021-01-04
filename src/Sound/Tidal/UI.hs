@@ -110,7 +110,7 @@ jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 @
 -}
 rand :: Fractional a => Pattern a
-rand = Pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ (timeToRand ((e + s)/2) :: Double))])
+rand = newPattern $ (\(State a@(Arc s e) _) -> [Event emptyContext Nothing a (realToFrac $ (timeToRand ((e + s)/2) :: Double))])
 
 {- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:
@@ -995,7 +995,7 @@ _fit perCycle xs p = (xs !!!) <$> (p {query = map (\e -> fmap (+ pos e) e) . que
   where pos e = perCycle * floor (start $ part e)
 
 fit :: Pattern Int -> [a] -> Pattern Int -> Pattern a
-fit pi xs p = (tParam ( \i x@(xs,p) -> _fit i xs p )) pi (xs,p)
+fit pI xs p = (tParam ( \i (xs',p') -> _fit i xs' p')) pI (xs,p)
 
 permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
 permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! floor (n * fromIntegral (length ps - 1))) things) <$> _segment 1 p
@@ -1036,8 +1036,8 @@ randArcs n =
 
 -- TODO - what does this do? Something for @stripe@ ..
 randStruct :: Int -> Pattern Int
-randStruct n = splitQueries $ Pattern {query = f}
-  where f st = map (\(a,b,c) -> Event (Context []) (Just a) (fromJust b) c) $ filter (\(_,x,_) -> isJust x) as
+randStruct n = splitQueries $ newPattern f
+  where f st = map (\(a,b,c) -> Event emptyContext (Just a) (fromJust b) c) $ filter (\(_,x,_) -> isJust x) as
           where as = map (\(i, Arc s' e') ->
                     (Arc (s' + sam s) (e' + sam s),
                        subArc (Arc s e) (Arc (s' + sam s) (e' + sam s)), i)) $
@@ -1140,7 +1140,7 @@ markovPat :: Pattern Int -> Pattern Int -> [[Double]] -> Pattern Int
 markovPat = tParam2 _markovPat
 
 _markovPat :: Int -> Int -> [[Double]] -> Pattern Int
-_markovPat n xi tp = splitQueries $ Pattern (\(State a@(Arc s _) _) ->
+_markovPat n xi tp = splitQueries $ newPattern (\(State a@(Arc s _) _) ->
   queryArc (listToPat $ runMarkov n tp xi (sam s)) a)
 
 {-|
@@ -1350,14 +1350,14 @@ _scramble n = _rearrangeWith (_segment (fromIntegral n) $ _irand n) n
 randrun :: Int -> Pattern Int
 randrun 0 = silence
 randrun n' =
-  splitQueries $ Pattern (\(State a@(Arc s _) _) -> events a $ sam s)
+  splitQueries $ newPattern (\(State a@(Arc s _) _) -> events a $ sam s)
   where events a seed = mapMaybe toEv $ zip arcs shuffled
           where shuffled = map snd $ sortOn fst $ zip rs [0 .. (n'-1)]
                 rs = timeToRands seed n' :: [Double]
                 arcs = zipWith Arc fractions (tail fractions)
                 fractions = map (+ (sam $ start a)) [0, 1 / fromIntegral n' .. 1]
                 toEv (a',v) = do a'' <- subArc a a'
-                                 return $ Event (Context []) (Just a') a'' v
+                                 return $ Event emptyContext (Just a') a'' v
 
 
 ur :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
@@ -1770,9 +1770,9 @@ contrastRange
      -> ControlPattern
      -> Pattern a
 contrastRange = contrastBy f
-      where f (VI s _, VI e _) (VI v _) = v >= s && v <= e
-            f (VF s _, VF e _) (VF v _) = v >= s && v <= e
-            f (VS s _, VS e _) (VS v _) = v == s && v == e
+      where f (VI s, VI e) (VI v) = v >= s && v <= e
+            f (VF s, VF e) (VF v) = v >= s && v <= e
+            f (VS s, VS e) (VS v) = v == s && v == e
             f _ _ = False
 
 -- | Like @contrast@, but one function is given, and applied to events with matching controls.
@@ -1818,7 +1818,7 @@ inv = (not <$>)
 -- | Serialises a pattern so there's only one event playing at any one
 -- time, making it 'monophonic'. Events which start/end earlier are given priority.
 mono :: Pattern a -> Pattern a
-mono p = Pattern $ \(State a cm) -> flatten $ query p (State a cm) where
+mono p = newPattern $ \(State a cm) -> flatten $ query p (State a cm) where
   flatten :: [Event a] -> [Event a]
   flatten = mapMaybe constrainPart . truncateOverlaps . sortOn whole
   truncateOverlaps [] = []
@@ -1841,7 +1841,7 @@ mono p = Pattern $ \(State a cm) -> flatten $ query p (State a cm) where
 
 -- TODO - test this with analog events
 smooth :: Fractional a => Pattern a -> Pattern a
-smooth p = Pattern $ \st@(State a cm) -> tween st a $ query monoP (State (midArc a) cm)
+smooth p = newPattern $ \st@(State a cm) -> tween st a $ query monoP (State (midArc a) cm)
   where
     midArc a = Arc (mid (start a, stop a)) (mid (start a, stop a))
     tween _ _ [] = []

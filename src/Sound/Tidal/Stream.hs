@@ -27,7 +27,7 @@ import           Control.Concurrent.MVar
 import           Control.Concurrent
 import           Control.Monad (forM_, when)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust, fromMaybe, maybeToList, catMaybes, isJust)
+import           Data.Maybe (fromJust, fromMaybe, catMaybes, isJust)
 import qualified Control.Exception as E
 -- import Control.Monad.Reader
 -- import Control.Monad.Except
@@ -111,17 +111,17 @@ type PlayMap = Map.Map PatId PlayState
 
 
 sDefault :: String -> Maybe Value
-sDefault x = Just $ VS x Nothing
+sDefault x = Just $ VS x
 fDefault :: Double -> Maybe Value
-fDefault x = Just $ VF x Nothing
+fDefault x = Just $ VF x
 rDefault :: Rational -> Maybe Value
-rDefault x = Just $ VR x Nothing
+rDefault x = Just $ VR x
 iDefault :: Int -> Maybe Value
-iDefault x = Just $ VI x Nothing
+iDefault x = Just $ VI x
 bDefault :: Bool -> Maybe Value
-bDefault x = Just $ VB x Nothing
+bDefault x = Just $ VB x
 xDefault :: [Word8] -> Maybe Value
-xDefault x = Just $ VX x Nothing
+xDefault x = Just $ VX x
 
 required :: Maybe Value
 required = Nothing
@@ -197,9 +197,9 @@ startStream config oscmap
        globalFMV <- newMVar id
        tempoMV <- newEmptyMVar
        listen <- openListener config
-       cxs <- mapM (\(target, os) -> do remote_addr <- resolve (oAddress target) (show $ oPort target)
+       cxs <- mapM (\(target, os) -> do remote_addr <- resolve_addr (oAddress target) (show $ oPort target)
                                         remote_bus_addr <- if isJust $ oBusPort target
-                                                           then Just <$> resolve (oAddress target) (show $ fromJust $ oBusPort target)
+                                                           then Just <$> resolve_addr (oAddress target) (show $ fromJust $ oBusPort target)
                                                            else return Nothing
                                         u <- O.openUDP (oAddress target) (oPort target)
                                         let cx = Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}                                        
@@ -208,6 +208,7 @@ startStream config oscmap
                                           then                                            
                                             do -- send it _from_ the udp socket we're listening to, so the
                                                -- replies go back there
+                                              hPutStrLn stderr "Sending handshake"
                                               sendO False listen cx $ O.Message "/dirt/handshake" []
                                           else
                                             hPutStrLn stderr "Can't handshake with SuperCollider without control port."
@@ -238,11 +239,12 @@ sendBndl isBusMsg (Just listen) cx bndl = O.sendTo listen (O.Packet_Bundle bndl)
              | otherwise = cxAddr cx
 sendBndl _ Nothing cx bndl = O.sendBundle (cxUDP cx) bndl
 
-resolve :: String -> String -> IO N.AddrInfo
-resolve host port = do let hints = N.defaultHints { N.addrSocketType = N.Stream }
-                       addr:_ <- N.getAddrInfo (Just hints) (Just host) (Just port)
-                       return addr
-
+resolve_addr :: String -> String -> IO N.AddrInfo
+resolve_addr host port =
+  do let hints = N.defaultHints { N.addrSocketType = N.Stream }
+     addr:_ <- N.getAddrInfo (Just hints) (Just host) (Just port)
+     return addr
+     
 startTidal :: Target -> Config -> IO Stream
 startTidal target config = startStream config [(target, [superdirtShape])]
 
@@ -250,15 +252,15 @@ startMulti :: [Target] -> Config -> IO ()
 startMulti _ _ = hPutStrLn stderr $ "startMulti has been removed, please check the latest documentation on tidalcycles.org"
 
 toDatum :: [Int] -> Value -> O.Datum
-toDatum _ (VF x Nothing) = O.float x
-toDatum _ (VI x Nothing) = O.int32 x
-toDatum _ (VS x Nothing) = O.string x
-toDatum _ (VR x Nothing) = O.float $ ((fromRational x) :: Double)
-toDatum _ (VB True Nothing) = O.int32 (1 :: Int)
-toDatum _ (VB False Nothing) = O.int32 (0 :: Int)
-toDatum _ (VX xs Nothing) = O.Blob $ O.blob_pack xs
-toDatum [] v = O.string ('c':(show $ (fromJust $ vbus v)))
-toDatum busses v = O.string ('c':(show $ busses !!! (fromJust $ vbus v)))
+toDatum _ (VF x) = O.float x
+toDatum _ (VI x) = O.int32 x
+toDatum _ (VS x) = O.string x
+toDatum _ (VR x) = O.float $ ((fromRational x) :: Double)
+toDatum _ (VB True) = O.int32 (1 :: Int)
+toDatum _ (VB False) = O.int32 (0 :: Int)
+toDatum _ (VX xs) = O.Blob $ O.blob_pack xs
+toDatum [] (VBus _ b) = O.string ('c':(show b))
+toDatum busses (VBus b _) = O.string ('c':(show $ busses !!! b))
 
 toData :: [Int] -> OSC -> Event ControlMap -> Maybe [O.Datum]
 toData busses (OSC {args = ArgList as}) e = fmap (fmap (toDatum busses)) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
@@ -285,12 +287,13 @@ substitutePath str cm = parse str
 getString :: ControlMap -> String -> Maybe String
 getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
                       where simpleShow :: Value -> String
-                            simpleShow (VS str _) = str
-                            simpleShow (VI i _) = show i
-                            simpleShow (VF f _) = show f
-                            simpleShow (VR r _) = show r
-                            simpleShow (VB b _) = show b
-                            simpleShow (VX xs _) = show xs
+                            simpleShow (VS str)   = str
+                            simpleShow (VI i)     = show i
+                            simpleShow (VF f)     = show f
+                            simpleShow (VR r)     = show r
+                            simpleShow (VB b)     = show b
+                            simpleShow (VX xs)    = show xs
+                            simpleShow (VBus _ v) = simpleShow v
                             (_, dflt) = break (== '=') s
                             defaultValue :: Maybe String -> Maybe String
                             defaultValue Nothing | null dflt = Nothing
@@ -316,25 +319,23 @@ toOSC latency busses e tempo osc@(OSC _ _)
                      | otherwise = Nothing
              toBus n | null busses = n
                      | otherwise = busses !!! n
-             busmsgs = map
-                         (\v -> do b <- toBus <$> vbus v
-                                   return $ (tsPart,
-                                             True, -- bus message ?
-                                             O.Message "/c_set" [O.int32 b, toDatum busses $ v {vbus = Nothing}]
-                                            )
-                         )
-                         (Map.elems $ value e)
+             busmsgs = map toBusmsg (Map.elems $ value e)
+             toBusmsg (VBus b v) = Just $ (tsPart,
+                                           True, -- bus message ?
+                                           O.Message "/c_set" [O.int32 (toBus b), toDatum busses v]
+                                          )
+             toBusmsg _ = Nothing
              onPart = sched tempo $ start $ part e
              on = sched tempo $ start $ wholeOrPart e
              off = sched tempo $ stop $ wholeOrPart e
              delta = off - on
              -- If there is already cps in the event, the union will preserve that.
              addExtra = (\v -> (Map.union v extra)) <$> e
-             extra = Map.fromList [("cps", (VF (T.cps tempo) Nothing)),
-                                   ("delta", VF delta Nothing),
-                                   ("cycle", VF (fromRational $ start $ wholeOrPart e) Nothing) 
+             extra = Map.fromList [("cps",   VF $ T.cps tempo),
+                                   ("delta", VF delta),
+                                   ("cycle", VF (fromRational $ start $ wholeOrPart e)) 
                                  ]
-             nudge = fromJust $ getF $ fromMaybe (VF 0 Nothing) $ Map.lookup "nudge" $ value e
+             nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
              ts = on + nudge + latency
              tsPart = onPart + nudge + latency
 
@@ -350,11 +351,11 @@ toOSC latency _ e tempo (OSCContext oscpath)
         delta = off - on
         cyc :: Double
         cyc = fromRational $ start $ wholeOrPart e
-        nudge = fromJust $ getF $ fromMaybe (VF 0 Nothing) $ Map.lookup "nudge" $ value e
+        nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
         ts = on + nudge + latency
 
 doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
-doCps tempoMV (d, Just (VF cps Nothing)) =
+doCps tempoMV (d, Just (VF cps)) =
   do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
                       -- hack to stop things from stopping !
                       -- TODO is this still needed?
@@ -435,12 +436,10 @@ doTick fake stream st =
              | otherwise = patstack
          frameEnd = snd $ T.nowTimespan st
          -- add cps to state
-         sMap' = Map.insert "_cps" (pure $ VF (T.cps tempo) Nothing) sMap
-         filterOns = filter eventHasOnset
+         sMap' = Map.insert "_cps" (pure $ VF (T.cps tempo)) sMap
+         -- filterOns = filter eventHasOnset
          extraLatency | fake = 0
                       | otherwise = cFrameTimespan config + T.nudged tempo
-         --filterOns | cSendParts config = id
-         --          | otherwise = filter eventHasOnset
          es = sortOn (start . part) $ query pat (State {arc = T.nowArc st,
                                                         controls = sMap'
                                                        }
@@ -483,7 +482,7 @@ send listen cx (time, isBusMsg, m)
           sec = floor ut
           usec :: Int
           usec = floor $ 1000000 * (ut - (fromIntegral sec))
-          u = cxUDP cx
+          -- u = cxUDP cx
           target = cxTarget cx
          -- latency target = oLatency target + cFrameTimespan config + T.nudged tempo
 
@@ -525,7 +524,7 @@ streamReplace s k !pat
                 now <- O.time
                 let cyc = T.timeToCycles tempo now
                 putMVar (sInput s) $
-                  Map.insert ("_t_all") (pure $ VR cyc Nothing) $ Map.insert ("_t_" ++ show k) (pure $ VR cyc Nothing) input
+                  Map.insert ("_t_all") (pure $ VR cyc) $ Map.insert ("_t_" ++ show k) (pure $ VR cyc) input
                 -- update the pattern itself
                 pMap <- seq x $ takeMVar $ sPMapMV s
                 let playState = updatePS $ Map.lookup (show k) pMap
@@ -614,26 +613,27 @@ openListener c
         catchAny = E.catch
 
 ctrlResponder :: Stream -> IO ()
-ctrlResponder (stream@(Stream {sListen = Nothing})) = return ()
+ctrlResponder (Stream {sListen = Nothing}) = return ()
 ctrlResponder (stream@(Stream {sListen = Just sock})) = do ms <- O.recvMessages sock
                                                            mapM_ act ms
                                                            ctrlResponder stream
      where
-        act (O.Message "/dirt/hello" xs) = return ()
-        act (O.Message "/dirt/handshake/reply" xs) = do swapMVar (sBusses stream) $ bufferIndices xs
+        act (O.Message "/dirt/hello" _) = return ()
+        act (O.Message "/dirt/handshake/reply" xs) = do _ <- swapMVar (sBusses stream) $ bufferIndices xs
+                                                        hPutStrLn stderr "received handshake"
                                                         return ()
           where 
             bufferIndices [] = []
-            bufferIndices (x:xs) | x == (O.ASCII_String $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs
-                                 | otherwise = bufferIndices xs
+            bufferIndices (x:xs') | x == (O.ASCII_String $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
+                                  | otherwise = bufferIndices xs'
         act (O.Message x (O.Int32 k:v:[]))
           = act (O.Message x [O.string $ show k,v])
         act (O.Message _ (O.ASCII_String k:v@(O.Float _):[]))
-          = add (O.ascii_to_string k) (VF (fromJust $ O.datum_floating v) Nothing)
+          = add (O.ascii_to_string k) (VF (fromJust $ O.datum_floating v))
         act (O.Message _ (O.ASCII_String k:O.ASCII_String v:[]))
-          = add (O.ascii_to_string k) (VS (O.ascii_to_string v) Nothing)
+          = add (O.ascii_to_string k) (VS (O.ascii_to_string v))
         act (O.Message _ (O.ASCII_String k:O.Int32 v:[]))
-          = add (O.ascii_to_string k) (VI (fromIntegral v) Nothing)
+          = add (O.ascii_to_string k) (VI (fromIntegral v))
         act m = hPutStrLn stderr $ "Unhandled OSC: " ++ show m
         add :: String -> Value -> IO ()
         add k v = do sMap <- takeMVar (sInput stream)

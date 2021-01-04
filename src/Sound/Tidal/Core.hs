@@ -35,7 +35,7 @@ silence = empty
 
 -- | Takes a function from time to values, and turns it into a 'Pattern'.
 sig :: (Time -> a) -> Pattern a
-sig f = Pattern q
+sig f = newPattern q
   where q (State (Arc s e) _)
           | s > e = []
           | otherwise = [Event (Context []) Nothing (Arc s e) (f (s+((e-s)/2)))]
@@ -215,7 +215,7 @@ append a b = cat [a,b]
 -- in turn, then the second cycle from each, and so on.
 cat :: [Pattern a] -> Pattern a
 cat [] = silence
-cat ps = Pattern $ q
+cat ps = newPattern q
   where n = length ps
         q st = concatMap (f st) $ arcCyclesZW (arc st)
         f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (stop a))}
@@ -262,7 +262,7 @@ timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) 
 -- | 'overlay' combines two 'Pattern's into a new pattern, so that
 -- their events are combined over time. 
 overlay :: Pattern a -> Pattern a -> Pattern a
-overlay !p !p' = Pattern $ \st -> query p st ++ query p' st
+overlay !p !p' = newPattern $ \st -> query p st ++ query p' st
 
 -- | An infix alias of @overlay@
 (<>) :: Pattern a -> Pattern a -> Pattern a
@@ -453,10 +453,10 @@ _getP :: a -> (Value -> Maybe a) -> Pattern Value -> Pattern a
 _getP d f pat = (fromMaybe d . f) <$> pat
 
 _cX :: a -> (Value -> Maybe a) -> String -> Pattern a
-_cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f) $ Map.lookup s m) a
+_cX d f s = newPattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f) $ Map.lookup s m) a
 
 _cX_ :: (Value -> Maybe a) -> String -> Pattern a
-_cX_ f s = Pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f) $ Map.lookup s m) a
+_cX_ f s = newPattern $ \(State a m) -> queryArc (maybe silence (_getP_ f) $ Map.lookup s m) a
 
 cF :: Double -> String -> Pattern Double
 cF d = _cX d getF
