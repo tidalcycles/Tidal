@@ -82,6 +82,7 @@ test-suite tests
                  Sound.Tidal.ParseTest
                  Sound.Tidal.PatternTest
                  Sound.Tidal.ScalesTest
+                 Sound.Tidal.StreamTest
                  Sound.Tidal.UITest
                  Sound.Tidal.UtilsTest
                  Sound.Tidal.ExceptionsTest
@@ -89,6 +90,7 @@ test-suite tests
   build-depends:
                 base ==4.*
               , microspec >= 0.2.0.1
+              , hosc >= 0.17 && < 0.19
               , containers
               , parsec
               , tidal
