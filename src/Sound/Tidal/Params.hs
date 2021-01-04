@@ -281,8 +281,8 @@ lophat = pF "lophat"
 lsnare :: Pattern Double -> ControlPattern
 lsnare = pF "lsnare"
 -- | specifies the sample or note number to be used
-n :: Pattern Double -> ControlPattern
-n = pF "n"
+n :: Pattern Note -> ControlPattern
+n = pN "n"
 note :: Pattern Note -> ControlPattern
 note = pN "note"
 {- |

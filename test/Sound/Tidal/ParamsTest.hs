@@ -28,6 +28,11 @@ run =
             (sound "bd" # note "e")
             (sound "bd" # note 4)
 
+        it "should parse n value" $ do
+          compareP (Arc 0 1)
+            (sound "bd" # n "e")
+            (sound "bd" # n 4)
+
         it "should parse correctly floating point number" $ do
           compareP (Arc 0 1)
             (sound "bd" # note "0.5")

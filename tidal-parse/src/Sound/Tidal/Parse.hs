@@ -293,13 +293,13 @@ instance Parse (Pattern Int -> Pattern Bool) where
 
 instance Parse (Pattern T.Note -> ControlPattern) where
   parser = $(fromTidal "up") <|>
+    $(fromTidal "n") <|>
     $(fromTidal "note") <|>
     (parser :: H (String -> Pattern T.Note -> ControlPattern)) <*> parser <|>
     pA_pB
 
 instance Parse (Pattern Double -> ControlPattern) where
   parser =
-    $(fromTidal "n") <|>
     $(fromTidal "speed") <|>
     $(fromTidal "pan") <|>
     $(fromTidal "shape") <|>

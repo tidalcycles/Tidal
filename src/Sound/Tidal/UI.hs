@@ -1772,6 +1772,7 @@ contrastRange
 contrastRange = contrastBy f
       where f (VI s _, VI e _) (VI v _) = v >= s && v <= e
             f (VF s _, VF e _) (VF v _) = v >= s && v <= e
+            f (VN s _, VN e _) (VN v _) = v >= s && v <= e
             f (VS s _, VS e _) (VS v _) = v == s && v == e
             f _ _ = False
 
