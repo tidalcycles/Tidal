@@ -118,7 +118,6 @@
   (interactive)
   (when (comint-check-proc tidal-buffer)
     (delete-other-windows)
-    (split-window-vertically)
     (with-current-buffer tidal-buffer
       (let ((window (display-buffer (current-buffer))))
 	(goto-char (point-max))
