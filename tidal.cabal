@@ -26,6 +26,8 @@ library
 
   default-language:    Haskell2010
 
+  autogen-modules:     Paths_tidal
+
   Exposed-modules:     Sound.Tidal.Bjorklund
                        Sound.Tidal.Carabiner
                        Sound.Tidal.Chords
@@ -48,6 +50,7 @@ library
                        Sound.Tidal.EspGrid
                        -- Sound.Tidal.Light
                        -- Sound.Tidal.TH
+                       Paths_tidal
   Build-depends:
       base >=4.8 && <5
     , containers < 0.7
