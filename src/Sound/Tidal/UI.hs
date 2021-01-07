@@ -1948,8 +1948,11 @@ __binary n num = map (testBit num) $ reverse [0 .. n-1]
 _binary :: Data.Bits.Bits b => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
 
-binaryN :: Int -> Pattern Int -> Pattern Bool
-binaryN n p = squeezeJoin $ _binary n <$> p
+_binaryN :: Int -> Pattern Int -> Pattern Bool
+_binaryN n p = squeezeJoin $ _binary n <$> p
+
+binaryN :: Pattern Int -> Pattern Int -> Pattern Bool
+binaryN n p = squeezeJoin $ (\np -> _binaryN np p) <$> n
 
 binary :: Pattern Int -> Pattern Bool
 binary = binaryN 8
