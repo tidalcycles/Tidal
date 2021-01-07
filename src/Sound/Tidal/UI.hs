@@ -995,7 +995,8 @@ _fit perCycle xs p = (xs !!!) <$> (p {query = map (\e -> fmap (+ pos e) e) . que
   where pos e = perCycle * floor (start $ part e)
 
 fit :: Pattern Int -> [a] -> Pattern Int -> Pattern a
-fit pi xs p = (tParam ( \i x@(xs,p) -> _fit i xs p )) pi (xs,p)
+fit pint xs p = (tParam func) pint (xs,p)
+  where func = \i @_(xs',p') -> _fit i xs' p'
 
 permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
 permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! floor (n * fromIntegral (length ps - 1))) things) <$> _segment 1 p
