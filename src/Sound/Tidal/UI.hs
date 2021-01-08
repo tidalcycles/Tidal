@@ -1892,7 +1892,7 @@ _binaryN :: Int -> Pattern Int -> Pattern Bool
 _binaryN n p = squeezeJoin $ _binary n <$> p
 
 binaryN :: Pattern Int -> Pattern Int -> Pattern Bool
-binaryN n p = squeezeJoin $ (\np -> _binaryN np p) <$> n
+binaryN n p = tParam _binaryN n p
 
 binary :: Pattern Int -> Pattern Bool
 binary = binaryN 8
