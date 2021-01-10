@@ -157,6 +157,16 @@ run =
         compareP (Arc 0 1)
           (ply "3 4 5" "[0,1] [3,4,5] 6")
           ("[0,1]*3 [3,4,5]*4 6*5" :: Pattern Int)
+    describe "press" $ do
+      it "can syncopate a pattern" $ do
+        compareP (Arc 0 1)
+          (press "a b [c d] e")
+          ("[~ a] [~ b] [[~ c] [~ d]] [~ e]" :: Pattern String)
+    describe "pressBy" $ do
+      it "can syncopate a pattern by a given amount" $ do
+        compareP (Arc 0 1)
+          (pressBy (1/3) "a b [~ c]")
+          ("[~ a@2] [~ b@2] [~ [~ c@2]]" :: Pattern String)
     describe "fix" $ do
       it "can apply functions conditionally" $ do
         compareP (Arc 0 1)

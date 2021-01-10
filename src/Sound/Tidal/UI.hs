@@ -1435,6 +1435,17 @@ _plyWith numPat f p = arpeggiate $ compound numPat
   where compound n | n <= 1 = p
                    | otherwise = overlay p (f $ compound $ n-1)
 
+-- | Syncopates a rhythm, shifting each event halfway into its arc (aka timespan), e.g. @"a b [c d] e"@ becomes the equivalent of @"[~ a] [~ b] [[~ c] [~ d]] [~ e]"@
+press :: Pattern a -> Pattern a
+press = _pressBy 0.5
+
+-- | Like @press@, but allows you to specify the amount in which each event is shifted. @pressBy 0.5@ is the same as @press@, while @pressBy (1/3)@ shifts each event by a third of its arc.
+pressBy :: Pattern Time -> Pattern a -> Pattern a
+pressBy = tParam _pressBy
+
+_pressBy :: Time -> Pattern a -> Pattern a
+_pressBy r pat = squeezeJoin $ (rotR r . pure) <$> pat
+
 -- | Uses the first (binary) pattern to switch between the following
 -- two patterns. The resulting structure comes from the source patterns, not the
 -- binary pattern. See also @stitch@.
