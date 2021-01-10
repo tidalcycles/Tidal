@@ -148,6 +148,15 @@ run =
           (rot (1) "a ~ [b [c ~ d]] [e <f g>]" :: Pattern String)
           ( "b ~ [c [d ~ e]] [<f g> a]" :: Pattern String)
 
+    describe "ply" $ do
+      it "can ply chords" $ do
+        compareP (Arc 0 1)
+          (ply 3 "[0,1] [3,4,5] 6")
+          ("[0,1]*3 [3,4,5]*3 6*3" :: Pattern Int)
+      it "can pattern the ply factor" $ do
+        compareP (Arc 0 1)
+          (ply "3 4 5" "[0,1] [3,4,5] 6")
+          ("[0,1]*3 [3,4,5]*4 6*5" :: Pattern Int)
     describe "fix" $ do
       it "can apply functions conditionally" $ do
         compareP (Arc 0 1)

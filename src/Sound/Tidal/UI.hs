@@ -1475,11 +1475,11 @@ fill p' p = struct (splitQueries $ p {query = q}) p'
 -}
 
 -- Repeats each event @n@ times within its arc
-ply :: Pattern Int -> Pattern a -> Pattern a
+ply :: Pattern Rational -> Pattern a -> Pattern a
 ply = tParam _ply
 
-_ply :: Int -> Pattern a -> Pattern a
-_ply n p = arpeggiate $ stack (replicate n p)
+_ply :: Rational -> Pattern a -> Pattern a
+_ply n pat = squeezeJoin $ (_fast n . pure) <$> pat
 
 -- Like ply, but applies a function each time. The applications are compounded.
 plyWith :: (Ord t, Num t) => Pattern t -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
