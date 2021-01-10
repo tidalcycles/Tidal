@@ -1444,7 +1444,7 @@ pressBy :: Pattern Time -> Pattern a -> Pattern a
 pressBy = tParam _pressBy
 
 _pressBy :: Time -> Pattern a -> Pattern a
-_pressBy r pat = squeezeJoin $ (rotR r . pure) <$> pat
+_pressBy r pat = squeezeJoin $ (compressTo (r,1) . pure) <$> pat
 
 -- | Uses the first (binary) pattern to switch between the following
 -- two patterns. The resulting structure comes from the source patterns, not the
