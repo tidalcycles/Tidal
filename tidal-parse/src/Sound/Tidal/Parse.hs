@@ -288,7 +288,7 @@ instance Parse (Pattern String -> Pattern Bool) where
 instance Parse (Pattern Int -> Pattern Bool) where
   parser =
     $(fromTidal "binary") <|>
-    (parser :: H (Int -> Pattern Int -> Pattern Bool)) <*> parser <|>
+    (parser :: H (Pattern Int -> Pattern Int -> Pattern Bool)) <*> parser <|>
     pA_pB
 
 instance Parse (Pattern T.Note -> ControlPattern) where
@@ -467,7 +467,7 @@ instance Parse (Time -> Pattern a -> Pattern a) where
     $(fromTidal "rotR") <|>
     (parser :: H (Time -> Time -> Pattern a -> Pattern a)) <*> parser
 
-instance Parse (Int -> Pattern Int -> Pattern Bool) where
+instance Parse (Pattern Int -> Pattern Int -> Pattern Bool) where
   parser = $(fromTidal "binaryN")
 
 instance Parse ((Time,Time) -> Pattern a -> Pattern a) where
