@@ -495,13 +495,13 @@ pTime_p_p =
     $(fromTidal "swing") <|>
     $(fromTidal "<~") <|>
     $(fromTidal "~>") <|>
+    $(fromTidal "ply") <|>
     (parser :: H (Pattern Time -> Pattern Time -> Pattern a -> Pattern a)) <*> parser
 
 pInt_p_p :: H (Pattern Int -> Pattern a -> Pattern a)
 pInt_p_p =
     $(fromTidal "iter") <|>
     $(fromTidal "iter'") <|>
-    $(fromTidal "ply") <|>
     $(fromTidal "substruct'") <|>
     $(fromTidal "slowstripe") <|>
     $(fromTidal "shuffle") <|>
