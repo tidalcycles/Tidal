@@ -289,7 +289,6 @@ run =
           (arpeggiate $ "[0,0]*2")
           ("0 0 0 0" :: Pattern Int)
 
-
       describe "chunk" $ do
         it "can chunk a rev pattern" $ do
           compareP (Arc 0 4)
@@ -299,3 +298,19 @@ run =
           compareP (Arc 0 4)
             (chunk 2 (fast 2) $ "a b" :: Pattern String)
             (slow 2 $ "a b b _ a _ a b" :: Pattern String)
+
+      describe "binary" $ do
+        it "converts a number to a pattern of boolean" $ do
+          compareP (Arc 0 1)
+            (binary "128")
+            ("t f f f f f f f" :: Pattern Bool)
+
+      describe "binaryN" $ do
+        it "convert a number to a pattern of boolean of specified length" $ do
+          compareP (Arc 0 1)
+            (binaryN 4 "8")
+            ("t f f f" :: Pattern Bool)
+        it "convert a number to a pattern of boolean of specified patternable length" $ do
+          compareP (Arc 0 2)
+            (binaryN "<4 8>" "8")
+            (cat ["t f f f", "f f f f t f f f"] :: Pattern Bool)
