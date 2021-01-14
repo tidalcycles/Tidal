@@ -283,6 +283,10 @@ run =
         compareP (Arc 0 4)
           (bite 4 "0 2*2" (Sound.Tidal.Core.run 8))
           ("[0 1] [4 5]*2" :: Pattern Int)
+      it "can slice a pattern into patternable bits number" $ do
+        compareP (Arc 0 4)
+          (bite "8 4" "0 2*2" (Sound.Tidal.Core.run 8))
+          ("[0] [4 5]*2" :: Pattern Int)
 
     describe "chooseBy" $ do
       it "chooses from elements based on closest scaled double value" $ do
