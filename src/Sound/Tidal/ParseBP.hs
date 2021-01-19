@@ -23,6 +23,7 @@ module Sound.Tidal.ParseBP where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
+import           Control.Applicative ((<$>), (<*>), pure)
 import qualified Control.Exception as E
 import           Data.Colour
 import           Data.Colour.Names
@@ -414,6 +415,7 @@ pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
              do ss <- angles (pSequence f `sepBy` symbol ",")
                 spaces -- TODO needed/wanted?
                 pMult $ TPat_Polyrhythm (Just $ TPat_Atom Nothing 1) ss
+
 
 pCharNum :: MyParser Char
 pCharNum = (letter <|> oneOf "0123456789") <?> "letter or number"

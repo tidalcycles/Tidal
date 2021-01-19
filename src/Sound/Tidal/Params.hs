@@ -21,7 +21,6 @@ module Sound.Tidal.Params where
 import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Pattern
-import Sound.Tidal.Core ((|>), silence)
 import Sound.Tidal.Utils
 import Data.Maybe (fromMaybe)
 import Data.Word (Word8)
@@ -36,14 +35,14 @@ grp fs p = splitby <$> p
 
 mF :: String -> String -> ControlMap
 mF name v = fromMaybe Map.empty $ do f <- readMaybe v
-                                     return $ Map.singleton name (VF f)
+                                     return $ Map.singleton name (VF f Nothing)
 
 mI :: String -> String -> ControlMap
 mI name v = fromMaybe Map.empty $ do i <- readMaybe v
-                                     return $ Map.singleton name (VI i)
+                                     return $ Map.singleton name (VI i Nothing)
 
 mS :: String -> String -> ControlMap
-mS name v = Map.singleton name (VS v)
+mS name v = Map.singleton name (VS v Nothing)
 
 -- | Grouped params
 
@@ -62,22 +61,16 @@ nrpn = grp [mI "nrpn", mI "val"]
 -- | Singular params
 
 pF :: String -> Pattern Double -> ControlPattern
-pF name = fmap (Map.singleton name . VF)
-
-pFB :: String -> Int -> Pattern Double -> ControlPattern
-pFB name busid = fmap (Map.singleton name . VBus busid . VF)
-
---wrapBus v (Just bus) = VBus bus v
---wrapBus v Nothing = VBus bus v
+pF name = fmap (Map.singleton name . (flip VF) Nothing)
 
 pI :: String -> Pattern Int -> ControlPattern
-pI name = fmap (Map.singleton name . VI)
+pI name = fmap (Map.singleton name . (flip VI) Nothing)
 
 pS :: String -> Pattern String -> ControlPattern
-pS name = fmap (Map.singleton name . VS)
+pS name = fmap (Map.singleton name . (flip VS) Nothing)
 
 pX :: String -> Pattern [Word8] -> ControlPattern
-pX name = fmap (Map.singleton name . VX)
+pX name = fmap (Map.singleton name . (flip VX) Nothing)
 
 -- | patterns for internal sound routing
 toArg :: Pattern String -> ControlPattern
@@ -614,7 +607,7 @@ drumN "rc" = 59
 drumN "hb" = 60
 drumN "lb" = 61
 drumN "mh" = 62
---drumN "oh" = 63 -- already defined as 46..
+drumN "oh" = 63
 drumN "lc" = 64
 drumN "he" = 65
 drumN "le" = 66
@@ -641,33 +634,6 @@ drumN "ms" = 86
 drumN "os" = 87
 drumN _ = 0
 
--- superfm parameters
-
-fmamp, fmratio, fmdetune :: Int -> Pattern Double -> ControlPattern
-fmamp op = pF ("amp" ++ show op)
-fmratio op = pF ("ratio" ++ show op)
-fmdetune op = pF ("detune" ++ show op)
-
-fmmod, fmegrate, fmeglevel :: Int -> Int -> Pattern Double -> ControlPattern
-fmmod opa opb = pF ("mod" ++ show opa ++ show opb)
-fmegrate op step = pF ("egrate" ++ show op ++ show step)
-fmeglevel op step = pF ("eglevel" ++ show op ++ show step)
-
-fmfeedback :: Pattern Double -> ControlPattern
-fmfeedback = pF "feedback"
-
-fmparam :: (Int -> Pattern Double -> ControlPattern) -> [Pattern Double] -> ControlPattern
-fmparam _ [] = silence
-fmparam function (x:xs) = foldr (|>) (function 1 x) (zipWith function [2..] xs)
-
-lfma, lfmr, lfmd :: [Pattern Double] -> Pattern ControlMap
-lfma = fmparam fmamp
-lfmr = fmparam fmratio
-lfmd = fmparam fmdetune
-
-lfmer, lfmel :: Int -> [Pattern Double] -> Pattern ControlMap
-lfmer op = fmparam (fmegrate op)
-lfmel op = fmparam (fmeglevel op)
 
 -- SuperDirt MIDI Params
 
@@ -862,4 +828,3 @@ slider30 :: Pattern Double -> ControlPattern
 slider30 = pF "slider30"
 slider31 :: Pattern Double -> ControlPattern
 slider31 = pF "slider31"
-

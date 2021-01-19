@@ -150,12 +150,10 @@ clocked config tempoMV callback
                           }
              when ahead $ writeError $ "skip: " ++ show (actualTick - ticks st)
              callback st'
-             {-
-             putStrLn ("actual tick: " ++ show actualTick
+             {-putStrLn ("actual tick: " ++ show actualTick
                        ++ " old tick: " ++ show (ticks st)
                        ++ " new tick: " ++ show newTick
-                      )
-             -}
+                      )-}
              loop st'
 
 clientListen :: Config -> MVar Tempo -> O.Time -> IO (ThreadId)
