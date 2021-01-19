@@ -50,6 +50,12 @@ git fetch upstream
 git pull upstream main
 git push
 ```
+
+For this to work, you will have had to have some point registered the upstream repository:
+```
+git remote add upstream git@github.com:tidalcycles/tidal.git
+```
+
 Then to work on something, create a fresh branch:
 ```
 git checkout -b fix-some-issue

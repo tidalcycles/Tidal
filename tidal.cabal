@@ -1,5 +1,5 @@
 name:                tidal
-version:             1.6.2
+version:             1.7
 synopsis:            Pattern language for improvised music
 -- description:
 homepage:            http://tidalcycles.org/
@@ -26,6 +26,8 @@ library
 
   default-language:    Haskell2010
 
+  autogen-modules:     Paths_tidal
+
   Exposed-modules:     Sound.Tidal.Bjorklund
                        Sound.Tidal.Carabiner
                        Sound.Tidal.Chords
@@ -48,6 +50,7 @@ library
                        Sound.Tidal.EspGrid
                        -- Sound.Tidal.Light
                        -- Sound.Tidal.TH
+                       Paths_tidal
   Build-depends:
       base >=4.8 && <5
     , containers < 0.7
@@ -78,9 +81,11 @@ test-suite tests
   ghc-options: -Wall
   other-modules: Sound.Tidal.ControlTest
                  Sound.Tidal.CoreTest
+                 Sound.Tidal.ParamsTest
                  Sound.Tidal.ParseTest
                  Sound.Tidal.PatternTest
                  Sound.Tidal.ScalesTest
+                 Sound.Tidal.StreamTest
                  Sound.Tidal.UITest
                  Sound.Tidal.UtilsTest
                  Sound.Tidal.ExceptionsTest
@@ -88,6 +93,7 @@ test-suite tests
   build-depends:
                 base ==4.*
               , microspec >= 0.2.0.1
+              , hosc >= 0.17 && < 0.19
               , containers
               , parsec
               , tidal

@@ -66,7 +66,7 @@
              ("separator" . "\\")
              ))
           ((or (string-equal system-type "darwin") (string-equal system-type "gnu/linux"))
-           '(("path" . "ghc-pkg field tidal data-dir")
+           '(("path" . "echo -n data-dir: && ghc -e 'import Paths_tidal' -e 'getDataDir>>=putStr'")
              ("separator" . "/")
              ))
           )
@@ -118,7 +118,6 @@
   (interactive)
   (when (comint-check-proc tidal-buffer)
     (delete-other-windows)
-    (split-window-vertically)
     (with-current-buffer tidal-buffer
       (let ((window (display-buffer (current-buffer))))
 	(goto-char (point-max))
