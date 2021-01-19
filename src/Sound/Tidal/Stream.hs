@@ -27,7 +27,7 @@ import           Control.Concurrent.MVar
 import           Control.Concurrent
 import           Control.Monad (forM_, when)
 import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust, fromMaybe, maybeToList, catMaybes, isJust)
+import           Data.Maybe (fromJust, fromMaybe, catMaybes, isJust)
 import qualified Control.Exception as E
 -- import Control.Monad.Reader
 -- import Control.Monad.Except
@@ -437,7 +437,7 @@ doTick fake stream st =
          frameEnd = snd $ T.nowTimespan st
          -- add cps to state
          sMap' = Map.insert "_cps" (pure $ VF (T.cps tempo) Nothing) sMap
-         filterOns = filter eventHasOnset
+         --filterOns = filter eventHasOnset
          extraLatency | fake = 0
                       | otherwise = cFrameTimespan config + T.nudged tempo
          --filterOns | cSendParts config = id
@@ -484,9 +484,7 @@ send listen cx (time, isBusMsg, m)
           sec = floor ut
           usec :: Int
           usec = floor $ 1000000 * (ut - (fromIntegral sec))
-          u = cxUDP cx
           target = cxTarget cx
-         -- latency target = oLatency target + cFrameTimespan config + T.nudged tempo
 
 sched :: T.Tempo -> Rational -> Double
 sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo)
@@ -615,18 +613,17 @@ openListener c
         catchAny = E.catch
 
 ctrlResponder :: Stream -> IO ()
-ctrlResponder (stream@(Stream {sListen = Nothing})) = return ()
 ctrlResponder (stream@(Stream {sListen = Just sock})) = do ms <- O.recvMessages sock
                                                            mapM_ act ms
                                                            ctrlResponder stream
      where
-        act (O.Message "/dirt/hello" xs) = return ()
-        act (O.Message "/dirt/handshake/reply" xs) = do swapMVar (sBusses stream) $ bufferIndices xs
+        act (O.Message "/dirt/hello" _) = return ()
+        act (O.Message "/dirt/handshake/reply" xs) = do _ <- swapMVar (sBusses stream) $ bufferIndices xs
                                                         return ()
           where 
             bufferIndices [] = []
-            bufferIndices (x:xs) | x == (O.ASCII_String $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs
-                                 | otherwise = bufferIndices xs
+            bufferIndices (x:xs') | x == (O.ASCII_String $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
+                                  | otherwise = bufferIndices xs'
         act (O.Message x (O.Int32 k:v:[]))
           = act (O.Message x [O.string $ show k,v])
         act (O.Message _ (O.ASCII_String k:v@(O.Float _):[]))
@@ -640,3 +637,4 @@ ctrlResponder (stream@(Stream {sListen = Just sock})) = do ms <- O.recvMessages 
         add k v = do sMap <- takeMVar (sInput stream)
                      putMVar (sInput stream) $ Map.insert k (pure v) sMap
                      return ()
+ctrlResponder _ = return ()

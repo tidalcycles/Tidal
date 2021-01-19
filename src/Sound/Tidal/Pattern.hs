@@ -34,7 +34,7 @@ import           Data.List (delete, findIndex, sort)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
 import           Data.Typeable (Typeable)
-import           Control.DeepSeq (NFData(rnf))
+import           Control.DeepSeq (NFData)
 import           Data.Word (Word8)
 import           Sound.Tidal.Utils (matchMaybe)
 ------------------------------------------------------------------------
