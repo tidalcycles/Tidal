@@ -306,10 +306,11 @@ playStack pMap = stack $ map pattern active
 toOSC :: Double -> [Int] -> Event ControlMap -> T.Tempo -> OSC -> [(Double, Bool, O.Message)]
 toOSC latency busses e tempo osc@(OSC _ _)
   = catMaybes (playmsg:busmsgs)
-       where (busmap, playmap) = Map.partitionWithKey (\k _ -> null k || head k /= '^') $ value e
+       where (playmap, busmap) = Map.partitionWithKey (\k _ -> null k || head k /= '^') $ value e
              -- swap in bus ids where needed
              playmap' = Map.union (Map.mapKeys tail $ Map.map (\(VI i) -> VS ('c':(show i))) busmap) playmap
-             playmsg | eventHasOnset e = do vs <- toData osc addExtra
+             addExtra = Map.union playmap' extra
+             playmsg | eventHasOnset e = do vs <- toData osc (e {value = addExtra})
                                             mungedPath <- substitutePath (path osc) playmap'
                                             return (ts,
                                                     False, -- bus message ?
@@ -331,12 +332,11 @@ toOSC latency busses e tempo osc@(OSC _ _)
              off = sched tempo $ stop $ wholeOrPart e
              delta = off - on
              -- If there is already cps in the event, the union will preserve that.
-             addExtra = (\v -> (Map.union v extra)) <$> e
              extra = Map.fromList [("cps", (VF (T.cps tempo))),
                                    ("delta", VF delta),
                                    ("cycle", VF (fromRational $ start $ wholeOrPart e)) 
                                  ]
-             nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
+             nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ playmap
              ts = on + nudge + latency
              tsPart = onPart + nudge + latency
 

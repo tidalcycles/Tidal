@@ -21,6 +21,7 @@ module Sound.Tidal.Params where
 import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Pattern
+import Sound.Tidal.Core ((#))
 import Sound.Tidal.Utils
 import Data.Maybe (fromMaybe)
 import Data.Word (Word8)
@@ -330,6 +331,10 @@ overshape = pF "overshape"
 -- | a pattern of numbers between 0 and 1, from left to right (assuming stereo), once round a circle (assuming multichannel)
 pan :: Pattern Double -> ControlPattern
 pan = pF "pan"
+
+panbus :: Pattern Int -> Pattern Double -> ControlPattern
+panbus busid pat = (pF "pan" pat) # (pI "^pan" busid)
+
 -- | a pattern of numbers between -inf and inf, which controls how much multichannel output is fanned out (negative is backwards ordering)
 panspan :: Pattern Double -> ControlPattern
 panspan = pF "span"
