@@ -5,12 +5,12 @@ module Sound.Tidal.ParamsTest where
 import Test.Microspec
 import TestUtils
 import Sound.Tidal.Core
-import Sound.Tidal.Params
+import Sound.Tidal.Params.Standard
 import Sound.Tidal.Pattern
 
 run :: Microspec ()
 run =
-  describe "Sound.Tidal.Params" $ do
+  describe "Sound.Tidal.Params.Standard" $ do
     describe "VF params" $ do
       it "should parse fractional ratio" $ do
         compareP (Arc 0 1)
