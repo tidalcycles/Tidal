@@ -251,6 +251,7 @@ startMulti _ _ = hPutStrLn stderr $ "startMulti has been removed, please check t
 
 toDatum :: Value -> O.Datum
 toDatum (VF x) = O.float x
+toDatum (VN x) = O.float x
 toDatum (VI x) = O.int32 x
 toDatum (VS x) = O.string x
 toDatum (VR x) = O.float $ ((fromRational x) :: Double)
@@ -308,7 +309,7 @@ toOSC latency busses e tempo osc@(OSC _ _)
   = catMaybes (playmsg:busmsgs)
        where (playmap, busmap) = Map.partitionWithKey (\k _ -> null k || head k /= '^') $ value e
              -- swap in bus ids where needed
-             playmap' = Map.union (Map.mapKeys tail $ Map.map (\(VI i) -> VS ('c':(show i))) busmap) playmap
+             playmap' = Map.union (Map.mapKeys tail $ Map.map (\(VI i) -> VS ('c':(show $ toBus i))) busmap) playmap
              addExtra = Map.union playmap' extra
              playmsg | eventHasOnset e = do vs <- toData osc (e {value = addExtra})
                                             mungedPath <- substitutePath (path osc) playmap'
