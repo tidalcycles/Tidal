@@ -1,5 +1,21 @@
 # TidalCycles log of changes
 
+## 1.7 - IKLECTIK
+	* Added drum aliases from GM2 percussion spec to `drum` function @lvm
+	* `getcps` helper function now in BootTidal.hs @yaxu
+	* `getnow` helper function back in BootTidal.hs (returns current cycle) @bgold-cosmos
+	* Developments towards tidal api, @yaxu et al
+	* `coarse` parameter is now floating point @lwlsn
+	* `irand` parameter now patternable @ndr_brt
+ 	* `note` now produces its own type to avoid conflicts between parsing note names and duration shorthands  @ndr_brt
+	* Numerous tidal-parse improvements and additions @dktr0 et al
+	* `grain` function for combining begin and end (in terms of begin and duration) @khoparzi
+	* Added missing pB and pR functions @thgrund
+	* Emacs plugin bugfixes @jwaldmann
+	* `binaryN` parameters now fully patternable @ndr_brt
+	* `press` and `pressBy` functions for syncopation @yaxu
+
+
 ## 1.6.1 - We are not DJs
 	* Patternise first parameter of chunk @lwlsn
 	* Patternise fit parameter @bgold-cosmos

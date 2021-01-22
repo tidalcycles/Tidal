@@ -21,6 +21,7 @@ module Sound.Tidal.Params where
 import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Pattern
+import Sound.Tidal.Core ((#))
 import Sound.Tidal.Utils
 import Data.Maybe (fromMaybe)
 import Data.Word (Word8)
@@ -35,14 +36,14 @@ grp fs p = splitby <$> p
 
 mF :: String -> String -> ControlMap
 mF name v = fromMaybe Map.empty $ do f <- readMaybe v
-                                     return $ Map.singleton name (VF f Nothing)
+                                     return $ Map.singleton name (VF f)
 
 mI :: String -> String -> ControlMap
 mI name v = fromMaybe Map.empty $ do i <- readMaybe v
-                                     return $ Map.singleton name (VI i Nothing)
+                                     return $ Map.singleton name (VI i)
 
 mS :: String -> String -> ControlMap
-mS name v = Map.singleton name (VS v Nothing)
+mS name v = Map.singleton name (VS v)
 
 -- | Grouped params
 
@@ -61,26 +62,26 @@ nrpn = grp [mI "nrpn", mI "val"]
 -- | Singular params
 
 pF :: String -> Pattern Double -> ControlPattern
-pF name = fmap (Map.singleton name . (flip VF) Nothing)
+pF name = fmap (Map.singleton name . VF)
 
 pI :: String -> Pattern Int -> ControlPattern
-pI name = fmap (Map.singleton name . (flip VI) Nothing)
+pI name = fmap (Map.singleton name . VI)
 
 pB :: String -> Pattern Bool -> ControlPattern
-pB name = fmap (Map.singleton name . (flip VB) Nothing)
+pB name = fmap (Map.singleton name . VB)
  
 pR :: String -> Pattern Rational -> ControlPattern
-pR name = fmap (Map.singleton name . (flip VR) Nothing)
+pR name = fmap (Map.singleton name . VR)
 
 -- | params for note
 pN :: String -> Pattern Note -> ControlPattern
-pN name = fmap (Map.singleton name . (flip VN) Nothing)
+pN name = fmap (Map.singleton name . VN)
 
 pS :: String -> Pattern String -> ControlPattern
-pS name = fmap (Map.singleton name . (flip VS) Nothing)
+pS name = fmap (Map.singleton name . VS)
 
 pX :: String -> Pattern [Word8] -> ControlPattern
-pX name = fmap (Map.singleton name . (flip VX) Nothing)
+pX name = fmap (Map.singleton name . VX)
 
 -- | patterns for internal sound routing
 toArg :: Pattern String -> ControlPattern
@@ -330,6 +331,10 @@ overshape = pF "overshape"
 -- | a pattern of numbers between 0 and 1, from left to right (assuming stereo), once round a circle (assuming multichannel)
 pan :: Pattern Double -> ControlPattern
 pan = pF "pan"
+
+panbus :: Pattern Int -> Pattern Double -> ControlPattern
+panbus busid pat = (pF "pan" pat) # (pI "^pan" busid)
+
 -- | a pattern of numbers between -inf and inf, which controls how much multichannel output is fanned out (negative is backwards ordering)
 panspan :: Pattern Double -> ControlPattern
 panspan = pF "span"

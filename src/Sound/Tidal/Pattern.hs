@@ -35,7 +35,6 @@ import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
 import           Data.Typeable (Typeable)
 import           Control.DeepSeq (NFData)
 import           Data.Word (Word8)
-import           Sound.Tidal.Utils (matchMaybe)
 ------------------------------------------------------------------------
 -- * Types
 
@@ -275,13 +274,13 @@ type Query a = (State -> [Event a])
 data Pattern a = Pattern {query :: Query a}
   deriving Generic
 
-data Value = VS { svalue :: String,   vbus :: Maybe Int }
-           | VF { fvalue :: Double,   vbus :: Maybe Int }
-           | VN { nvalue :: Note,     vbus :: Maybe Int }
-           | VR { rvalue :: Rational, vbus :: Maybe Int }
-           | VI { ivalue :: Int,      vbus :: Maybe Int }
-           | VB { bvalue :: Bool,     vbus :: Maybe Int }
-           | VX { xvalue :: [Word8],  vbus :: Maybe Int } -- Used for OSC 'blobs'
+data Value = VS { svalue :: String   }
+           | VF { fvalue :: Double   }
+           | VN { nvalue :: Note     }
+           | VR { rvalue :: Rational }
+           | VI { ivalue :: Int      }
+           | VB { bvalue :: Bool     }
+           | VX { xvalue :: [Word8]  } -- Used for OSC 'blobs'
            deriving (Typeable, Data, Generic)
 
 class Valuable a where
@@ -290,70 +289,70 @@ class Valuable a where
 instance NFData Value
 
 instance Valuable String where
-  toValue a = VS a Nothing
+  toValue a = VS a
 instance Valuable Double where
-  toValue a = VF a Nothing
+  toValue a = VF a
 instance Valuable Rational where
-  toValue a = VR a Nothing
+  toValue a = VR a
 instance Valuable Int where
-  toValue a = VI a Nothing
+  toValue a = VI a
 instance Valuable Bool where
-  toValue a = VB a Nothing
+  toValue a = VB a
 instance Valuable [Word8] where
-  toValue a = VX a Nothing
+  toValue a = VX a
 
 instance Eq Value where
-  (VS x _) == (VS y _) = x == y
-  (VB x _) == (VB y _) = x == y
-  (VF x _) == (VF y _) = x == y
-  (VI x _) == (VI y _) = x == y
-  (VN x _) == (VN y _) = x == y
-  (VR x _) == (VR y _) = x == y
-  (VX x _) == (VX y _) = x == y
+  (VS x) == (VS y) = x == y
+  (VB x) == (VB y) = x == y
+  (VF x) == (VF y) = x == y
+  (VI x) == (VI y) = x == y
+  (VN x) == (VN y) = x == y
+  (VR x) == (VR y) = x == y
+  (VX x) == (VX y) = x == y
   
-  (VF x _) == (VI y _) = x == fromIntegral y
-  (VI y _) == (VF x _) = x == fromIntegral y
+  (VF x) == (VI y) = x == fromIntegral y
+  (VI y) == (VF x) = x == fromIntegral y
 
-  (VF x _) == (VR y _) = toRational x == y
-  (VR y _) == (VF x _) = toRational x == y
-  (VI x _) == (VR y _) = toRational x == y
-  (VR y _) == (VI x _) = toRational x == y
+  (VF x) == (VR y) = toRational x == y
+  (VR y) == (VF x) = toRational x == y
+  (VI x) == (VR y) = toRational x == y
+  (VR y) == (VI x) = toRational x == y
 
   _ == _ = False
   
 instance Ord Value where
-  compare (VS x _) (VS y _) = compare x y
-  compare (VB x _) (VB y _) = compare x y
-  compare (VF x _) (VF y _) = compare x y
-  compare (VN x _) (VN y _) = compare (unNote x) (unNote y)
-  compare (VI x _) (VI y _) = compare x y
-  compare (VR x _) (VR y _) = compare x y
-  compare (VX x _) (VX y _) = compare x y
+  compare (VS x) (VS y) = compare x y
+  compare (VB x) (VB y) = compare x y
+  compare (VF x) (VF y) = compare x y
+  compare (VN x) (VN y) = compare (unNote x) (unNote y)
+  compare (VI x) (VI y) = compare x y
+  compare (VR x) (VR y) = compare x y
+  compare (VX x) (VX y) = compare x y
 
-  compare (VS _ _) _ = LT
-  compare _ (VS _ _) = GT
-  compare (VB _ _) _ = LT
-  compare _ (VB _ _) = GT
-  compare (VX _ _) _ = LT
-  compare _ (VX _ _) = GT
+  compare (VS _) _ = LT
+  compare _ (VS _) = GT
+  compare (VB _) _ = LT
+  compare _ (VB _) = GT
+  compare (VX _) _ = LT
+  compare _ (VX _) = GT
 
-  compare (VF x _) (VI y _) = compare x (fromIntegral y)
-  compare (VI x _) (VF y _) = compare (fromIntegral x) y
+  compare (VF x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VF y) = compare (fromIntegral x) y
 
-  compare (VR x _) (VI y _) = compare x (fromIntegral y)
-  compare (VI x _) (VR y _) = compare (fromIntegral x) y
+  compare (VR x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VR y) = compare (fromIntegral x) y
 
-  compare (VF x _) (VR y _) = compare x (fromRational y)
-  compare (VR x _) (VF y _) = compare (fromRational x) y
+  compare (VF x) (VR y) = compare x (fromRational y)
+  compare (VR x) (VF y) = compare (fromRational x) y
 
-  compare (VN x _) (VI y _) = compare x (fromIntegral y)
-  compare (VI x _) (VN y _) = compare (fromIntegral x) y
+  compare (VN x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VN y) = compare (fromIntegral x) y
 
-  compare (VN x _) (VR y _) = compare (unNote x) (fromRational y)
-  compare (VR x _) (VN y _) = compare (fromRational x) (unNote y)
+  compare (VN x) (VR y) = compare (unNote x) (fromRational y)
+  compare (VR x) (VN y) = compare (fromRational x) (unNote y)
 
-  compare (VF x _) (VN y _) = compare x (unNote y)
-  compare (VN x _) (VF y _) = compare (unNote x) y
+  compare (VF x) (VN y) = compare x (unNote y)
+  compare (VN x) (VF y) = compare (unNote x) y
 
 
 type StateMap = Map.Map String (Pattern Value)
@@ -509,10 +508,10 @@ class TolerantEq a where
    (~==) :: a -> a -> Bool
 
 instance TolerantEq Value where
-         (VS a _) ~== (VS b _) = a == b
-         (VI a _) ~== (VI b _) = a == b
-         (VR a _) ~== (VR b _) = a == b
-         (VF a _) ~== (VF b _) = abs (a - b) < 0.000001
+         (VS a) ~== (VS b) = a == b
+         (VI a) ~== (VI b) = a == b
+         (VR a) ~== (VR b) = a == b
+         (VF a) ~== (VF b) = abs (a - b) < 0.000001
          _ ~== _ = False
 
 instance TolerantEq ControlMap where
@@ -611,13 +610,13 @@ instance Num ControlMap where
   negate      = (applyFIS negate negate id <$>)
   (+)         = Map.unionWith (fNum2 (+) (+))
   (*)         = Map.unionWith (fNum2 (*) (*))
-  fromInteger i = Map.singleton "n" $ VI (fromInteger i) Nothing
+  fromInteger i = Map.singleton "n" $ VI (fromInteger i)
   signum      = (applyFIS signum signum id <$>)
   abs         = (applyFIS abs abs id <$>)
 
 instance Fractional ControlMap where
   recip        = fmap (applyFIS recip id id)
-  fromRational r = Map.singleton "speed" $ VF (fromRational r) Nothing
+  fromRational r = Map.singleton "speed" $ VF (fromRational r)
 
 ------------------------------------------------------------------------
 -- * Internal functions
@@ -675,52 +674,52 @@ withPart f = withEvent (\(Event c w p v) -> Event c w (f p) v)
 
 -- | Apply one of three functions to a Value, depending on its type
 applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value -> Value
-applyFIS f _ _ (VF f' b) = VF (f f') b
-applyFIS f _ _ (VN (Note f') b) = VN (Note $ f f') b
-applyFIS _ f _ (VI i  b) = VI (f i) b
-applyFIS _ _ f (VS s  b) = VS (f s) b
+applyFIS f _ _ (VF f') = VF (f f')
+applyFIS f _ _ (VN (Note f')) = VN (Note $ f f')
+applyFIS _ f _ (VI i) = VI (f i)
+applyFIS _ _ f (VS s) = VS (f s)
 applyFIS _ _ _ v = v
 
 -- | Apply one of two functions to a pair of Values, depending on their types (int
 -- or float; strings and rationals are ignored)
 fNum2 :: (Int -> Int -> Int) -> (Double -> Double -> Double) -> Value -> Value -> Value
-fNum2 fInt _      (VI a abus) (VI b bbus) = VI (fInt a b) (matchMaybe abus bbus)
-fNum2 _    fFloat (VF a abus) (VF b bbus) = VF (fFloat a b) (matchMaybe abus bbus)
-fNum2 _    fFloat (VN (Note a) abus) (VN (Note b) bbus) = VN (Note $ fFloat a b) (matchMaybe abus bbus)
-fNum2 _    fFloat (VI a abus) (VF b bbus) = VF (fFloat (fromIntegral a) b) (matchMaybe abus bbus)
-fNum2 _    fFloat (VF a abus) (VI b bbus) = VF (fFloat a (fromIntegral b)) (matchMaybe abus bbus)
+fNum2 fInt _      (VI a) (VI b) = VI (fInt a b)
+fNum2 _    fFloat (VF a) (VF b) = VF (fFloat a b)
+fNum2 _    fFloat (VN (Note a)) (VN (Note b)) = VN (Note $ fFloat a b)
+fNum2 _    fFloat (VI a) (VF b) = VF (fFloat (fromIntegral a) b)
+fNum2 _    fFloat (VF a) (VI b) = VF (fFloat a (fromIntegral b))
 fNum2 _    _      x      _      = x
 
 getI :: Value -> Maybe Int
-getI (VI i _) = Just i
-getI (VR x _) = Just $ floor x
-getI (VF x _) = Just $ floor x
+getI (VI i) = Just i
+getI (VR x) = Just $ floor x
+getI (VF x) = Just $ floor x
 getI _  = Nothing
 
 getF :: Value -> Maybe Double
-getF (VF f _) = Just f
-getF (VR x _) = Just $ fromRational x
-getF (VI x _) = Just $ fromIntegral x
+getF (VF f) = Just f
+getF (VR x) = Just $ fromRational x
+getF (VI x) = Just $ fromIntegral x
 getF _  = Nothing
 
 getN :: Value -> Maybe Note
-getN (VF f _) = Just $ Note f
-getN (VR x _) = Just $ Note $ fromRational x
-getN (VI x _) = Just $ Note $ fromIntegral x
+getN (VF f) = Just $ Note f
+getN (VR x) = Just $ Note $ fromRational x
+getN (VI x) = Just $ Note $ fromIntegral x
 getN _  = Nothing
 
 getS :: Value -> Maybe String
-getS (VS s _) = Just s
+getS (VS s) = Just s
 getS _  = Nothing
 
 getB :: Value -> Maybe Bool
-getB (VB b _) = Just b
+getB (VB b) = Just b
 getB _  = Nothing
 
 getR :: Value -> Maybe Rational
-getR (VR r _) = Just r
-getR (VF x _) = Just $ toRational x
-getR (VI x _) = Just $ toRational x
+getR (VR r) = Just r
+getR (VF x) = Just $ toRational x
+getR (VI x) = Just $ toRational x
 getR _  = Nothing
 
 
@@ -748,7 +747,7 @@ extractR :: String -> ControlPattern -> Pattern Rational
 extractR = _extract getR
 
 getBlob :: Value -> Maybe [Word8]
-getBlob (VX xs _) = Just xs
+getBlob (VX xs) = Just xs
 getBlob _  = Nothing
 
 compressArc :: Arc -> Pattern a -> Pattern a
@@ -836,7 +835,3 @@ matchManyToOne f pa pb = pa {query = q}
                 where as' = as $ start $ wholeOrPart ex
             as s = query pa $ fQuery s
             fQuery s = st {arc = Arc s s}
-
--- Set the bus for values within a control pattern
-dial :: Int -> ControlPattern -> ControlPattern
-dial i = fmap (fmap (\v -> v {vbus = Just i}))

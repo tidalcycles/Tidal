@@ -2,22 +2,13 @@
 
 module Sound.Tidal.ExceptionsTest where
 
-import TestUtils
 import Test.Microspec
 import Control.Exception
 import Control.DeepSeq
 import Data.Typeable (typeOf)
 import Prelude hiding ((<*), (*>))
 
-import qualified Data.Map.Strict as Map
-
--- import Sound.Tidal.Pattern
-import Sound.Tidal.Control
-import Sound.Tidal.Core
-import Sound.Tidal.Params
-import Sound.Tidal.ParseBP
 import Sound.Tidal.Pattern
-import Sound.Tidal.UI
 
 run :: Microspec ()
 run =
@@ -42,10 +33,12 @@ action `shouldThrow` p = prop "shouldThrow" $ monadicIO $ do
       Test.Microspec.assert $ p e
   where
     -- a string repsentation of the expected exception's type
+    {-
     exceptionType = (show . typeOf . instanceOf) p
       where
         instanceOf :: Selector a -> a
         instanceOf _ = error "Test.Hspec.Expectations.shouldThrow: broken Typeable instance"
+    -}
 
 -- |
 -- A @Selector@ is a predicate; it can simultaneously constrain the type and
