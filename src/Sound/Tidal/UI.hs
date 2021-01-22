@@ -25,11 +25,6 @@ import           Prelude hiding ((<*), (*>))
 
 import           Data.Char (digitToInt, isDigit, ord)
 import           Data.Bits (testBit, Bits, xor, shiftL, shiftR)
--- import           System.Random (randoms, mkStdGen)
--- import           Control.Monad.ST
--- import           Control.Monad.Primitive (PrimState, PrimMonad)
--- import qualified Data.Vector as V
--- import           Data.Word (Word32)
 import           Data.Ratio ((%))
 import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
@@ -225,7 +220,6 @@ d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
 @
 
 -}
-
 degradeBy :: Pattern Double -> Pattern a -> Pattern a
 degradeBy = tParam _degradeBy
 
@@ -333,8 +327,6 @@ d1 $ slow 2 $ sound "[[[feel:5*8,feel*3] feel:3*8]?, feel*4]"
 -}
 degrade :: Pattern a -> Pattern a
 degrade = _degradeBy 0.5
-
-
 
 {- | (The above means that `brak` is a function from patterns of any type,
 to a pattern of the same type.)
@@ -476,7 +468,6 @@ Above, the pattern will have these transforms applied to it, one at a time, per 
 
 After `(# speed "0.8")`, the transforms will repeat and start at `density 2` again.
 -}
-
 spread :: (a -> t -> Pattern b) -> [a] -> t -> Pattern b
 spread f xs p = slowcat $ map (`f` p) xs
 
@@ -521,8 +512,6 @@ spreadChoose f vs p = do v <- _segment 1 (choose vs)
 
 spreadr :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
 spreadr = spreadChoose
-
-
 
 {-| Decide whether to apply one or another function depending on the result of a test function that is passed the current cycle as a number.
 
@@ -661,7 +650,6 @@ d1 $ sound "[bd bd] hh cp sd"
 @
 
 -}
-
 within' :: (Time, Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 within' a@(s, e) f p =
   stack [ filterWhen (\t -> cyclePos t >= s && cyclePos t < e) $ compress a $ f $ zoom a p
@@ -721,27 +709,12 @@ euclid = tParam2 _euclid
 _euclid :: Int -> Int -> Pattern a -> Pattern a
 _euclid n k a = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
 
--- _euclid :: Int -> Int -> Pattern a -> Pattern a
--- _euclid n k p = flip const <$> filterValues (== True) (fastFromList $ bjorklund (n,k)) <*> p
-
 {- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
 euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
---euclidFull pn pk pa pb = innerJoin $ (\n k -> _euclidFull n k pa pb) <$> pn <*> pk
 euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
 
 _euclidBool :: Int -> Int -> Pattern Bool
 _euclidBool n k = fastFromList $ bjorklund (n,k)
-
-{-_euclidFull :: Int -> Int -> Pattern a -> Pattern a -> Pattern a
-  _euclidFull n k p p' = pickbool <$> _euclidBool n k <*> p <*> p'
-    where pickbool True a _ = a
-          pickbool False _ b = b
--}
-
-
-
--- euclid' :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
--- euclid' = tParam2 _euclidq'
 
 _euclid' :: Int -> Int -> Pattern a -> Pattern a
 _euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
@@ -788,7 +761,6 @@ euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclidInv = tParam2 _euclidInv
 
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
---_euclidInv n k p = flip const <$> filterValues (== False) (fastFromList $ bjorklund (n,k)) <*> p
 _euclidInv n k a = fastcat $ fmap (bool a silence) $ bjorklund (n,k)
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
@@ -995,7 +967,8 @@ _fit perCycle xs p = (xs !!!) <$> (p {query = map (\e -> fmap (+ pos e) e) . que
   where pos e = perCycle * floor (start $ part e)
 
 fit :: Pattern Int -> [a] -> Pattern Int -> Pattern a
-fit pi xs p = (tParam ( \i x@(xs,p) -> _fit i xs p )) pi (xs,p)
+fit pint xs p = (tParam func) pint (xs,p)
+  where func = \i @_(xs',p') -> _fit i xs' p'
 
 permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
 permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! floor (n * fromIntegral (length ps - 1))) things) <$> _segment 1 p
@@ -1013,7 +986,6 @@ struct :: Pattern Bool -> Pattern a -> Pattern a
 struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <* pv
 
 -- | @substruct a b@: similar to @struct@, but each event in pattern @a@ gets replaced with pattern @b@, compressed to fit the timespan of the event.
-
 substruct :: Pattern Bool -> Pattern b -> Pattern b
 substruct s p = p {query = f}
   where f st =
@@ -1170,17 +1142,8 @@ d1 $ s (mask ("1 ~ 1 ~ 1 1 ~ 1")
   # n (run 8)
 @
 -}
-
 mask :: Pattern Bool -> Pattern a -> Pattern a
 mask b p = const <$> p <* (filterValues id b)
-
-{-
-mask :: Pattern Bool -> Pattern b -> Pattern b
--- TODO - should that be part or whole?
-mask pa pb = pb {query = \st -> concat [filterOns (subArc (arc st) $ part i) (query pb st) | i <- query pa st]}
-     where filterOns Nothing _ = []
-           filterOns (Just a) es = filter (onsetIn a) es
--}
 
 -- | TODO: refactor towards union
 enclosingArc :: [Arc] -> Arc
@@ -1230,13 +1193,6 @@ _chunk n f p = cat [withinArc (Arc (i % fromIntegral n) ((i+1) % fromIntegral n)
 chunk :: Pattern Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 chunk npat f p  = innerJoin $ (\n -> _chunk n f p) <$> npat
 
-
-
-{-
-chunk n f p = do i <- _slow (toRational n) $ run (fromIntegral n)
-                 within (i%(fromIntegral n),(i+)1%(fromIntegral n)) f p
--}
-
 -- deprecated (renamed to chunk)
 runWith :: Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 runWith = _chunk
@@ -1250,17 +1206,6 @@ _chunk' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
 
 chunk' :: Integral a1 => Pattern a1 -> (Pattern a2 -> Pattern a2) -> Pattern a2 -> Pattern a2
 chunk' npat f p = innerJoin $ (\n -> _chunk' n f p) <$> npat
-
-
--- deprecated (renamed to chunk')
--- runWith' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
--- runWith' = chunk'
-
---
-
-
-
-
 
 inside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 inside n f p = density n $ f (slow n p)
@@ -1475,11 +1420,11 @@ fill p' p = struct (splitQueries $ p {query = q}) p'
 -}
 
 -- Repeats each event @n@ times within its arc
-ply :: Pattern Int -> Pattern a -> Pattern a
+ply :: Pattern Rational -> Pattern a -> Pattern a
 ply = tParam _ply
 
-_ply :: Int -> Pattern a -> Pattern a
-_ply n p = arpeggiate $ stack (replicate n p)
+_ply :: Rational -> Pattern a -> Pattern a
+_ply n pat = squeezeJoin $ (_fast n . pure) <$> pat
 
 -- Like ply, but applies a function each time. The applications are compounded.
 plyWith :: (Ord t, Num t) => Pattern t -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
@@ -1489,6 +1434,17 @@ _plyWith :: (Ord t, Num t) => t -> (Pattern a -> Pattern a) -> Pattern a -> Patt
 _plyWith numPat f p = arpeggiate $ compound numPat
   where compound n | n <= 1 = p
                    | otherwise = overlay p (f $ compound $ n-1)
+
+-- | Syncopates a rhythm, shifting each event halfway into its arc (aka timespan), e.g. @"a b [c d] e"@ becomes the equivalent of @"[~ a] [~ b] [[~ c] [~ d]] [~ e]"@
+press :: Pattern a -> Pattern a
+press = _pressBy 0.5
+
+-- | Like @press@, but allows you to specify the amount in which each event is shifted. @pressBy 0.5@ is the same as @press@, while @pressBy (1/3)@ shifts each event by a third of its arc.
+pressBy :: Pattern Time -> Pattern a -> Pattern a
+pressBy = tParam _pressBy
+
+_pressBy :: Time -> Pattern a -> Pattern a
+_pressBy r pat = squeezeJoin $ (compressTo (r,1) . pure) <$> pat
 
 -- | Uses the first (binary) pattern to switch between the following
 -- two patterns. The resulting structure comes from the source patterns, not the
@@ -1650,7 +1606,6 @@ d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
   |+ speed (slow 4 $ range 1 1.5 sine1)
 @
 -}
-
 range :: Num a => Pattern a -> Pattern a -> Pattern a -> Pattern a
 range fromP toP p = (\from to v -> ((v * (to-from)) + from)) <$> fromP *> toP *> p
 
@@ -1744,8 +1699,6 @@ _pickF i fs p =  (fs !!! i) p
 -- For example in @contrast (n "1") (# crush 3) (# vowel "a") $ n "0 1" # s "bd sn" # speed 3@,
 -- the first event will have the vowel effect applied and the second
 -- will have the crush applied.
-
-
 contrast :: (ControlPattern -> ControlPattern) -> (ControlPattern -> ControlPattern)
             -> ControlPattern -> ControlPattern -> ControlPattern
 contrast = contrastBy (==)
@@ -1770,9 +1723,10 @@ contrastRange
      -> ControlPattern
      -> Pattern a
 contrastRange = contrastBy f
-      where f (VI s _, VI e _) (VI v _) = v >= s && v <= e
-            f (VF s _, VF e _) (VF v _) = v >= s && v <= e
-            f (VS s _, VS e _) (VS v _) = v == s && v == e
+      where f (VI s, VI e) (VI v) = v >= s && v <= e
+            f (VF s, VF e) (VF v) = v >= s && v <= e
+            f (VN s, VN e) (VN v) = v >= s && v <= e
+            f (VS s, VS e) (VS v) = v == s && v == e
             f _ _ = False
 
 -- | Like @contrast@, but one function is given, and applied to events with matching controls.
@@ -1906,7 +1860,6 @@ deconstruct n p = intercalate " " $ map showStep $ toList p
   slices a pattern `pat` into `n` pieces, then uses the `ipat` pattern of integers to index into those slices.
   So `bite 4 "0 2*2" (run 8)` is the same as `"[0 1] [4 5]*2"`.
 -}
-
 bite :: Int -> Pattern Int -> Pattern a -> Pattern a
 bite n ipat pat = squeezeJoin $ zoompat <$> ipat
   where zoompat i = zoom (i'/(fromIntegral n), (i'+1)/(fromIntegral n)) pat
@@ -1917,7 +1870,6 @@ bite n ipat pat = squeezeJoin $ zoompat <$> ipat
 squeeze :: Pattern Int -> [Pattern a] -> Pattern a
 squeeze _ [] = silence
 squeeze ipat pats = squeezeJoin $ (pats !!!) <$> ipat
-
 
 squeezeJoinUp :: Pattern (ControlPattern) -> ControlPattern
 squeezeJoinUp pp = pp {query = q}
@@ -1947,11 +1899,19 @@ __binary n num = map (testBit num) $ reverse [0 .. n-1]
 _binary :: Data.Bits.Bits b => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
 
-binaryN :: Int -> Pattern Int -> Pattern Bool
-binaryN n p = squeezeJoin $ _binary n <$> p
+_binaryN :: Int -> Pattern Int -> Pattern Bool
+_binaryN n p = squeezeJoin $ _binary n <$> p
+
+binaryN :: Pattern Int -> Pattern Int -> Pattern Bool
+binaryN n p = tParam _binaryN n p
 
 binary :: Pattern Int -> Pattern Bool
 binary = binaryN 8
 
 ascii :: Pattern String -> Pattern Bool
 ascii p = squeezeJoin $ (listToPat . concatMap (__binary 8 . ord)) <$> p
+
+grain :: Pattern Double -> Pattern Double -> ControlPattern
+grain s w = P.begin b # P.end e
+  where b = s
+        e = s + w

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleInstances, CPP #-}
+{-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleInstances, CPP, DeriveFunctor #-}
 {-# LANGUAGE LambdaCase #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-unused-do-bind #-}
 
@@ -75,7 +75,7 @@ data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
             | TPat_Repeat Int (TPat a)
             | TPat_EnumFromTo (TPat a) (TPat a)
             | TPat_Var String
-            deriving (Show)
+            deriving (Show, Functor)
 
 tShowList :: (Show a) => [TPat a] -> String
 tShowList vs = "[" ++ (intercalate "," $ map tShow vs) ++ "]"
@@ -214,6 +214,15 @@ instance Parseable Double where
   getControl = cF_
 
 instance Enumerable Double where
+  fromTo = enumFromTo'
+  fromThenTo = enumFromThenTo'
+  
+instance Parseable Note where
+  tPatParser = pNote
+  doEuclid = euclidOff
+  getControl = cN_
+
+instance Enumerable Note where
   fromTo = enumFromTo'
   fromThenTo = enumFromThenTo'
 
@@ -441,16 +450,18 @@ pChar :: MyParser (TPat Char)
 pChar = wrapPos $ (TPat_Atom Nothing) <$> pCharNum
 
 pDouble :: MyParser (TPat Double)
-pDouble = wrapPos $ do f <- choice [intOrFloat, parseNote] <?> "float"
-                       do c <- parseChord
-                          return $ TPat_Stack $ map ((TPat_Atom Nothing) . (+f)) c
+pDouble = wrapPos $ do f <- choice [intOrFloat, pRatioChar, parseNote] <?> "float"
+                       do TPat_Stack . map ((TPat_Atom Nothing) . (+ f)) <$> parseChord
                          <|> return (TPat_Atom Nothing f)
                       <|>
-                         do c <- parseChord
-                            return $ TPat_Stack $ map (TPat_Atom Nothing) c
-                      <|>
-                         do r <- pRatioChar
-                            return $ TPat_Atom Nothing r
+                         do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
+ 
+pNote :: MyParser (TPat Note)
+pNote = wrapPos $ fmap (fmap Note) $ do f <- choice [intOrFloat, parseNote] <?> "float"
+                                        do TPat_Stack . map ((TPat_Atom Nothing) . (+ f)) <$> parseChord <|> return (TPat_Atom Nothing f)
+                                           <|> do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
+                                           <|> do TPat_Atom Nothing <$> pRatioChar
+                      
 
 pBool :: MyParser (TPat Bool)
 pBool = wrapPos $ do oneOf "t1"
