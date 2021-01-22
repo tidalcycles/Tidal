@@ -27,7 +27,6 @@ module Sound.Tidal.Pattern where
 import           Prelude hiding ((<*), (*>))
 
 import           Control.Applicative (liftA2)
---import           Data.Bifunctor (Bifunctor(..))
 import           Data.Data (Data) -- toConstr
 import           GHC.Generics
 import           Data.List (delete, findIndex, sort)

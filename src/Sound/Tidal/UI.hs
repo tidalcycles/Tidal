@@ -1860,8 +1860,11 @@ deconstruct n p = intercalate " " $ map showStep $ toList p
   slices a pattern `pat` into `n` pieces, then uses the `ipat` pattern of integers to index into those slices.
   So `bite 4 "0 2*2" (run 8)` is the same as `"[0 1] [4 5]*2"`.
 -}
-bite :: Int -> Pattern Int -> Pattern a -> Pattern a
-bite n ipat pat = squeezeJoin $ zoompat <$> ipat
+bite :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+bite npat ipat pat = innerJoin $ (\n -> _bite n ipat pat) <$> npat
+
+_bite :: Int -> Pattern Int -> Pattern a -> Pattern a
+_bite n ipat pat = squeezeJoin $ zoompat <$> ipat
   where zoompat i = zoom (i'/(fromIntegral n), (i'+1)/(fromIntegral n)) pat
            where i' = fromIntegral $ i `mod` n
 

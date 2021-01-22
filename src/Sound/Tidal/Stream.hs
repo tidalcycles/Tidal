@@ -29,11 +29,6 @@ import           Control.Monad (forM_, when)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (fromJust, fromMaybe, catMaybes, isJust)
 import qualified Control.Exception as E
--- import Control.Monad.Reader
--- import Control.Monad.Except
--- import qualified Data.Bifunctor as BF
--- import qualified Data.Bool as B
--- import qualified Data.Char as C
 import           System.IO (hPutStrLn, stderr)
 
 import qualified Sound.OSC.FD as O

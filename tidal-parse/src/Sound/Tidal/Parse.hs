@@ -507,7 +507,6 @@ pInt_p_p =
     $(fromTidal "shuffle") <|>
     $(fromTidal "scramble") <|>
     $(fromTidal "repeatCycles") <|>
-    int_pInt_p_p <*> parser <|>
     pInt_pInt_p_p <*> parser
 
 pInt_pOrd_pOrd :: Ord a => H (Pattern Int -> Pattern a -> Pattern a)
@@ -657,8 +656,9 @@ numTernaryTransformations = $(fromTidal "range")
 
 instance Parse (Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern) where
   parser = $(fromTidal "slice") <|>
+           $(fromTidal "splice") <|>
            $(fromTidal "chew") <|>
-           $(fromTidal "splice")
+           $(fromTidal "bite")
 
 instance Parse (Time -> Time -> Pattern a -> Pattern a) where
   parser = $(fromTidal "playFor")
@@ -671,10 +671,6 @@ instance Parse (Pattern Bool -> Pattern a -> Pattern a -> Pattern a) where
 
 instance Parse (Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "while")
-
-int_pInt_p_p :: H (Int -> Pattern Int -> Pattern a -> Pattern a)
-int_pInt_p_p =
-  $(fromTidal "bite")
 
 pInt_pInt_p_p :: H (Pattern Int -> Pattern Int -> Pattern a -> Pattern a)
 pInt_pInt_p_p =
