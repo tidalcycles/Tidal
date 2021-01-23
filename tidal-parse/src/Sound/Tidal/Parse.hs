@@ -604,7 +604,6 @@ genericAppliedTransformations =
   (parser :: H (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
   (parser :: H ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
   (parser :: H ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
-  (parser :: H (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser <|>
   (parser :: H (Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse ([a] -> Pattern Int -> Pattern a) where
@@ -699,7 +698,8 @@ instance Parse (Pattern Double -> Pattern Time -> ControlPattern -> ControlPatte
 instance Parse (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser =
     $(fromTidal "off") <|>
-    $(fromTidal "plyWith")
+    $(fromTidal "plyWith") <|>
+    (parser :: H (Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
 
 pTime_pAB_pA_pB :: H (Pattern Time -> (Pattern a -> Pattern b) -> Pattern a -> Pattern b)
 pTime_pAB_pA_pB =
@@ -730,9 +730,6 @@ instance Parse ([Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) whe
 instance Parse ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "within")
 
-instance Parse (Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
-  parser = (parser :: H (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*> parser
-
 instance Parse (Pattern Int -> [a] -> Pattern Int -> Pattern a) where
   parser = $(fromTidal "fit")
 
@@ -759,7 +756,7 @@ instance Parse (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPatt
 instance Parse (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "every'")
 
-instance Parse (Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+instance Parse (Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "whenmod")
 
 -- * -> * -> * -> * -> * -> *
