@@ -63,6 +63,14 @@ run =
         compareP (Arc 0 1)
           ("0.4 0.5? 0.6" :: Pattern Double)
           (fastcat[0.4, degradeByDefault 0.5, 0.6])
+      it "can handle ? on replicated value" $ do
+        compareP (Arc 0 1)
+          ("a!8?" :: Pattern String)
+          ("[a!8]?" :: Pattern String)
+      it "can handle ? on streched value" $ do
+        compareP (Arc 0 1)
+          ("a*4@0.25?" :: Pattern String)
+          ("[a*4@0.25]?" :: Pattern String)
       it "can stretch with @" $ do
         comparePD (Arc 0 1)
           ("a@2 b" :: Pattern String)
