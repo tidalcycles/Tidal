@@ -31,7 +31,7 @@ header = do x <- openFile "params-header.hs" ReadMode
             y <- hGetContents x
             putStr y
 
-controls = intercalate "\n" $ map fs $ sortBy (flip compare `on` (\(_,x,_) -> x)) genericParams
+controls = intercalate "\n" $ map fs $ sortBy (compare `on` (\(_,x,_) -> x)) genericParams
   where fs x = control x ++ bus x
         control (t, name, desc) =
           concat ["-- | " ++ desc ++ "\n",
@@ -44,13 +44,23 @@ controls = intercalate "\n" $ map fs $ sortBy (flip compare `on` (\(_,x,_) -> x)
                               ]
                           | otherwise = 
           concat [name, "bus :: Pattern Int -> ", toType t, " -> ControlPattern\n",
-                  name, "bus busid pat = (", toFunc t, " \"", name, "\" pat) # (pI \"^", name, "\" busid)\n"
+                  name, "bus busid pat = (", toFunc t, " \"", name, "\" pat) # (pI \"^", name, "\" busid)\n",
+                  name, "recv :: Pattern Int -> ControlPattern\n",
+                  name, "recv busid = pI \"^", name, "\" busid\n"
                  ]
 
 aliases = intercalate "\n" $ map fs $ sortBy (flip compare `on` (\(_,x,_) -> x)) aliasParams
   where fs (t, from, to) =
           concat [from, " :: ", toType t, " -> ControlPattern\n",
-                  from, " = ", to, "\n"
+                  from, " = ", to, "\n",
+                  if elem to nobus
+                  then ""
+                  else concat [
+                    from, "bus :: Pattern Int -> ", toType t, " -> ControlPattern\n",
+                    from, "bus = ", to, "bus\n",
+                    from, "recv :: Pattern Int -> ControlPattern\n",
+                    from, "recv = ", to, "recv\n"
+                    ]
                  ]
 
 nobus = ["midinote",
@@ -72,7 +82,8 @@ nobus = ["midinote",
          "overgain",
          "channel",
          "lag",
-         "offset"
+         "offset",
+         "sound"
         ]
 
 genericParams :: [(String, String, String)]
@@ -238,8 +249,8 @@ genericParams = [
   ("f", "val", ""),
   ("f", "cps", "")
  ]
- ++ (map (\i -> ("f", "slider" ++ show i, "")) [0 .. 63])
- ++ (map (\i -> ("f", "button" ++ show i, "")) [0 .. 63])
+ ++ (map (\i -> ("f", "slider" ++ show i, "")) [0 .. 15])
+ ++ (map (\i -> ("f", "button" ++ show i, "")) [0 .. 15])
 
 aliasParams :: [(String, String, String)]
 aliasParams =
