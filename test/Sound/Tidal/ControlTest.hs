@@ -9,7 +9,7 @@ import Prelude hiding ((<*), (*>))
 
 import Sound.Tidal.Control
 import Sound.Tidal.Core
-import Sound.Tidal.Params.Standard
+import Sound.Tidal.Params
 import Sound.Tidal.Pattern
 
 run :: Microspec ()

@@ -36,7 +36,6 @@ library
                        Sound.Tidal.Context
                        Sound.Tidal.Core
                        Sound.Tidal.Params
-                       Sound.Tidal.Params.Standard
                        Sound.Tidal.ParseBP
                        Sound.Tidal.Pattern
                        Sound.Tidal.Scales
