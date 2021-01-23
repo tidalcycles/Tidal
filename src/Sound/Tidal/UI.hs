@@ -25,6 +25,7 @@ import           Prelude hiding ((<*), (*>))
 
 import           Data.Char (digitToInt, isDigit, ord)
 import           Data.Bits (testBit, Bits, xor, shiftL, shiftR)
+import           Data.Fixed (mod')
 import           Data.Ratio ((%))
 import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
