@@ -552,8 +552,12 @@ as dense:
 d1 $ whenmod 8 4 (density 2) (sound "bd sn kurt")
 @
 -}
-whenmod :: (Ord b, Real b, Num b) => b -> b -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-whenmod a b = Sound.Tidal.Core.when (\t -> (((fromIntegral t) `mod'` a) >= b ))
+whenmod :: Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+whenmod a b f pat = innerJoin $ (\a' b' -> _whenmod a' b' f pat) <$> a <*> b
+
+_whenmod :: Time -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_whenmod a b = Sound.Tidal.Core.whenT (\t -> ((t `mod'` a) >= b ))
+
 
 {- |
 @
