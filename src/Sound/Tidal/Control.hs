@@ -397,20 +397,27 @@ sec p = (realToFrac <$> cF 1 "_cps") *| p
 msec :: Fractional a => Pattern a -> Pattern a
 msec p = ((realToFrac . (/1000)) <$> cF 1 "_cps") *| p
 
-_trigger :: Show a => Bool -> a -> Pattern b -> Pattern b
-_trigger quant k pat = pat {query = q}
+triggerWith :: Show a => (Time -> Time) -> a -> Pattern b -> Pattern b
+triggerWith f k pat = pat {query = q}
   where q st = query ((offset st) ~> pat) st
-        f | quant = (fromIntegral :: Int -> Rational) . ceiling
-          | otherwise = id
         offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
                                             return $ ((f . fromMaybe 0 . getR) <$> p)
         ctrl = "_t_" ++ show k
 
 trigger :: Show a => a -> Pattern b -> Pattern b
-trigger = _trigger False
+trigger = triggerWith id
+
+ctrigger :: Show a => a -> Pattern b -> Pattern b
+ctrigger = triggerWith $ (fromIntegral :: Int -> Rational) . ceiling
 
 qtrigger :: Show a => a -> Pattern b -> Pattern b
-qtrigger = _trigger True
+qtrigger = ctrigger
+
+rtrigger :: Show a => a -> Pattern b -> Pattern b
+rtrigger = triggerWith $ (fromIntegral :: Int -> Rational) . round
+
+ftrigger :: Show a => a -> Pattern b -> Pattern b
+ftrigger = triggerWith $ (fromIntegral :: Int -> Rational) . floor
 
 qt :: Show a => a -> Pattern b -> Pattern b
 qt = qtrigger
