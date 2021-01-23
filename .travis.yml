@@ -78,7 +78,7 @@ script:
       cabal v2-test  --allow-newer=base,template-haskell --enable-tests --enable-benchmarks all
       ;;
     stack)
-      stack --no-terminal $ARGS test --haddock --no-haddock-deps
+      stack --no-terminal $ARGS test 
       ;;
     werror)
       stack --no-terminal $ARGS test --haddock --no-haddock-deps --ghc-options -Werror --ghc-options -Wcompat --ghc-options -Wincomplete-record-updates --ghc-options -Wincomplete-uni-patterns --ghc-options -Wredundant-constraints
