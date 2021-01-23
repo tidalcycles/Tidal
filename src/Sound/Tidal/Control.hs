@@ -31,7 +31,7 @@ import Data.Ratio
 import Sound.Tidal.Pattern
 import Sound.Tidal.Core
 import Sound.Tidal.UI
-import qualified Sound.Tidal.Params.Standard as P
+import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Utils
 
 {- | `spin` will "spin" a layer up a pattern the given number of times,

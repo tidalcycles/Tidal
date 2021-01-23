@@ -34,7 +34,7 @@ import           Data.Bool (bool)
 
 import           Sound.Tidal.Bjorklund (bjorklund)
 import           Sound.Tidal.Core
-import qualified Sound.Tidal.Params.Standard as P
+import qualified Sound.Tidal.Params as P
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Utils
 

@@ -27,7 +27,6 @@ import Sound.Tidal.Config as C
 import Sound.Tidal.Control as C
 import Sound.Tidal.Core as C
 import Sound.Tidal.Params as C
-import Sound.Tidal.Params.Standard as C
 import Sound.Tidal.ParseBP as C
 import Sound.Tidal.Pattern as C
 import Sound.Tidal.Scales as C

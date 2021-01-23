@@ -12,7 +12,7 @@ import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Control
 import Sound.Tidal.Core
-import Sound.Tidal.Params.Standard (gain, pan)
+import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Stream
 import Sound.Tidal.Tempo (timeToCycles)
