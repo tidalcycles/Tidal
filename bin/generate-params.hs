@@ -1,7 +1,10 @@
-module Sound.Tidal.Params.Generate where
+
+-- This can be run with e.g.:
+-- runhaskell generate-params.txt > ../src/Sound/Tidal/Params.hs
 
 import Data.List
 import Data.Function
+import System.IO
 
 toType :: String -> String
 toType "s" = "Pattern String"
@@ -18,107 +21,15 @@ toFunc "note" = "pN"
 toFunc "[word8]" = "pX"
 
 main :: IO ()
-main = do putStr header
+main = do header
           putStr controls
           putStr "\n\n\n-- aliases\n\n"
           putStr aliases
 
-header = "module Sound.Tidal.Params.Standard where \n\
-\\n\
-\{-\n\
-\    Generic.hs - Generated from Sound.Tidal.Params.Generate\n\
-\    Copyright (C) 2021, Alex McLean and contributors\n\
-\-}\n\
-\\n\
-\import Data.Word (Word8)\n\n\
-\import Sound.Tidal.Pattern\n\
-\import Sound.Tidal.Core ((#))\n\
-\import Sound.Tidal.Params\n\n\
-\\n\
-\\n\
-\-- | Grouped params\n\
-\\n\
-\sound :: Pattern String -> ControlPattern\n\
-\sound = grp [mS \"s\", mF \"n\"]\n\
-\\n\
-\cc :: Pattern String -> ControlPattern\n\
-\cc = grp [mF \"ccn\", mF \"ccv\"]\n\
-\\n\
-\nrpn :: Pattern String -> ControlPattern\n\
-\nrpn = grp [mI \"nrpn\", mI \"val\"]\n\
-\\n\
-\grain' :: Pattern String -> ControlPattern\n\
-\grain' = grp [mF \"begin\", mF \"end\"]\n\
-\\n\
-\midinote :: Pattern Note -> ControlPattern\n\
-\midinote = note . (subtract 60 <$>)\n\
-\\n\
-\drum :: Pattern String -> ControlPattern\n\
-\drum = n . (subtract 60 . drumN <$>)\n\
-\\n\
-\drumN :: Num a => String -> a\n\
-\drumN \"hq\" = 27\n\
-\drumN \"sl\" = 28\n\
-\drumN \"ps\" = 29\n\
-\drumN \"pl\" = 30\n\
-\drumN \"st\" = 31\n\
-\drumN \"sq\" = 32\n\
-\drumN \"ml\" = 33\n\
-\drumN \"mb\" = 34\n\
-\drumN \"ab\" = 35\n\
-\drumN \"bd\" = 36\n\
-\drumN \"rm\" = 37\n\
-\drumN \"sn\" = 38\n\
-\drumN \"cp\" = 39\n\
-\drumN \"es\" = 40\n\
-\drumN \"lf\" = 41\n\
-\drumN \"ch\" = 42\n\
-\drumN \"lt\" = 43\n\
-\drumN \"hh\" = 44\n\
-\drumN \"ft\" = 45\n\
-\drumN \"oh\" = 46\n\
-\drumN \"mt\" = 47\n\
-\drumN \"hm\" = 48\n\
-\drumN \"cr\" = 49\n\
-\drumN \"ht\" = 50\n\
-\drumN \"ri\" = 51\n\
-\drumN \"cy\" = 52\n\
-\drumN \"be\" = 53\n\
-\drumN \"ta\" = 54\n\
-\drumN \"sc\" = 55\n\
-\drumN \"cb\" = 56\n\
-\drumN \"cs\" = 57\n\
-\drumN \"vi\" = 58\n\
-\drumN \"rc\" = 59\n\
-\drumN \"hb\" = 60\n\
-\drumN \"lb\" = 61\n\
-\drumN \"mh\" = 62\n\
-\drumN \"hc\" = 63\n\
-\drumN \"lc\" = 64\n\
-\drumN \"he\" = 65\n\
-\drumN \"le\" = 66\n\
-\drumN \"ag\" = 67\n\
-\drumN \"la\" = 68\n\
-\drumN \"ca\" = 69\n\
-\drumN \"ma\" = 70\n\
-\drumN \"sw\" = 71\n\
-\drumN \"lw\" = 72\n\
-\drumN \"sg\" = 73\n\
-\drumN \"lg\" = 74\n\
-\drumN \"cl\" = 75\n\
-\drumN \"hi\" = 76\n\
-\drumN \"li\" = 77\n\
-\drumN \"mc\" = 78\n\
-\drumN \"oc\" = 79\n\
-\drumN \"tr\" = 80\n\
-\drumN \"ot\" = 81\n\
-\drumN \"sh\" = 82\n\
-\drumN \"jb\" = 83\n\
-\drumN \"bt\" = 84\n\
-\drumN \"ct\" = 85\n\
-\drumN \"ms\" = 86\n\
-\drumN \"os\" = 87\n\
-\drumN _ = 0\n\n";
+header :: IO ()
+header = do x <- openFile "params-header.hs" ReadMode
+            y <- hGetContents x
+            putStr y
 
 controls = intercalate "\n" $ map fs $ sortBy (flip compare `on` (\(_,x,_) -> x)) genericParams
   where fs x = control x ++ bus x
@@ -171,7 +82,7 @@ genericParams = [
   ("f", "to", "for internal sound routing"),
   ("f", "accelerate", "a pattern of numbers that speed up (or slow down) samples while they play."),
   ("f", "amp", "like @gain@, but linear."),
-  ("f", "attack", "a pattern of numbers to specify the attack time (in seconds) of an envelope applied to each sample. Only takes effect if `release` is also specified."),
+  ("f", "attack", "a pattern of numbers to specify the attack time (in seconds) of an envelope applied to each sample."),
   ("f", "bandf", "a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter."),
   ("f", "bandq", "a pattern of anumbers from 0 to 1. Sets the q-factor of the band-pass filter."),
   ("f", "begin", "a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample."),
@@ -245,7 +156,7 @@ genericParams = [
   ("f", "pitch3", ""),
   ("f", "portamento", ""),
   ("f", "rate", "used in SuperDirt softsynths as a control rate or 'speed'"),
-  ("f", "release", "a pattern of numbers to specify the release time (in seconds) of an envelope applied to each sample. Only takes effect if `attack` is also specified."),
+  ("f", "release", "a pattern of numbers to specify the release time (in seconds) of an envelope applied to each sample."),
   ("f", "resonance", "a pattern of numbers from 0 to 1. Specifies the resonance of the low-pass filter."),
   ("f", "room", "a pattern of numbers from 0 to 1. Sets the level of reverb."),
   ("f", "sagogo", ""),
