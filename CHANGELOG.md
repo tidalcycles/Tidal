@@ -20,7 +20,6 @@
 	* `qtrigger` is now an alias for `ctrigger`, which now quantises to the _next_ cycle (via ceiling) @thgund / @yaxu
 	* There is now also `ftrigger` and `rtrigger` for floor (previous) and round (nearest) cycle
 	* `whenmod`'s first two parameters are now rationals, and patternable. @th-four / @yaxu
-	* `necklace` function for specifying a rhythm as a list of offsets (aka inter onset intervals)
 
 ## 1.6.1 - We are not DJs
 	* Patternise first parameter of chunk @lwlsn
