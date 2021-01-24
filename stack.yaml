@@ -1,10 +1,12 @@
-resolver: lts-12.20
+resolver: nightly-2020-11-19
 
 packages:
   - '.'
   - 'tidal-parse'
 
 extra-deps:
-  - hosc-0.17
+  - hosc-0.18.1
   - microspec-0.2.1.3
   - haskellish-0.2.3.1
+
+allow-newer: true
