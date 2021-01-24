@@ -27,6 +27,8 @@ matrix:
     - env: BUILD=cabal
       ghc: "8.0.2"
       # --system-ghc is used to take advantage of language: haskell and save build time. If the stack resolver ghc and system-ghc become different, stack will download the right ghc
+    - env: BUILD=stack ARGS="--resolver lts-16.31 --system-ghc"
+      ghc: "8.8.4"
     - env: BUILD=stack ARGS="--resolver lts-15.15 --system-ghc"
       ghc: "8.8.3"
     - env: BUILD=stack ARGS="--resolver lts-14.27 --system-ghc"
@@ -34,14 +36,14 @@ matrix:
     - env: BUILD=stack ARGS="--resolver lts-12.26 --system-ghc"
       ghc: "8.4.4"
       # a -Werror build that is allowed to fail
-    - env: BUILD=werror ARGS="--resolver lts-12.26 --system-ghc"
-      ghc: "8.4.4"
+    - env: BUILD=werror ARGS="--resolver nightly --system-ghc"
+      ghc: "8.10.3"
     - env: BUILD=stack ARGS="--resolver nightly --system-ghc"
-      ghc: "8.8.3"
+      ghc: "8.10.3"
 
   allow_failures:
     - env: BUILD=stack ARGS="--resolver nightly --system-ghc"
-    - env: BUILD=werror ARGS="--resolver lts-12.26 --system-ghc"
+    - env: BUILD=werror ARGS="--resolver nightly --system-ghc"
 
 install:
 - |
