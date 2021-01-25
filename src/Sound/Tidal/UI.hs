@@ -108,6 +108,17 @@ jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 rand :: Fractional a => Pattern a
 rand = Pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ (timeToRand ((e + s)/2) :: Double))])
 
+-- | Boolean rand - a continuous stream of true/false values, with a 50/50 chance.
+brand :: Pattern Bool 
+brand = _brandBy 0.5
+
+-- | Boolean rand with probability as input, e.g. brandBy 0.25 is 25% chance of being true.
+brandBy :: Pattern Double -> Pattern Bool
+brandBy probpat = innerJoin $ (\prob -> _brandBy prob) <$> probpat
+
+_brandBy :: Double -> Pattern Bool
+_brandBy prob = fmap (< prob) rand
+
 {- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:
 
@@ -259,27 +270,45 @@ almostAlways = sometimesBy 0.9
 @
 -}
 sometimesBy :: Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-sometimesBy x f p = overlay (degradeBy x p) (unDegradeBy x $ f p)
+sometimesBy x f pat = overlay (degradeBy x pat) (f $ unDegradeBy x pat)
+
+sometimesBy' :: Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+sometimesBy' x f pat = overlay (degradeBy x pat) (unDegradeBy x $ f pat)
 
 -- | @sometimes@ is an alias for sometimesBy 0.5.
 sometimes :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 sometimes = sometimesBy 0.5
 
+sometimes' :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+sometimes' = sometimesBy' 0.5
+
 -- | @often@ is an alias for sometimesBy 0.75.
 often :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 often = sometimesBy 0.75
+
+often' :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+often' = sometimesBy' 0.75
 
 -- | @rarely@ is an alias for sometimesBy 0.25.
 rarely :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 rarely = sometimesBy 0.25
 
+rarely' :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+rarely' = sometimesBy' 0.25
+
 -- | @almostNever@ is an alias for sometimesBy 0.1
 almostNever :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 almostNever = sometimesBy 0.1
 
+almostNever' :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+almostNever' = sometimesBy 0.1
+
 -- | @almostAlways@ is an alias for sometimesBy 0.9
 almostAlways :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 almostAlways = sometimesBy 0.9
+
+almostAlways' :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+almostAlways' = sometimesBy' 0.9
 
 never :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 never = flip const
