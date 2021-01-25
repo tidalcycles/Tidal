@@ -62,19 +62,20 @@ run =
           in
             compareP overTimeSpan testMe expectedResult
 
-      it "does nothing when set at 0% probability -- const" $ do
-        let
-          overTimeSpan = (Arc 0  2)
-          testMe = sometimesBy 0 (const $ s "cp") (s "bd*8")
-          expectedResult = s "bd*8"
-          in
-            compareP overTimeSpan testMe expectedResult
-
       it "applies the 'rev' function when set at 100% probability" $ do
         let
           overTimeSpan = (Arc 0  1)
           testMe = sometimesBy 1 (rev) (ps "bd*2 hh cp")
           expectedResult = ps "cp hh bd*2"
+          in
+            compareP overTimeSpan testMe expectedResult
+
+    describe "sometimesBy'" $ do
+      it "does nothing when set at 0% probability -- using const" $ do
+        let
+          overTimeSpan = (Arc 0  2)
+          testMe = sometimesBy' 0 (const $ s "cp") (s "bd*8")
+          expectedResult = s "bd*8"
           in
             compareP overTimeSpan testMe expectedResult
 
