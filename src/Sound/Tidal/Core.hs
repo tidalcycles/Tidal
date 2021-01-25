@@ -40,57 +40,75 @@ sig f = Pattern q
           | s > e = []
           | otherwise = [Event (Context []) Nothing (Arc s e) (f (s+((e-s)/2)))]
 
--- | @sine@ returns a 'Pattern' of continuous 'Fractional' values following a
+-- | @sine@ - unipolar sinewave. A pattern of continuous values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
 sine :: Fractional a => Pattern a
 sine = sig $ \t -> (sin_rat ((pi :: Double) * 2 * fromRational t) + 1) / 2
   where sin_rat = fromRational . toRational . sin
 
--- | @sine0@ A 'bipolar' version of @sine@, with amplitude from -1 to 1
-sine0 :: Fractional a => Pattern a
-sine0 = sig $ \t -> sin_rat ((pi :: Double) * 2 * fromRational t)
+-- | @sine2@ - bipolar sinewave. A pattern of continuous values following a
+-- sinewave with frequency of one cycle, and amplitude from -1 to 1.
+sine2 :: Fractional a => Pattern a
+sine2 = sig $ \t -> sin_rat ((pi :: Double) * 2 * fromRational t)
   where sin_rat = fromRational . toRational . sin
 
--- | @cosine@ is a synonym for @0.25 ~> sine@.
+-- | @cosine@ - unipolar cosine wave. A pattern of continuous values
+-- following a cosine with frequency of one cycle, and amplitude from
+-- 0 to 1. Equivalent to `0.25 ~> sine`.
 cosine :: Fractional a => Pattern a
 cosine = 0.25 `rotR` sine
 
--- | @cosine0@ A 'bipolar' version of @cosine@, with amplitude from -1 to 1
-cosine0 :: Fractional a => Pattern a
-cosine0 = 0.25 `rotR` sine
+-- | @cosine2@ - bipolar cosine wave. A pattern of continuous values
+-- following a cosine with frequency of one cycle, and amplitude from
+-- -1 to 1. Equivalent to `0.25 ~> sine2`.
+cosine2 :: Fractional a => Pattern a
+cosine2 = 0.25 `rotR` sine
 
--- | @saw@ is the equivalent of 'sine' for (ascending) sawtooth waves.
+-- | @saw@ - unipolar ascending sawtooth wave. A pattern of continuous values
+-- following a sawtooth with frequency of one cycle, and amplitude from
+-- 0 to 1.
 saw :: (Fractional a, Real a) => Pattern a
 saw = sig $ \t -> mod' (fromRational t) 1
 
--- | @saw0@ is like @saw@, but with amplitude in the range from -1 to 1.
-saw0 :: (Fractional a, Real a) => Pattern a
-saw0 = sig $ \t -> (mod' (fromRational t) 1) * 2 - 1
+-- | @saw2@ - bipolar ascending sawtooth wave. A pattern of continuous values
+-- following a sawtooth with frequency of one cycle, and amplitude from
+-- -1 to 1.
+saw2 :: (Fractional a, Real a) => Pattern a
+saw2 = sig $ \t -> (mod' (fromRational t) 1) * 2 - 1
 
--- | @isaw@ is like 'sine', for inverse (descending) sawtooth waves.
+-- | @isaw@ like @saw@, but a descending (inverse) sawtooth.
 isaw :: (Fractional a, Real a) => Pattern a
 isaw = (1-) <$> saw
 
--- | @isaw0@ A 'bipolar' version of @isaw@, with amplitude from -1 to 1
-isaw0 :: (Fractional a, Real a) => Pattern a
-isaw0 = (1-) <$> saw
+-- | @isaw2@ like @saw2@, but a descending (inverse) sawtooth.
+isaw2 :: (Fractional a, Real a) => Pattern a
+isaw2 = (1-) <$> saw
 
--- | @tri@ is the equivalent of 'sine' for triangular waves.
+-- | @tri@ - unipolar triangle wave. A pattern of continuous values
+-- following a triangle wave with frequency of one cycle, and amplitude from
+-- 0 to 1.
 tri :: (Fractional a, Real a) => Pattern a
 tri = fastAppend saw isaw
 
--- | A 'bipolar' version of @tri@, with amplitude from -1 to 1
-tri0 :: (Fractional a, Real a) => Pattern a
-tri0 = fastAppend saw isaw
+-- | @tri2@ - bipolar triangle wave. A pattern of continuous values
+-- following a triangle wave with frequency of one cycle, and amplitude from
+-- -1 to 1.
+tri2 :: (Fractional a, Real a) => Pattern a
+tri2 = fastAppend saw isaw
 
+-- | @square@ - unipolar square wave. A pattern of continuous values
+-- following a square wave with frequency of one cycle, and amplitude from
+-- 0 to 1.
 -- | @square@ is like 'sine', for square waves.
 square :: (Fractional a) => Pattern a
 square = sig $
        \t -> fromIntegral ((floor $ mod' (fromRational t :: Double) 1 * 2) :: Integer)
 
--- | A 'bipolar' version of @square@, with amplitude from -1 to 1
-square0 :: (Fractional a) => Pattern a
-square0 = sig $
+-- | @square2@ - bipolar square wave. A pattern of continuous values
+-- following a square wave with frequency of one cycle, and amplitude from
+-- -1 to 1.
+square2 :: (Fractional a) => Pattern a
+square2 = sig $
        \t -> fromIntegral ((floor $ mod' (fromRational t :: Double) 1 * 2) * 2 - 1 :: Integer)
 
 -- | @envL@ is a 'Pattern' of continuous 'Double' values, representing
