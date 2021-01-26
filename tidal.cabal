@@ -121,7 +121,7 @@ benchmark bench-speed
                 base == 4.*
               , criterion
               , tidal
-  ghc-options: -Wall -O2
+  ghc-options: -Wall
 
   default-language: Haskell2010
 
@@ -135,7 +135,7 @@ benchmark bench-memory
                base == 4.*
              , weigh
              , tidal
-  ghc-options: -Wall -O2
+  ghc-options: -Wall
 
   default-language: Haskell2010
 
