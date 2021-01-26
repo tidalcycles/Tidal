@@ -20,6 +20,10 @@
 	* `qtrigger` is now an alias for `ctrigger`, which now quantises to the _next_ cycle (via ceiling) @thgund / @yaxu
 	* There is now also `ftrigger` and `rtrigger` for floor (previous) and round (nearest) cycle
 	* `whenmod`'s first two parameters are now rationals, and patternable. @th-four / @yaxu
+        * `brand` and `brandBy` for continuous patterns of boolean values @yaxu
+        * Two-way protocol between Tidal and SuperDirt, initially to receive available busses @telefon / @yaxu
+        * bipolar waveforms - sine2, square2, tri2, saw2, cosine2 @yaxu
+  
 
 ## 1.6.1 - We are not DJs
 	* Patternise first parameter of chunk @lwlsn
