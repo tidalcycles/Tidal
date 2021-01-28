@@ -1,3 +1,4 @@
+#!/usr/bin/runhaskell
 
 -- This can be run with e.g.:
 -- runhaskell generate-params.txt > ../src/Sound/Tidal/Params.hs
