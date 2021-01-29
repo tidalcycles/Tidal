@@ -437,8 +437,6 @@ doTick fake stream st =
          --filterOns = filter eventHasOnset
          extraLatency | fake = 0
                       | otherwise = cFrameTimespan config + T.nudged tempo
-         --filterOns | cSendParts config = id
-         --          | otherwise = filter eventHasOnset
          es = sortOn (start . part) $ query pat (State {arc = T.nowArc st,
                                                         controls = sMap'
                                                        }
@@ -595,10 +593,10 @@ streamSetR = streamSet
 
 openListener :: Config -> IO (Maybe O.UDP)
 openListener c
-  | cCtrlListen c = do hPutStrLn stderr $ "Listening for controls on " ++ cCtrlAddr c ++ ":" ++ show (cCtrlPort c)
+  | cCtrlListen c = do when (cVerbose c) $ (putStrLn $ "Listening for controls on " ++ cCtrlAddr c ++ ":" ++ show (cCtrlPort c))
                        catchAny run (\_ -> if (cCtrlPort c) == 0
                                            then error "Failed to listen to any port."
-                                           else do hPutStrLn stderr "Failed to open that port. Trying another."
+                                           else do when (cVerbose c) $ hPutStrLn stderr "Failed to open that port. Trying another."
                                                    u <- openListener (c {cCtrlPort = 0})
                                                    return u
                                     )
