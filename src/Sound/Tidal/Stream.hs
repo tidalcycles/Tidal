@@ -218,7 +218,7 @@ startStream config oscmap
                             sCxs = cxs
                            }
        _ <- T.clocked config tempoMV $ onTick stream
-       _ <- forkIO $ ctrlResponder stream
+       _ <- forkIO $ ctrlResponder config stream
        return stream
 
 sendO :: Bool -> (Maybe O.UDP) -> Cx -> O.Message -> IO ()
@@ -607,13 +607,14 @@ openListener c
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch
 
-ctrlResponder :: Stream -> IO ()
-ctrlResponder (stream@(Stream {sListen = Just sock})) = do ms <- O.recvMessages sock
-                                                           mapM_ act ms
-                                                           ctrlResponder stream
+ctrlResponder :: Config -> Stream -> IO ()
+ctrlResponder c (stream@(Stream {sListen = Just sock})) = do ms <- O.recvMessages sock
+                                                             mapM_ act ms
+                                                             ctrlResponder c stream
      where
         act (O.Message "/dirt/hello" _) = return ()
         act (O.Message "/dirt/handshake/reply" xs) = do _ <- swapMVar (sBusses stream) $ bufferIndices xs
+                                                        when (cVerbose c) $ (putStrLn $ "Connected to SuperDirt.")
                                                         return ()
           where 
             bufferIndices [] = []
@@ -632,4 +633,4 @@ ctrlResponder (stream@(Stream {sListen = Just sock})) = do ms <- O.recvMessages 
         add k v = do sMap <- takeMVar (sInput stream)
                      putMVar (sInput stream) $ Map.insert k (pure v) sMap
                      return ()
-ctrlResponder _ = return ()
+ctrlResponder _ _ = return ()
