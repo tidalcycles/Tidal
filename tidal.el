@@ -66,7 +66,7 @@
              ("separator" . "\\")
              ))
           ((or (string-equal system-type "darwin") (string-equal system-type "gnu/linux"))
-           '(("path" . "echo -n data-dir: && ghc -e 'import Paths_tidal' -e 'getDataDir>>=putStr'")
+           '(("path" . "echo -n data-dir: && ghc -e 'import Paths_tidal' -e 'getDataDir>>=putStr' 2>/dev/null")
              ("separator" . "/")
              ))
           )
