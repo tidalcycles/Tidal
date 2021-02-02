@@ -585,7 +585,7 @@ whenmod :: Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a
 whenmod a b f pat = innerJoin $ (\a' b' -> _whenmod a' b' f pat) <$> a <*> b
 
 _whenmod :: Time -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_whenmod a b = Sound.Tidal.Core.whenT (\t -> ((t `mod'` a) >= b ))
+_whenmod a b = whenT (\t -> ((t `mod'` a) >= b ))
 
 
 {- |
