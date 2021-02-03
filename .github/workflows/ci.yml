@@ -6,16 +6,12 @@ on:
     paths-ignore:
       - "**.md"
   pull_request:
-    branches:
-      - main
     paths-ignore:
       - "**.md"
 
 jobs:
   cabal:
     runs-on: ubuntu-latest
-    # TODO: we need to build it on different os?
-    #    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         versions:
@@ -34,7 +30,6 @@ jobs:
             cabal: 2.4.1.0
           - ghc: 8.2.2
             cabal: 2.4.1.0
-#        os: [ ubuntu-latest, macOS-latest, windows-latest ]
     name: cabal ${{ matrix.versions.cabal }} - ghc ${{ matrix.versions.ghc }}
     steps:
       - uses: actions/checkout@v2
@@ -56,23 +51,23 @@ jobs:
 
       - name: update
         run: cabal v2-update
+
       - name: build
         run: cabal v2-build ${{ matrix.versions.args }} --enable-tests --enable-benchmarks all
+
       - name: test
         run: cabal v2-test ${{ matrix.versions.args }} --enable-tests --enable-benchmarks all
   stack:
     runs-on: ubuntu-latest
-      # runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         versions:
           - ghc: latest
             resolver: nightly
-          - ghc: 8.6.4
-            resolver: lts-12.26
           - ghc: 8.8.4
             resolver: lts-16.31
-    #        os: [ ubuntu-latest, macOS-latest, windows-latest ]
+          - ghc: 8.6.4
+            resolver: lts-12.26
     name: stack resolver ${{ matrix.versions.resolver }} - ghc ${{ matrix.versions.ghc }}
     steps:
       - uses: actions/checkout@v2
