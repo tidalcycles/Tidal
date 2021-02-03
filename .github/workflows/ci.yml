@@ -1,0 +1,91 @@
+name: ci
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "**.md"
+
+jobs:
+  cabal:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        versions:
+          - ghc: latest
+            cabal: latest
+            args: --allow-newer=base,template-haskell
+          - ghc: 8.10.1
+            cabal: 3.2.0.0
+            args: --allow-newer=base,template-haskell
+          - ghc: 8.8.3
+            cabal: 3.0.0.0
+            args: --allow-newer=base,template-haskell
+          - ghc: 8.6.5
+            cabal: 2.4.1.0
+          - ghc: 8.4.4
+            cabal: 2.4.1.0
+          - ghc: 8.2.2
+            cabal: 2.4.1.0
+          - ghc: 8.0.2
+            cabal: 2.4.1.0
+    name: cabal ${{ matrix.versions.cabal }} - ghc ${{ matrix.versions.ghc }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: cache ~/.cabal/packages, ~/.cabal/store and dist-newstyle
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cabal/packages
+            ~/.cabal/store
+            dist-newstyle
+          key: cabal-${{ runner.os }}-${{ matrix.versions.ghc }}
+
+      - name: install cabal and ghc
+        uses: haskell/actions/setup@v1
+        with:
+          ghc-version: ${{ matrix.versions.ghc }}
+          cabal-version: ${{ matrix.versions.cabal }}
+
+      - name: update
+        run: cabal v2-update
+
+      - name: build
+        run: cabal v2-build ${{ matrix.versions.args }} --enable-tests --enable-benchmarks all
+
+      - name: test
+        run: cabal v2-test ${{ matrix.versions.args }} --enable-tests --enable-benchmarks all
+  stack:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        versions:
+          - ghc: latest
+            resolver: nightly
+          - ghc: 8.8.4
+            resolver: lts-16.31
+          - ghc: 8.6.4
+            resolver: lts-12.26
+    name: stack resolver ${{ matrix.versions.resolver }} - ghc ${{ matrix.versions.ghc }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: cache ~/.stack
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.stack
+          key: stack-${{ runner.os }}-${{ matrix.versions.resolver }}
+
+      - name: install stack and ghc
+        uses: haskell/actions/setup@v1
+        with:
+          enable-stack: true
+          ghc-version: ${{ matrix.versions.ghc }}
+
+      - name: test
+        run: stack --no-terminal --resolver ${{ matrix.versions.resolver }} --system-ghc test --haddock --no-haddock-deps
