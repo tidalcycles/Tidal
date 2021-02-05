@@ -23,7 +23,7 @@ module Sound.Tidal.ParseBP where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Control.Applicative ((<$>), (<*>), pure)
+import           Control.Applicative ()
 import qualified Control.Exception as E
 import           Data.Colour
 import           Data.Colour.Names
