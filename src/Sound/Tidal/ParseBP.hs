@@ -333,7 +333,8 @@ parseRhythm f = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
                        return TPat_Silence
 
 pSequence :: Parseable a => MyParser (TPat a) -> GenParser Char Int (TPat a)
-pSequence f = do s <- many $ do a <- pPart f
+pSequence f = do spaces
+                 s <- many $ do a <- pPart f
                                 spaces
                                 do try $ symbol ".."
                                    b <- pPart f
