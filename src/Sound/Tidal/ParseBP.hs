@@ -23,7 +23,7 @@ module Sound.Tidal.ParseBP where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Control.Applicative ((<$>), (<*>), pure)
+import           Control.Applicative ()
 import qualified Control.Exception as E
 import           Data.Colour
 import           Data.Colour.Names
@@ -333,27 +333,32 @@ parseRhythm f = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
                        return TPat_Silence
 
 pSequence :: Parseable a => MyParser (TPat a) -> GenParser Char Int (TPat a)
-pSequence f = do s <- many $ do a <- pPart f
-                                spaces
-                                do try $ symbol ".."
-                                   b <- pPart f
-                                   return $ TPat_EnumFromTo a b
-                                 <|> pElongate a
-                                 <|> pRepeat a
-                                 <|> return a
-                             <|> do symbol "."
-                                    return TPat_Foot
-                 pRand $ resolve_feet s
-      where resolve_feet ps | length ss > 1 = TPat_Seq $ map TPat_Seq ss
-                            | otherwise = TPat_Seq ps
-              where ss = splitFeet ps
-            splitFeet :: [TPat t] -> [[TPat t]]
-            splitFeet [] = []
-            splitFeet pats = foot : splitFeet pats'
-              where (foot, pats') = takeFoot pats
-                    takeFoot [] = ([], [])
-                    takeFoot (TPat_Foot:pats'') = ([], pats'')
-                    takeFoot (pat:pats'') = (\(a,b) -> (pat:a,b)) $ takeFoot pats''
+pSequence f = do
+  spaces
+  s <- many $ do
+    a <- pPart f
+    spaces
+    do
+      symbol ".."
+      b <- pPart f
+      return $ TPat_EnumFromTo a b
+      <|> pElongate a
+      <|> pRepeat a
+      <|> return a
+    <|> do
+      symbol "."
+      return TPat_Foot
+  pRand $ resolve_feet s
+  where resolve_feet ps | length ss > 1 = TPat_Seq $ map TPat_Seq ss
+                        | otherwise = TPat_Seq ps
+          where ss = splitFeet ps
+        splitFeet :: [TPat t] -> [[TPat t]]
+        splitFeet [] = []
+        splitFeet pats = foot : splitFeet pats'
+          where (foot, pats') = takeFoot pats
+                takeFoot [] = ([], [])
+                takeFoot (TPat_Foot:pats'') = ([], pats'')
+                takeFoot (pat:pats'') = (\(a,b) -> (pat:a,b)) $ takeFoot pats''
 
 pRepeat :: TPat a -> MyParser (TPat a)
 pRepeat a = do es <- many1 $ do char '!'
