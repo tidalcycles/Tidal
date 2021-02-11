@@ -585,7 +585,7 @@ whenmod :: Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a
 whenmod a b f pat = innerJoin $ (\a' b' -> _whenmod a' b' f pat) <$> a <*> b
 
 _whenmod :: Time -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_whenmod a b = Sound.Tidal.Core.whenT (\t -> ((t `mod'` a) >= b ))
+_whenmod a b = whenT (\t -> ((t `mod'` a) >= b ))
 
 
 {- |
@@ -1874,7 +1874,7 @@ swap things p = filterJust $ (`lookup` things) <$> p
   d1 $ note (scale "hexDorian" $ snowball (+) (slow 2 . rev) 8 "0 ~ . -1 . 5 3 4 . ~ -2") # s "gtr"
 -}
 snowball :: Int -> (Pattern a -> Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-snowball depth combinationFunction f pattern = cat $ take depth $ scanl combinationFunction pattern $ iterate f pattern
+snowball depth combinationFunction f pattern = cat $ take depth $ scanl combinationFunction pattern $ drop 1 $ iterate f pattern
 
 {- @soak@ |
     applies a function to a pattern and cats the resulting pattern,
