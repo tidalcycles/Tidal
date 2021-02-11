@@ -191,22 +191,16 @@ startStream config oscmap
        bussesMV <- newMVar []
        globalFMV <- newMVar id
        tempoMV <- newEmptyMVar
+
+       verbose config $ "Listening for external controls on " ++ cCtrlAddr config ++ ":" ++ show (cCtrlPort config)
        listen <- openListener config
+
        cxs <- mapM (\(target, os) -> do remote_addr <- resolve (oAddress target) (show $ oPort target)
                                         remote_bus_addr <- if isJust $ oBusPort target
                                                            then Just <$> resolve (oAddress target) (show $ fromJust $ oBusPort target)
                                                            else return Nothing
                                         u <- O.openUDP (oAddress target) (oPort target)
-                                        let cx = Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}                                        
-                                        when (oHandshake target) $
-                                          if (isJust listen)
-                                          then                                            
-                                            do -- send it _from_ the udp socket we're listening to, so the
-                                               -- replies go back there
-                                              sendO False listen cx $ O.Message "/dirt/handshake" []
-                                          else
-                                            hPutStrLn stderr "Can't handshake with SuperCollider without control port."
-                                        return cx
+                                        return $ Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}                                        
                    ) oscmap
        let stream = Stream {sConfig = config,
                             sBusses = bussesMV,
@@ -217,9 +211,21 @@ startStream config oscmap
                             sGlobalFMV = globalFMV,
                             sCxs = cxs
                            }
+       sendHandshakes stream
        _ <- T.clocked config tempoMV $ onTick stream
        _ <- forkIO $ ctrlResponder config stream
        return stream
+
+-- It only really works to handshake with one target at the moment..
+sendHandshakes :: Stream -> IO ()
+sendHandshakes stream = mapM_ sendHandshake $ filter (oHandshake . cxTarget) (sCxs stream)
+  where sendHandshake cx = if (isJust $ sListen stream)
+                           then                                            
+                             do -- send it _from_ the udp socket we're listening to, so the
+                                -- replies go back there
+                                sendO False (sListen stream) cx $ O.Message "/dirt/handshake" []
+                           else
+                             hPutStrLn stderr "Can't handshake with SuperCollider without control port."
 
 sendO :: Bool -> (Maybe O.UDP) -> Cx -> O.Message -> IO ()
 sendO isBusMsg (Just listen) cx msg = O.sendTo listen (O.Packet_Message msg) (N.addrAddress addr)
@@ -593,13 +599,9 @@ streamSetR = streamSet
 
 openListener :: Config -> IO (Maybe O.UDP)
 openListener c
-  | cCtrlListen c = do when (cVerbose c) $ (putStrLn $ "Listening for controls on " ++ cCtrlAddr c ++ ":" ++ show (cCtrlPort c))
-                       catchAny run (\_ -> if (cCtrlPort c) == 0
-                                           then error "Failed to listen to any port."
-                                           else do when (cVerbose c) $ hPutStrLn stderr "Failed to open that port. Trying another."
-                                                   u <- openListener (c {cCtrlPort = 0})
-                                                   return u
-                                    )
+  | cCtrlListen c = catchAny run (\_ -> do verbose c "That port isn't available, perhaps another Tidal instance is already listening on that port?"
+                                           return Nothing
+                                 )
   | otherwise  = return Nothing
   where
         run = do sock <- O.udpServer (cCtrlAddr c) (cCtrlPort c)
@@ -608,13 +610,20 @@ openListener c
         catchAny = E.catch
 
 ctrlResponder :: Config -> Stream -> IO ()
-ctrlResponder c (stream@(Stream {sListen = Just sock})) = do ms <- O.recvMessages sock
-                                                             mapM_ act ms
+ctrlResponder c (stream@(Stream {sListen = Just sock})) = do ms <- recvMessagesTimeout 2 sock
+                                                             if (null ms)
+                                                               then checkHandshake -- there was a timeout, check handshake
+                                                               else mapM_ act ms
                                                              ctrlResponder c stream
      where
-        act (O.Message "/dirt/hello" _) = return ()
-        act (O.Message "/dirt/handshake/reply" xs) = do _ <- swapMVar (sBusses stream) $ bufferIndices xs
-                                                        when (cVerbose c) $ (putStrLn $ "Connected to SuperDirt.")
+        checkHandshake = do busses <- readMVar (sBusses stream)
+                            when (null busses) $ do verbose c $ "Waiting for SuperDirt.."
+                                                    sendHandshakes stream
+
+        act (O.Message "/dirt/hello" _) = sendHandshakes stream
+        act (O.Message "/dirt/handshake/reply" xs) = do prev <- swapMVar (sBusses stream) $ bufferIndices xs
+                                                        -- Only report the first time..
+                                                        when (null prev) $ verbose c $ "Connected to SuperDirt."
                                                         return ()
           where 
             bufferIndices [] = []
@@ -634,3 +643,10 @@ ctrlResponder c (stream@(Stream {sListen = Just sock})) = do ms <- O.recvMessage
                      putMVar (sInput stream) $ Map.insert k (pure v) sMap
                      return ()
 ctrlResponder _ _ = return ()
+
+
+verbose :: Config -> String -> IO ()
+verbose c s = when (cVerbose c) $ putStrLn s
+
+recvMessagesTimeout :: (O.Transport t) => Double -> t -> IO [O.Message]
+recvMessagesTimeout n sock = fmap (maybe [] O.packetMessages) $ O.recvPacketTimeout n sock
