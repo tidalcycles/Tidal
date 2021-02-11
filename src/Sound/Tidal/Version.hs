@@ -29,3 +29,4 @@ tidal_status = tidal_status_string >>= putStrLn
 tidal_status_string :: IO String
 tidal_status_string = do datadir <- getDataDir
                          return $ "[TidalCycles version " ++ tidal_version ++ "]\nInstalled in " ++ datadir
+

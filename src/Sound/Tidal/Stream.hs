@@ -45,6 +45,8 @@ import           System.Random (getStdRandom, randomR)
 import           Sound.Tidal.Show ()
 import           Data.Word (Word8)
 
+import           Sound.Tidal.Version
+
 data Stream = Stream {sConfig :: Config,
                       sBusses :: MVar [Int],
                       sInput :: MVar StateMap,
@@ -192,6 +194,7 @@ startStream config oscmap
        globalFMV <- newMVar id
        tempoMV <- newEmptyMVar
 
+       tidal_status_string >>= verbose config
        verbose config $ "Listening for external controls on " ++ cCtrlAddr config ++ ":" ++ show (cCtrlPort config)
        listen <- openListener config
 
