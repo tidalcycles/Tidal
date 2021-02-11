@@ -618,17 +618,26 @@ trunc = tParam _trunc
 _trunc :: Time -> Pattern a -> Pattern a
 _trunc t = compress (0, t) . zoomArc (Arc 0 t)
 
-{- | @linger@ is similar to `trunc` but the truncated part of the pattern loops until the end of the cycle
+{- | @linger@ is similar to `trunc` but the truncated part of the pattern loops until the end of the cycle.
 
 @
 d1 $ linger 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
+@
+
+If you give it a negative number, it will linger on the last part of
+the pattern, instead of the start of it. E.g. to linger on the last
+quarter:
+
+@
+d1 $ linger (-0.25) $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
 @
 -}
 linger :: Pattern Time -> Pattern a -> Pattern a
 linger = tParam _linger
 
 _linger :: Time -> Pattern a -> Pattern a
-_linger n p = _fast (1/n) $ zoomArc (Arc 0 n) p
+_linger n p | n < 0 = _fast (1/n) $ zoomArc (Arc (1 + n) 1) p
+            | otherwise = _fast (1/n) $ zoomArc (Arc 0 n) p
 
 {- |
 Use `within` to apply a function to only a part of a pattern. For example, to
