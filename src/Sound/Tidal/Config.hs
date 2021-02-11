@@ -38,5 +38,5 @@ defaultConfig = Config {cCtrlListen = True,
                         cTempoPort = 9160,
                         cTempoClientPort = 0, -- choose at random
                         cSkipTicks = 10,
-                        cVerbose = False
+                        cVerbose = True
                        }
