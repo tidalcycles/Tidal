@@ -1,5 +1,17 @@
 # TidalCycles log of changes
 
+## 1.7.1 - IKLECTIK b
+        * Fix stack build @yaxu
+        * Add tidal_status command @yaxu
+	* Add cVerbose config setting (default on) @yaxu
+	* Fix for emacs plugin @jwaldmann
+	* Snowball bugfix @yaxu
+	* Migrate to github actions, tested against additional ghc versions @ndr_brt
+	* Fix mininotation bug - allow leading/trailing spaces @ndr_brt
+	* Make linger work with negative numbers (to linger on end of cycle rather than start) @yaxu
+	* Friendlier startup messages @yaxu
+	* Compatibility with ghc 9.0.1 @yaxu
+
 ## 1.7 - IKLECTIK
 	* Added drum aliases from GM2 percussion spec to `drum` function @lvm
 	* `getcps` helper function now in BootTidal.hs @yaxu
