@@ -40,6 +40,12 @@ aug = [0,4,8]
 -- dominant chords
 dom7 :: Num a => [a]
 dom7 = [0,4,7,10]
+dom9 :: Num a => [a]
+dom9 = [0,4,7,10,14]
+dom11 :: Num a => [a]
+dom11 = [0,4,7,10,17]
+dom13 :: Num a => [a]
+dom13 = [0,4,7,10,21]
 sevenFlat5 :: Num a => [a]
 sevenFlat5 = [0,4,6,10]
 sevenSharp5 :: Num a => [a]
@@ -48,8 +54,6 @@ sevenFlat9 :: Num a => [a]
 sevenFlat9 = [0,4,7,10,13]
 sevenSharp5flat9 :: Num a => [a]
 sevenSharp5flat9 = [0,4,8,10,13]
-nine :: Num a => [a]
-nine = [0,4,7,10,14]
 eleven :: Num a => [a]
 eleven = [0,4,7,10,14,17]
 elevenSharp :: Num a => [a]
@@ -123,6 +127,9 @@ chordTable = [("major", major),
               ("major7", major7),
               ("maj7", major7),
               ("dom7", dom7),
+              ("dom9", dom9),
+              ("dom11", dom11),
+              ("dom13", dom13),
               ("minor7", minor7),
               ("min7", minor7),
               ("dim7", dim7),
@@ -147,7 +154,7 @@ chordTable = [("major", major),
               ("m7f5", m7flat5),
               ("sevenSharp5", sevenSharp5),
               ("7s5", sevenSharp5),
-              ("nine", nine),
+              ("nine", dom9),
               ("m9", m9),
               ("m7sharp9", m7sharp9),
               ("m7s9", m7sharp9),
