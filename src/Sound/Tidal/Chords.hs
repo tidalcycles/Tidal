@@ -83,6 +83,8 @@ minor6by9 :: Num a => [a]
 minor6by9 = [0,3,9,7,14]
 minor7flat5 :: Num a => [a]
 minor7flat5 = [0,3,6,10]
+minor7sharp5 :: Num a => [a]
+minor7sharp5 = [0,3,6,10]
 minor7flat9 :: Num a => [a]
 minor7flat9 = [0,3,7,10,14]
 minor7sharp9 :: Num a => [a]
@@ -169,6 +171,9 @@ chordTable = [("major", major),
               ("minor7flat5", minor7flat5),
               ("m7flat5", minor7flat5),
               ("m7f5", minor7flat5),
+              ("minor7sharp5", minor7sharp5),
+              ("m7sharp5", minor7sharp5),
+              ("m7s5", minor7sharp5),
               ("sevenSharp5", sevenSharp5),
               ("7s5", sevenSharp5),
               ("nine", dom9),
