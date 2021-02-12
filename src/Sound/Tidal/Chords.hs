@@ -77,24 +77,24 @@ dim :: Num a => [a]
 dim = [0,3,6]
 dim7 :: Num a => [a]
 dim7 = [0,3,6,9]
-m6 :: Num a => [a]
-m6 = [0,3,7,9]
-m6by9 :: Num a => [a]
-m6by9 = [0,3,9,7,14]
-m7flat5 :: Num a => [a]
-m7flat5 = [0,3,6,10]
-m7flat9 :: Num a => [a]
-m7flat9 = [0,3,7,10,14]
-m7sharp9 :: Num a => [a]
-m7sharp9 = [0,3,7,10,14]
-m9 :: Num a => [a]
-m9 = [0,3,7,10,14]
-m11 :: Num a => [a]
-m11 = [0,3,7,10,14,17]
-m11sharp :: Num a => [a]
-m11sharp = [0,3,7,10,14,18]
-m13 :: Num a => [a]
-m13 = [0,3,7,10,14,17,21]
+minor6 :: Num a => [a]
+minor6 = [0,3,7,9]
+minor6by9 :: Num a => [a]
+minor6by9 = [0,3,9,7,14]
+minor7flat5 :: Num a => [a]
+minor7flat5 = [0,3,6,10]
+minor7flat9 :: Num a => [a]
+minor7flat9 = [0,3,7,10,14]
+minor7sharp9 :: Num a => [a]
+minor7sharp9 = [0,3,7,10,14]
+minor9 :: Num a => [a]
+minor9 = [0,3,7,10,14]
+minor11 :: Num a => [a]
+minor11 = [0,3,7,10,14,17]
+minor11sharp :: Num a => [a]
+minor11sharp = [0,3,7,10,14,18]
+minor13 :: Num a => [a]
+minor13 = [0,3,7,10,14,17,21]
 -- other chords
 one :: Num a => [a]
 one = [0]
@@ -158,43 +158,59 @@ chordTable = [("major", major),
               ("sus4", sus4),
               ("six", six),
               ("6", six),
-              ("m6", m6),
+              ("minor6", minor6),
+              ("m6", minor6),
               ("sevenSus2", sevenSus2),
               ("7sus2", sevenSus2),
               ("sevenSus4", sevenSus4),
               ("7sus4", sevenSus4),
               ("sevenFlat5", sevenFlat5),
               ("7f5", sevenFlat5),
-              ("m7flat5", m7flat5),
-              ("m7f5", m7flat5),
+              ("minor7flat5", minor7flat5),
+              ("m7flat5", minor7flat5),
+              ("m7f5", minor7flat5),
               ("sevenSharp5", sevenSharp5),
               ("7s5", sevenSharp5),
               ("nine", dom9),
-              ("m9", m9),
-              ("m7sharp9", m7sharp9),
-              ("m7s9", m7sharp9),
+              ("minor9", minor9),
+              ("min9", minor9),
+              ("m9", minor9),
+              ("minor7sharp9", minor7sharp9),
+              ("min7sharp9", minor7sharp9),
+              ("m7sharp9", minor7sharp9),
+              ("m7s9", minor7sharp9),
               ("nineSus4", nineSus4),
               ("ninesus4", nineSus4),
               ("9sus4", nineSus4),
               ("sixby9", sixby9),
               ("6by9", sixby9),
-              ("m6by9", m6by9),
+              ("minor6by9", minor6by9),
+              ("min6by9", minor6by9),
+              ("m6by9", minor6by9),
               ("sevenFlat9", sevenFlat9),
               ("7f9", sevenFlat9),
-              ("m7flat9", m7flat9),
-              ("m7f9", m7flat9),
+              ("minor7flat9", minor7flat9),
+              ("min7flat9", minor7flat9),
+              ("m7flat9", minor7flat9),
+              ("m7f9", minor7flat9),
               ("sevenSharp5flat9", sevenSharp5flat9),
               ("7s5f9", sevenSharp5flat9),
               ("eleven", eleven),
               ("11", eleven),
-              ("m11", m11),
+              ("minor11", minor11),
+              ("min11", minor11),
+              ("m11", minor11),
               ("elevenSharp", elevenSharp),
               ("11s", elevenSharp),
-              ("m11sharp", m11sharp),
-              ("m11s", m11sharp),
+              ("minor11sharp", minor11sharp),
+              ("min11sharp", minor11sharp),
+              ("m11sharp", minor11sharp),
+              ("m11s", minor11sharp),
               ("thirteen", thirteen),
               ("13", thirteen),
-              ("m13", m13)
+              ("minor13", minor13),
+              ("min13", minor13),
+              ("m13", minor13)
              ]
 
 chordL :: Num a => Pattern String -> Pattern [a]
