@@ -37,6 +37,12 @@ maj11 :: Num a => [a]
 maj11 = [0,4,7,11,14,17]
 aug :: Num a => [a]
 aug = [0,4,8]
+add9 :: Num a => [a]
+add9 = [0,4,7,14]
+add11 :: Num a => [a]
+add11 = [0,4,7,21]
+add13 :: Num a => [a]
+add13 = [0,4,7,21]
 -- dominant chords
 dom7 :: Num a => [a]
 dom7 = [0,4,7,10]
@@ -126,6 +132,9 @@ chordTable = [("major", major),
               ("dim", dim),
               ("major7", major7),
               ("maj7", major7),
+              ("add9", add9),
+              ("add11", add11),
+              ("add13", add13),
               ("dom7", dom7),
               ("dom9", dom9),
               ("dom11", dom11),
