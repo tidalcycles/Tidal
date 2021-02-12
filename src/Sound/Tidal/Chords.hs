@@ -31,12 +31,12 @@ six :: Num a => [a]
 six = [0,4,7,9]
 sixby9 :: Num a => [a]
 sixby9 = [0,4,7,9,14]
-maj9 :: Num a => [a]
-maj9 = [0,4,7,11,14]
-maj11 :: Num a => [a]
-maj11 = [0,4,7,11,14,17]
-maj13 :: Num a => [a]
-maj13 = [0,4,7,11,14,17,21]
+major9 :: Num a => [a]
+major9 = [0,4,7,11,14]
+major11 :: Num a => [a]
+major11 = [0,4,7,11,14,17]
+major13 :: Num a => [a]
+major13 = [0,4,7,11,14,17,21]
 aug :: Num a => [a]
 aug = [0,4,8]
 add9 :: Num a => [a]
@@ -134,6 +134,12 @@ chordTable = [("major", major),
               ("dim", dim),
               ("major7", major7),
               ("maj7", major7),
+              ("major9", major9),
+              ("maj9", major9),
+              ("major11", major11),
+              ("maj11", major11),
+              ("major13", major13),
+              ("maj13", major13),
               ("add9", add9),
               ("add11", add11),
               ("add13", add13),
@@ -167,7 +173,6 @@ chordTable = [("major", major),
               ("m9", m9),
               ("m7sharp9", m7sharp9),
               ("m7s9", m7sharp9),
-              ("maj9", maj9),
               ("nineSus4", nineSus4),
               ("ninesus4", nineSus4),
               ("9sus4", nineSus4),
@@ -183,8 +188,6 @@ chordTable = [("major", major),
               ("eleven", eleven),
               ("11", eleven),
               ("m11", m11),
-              ("maj11", maj11),
-              ("maj13", maj13),
               ("elevenSharp", elevenSharp),
               ("11s", elevenSharp),
               ("m11sharp", m11sharp),
