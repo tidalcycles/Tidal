@@ -98,21 +98,6 @@ sevenSus4 :: Num a => [a]
 sevenSus4 = [0,5,7,10]
 nineSus4 :: Num a => [a]
 nineSus4 = [0,5,7,10,14]
--- other chords
-one :: Num a => [a]
-one = [0]
-five :: Num a => [a]
-five = [0,7]
-sus2 :: Num a => [a]
-sus2 = [0,2,7]
-sus4 :: Num a => [a]
-sus4 = [0,5,7]
-sevenSus2 :: Num a => [a]
-sevenSus2 = [0,2,7,10]
-sevenSus4 :: Num a => [a]
-sevenSus4 = [0,5,7,10]
-nineSus4 :: Num a => [a]
-nineSus4 = [0,5,7,10,14]
 
 -- | @chordate cs m n@ selects the @n@th "chord" (a chord is a list of Ints)
 -- from a list of chords @cs@ and transposes it by @m@
