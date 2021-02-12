@@ -35,6 +35,8 @@ maj9 :: Num a => [a]
 maj9 = [0,4,7,11,14]
 maj11 :: Num a => [a]
 maj11 = [0,4,7,11,14,17]
+maj13 :: Num a => [a]
+maj13 = [0,4,7,11,14,17,21]
 aug :: Num a => [a]
 aug = [0,4,8]
 add9 :: Num a => [a]
@@ -184,6 +186,7 @@ chordTable = [("major", major),
               ("11", eleven),
               ("m11", m11),
               ("maj11", maj11),
+              ("maj13", maj13),
               ("elevenSharp", elevenSharp),
               ("11s", elevenSharp),
               ("m11sharp", m11sharp),
