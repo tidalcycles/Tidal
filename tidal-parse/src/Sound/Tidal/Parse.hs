@@ -473,6 +473,7 @@ instance Parse (ControlPattern -> ControlPattern -> ControlPattern) where
     genericBinaryPatternFunctions <|>
     numMergeOperator <|>
     fractionalMergeOperator <|>
+    $(fromTidal "interlace") <|>
     (parser :: H ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern)) <*!> parser
     <?> "expected ControlPattern -> ControlPattern -> ControlPattern"
 
