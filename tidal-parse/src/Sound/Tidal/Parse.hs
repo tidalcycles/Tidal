@@ -785,6 +785,9 @@ pInt_pInt_p_p =
 instance Parse (Int -> Pattern Double -> Pattern a -> Pattern a) where
   parser = $(fromTidal "degradeOverBy")
 
+listA_b_patternC :: Parse (a -> b -> Pattern c) => [a] -> b -> Pattern c
+listA_b_patternC = (parser :: H ((a -> b -> Pattern c) -> [a] -> b -> Pattern c)) <*!> parser
+
 instance Parse ((a -> b -> Pattern c) -> [a] -> b -> Pattern c) where
   parser =
     $(fromTidal "spread") <|>
