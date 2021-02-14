@@ -196,11 +196,18 @@ instance Parse (Pattern Time) where
 -- * -> *
 
 a_patternB :: forall a b. Parse (a -> Pattern b) => H (a -> Pattern b)
-a_patternB = listAtoPatternB_a_patternB <*!> parser
+a_patternB = listAtoPatternB_a_patternB <*!> parser <?> "expected a -> Pattern b"
 
 listAtoPatternB_a_patternB :: H ([a -> Pattern b] -> a -> Pattern b)
 listAtoPatternB_a_patternB = $(fromTidal "layer")
--- layer :: [a -> Pattern b] -> a -> Pattern b
+
+{- -- a_patternB2 :: (Parse (a -> b -> Pattern c),Parse [a]) => H (b -> Pattern c)
+-- a_patternB2 = return id
+--listA_b_patternC <*!> parser <?> "expected a -> Pattern b"
+
+-- listA_b_patternC :: forall a b c. Parse (a -> b -> Pattern c) => H ([a] -> b -> Pattern c)
+listA_b_patternC = (parser :: H ((a -> b -> Pattern c) -> [a] -> b -> Pattern c)) <*!> parser
+-}
 
 instance Parse (ControlPattern -> ControlPattern) where
   parser =
@@ -386,8 +393,7 @@ instance Parse (Pattern Int -> Pattern String) where
 
 -- note: missing pA_pB and a_patternB pathways
 pInt_pNumA :: (Num a, Parse a) => H (Pattern Int -> Pattern a)
-pInt_pNumA =
-  listNumA_pInt_pA <*!> parser
+pInt_pNumA = listNumA_pInt_pA <*!> parser
 
 -- note: missing pA_pB and a_patternB pathways
 pInt_pFractionalA :: Fractional a => H (Pattern Int -> Pattern a)
@@ -559,6 +565,7 @@ pString_pInt_pString = $(fromTidal "samples")
 
 showable_p_p :: (Show a, Parse a) => H (a -> Pattern b -> Pattern b)
 showable_p_p = $(fromTidal "trigger")
+-- *** pathway leading to spread(etc) should be incorporated here also???
 
 int_p_p :: H (Int -> Pattern a -> Pattern a)
 int_p_p = showable_p_p
@@ -626,25 +633,28 @@ pBool_p_p =
 
 instance Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) => Parse ([Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
   parser =
-    (parser :: H (((Pattern a -> Pattern a) -> Pattern a -> Pattern a) -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*!> parser <|>
-    (parser :: H (Pattern Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*!> parser
+    (parser :: H (((Pattern a -> Pattern a) -> Pattern a -> Pattern a) -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser <|>
+    (parser :: H (Pattern Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
 
 lp_p_p :: Parse (Pattern a -> Pattern a -> Pattern a) => H ([Pattern a] -> Pattern a -> Pattern a)
-lp_p_p = (parser :: H ((Pattern a -> Pattern a -> Pattern a) -> [Pattern a] -> Pattern a -> Pattern a)) <*!> parser
+lp_p_p = (parser :: H ((Pattern a -> Pattern a -> Pattern a) -> [Pattern a] -> Pattern a -> Pattern a)) <*> parser
 
 instance Parse ([Pattern Double] -> Pattern a -> Pattern a) where
-  parser = (parser :: H ((Pattern Double -> Pattern a -> Pattern a) -> [Pattern Double] -> Pattern a -> Pattern a)) <*!> pDouble_p_p
+  parser = (parser :: H ((Pattern Double -> Pattern a -> Pattern a) -> [Pattern Double] -> Pattern a -> Pattern a)) <*> pDouble_p_p
 
 instance Parse ([Pattern Time] -> Pattern a -> Pattern a) where
-  parser = (parser :: H ((Pattern Time -> Pattern a -> Pattern a) -> [Pattern Time] -> Pattern a -> Pattern a)) <*!> pTime_p_p
+  parser = (parser :: H ((Pattern Time -> Pattern a -> Pattern a) -> [Pattern Time] -> Pattern a -> Pattern a)) <*> pTime_p_p
 
 lpInt_p_p :: H ([Pattern Int] -> Pattern a -> Pattern a)
 lpInt_p_p =
   $(fromTidal "distrib") <|>
-  (parser :: H ((Pattern Int -> Pattern a -> Pattern a) -> [Pattern Int] -> Pattern a -> Pattern a)) <*!> pInt_p_p
+  -- *** parser on the left below matches spread, which if the parser on the right is required = fatal error...
+  -- *** if we make the right not required, then idioms with spread (etc) work, but that messes up error reporting.
+  (parser :: H ((Pattern Int -> Pattern a -> Pattern a) -> [Pattern Int] -> Pattern a -> Pattern a)) <*> pInt_p_p
 
 instance Parse ([Time] -> Pattern a -> Pattern a) where
   parser = $(fromTidal "spaceOut")
+  -- *** pathway leading to spread(etc) should be incorporated here
 
 instance Parse (Pattern Int -> ControlPattern -> ControlPattern) where
   parser =
@@ -708,6 +718,7 @@ genericAppliedTransformations =
 
 instance Parse ([a] -> Pattern Int -> Pattern a) where
   parser = (parser :: H (Pattern Int -> [a] -> Pattern Int -> Pattern a)) <*!> parser
+  -- *** pathway leading to spread(etc) should be incorporated here
 
 instance Parse (String -> Pattern Double -> ControlPattern) where
   parser = $(fromTidal "pF")
@@ -732,6 +743,7 @@ instance Fractional a => Parse (Pattern String -> Pattern Int -> Pattern a) wher
 
 listNumA_pInt_pA :: Num a => H ([a] -> Pattern Int -> Pattern a)
 listNumA_pInt_pA = $(fromTidal "toScale")
+-- *** pathway leading to spread(etc) should be incorporated here
 
 pString_p_p :: H (Pattern String -> Pattern a -> Pattern a)
 pString_p_p = $(fromTidal "arp")
@@ -747,6 +759,7 @@ pAB_pA_pB = pTime_pAB_pA_pB <*!> parser
 
 lCpCp_cp_cp :: H ([ControlPattern -> ControlPattern] -> ControlPattern -> ControlPattern)
 lCpCp_cp_cp = $(fromTidal "jux'") <|> $(fromTidal "juxcut'")
+-- *** pathway leading to spread(etc) should be incorporated here
 
 pDouble_list_p :: Parse a => H (Pattern Double -> [a] -> Pattern a)
 pDouble_list_p = $(fromTidal "chooseBy")
@@ -785,9 +798,6 @@ pInt_pInt_p_p =
 
 instance Parse (Int -> Pattern Double -> Pattern a -> Pattern a) where
   parser = $(fromTidal "degradeOverBy")
-
-listA_b_patternC :: Parse (a -> b -> Pattern c) => [a] -> b -> Pattern c
-listA_b_patternC = (parser :: H ((a -> b -> Pattern c) -> [a] -> b -> Pattern c)) <*!> parser
 
 instance Parse ((a -> b -> Pattern c) -> [a] -> b -> Pattern c) where
   parser =
