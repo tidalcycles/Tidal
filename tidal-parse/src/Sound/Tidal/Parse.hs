@@ -650,9 +650,6 @@ lpInt_p_p =
   $(fromTidal "distrib") <|>
   (parser :: H ((Pattern Int -> Pattern a -> Pattern a) -> [Pattern Int] -> Pattern a -> Pattern a)) <*> pInt_p_p
 
-  {- *** parser on the left above matches spread, which if the parser on the right is required = fatal error...
-  *** if we make the right not required, then idioms with spread (etc) work, but that messes up error reporting -}
-
 instance Parse ([Time] -> Pattern a -> Pattern a) where
   parser = $(fromTidal "spaceOut")
   -- *** pathway leading to spread(etc) should be incorporated here
