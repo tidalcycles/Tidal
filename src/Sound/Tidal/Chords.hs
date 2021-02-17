@@ -97,6 +97,17 @@ minor11sharp :: Num a => [a]
 minor11sharp = [0,3,7,10,14,18]
 minor13 :: Num a => [a]
 minor13 = [0,3,7,10,14,17,21]
+-- questionable chords
+sevenFlat10 :: Num a => [a]
+sevenFlat10 = [0,4,7,10,15]
+nineSharp5 :: Num a => [a]
+nineSharp5 = [0,1,13]
+msharp5 :: Num a => [a]
+msharp5 = [0,3,8]
+m9sharp5 :: Num a => [a]
+m9sharp5 = [0,1,14]
+m7sharp5flat9 :: Num a => [a]
+m7sharp5flat9 = [0,3,8,10,13]
 -- other chords
 one :: Num a => [a]
 one = [0]
@@ -215,7 +226,14 @@ chordTable = [("major", major),
               ("13", thirteen),
               ("minor13", minor13),
               ("min13", minor13),
-              ("m13", minor13)
+              ("m13", minor13),
+              ("sevenFlat10", sevenFlat10),
+              ("7f10", sevenFlat10),
+              ("nineSharp5", nineSharp5),
+              ("msharp5", msharp5),
+              ("m9sharp5", m9sharp5),
+              ("m9s5", m9sharp5),
+              ("m7sharp5flat9", m7sharp5flat9)
              ]
 
 chordL :: Num a => Pattern String -> Pattern [a]
