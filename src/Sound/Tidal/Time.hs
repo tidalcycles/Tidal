@@ -97,7 +97,10 @@ subArc a@(Arc s e) b@(Arc s' e')
   where (Arc s'' e'') = sect a b
 
 subMaybeArc :: Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)
-subMaybeArc = liftA2 subArc
+subMaybeArc (Just a) (Just b) = do sa <- subArc a b
+                                   return $ Just sa
+subMaybeArc _ _ = Just Nothing
+-- subMaybeArc = liftA2 subArc
 
 -- | Simple intersection of two arcs
 sect :: Arc -> Arc -> Arc
