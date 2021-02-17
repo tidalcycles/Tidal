@@ -27,7 +27,6 @@ import Sound.Tidal.Pattern
 import Data.List (intercalate, sortOn)
 import Data.Ratio (numerator, denominator)
 import Data.Maybe (fromMaybe, isJust)
-import Control.DeepSeq (NFData)
 
 import qualified Data.Map.Strict as Map
 

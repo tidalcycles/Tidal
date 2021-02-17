@@ -31,15 +31,11 @@ where
 import           Prelude hiding ((<*), (*>))
 
 import           Control.Applicative (liftA2)
-import           Data.Data (Data) -- toConstr
 import           GHC.Generics
-import           Data.List (delete, findIndex, sort)
 import           Control.DeepSeq (NFData)
 
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
-import           Data.Typeable (Typeable)
-import           Data.Word (Word8)
 
 import           Sound.Tidal.Time
 import           Sound.Tidal.Value
