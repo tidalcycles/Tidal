@@ -100,7 +100,7 @@ subMaybeArc :: Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)
 subMaybeArc (Just a) (Just b) = do sa <- subArc a b
                                    return $ Just sa
 subMaybeArc _ _ = Just Nothing
--- subMaybeArc = liftA2 subArc
+-- subMaybeArc = liftA2 subArc -- this typechecks, but doesn't work the same way.. hmm
 
 -- | Simple intersection of two arcs
 sect :: Arc -> Arc -> Arc
