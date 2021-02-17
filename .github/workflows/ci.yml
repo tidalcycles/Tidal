@@ -66,10 +66,10 @@ jobs:
         versions:
           - ghc: latest
             resolver: nightly
-          - ghc: 8.8.4
-            resolver: lts-16.31
-          - ghc: 8.6.4
-            resolver: lts-12.26
+#          - ghc: 8.8.4
+#            resolver: lts-16.31
+#          - ghc: 8.6.4
+#            resolver: lts-12.26
     name: stack resolver ${{ matrix.versions.resolver }} - ghc ${{ matrix.versions.ghc }}
     steps:
       - uses: actions/checkout@v2
