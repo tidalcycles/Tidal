@@ -117,3 +117,8 @@ deltaMini = outside 0 0
 matchMaybe :: Maybe a -> Maybe a -> Maybe a
 matchMaybe Nothing y = y
 matchMaybe x       _ = x
+
+-- Available in Data.Either, but only since 4.10
+fromRight :: b -> Either a b -> b
+fromRight _ (Right b) = b
+fromRight b _         = b
