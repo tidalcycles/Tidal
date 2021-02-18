@@ -23,6 +23,14 @@ run =
         compareP (Arc 0 2)
           ("0 1 2 3 4 5 6 7 8 0 10 20 30 40 50" :: Pattern Int)
           (fastCat $ map (pure . read) $ words "0 1 2 3 4 5 6 7 8 0 10 20 30 40 50")
+      it "can parse pattern groups" $ do
+        compareP (Arc 0 1)
+          ("[bd sd] hh" :: Pattern String)
+          (fastCat ["bd sd", "hh"])
+      it "can parse pattern groups shorthand " $ do
+        compareP (Arc 0 1)
+          ("bd sd . hh hh hh" :: Pattern String)
+          ("[bd sd] [hh hh hh]")
       it "can alternate with <>" $ do
         compareP (Arc 0 2)
           ("a <b c>" :: Pattern String)
