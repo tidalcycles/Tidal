@@ -29,7 +29,6 @@ import           Data.Bifunctor (first)
 import           Data.Colour
 import           Data.Colour.Names
 import           Data.Functor.Identity (Identity)
-import           Data.Either (fromRight)
 import           Data.List (intercalate)
 import           Data.Maybe
 import           Data.Ratio
@@ -44,6 +43,7 @@ import           Sound.Tidal.Pattern
 import           Sound.Tidal.UI
 import           Sound.Tidal.Core
 import           Sound.Tidal.Chords (chordTable)
+import           Sound.Tidal.Utils (fromRight)
 
 data TidalParseError = TidalParseError {parsecError :: ParseError,
                                         code :: String
