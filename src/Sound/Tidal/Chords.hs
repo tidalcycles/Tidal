@@ -36,6 +36,12 @@ dom11 :: Num a => [a]
 dom11 = [0,4,7,10]
 dom13 :: Num a => [a]
 dom13 = [0,4,7,10]
+add9 :: Num a => [a]
+add9 = [0,4,7,14]
+add11 :: Num a => [a]
+add11 = [0,4,7,21]
+add13 :: Num a => [a]
+add13 = [0,4,7,21]
 minor7 :: Num a => [a]
 minor7 = [0,3,7,10]
 aug :: Num a => [a]
@@ -140,6 +146,9 @@ chordTable = [("major", major),
               ("dom9", dom9),
               ("dom11", dom11),
               ("dom13", dom13),
+              ("add9", add9),
+              ("add11", add11),
+              ("add13", add13),
               ("minor7", minor7),
               ("min7", minor7),
               ("dim7", dim7),
