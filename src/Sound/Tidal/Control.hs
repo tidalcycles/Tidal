@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings, FlexibleContexts, BangPatterns #-}
+{-# LANGUAGE FlexibleInstances, OverloadedStrings, FlexibleContexts, BangPatterns #-}
 
 module Sound.Tidal.Control where
 
@@ -197,7 +197,7 @@ d1 $ gap 16 $ sound "[jvbass drum:4]"
 gap :: Pattern Int -> ControlPattern -> ControlPattern
 gap = tParam _gap
 
-_gap :: Int -> ControlPattern -> ControlPattern 
+_gap :: Int -> ControlPattern -> ControlPattern
 _gap n p = _fast (toRational n) (cat [pure 1, silence]) |>| _chop n p
 
 {- |
@@ -220,7 +220,7 @@ d1 $ weaveWith 3 (sound "bd [sn drum:2*2] bd*2 [sn drum:1]") [density 2, (# spee
 -}
 weaveWith :: Time -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
 weaveWith t p fs | l == 0 = silence
-              | otherwise = _slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) `rotL` _fast t (f (_slow t p))) (zip [0 :: Int ..] fs)
+              | otherwise = _slow t $ stack $ zipWith (\ i f -> (fromIntegral i % l) `rotL` _fast t (f (_slow t p))) [0 :: Int ..] fs
   where l = fromIntegral $ length fs
 
 weave' :: Time -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
@@ -286,8 +286,8 @@ randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> _irand n
 _splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
 _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure "c")
   where f ev = ev {value = Map.insert "speed" (VF d) (value ev)}
-          where d = sz / (fromRational $ (wholeStop ev) - (wholeStart ev))
-                sz = 1/(fromIntegral bits)
+          where d = sz / fromRational (wholeStop ev - wholeStart ev)
+                sz = 1/fromIntegral bits
 
 splice :: Pattern Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
 splice bitpat ipat pat = innerJoin $ (\bits -> _splice bits ipat pat) <$> bitpat
@@ -395,13 +395,13 @@ sec p = (realToFrac <$> cF 1 "_cps") *| p
 -- | Turns a pattern of milliseconds into a pattern of (rational)
 -- cycle durations, according to the current cps.
 msec :: Fractional a => Pattern a -> Pattern a
-msec p = ((realToFrac . (/1000)) <$> cF 1 "_cps") *| p
+msec p = (realToFrac . (/1000) <$> cF 1 "_cps") *| p
 
 triggerWith :: Show a => (Time -> Time) -> a -> Pattern b -> Pattern b
 triggerWith f k pat = pat {query = q}
-  where q st = query ((offset st) ~> pat) st
+  where q st = query (offset st ~> pat) st
         offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
-                                            return $ ((f . fromMaybe 0 . getR) <$> p)
+                                            return (f . fromMaybe 0 . getR <$> p)
         ctrl = "_t_" ++ show k
 
 trigger :: Show a => a -> Pattern b -> Pattern b
@@ -424,11 +424,11 @@ qt = qtrigger
 
 reset :: Show a => a -> Pattern b -> Pattern b
 reset k pat = pat {query = q}
-  where q st = query ((offset st) ~> (when (<=0) (const silence) pat)) st
+  where q st = query (offset st ~> when (<=0) (const silence) pat) st
         f = (fromIntegral :: Int -> Rational) . floor
         offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
-                                            return $ ((f . fromMaybe 0 . getR) <$> p)
+                                            return (f . fromMaybe 0 . getR <$> p)
         ctrl = "_t_" ++ show k
 
 splat :: Pattern Int -> ControlPattern -> ControlPattern -> ControlPattern
-splat slices epat pat = (chop slices pat) # bite 1 (const 0 <$> pat) epat
+splat slices epat pat = chop slices pat # bite 1 (const 0 <$> pat) epat

@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TypeSynonymInstances, FlexibleInstances, CPP, DeriveFunctor #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances, CPP, DeriveFunctor #-}
 {-# LANGUAGE LambdaCase #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-unused-do-bind #-}
 
@@ -25,9 +25,11 @@ module Sound.Tidal.ParseBP where
 
 import           Control.Applicative ()
 import qualified Control.Exception as E
+import           Data.Bifunctor (first)
 import           Data.Colour
 import           Data.Colour.Names
 import           Data.Functor.Identity (Identity)
+import           Data.Either (fromRight)
 import           Data.List (intercalate)
 import           Data.Maybe
 import           Data.Ratio
@@ -78,7 +80,7 @@ data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
             deriving (Show, Functor)
 
 tShowList :: (Show a) => [TPat a] -> String
-tShowList vs = "[" ++ (intercalate "," $ map tShow vs) ++ "]"
+tShowList vs = "[" ++ intercalate "," (map tShow vs) ++ "]"
 
 tShow :: (Show a) => TPat a -> String
 tShow (TPat_Atom _ v) = "pure " ++ show v
@@ -92,8 +94,8 @@ tShow (TPat_CycleChoose _ vs) = "cycleChoose " ++ tShowList vs
 tShow (TPat_Euclid a b c v) = "doEuclid (" ++ intercalate ") (" (map tShow [a,b,c])  ++ ") $ " ++ tShow v
 tShow (TPat_Stack vs) = "stack " ++ tShowList vs
 
-tShow (TPat_Polyrhythm mSteprate vs) = "stack [" ++ (intercalate ", " (map adjust_speed pats)) ++ "]"
-  where adjust_speed (sz, pat) = "(fast (" ++ (steprate ++ "/" ++ (show sz)) ++ ") $ " ++ pat ++ ")"
+tShow (TPat_Polyrhythm mSteprate vs) = "stack [" ++ intercalate ", " (map adjust_speed pats) ++ "]"
+  where adjust_speed (sz, pat) = "(fast (" ++ (steprate ++ "/" ++ show sz) ++ ") $ " ++ pat ++ ")"
         steprate :: String
         steprate = maybe base_first tShow mSteprate
         base_first | null pats = "0"
@@ -143,9 +145,9 @@ resolve_seq xs = (total_size, timeCat sized_pats)
 
 resolve_size :: [TPat a] -> [(Rational, TPat a)]
 resolve_size [] = []
-resolve_size ((TPat_Elongate r p):ps) = (r, p):(resolve_size ps)
-resolve_size ((TPat_Repeat n p):ps) = replicate n (1,p) ++ (resolve_size ps)
-resolve_size (p:ps) = (1,p):(resolve_size ps)
+resolve_size ((TPat_Elongate r p):ps) = (r, p):resolve_size ps
+resolve_size ((TPat_Repeat n p):ps) = replicate n (1,p) ++ resolve_size ps
+resolve_size (p:ps) = (1,p):resolve_size ps
 
 
 steps_tpat :: (Show a) => TPat a -> (Rational, String)
@@ -153,15 +155,15 @@ steps_tpat (TPat_Seq xs) = steps_seq xs
 steps_tpat a = (1, tShow a)
 
 steps_seq :: (Show a) => [TPat a] -> (Rational, String)
-steps_seq xs = (total_size, "timeCat [" ++ (intercalate "," $ map (\(r,s) -> "(" ++ show r ++ ", " ++ s ++ ")") sized_pats) ++ "]")
+steps_seq xs = (total_size, "timeCat [" ++ intercalate "," (map (\(r,s) -> "(" ++ show r ++ ", " ++ s ++ ")") sized_pats) ++ "]")
   where sized_pats = steps_size xs
         total_size = sum $ map fst sized_pats
 
 steps_size :: Show a => [TPat a] -> [(Rational, String)]
 steps_size [] = []
-steps_size ((TPat_Elongate r p):ps) = (r, tShow p):(steps_size ps)
-steps_size ((TPat_Repeat n p):ps) = replicate n (1, tShow p) ++ (steps_size ps)
-steps_size (p:ps) = (1,tShow p):(steps_size ps)
+steps_size ((TPat_Elongate r p):ps) = (r, tShow p):steps_size ps
+steps_size ((TPat_Repeat n p):ps) = replicate n (1, tShow p) ++ steps_size ps
+steps_size (p:ps) = (1,tShow p):steps_size ps
 
 parseBP :: (Enumerable a, Parseable a) => String -> Either ParseError (Pattern a)
 parseBP s = toPat <$> parseTPat s
@@ -206,7 +208,7 @@ instance Parseable Double where
 instance Enumerable Double where
   fromTo = enumFromTo'
   fromThenTo = enumFromThenTo'
-  
+
 instance Parseable Note where
   tPatParser = pNote
   doEuclid = euclidOff
@@ -358,7 +360,7 @@ pSequence f = do
           where (foot, pats') = takeFoot pats
                 takeFoot [] = ([], [])
                 takeFoot (TPat_Foot:pats'') = ([], pats'')
-                takeFoot (pat:pats'') = (\(a,b) -> (pat:a,b)) $ takeFoot pats''
+                takeFoot (pat:pats'') = first (pat:) $ takeFoot pats''
 
 pRepeat :: TPat a -> MyParser (TPat a)
 pRepeat a = do es <- many1 $ do char '!'
@@ -442,7 +444,7 @@ pDouble = wrapPos $ do f <- choice [intOrFloat, pRatioChar, parseNote] <?> "floa
                          <|> return (TPat_Atom Nothing f)
                       <|>
                          do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
- 
+
 pNote :: MyParser (TPat Note)
 pNote = wrapPos $ fmap (fmap Note) $ do f <- choice [intOrFloat, parseNote] <?> "float"
                                         do TPat_Stack . map (TPat_Atom Nothing . (+ f)) <$> parseChord
@@ -510,7 +512,7 @@ parseNote = do n <- notenum
                               ]
 
 fromNote :: Num a => Pattern String -> Pattern a
-fromNote pat = either (const 0) id . runParser parseNote 0 "" <$> pat
+fromNote pat = fromRight 0 . runParser parseNote 0 "" <$> pat
 
 pColour :: MyParser (TPat ColourD)
 pColour = wrapPos $ do name <- many1 letter <?> "colour name"

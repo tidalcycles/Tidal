@@ -154,7 +154,7 @@ isIn (Arc s e) t = t >= s && t < e
 -- * Event utilities
 
 isAnalog :: Event a -> Bool
-isAnalog (Event {whole = Nothing}) = True
+isAnalog Event {whole = Nothing} = True
 isAnalog _ = False
 
 isDigital :: Event a -> Bool
@@ -190,7 +190,7 @@ isAdjacent e e' = (whole e == whole e')
                      )
 
 wholeOrPart :: Event a -> Arc
-wholeOrPart (Event {whole = Just a}) = a
+wholeOrPart Event {whole = Just a} = a
 wholeOrPart e = part e
 
 -- | Get the onset of an event's 'whole'

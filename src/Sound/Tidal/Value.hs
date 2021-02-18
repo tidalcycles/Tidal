@@ -1,6 +1,6 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DeriveFunctor #-}
+
 {-# LANGUAGE DeriveGeneric #-}
 
 module Sound.Tidal.Value where
@@ -67,7 +67,7 @@ instance Eq Value where
   (VN x) == (VN y) = x == y
   (VR x) == (VR y) = x == y
   (VX x) == (VX y) = x == y
-  
+
   (VF x) == (VI y) = x == fromIntegral y
   (VI y) == (VF x) = x == fromIntegral y
 
@@ -77,7 +77,7 @@ instance Eq Value where
   (VR y) == (VI x) = toRational x == y
 
   _ == _ = False
-  
+
 instance Ord Value where
   compare (VS x) (VS y) = compare x y
   compare (VB x) (VB y) = compare x y

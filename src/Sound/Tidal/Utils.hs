@@ -99,20 +99,19 @@ deltaMini :: String -> String
 deltaMini = outside 0 0
   where outside :: Int -> Int -> String -> String
         outside _ _ [] = []
-        outside column line ('"':xs) = ("(deltaContext "
+        outside column line ('"':xs) = "(deltaContext "
                                          ++ show column
                                          ++ " "
                                          ++ show line
                                          ++ " \""
                                          ++ inside (column+1) line xs
-                                       )
-        outside _ line ('\n':xs) = '\n':(outside 0 (line+1) xs)
-        outside column line (x:xs) = x:(outside (column+1) line xs)
+        outside _ line ('\n':xs) = '\n':outside 0 (line+1) xs
+        outside column line (x:xs) = x:outside (column+1) line xs
         inside :: Int -> Int -> String -> String
         inside _ _ [] = []
-        inside column line ('"':xs) = '"':')':(outside (column+1) line xs)
-        inside _ line ('\n':xs) = '\n':(inside 0 (line+1) xs)
-        inside column line (x:xs) = x:(inside (column+1) line xs)
+        inside column line ('"':xs) = '"':')':outside (column+1) line xs
+        inside _ line ('\n':xs) = '\n':inside 0 (line+1) xs
+        inside column line (x:xs) = x:inside (column+1) line xs
 
 
 matchMaybe :: Maybe a -> Maybe a -> Maybe a
