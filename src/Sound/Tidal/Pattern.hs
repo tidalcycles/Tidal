@@ -413,6 +413,19 @@ rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 rotR :: Time -> Pattern a -> Pattern a
 rotR t = rotL (negate t)
 
+
+-- | Mark values in the first pattern which match with at least one
+-- value in the second pattern.
+matchManyToOne :: (b -> a -> Bool) -> Pattern a -> Pattern b -> Pattern (Bool, b)
+matchManyToOne f pa pb = pa {query = q}
+  where q st = map match $ query pb st
+          where
+            match (ex@(Event xContext xWhole xPart x)) =
+              Event (combineContexts $ xContext:(map context as')) xWhole xPart (any (f x) (map value $ as'), x)
+                where as' = as $ start $ wholeOrPart ex
+            as s = query pa $ fQuery s
+            fQuery s = st {arc = Arc s s}
+
 -- ** Event filters
 
 -- | Remove events from patterns that to not meet the given test
@@ -455,18 +468,6 @@ tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 tParamSqueeze f tv p = squeezeJoin $ (`f` p) <$> tv
-
--- | Mark values in the first pattern which match with at least one
--- value in the second pattern.
-matchManyToOne :: (b -> a -> Bool) -> Pattern a -> Pattern b -> Pattern (Bool, b)
-matchManyToOne f pa pb = pa {query = q}
-  where q st = map match $ query pb st
-          where
-            match (ex@(Event xContext xWhole xPart x)) =
-              Event (combineContexts $ xContext:(map context as')) xWhole xPart (any (f x) (map value $ as'), x)
-                where as' = as $ start $ wholeOrPart ex
-            as s = query pa $ fQuery s
-            fQuery s = st {arc = Arc s s}
 
 -- ** Context
 
