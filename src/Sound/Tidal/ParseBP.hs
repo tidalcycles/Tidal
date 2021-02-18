@@ -339,7 +339,7 @@ pSequence f = do
     a <- pPart f
     spaces
     do
-      symbol ".."
+      try $ symbol ".."
       b <- pPart f
       return $ TPat_EnumFromTo a b
       <|> pElongate a
