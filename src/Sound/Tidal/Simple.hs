@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-
@@ -30,7 +30,7 @@ import GHC.Exts ( IsString(..) )
 
 instance {-# OVERLAPPING #-} IsString ControlPattern where
   fromString = s . parseBP_E
-  
+
 crunch :: ControlPattern -> ControlPattern
 crunch = (# crush 3)
 
