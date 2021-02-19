@@ -83,7 +83,7 @@ chopArc (Arc s e) n = map (\i -> Arc (s + (e-s)*(fromIntegral i/fromIntegral n))
 _chop :: Int -> ControlPattern -> ControlPattern
 _chop n = withEvents (concatMap chopEvent)
   where -- for each part,
-        chopEvent :: Event ControlMap -> [Event ControlMap]
+        chopEvent :: Event ValueMap -> [Event ValueMap]
         chopEvent (Event c (Just w) p' v) = map (chomp c v (length $ chopArc w n)) $ arcs w p'
         -- ignoring 'analog' events (those without wholes),
         chopEvent _ = []
@@ -97,7 +97,7 @@ _chop n = withEvents (concatMap chopEvent)
         -- if the old event had a begin and end, then multiply the new
         -- begin and end values by the old difference (end-begin), and
         -- add the old begin
-        chomp :: Context -> ControlMap -> Int -> (Int, (Arc, Arc)) -> Event ControlMap
+        chomp :: Context -> ValueMap -> Int -> (Int, (Arc, Arc)) -> Event ValueMap
         chomp c v n' (i, (w,p')) = Event c (Just w) p' (Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v)
           where b = fromMaybe 0 $ do v' <- Map.lookup "begin" v
                                      getF v'
@@ -149,7 +149,7 @@ _striate :: Int -> ControlPattern -> ControlPattern
 _striate n p = fastcat $ map offset [0 .. n-1]
   where offset i = mergePlayRange (fromIntegral i / fromIntegral n, fromIntegral (i+1) / fromIntegral n) <$> p
 
-mergePlayRange :: (Double, Double) -> ControlMap -> ControlMap
+mergePlayRange :: (Double, Double) -> ValueMap -> ValueMap
 mergePlayRange (b,e) cm = Map.insert "begin" (VF ((b*d')+b')) $ Map.insert "end" (VF ((e*d')+b')) cm
   where b' = fromMaybe 0 $ Map.lookup "begin" cm >>= getF
         e' = fromMaybe 1 $ Map.lookup "end" cm >>= getF
@@ -334,13 +334,13 @@ d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
 @
 -}
 
-smash :: Pattern Int -> [Pattern Time] -> ControlPattern -> Pattern ControlMap
+smash :: Pattern Int -> [Pattern Time] -> ControlPattern -> Pattern ValueMap
 smash n xs p = slowcat $ map (`slow` p') xs
   where p' = striate n p
 
 {- | an altenative form to `smash` is `smash'` which will use `chop` instead of `striate`.
 -}
-smash' :: Int -> [Pattern Time] -> ControlPattern -> Pattern ControlMap
+smash' :: Int -> [Pattern Time] -> ControlPattern -> ControlPattern
 smash' n xs p = slowcat $ map (`slow` p') xs
   where p' = _chop n p
 

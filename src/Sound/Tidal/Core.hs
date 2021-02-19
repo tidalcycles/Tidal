@@ -141,7 +141,7 @@ class Unionable a where
 instance Unionable a where
   union = const
 
-instance {-# OVERLAPPING #-} Unionable ControlMap where
+instance {-# OVERLAPPING #-} Unionable ValueMap where
   union = Map.union
 
 (|+|) :: (Applicative a, Num b) => a b -> a b -> a b
