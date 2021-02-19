@@ -31,22 +31,22 @@ import Data.Maybe (fromMaybe)
 import Data.Word (Word8)
 
 -- | group multiple params into one
-grp :: [String -> ControlMap] -> Pattern String -> ControlPattern
+grp :: [String -> ValueMap] -> Pattern String -> ControlPattern
 grp [] _ = empty
 grp fs p = splitby <$> p
   where splitby name = Map.unions $ map (\(v, f) -> f v) $ zip (split name) fs
         split :: String -> [String]
         split = wordsBy (==':')
 
-mF :: String -> String -> ControlMap
+mF :: String -> String -> ValueMap
 mF name v = fromMaybe Map.empty $ do f <- readMaybe v
                                      return $ Map.singleton name (VF f)
 
-mI :: String -> String -> ControlMap
+mI :: String -> String -> ValueMap
 mI name v = fromMaybe Map.empty $ do i <- readMaybe v
                                      return $ Map.singleton name (VI i)
 
-mS :: String -> String -> ControlMap
+mS :: String -> String -> ValueMap
 mS name v = Map.singleton name (VS v)
 
 -- | Param makers

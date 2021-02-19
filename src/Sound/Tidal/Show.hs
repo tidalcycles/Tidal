@@ -70,7 +70,7 @@ instance Show Value where
   show (VB b)  = show b
   show (VX xs) = show xs
 
-instance {-# OVERLAPPING #-} Show ControlMap where
+instance {-# OVERLAPPING #-} Show ValueMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
 
 instance {-# OVERLAPPING #-} Show Arc where

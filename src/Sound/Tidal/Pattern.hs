@@ -22,7 +22,8 @@
 
 module Sound.Tidal.Pattern (module Sound.Tidal.Pattern,
                             module Sound.Tidal.Time,
-                            module Sound.Tidal.Value
+                            module Sound.Tidal.Value,
+                            module Sound.Tidal.Event
                            )
 where
 
@@ -37,6 +38,7 @@ import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
 
 import           Sound.Tidal.Time
 import           Sound.Tidal.Value
+import           Sound.Tidal.Event
 
 ------------------------------------------------------------------------
 -- * Types
@@ -52,14 +54,7 @@ data Pattern a = Pattern {query :: State -> [Event a]}
 instance NFData a => NFData (Pattern a)
 
 type StateMap = Map.Map String (Pattern Value)
-type ControlMap = Map.Map String Value
-type ControlPattern = Pattern ControlMap
-
-instance TolerantEq ControlMap where
-  a ~== b = Map.differenceWith (\a' b' -> if a' ~== b' then Nothing else Just a') a b == Map.empty
-
-instance TolerantEq (Event ControlMap) where
-  (Event _ w p x) ~== (Event _ w' p' x') = w == w' && p == p' && x ~== x'
+type ControlPattern = Pattern ValueMap
 
 -- * Functor
 
@@ -292,7 +287,7 @@ instance (RealFloat a) => RealFloat (Pattern a) where
   isIEEE         = noOv "isIEEE"
   atan2          = liftA2 atan2
 
-instance Num ControlMap where
+instance Num ValueMap where
   negate      = (applyFIS negate negate id <$>)
   (+)         = Map.unionWith (fNum2 (+) (+))
   (*)         = Map.unionWith (fNum2 (*) (*))
@@ -300,7 +295,7 @@ instance Num ControlMap where
   signum      = (applyFIS signum signum id <$>)
   abs         = (applyFIS abs abs id <$>)
 
-instance Fractional ControlMap where
+instance Fractional ValueMap where
   recip        = fmap (applyFIS recip id id)
   fromRational r = Map.singleton "speed" $ VF (fromRational r)
 

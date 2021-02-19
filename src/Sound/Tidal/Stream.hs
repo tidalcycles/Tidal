@@ -263,7 +263,7 @@ toDatum (VB True) = O.int32 (1 :: Int)
 toDatum (VB False) = O.int32 (0 :: Int)
 toDatum (VX xs) = O.Blob $ O.blob_pack xs
 
-toData :: OSC -> Event ControlMap -> Maybe [O.Datum]
+toData :: OSC -> Event ValueMap -> Maybe [O.Datum]
 toData (OSC {args = ArgList as}) e = fmap (fmap (toDatum)) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
 toData (OSC {args = Named rqrd}) e
   | hasRequired rqrd = Just $ concatMap (\(n,v) -> [O.string n, toDatum v]) $ Map.toList $ value e
@@ -273,7 +273,7 @@ toData (OSC {args = Named rqrd}) e
         ks = Map.keys (value e)
 toData _ _ = Nothing
 
-substitutePath :: String -> ControlMap -> Maybe String
+substitutePath :: String -> ValueMap -> Maybe String
 substitutePath str cm = parse str
   where parse [] = Just []
         parse ('{':xs) = parseWord xs
@@ -285,7 +285,7 @@ substitutePath str cm = parse str
                                       return $ v ++ xs'
           where (a,b) = break (== '}') xs
 
-getString :: ControlMap -> String -> Maybe String
+getString :: ValueMap -> String -> Maybe String
 getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
                       where simpleShow :: Value -> String
                             simpleShow (VS str) = str
@@ -308,7 +308,7 @@ playStack pMap = stack $ map pattern active
                                     else not (mute pState)
                         ) $ Map.elems pMap
 
-toOSC :: Double -> [Int] -> Event ControlMap -> T.Tempo -> OSC -> [(Double, Bool, O.Message)]
+toOSC :: Double -> [Int] -> Event ValueMap -> T.Tempo -> OSC -> [(Double, Bool, O.Message)]
 toOSC latency busses e tempo osc@(OSC _ _)
   = catMaybes (playmsg:busmsgs)
        where (playmap, busmap) = Map.partitionWithKey (\k _ -> null k || head k /= '^') $ value e
@@ -374,7 +374,7 @@ onTick :: Stream -> T.State -> IO ()
 onTick stream st
   = do doTick False stream st
 
-processCps :: T.Tempo -> [Event ControlMap] -> ([(T.Tempo, Event ControlMap)], T.Tempo)
+processCps :: T.Tempo -> [Event ValueMap] -> ([(T.Tempo, Event ValueMap)], T.Tempo)
 processCps t [] = ([], t)
 -- If an event has a tempo change, that affects the following events..
 processCps t (e:evs) = (((t', e):es'), t'')

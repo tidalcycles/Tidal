@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances, TypeSynonymInstances #-}
 
 module TestUtils where
 
@@ -11,6 +11,25 @@ import Data.List (sort)
 import Sound.Tidal.Context
 
 import qualified Data.Map.Strict as Map
+
+class TolerantEq a where
+   (~==) :: a -> a -> Bool
+
+instance TolerantEq Value where
+         (VS a) ~== (VS b) = a == b
+         (VI a) ~== (VI b) = a == b
+         (VR a) ~== (VR b) = a == b
+         (VF a) ~== (VF b) = abs (a - b) < 0.000001
+         _ ~== _ = False
+
+instance TolerantEq a => TolerantEq [a] where
+  as ~== bs = (length as == length bs) && all (uncurry (~==)) (zip as bs)
+
+instance TolerantEq ValueMap where
+  a ~== b = Map.differenceWith (\a' b' -> if a' ~== b' then Nothing else Just a') a b == Map.empty
+
+instance TolerantEq (Event ValueMap) where
+  (Event _ w p x) ~== (Event _ w' p' x') = w == w' && p == p' && x ~== x'
 
 -- | Compare the events of two patterns using the given arc
 compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property

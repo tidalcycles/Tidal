@@ -1536,17 +1536,17 @@ d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striateBy 32 (1/16) $ sound "bev"
 @
 -}
 jux
-  :: (Pattern ControlMap -> Pattern ControlMap)
-     -> Pattern ControlMap -> Pattern ControlMap
+  :: (Pattern ValueMap -> Pattern ValueMap)
+     -> Pattern ValueMap -> Pattern ValueMap
 jux = juxBy 1
 juxcut
-  :: (Pattern ControlMap -> Pattern ControlMap)
-     -> Pattern ControlMap -> Pattern ControlMap
+  :: (Pattern ValueMap -> Pattern ValueMap)
+     -> Pattern ValueMap -> Pattern ValueMap
 juxcut f p = stack [p     # P.pan (pure 0) # P.cut (pure (-1)),
                     f $ p # P.pan (pure 1) # P.cut (pure (-2))
                    ]
 
-juxcut' :: [t -> Pattern ControlMap] -> t -> Pattern ControlMap
+juxcut' :: [t -> Pattern ValueMap] -> t -> Pattern ValueMap
 juxcut' fs p = stack $ map (\n -> ((fs !! n) p |+ P.cut (pure $ 1-n)) # P.pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
   where l = length fs
 
@@ -1573,14 +1573,14 @@ d1 $ stack [
 @
 
 -}
-jux' :: [t -> Pattern ControlMap] -> t -> Pattern ControlMap
+jux' :: [t -> Pattern ValueMap] -> t -> Pattern ValueMap
 jux' fs p = stack $ map (\n -> (fs !! n) p |+ P.pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
   where l = length fs
 
 -- | Multichannel variant of `jux`, _not sure what it does_
 jux4
-  :: (Pattern ControlMap -> Pattern ControlMap)
-     -> Pattern ControlMap -> Pattern ControlMap
+  :: (Pattern ValueMap -> Pattern ValueMap)
+     -> Pattern ValueMap -> Pattern ValueMap
 jux4 f p = stack [p # P.pan (pure (5/8)), f $ p # P.pan (pure (1/8))]
 
 {- |
@@ -1599,9 +1599,9 @@ and 0.75, rather than 0 and 1.
 -}
 juxBy
   :: Pattern Double
-     -> (Pattern ControlMap -> Pattern ControlMap)
-     -> Pattern ControlMap
-     -> Pattern ControlMap
+     -> (Pattern ValueMap -> Pattern ValueMap)
+     -> Pattern ValueMap
+     -> Pattern ValueMap
 juxBy n f p = stack [p |+ P.pan 0.5 |- P.pan (n/2), f $ p |+ P.pan 0.5 |+ P.pan (n/2)]
 
 pick :: String -> Int -> String
@@ -1690,10 +1690,10 @@ step' ss cs = fastcat $ map f cs
 ghost'' :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ghost'' a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) p
 
-ghost' :: Time -> Pattern ControlMap -> Pattern ControlMap
+ghost' :: Time -> Pattern ValueMap -> Pattern ValueMap
 ghost' a p = ghost'' a ((|*| P.gain (pure 0.7)) . (|> P.end (pure 0.2)) . (|*| P.speed (pure 1.25))) p
 
-ghost :: Pattern ControlMap -> Pattern ControlMap
+ghost :: Pattern ValueMap -> Pattern ValueMap
 ghost = ghost' 0.125
 
 {- |
@@ -1781,16 +1781,16 @@ fix f = contrast f id
 unfix :: (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern
 unfix = contrast id
 
-fixRange :: (ControlPattern -> Pattern ControlMap)
+fixRange :: (ControlPattern -> Pattern ValueMap)
             -> Pattern (Map.Map String (Value, Value))
             -> ControlPattern
-            -> Pattern ControlMap
+            -> ControlPattern
 fixRange f = contrastRange f id
 
-unfixRange :: (ControlPattern -> Pattern ControlMap)
+unfixRange :: (ControlPattern -> Pattern ValueMap)
               -> Pattern (Map.Map String (Value, Value))
               -> ControlPattern
-              -> Pattern ControlMap
+              -> ControlPattern
 unfixRange = contrastRange id
 
 -- | limit values in a Pattern (or other Functor) to n equally spaced
