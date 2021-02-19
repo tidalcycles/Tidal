@@ -28,6 +28,7 @@ import           Data.Word (Word8)
 import           GHC.Generics
 import           Data.Data (Data) -- toConstr
 import           Data.Typeable (Typeable)
+import qualified Data.Map.Strict as Map
 
 -- | Polymorphic values
 
