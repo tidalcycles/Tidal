@@ -24,7 +24,8 @@
 
 module Sound.Tidal.Pattern (module Sound.Tidal.Pattern,
                             module Sound.Tidal.Time,
-                            module Sound.Tidal.Value
+                            module Sound.Tidal.Value,
+                            module Sound.Tidal.Event
                            )
 where
 
@@ -43,6 +44,7 @@ import           Data.Word (Word8)
 
 import           Sound.Tidal.Time
 import           Sound.Tidal.Value
+import           Sound.Tidal.Event
 
 ------------------------------------------------------------------------
 -- * Types
