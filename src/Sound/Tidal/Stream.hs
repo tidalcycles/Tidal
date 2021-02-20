@@ -49,7 +49,7 @@ import           Sound.Tidal.Version
 
 data Stream = Stream {sConfig :: Config,
                       sBusses :: MVar [Int],
-                      sInput :: MVar ValueMap,
+                      sState :: MVar ValueMap,
                       -- sOutput :: MVar ControlPattern,
                       sListen :: Maybe O.UDP,
                       sPMapMV :: MVar PlayMap,
@@ -207,7 +207,7 @@ startStream config oscmap
                    ) oscmap
        let stream = Stream {sConfig = config,
                             sBusses = bussesMV,
-                            sInput = sMapMV,
+                            sState  = sMapMV,
                             sListen = listen,
                             sPMapMV = pMapMV,
                             sTempoMV = tempoMV,
@@ -429,7 +429,7 @@ doTick fake stream st =
            ) $
   modifyMVar_ (sTempoMV stream) $ \ tempo -> do
      pMap <- readMVar (sPMapMV stream)
-     sMap <- readMVar (sInput stream)
+     sMap <- takeMVar (sState stream)
      busses <- readMVar (sBusses stream)
      sGlobalF <- readMVar (sGlobalFMV stream)
      -- putStrLn $ show st
@@ -446,13 +446,18 @@ doTick fake stream st =
          --filterOns = filter eventHasOnset
          extraLatency | fake = 0
                       | otherwise = cFrameTimespan config + T.nudged tempo
+         -- First the state is used to query the pattern
          es = sortOn (start . part) $ query pat (State {arc = T.nowArc st,
                                                         controls = sMap'
                                                        }
                                                 )
+         -- Then it's passed through the events
+         (sMap'', es') = resolveState sMap' es
+         
          -- TODO onset is calculated in toOSC as well..
          on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
-         (tes, tempo') = processCps tempo $ es
+         (tes, tempo') = processCps tempo $ es'
+     putMVar (sState stream) sMap''
      forM_ cxs $ \cx@(Cx target _ oscs _ _) -> do
          let latency = oLatency target + extraLatency
              ms = concatMap (\(t, e) ->
@@ -523,11 +528,11 @@ streamReplace :: Show a => Stream -> a -> ControlPattern -> IO ()
 streamReplace s k !pat
   = E.catch (do let x = queryArc pat (Arc 0 0)
                 tempo <- readMVar $ sTempoMV s
-                input <- takeMVar $ sInput s
+                input <- takeMVar $ sState s
                 -- put change time in control input
                 now <- O.time
                 let cyc = T.timeToCycles tempo now
-                putMVar (sInput s) $
+                putMVar (sState s) $
                   Map.insert ("_t_all") (VR cyc) $ Map.insert ("_t_" ++ show k) (VR cyc) input
                 -- update the pattern itself
                 pMap <- seq x $ takeMVar $ sPMapMV s
@@ -580,10 +585,10 @@ streamAll s f = do _ <- swapMVar (sGlobalFMV s) f
                    return ()
 
 streamSet :: Valuable a => Stream -> String -> Pattern a -> IO ()
-streamSet s k pat = do sMap <- takeMVar $ sInput s
+streamSet s k pat = do sMap <- takeMVar $ sState s
                        let pat' = toValue <$> pat
                            sMap' = Map.insert k (VPattern pat') sMap
-                       putMVar (sInput s) $ sMap'
+                       putMVar (sState s) $ sMap'
 
 streamSetI :: Stream -> String -> Pattern Int -> IO ()
 streamSetI = streamSet
@@ -642,8 +647,8 @@ ctrlResponder c (stream@(Stream {sListen = Just sock})) = do ms <- recvMessagesT
           = add (O.ascii_to_string k) (VI (fromIntegral v))
         act m = hPutStrLn stderr $ "Unhandled OSC: " ++ show m
         add :: String -> Value -> IO ()
-        add k v = do sMap <- takeMVar (sInput stream)
-                     putMVar (sInput stream) $ Map.insert k v sMap
+        add k v = do sMap <- takeMVar (sState stream)
+                     putMVar (sState stream) $ Map.insert k v sMap
                      return ()
 ctrlResponder _ _ = return ()
 
