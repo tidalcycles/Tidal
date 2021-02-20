@@ -72,6 +72,12 @@ pS name = fmap (Map.singleton name . VS)
 pX :: String -> Pattern [Word8] -> ControlPattern
 pX name = fmap (Map.singleton name . VX)
 
+pStateF :: String -> String -> (Maybe Double -> Double) -> ControlPattern
+pStateF name sName update = pure $ Map.singleton name $ VState statef
+  where statef :: ValueMap -> (ValueMap, Value)
+        statef sMap = (Map.insert sName v sMap, v) 
+          where v = VF $ update $ (Map.lookup sName sMap) >>= getF
+
 -- | Grouped params
 
 sound :: Pattern String -> ControlPattern
