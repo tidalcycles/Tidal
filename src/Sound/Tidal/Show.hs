@@ -82,6 +82,7 @@ instance Show Value where
   show (VR r)  = show r ++ "r"
   show (VB b)  = show b
   show (VX xs) = show xs
+  show (VPattern pat) = "(" ++ show pat ++ ")"
   show (VState f) = show $ f Map.empty
 
 instance {-# OVERLAPPING #-} Show ValueMap where

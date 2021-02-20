@@ -678,6 +678,11 @@ instance Ord Value where
   compare (VF x) (VN y) = compare x (unNote y)
   compare (VN x) (VF y) = compare (unNote x) y
 
+  -- you can't really compare patterns or state..
+  compare (VPattern _) (VPattern _) = EQ
+  compare (VPattern _) _ = GT
+  compare _ (VPattern _) = LT
+
   compare (VState _) (VState _) = EQ
   compare (VState _) _          = GT
   compare _ (VState _)          = LT
