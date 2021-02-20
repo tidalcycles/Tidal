@@ -9,7 +9,7 @@ import           Data.Bifunctor
 import           Control.Monad.Except
 import qualified Data.Text
 
-import           Sound.Tidal.Context (Pattern,ControlMap,ControlPattern,Enumerable,Time)
+import           Sound.Tidal.Context (Pattern,ValueMap,ControlPattern,Enumerable,Time)
 import qualified Sound.Tidal.Context as T
 import           Sound.Tidal.Parse.TH
 
@@ -57,7 +57,7 @@ instance (Parse a, Parse b) => Parse (a,b) where
 instance Parse a => Parse [a] where
   parser = list parser
 
-instance Parse ControlMap where
+instance Parse ValueMap where
   parser = empty
 
 instance Parse ControlPattern where
@@ -678,7 +678,7 @@ instance Parse ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlP
     $(fromTidal "jux") <|>
     $(fromTidal "juxcut") <|>
     $(fromTidal "jux4") <|>
-    pDouble_controlMapToControlMap_controlMap_controlMap <*!> parser
+    pDouble_controlMapToValueMap_controlMap_controlMap <*!> parser
 
 instance Parse ((Pattern Bool -> Pattern Bool) -> Pattern Bool -> Pattern Bool) where
   parser = genericAppliedTransformations
@@ -839,10 +839,10 @@ instance Parse (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Patte
     $(fromTidal "someCyclesBy") <|>
     $(fromTidal "plyWith")
 
-pDouble_controlMapToControlMap_controlMap_controlMap :: H (Pattern Double -> (Pattern ControlMap -> Pattern ControlMap) -> Pattern ControlMap -> Pattern ControlMap)
-pDouble_controlMapToControlMap_controlMap_controlMap =
+pDouble_controlMapToValueMap_controlMap_controlMap :: H (Pattern Double -> (Pattern ValueMap -> Pattern ValueMap) -> Pattern ValueMap -> Pattern ValueMap)
+pDouble_controlMapToValueMap_controlMap_controlMap =
   $(fromTidal "juxBy") <|>
-  (parser :: H (Pattern Double -> (Pattern ControlMap -> Pattern ControlMap) -> Pattern ControlMap -> Pattern ControlMap))
+  (parser :: H (Pattern Double -> (Pattern ValueMap -> Pattern ValueMap) -> Pattern ValueMap -> Pattern ValueMap))
 
 instance Parse ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern) where
   parser =
