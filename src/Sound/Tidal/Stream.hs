@@ -216,7 +216,7 @@ startStream config oscmap
                            }
        sendHandshakes stream
        _ <- T.clocked config tempoMV $ onTick stream
-       _ <- forkIO $ ctrlResponder config stream
+       _ <- forkIO $ ctrlResponder 0 config stream
        return stream
 
 -- It only really works to handshake with one target at the moment..
@@ -262,7 +262,8 @@ toDatum (VR x) = O.float $ ((fromRational x) :: Double)
 toDatum (VB True) = O.int32 (1 :: Int)
 toDatum (VB False) = O.int32 (0 :: Int)
 toDatum (VX xs) = O.Blob $ O.blob_pack xs
-
+toDatum _ = error "toDatum: unhandled value"
+  
 toData :: OSC -> Event ValueMap -> Maybe [O.Datum]
 toData (OSC {args = ArgList as}) e = fmap (fmap (toDatum)) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
 toData (OSC {args = Named rqrd}) e
@@ -295,6 +296,8 @@ getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
                             simpleShow (VR r) = show r
                             simpleShow (VB b) = show b
                             simpleShow (VX xs) = show xs
+                            simpleShow (VState _) = show "<stateful>"
+                            simpleShow (VPattern _) = show "<pattern>"
                             (_, dflt) = break (== '=') s
                             defaultValue :: Maybe String -> Maybe String
                             defaultValue Nothing | null dflt = Nothing
@@ -617,15 +620,17 @@ openListener c
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch
 
-ctrlResponder :: Config -> Stream -> IO ()
-ctrlResponder c (stream@(Stream {sListen = Just sock})) = do ms <- recvMessagesTimeout 2 sock
-                                                             if (null ms)
-                                                               then checkHandshake -- there was a timeout, check handshake
-                                                               else mapM_ act ms
-                                                             ctrlResponder c stream
+ctrlResponder :: Int -> Config -> Stream -> IO ()
+ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
+  = do ms <- recvMessagesTimeout 2 sock
+       if (null ms)
+         then do checkHandshake -- there was a timeout, check handshake
+                 ctrlResponder (waits+1) c stream
+         else do mapM_ act ms
+                 ctrlResponder 0 c stream
      where
         checkHandshake = do busses <- readMVar (sBusses stream)
-                            when (null busses) $ do verbose c $ "Waiting for SuperDirt.."
+                            when (null busses) $ do when  (waits == 0) $ verbose c $ "Waiting for SuperDirt (v.1.7.2 or higher).."
                                                     sendHandshakes stream
 
         act (O.Message "/dirt/hello" _) = sendHandshakes stream
@@ -650,7 +655,7 @@ ctrlResponder c (stream@(Stream {sListen = Just sock})) = do ms <- recvMessagesT
         add k v = do sMap <- takeMVar (sState stream)
                      putMVar (sState stream) $ Map.insert k v sMap
                      return ()
-ctrlResponder _ _ = return ()
+ctrlResponder _ _ _ = return ()
 
 
 verbose :: Config -> String -> IO ()
