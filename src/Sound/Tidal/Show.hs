@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz, stepcount) where
+module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz, stepcount, showStateful) where
 
 
 {-
@@ -32,6 +32,19 @@ import qualified Data.Map.Strict as Map
 
 instance (Show a) => Show (Pattern a) where
   show = showPattern (Arc 0 1)
+
+showStateful :: ControlPattern -> String
+showStateful p = intercalate "\n" evStrings
+  where (_, evs) = resolveState (Map.empty) $ sortOn part $ queryArc (filterOnsets p) (Arc 0 1)
+        evs' = map showEvent evs
+        maxPartLength :: Int
+        maxPartLength = maximum $ map (length . fst) evs'
+        evString :: (String, String) -> String
+        evString ev = ((replicate (maxPartLength - (length (fst ev))) ' ')
+                       ++ fst ev
+                       ++ snd ev
+                      )
+        evStrings = map evString evs'
 
 showPattern :: Show a => Arc -> Pattern a -> String
 showPattern a p = intercalate "\n" evStrings
@@ -69,6 +82,7 @@ instance Show Value where
   show (VR r)  = show r ++ "r"
   show (VB b)  = show b
   show (VX xs) = show xs
+  show (VState f) = show $ f Map.empty
 
 instance {-# OVERLAPPING #-} Show ValueMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m

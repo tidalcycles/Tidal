@@ -497,10 +497,10 @@ _getP :: a -> (Value -> Maybe a) -> Pattern Value -> Pattern a
 _getP d f pat = fromMaybe d . f <$> pat
 
 _cX :: a -> (Value -> Maybe a) -> String -> Pattern a
-_cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f) $ Map.lookup s m) a
+_cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f . valueToPattern) $ Map.lookup s m) a
 
 _cX_ :: (Value -> Maybe a) -> String -> Pattern a
-_cX_ f s = Pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f) $ Map.lookup s m) a
+_cX_ f s = Pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f . valueToPattern) $ Map.lookup s m) a
 
 cF :: Double -> String -> Pattern Double
 cF d = _cX d getF

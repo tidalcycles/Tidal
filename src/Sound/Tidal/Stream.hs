@@ -49,7 +49,7 @@ import           Sound.Tidal.Version
 
 data Stream = Stream {sConfig :: Config,
                       sBusses :: MVar [Int],
-                      sInput :: MVar StateMap,
+                      sInput :: MVar ValueMap,
                       -- sOutput :: MVar ControlPattern,
                       sListen :: Maybe O.UDP,
                       sPMapMV :: MVar PlayMap,
@@ -442,7 +442,7 @@ doTick fake stream st =
              | otherwise = patstack
          frameEnd = snd $ T.nowTimespan st
          -- add cps to state
-         sMap' = Map.insert "_cps" (pure $ VF (T.cps tempo)) sMap
+         sMap' = Map.insert "_cps" (VF (T.cps tempo)) sMap
          --filterOns = filter eventHasOnset
          extraLatency | fake = 0
                       | otherwise = cFrameTimespan config + T.nudged tempo
@@ -528,7 +528,7 @@ streamReplace s k !pat
                 now <- O.time
                 let cyc = T.timeToCycles tempo now
                 putMVar (sInput s) $
-                  Map.insert ("_t_all") (pure $ VR cyc) $ Map.insert ("_t_" ++ show k) (pure $ VR cyc) input
+                  Map.insert ("_t_all") (VR cyc) $ Map.insert ("_t_" ++ show k) (VR cyc) input
                 -- update the pattern itself
                 pMap <- seq x $ takeMVar $ sPMapMV s
                 let playState = updatePS $ Map.lookup (show k) pMap
@@ -582,7 +582,7 @@ streamAll s f = do _ <- swapMVar (sGlobalFMV s) f
 streamSet :: Valuable a => Stream -> String -> Pattern a -> IO ()
 streamSet s k pat = do sMap <- takeMVar $ sInput s
                        let pat' = toValue <$> pat
-                           sMap' = Map.insert k pat' sMap
+                           sMap' = Map.insert k (VPattern pat') sMap
                        putMVar (sInput s) $ sMap'
 
 streamSetI :: Stream -> String -> Pattern Int -> IO ()
@@ -643,7 +643,7 @@ ctrlResponder c (stream@(Stream {sListen = Just sock})) = do ms <- recvMessagesT
         act m = hPutStrLn stderr $ "Unhandled OSC: " ++ show m
         add :: String -> Value -> IO ()
         add k v = do sMap <- takeMVar (sInput stream)
-                     putMVar (sInput stream) $ Map.insert k (pure v) sMap
+                     putMVar (sInput stream) $ Map.insert k v sMap
                      return ()
 ctrlResponder _ _ = return ()
 
