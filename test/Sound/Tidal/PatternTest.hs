@@ -249,7 +249,7 @@ run =
 
     describe "controlI" $ do
       it "can retrieve values from state" $
-       (query (pure 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (pure $ VF 0.5)))
+       (query (pure 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (VF 0.5)))
        `shouldBe` [(Event (Context []) (Just $ Arc (0 % 1) (1 % 1)) (Arc (0 % 1) (1 % 1)) 3.5)]
 
     describe "wholeStart" $ do 
