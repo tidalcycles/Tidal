@@ -6,8 +6,6 @@ module Sound.Tidal.Time where
 import Control.Applicative
 import GHC.Generics
 import Control.DeepSeq (NFData)
-import Data.Maybe (isJust, fromJust)
-import Data.List (delete, findIndex, sort)
 
 -- | Time is rational
 type Time = Rational
