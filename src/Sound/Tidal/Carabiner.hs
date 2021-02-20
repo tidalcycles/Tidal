@@ -53,7 +53,7 @@ listener tidal bpc latency sock =
                let msg = B8.unpack rMsg
                    (name:_:ws) = words msg
                    pairs = pairs' ws
-                   pairs' (a:b:xs) = (a,b):(pairs' xs)
+                   pairs' (a:b:xs) = (a,b):pairs' xs
                    pairs' _ = []
                act tidal bpc latency name pairs
 
@@ -65,17 +65,17 @@ act tidal bpc latency "status" pairs
        when (and [isJust start, isJust bpm, isJust beat]) $ do
          nowM <- getTime Monotonic
          nowO <- O.time
-         let m = (fromIntegral $ sec nowM) + ((fromIntegral $ nsec nowM)/1000000000)
+         let m = fromIntegral (sec nowM) + (fromIntegral (nsec nowM)/1000000000)
              d = nowO - m
-             start' = ((fromIntegral $ fromJust start) / 1000000)
+             start' = fromIntegral (fromJust start) / 1000000
              startO = start' + d
              -- cyc = toRational $ (fromJust beat) / (fromIntegral bpc)
          tempo <- takeMVar (S.sTempoMV tidal)
          let tempo' = tempo {atTime = startO + latency,
                              atCycle = 0,
-                             cps = ((fromJust bpm) / 60) / (fromIntegral bpc)
+                             cps = (fromJust bpm / 60) / fromIntegral bpc
                             }
-         putMVar (S.sTempoMV tidal) $ tempo'
+         putMVar (S.sTempoMV tidal) tempo'
 act _ _ _ name _ = putStr $ "Unhandled thingie " ++ name
 
 sendMsg :: Socket -> String -> IO ()

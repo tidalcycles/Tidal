@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, BangPatterns #-}
+{-# LANGUAGE FlexibleInstances, BangPatterns #-}
 
 {-
     Core.hs - For functions judged to be 'core' to tidal functionality.
@@ -74,7 +74,7 @@ saw = sig $ \t -> mod' (fromRational t) 1
 -- following a sawtooth with frequency of one cycle, and amplitude from
 -- -1 to 1.
 saw2 :: (Fractional a, Real a) => Pattern a
-saw2 = sig $ \t -> (mod' (fromRational t) 1) * 2 - 1
+saw2 = sig $ \t -> mod' (fromRational t) 1 * 2 - 1
 
 -- | @isaw@ like @saw@, but a descending (inverse) sawtooth.
 isaw :: (Fractional a, Real a) => Pattern a
@@ -109,7 +109,7 @@ square = sig $
 -- -1 to 1.
 square2 :: (Fractional a) => Pattern a
 square2 = sig $
-       \t -> fromIntegral ((floor $ mod' (fromRational t :: Double) 1 * 2) * 2 - 1 :: Integer)
+       \t -> fromIntegral (floor (mod' (fromRational t :: Double) 1 * 2) * 2 - 1 :: Integer)
 
 -- | @envL@ is a 'Pattern' of continuous 'Double' values, representing
 -- a linear interpolation between 0 and 1 during the first cycle, then
@@ -141,7 +141,7 @@ class Unionable a where
 instance Unionable a where
   union = const
 
-instance {-# OVERLAPPING #-} Unionable ControlMap where
+instance {-# OVERLAPPING #-} Unionable ValueMap where
   union = Map.union
 
 (|+|) :: (Applicative a, Num b) => a b -> a b -> a b
@@ -259,7 +259,7 @@ append a b = cat [a,b]
 -- in turn, then the second cycle from each, and so on.
 cat :: [Pattern a] -> Pattern a
 cat [] = silence
-cat ps = Pattern $ q
+cat ps = Pattern q
   where n = length ps
         q st = concatMap (f st) $ arcCyclesZW (arc st)
         f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (stop a))}
@@ -376,11 +376,11 @@ rev p =
         })
     }
   where makeWholeRelative :: Event a -> Event a
-        makeWholeRelative (e@(Event {whole = Nothing})) = e
+        makeWholeRelative e@Event {whole = Nothing} = e
         makeWholeRelative (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
           Event c (Just $ Arc (s'-s) (e-e')) p' v
         makeWholeAbsolute :: Event a -> Event a
-        makeWholeAbsolute (e@(Event {whole = Nothing})) = e
+        makeWholeAbsolute e@Event {whole = Nothing} = e
         makeWholeAbsolute (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
           Event c (Just $ Arc (s'-e) (e'+s)) p' v
         midCycle :: Arc -> Time
@@ -494,7 +494,7 @@ _getP_ :: (Value -> Maybe a) -> Pattern Value -> Pattern a
 _getP_ f pat = filterJust $ f <$> pat
 
 _getP :: a -> (Value -> Maybe a) -> Pattern Value -> Pattern a
-_getP d f pat = (fromMaybe d . f) <$> pat
+_getP d f pat = fromMaybe d . f <$> pat
 
 _cX :: a -> (Value -> Maybe a) -> String -> Pattern a
 _cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f) $ Map.lookup s m) a

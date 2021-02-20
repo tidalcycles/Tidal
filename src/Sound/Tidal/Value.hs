@@ -1,15 +1,34 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE DeriveDataTypeable, FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DeriveFunctor #-}
+
 {-# LANGUAGE DeriveGeneric #-}
 
 module Sound.Tidal.Value where
+
+{-
+    Value.hs - Polymorphic values
+    Copyright (C) 2020, Alex McLean and contributors
+
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library.  If not, see <http://www.gnu.org/licenses/>.
+-}
 
 import           Control.DeepSeq (NFData)
 import           Data.Word (Word8)
 import           GHC.Generics
 import           Data.Data (Data) -- toConstr
 import           Data.Typeable (Typeable)
+import qualified Data.Map.Strict as Map
 
 -- | Polymorphic values
 
@@ -26,21 +45,7 @@ class Valuable a where
   toValue :: a -> Value
 instance NFData Value
 
--- | TolerantEq, for use in tests
-
-class TolerantEq a where
-   (~==) :: a -> a -> Bool
-
-instance TolerantEq Value where
-         (VS a) ~== (VS b) = a == b
-         (VI a) ~== (VI b) = a == b
-         (VR a) ~== (VR b) = a == b
-         (VF a) ~== (VF b) = abs (a - b) < 0.000001
-         _ ~== _ = False
-
-instance TolerantEq a => TolerantEq [a] where
-  as ~== bs = (length as == length bs) && all (uncurry (~==)) (zip as bs)
-
+type ValueMap = Map.Map String Value
 
 -- | Note is Double, but with a different parser
 newtype Note = Note { unNote :: Double } deriving (Typeable, Data, Generic, Eq, Ord, Show, Enum, Num, Fractional, Floating, Real)
@@ -67,7 +72,7 @@ instance Eq Value where
   (VN x) == (VN y) = x == y
   (VR x) == (VR y) = x == y
   (VX x) == (VX y) = x == y
-  
+
   (VF x) == (VI y) = x == fromIntegral y
   (VI y) == (VF x) = x == fromIntegral y
 
@@ -77,7 +82,7 @@ instance Eq Value where
   (VR y) == (VI x) = toRational x == y
 
   _ == _ = False
-  
+
 instance Ord Value where
   compare (VS x) (VS y) = compare x y
   compare (VB x) (VB y) = compare x y

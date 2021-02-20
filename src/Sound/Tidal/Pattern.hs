@@ -1,6 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, TypeSynonymInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -24,7 +22,8 @@
 
 module Sound.Tidal.Pattern (module Sound.Tidal.Pattern,
                             module Sound.Tidal.Time,
-                            module Sound.Tidal.Value
+                            module Sound.Tidal.Value,
+                            module Sound.Tidal.Event
                            )
 where
 
@@ -33,12 +32,13 @@ import           Prelude hiding ((<*), (*>))
 import           Control.Applicative (liftA2)
 import           GHC.Generics
 import           Control.DeepSeq (NFData)
-
+import           Control.Monad ((>=>))
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
 
 import           Sound.Tidal.Time
 import           Sound.Tidal.Value
+import           Sound.Tidal.Event
 
 ------------------------------------------------------------------------
 -- * Types
@@ -49,19 +49,12 @@ data State = State {arc :: Arc,
                    }
 
 -- | A datatype representing events taking place over time
-data Pattern a = Pattern {query :: (State -> [Event a])}
+data Pattern a = Pattern {query :: State -> [Event a]}
   deriving Generic
 instance NFData a => NFData (Pattern a)
 
 type StateMap = Map.Map String (Pattern Value)
-type ControlMap = Map.Map String Value
-type ControlPattern = Pattern ControlMap
-
-instance TolerantEq ControlMap where
-  a ~== b = Map.differenceWith (\a' b' -> if a' ~== b' then Nothing else Just a') a b == Map.empty
-
-instance TolerantEq (Event ControlMap) where
-  (Event _ w p x) ~== (Event _ w' p' x') = w == w' && p == p' && x ~== x'
+type ControlPattern = Pattern ValueMap
 
 -- * Functor
 
@@ -91,14 +84,14 @@ applyPatToPat :: (Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)) -> Pattern (a -> 
 applyPatToPat combineWholes pf px = Pattern q
     where q st = catMaybes $ concatMap match $ query pf st
             where
-              match (ef@(Event (Context c) _ fPart f)) =
+              match ef@(Event (Context c) _ fPart f) =
                 map
                 (\ex@(Event (Context c') _ xPart x) ->
                   do whole' <- combineWholes (whole ef) (whole ex)
                      part' <- subArc fPart xPart
                      return (Event (Context $ c ++ c') whole' part' (f x))
                 )
-                (query px $ st {arc = (wholeOrPart ef)})
+                (query px $ st {arc = wholeOrPart ef})
 
 applyPatToPatBoth :: Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPatBoth pf px = Pattern q
@@ -109,7 +102,7 @@ applyPatToPatBoth pf px = Pattern q
               -- match digital events from pf with digital events from px
               match ef@(Event _ (Just fWhole) _ _) = map (withFX ef) (query (filterDigital px) $ st {arc = fWhole}) -- digital
               -- match analog events from px (constrained above) with digital events from px
-              matchX ex@(Event _ Nothing fPart _)  = map (\ef -> withFX ef ex) (query (filterDigital pf) $ st {arc = fPart}) -- digital
+              matchX ex@(Event _ Nothing fPart _)  = map (`withFX` ex) (query (filterDigital pf) $ st {arc = fPart}) -- digital
               matchX _ = error "can't happen"
               withFX ef ex = do whole' <- subMaybeArc (whole ef) (whole ex)
                                 part' <- subArc (part ef) (part ex)
@@ -117,7 +110,7 @@ applyPatToPatBoth pf px = Pattern q
 
 applyPatToPatLeft :: Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPatLeft pf px = Pattern q
-    where q st = catMaybes $ (concatMap match $ query pf st)
+    where q st = catMaybes $ concatMap match $ query pf st
             where
               match ef = map (withFX ef) (query px $ st {arc = wholeOrPart ef})
               withFX ef ex = do let whole' = whole ef
@@ -126,9 +119,9 @@ applyPatToPatLeft pf px = Pattern q
 
 applyPatToPatRight :: Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPatRight pf px = Pattern q
-    where q st = catMaybes $ (concatMap match $ query px st)
+    where q st = catMaybes $ concatMap match $ query px st
             where
-              match ex = map (\ef -> withFX ef ex) (query pf $ st {arc = wholeOrPart ex})
+              match ex = map (`withFX` ex) (query pf $ st {arc = wholeOrPart ex})
               withFX ef ex = do let whole' = whole ex
                                 part' <- subArc (part ef) (part ex)
                                 return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
@@ -294,7 +287,7 @@ instance (RealFloat a) => RealFloat (Pattern a) where
   isIEEE         = noOv "isIEEE"
   atan2          = liftA2 atan2
 
-instance Num ControlMap where
+instance Num ValueMap where
   negate      = (applyFIS negate negate id <$>)
   (+)         = Map.unionWith (fNum2 (+) (+))
   (*)         = Map.unionWith (fNum2 (*) (*))
@@ -302,7 +295,7 @@ instance Num ControlMap where
   signum      = (applyFIS signum signum id <$>)
   abs         = (applyFIS abs abs id <$>)
 
-instance Fractional ControlMap where
+instance Fractional ValueMap where
   recip        = fmap (applyFIS recip id id)
   fromRational r = Map.singleton "speed" $ VF (fromRational r)
 
@@ -361,7 +354,7 @@ withPart :: (Arc -> Arc) -> Pattern a -> Pattern a
 withPart f = withEvent (\(Event c w p v) -> Event c w (f p) v)
 
 _extract :: (Value -> Maybe a) -> String -> ControlPattern -> Pattern a
-_extract f name pat = filterJust $ withValue (\v -> (Map.lookup name v >>= f)) pat
+_extract f name pat = filterJust $ withValue (Map.lookup name >=> f) pat
 
 -- | Extract a pattern of integer values by from a control pattern, given the name of the control
 extractI :: String -> ControlPattern -> Pattern Int
@@ -413,6 +406,19 @@ rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 rotR :: Time -> Pattern a -> Pattern a
 rotR t = rotL (negate t)
 
+
+-- | Mark values in the first pattern which match with at least one
+-- value in the second pattern.
+matchManyToOne :: (b -> a -> Bool) -> Pattern a -> Pattern b -> Pattern (Bool, b)
+matchManyToOne f pa pb = pa {query = q}
+  where q st = map match $ query pb st
+          where
+            match ex@(Event xContext xWhole xPart x) =
+              Event (combineContexts $ xContext:map context as') xWhole xPart (any (f x . value) as', x)
+                where as' = as $ start $ wholeOrPart ex
+            as s = query pa $ fQuery s
+            fQuery s = st {arc = Arc s s}
+
 -- ** Event filters
 
 -- | Remove events from patterns that to not meet the given test
@@ -455,18 +461,6 @@ tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 tParamSqueeze f tv p = squeezeJoin $ (`f` p) <$> tv
-
--- | Mark values in the first pattern which match with at least one
--- value in the second pattern.
-matchManyToOne :: (b -> a -> Bool) -> Pattern a -> Pattern b -> Pattern (Bool, b)
-matchManyToOne f pa pb = pa {query = q}
-  where q st = map match $ query pb st
-          where
-            match (ex@(Event xContext xWhole xPart x)) =
-              Event (combineContexts $ xContext:(map context as')) xWhole xPart (any (f x) (map value $ as'), x)
-                where as' = as $ start $ wholeOrPart ex
-            as s = query pa $ fQuery s
-            fQuery s = st {arc = Arc s s}
 
 -- ** Context
 

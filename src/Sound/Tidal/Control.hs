@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings, FlexibleContexts, BangPatterns #-}
+{-# LANGUAGE FlexibleInstances, OverloadedStrings, FlexibleContexts, BangPatterns #-}
 
 module Sound.Tidal.Control where
 
@@ -83,7 +83,7 @@ chopArc (Arc s e) n = map (\i -> Arc (s + (e-s)*(fromIntegral i/fromIntegral n))
 _chop :: Int -> ControlPattern -> ControlPattern
 _chop n = withEvents (concatMap chopEvent)
   where -- for each part,
-        chopEvent :: Event ControlMap -> [Event ControlMap]
+        chopEvent :: Event ValueMap -> [Event ValueMap]
         chopEvent (Event c (Just w) p' v) = map (chomp c v (length $ chopArc w n)) $ arcs w p'
         -- ignoring 'analog' events (those without wholes),
         chopEvent _ = []
@@ -97,7 +97,7 @@ _chop n = withEvents (concatMap chopEvent)
         -- if the old event had a begin and end, then multiply the new
         -- begin and end values by the old difference (end-begin), and
         -- add the old begin
-        chomp :: Context -> ControlMap -> Int -> (Int, (Arc, Arc)) -> Event ControlMap
+        chomp :: Context -> ValueMap -> Int -> (Int, (Arc, Arc)) -> Event ValueMap
         chomp c v n' (i, (w,p')) = Event c (Just w) p' (Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v)
           where b = fromMaybe 0 $ do v' <- Map.lookup "begin" v
                                      getF v'
@@ -149,7 +149,7 @@ _striate :: Int -> ControlPattern -> ControlPattern
 _striate n p = fastcat $ map offset [0 .. n-1]
   where offset i = mergePlayRange (fromIntegral i / fromIntegral n, fromIntegral (i+1) / fromIntegral n) <$> p
 
-mergePlayRange :: (Double, Double) -> ControlMap -> ControlMap
+mergePlayRange :: (Double, Double) -> ValueMap -> ValueMap
 mergePlayRange (b,e) cm = Map.insert "begin" (VF ((b*d')+b')) $ Map.insert "end" (VF ((e*d')+b')) cm
   where b' = fromMaybe 0 $ Map.lookup "begin" cm >>= getF
         e' = fromMaybe 1 $ Map.lookup "end" cm >>= getF
@@ -197,7 +197,7 @@ d1 $ gap 16 $ sound "[jvbass drum:4]"
 gap :: Pattern Int -> ControlPattern -> ControlPattern
 gap = tParam _gap
 
-_gap :: Int -> ControlPattern -> ControlPattern 
+_gap :: Int -> ControlPattern -> ControlPattern
 _gap n p = _fast (toRational n) (cat [pure 1, silence]) |>| _chop n p
 
 {- |
@@ -220,7 +220,7 @@ d1 $ weaveWith 3 (sound "bd [sn drum:2*2] bd*2 [sn drum:1]") [density 2, (# spee
 -}
 weaveWith :: Time -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
 weaveWith t p fs | l == 0 = silence
-              | otherwise = _slow t $ stack $ map (\(i, f) -> (fromIntegral i % l) `rotL` _fast t (f (_slow t p))) (zip [0 :: Int ..] fs)
+              | otherwise = _slow t $ stack $ zipWith (\ i f -> (fromIntegral i % l) `rotL` _fast t (f (_slow t p))) [0 :: Int ..] fs
   where l = fromIntegral $ length fs
 
 weave' :: Time -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
@@ -286,8 +286,8 @@ randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> _irand n
 _splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
 _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure "c")
   where f ev = ev {value = Map.insert "speed" (VF d) (value ev)}
-          where d = sz / (fromRational $ (wholeStop ev) - (wholeStart ev))
-                sz = 1/(fromIntegral bits)
+          where d = sz / fromRational (wholeStop ev - wholeStart ev)
+                sz = 1/fromIntegral bits
 
 splice :: Pattern Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
 splice bitpat ipat pat = innerJoin $ (\bits -> _splice bits ipat pat) <$> bitpat
@@ -334,13 +334,13 @@ d1 $ (spread' slow "1%4 2 1 3" $ spread (striate) [2,3,4,1] $ sound
 @
 -}
 
-smash :: Pattern Int -> [Pattern Time] -> ControlPattern -> Pattern ControlMap
+smash :: Pattern Int -> [Pattern Time] -> ControlPattern -> Pattern ValueMap
 smash n xs p = slowcat $ map (`slow` p') xs
   where p' = striate n p
 
 {- | an altenative form to `smash` is `smash'` which will use `chop` instead of `striate`.
 -}
-smash' :: Int -> [Pattern Time] -> ControlPattern -> Pattern ControlMap
+smash' :: Int -> [Pattern Time] -> ControlPattern -> ControlPattern
 smash' n xs p = slowcat $ map (`slow` p') xs
   where p' = _chop n p
 
@@ -395,13 +395,13 @@ sec p = (realToFrac <$> cF 1 "_cps") *| p
 -- | Turns a pattern of milliseconds into a pattern of (rational)
 -- cycle durations, according to the current cps.
 msec :: Fractional a => Pattern a -> Pattern a
-msec p = ((realToFrac . (/1000)) <$> cF 1 "_cps") *| p
+msec p = (realToFrac . (/1000) <$> cF 1 "_cps") *| p
 
 triggerWith :: Show a => (Time -> Time) -> a -> Pattern b -> Pattern b
 triggerWith f k pat = pat {query = q}
-  where q st = query ((offset st) ~> pat) st
+  where q st = query (offset st ~> pat) st
         offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
-                                            return $ ((f . fromMaybe 0 . getR) <$> p)
+                                            return (f . fromMaybe 0 . getR <$> p)
         ctrl = "_t_" ++ show k
 
 trigger :: Show a => a -> Pattern b -> Pattern b
@@ -424,11 +424,11 @@ qt = qtrigger
 
 reset :: Show a => a -> Pattern b -> Pattern b
 reset k pat = pat {query = q}
-  where q st = query ((offset st) ~> (when (<=0) (const silence) pat)) st
+  where q st = query (offset st ~> when (<=0) (const silence) pat) st
         f = (fromIntegral :: Int -> Rational) . floor
         offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
-                                            return $ ((f . fromMaybe 0 . getR) <$> p)
+                                            return (f . fromMaybe 0 . getR <$> p)
         ctrl = "_t_" ++ show k
 
 splat :: Pattern Int -> ControlPattern -> ControlPattern -> ControlPattern
-splat slices epat pat = (chop slices pat) # bite 1 (const 0 <$> pat) epat
+splat slices epat pat = chop slices pat # bite 1 (const 0 <$> pat) epat

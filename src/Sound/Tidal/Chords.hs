@@ -30,6 +30,18 @@ major7 :: Num a => [a]
 major7 = [0,4,7,11]
 dom7 :: Num a => [a]
 dom7 = [0,4,7,10]
+dom9 :: Num a => [a]
+dom9 = [0,4,7,14]
+dom11 :: Num a => [a]
+dom11 = [0,4,7,17]
+dom13 :: Num a => [a]
+dom13 = [0,4,7,21]
+add9 :: Num a => [a]
+add9 = [0,4,7,14]
+add11 :: Num a => [a]
+add11 = [0,4,7,17]
+add13 :: Num a => [a]
+add13 = [0,4,7,21]
 minor7 :: Num a => [a]
 minor7 = [0,3,7,10]
 aug :: Num a => [a]
@@ -68,8 +80,6 @@ sevenSharp5 :: Num a => [a]
 sevenSharp5 = [0,4,8,10]
 m7sharp5 :: Num a => [a]
 m7sharp5 = [0,3,8,10]
-nine :: Num a => [a]
-nine = [0,4,7,10,14]
 m9 :: Num a => [a]
 m9 = [0,3,7,10,14]
 m7sharp9 :: Num a => [a]
@@ -133,6 +143,12 @@ chordTable = [("major", major),
               ("major7", major7),
               ("maj7", major7),
               ("dom7", dom7),
+              ("dom9", dom9),
+              ("dom11", dom11),
+              ("dom13", dom13),
+              ("add9", add9),
+              ("add11", add11),
+              ("add13", add13),
               ("minor7", minor7),
               ("min7", minor7),
               ("dim7", dim7),
@@ -160,7 +176,7 @@ chordTable = [("major", major),
               ("7s5", sevenSharp5),
               ("m7sharp5", m7sharp5),
               ("m7s5", m7sharp5),
-              ("nine", nine),
+              ("nine", dom9),
               ("m9", m9),
               ("m7sharp9", m7sharp9),
               ("m7s9", m7sharp9),
