@@ -35,7 +35,6 @@ library
                        Sound.Tidal.Control
                        Sound.Tidal.Context
                        Sound.Tidal.Core
-                       Sound.Tidal.Event
                        Sound.Tidal.Params
                        Sound.Tidal.ParseBP
                        Sound.Tidal.Pattern
@@ -48,7 +47,6 @@ library
                        Sound.Tidal.Transition
                        Sound.Tidal.UI
                        Sound.Tidal.Utils
-                       Sound.Tidal.Value
                        Sound.Tidal.Version
                        Sound.Tidal.EspGrid
                        Paths_tidal

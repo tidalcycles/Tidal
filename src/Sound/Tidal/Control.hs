@@ -399,9 +399,9 @@ msec p = (realToFrac . (/1000) <$> cF 1 "_cps") *| p
 
 triggerWith :: Show a => (Time -> Time) -> a -> Pattern b -> Pattern b
 triggerWith f k pat = pat {query = q}
-  where q st = query (offset st ~> pat) st
-        offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
-                                            return (f . fromMaybe 0 . getR <$> p)
+  where q st = query (rotR (offset st) pat) st
+        offset st = fromMaybe 0 $ do v <- Map.lookup ctrl (controls st)
+                                     return (f $ fromMaybe 0 $ getR v)
         ctrl = "_t_" ++ show k
 
 trigger :: Show a => a -> Pattern b -> Pattern b
@@ -424,10 +424,10 @@ qt = qtrigger
 
 reset :: Show a => a -> Pattern b -> Pattern b
 reset k pat = pat {query = q}
-  where q st = query (offset st ~> when (<=0) (const silence) pat) st
+  where q st = query (rotR (offset st) $ when (<=0) (const silence) pat) st
         f = (fromIntegral :: Int -> Rational) . floor
-        offset st = fromMaybe (pure 0) $ do p <- Map.lookup ctrl (controls st)
-                                            return (f . fromMaybe 0 . getR <$> p)
+        offset st = fromMaybe 0 $ do p <- Map.lookup ctrl (controls st)
+                                     return (f $ fromMaybe 0 $ getR p)
         ctrl = "_t_" ++ show k
 
 splat :: Pattern Int -> ControlPattern -> ControlPattern -> ControlPattern
