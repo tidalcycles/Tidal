@@ -599,6 +599,7 @@ data Value = VS { svalue :: String   }
            | VB { bvalue :: Bool     }
            | VX { xvalue :: [Word8]  } -- Used for OSC 'blobs'
            | VPattern {pvalue :: Pattern Value}
+           | VList {lvalue :: [Value]}
            | VState {statevalue :: ValueMap -> (ValueMap, Value)}
            deriving (Typeable, Generic)
 
@@ -678,7 +679,7 @@ instance Ord Value where
   compare (VF x) (VN y) = compare x (unNote y)
   compare (VN x) (VF y) = compare (unNote x) y
 
-  -- you can't really compare patterns or state..
+  -- you can't really compare patterns, state or lists..
   compare (VPattern _) (VPattern _) = EQ
   compare (VPattern _) _ = GT
   compare _ (VPattern _) = LT
@@ -686,6 +687,10 @@ instance Ord Value where
   compare (VState _) (VState _) = EQ
   compare (VState _) _          = GT
   compare _ (VState _)          = LT
+
+  compare (VList _) (VList _) = EQ
+  compare (VList _) _          = GT
+  compare _ (VList _)          = LT
 
 -- | General utilities..
 
