@@ -33,14 +33,16 @@ sixby9 :: Num a => [a]
 sixby9 = [0,4,7,9,14]
 major7 :: Num a => [a]
 major7 = [0,4,7,11]
-maj9 :: Num a => [a]
-maj9 = [0,4,7,11,14]
+major9 :: Num a => [a]
+major9 = [0,4,7,11,14]
 add9 :: Num a => [a]
 add9 = [0,4,7,14]
-maj11 :: Num a => [a]
-maj11 = [0,4,7,11,14,17]
+major11 :: Num a => [a]
+major11 = [0,4,7,11,14,17]
 add11 :: Num a => [a]
 add11 = [0,4,7,17]
+major13 :: Num a => [a]
+major13 = [0,4,7,11,14,21]
 add13 :: Num a => [a]
 add13 = [0,4,7,21]
 -- dominant chords
@@ -67,32 +69,32 @@ thirteen = [0,4,7,10,14,17,21]
 -- minor chords
 minor :: Num a => [a]
 minor = [0,3,7]
-dim :: Num a => [a]
-dim = [0,3,6]
-msharp5 :: Num a => [a]
-msharp5 = [0,3,8]
-m6 :: Num a => [a]
-m6 = [0,3,7,9]
-m6by9 :: Num a => [a]
-m6by9 = [0,3,9,7,14]
-m7flat5 :: Num a => [a]
-m7flat5 = [0,3,6,10]
+diminished :: Num a => [a]
+diminished = [0,3,6]
+minorSharp5 :: Num a => [a]
+minorSharp5 = [0,3,8]
+minor6 :: Num a => [a]
+minor6 = [0,3,7,9]
+minor69 :: Num a => [a]
+minor69 = [0,3,9,7,14]
+minor7flat5 :: Num a => [a]
+minor7flat5 = [0,3,6,10]
 minor7 :: Num a => [a]
 minor7 = [0,3,7,10]
-m7sharp5 :: Num a => [a]
-m7sharp5 = [0,3,8,10]
-m7flat9 :: Num a => [a]
-m7flat9 = [0,3,7,10,13]
-m7sharp9 :: Num a => [a]
-m7sharp9 = [0,3,7,10,14]
-dim7 :: Num a => [a]
-dim7 = [0,3,6,9]
-m9 :: Num a => [a]
-m9 = [0,3,7,10,14]
-m11 :: Num a => [a]
-m11 = [0,3,7,10,14,17]
-m13 :: Num a => [a]
-m13 = [0,3,7,10,14,17,21]
+minor7sharp5 :: Num a => [a]
+minor7sharp5 = [0,3,8,10]
+minor7flat9 :: Num a => [a]
+minor7flat9 = [0,3,7,10,13]
+minor7sharp9 :: Num a => [a]
+minor7sharp9 = [0,3,7,10,14]
+diminished7 :: Num a => [a]
+diminished7 = [0,3,6,9]
+minor9 :: Num a => [a]
+minor9 = [0,3,7,10,14]
+minor11 :: Num a => [a]
+minor11 = [0,3,7,10,14,17]
+minor13 :: Num a => [a]
+minor13 = [0,3,7,10,14,17,21]
 -- other chords
 one :: Num a => [a]
 one = [0]
@@ -148,10 +150,14 @@ chordTable = [("major", major),
               ("6by9", sixby9),
               ("major7", major7),
               ("maj7", major7),
-              ("maj9", maj9),
+              ("major9", major9),
+              ("maj9", major9),
               ("add9", add9),
-              ("maj11", maj11),
+              ("major11", major11),
+              ("maj11", major11),
               ("add11", add11),
+              ("major13", major13),
+              ("maj13", major13),
               ("add13", add13),
               ("dom7", dom7),
               ("dom9", dom9),
@@ -170,24 +176,48 @@ chordTable = [("major", major),
               ("13", thirteen),
               ("minor", minor),
               ("min", minor),
-              ("dim", dim),
-              ("msharp5", msharp5),
-              ("m6", m6),
-              ("m6by9", m6by9),
-              ("m7flat5", m7flat5),
-              ("m7f5", m7flat5),
+              ("diminished", diminished),
+              ("dim", diminished),
+              ("minorSharp5", minorSharp5),
+              ("msharp5", minorSharp5),
+              ("mS5", minorSharp5),
+              ("minor6", minor6),
+              ("min6", minor6),
+              ("m6", minor6),
+              ("minor69", minor69),
+              ("min69", minor69),
+              ("m69", minor69),
+              ("m6by9", minor69),
+              ("minor7flat5", minor7flat5),
+              ("min7flat5", minor7flat5),
+              ("m7flat5", minor7flat5),
+              ("m7f5", minor7flat5),
               ("minor7", minor7),
               ("min7", minor7),
-              ("m7sharp5", m7sharp5),
-              ("m7s5", m7sharp5),
-              ("m7flat9", m7flat9),
-              ("m7f9", m7flat9),
-              ("m7sharp9", m7sharp9),
-              ("m7s9", m7sharp9),
-              ("dim7", dim7),
-              ("m9", m9),
-              ("m11", m11),
-              ("m13", m13),
+              ("m7", minor7),
+              ("minor7sharp5", minor7sharp5),
+              ("min7sharp5", minor7sharp5),
+              ("m7sharp5", minor7sharp5),
+              ("m7s5", minor7sharp5),
+              ("minor7flat9", minor7flat9),
+              ("min7flat9", minor7flat9),
+              ("m7flat9", minor7flat9),
+              ("m7f9", minor7flat9),
+              ("minor7sharp9", minor7sharp9),
+              ("min7sharp9", minor7sharp9),
+              ("m7sharp9", minor7sharp9),
+              ("m7s9", minor7sharp9),
+              ("diminished7", diminished7),
+              ("dim7", diminished7),
+              ("minor9", minor9),
+              ("min9", minor9),
+              ("m9", minor9),
+              ("minor11", minor11),
+              ("min11", minor11),
+              ("m11", minor11),
+              ("minor13", minor13),
+              ("min13", minor13),
+              ("m13", minor13),
               ("one", one),
               ("1", one),
               ("five", five),
