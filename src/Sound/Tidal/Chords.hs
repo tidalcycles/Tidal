@@ -29,8 +29,8 @@ aug :: Num a => [a]
 aug = [0,4,8]
 six :: Num a => [a]
 six = [0,4,7,9]
-sixby9 :: Num a => [a]
-sixby9 = [0,4,7,9,14]
+sixNine :: Num a => [a]
+sixNine = [0,4,7,9,14]
 major7 :: Num a => [a]
 major7 = [0,4,7,11]
 major9 :: Num a => [a]
@@ -146,8 +146,10 @@ chordTable = [("major", major),
               ("sharp5", aug),
               ("six", six),
               ("6", six),
-              ("sixby9", sixby9),
-              ("6by9", sixby9),
+              ("sixNine", sixNine),
+              ("six9", sixNine),
+              ("sixby9", sixNine),
+              ("6by9", sixNine),
               ("major7", major7),
               ("maj7", major7),
               ("major9", major9),
