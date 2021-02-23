@@ -481,12 +481,17 @@ parseChord = do char '\''
                 name <- many1 $ letter <|> digit
                 let chord = fromMaybe [0] $ lookup name chordTable
                 do char '\''
-                   notFollowedBy space <?> "chord range or 'i'"
+                   notFollowedBy space <?> "chord range or 'i' or 'o'"
                    let n = length chord
                    i <- option n (fromIntegral <$> integer)
                    j <- length <$> many (char 'i')
+                   o <- length <$> many (char 'o')
                    let chord' = take i $ drop j $ concatMap (\x -> map (+ x) chord) [0,12..]
-                   return chord'
+                   -- open voiced chords
+                   let chordo' = if o > 0 then
+                                     [ (chord' !! 0 - 12), (chord' !! 2 - 12), (chord' !! 1) ] ++ reverse (take (length chord' - 3) (reverse chord'))
+                                 else chord'
+                   return chordo'
                   <|> return chord
 
 parseNote :: Num a => MyParser a
