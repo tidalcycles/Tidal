@@ -196,7 +196,7 @@ instance Parse (Pattern Time) where
 -- * -> *
 
 a_patternB :: forall a b. Parse (a -> Pattern b) => H (a -> Pattern b)
-a_patternB = listAtoPatternB_a_patternB <*!> parser <?> "expected a -> Pattern b"
+a_patternB = listAtoPatternB_a_patternB <*> parser <?> "expected a -> Pattern b"
 
 listAtoPatternB_a_patternB :: H ([a -> Pattern b] -> a -> Pattern b)
 listAtoPatternB_a_patternB = $(fromTidal "layer")
