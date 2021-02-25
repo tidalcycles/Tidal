@@ -38,6 +38,8 @@ controls = intercalate "\n" $ map fs $ sortBy (compare `on` (\(_,x,_) -> x)) gen
           concat ["-- | " ++ desc ++ "\n",
                   name, " :: ", toType t, " -> ControlPattern\n",
                   name, " = ", toFunc t, " \"", name, "\"\n",
+                  name, "Take :: String -> [Double] -> ControlPattern\n",
+                  name, "Take name xs = pStateListF \"",name,"\" name xs\n",
                   counters t name
                  ]
         counters "note" name = counters "f" name

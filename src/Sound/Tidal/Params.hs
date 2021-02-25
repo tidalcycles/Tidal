@@ -82,8 +82,11 @@ pStateF name sName update = pure $ Map.singleton name $ VState statef
 pStateList :: String -> String -> [Value] -> ControlPattern
 pStateList name sName xs = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
-        statef sMap = (Map.insert sName (VList $ tail xs') sMap, head xs') 
-          where xs' = fromMaybe (cycle xs) ((Map.lookup sName sMap) >>= getList)
+        statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped) 
+          where xs' = fromMaybe xs ((Map.lookup sName sMap) >>= getList)
+                -- do this instead of a cycle, so it can get updated with the a list
+                looped | null xs' = xs
+                       | otherwise = xs'
 
 pStateListF :: String -> String -> [Double] -> ControlPattern
 pStateListF name sName = pStateList name sName . map VF
@@ -177,6 +180,8 @@ drumN _ = 0
 -- | a pattern of numbers that speed up (or slow down) samples while they play.
 accelerate :: Pattern Double -> ControlPattern
 accelerate = pF "accelerate"
+accelerateTake :: String -> [Double] -> ControlPattern
+accelerateTake name xs = pStateListF "accelerate" name xs
 accelerateCount :: String -> ControlPattern
 accelerateCount name = pStateF "accelerate" name (maybe 0 (+1))
 accelerateCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -190,6 +195,8 @@ acceleraterecv busid = pI "^accelerate" busid
 -- | like @gain@, but linear.
 amp :: Pattern Double -> ControlPattern
 amp = pF "amp"
+ampTake :: String -> [Double] -> ControlPattern
+ampTake name xs = pStateListF "amp" name xs
 ampCount :: String -> ControlPattern
 ampCount name = pStateF "amp" name (maybe 0 (+1))
 ampCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -203,6 +210,8 @@ amprecv busid = pI "^amp" busid
 -- | 
 array :: Pattern [Word8] -> ControlPattern
 array = pX "array"
+arrayTake :: String -> [Double] -> ControlPattern
+arrayTake name xs = pStateListF "array" name xs
 arraybus :: Pattern Int -> Pattern [Word8] -> ControlPattern
 arraybus busid pat = (pX "array" pat) # (pI "^array" busid)
 arrayrecv :: Pattern Int -> ControlPattern
@@ -211,6 +220,8 @@ arrayrecv busid = pI "^array" busid
 -- | a pattern of numbers to specify the attack time (in seconds) of an envelope applied to each sample.
 attack :: Pattern Double -> ControlPattern
 attack = pF "attack"
+attackTake :: String -> [Double] -> ControlPattern
+attackTake name xs = pStateListF "attack" name xs
 attackCount :: String -> ControlPattern
 attackCount name = pStateF "attack" name (maybe 0 (+1))
 attackCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -224,6 +235,8 @@ attackrecv busid = pI "^attack" busid
 -- | a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
 bandf :: Pattern Double -> ControlPattern
 bandf = pF "bandf"
+bandfTake :: String -> [Double] -> ControlPattern
+bandfTake name xs = pStateListF "bandf" name xs
 bandfCount :: String -> ControlPattern
 bandfCount name = pStateF "bandf" name (maybe 0 (+1))
 bandfCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -237,6 +250,8 @@ bandfrecv busid = pI "^bandf" busid
 -- | a pattern of anumbers from 0 to 1. Sets the q-factor of the band-pass filter.
 bandq :: Pattern Double -> ControlPattern
 bandq = pF "bandq"
+bandqTake :: String -> [Double] -> ControlPattern
+bandqTake name xs = pStateListF "bandq" name xs
 bandqCount :: String -> ControlPattern
 bandqCount name = pStateF "bandq" name (maybe 0 (+1))
 bandqCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -250,6 +265,8 @@ bandqrecv busid = pI "^bandq" busid
 -- | a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample.
 begin :: Pattern Double -> ControlPattern
 begin = pF "begin"
+beginTake :: String -> [Double] -> ControlPattern
+beginTake name xs = pStateListF "begin" name xs
 beginCount :: String -> ControlPattern
 beginCount name = pStateF "begin" name (maybe 0 (+1))
 beginCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -263,6 +280,8 @@ beginrecv busid = pI "^begin" busid
 -- | Spectral binshift
 binshift :: Pattern Double -> ControlPattern
 binshift = pF "binshift"
+binshiftTake :: String -> [Double] -> ControlPattern
+binshiftTake name xs = pStateListF "binshift" name xs
 binshiftCount :: String -> ControlPattern
 binshiftCount name = pStateF "binshift" name (maybe 0 (+1))
 binshiftCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -276,6 +295,8 @@ binshiftrecv busid = pI "^binshift" busid
 -- | 
 button0 :: Pattern Double -> ControlPattern
 button0 = pF "button0"
+button0Take :: String -> [Double] -> ControlPattern
+button0Take name xs = pStateListF "button0" name xs
 button0Count :: String -> ControlPattern
 button0Count name = pStateF "button0" name (maybe 0 (+1))
 button0CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -289,6 +310,8 @@ button0recv busid = pI "^button0" busid
 -- | 
 button1 :: Pattern Double -> ControlPattern
 button1 = pF "button1"
+button1Take :: String -> [Double] -> ControlPattern
+button1Take name xs = pStateListF "button1" name xs
 button1Count :: String -> ControlPattern
 button1Count name = pStateF "button1" name (maybe 0 (+1))
 button1CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -302,6 +325,8 @@ button1recv busid = pI "^button1" busid
 -- | 
 button10 :: Pattern Double -> ControlPattern
 button10 = pF "button10"
+button10Take :: String -> [Double] -> ControlPattern
+button10Take name xs = pStateListF "button10" name xs
 button10Count :: String -> ControlPattern
 button10Count name = pStateF "button10" name (maybe 0 (+1))
 button10CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -315,6 +340,8 @@ button10recv busid = pI "^button10" busid
 -- | 
 button11 :: Pattern Double -> ControlPattern
 button11 = pF "button11"
+button11Take :: String -> [Double] -> ControlPattern
+button11Take name xs = pStateListF "button11" name xs
 button11Count :: String -> ControlPattern
 button11Count name = pStateF "button11" name (maybe 0 (+1))
 button11CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -328,6 +355,8 @@ button11recv busid = pI "^button11" busid
 -- | 
 button12 :: Pattern Double -> ControlPattern
 button12 = pF "button12"
+button12Take :: String -> [Double] -> ControlPattern
+button12Take name xs = pStateListF "button12" name xs
 button12Count :: String -> ControlPattern
 button12Count name = pStateF "button12" name (maybe 0 (+1))
 button12CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -341,6 +370,8 @@ button12recv busid = pI "^button12" busid
 -- | 
 button13 :: Pattern Double -> ControlPattern
 button13 = pF "button13"
+button13Take :: String -> [Double] -> ControlPattern
+button13Take name xs = pStateListF "button13" name xs
 button13Count :: String -> ControlPattern
 button13Count name = pStateF "button13" name (maybe 0 (+1))
 button13CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -354,6 +385,8 @@ button13recv busid = pI "^button13" busid
 -- | 
 button14 :: Pattern Double -> ControlPattern
 button14 = pF "button14"
+button14Take :: String -> [Double] -> ControlPattern
+button14Take name xs = pStateListF "button14" name xs
 button14Count :: String -> ControlPattern
 button14Count name = pStateF "button14" name (maybe 0 (+1))
 button14CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -367,6 +400,8 @@ button14recv busid = pI "^button14" busid
 -- | 
 button15 :: Pattern Double -> ControlPattern
 button15 = pF "button15"
+button15Take :: String -> [Double] -> ControlPattern
+button15Take name xs = pStateListF "button15" name xs
 button15Count :: String -> ControlPattern
 button15Count name = pStateF "button15" name (maybe 0 (+1))
 button15CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -380,6 +415,8 @@ button15recv busid = pI "^button15" busid
 -- | 
 button2 :: Pattern Double -> ControlPattern
 button2 = pF "button2"
+button2Take :: String -> [Double] -> ControlPattern
+button2Take name xs = pStateListF "button2" name xs
 button2Count :: String -> ControlPattern
 button2Count name = pStateF "button2" name (maybe 0 (+1))
 button2CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -393,6 +430,8 @@ button2recv busid = pI "^button2" busid
 -- | 
 button3 :: Pattern Double -> ControlPattern
 button3 = pF "button3"
+button3Take :: String -> [Double] -> ControlPattern
+button3Take name xs = pStateListF "button3" name xs
 button3Count :: String -> ControlPattern
 button3Count name = pStateF "button3" name (maybe 0 (+1))
 button3CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -406,6 +445,8 @@ button3recv busid = pI "^button3" busid
 -- | 
 button4 :: Pattern Double -> ControlPattern
 button4 = pF "button4"
+button4Take :: String -> [Double] -> ControlPattern
+button4Take name xs = pStateListF "button4" name xs
 button4Count :: String -> ControlPattern
 button4Count name = pStateF "button4" name (maybe 0 (+1))
 button4CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -419,6 +460,8 @@ button4recv busid = pI "^button4" busid
 -- | 
 button5 :: Pattern Double -> ControlPattern
 button5 = pF "button5"
+button5Take :: String -> [Double] -> ControlPattern
+button5Take name xs = pStateListF "button5" name xs
 button5Count :: String -> ControlPattern
 button5Count name = pStateF "button5" name (maybe 0 (+1))
 button5CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -432,6 +475,8 @@ button5recv busid = pI "^button5" busid
 -- | 
 button6 :: Pattern Double -> ControlPattern
 button6 = pF "button6"
+button6Take :: String -> [Double] -> ControlPattern
+button6Take name xs = pStateListF "button6" name xs
 button6Count :: String -> ControlPattern
 button6Count name = pStateF "button6" name (maybe 0 (+1))
 button6CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -445,6 +490,8 @@ button6recv busid = pI "^button6" busid
 -- | 
 button7 :: Pattern Double -> ControlPattern
 button7 = pF "button7"
+button7Take :: String -> [Double] -> ControlPattern
+button7Take name xs = pStateListF "button7" name xs
 button7Count :: String -> ControlPattern
 button7Count name = pStateF "button7" name (maybe 0 (+1))
 button7CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -458,6 +505,8 @@ button7recv busid = pI "^button7" busid
 -- | 
 button8 :: Pattern Double -> ControlPattern
 button8 = pF "button8"
+button8Take :: String -> [Double] -> ControlPattern
+button8Take name xs = pStateListF "button8" name xs
 button8Count :: String -> ControlPattern
 button8Count name = pStateF "button8" name (maybe 0 (+1))
 button8CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -471,6 +520,8 @@ button8recv busid = pI "^button8" busid
 -- | 
 button9 :: Pattern Double -> ControlPattern
 button9 = pF "button9"
+button9Take :: String -> [Double] -> ControlPattern
+button9Take name xs = pStateListF "button9" name xs
 button9Count :: String -> ControlPattern
 button9Count name = pStateF "button9" name (maybe 0 (+1))
 button9CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -484,6 +535,8 @@ button9recv busid = pI "^button9" busid
 -- | 
 ccn :: Pattern Double -> ControlPattern
 ccn = pF "ccn"
+ccnTake :: String -> [Double] -> ControlPattern
+ccnTake name xs = pStateListF "ccn" name xs
 ccnCount :: String -> ControlPattern
 ccnCount name = pStateF "ccn" name (maybe 0 (+1))
 ccnCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -497,6 +550,8 @@ ccnrecv busid = pI "^ccn" busid
 -- | 
 ccv :: Pattern Double -> ControlPattern
 ccv = pF "ccv"
+ccvTake :: String -> [Double] -> ControlPattern
+ccvTake name xs = pStateListF "ccv" name xs
 ccvCount :: String -> ControlPattern
 ccvCount name = pStateF "ccv" name (maybe 0 (+1))
 ccvCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -510,12 +565,16 @@ ccvrecv busid = pI "^ccv" busid
 -- | choose the channel the pattern is sent to in superdirt
 channel :: Pattern Int -> ControlPattern
 channel = pI "channel"
+channelTake :: String -> [Double] -> ControlPattern
+channelTake name xs = pStateListF "channel" name xs
 channelbus :: Pattern Int -> Pattern Int -> ControlPattern
 channelbus _ _ = error $ "Control parameter 'channel' can't be sent to a bus."
 
 -- | 
 clhatdecay :: Pattern Double -> ControlPattern
 clhatdecay = pF "clhatdecay"
+clhatdecayTake :: String -> [Double] -> ControlPattern
+clhatdecayTake name xs = pStateListF "clhatdecay" name xs
 clhatdecayCount :: String -> ControlPattern
 clhatdecayCount name = pStateF "clhatdecay" name (maybe 0 (+1))
 clhatdecayCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -529,6 +588,8 @@ clhatdecayrecv busid = pI "^clhatdecay" busid
 -- | fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
 coarse :: Pattern Double -> ControlPattern
 coarse = pF "coarse"
+coarseTake :: String -> [Double] -> ControlPattern
+coarseTake name xs = pStateListF "coarse" name xs
 coarseCount :: String -> ControlPattern
 coarseCount name = pStateF "coarse" name (maybe 0 (+1))
 coarseCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -542,6 +603,8 @@ coarserecv busid = pI "^coarse" busid
 -- | Spectral comb
 comb :: Pattern Double -> ControlPattern
 comb = pF "comb"
+combTake :: String -> [Double] -> ControlPattern
+combTake name xs = pStateListF "comb" name xs
 combCount :: String -> ControlPattern
 combCount name = pStateF "comb" name (maybe 0 (+1))
 combCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -555,6 +618,8 @@ combrecv busid = pI "^comb" busid
 -- | 
 control :: Pattern Double -> ControlPattern
 control = pF "control"
+controlTake :: String -> [Double] -> ControlPattern
+controlTake name xs = pStateListF "control" name xs
 controlCount :: String -> ControlPattern
 controlCount name = pStateF "control" name (maybe 0 (+1))
 controlCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -568,6 +633,8 @@ controlrecv busid = pI "^control" busid
 -- | 
 cps :: Pattern Double -> ControlPattern
 cps = pF "cps"
+cpsTake :: String -> [Double] -> ControlPattern
+cpsTake name xs = pStateListF "cps" name xs
 cpsCount :: String -> ControlPattern
 cpsCount name = pStateF "cps" name (maybe 0 (+1))
 cpsCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -581,6 +648,8 @@ cpsrecv busid = pI "^cps" busid
 -- | bit crushing, a pattern of numbers from 1 (for drastic reduction in bit-depth) to 16 (for barely no reduction).
 crush :: Pattern Double -> ControlPattern
 crush = pF "crush"
+crushTake :: String -> [Double] -> ControlPattern
+crushTake name xs = pStateListF "crush" name xs
 crushCount :: String -> ControlPattern
 crushCount name = pStateF "crush" name (maybe 0 (+1))
 crushCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -594,6 +663,8 @@ crushrecv busid = pI "^crush" busid
 -- | 
 ctlNum :: Pattern Double -> ControlPattern
 ctlNum = pF "ctlNum"
+ctlNumTake :: String -> [Double] -> ControlPattern
+ctlNumTake name xs = pStateListF "ctlNum" name xs
 ctlNumCount :: String -> ControlPattern
 ctlNumCount name = pStateF "ctlNum" name (maybe 0 (+1))
 ctlNumCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -607,6 +678,8 @@ ctlNumrecv busid = pI "^ctlNum" busid
 -- | 
 ctranspose :: Pattern Double -> ControlPattern
 ctranspose = pF "ctranspose"
+ctransposeTake :: String -> [Double] -> ControlPattern
+ctransposeTake name xs = pStateListF "ctranspose" name xs
 ctransposeCount :: String -> ControlPattern
 ctransposeCount name = pStateF "ctranspose" name (maybe 0 (+1))
 ctransposeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -620,6 +693,8 @@ ctransposerecv busid = pI "^ctranspose" busid
 -- | In the style of classic drum-machines, `cut` will stop a playing sample as soon as another samples with in same cutgroup is to be played. An example would be an open hi-hat followed by a closed one, essentially muting the open.
 cut :: Pattern Int -> ControlPattern
 cut = pI "cut"
+cutTake :: String -> [Double] -> ControlPattern
+cutTake name xs = pStateListF "cut" name xs
 cutbus :: Pattern Int -> Pattern Int -> ControlPattern
 cutbus busid pat = (pI "cut" pat) # (pI "^cut" busid)
 cutrecv :: Pattern Int -> ControlPattern
@@ -628,6 +703,8 @@ cutrecv busid = pI "^cut" busid
 -- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter.
 cutoff :: Pattern Double -> ControlPattern
 cutoff = pF "cutoff"
+cutoffTake :: String -> [Double] -> ControlPattern
+cutoffTake name xs = pStateListF "cutoff" name xs
 cutoffCount :: String -> ControlPattern
 cutoffCount name = pStateF "cutoff" name (maybe 0 (+1))
 cutoffCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -641,6 +718,8 @@ cutoffrecv busid = pI "^cutoff" busid
 -- | 
 cutoffegint :: Pattern Double -> ControlPattern
 cutoffegint = pF "cutoffegint"
+cutoffegintTake :: String -> [Double] -> ControlPattern
+cutoffegintTake name xs = pStateListF "cutoffegint" name xs
 cutoffegintCount :: String -> ControlPattern
 cutoffegintCount name = pStateF "cutoffegint" name (maybe 0 (+1))
 cutoffegintCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -654,6 +733,8 @@ cutoffegintrecv busid = pI "^cutoffegint" busid
 -- | 
 decay :: Pattern Double -> ControlPattern
 decay = pF "decay"
+decayTake :: String -> [Double] -> ControlPattern
+decayTake name xs = pStateListF "decay" name xs
 decayCount :: String -> ControlPattern
 decayCount name = pStateF "decay" name (maybe 0 (+1))
 decayCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -667,6 +748,8 @@ decayrecv busid = pI "^decay" busid
 -- | 
 degree :: Pattern Double -> ControlPattern
 degree = pF "degree"
+degreeTake :: String -> [Double] -> ControlPattern
+degreeTake name xs = pStateListF "degree" name xs
 degreeCount :: String -> ControlPattern
 degreeCount name = pStateF "degree" name (maybe 0 (+1))
 degreeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -680,6 +763,8 @@ degreerecv busid = pI "^degree" busid
 -- | a pattern of numbers from 0 to 1. Sets the level of the delay signal.
 delay :: Pattern Double -> ControlPattern
 delay = pF "delay"
+delayTake :: String -> [Double] -> ControlPattern
+delayTake name xs = pStateListF "delay" name xs
 delayCount :: String -> ControlPattern
 delayCount name = pStateF "delay" name (maybe 0 (+1))
 delayCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -693,6 +778,8 @@ delayrecv busid = pI "^delay" busid
 -- | a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
 delayfeedback :: Pattern Double -> ControlPattern
 delayfeedback = pF "delayfeedback"
+delayfeedbackTake :: String -> [Double] -> ControlPattern
+delayfeedbackTake name xs = pStateListF "delayfeedback" name xs
 delayfeedbackCount :: String -> ControlPattern
 delayfeedbackCount name = pStateF "delayfeedback" name (maybe 0 (+1))
 delayfeedbackCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -706,6 +793,8 @@ delayfeedbackrecv busid = pI "^delayfeedback" busid
 -- | a pattern of numbers from 0 to 1. Sets the length of the delay.
 delaytime :: Pattern Double -> ControlPattern
 delaytime = pF "delaytime"
+delaytimeTake :: String -> [Double] -> ControlPattern
+delaytimeTake name xs = pStateListF "delaytime" name xs
 delaytimeCount :: String -> ControlPattern
 delaytimeCount name = pStateF "delaytime" name (maybe 0 (+1))
 delaytimeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -719,6 +808,8 @@ delaytimerecv busid = pI "^delaytime" busid
 -- | 
 detune :: Pattern Double -> ControlPattern
 detune = pF "detune"
+detuneTake :: String -> [Double] -> ControlPattern
+detuneTake name xs = pStateListF "detune" name xs
 detuneCount :: String -> ControlPattern
 detuneCount name = pStateF "detune" name (maybe 0 (+1))
 detuneCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -732,6 +823,8 @@ detunerecv busid = pI "^detune" busid
 -- | noisy fuzzy distortion
 distort :: Pattern Double -> ControlPattern
 distort = pF "distort"
+distortTake :: String -> [Double] -> ControlPattern
+distortTake name xs = pStateListF "distort" name xs
 distortCount :: String -> ControlPattern
 distortCount name = pStateF "distort" name (maybe 0 (+1))
 distortCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -745,6 +838,8 @@ distortrecv busid = pI "^distort" busid
 -- | DJ filter, below 0.5 is low pass filter, above is high pass filter.
 djf :: Pattern Double -> ControlPattern
 djf = pF "djf"
+djfTake :: String -> [Double] -> ControlPattern
+djfTake name xs = pStateListF "djf" name xs
 djfCount :: String -> ControlPattern
 djfCount name = pStateF "djf" name (maybe 0 (+1))
 djfCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -758,6 +853,8 @@ djfrecv busid = pI "^djf" busid
 -- | when set to `1` will disable all reverb for this pattern. See `room` and `size` for more information about reverb.
 dry :: Pattern Double -> ControlPattern
 dry = pF "dry"
+dryTake :: String -> [Double] -> ControlPattern
+dryTake name xs = pStateListF "dry" name xs
 dryCount :: String -> ControlPattern
 dryCount name = pStateF "dry" name (maybe 0 (+1))
 dryCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -771,6 +868,8 @@ dryrecv busid = pI "^dry" busid
 -- | 
 dur :: Pattern Double -> ControlPattern
 dur = pF "dur"
+durTake :: String -> [Double] -> ControlPattern
+durTake name xs = pStateListF "dur" name xs
 durCount :: String -> ControlPattern
 durCount name = pStateF "dur" name (maybe 0 (+1))
 durCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -784,6 +883,8 @@ durrecv busid = pI "^dur" busid
 -- | the same as `begin`, but cuts the end off samples, shortening them; e.g. `0.75` to cut off the last quarter of each sample.
 end :: Pattern Double -> ControlPattern
 end = pF "end"
+endTake :: String -> [Double] -> ControlPattern
+endTake name xs = pStateListF "end" name xs
 endCount :: String -> ControlPattern
 endCount name = pStateF "end" name (maybe 0 (+1))
 endCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -795,6 +896,8 @@ endbus _ _ = error $ "Control parameter 'end' can't be sent to a bus."
 -- | Spectral enhance
 enhance :: Pattern Double -> ControlPattern
 enhance = pF "enhance"
+enhanceTake :: String -> [Double] -> ControlPattern
+enhanceTake name xs = pStateListF "enhance" name xs
 enhanceCount :: String -> ControlPattern
 enhanceCount name = pStateF "enhance" name (maybe 0 (+1))
 enhanceCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -808,6 +911,8 @@ enhancerecv busid = pI "^enhance" busid
 -- | 
 expression :: Pattern Double -> ControlPattern
 expression = pF "expression"
+expressionTake :: String -> [Double] -> ControlPattern
+expressionTake name xs = pStateListF "expression" name xs
 expressionCount :: String -> ControlPattern
 expressionCount name = pStateF "expression" name (maybe 0 (+1))
 expressionCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -821,6 +926,8 @@ expressionrecv busid = pI "^expression" busid
 -- | 
 frameRate :: Pattern Double -> ControlPattern
 frameRate = pF "frameRate"
+frameRateTake :: String -> [Double] -> ControlPattern
+frameRateTake name xs = pStateListF "frameRate" name xs
 frameRateCount :: String -> ControlPattern
 frameRateCount name = pStateF "frameRate" name (maybe 0 (+1))
 frameRateCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -834,6 +941,8 @@ frameRaterecv busid = pI "^frameRate" busid
 -- | 
 frames :: Pattern Double -> ControlPattern
 frames = pF "frames"
+framesTake :: String -> [Double] -> ControlPattern
+framesTake name xs = pStateListF "frames" name xs
 framesCount :: String -> ControlPattern
 framesCount name = pStateF "frames" name (maybe 0 (+1))
 framesCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -847,6 +956,8 @@ framesrecv busid = pI "^frames" busid
 -- | Spectral freeze
 freeze :: Pattern Double -> ControlPattern
 freeze = pF "freeze"
+freezeTake :: String -> [Double] -> ControlPattern
+freezeTake name xs = pStateListF "freeze" name xs
 freezeCount :: String -> ControlPattern
 freezeCount name = pStateF "freeze" name (maybe 0 (+1))
 freezeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -860,6 +971,8 @@ freezerecv busid = pI "^freeze" busid
 -- | 
 freq :: Pattern Double -> ControlPattern
 freq = pF "freq"
+freqTake :: String -> [Double] -> ControlPattern
+freqTake name xs = pStateListF "freq" name xs
 freqCount :: String -> ControlPattern
 freqCount name = pStateF "freq" name (maybe 0 (+1))
 freqCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -873,6 +986,8 @@ freqrecv busid = pI "^freq" busid
 -- | for internal sound routing
 from :: Pattern Double -> ControlPattern
 from = pF "from"
+fromTake :: String -> [Double] -> ControlPattern
+fromTake name xs = pStateListF "from" name xs
 fromCount :: String -> ControlPattern
 fromCount name = pStateF "from" name (maybe 0 (+1))
 fromCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -886,6 +1001,8 @@ fromrecv busid = pI "^from" busid
 -- | frequency shifter
 fshift :: Pattern Double -> ControlPattern
 fshift = pF "fshift"
+fshiftTake :: String -> [Double] -> ControlPattern
+fshiftTake name xs = pStateListF "fshift" name xs
 fshiftCount :: String -> ControlPattern
 fshiftCount name = pStateF "fshift" name (maybe 0 (+1))
 fshiftCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -899,6 +1016,8 @@ fshiftrecv busid = pI "^fshift" busid
 -- | frequency shifter
 fshiftnote :: Pattern Double -> ControlPattern
 fshiftnote = pF "fshiftnote"
+fshiftnoteTake :: String -> [Double] -> ControlPattern
+fshiftnoteTake name xs = pStateListF "fshiftnote" name xs
 fshiftnoteCount :: String -> ControlPattern
 fshiftnoteCount name = pStateF "fshiftnote" name (maybe 0 (+1))
 fshiftnoteCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -912,6 +1031,8 @@ fshiftnoterecv busid = pI "^fshiftnote" busid
 -- | frequency shifter
 fshiftphase :: Pattern Double -> ControlPattern
 fshiftphase = pF "fshiftphase"
+fshiftphaseTake :: String -> [Double] -> ControlPattern
+fshiftphaseTake name xs = pStateListF "fshiftphase" name xs
 fshiftphaseCount :: String -> ControlPattern
 fshiftphaseCount name = pStateF "fshiftphase" name (maybe 0 (+1))
 fshiftphaseCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -925,6 +1046,8 @@ fshiftphaserecv busid = pI "^fshiftphase" busid
 -- | a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder. For the linear equivalent, see @amp@.
 gain :: Pattern Double -> ControlPattern
 gain = pF "gain"
+gainTake :: String -> [Double] -> ControlPattern
+gainTake name xs = pStateListF "gain" name xs
 gainCount :: String -> ControlPattern
 gainCount name = pStateF "gain" name (maybe 0 (+1))
 gainCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -936,6 +1059,8 @@ gainbus _ _ = error $ "Control parameter 'gain' can't be sent to a bus."
 -- | 
 gate :: Pattern Double -> ControlPattern
 gate = pF "gate"
+gateTake :: String -> [Double] -> ControlPattern
+gateTake name xs = pStateListF "gate" name xs
 gateCount :: String -> ControlPattern
 gateCount name = pStateF "gate" name (maybe 0 (+1))
 gateCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -949,6 +1074,8 @@ gaterecv busid = pI "^gate" busid
 -- | 
 harmonic :: Pattern Double -> ControlPattern
 harmonic = pF "harmonic"
+harmonicTake :: String -> [Double] -> ControlPattern
+harmonicTake name xs = pStateListF "harmonic" name xs
 harmonicCount :: String -> ControlPattern
 harmonicCount name = pStateF "harmonic" name (maybe 0 (+1))
 harmonicCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -962,6 +1089,8 @@ harmonicrecv busid = pI "^harmonic" busid
 -- | 
 hatgrain :: Pattern Double -> ControlPattern
 hatgrain = pF "hatgrain"
+hatgrainTake :: String -> [Double] -> ControlPattern
+hatgrainTake name xs = pStateListF "hatgrain" name xs
 hatgrainCount :: String -> ControlPattern
 hatgrainCount name = pStateF "hatgrain" name (maybe 0 (+1))
 hatgrainCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -975,6 +1104,8 @@ hatgrainrecv busid = pI "^hatgrain" busid
 -- | High pass sort of spectral filter
 hbrick :: Pattern Double -> ControlPattern
 hbrick = pF "hbrick"
+hbrickTake :: String -> [Double] -> ControlPattern
+hbrickTake name xs = pStateListF "hbrick" name xs
 hbrickCount :: String -> ControlPattern
 hbrickCount name = pStateF "hbrick" name (maybe 0 (+1))
 hbrickCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -988,6 +1119,8 @@ hbrickrecv busid = pI "^hbrick" busid
 -- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter. Also has alias @hpf@
 hcutoff :: Pattern Double -> ControlPattern
 hcutoff = pF "hcutoff"
+hcutoffTake :: String -> [Double] -> ControlPattern
+hcutoffTake name xs = pStateListF "hcutoff" name xs
 hcutoffCount :: String -> ControlPattern
 hcutoffCount name = pStateF "hcutoff" name (maybe 0 (+1))
 hcutoffCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1001,6 +1134,8 @@ hcutoffrecv busid = pI "^hcutoff" busid
 -- | a pattern of numbers to specify the hold time (in seconds) of an envelope applied to each sample. Only takes effect if `attack` and `release` are also specified.
 hold :: Pattern Double -> ControlPattern
 hold = pF "hold"
+holdTake :: String -> [Double] -> ControlPattern
+holdTake name xs = pStateListF "hold" name xs
 holdCount :: String -> ControlPattern
 holdCount name = pStateF "hold" name (maybe 0 (+1))
 holdCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1014,6 +1149,8 @@ holdrecv busid = pI "^hold" busid
 -- | 
 hours :: Pattern Double -> ControlPattern
 hours = pF "hours"
+hoursTake :: String -> [Double] -> ControlPattern
+hoursTake name xs = pStateListF "hours" name xs
 hoursCount :: String -> ControlPattern
 hoursCount name = pStateF "hours" name (maybe 0 (+1))
 hoursCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1027,6 +1164,8 @@ hoursrecv busid = pI "^hours" busid
 -- | a pattern of numbers from 0 to 1. Applies the resonance of the high-pass filter. Has alias @hpq@
 hresonance :: Pattern Double -> ControlPattern
 hresonance = pF "hresonance"
+hresonanceTake :: String -> [Double] -> ControlPattern
+hresonanceTake name xs = pStateListF "hresonance" name xs
 hresonanceCount :: String -> ControlPattern
 hresonanceCount name = pStateF "hresonance" name (maybe 0 (+1))
 hresonanceCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1040,6 +1179,8 @@ hresonancerecv busid = pI "^hresonance" busid
 -- | 
 imag :: Pattern Double -> ControlPattern
 imag = pF "imag"
+imagTake :: String -> [Double] -> ControlPattern
+imagTake name xs = pStateListF "imag" name xs
 imagCount :: String -> ControlPattern
 imagCount name = pStateF "imag" name (maybe 0 (+1))
 imagCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1053,6 +1194,8 @@ imagrecv busid = pI "^imag" busid
 -- | 
 kcutoff :: Pattern Double -> ControlPattern
 kcutoff = pF "kcutoff"
+kcutoffTake :: String -> [Double] -> ControlPattern
+kcutoffTake name xs = pStateListF "kcutoff" name xs
 kcutoffCount :: String -> ControlPattern
 kcutoffCount name = pStateF "kcutoff" name (maybe 0 (+1))
 kcutoffCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1066,6 +1209,8 @@ kcutoffrecv busid = pI "^kcutoff" busid
 -- | shape/bass enhancer
 krush :: Pattern Double -> ControlPattern
 krush = pF "krush"
+krushTake :: String -> [Double] -> ControlPattern
+krushTake name xs = pStateListF "krush" name xs
 krushCount :: String -> ControlPattern
 krushCount name = pStateF "krush" name (maybe 0 (+1))
 krushCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1079,6 +1224,8 @@ krushrecv busid = pI "^krush" busid
 -- | 
 lagogo :: Pattern Double -> ControlPattern
 lagogo = pF "lagogo"
+lagogoTake :: String -> [Double] -> ControlPattern
+lagogoTake name xs = pStateListF "lagogo" name xs
 lagogoCount :: String -> ControlPattern
 lagogoCount name = pStateF "lagogo" name (maybe 0 (+1))
 lagogoCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1092,6 +1239,8 @@ lagogorecv busid = pI "^lagogo" busid
 -- | Low pass sort of spectral filter
 lbrick :: Pattern Double -> ControlPattern
 lbrick = pF "lbrick"
+lbrickTake :: String -> [Double] -> ControlPattern
+lbrickTake name xs = pStateListF "lbrick" name xs
 lbrickCount :: String -> ControlPattern
 lbrickCount name = pStateF "lbrick" name (maybe 0 (+1))
 lbrickCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1105,6 +1254,8 @@ lbrickrecv busid = pI "^lbrick" busid
 -- | 
 lclap :: Pattern Double -> ControlPattern
 lclap = pF "lclap"
+lclapTake :: String -> [Double] -> ControlPattern
+lclapTake name xs = pStateListF "lclap" name xs
 lclapCount :: String -> ControlPattern
 lclapCount name = pStateF "lclap" name (maybe 0 (+1))
 lclapCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1118,6 +1269,8 @@ lclaprecv busid = pI "^lclap" busid
 -- | 
 lclaves :: Pattern Double -> ControlPattern
 lclaves = pF "lclaves"
+lclavesTake :: String -> [Double] -> ControlPattern
+lclavesTake name xs = pStateListF "lclaves" name xs
 lclavesCount :: String -> ControlPattern
 lclavesCount name = pStateF "lclaves" name (maybe 0 (+1))
 lclavesCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1131,6 +1284,8 @@ lclavesrecv busid = pI "^lclaves" busid
 -- | 
 lclhat :: Pattern Double -> ControlPattern
 lclhat = pF "lclhat"
+lclhatTake :: String -> [Double] -> ControlPattern
+lclhatTake name xs = pStateListF "lclhat" name xs
 lclhatCount :: String -> ControlPattern
 lclhatCount name = pStateF "lclhat" name (maybe 0 (+1))
 lclhatCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1144,6 +1299,8 @@ lclhatrecv busid = pI "^lclhat" busid
 -- | 
 lcrash :: Pattern Double -> ControlPattern
 lcrash = pF "lcrash"
+lcrashTake :: String -> [Double] -> ControlPattern
+lcrashTake name xs = pStateListF "lcrash" name xs
 lcrashCount :: String -> ControlPattern
 lcrashCount name = pStateF "lcrash" name (maybe 0 (+1))
 lcrashCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1157,6 +1314,8 @@ lcrashrecv busid = pI "^lcrash" busid
 -- | controls the amount of overlap between two adjacent sounds
 legato :: Pattern Double -> ControlPattern
 legato = pF "legato"
+legatoTake :: String -> [Double] -> ControlPattern
+legatoTake name xs = pStateListF "legato" name xs
 legatoCount :: String -> ControlPattern
 legatoCount name = pStateF "legato" name (maybe 0 (+1))
 legatoCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1168,6 +1327,8 @@ legatobus _ _ = error $ "Control parameter 'legato' can't be sent to a bus."
 -- | 
 leslie :: Pattern Double -> ControlPattern
 leslie = pF "leslie"
+leslieTake :: String -> [Double] -> ControlPattern
+leslieTake name xs = pStateListF "leslie" name xs
 leslieCount :: String -> ControlPattern
 leslieCount name = pStateF "leslie" name (maybe 0 (+1))
 leslieCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1181,6 +1342,8 @@ leslierecv busid = pI "^leslie" busid
 -- | 
 lfo :: Pattern Double -> ControlPattern
 lfo = pF "lfo"
+lfoTake :: String -> [Double] -> ControlPattern
+lfoTake name xs = pStateListF "lfo" name xs
 lfoCount :: String -> ControlPattern
 lfoCount name = pStateF "lfo" name (maybe 0 (+1))
 lfoCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1194,6 +1357,8 @@ lforecv busid = pI "^lfo" busid
 -- | 
 lfocutoffint :: Pattern Double -> ControlPattern
 lfocutoffint = pF "lfocutoffint"
+lfocutoffintTake :: String -> [Double] -> ControlPattern
+lfocutoffintTake name xs = pStateListF "lfocutoffint" name xs
 lfocutoffintCount :: String -> ControlPattern
 lfocutoffintCount name = pStateF "lfocutoffint" name (maybe 0 (+1))
 lfocutoffintCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1207,6 +1372,8 @@ lfocutoffintrecv busid = pI "^lfocutoffint" busid
 -- | 
 lfodelay :: Pattern Double -> ControlPattern
 lfodelay = pF "lfodelay"
+lfodelayTake :: String -> [Double] -> ControlPattern
+lfodelayTake name xs = pStateListF "lfodelay" name xs
 lfodelayCount :: String -> ControlPattern
 lfodelayCount name = pStateF "lfodelay" name (maybe 0 (+1))
 lfodelayCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1220,6 +1387,8 @@ lfodelayrecv busid = pI "^lfodelay" busid
 -- | 
 lfoint :: Pattern Double -> ControlPattern
 lfoint = pF "lfoint"
+lfointTake :: String -> [Double] -> ControlPattern
+lfointTake name xs = pStateListF "lfoint" name xs
 lfointCount :: String -> ControlPattern
 lfointCount name = pStateF "lfoint" name (maybe 0 (+1))
 lfointCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1233,6 +1402,8 @@ lfointrecv busid = pI "^lfoint" busid
 -- | 
 lfopitchint :: Pattern Double -> ControlPattern
 lfopitchint = pF "lfopitchint"
+lfopitchintTake :: String -> [Double] -> ControlPattern
+lfopitchintTake name xs = pStateListF "lfopitchint" name xs
 lfopitchintCount :: String -> ControlPattern
 lfopitchintCount name = pStateF "lfopitchint" name (maybe 0 (+1))
 lfopitchintCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1246,6 +1417,8 @@ lfopitchintrecv busid = pI "^lfopitchint" busid
 -- | 
 lfoshape :: Pattern Double -> ControlPattern
 lfoshape = pF "lfoshape"
+lfoshapeTake :: String -> [Double] -> ControlPattern
+lfoshapeTake name xs = pStateListF "lfoshape" name xs
 lfoshapeCount :: String -> ControlPattern
 lfoshapeCount name = pStateF "lfoshape" name (maybe 0 (+1))
 lfoshapeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1259,6 +1432,8 @@ lfoshaperecv busid = pI "^lfoshape" busid
 -- | 
 lfosync :: Pattern Double -> ControlPattern
 lfosync = pF "lfosync"
+lfosyncTake :: String -> [Double] -> ControlPattern
+lfosyncTake name xs = pStateListF "lfosync" name xs
 lfosyncCount :: String -> ControlPattern
 lfosyncCount name = pStateF "lfosync" name (maybe 0 (+1))
 lfosyncCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1272,6 +1447,8 @@ lfosyncrecv busid = pI "^lfosync" busid
 -- | 
 lhitom :: Pattern Double -> ControlPattern
 lhitom = pF "lhitom"
+lhitomTake :: String -> [Double] -> ControlPattern
+lhitomTake name xs = pStateListF "lhitom" name xs
 lhitomCount :: String -> ControlPattern
 lhitomCount name = pStateF "lhitom" name (maybe 0 (+1))
 lhitomCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1285,6 +1462,8 @@ lhitomrecv busid = pI "^lhitom" busid
 -- | 
 lkick :: Pattern Double -> ControlPattern
 lkick = pF "lkick"
+lkickTake :: String -> [Double] -> ControlPattern
+lkickTake name xs = pStateListF "lkick" name xs
 lkickCount :: String -> ControlPattern
 lkickCount name = pStateF "lkick" name (maybe 0 (+1))
 lkickCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1298,6 +1477,8 @@ lkickrecv busid = pI "^lkick" busid
 -- | 
 llotom :: Pattern Double -> ControlPattern
 llotom = pF "llotom"
+llotomTake :: String -> [Double] -> ControlPattern
+llotomTake name xs = pStateListF "llotom" name xs
 llotomCount :: String -> ControlPattern
 llotomCount name = pStateF "llotom" name (maybe 0 (+1))
 llotomCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1311,6 +1492,8 @@ llotomrecv busid = pI "^llotom" busid
 -- | A pattern of numbers. Specifies whether delaytime is calculated relative to cps. When set to 1, delaytime is a direct multiple of a cycle.
 lock :: Pattern Double -> ControlPattern
 lock = pF "lock"
+lockTake :: String -> [Double] -> ControlPattern
+lockTake name xs = pStateListF "lock" name xs
 lockCount :: String -> ControlPattern
 lockCount name = pStateF "lock" name (maybe 0 (+1))
 lockCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1324,6 +1507,8 @@ lockrecv busid = pI "^lock" busid
 -- | loops the sample (from `begin` to `end`) the specified number of times.
 loop :: Pattern Double -> ControlPattern
 loop = pF "loop"
+loopTake :: String -> [Double] -> ControlPattern
+loopTake name xs = pStateListF "loop" name xs
 loopCount :: String -> ControlPattern
 loopCount name = pStateF "loop" name (maybe 0 (+1))
 loopCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1335,6 +1520,8 @@ loopbus _ _ = error $ "Control parameter 'loop' can't be sent to a bus."
 -- | 
 lophat :: Pattern Double -> ControlPattern
 lophat = pF "lophat"
+lophatTake :: String -> [Double] -> ControlPattern
+lophatTake name xs = pStateListF "lophat" name xs
 lophatCount :: String -> ControlPattern
 lophatCount name = pStateF "lophat" name (maybe 0 (+1))
 lophatCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1348,6 +1535,8 @@ lophatrecv busid = pI "^lophat" busid
 -- | 
 lrate :: Pattern Double -> ControlPattern
 lrate = pF "lrate"
+lrateTake :: String -> [Double] -> ControlPattern
+lrateTake name xs = pStateListF "lrate" name xs
 lrateCount :: String -> ControlPattern
 lrateCount name = pStateF "lrate" name (maybe 0 (+1))
 lrateCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1361,6 +1550,8 @@ lraterecv busid = pI "^lrate" busid
 -- | 
 lsize :: Pattern Double -> ControlPattern
 lsize = pF "lsize"
+lsizeTake :: String -> [Double] -> ControlPattern
+lsizeTake name xs = pStateListF "lsize" name xs
 lsizeCount :: String -> ControlPattern
 lsizeCount name = pStateF "lsize" name (maybe 0 (+1))
 lsizeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1374,6 +1565,8 @@ lsizerecv busid = pI "^lsize" busid
 -- | 
 lsnare :: Pattern Double -> ControlPattern
 lsnare = pF "lsnare"
+lsnareTake :: String -> [Double] -> ControlPattern
+lsnareTake name xs = pStateListF "lsnare" name xs
 lsnareCount :: String -> ControlPattern
 lsnareCount name = pStateF "lsnare" name (maybe 0 (+1))
 lsnareCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1387,6 +1580,8 @@ lsnarerecv busid = pI "^lsnare" busid
 -- | 
 midibend :: Pattern Double -> ControlPattern
 midibend = pF "midibend"
+midibendTake :: String -> [Double] -> ControlPattern
+midibendTake name xs = pStateListF "midibend" name xs
 midibendCount :: String -> ControlPattern
 midibendCount name = pStateF "midibend" name (maybe 0 (+1))
 midibendCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1400,6 +1595,8 @@ midibendrecv busid = pI "^midibend" busid
 -- | 
 midichan :: Pattern Double -> ControlPattern
 midichan = pF "midichan"
+midichanTake :: String -> [Double] -> ControlPattern
+midichanTake name xs = pStateListF "midichan" name xs
 midichanCount :: String -> ControlPattern
 midichanCount name = pStateF "midichan" name (maybe 0 (+1))
 midichanCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1413,6 +1610,8 @@ midichanrecv busid = pI "^midichan" busid
 -- | 
 midicmd :: Pattern String -> ControlPattern
 midicmd = pS "midicmd"
+midicmdTake :: String -> [Double] -> ControlPattern
+midicmdTake name xs = pStateListF "midicmd" name xs
 midicmdbus :: Pattern Int -> Pattern String -> ControlPattern
 midicmdbus busid pat = (pS "midicmd" pat) # (pI "^midicmd" busid)
 midicmdrecv :: Pattern Int -> ControlPattern
@@ -1421,6 +1620,8 @@ midicmdrecv busid = pI "^midicmd" busid
 -- | 
 miditouch :: Pattern Double -> ControlPattern
 miditouch = pF "miditouch"
+miditouchTake :: String -> [Double] -> ControlPattern
+miditouchTake name xs = pStateListF "miditouch" name xs
 miditouchCount :: String -> ControlPattern
 miditouchCount name = pStateF "miditouch" name (maybe 0 (+1))
 miditouchCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1434,6 +1635,8 @@ miditouchrecv busid = pI "^miditouch" busid
 -- | 
 minutes :: Pattern Double -> ControlPattern
 minutes = pF "minutes"
+minutesTake :: String -> [Double] -> ControlPattern
+minutesTake name xs = pStateListF "minutes" name xs
 minutesCount :: String -> ControlPattern
 minutesCount name = pStateF "minutes" name (maybe 0 (+1))
 minutesCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1447,6 +1650,8 @@ minutesrecv busid = pI "^minutes" busid
 -- | 
 modwheel :: Pattern Double -> ControlPattern
 modwheel = pF "modwheel"
+modwheelTake :: String -> [Double] -> ControlPattern
+modwheelTake name xs = pStateListF "modwheel" name xs
 modwheelCount :: String -> ControlPattern
 modwheelCount name = pStateF "modwheel" name (maybe 0 (+1))
 modwheelCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1460,6 +1665,8 @@ modwheelrecv busid = pI "^modwheel" busid
 -- | 
 mtranspose :: Pattern Double -> ControlPattern
 mtranspose = pF "mtranspose"
+mtransposeTake :: String -> [Double] -> ControlPattern
+mtransposeTake name xs = pStateListF "mtranspose" name xs
 mtransposeCount :: String -> ControlPattern
 mtransposeCount name = pStateF "mtranspose" name (maybe 0 (+1))
 mtransposeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1473,6 +1680,8 @@ mtransposerecv busid = pI "^mtranspose" busid
 -- | The note or sample number to choose for a synth or sampleset
 n :: Pattern Note -> ControlPattern
 n = pN "n"
+nTake :: String -> [Double] -> ControlPattern
+nTake name xs = pStateListF "n" name xs
 nCount :: String -> ControlPattern
 nCount name = pStateF "n" name (maybe 0 (+1))
 nCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1484,6 +1693,8 @@ nbus _ _ = error $ "Control parameter 'n' can't be sent to a bus."
 -- | The note or pitch to play a sound or synth with
 note :: Pattern Note -> ControlPattern
 note = pN "note"
+noteTake :: String -> [Double] -> ControlPattern
+noteTake name xs = pStateListF "note" name xs
 noteCount :: String -> ControlPattern
 noteCount name = pStateF "note" name (maybe 0 (+1))
 noteCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1495,6 +1706,8 @@ notebus _ _ = error $ "Control parameter 'note' can't be sent to a bus."
 -- | 
 nrpnn :: Pattern Int -> ControlPattern
 nrpnn = pI "nrpnn"
+nrpnnTake :: String -> [Double] -> ControlPattern
+nrpnnTake name xs = pStateListF "nrpnn" name xs
 nrpnnbus :: Pattern Int -> Pattern Int -> ControlPattern
 nrpnnbus busid pat = (pI "nrpnn" pat) # (pI "^nrpnn" busid)
 nrpnnrecv :: Pattern Int -> ControlPattern
@@ -1503,6 +1716,8 @@ nrpnnrecv busid = pI "^nrpnn" busid
 -- | 
 nrpnv :: Pattern Int -> ControlPattern
 nrpnv = pI "nrpnv"
+nrpnvTake :: String -> [Double] -> ControlPattern
+nrpnvTake name xs = pStateListF "nrpnv" name xs
 nrpnvbus :: Pattern Int -> Pattern Int -> ControlPattern
 nrpnvbus busid pat = (pI "nrpnv" pat) # (pI "^nrpnv" busid)
 nrpnvrecv :: Pattern Int -> ControlPattern
@@ -1511,6 +1726,8 @@ nrpnvrecv busid = pI "^nrpnv" busid
 -- | Nudges events into the future by the specified number of seconds. Negative numbers work up to a point as well (due to internal latency)
 nudge :: Pattern Double -> ControlPattern
 nudge = pF "nudge"
+nudgeTake :: String -> [Double] -> ControlPattern
+nudgeTake name xs = pStateListF "nudge" name xs
 nudgeCount :: String -> ControlPattern
 nudgeCount name = pStateF "nudge" name (maybe 0 (+1))
 nudgeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1524,12 +1741,16 @@ nudgerecv busid = pI "^nudge" busid
 -- | 
 octave :: Pattern Int -> ControlPattern
 octave = pI "octave"
+octaveTake :: String -> [Double] -> ControlPattern
+octaveTake name xs = pStateListF "octave" name xs
 octavebus :: Pattern Int -> Pattern Int -> ControlPattern
 octavebus _ _ = error $ "Control parameter 'octave' can't be sent to a bus."
 
 -- | 
 octaveR :: Pattern Double -> ControlPattern
 octaveR = pF "octaveR"
+octaveRTake :: String -> [Double] -> ControlPattern
+octaveRTake name xs = pStateListF "octaveR" name xs
 octaveRCount :: String -> ControlPattern
 octaveRCount name = pStateF "octaveR" name (maybe 0 (+1))
 octaveRCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1543,6 +1764,8 @@ octaveRrecv busid = pI "^octaveR" busid
 -- | octaver effect
 octer :: Pattern Double -> ControlPattern
 octer = pF "octer"
+octerTake :: String -> [Double] -> ControlPattern
+octerTake name xs = pStateListF "octer" name xs
 octerCount :: String -> ControlPattern
 octerCount name = pStateF "octer" name (maybe 0 (+1))
 octerCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1556,6 +1779,8 @@ octerrecv busid = pI "^octer" busid
 -- | octaver effect
 octersub :: Pattern Double -> ControlPattern
 octersub = pF "octersub"
+octersubTake :: String -> [Double] -> ControlPattern
+octersubTake name xs = pStateListF "octersub" name xs
 octersubCount :: String -> ControlPattern
 octersubCount name = pStateF "octersub" name (maybe 0 (+1))
 octersubCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1569,6 +1794,8 @@ octersubrecv busid = pI "^octersub" busid
 -- | octaver effect
 octersubsub :: Pattern Double -> ControlPattern
 octersubsub = pF "octersubsub"
+octersubsubTake :: String -> [Double] -> ControlPattern
+octersubsubTake name xs = pStateListF "octersubsub" name xs
 octersubsubCount :: String -> ControlPattern
 octersubsubCount name = pStateF "octersubsub" name (maybe 0 (+1))
 octersubsubCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1582,6 +1809,8 @@ octersubsubrecv busid = pI "^octersubsub" busid
 -- | 
 offset :: Pattern Double -> ControlPattern
 offset = pF "offset"
+offsetTake :: String -> [Double] -> ControlPattern
+offsetTake name xs = pStateListF "offset" name xs
 offsetCount :: String -> ControlPattern
 offsetCount name = pStateF "offset" name (maybe 0 (+1))
 offsetCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1593,6 +1822,8 @@ offsetbus _ _ = error $ "Control parameter 'offset' can't be sent to a bus."
 -- | 
 ophatdecay :: Pattern Double -> ControlPattern
 ophatdecay = pF "ophatdecay"
+ophatdecayTake :: String -> [Double] -> ControlPattern
+ophatdecayTake name xs = pStateListF "ophatdecay" name xs
 ophatdecayCount :: String -> ControlPattern
 ophatdecayCount name = pStateF "ophatdecay" name (maybe 0 (+1))
 ophatdecayCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1606,6 +1837,8 @@ ophatdecayrecv busid = pI "^ophatdecay" busid
 -- | a pattern of numbers. An `orbit` is a global parameter context for patterns. Patterns with the same orbit will share hardware output bus offset and global effects, e.g. reverb and delay. The maximum number of orbits is specified in the superdirt startup, numbers higher than maximum will wrap around.
 orbit :: Pattern Int -> ControlPattern
 orbit = pI "orbit"
+orbitTake :: String -> [Double] -> ControlPattern
+orbitTake name xs = pStateListF "orbit" name xs
 orbitbus :: Pattern Int -> Pattern Int -> ControlPattern
 orbitbus busid pat = (pI "orbit" pat) # (pI "^orbit" busid)
 orbitrecv :: Pattern Int -> ControlPattern
@@ -1614,6 +1847,8 @@ orbitrecv busid = pI "^orbit" busid
 -- | 
 overgain :: Pattern Double -> ControlPattern
 overgain = pF "overgain"
+overgainTake :: String -> [Double] -> ControlPattern
+overgainTake name xs = pStateListF "overgain" name xs
 overgainCount :: String -> ControlPattern
 overgainCount name = pStateF "overgain" name (maybe 0 (+1))
 overgainCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1625,6 +1860,8 @@ overgainbus _ _ = error $ "Control parameter 'overgain' can't be sent to a bus."
 -- | 
 overshape :: Pattern Double -> ControlPattern
 overshape = pF "overshape"
+overshapeTake :: String -> [Double] -> ControlPattern
+overshapeTake name xs = pStateListF "overshape" name xs
 overshapeCount :: String -> ControlPattern
 overshapeCount name = pStateF "overshape" name (maybe 0 (+1))
 overshapeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1638,6 +1875,8 @@ overshaperecv busid = pI "^overshape" busid
 -- | a pattern of numbers between 0 and 1, from left to right (assuming stereo), once round a circle (assuming multichannel)
 pan :: Pattern Double -> ControlPattern
 pan = pF "pan"
+panTake :: String -> [Double] -> ControlPattern
+panTake name xs = pStateListF "pan" name xs
 panCount :: String -> ControlPattern
 panCount name = pStateF "pan" name (maybe 0 (+1))
 panCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1651,6 +1890,8 @@ panrecv busid = pI "^pan" busid
 -- | a pattern of numbers between -1.0 and 1.0, which controls the relative position of the centre pan in a pair of adjacent speakers (multichannel only)
 panorient :: Pattern Double -> ControlPattern
 panorient = pF "panorient"
+panorientTake :: String -> [Double] -> ControlPattern
+panorientTake name xs = pStateListF "panorient" name xs
 panorientCount :: String -> ControlPattern
 panorientCount name = pStateF "panorient" name (maybe 0 (+1))
 panorientCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1664,6 +1905,8 @@ panorientrecv busid = pI "^panorient" busid
 -- | a pattern of numbers between -inf and inf, which controls how much multichannel output is fanned out (negative is backwards ordering)
 panspan :: Pattern Double -> ControlPattern
 panspan = pF "panspan"
+panspanTake :: String -> [Double] -> ControlPattern
+panspanTake name xs = pStateListF "panspan" name xs
 panspanCount :: String -> ControlPattern
 panspanCount name = pStateF "panspan" name (maybe 0 (+1))
 panspanCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1677,6 +1920,8 @@ panspanrecv busid = pI "^panspan" busid
 -- | a pattern of numbers between 0.0 and 1.0, which controls the multichannel spread range (multichannel only)
 pansplay :: Pattern Double -> ControlPattern
 pansplay = pF "pansplay"
+pansplayTake :: String -> [Double] -> ControlPattern
+pansplayTake name xs = pStateListF "pansplay" name xs
 pansplayCount :: String -> ControlPattern
 pansplayCount name = pStateF "pansplay" name (maybe 0 (+1))
 pansplayCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1690,6 +1935,8 @@ pansplayrecv busid = pI "^pansplay" busid
 -- | a pattern of numbers between 0.0 and inf, which controls how much each channel is distributed over neighbours (multichannel only)
 panwidth :: Pattern Double -> ControlPattern
 panwidth = pF "panwidth"
+panwidthTake :: String -> [Double] -> ControlPattern
+panwidthTake name xs = pStateListF "panwidth" name xs
 panwidthCount :: String -> ControlPattern
 panwidthCount name = pStateF "panwidth" name (maybe 0 (+1))
 panwidthCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1703,6 +1950,8 @@ panwidthrecv busid = pI "^panwidth" busid
 -- | 
 partials :: Pattern Double -> ControlPattern
 partials = pF "partials"
+partialsTake :: String -> [Double] -> ControlPattern
+partialsTake name xs = pStateListF "partials" name xs
 partialsCount :: String -> ControlPattern
 partialsCount name = pStateF "partials" name (maybe 0 (+1))
 partialsCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1716,6 +1965,8 @@ partialsrecv busid = pI "^partials" busid
 -- | Phaser Audio DSP effect | params are 'phaserrate' and 'phaserdepth'
 phaserdepth :: Pattern Double -> ControlPattern
 phaserdepth = pF "phaserdepth"
+phaserdepthTake :: String -> [Double] -> ControlPattern
+phaserdepthTake name xs = pStateListF "phaserdepth" name xs
 phaserdepthCount :: String -> ControlPattern
 phaserdepthCount name = pStateF "phaserdepth" name (maybe 0 (+1))
 phaserdepthCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1729,6 +1980,8 @@ phaserdepthrecv busid = pI "^phaserdepth" busid
 -- | Phaser Audio DSP effect | params are 'phaserrate' and 'phaserdepth'
 phaserrate :: Pattern Double -> ControlPattern
 phaserrate = pF "phaserrate"
+phaserrateTake :: String -> [Double] -> ControlPattern
+phaserrateTake name xs = pStateListF "phaserrate" name xs
 phaserrateCount :: String -> ControlPattern
 phaserrateCount name = pStateF "phaserrate" name (maybe 0 (+1))
 phaserrateCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1742,6 +1995,8 @@ phaserraterecv busid = pI "^phaserrate" busid
 -- | 
 pitch1 :: Pattern Double -> ControlPattern
 pitch1 = pF "pitch1"
+pitch1Take :: String -> [Double] -> ControlPattern
+pitch1Take name xs = pStateListF "pitch1" name xs
 pitch1Count :: String -> ControlPattern
 pitch1Count name = pStateF "pitch1" name (maybe 0 (+1))
 pitch1CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1755,6 +2010,8 @@ pitch1recv busid = pI "^pitch1" busid
 -- | 
 pitch2 :: Pattern Double -> ControlPattern
 pitch2 = pF "pitch2"
+pitch2Take :: String -> [Double] -> ControlPattern
+pitch2Take name xs = pStateListF "pitch2" name xs
 pitch2Count :: String -> ControlPattern
 pitch2Count name = pStateF "pitch2" name (maybe 0 (+1))
 pitch2CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1768,6 +2025,8 @@ pitch2recv busid = pI "^pitch2" busid
 -- | 
 pitch3 :: Pattern Double -> ControlPattern
 pitch3 = pF "pitch3"
+pitch3Take :: String -> [Double] -> ControlPattern
+pitch3Take name xs = pStateListF "pitch3" name xs
 pitch3Count :: String -> ControlPattern
 pitch3Count name = pStateF "pitch3" name (maybe 0 (+1))
 pitch3CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1781,6 +2040,8 @@ pitch3recv busid = pI "^pitch3" busid
 -- | 
 polyTouch :: Pattern Double -> ControlPattern
 polyTouch = pF "polyTouch"
+polyTouchTake :: String -> [Double] -> ControlPattern
+polyTouchTake name xs = pStateListF "polyTouch" name xs
 polyTouchCount :: String -> ControlPattern
 polyTouchCount name = pStateF "polyTouch" name (maybe 0 (+1))
 polyTouchCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1794,6 +2055,8 @@ polyTouchrecv busid = pI "^polyTouch" busid
 -- | 
 portamento :: Pattern Double -> ControlPattern
 portamento = pF "portamento"
+portamentoTake :: String -> [Double] -> ControlPattern
+portamentoTake name xs = pStateListF "portamento" name xs
 portamentoCount :: String -> ControlPattern
 portamentoCount name = pStateF "portamento" name (maybe 0 (+1))
 portamentoCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1807,6 +2070,8 @@ portamentorecv busid = pI "^portamento" busid
 -- | 
 progNum :: Pattern Double -> ControlPattern
 progNum = pF "progNum"
+progNumTake :: String -> [Double] -> ControlPattern
+progNumTake name xs = pStateListF "progNum" name xs
 progNumCount :: String -> ControlPattern
 progNumCount name = pStateF "progNum" name (maybe 0 (+1))
 progNumCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1820,6 +2085,8 @@ progNumrecv busid = pI "^progNum" busid
 -- | used in SuperDirt softsynths as a control rate or 'speed'
 rate :: Pattern Double -> ControlPattern
 rate = pF "rate"
+rateTake :: String -> [Double] -> ControlPattern
+rateTake name xs = pStateListF "rate" name xs
 rateCount :: String -> ControlPattern
 rateCount name = pStateF "rate" name (maybe 0 (+1))
 rateCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1833,6 +2100,8 @@ raterecv busid = pI "^rate" busid
 -- | Spectral conform
 real :: Pattern Double -> ControlPattern
 real = pF "real"
+realTake :: String -> [Double] -> ControlPattern
+realTake name xs = pStateListF "real" name xs
 realCount :: String -> ControlPattern
 realCount name = pStateF "real" name (maybe 0 (+1))
 realCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1846,6 +2115,8 @@ realrecv busid = pI "^real" busid
 -- | a pattern of numbers to specify the release time (in seconds) of an envelope applied to each sample.
 release :: Pattern Double -> ControlPattern
 release = pF "release"
+releaseTake :: String -> [Double] -> ControlPattern
+releaseTake name xs = pStateListF "release" name xs
 releaseCount :: String -> ControlPattern
 releaseCount name = pStateF "release" name (maybe 0 (+1))
 releaseCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1859,6 +2130,8 @@ releaserecv busid = pI "^release" busid
 -- | a pattern of numbers from 0 to 1. Specifies the resonance of the low-pass filter.
 resonance :: Pattern Double -> ControlPattern
 resonance = pF "resonance"
+resonanceTake :: String -> [Double] -> ControlPattern
+resonanceTake name xs = pStateListF "resonance" name xs
 resonanceCount :: String -> ControlPattern
 resonanceCount name = pStateF "resonance" name (maybe 0 (+1))
 resonanceCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1872,6 +2145,8 @@ resonancerecv busid = pI "^resonance" busid
 -- | ring modulation
 ring :: Pattern Double -> ControlPattern
 ring = pF "ring"
+ringTake :: String -> [Double] -> ControlPattern
+ringTake name xs = pStateListF "ring" name xs
 ringCount :: String -> ControlPattern
 ringCount name = pStateF "ring" name (maybe 0 (+1))
 ringCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1885,6 +2160,8 @@ ringrecv busid = pI "^ring" busid
 -- | ring modulation
 ringdf :: Pattern Double -> ControlPattern
 ringdf = pF "ringdf"
+ringdfTake :: String -> [Double] -> ControlPattern
+ringdfTake name xs = pStateListF "ringdf" name xs
 ringdfCount :: String -> ControlPattern
 ringdfCount name = pStateF "ringdf" name (maybe 0 (+1))
 ringdfCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1898,6 +2175,8 @@ ringdfrecv busid = pI "^ringdf" busid
 -- | ring modulation
 ringf :: Pattern Double -> ControlPattern
 ringf = pF "ringf"
+ringfTake :: String -> [Double] -> ControlPattern
+ringfTake name xs = pStateListF "ringf" name xs
 ringfCount :: String -> ControlPattern
 ringfCount name = pStateF "ringf" name (maybe 0 (+1))
 ringfCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1911,6 +2190,8 @@ ringfrecv busid = pI "^ringf" busid
 -- | a pattern of numbers from 0 to 1. Sets the level of reverb.
 room :: Pattern Double -> ControlPattern
 room = pF "room"
+roomTake :: String -> [Double] -> ControlPattern
+roomTake name xs = pStateListF "room" name xs
 roomCount :: String -> ControlPattern
 roomCount name = pStateF "room" name (maybe 0 (+1))
 roomCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1924,6 +2205,8 @@ roomrecv busid = pI "^room" busid
 -- | 
 sagogo :: Pattern Double -> ControlPattern
 sagogo = pF "sagogo"
+sagogoTake :: String -> [Double] -> ControlPattern
+sagogoTake name xs = pStateListF "sagogo" name xs
 sagogoCount :: String -> ControlPattern
 sagogoCount name = pStateF "sagogo" name (maybe 0 (+1))
 sagogoCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1937,6 +2220,8 @@ sagogorecv busid = pI "^sagogo" busid
 -- | 
 sclap :: Pattern Double -> ControlPattern
 sclap = pF "sclap"
+sclapTake :: String -> [Double] -> ControlPattern
+sclapTake name xs = pStateListF "sclap" name xs
 sclapCount :: String -> ControlPattern
 sclapCount name = pStateF "sclap" name (maybe 0 (+1))
 sclapCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1950,6 +2235,8 @@ sclaprecv busid = pI "^sclap" busid
 -- | 
 sclaves :: Pattern Double -> ControlPattern
 sclaves = pF "sclaves"
+sclavesTake :: String -> [Double] -> ControlPattern
+sclavesTake name xs = pStateListF "sclaves" name xs
 sclavesCount :: String -> ControlPattern
 sclavesCount name = pStateF "sclaves" name (maybe 0 (+1))
 sclavesCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1963,6 +2250,8 @@ sclavesrecv busid = pI "^sclaves" busid
 -- | Spectral scramble
 scram :: Pattern Double -> ControlPattern
 scram = pF "scram"
+scramTake :: String -> [Double] -> ControlPattern
+scramTake name xs = pStateListF "scram" name xs
 scramCount :: String -> ControlPattern
 scramCount name = pStateF "scram" name (maybe 0 (+1))
 scramCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1976,6 +2265,8 @@ scramrecv busid = pI "^scram" busid
 -- | 
 scrash :: Pattern Double -> ControlPattern
 scrash = pF "scrash"
+scrashTake :: String -> [Double] -> ControlPattern
+scrashTake name xs = pStateListF "scrash" name xs
 scrashCount :: String -> ControlPattern
 scrashCount name = pStateF "scrash" name (maybe 0 (+1))
 scrashCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -1989,6 +2280,8 @@ scrashrecv busid = pI "^scrash" busid
 -- | 
 seconds :: Pattern Double -> ControlPattern
 seconds = pF "seconds"
+secondsTake :: String -> [Double] -> ControlPattern
+secondsTake name xs = pStateListF "seconds" name xs
 secondsCount :: String -> ControlPattern
 secondsCount name = pStateF "seconds" name (maybe 0 (+1))
 secondsCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2002,6 +2295,8 @@ secondsrecv busid = pI "^seconds" busid
 -- | 
 semitone :: Pattern Double -> ControlPattern
 semitone = pF "semitone"
+semitoneTake :: String -> [Double] -> ControlPattern
+semitoneTake name xs = pStateListF "semitone" name xs
 semitoneCount :: String -> ControlPattern
 semitoneCount name = pStateF "semitone" name (maybe 0 (+1))
 semitoneCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2015,6 +2310,8 @@ semitonerecv busid = pI "^semitone" busid
 -- | wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion.
 shape :: Pattern Double -> ControlPattern
 shape = pF "shape"
+shapeTake :: String -> [Double] -> ControlPattern
+shapeTake name xs = pStateListF "shape" name xs
 shapeCount :: String -> ControlPattern
 shapeCount name = pStateF "shape" name (maybe 0 (+1))
 shapeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2028,6 +2325,8 @@ shaperecv busid = pI "^shape" busid
 -- | a pattern of numbers from 0 to 1. Sets the perceptual size (reverb time) of the `room` to be used in reverb.
 size :: Pattern Double -> ControlPattern
 size = pF "size"
+sizeTake :: String -> [Double] -> ControlPattern
+sizeTake name xs = pStateListF "size" name xs
 sizeCount :: String -> ControlPattern
 sizeCount name = pStateF "size" name (maybe 0 (+1))
 sizeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2041,6 +2340,8 @@ sizerecv busid = pI "^size" busid
 -- | 
 slide :: Pattern Double -> ControlPattern
 slide = pF "slide"
+slideTake :: String -> [Double] -> ControlPattern
+slideTake name xs = pStateListF "slide" name xs
 slideCount :: String -> ControlPattern
 slideCount name = pStateF "slide" name (maybe 0 (+1))
 slideCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2054,6 +2355,8 @@ sliderecv busid = pI "^slide" busid
 -- | 
 slider0 :: Pattern Double -> ControlPattern
 slider0 = pF "slider0"
+slider0Take :: String -> [Double] -> ControlPattern
+slider0Take name xs = pStateListF "slider0" name xs
 slider0Count :: String -> ControlPattern
 slider0Count name = pStateF "slider0" name (maybe 0 (+1))
 slider0CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2067,6 +2370,8 @@ slider0recv busid = pI "^slider0" busid
 -- | 
 slider1 :: Pattern Double -> ControlPattern
 slider1 = pF "slider1"
+slider1Take :: String -> [Double] -> ControlPattern
+slider1Take name xs = pStateListF "slider1" name xs
 slider1Count :: String -> ControlPattern
 slider1Count name = pStateF "slider1" name (maybe 0 (+1))
 slider1CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2080,6 +2385,8 @@ slider1recv busid = pI "^slider1" busid
 -- | 
 slider10 :: Pattern Double -> ControlPattern
 slider10 = pF "slider10"
+slider10Take :: String -> [Double] -> ControlPattern
+slider10Take name xs = pStateListF "slider10" name xs
 slider10Count :: String -> ControlPattern
 slider10Count name = pStateF "slider10" name (maybe 0 (+1))
 slider10CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2093,6 +2400,8 @@ slider10recv busid = pI "^slider10" busid
 -- | 
 slider11 :: Pattern Double -> ControlPattern
 slider11 = pF "slider11"
+slider11Take :: String -> [Double] -> ControlPattern
+slider11Take name xs = pStateListF "slider11" name xs
 slider11Count :: String -> ControlPattern
 slider11Count name = pStateF "slider11" name (maybe 0 (+1))
 slider11CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2106,6 +2415,8 @@ slider11recv busid = pI "^slider11" busid
 -- | 
 slider12 :: Pattern Double -> ControlPattern
 slider12 = pF "slider12"
+slider12Take :: String -> [Double] -> ControlPattern
+slider12Take name xs = pStateListF "slider12" name xs
 slider12Count :: String -> ControlPattern
 slider12Count name = pStateF "slider12" name (maybe 0 (+1))
 slider12CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2119,6 +2430,8 @@ slider12recv busid = pI "^slider12" busid
 -- | 
 slider13 :: Pattern Double -> ControlPattern
 slider13 = pF "slider13"
+slider13Take :: String -> [Double] -> ControlPattern
+slider13Take name xs = pStateListF "slider13" name xs
 slider13Count :: String -> ControlPattern
 slider13Count name = pStateF "slider13" name (maybe 0 (+1))
 slider13CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2132,6 +2445,8 @@ slider13recv busid = pI "^slider13" busid
 -- | 
 slider14 :: Pattern Double -> ControlPattern
 slider14 = pF "slider14"
+slider14Take :: String -> [Double] -> ControlPattern
+slider14Take name xs = pStateListF "slider14" name xs
 slider14Count :: String -> ControlPattern
 slider14Count name = pStateF "slider14" name (maybe 0 (+1))
 slider14CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2145,6 +2460,8 @@ slider14recv busid = pI "^slider14" busid
 -- | 
 slider15 :: Pattern Double -> ControlPattern
 slider15 = pF "slider15"
+slider15Take :: String -> [Double] -> ControlPattern
+slider15Take name xs = pStateListF "slider15" name xs
 slider15Count :: String -> ControlPattern
 slider15Count name = pStateF "slider15" name (maybe 0 (+1))
 slider15CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2158,6 +2475,8 @@ slider15recv busid = pI "^slider15" busid
 -- | 
 slider2 :: Pattern Double -> ControlPattern
 slider2 = pF "slider2"
+slider2Take :: String -> [Double] -> ControlPattern
+slider2Take name xs = pStateListF "slider2" name xs
 slider2Count :: String -> ControlPattern
 slider2Count name = pStateF "slider2" name (maybe 0 (+1))
 slider2CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2171,6 +2490,8 @@ slider2recv busid = pI "^slider2" busid
 -- | 
 slider3 :: Pattern Double -> ControlPattern
 slider3 = pF "slider3"
+slider3Take :: String -> [Double] -> ControlPattern
+slider3Take name xs = pStateListF "slider3" name xs
 slider3Count :: String -> ControlPattern
 slider3Count name = pStateF "slider3" name (maybe 0 (+1))
 slider3CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2184,6 +2505,8 @@ slider3recv busid = pI "^slider3" busid
 -- | 
 slider4 :: Pattern Double -> ControlPattern
 slider4 = pF "slider4"
+slider4Take :: String -> [Double] -> ControlPattern
+slider4Take name xs = pStateListF "slider4" name xs
 slider4Count :: String -> ControlPattern
 slider4Count name = pStateF "slider4" name (maybe 0 (+1))
 slider4CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2197,6 +2520,8 @@ slider4recv busid = pI "^slider4" busid
 -- | 
 slider5 :: Pattern Double -> ControlPattern
 slider5 = pF "slider5"
+slider5Take :: String -> [Double] -> ControlPattern
+slider5Take name xs = pStateListF "slider5" name xs
 slider5Count :: String -> ControlPattern
 slider5Count name = pStateF "slider5" name (maybe 0 (+1))
 slider5CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2210,6 +2535,8 @@ slider5recv busid = pI "^slider5" busid
 -- | 
 slider6 :: Pattern Double -> ControlPattern
 slider6 = pF "slider6"
+slider6Take :: String -> [Double] -> ControlPattern
+slider6Take name xs = pStateListF "slider6" name xs
 slider6Count :: String -> ControlPattern
 slider6Count name = pStateF "slider6" name (maybe 0 (+1))
 slider6CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2223,6 +2550,8 @@ slider6recv busid = pI "^slider6" busid
 -- | 
 slider7 :: Pattern Double -> ControlPattern
 slider7 = pF "slider7"
+slider7Take :: String -> [Double] -> ControlPattern
+slider7Take name xs = pStateListF "slider7" name xs
 slider7Count :: String -> ControlPattern
 slider7Count name = pStateF "slider7" name (maybe 0 (+1))
 slider7CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2236,6 +2565,8 @@ slider7recv busid = pI "^slider7" busid
 -- | 
 slider8 :: Pattern Double -> ControlPattern
 slider8 = pF "slider8"
+slider8Take :: String -> [Double] -> ControlPattern
+slider8Take name xs = pStateListF "slider8" name xs
 slider8Count :: String -> ControlPattern
 slider8Count name = pStateF "slider8" name (maybe 0 (+1))
 slider8CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2249,6 +2580,8 @@ slider8recv busid = pI "^slider8" busid
 -- | 
 slider9 :: Pattern Double -> ControlPattern
 slider9 = pF "slider9"
+slider9Take :: String -> [Double] -> ControlPattern
+slider9Take name xs = pStateListF "slider9" name xs
 slider9Count :: String -> ControlPattern
 slider9Count name = pStateF "slider9" name (maybe 0 (+1))
 slider9CountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2262,6 +2595,8 @@ slider9recv busid = pI "^slider9" busid
 -- | Spectral smear
 smear :: Pattern Double -> ControlPattern
 smear = pF "smear"
+smearTake :: String -> [Double] -> ControlPattern
+smearTake name xs = pStateListF "smear" name xs
 smearCount :: String -> ControlPattern
 smearCount name = pStateF "smear" name (maybe 0 (+1))
 smearCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2275,6 +2610,8 @@ smearrecv busid = pI "^smear" busid
 -- | 
 songPtr :: Pattern Double -> ControlPattern
 songPtr = pF "songPtr"
+songPtrTake :: String -> [Double] -> ControlPattern
+songPtrTake name xs = pStateListF "songPtr" name xs
 songPtrCount :: String -> ControlPattern
 songPtrCount name = pStateF "songPtr" name (maybe 0 (+1))
 songPtrCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2288,6 +2625,8 @@ songPtrrecv busid = pI "^songPtr" busid
 -- | a pattern of numbers which changes the speed of sample playback, i.e. a cheap way of changing pitch. Negative values will play the sample backwards!
 speed :: Pattern Double -> ControlPattern
 speed = pF "speed"
+speedTake :: String -> [Double] -> ControlPattern
+speedTake name xs = pStateListF "speed" name xs
 speedCount :: String -> ControlPattern
 speedCount name = pStateF "speed" name (maybe 0 (+1))
 speedCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2299,6 +2638,8 @@ speedbus _ _ = error $ "Control parameter 'speed' can't be sent to a bus."
 -- | 
 squiz :: Pattern Double -> ControlPattern
 squiz = pF "squiz"
+squizTake :: String -> [Double] -> ControlPattern
+squizTake name xs = pStateListF "squiz" name xs
 squizCount :: String -> ControlPattern
 squizCount name = pStateF "squiz" name (maybe 0 (+1))
 squizCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2312,6 +2653,8 @@ squizrecv busid = pI "^squiz" busid
 -- | 
 stepsPerOctave :: Pattern Double -> ControlPattern
 stepsPerOctave = pF "stepsPerOctave"
+stepsPerOctaveTake :: String -> [Double] -> ControlPattern
+stepsPerOctaveTake name xs = pStateListF "stepsPerOctave" name xs
 stepsPerOctaveCount :: String -> ControlPattern
 stepsPerOctaveCount name = pStateF "stepsPerOctave" name (maybe 0 (+1))
 stepsPerOctaveCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2325,6 +2668,8 @@ stepsPerOctaverecv busid = pI "^stepsPerOctave" busid
 -- | 
 stutterdepth :: Pattern Double -> ControlPattern
 stutterdepth = pF "stutterdepth"
+stutterdepthTake :: String -> [Double] -> ControlPattern
+stutterdepthTake name xs = pStateListF "stutterdepth" name xs
 stutterdepthCount :: String -> ControlPattern
 stutterdepthCount name = pStateF "stutterdepth" name (maybe 0 (+1))
 stutterdepthCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2338,6 +2683,8 @@ stutterdepthrecv busid = pI "^stutterdepth" busid
 -- | 
 stuttertime :: Pattern Double -> ControlPattern
 stuttertime = pF "stuttertime"
+stuttertimeTake :: String -> [Double] -> ControlPattern
+stuttertimeTake name xs = pStateListF "stuttertime" name xs
 stuttertimeCount :: String -> ControlPattern
 stuttertimeCount name = pStateF "stuttertime" name (maybe 0 (+1))
 stuttertimeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2351,6 +2698,8 @@ stuttertimerecv busid = pI "^stuttertime" busid
 -- | 
 sustain :: Pattern Double -> ControlPattern
 sustain = pF "sustain"
+sustainTake :: String -> [Double] -> ControlPattern
+sustainTake name xs = pStateListF "sustain" name xs
 sustainCount :: String -> ControlPattern
 sustainCount name = pStateF "sustain" name (maybe 0 (+1))
 sustainCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2362,6 +2711,8 @@ sustainbus _ _ = error $ "Control parameter 'sustain' can't be sent to a bus."
 -- | 
 sustainpedal :: Pattern Double -> ControlPattern
 sustainpedal = pF "sustainpedal"
+sustainpedalTake :: String -> [Double] -> ControlPattern
+sustainpedalTake name xs = pStateListF "sustainpedal" name xs
 sustainpedalCount :: String -> ControlPattern
 sustainpedalCount name = pStateF "sustainpedal" name (maybe 0 (+1))
 sustainpedalCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2375,6 +2726,8 @@ sustainpedalrecv busid = pI "^sustainpedal" busid
 -- | for internal sound routing
 to :: Pattern Double -> ControlPattern
 to = pF "to"
+toTake :: String -> [Double] -> ControlPattern
+toTake name xs = pStateListF "to" name xs
 toCount :: String -> ControlPattern
 toCount name = pStateF "to" name (maybe 0 (+1))
 toCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2388,6 +2741,8 @@ torecv busid = pI "^to" busid
 -- | for internal sound routing
 toArg :: Pattern String -> ControlPattern
 toArg = pS "toArg"
+toArgTake :: String -> [Double] -> ControlPattern
+toArgTake name xs = pStateListF "toArg" name xs
 toArgbus :: Pattern Int -> Pattern String -> ControlPattern
 toArgbus busid pat = (pS "toArg" pat) # (pI "^toArg" busid)
 toArgrecv :: Pattern Int -> ControlPattern
@@ -2396,6 +2751,8 @@ toArgrecv busid = pI "^toArg" busid
 -- | 
 tomdecay :: Pattern Double -> ControlPattern
 tomdecay = pF "tomdecay"
+tomdecayTake :: String -> [Double] -> ControlPattern
+tomdecayTake name xs = pStateListF "tomdecay" name xs
 tomdecayCount :: String -> ControlPattern
 tomdecayCount name = pStateF "tomdecay" name (maybe 0 (+1))
 tomdecayCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2409,6 +2766,8 @@ tomdecayrecv busid = pI "^tomdecay" busid
 -- | Tremolo Audio DSP effect | params are 'tremolorate' and 'tremolodepth'
 tremolodepth :: Pattern Double -> ControlPattern
 tremolodepth = pF "tremolodepth"
+tremolodepthTake :: String -> [Double] -> ControlPattern
+tremolodepthTake name xs = pStateListF "tremolodepth" name xs
 tremolodepthCount :: String -> ControlPattern
 tremolodepthCount name = pStateF "tremolodepth" name (maybe 0 (+1))
 tremolodepthCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2422,6 +2781,8 @@ tremolodepthrecv busid = pI "^tremolodepth" busid
 -- | Tremolo Audio DSP effect | params are 'tremolorate' and 'tremolodepth'
 tremolorate :: Pattern Double -> ControlPattern
 tremolorate = pF "tremolorate"
+tremolorateTake :: String -> [Double] -> ControlPattern
+tremolorateTake name xs = pStateListF "tremolorate" name xs
 tremolorateCount :: String -> ControlPattern
 tremolorateCount name = pStateF "tremolorate" name (maybe 0 (+1))
 tremolorateCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2435,6 +2796,8 @@ tremoloraterecv busid = pI "^tremolorate" busid
 -- | tube distortion
 triode :: Pattern Double -> ControlPattern
 triode = pF "triode"
+triodeTake :: String -> [Double] -> ControlPattern
+triodeTake name xs = pStateListF "triode" name xs
 triodeCount :: String -> ControlPattern
 triodeCount name = pStateF "triode" name (maybe 0 (+1))
 triodeCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2448,6 +2811,8 @@ trioderecv busid = pI "^triode" busid
 -- | 
 tsdelay :: Pattern Double -> ControlPattern
 tsdelay = pF "tsdelay"
+tsdelayTake :: String -> [Double] -> ControlPattern
+tsdelayTake name xs = pStateListF "tsdelay" name xs
 tsdelayCount :: String -> ControlPattern
 tsdelayCount name = pStateF "tsdelay" name (maybe 0 (+1))
 tsdelayCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2461,6 +2826,8 @@ tsdelayrecv busid = pI "^tsdelay" busid
 -- | 
 uid :: Pattern Double -> ControlPattern
 uid = pF "uid"
+uidTake :: String -> [Double] -> ControlPattern
+uidTake name xs = pStateListF "uid" name xs
 uidCount :: String -> ControlPattern
 uidCount name = pStateF "uid" name (maybe 0 (+1))
 uidCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2474,12 +2841,16 @@ uidrecv busid = pI "^uid" busid
 -- | used in conjunction with `speed`, accepts values of "r" (rate, default behavior), "c" (cycles), or "s" (seconds). Using `unit "c"` means `speed` will be interpreted in units of cycles, e.g. `speed "1"` means samples will be stretched to fill a cycle. Using `unit "s"` means the playback speed will be adjusted so that the duration is the number of seconds specified by `speed`.
 unit :: Pattern String -> ControlPattern
 unit = pS "unit"
+unitTake :: String -> [Double] -> ControlPattern
+unitTake name xs = pStateListF "unit" name xs
 unitbus :: Pattern Int -> Pattern String -> ControlPattern
 unitbus _ _ = error $ "Control parameter 'unit' can't be sent to a bus."
 
 -- | 
 val :: Pattern Double -> ControlPattern
 val = pF "val"
+valTake :: String -> [Double] -> ControlPattern
+valTake name xs = pStateListF "val" name xs
 valCount :: String -> ControlPattern
 valCount name = pStateF "val" name (maybe 0 (+1))
 valCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2493,6 +2864,8 @@ valrecv busid = pI "^val" busid
 -- | 
 vcfegint :: Pattern Double -> ControlPattern
 vcfegint = pF "vcfegint"
+vcfegintTake :: String -> [Double] -> ControlPattern
+vcfegintTake name xs = pStateListF "vcfegint" name xs
 vcfegintCount :: String -> ControlPattern
 vcfegintCount name = pStateF "vcfegint" name (maybe 0 (+1))
 vcfegintCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2506,6 +2879,8 @@ vcfegintrecv busid = pI "^vcfegint" busid
 -- | 
 vcoegint :: Pattern Double -> ControlPattern
 vcoegint = pF "vcoegint"
+vcoegintTake :: String -> [Double] -> ControlPattern
+vcoegintTake name xs = pStateListF "vcoegint" name xs
 vcoegintCount :: String -> ControlPattern
 vcoegintCount name = pStateF "vcoegint" name (maybe 0 (+1))
 vcoegintCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2519,6 +2894,8 @@ vcoegintrecv busid = pI "^vcoegint" busid
 -- | 
 velocity :: Pattern Double -> ControlPattern
 velocity = pF "velocity"
+velocityTake :: String -> [Double] -> ControlPattern
+velocityTake name xs = pStateListF "velocity" name xs
 velocityCount :: String -> ControlPattern
 velocityCount name = pStateF "velocity" name (maybe 0 (+1))
 velocityCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2532,6 +2909,8 @@ velocityrecv busid = pI "^velocity" busid
 -- | 
 voice :: Pattern Double -> ControlPattern
 voice = pF "voice"
+voiceTake :: String -> [Double] -> ControlPattern
+voiceTake name xs = pStateListF "voice" name xs
 voiceCount :: String -> ControlPattern
 voiceCount name = pStateF "voice" name (maybe 0 (+1))
 voiceCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2545,6 +2924,8 @@ voicerecv busid = pI "^voice" busid
 -- | formant filter to make things sound like vowels, a pattern of either `a`, `e`, `i`, `o` or `u`. Use a rest (`~`) for no effect.
 vowel :: Pattern String -> ControlPattern
 vowel = pS "vowel"
+vowelTake :: String -> [Double] -> ControlPattern
+vowelTake name xs = pStateListF "vowel" name xs
 vowelbus :: Pattern Int -> Pattern String -> ControlPattern
 vowelbus busid pat = (pS "vowel" pat) # (pI "^vowel" busid)
 vowelrecv :: Pattern Int -> ControlPattern
@@ -2553,6 +2934,8 @@ vowelrecv busid = pI "^vowel" busid
 -- | 
 waveloss :: Pattern Double -> ControlPattern
 waveloss = pF "waveloss"
+wavelossTake :: String -> [Double] -> ControlPattern
+wavelossTake name xs = pStateListF "waveloss" name xs
 wavelossCount :: String -> ControlPattern
 wavelossCount name = pStateF "waveloss" name (maybe 0 (+1))
 wavelossCountTo :: String -> Pattern Double -> Pattern ValueMap
@@ -2566,6 +2949,8 @@ wavelossrecv busid = pI "^waveloss" busid
 -- | 
 xsdelay :: Pattern Double -> ControlPattern
 xsdelay = pF "xsdelay"
+xsdelayTake :: String -> [Double] -> ControlPattern
+xsdelayTake name xs = pStateListF "xsdelay" name xs
 xsdelayCount :: String -> ControlPattern
 xsdelayCount name = pStateF "xsdelay" name (maybe 0 (+1))
 xsdelayCountTo :: String -> Pattern Double -> Pattern ValueMap

@@ -82,8 +82,11 @@ pStateF name sName update = pure $ Map.singleton name $ VState statef
 pStateList :: String -> String -> [Value] -> ControlPattern
 pStateList name sName xs = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
-        statef sMap = (Map.insert sName (VList $ tail xs') sMap, head xs') 
-          where xs' = fromMaybe (cycle xs) ((Map.lookup sName sMap) >>= getList)
+        statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped) 
+          where xs' = fromMaybe xs ((Map.lookup sName sMap) >>= getList)
+                -- do this instead of a cycle, so it can get updated with the a list
+                looped | null xs' = xs
+                       | otherwise = xs'
 
 pStateListF :: String -> String -> [Double] -> ControlPattern
 pStateListF name sName = pStateList name sName . map VF
