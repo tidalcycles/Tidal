@@ -1,5 +1,13 @@
 # TidalCycles log of changes
 
+## 1.7.2 - IKLECTIK c
+   * tidal-parse additions and improved errors, haskellish dependency fix @dktr0
+   * spring cleaning and delinting, recreated Time.hs, renamed ControlMap toValueMAp @yaxu
+   * start of [major refactoring of chords](https://club.tidalcycles.org/t/rfc-working-on-making-chord-naming-chordlist-more-consistent/2717/56) @cleary
+   * fix `.` mininotation operator @zudov
+   * stateful event parameters, for counting @yaxu
+   * Move some stuff from BootTidal.hs to the tidal library, to reduce dependencies there @yaxu
+
 ## 1.7.1 - IKLECTIK b
         * Fix stack build @yaxu
         * Add tidal_status command @yaxu
