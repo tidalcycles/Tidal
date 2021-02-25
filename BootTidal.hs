@@ -4,11 +4,6 @@
 import Sound.Tidal.Context
 
 import System.IO (hSetEncoding, stdout, utf8)
-
-import qualified Control.Concurrent.MVar as MV
-import qualified Sound.Tidal.Tempo as Tempo
-import qualified Sound.OSC.FD as O
-
 hSetEncoding stdout utf8
 
 -- total latency = oLatency + cFrameTimespan
@@ -33,11 +28,8 @@ let only = (hush >>)
     all = streamAll tidal
     resetCycles = streamResetCycles tidal
     setcps = asap . cps
-    getcps = do tempo <- MV.readMVar $ sTempoMV tidal
-                return $ Tempo.cps tempo
-    getnow = do tempo <- MV.readMVar $ sTempoMV tidal
-                now <- O.time
-                return $ fromRational $ Tempo.timeToCycles tempo now
+    getcps = streamGetcps tidal
+    getnow = streamGetnow tidal
     xfade i = transition tidal True (Sound.Tidal.Transition.xfadeIn 4) i
     xfadeIn i t = transition tidal True (Sound.Tidal.Transition.xfadeIn t) i
     histpan i t = transition tidal True (Sound.Tidal.Transition.histpan t) i
