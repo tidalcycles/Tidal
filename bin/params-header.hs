@@ -96,6 +96,9 @@ pStateListF name sName = pStateList name sName . map VF
 sound :: Pattern String -> ControlPattern
 sound = grp [mS "s", mF "n"]
 
+sTake :: String -> [Double] -> ControlPattern
+sTake name xs = pStateListF "s" name xs
+
 cc :: Pattern String -> ControlPattern
 cc = grp [mF "ccn", mF "ccv"]
 

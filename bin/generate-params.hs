@@ -43,6 +43,7 @@ controls = intercalate "\n" $ map fs $ sortBy (compare `on` (\(_,x,_) -> x)) gen
                   counters t name
                  ]
         counters "note" name = counters "f" name
+        counters "i" name = counters "f" name
         counters "f" name = concat [name, "Count :: String -> ControlPattern\n",
                                     name, "Count name = pStateF \"",name,"\" name (maybe 0 (+1))\n",
                                     name, "CountTo :: String -> Pattern Double -> Pattern ValueMap\n",

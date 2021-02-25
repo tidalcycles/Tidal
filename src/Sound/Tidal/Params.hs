@@ -96,6 +96,9 @@ pStateListF name sName = pStateList name sName . map VF
 sound :: Pattern String -> ControlPattern
 sound = grp [mS "s", mF "n"]
 
+sTake :: String -> [Double] -> ControlPattern
+sTake name xs = pStateListF "s" name xs
+
 cc :: Pattern String -> ControlPattern
 cc = grp [mF "ccn", mF "ccv"]
 
@@ -567,6 +570,11 @@ channel :: Pattern Int -> ControlPattern
 channel = pI "channel"
 channelTake :: String -> [Double] -> ControlPattern
 channelTake name xs = pStateListF "channel" name xs
+channelCount :: String -> ControlPattern
+channelCount name = pStateF "channel" name (maybe 0 (+1))
+channelCountTo :: String -> Pattern Double -> Pattern ValueMap
+channelCountTo name ipat = innerJoin $ (\i -> pStateF "channel" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 channelbus :: Pattern Int -> Pattern Int -> ControlPattern
 channelbus _ _ = error $ "Control parameter 'channel' can't be sent to a bus."
 
@@ -695,6 +703,11 @@ cut :: Pattern Int -> ControlPattern
 cut = pI "cut"
 cutTake :: String -> [Double] -> ControlPattern
 cutTake name xs = pStateListF "cut" name xs
+cutCount :: String -> ControlPattern
+cutCount name = pStateF "cut" name (maybe 0 (+1))
+cutCountTo :: String -> Pattern Double -> Pattern ValueMap
+cutCountTo name ipat = innerJoin $ (\i -> pStateF "cut" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 cutbus :: Pattern Int -> Pattern Int -> ControlPattern
 cutbus busid pat = (pI "cut" pat) # (pI "^cut" busid)
 cutrecv :: Pattern Int -> ControlPattern
@@ -1708,6 +1721,11 @@ nrpnn :: Pattern Int -> ControlPattern
 nrpnn = pI "nrpnn"
 nrpnnTake :: String -> [Double] -> ControlPattern
 nrpnnTake name xs = pStateListF "nrpnn" name xs
+nrpnnCount :: String -> ControlPattern
+nrpnnCount name = pStateF "nrpnn" name (maybe 0 (+1))
+nrpnnCountTo :: String -> Pattern Double -> Pattern ValueMap
+nrpnnCountTo name ipat = innerJoin $ (\i -> pStateF "nrpnn" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 nrpnnbus :: Pattern Int -> Pattern Int -> ControlPattern
 nrpnnbus busid pat = (pI "nrpnn" pat) # (pI "^nrpnn" busid)
 nrpnnrecv :: Pattern Int -> ControlPattern
@@ -1718,6 +1736,11 @@ nrpnv :: Pattern Int -> ControlPattern
 nrpnv = pI "nrpnv"
 nrpnvTake :: String -> [Double] -> ControlPattern
 nrpnvTake name xs = pStateListF "nrpnv" name xs
+nrpnvCount :: String -> ControlPattern
+nrpnvCount name = pStateF "nrpnv" name (maybe 0 (+1))
+nrpnvCountTo :: String -> Pattern Double -> Pattern ValueMap
+nrpnvCountTo name ipat = innerJoin $ (\i -> pStateF "nrpnv" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 nrpnvbus :: Pattern Int -> Pattern Int -> ControlPattern
 nrpnvbus busid pat = (pI "nrpnv" pat) # (pI "^nrpnv" busid)
 nrpnvrecv :: Pattern Int -> ControlPattern
@@ -1743,6 +1766,11 @@ octave :: Pattern Int -> ControlPattern
 octave = pI "octave"
 octaveTake :: String -> [Double] -> ControlPattern
 octaveTake name xs = pStateListF "octave" name xs
+octaveCount :: String -> ControlPattern
+octaveCount name = pStateF "octave" name (maybe 0 (+1))
+octaveCountTo :: String -> Pattern Double -> Pattern ValueMap
+octaveCountTo name ipat = innerJoin $ (\i -> pStateF "octave" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 octavebus :: Pattern Int -> Pattern Int -> ControlPattern
 octavebus _ _ = error $ "Control parameter 'octave' can't be sent to a bus."
 
@@ -1839,6 +1867,11 @@ orbit :: Pattern Int -> ControlPattern
 orbit = pI "orbit"
 orbitTake :: String -> [Double] -> ControlPattern
 orbitTake name xs = pStateListF "orbit" name xs
+orbitCount :: String -> ControlPattern
+orbitCount name = pStateF "orbit" name (maybe 0 (+1))
+orbitCountTo :: String -> Pattern Double -> Pattern ValueMap
+orbitCountTo name ipat = innerJoin $ (\i -> pStateF "orbit" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 orbitbus :: Pattern Int -> Pattern Int -> ControlPattern
 orbitbus busid pat = (pI "orbit" pat) # (pI "^orbit" busid)
 orbitrecv :: Pattern Int -> ControlPattern
