@@ -29,6 +29,7 @@ import Sound.Tidal.Core ((#))
 import Sound.Tidal.Utils
 import Data.Maybe (fromMaybe)
 import Data.Word (Word8)
+import Data.Fixed (mod')
 
 -- | group multiple params into one
 grp :: [String -> ValueMap] -> Pattern String -> ControlPattern
@@ -72,7 +73,7 @@ pS name = fmap (Map.singleton name . VS)
 pX :: String -> Pattern [Word8] -> ControlPattern
 pX name = fmap (Map.singleton name . VX)
 
-pStateF :: String -> String -> (Maybe Double -> Double) -> ValuePattern
+pStateF :: String -> String -> (Maybe Double -> Double) -> ControlPattern
 pStateF name sName update = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
         statef sMap = (Map.insert sName v sMap, v) 

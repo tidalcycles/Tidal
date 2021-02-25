@@ -29,6 +29,7 @@ import Sound.Tidal.Core ((#))
 import Sound.Tidal.Utils
 import Data.Maybe (fromMaybe)
 import Data.Word (Word8)
+import Data.Fixed (mod')
 
 -- | group multiple params into one
 grp :: [String -> ValueMap] -> Pattern String -> ControlPattern
@@ -167,6 +168,11 @@ drumN _ = 0
 -- | a pattern of numbers that speed up (or slow down) samples while they play.
 accelerate :: Pattern Double -> ControlPattern
 accelerate = pF "accelerate"
+accelerateCount :: String -> ControlPattern
+accelerateCount name = pStateF "accelerate" name (maybe 0 (+1))
+accelerateCountTo :: String -> Pattern Double -> Pattern ValueMap
+accelerateCountTo name ipat = innerJoin $ (\i -> pStateF "accelerate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 acceleratebus :: Pattern Int -> Pattern Double -> ControlPattern
 acceleratebus busid pat = (pF "accelerate" pat) # (pI "^accelerate" busid)
 acceleraterecv :: Pattern Int -> ControlPattern
@@ -175,6 +181,11 @@ acceleraterecv busid = pI "^accelerate" busid
 -- | like @gain@, but linear.
 amp :: Pattern Double -> ControlPattern
 amp = pF "amp"
+ampCount :: String -> ControlPattern
+ampCount name = pStateF "amp" name (maybe 0 (+1))
+ampCountTo :: String -> Pattern Double -> Pattern ValueMap
+ampCountTo name ipat = innerJoin $ (\i -> pStateF "amp" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 ampbus :: Pattern Int -> Pattern Double -> ControlPattern
 ampbus busid pat = (pF "amp" pat) # (pI "^amp" busid)
 amprecv :: Pattern Int -> ControlPattern
@@ -191,6 +202,11 @@ arrayrecv busid = pI "^array" busid
 -- | a pattern of numbers to specify the attack time (in seconds) of an envelope applied to each sample.
 attack :: Pattern Double -> ControlPattern
 attack = pF "attack"
+attackCount :: String -> ControlPattern
+attackCount name = pStateF "attack" name (maybe 0 (+1))
+attackCountTo :: String -> Pattern Double -> Pattern ValueMap
+attackCountTo name ipat = innerJoin $ (\i -> pStateF "attack" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 attackbus :: Pattern Int -> Pattern Double -> ControlPattern
 attackbus busid pat = (pF "attack" pat) # (pI "^attack" busid)
 attackrecv :: Pattern Int -> ControlPattern
@@ -199,6 +215,11 @@ attackrecv busid = pI "^attack" busid
 -- | a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
 bandf :: Pattern Double -> ControlPattern
 bandf = pF "bandf"
+bandfCount :: String -> ControlPattern
+bandfCount name = pStateF "bandf" name (maybe 0 (+1))
+bandfCountTo :: String -> Pattern Double -> Pattern ValueMap
+bandfCountTo name ipat = innerJoin $ (\i -> pStateF "bandf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 bandfbus :: Pattern Int -> Pattern Double -> ControlPattern
 bandfbus busid pat = (pF "bandf" pat) # (pI "^bandf" busid)
 bandfrecv :: Pattern Int -> ControlPattern
@@ -207,6 +228,11 @@ bandfrecv busid = pI "^bandf" busid
 -- | a pattern of anumbers from 0 to 1. Sets the q-factor of the band-pass filter.
 bandq :: Pattern Double -> ControlPattern
 bandq = pF "bandq"
+bandqCount :: String -> ControlPattern
+bandqCount name = pStateF "bandq" name (maybe 0 (+1))
+bandqCountTo :: String -> Pattern Double -> Pattern ValueMap
+bandqCountTo name ipat = innerJoin $ (\i -> pStateF "bandq" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 bandqbus :: Pattern Int -> Pattern Double -> ControlPattern
 bandqbus busid pat = (pF "bandq" pat) # (pI "^bandq" busid)
 bandqrecv :: Pattern Int -> ControlPattern
@@ -215,6 +241,11 @@ bandqrecv busid = pI "^bandq" busid
 -- | a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample.
 begin :: Pattern Double -> ControlPattern
 begin = pF "begin"
+beginCount :: String -> ControlPattern
+beginCount name = pStateF "begin" name (maybe 0 (+1))
+beginCountTo :: String -> Pattern Double -> Pattern ValueMap
+beginCountTo name ipat = innerJoin $ (\i -> pStateF "begin" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 beginbus :: Pattern Int -> Pattern Double -> ControlPattern
 beginbus busid pat = (pF "begin" pat) # (pI "^begin" busid)
 beginrecv :: Pattern Int -> ControlPattern
@@ -223,6 +254,11 @@ beginrecv busid = pI "^begin" busid
 -- | Spectral binshift
 binshift :: Pattern Double -> ControlPattern
 binshift = pF "binshift"
+binshiftCount :: String -> ControlPattern
+binshiftCount name = pStateF "binshift" name (maybe 0 (+1))
+binshiftCountTo :: String -> Pattern Double -> Pattern ValueMap
+binshiftCountTo name ipat = innerJoin $ (\i -> pStateF "binshift" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 binshiftbus :: Pattern Int -> Pattern Double -> ControlPattern
 binshiftbus busid pat = (pF "binshift" pat) # (pI "^binshift" busid)
 binshiftrecv :: Pattern Int -> ControlPattern
@@ -231,6 +267,11 @@ binshiftrecv busid = pI "^binshift" busid
 -- | 
 button0 :: Pattern Double -> ControlPattern
 button0 = pF "button0"
+button0Count :: String -> ControlPattern
+button0Count name = pStateF "button0" name (maybe 0 (+1))
+button0CountTo :: String -> Pattern Double -> Pattern ValueMap
+button0CountTo name ipat = innerJoin $ (\i -> pStateF "button0" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button0bus :: Pattern Int -> Pattern Double -> ControlPattern
 button0bus busid pat = (pF "button0" pat) # (pI "^button0" busid)
 button0recv :: Pattern Int -> ControlPattern
@@ -239,6 +280,11 @@ button0recv busid = pI "^button0" busid
 -- | 
 button1 :: Pattern Double -> ControlPattern
 button1 = pF "button1"
+button1Count :: String -> ControlPattern
+button1Count name = pStateF "button1" name (maybe 0 (+1))
+button1CountTo :: String -> Pattern Double -> Pattern ValueMap
+button1CountTo name ipat = innerJoin $ (\i -> pStateF "button1" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button1bus :: Pattern Int -> Pattern Double -> ControlPattern
 button1bus busid pat = (pF "button1" pat) # (pI "^button1" busid)
 button1recv :: Pattern Int -> ControlPattern
@@ -247,6 +293,11 @@ button1recv busid = pI "^button1" busid
 -- | 
 button10 :: Pattern Double -> ControlPattern
 button10 = pF "button10"
+button10Count :: String -> ControlPattern
+button10Count name = pStateF "button10" name (maybe 0 (+1))
+button10CountTo :: String -> Pattern Double -> Pattern ValueMap
+button10CountTo name ipat = innerJoin $ (\i -> pStateF "button10" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button10bus :: Pattern Int -> Pattern Double -> ControlPattern
 button10bus busid pat = (pF "button10" pat) # (pI "^button10" busid)
 button10recv :: Pattern Int -> ControlPattern
@@ -255,6 +306,11 @@ button10recv busid = pI "^button10" busid
 -- | 
 button11 :: Pattern Double -> ControlPattern
 button11 = pF "button11"
+button11Count :: String -> ControlPattern
+button11Count name = pStateF "button11" name (maybe 0 (+1))
+button11CountTo :: String -> Pattern Double -> Pattern ValueMap
+button11CountTo name ipat = innerJoin $ (\i -> pStateF "button11" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button11bus :: Pattern Int -> Pattern Double -> ControlPattern
 button11bus busid pat = (pF "button11" pat) # (pI "^button11" busid)
 button11recv :: Pattern Int -> ControlPattern
@@ -263,6 +319,11 @@ button11recv busid = pI "^button11" busid
 -- | 
 button12 :: Pattern Double -> ControlPattern
 button12 = pF "button12"
+button12Count :: String -> ControlPattern
+button12Count name = pStateF "button12" name (maybe 0 (+1))
+button12CountTo :: String -> Pattern Double -> Pattern ValueMap
+button12CountTo name ipat = innerJoin $ (\i -> pStateF "button12" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button12bus :: Pattern Int -> Pattern Double -> ControlPattern
 button12bus busid pat = (pF "button12" pat) # (pI "^button12" busid)
 button12recv :: Pattern Int -> ControlPattern
@@ -271,6 +332,11 @@ button12recv busid = pI "^button12" busid
 -- | 
 button13 :: Pattern Double -> ControlPattern
 button13 = pF "button13"
+button13Count :: String -> ControlPattern
+button13Count name = pStateF "button13" name (maybe 0 (+1))
+button13CountTo :: String -> Pattern Double -> Pattern ValueMap
+button13CountTo name ipat = innerJoin $ (\i -> pStateF "button13" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button13bus :: Pattern Int -> Pattern Double -> ControlPattern
 button13bus busid pat = (pF "button13" pat) # (pI "^button13" busid)
 button13recv :: Pattern Int -> ControlPattern
@@ -279,6 +345,11 @@ button13recv busid = pI "^button13" busid
 -- | 
 button14 :: Pattern Double -> ControlPattern
 button14 = pF "button14"
+button14Count :: String -> ControlPattern
+button14Count name = pStateF "button14" name (maybe 0 (+1))
+button14CountTo :: String -> Pattern Double -> Pattern ValueMap
+button14CountTo name ipat = innerJoin $ (\i -> pStateF "button14" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button14bus :: Pattern Int -> Pattern Double -> ControlPattern
 button14bus busid pat = (pF "button14" pat) # (pI "^button14" busid)
 button14recv :: Pattern Int -> ControlPattern
@@ -287,6 +358,11 @@ button14recv busid = pI "^button14" busid
 -- | 
 button15 :: Pattern Double -> ControlPattern
 button15 = pF "button15"
+button15Count :: String -> ControlPattern
+button15Count name = pStateF "button15" name (maybe 0 (+1))
+button15CountTo :: String -> Pattern Double -> Pattern ValueMap
+button15CountTo name ipat = innerJoin $ (\i -> pStateF "button15" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button15bus :: Pattern Int -> Pattern Double -> ControlPattern
 button15bus busid pat = (pF "button15" pat) # (pI "^button15" busid)
 button15recv :: Pattern Int -> ControlPattern
@@ -295,6 +371,11 @@ button15recv busid = pI "^button15" busid
 -- | 
 button2 :: Pattern Double -> ControlPattern
 button2 = pF "button2"
+button2Count :: String -> ControlPattern
+button2Count name = pStateF "button2" name (maybe 0 (+1))
+button2CountTo :: String -> Pattern Double -> Pattern ValueMap
+button2CountTo name ipat = innerJoin $ (\i -> pStateF "button2" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button2bus :: Pattern Int -> Pattern Double -> ControlPattern
 button2bus busid pat = (pF "button2" pat) # (pI "^button2" busid)
 button2recv :: Pattern Int -> ControlPattern
@@ -303,6 +384,11 @@ button2recv busid = pI "^button2" busid
 -- | 
 button3 :: Pattern Double -> ControlPattern
 button3 = pF "button3"
+button3Count :: String -> ControlPattern
+button3Count name = pStateF "button3" name (maybe 0 (+1))
+button3CountTo :: String -> Pattern Double -> Pattern ValueMap
+button3CountTo name ipat = innerJoin $ (\i -> pStateF "button3" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button3bus :: Pattern Int -> Pattern Double -> ControlPattern
 button3bus busid pat = (pF "button3" pat) # (pI "^button3" busid)
 button3recv :: Pattern Int -> ControlPattern
@@ -311,6 +397,11 @@ button3recv busid = pI "^button3" busid
 -- | 
 button4 :: Pattern Double -> ControlPattern
 button4 = pF "button4"
+button4Count :: String -> ControlPattern
+button4Count name = pStateF "button4" name (maybe 0 (+1))
+button4CountTo :: String -> Pattern Double -> Pattern ValueMap
+button4CountTo name ipat = innerJoin $ (\i -> pStateF "button4" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button4bus :: Pattern Int -> Pattern Double -> ControlPattern
 button4bus busid pat = (pF "button4" pat) # (pI "^button4" busid)
 button4recv :: Pattern Int -> ControlPattern
@@ -319,6 +410,11 @@ button4recv busid = pI "^button4" busid
 -- | 
 button5 :: Pattern Double -> ControlPattern
 button5 = pF "button5"
+button5Count :: String -> ControlPattern
+button5Count name = pStateF "button5" name (maybe 0 (+1))
+button5CountTo :: String -> Pattern Double -> Pattern ValueMap
+button5CountTo name ipat = innerJoin $ (\i -> pStateF "button5" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button5bus :: Pattern Int -> Pattern Double -> ControlPattern
 button5bus busid pat = (pF "button5" pat) # (pI "^button5" busid)
 button5recv :: Pattern Int -> ControlPattern
@@ -327,6 +423,11 @@ button5recv busid = pI "^button5" busid
 -- | 
 button6 :: Pattern Double -> ControlPattern
 button6 = pF "button6"
+button6Count :: String -> ControlPattern
+button6Count name = pStateF "button6" name (maybe 0 (+1))
+button6CountTo :: String -> Pattern Double -> Pattern ValueMap
+button6CountTo name ipat = innerJoin $ (\i -> pStateF "button6" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button6bus :: Pattern Int -> Pattern Double -> ControlPattern
 button6bus busid pat = (pF "button6" pat) # (pI "^button6" busid)
 button6recv :: Pattern Int -> ControlPattern
@@ -335,6 +436,11 @@ button6recv busid = pI "^button6" busid
 -- | 
 button7 :: Pattern Double -> ControlPattern
 button7 = pF "button7"
+button7Count :: String -> ControlPattern
+button7Count name = pStateF "button7" name (maybe 0 (+1))
+button7CountTo :: String -> Pattern Double -> Pattern ValueMap
+button7CountTo name ipat = innerJoin $ (\i -> pStateF "button7" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button7bus :: Pattern Int -> Pattern Double -> ControlPattern
 button7bus busid pat = (pF "button7" pat) # (pI "^button7" busid)
 button7recv :: Pattern Int -> ControlPattern
@@ -343,6 +449,11 @@ button7recv busid = pI "^button7" busid
 -- | 
 button8 :: Pattern Double -> ControlPattern
 button8 = pF "button8"
+button8Count :: String -> ControlPattern
+button8Count name = pStateF "button8" name (maybe 0 (+1))
+button8CountTo :: String -> Pattern Double -> Pattern ValueMap
+button8CountTo name ipat = innerJoin $ (\i -> pStateF "button8" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button8bus :: Pattern Int -> Pattern Double -> ControlPattern
 button8bus busid pat = (pF "button8" pat) # (pI "^button8" busid)
 button8recv :: Pattern Int -> ControlPattern
@@ -351,6 +462,11 @@ button8recv busid = pI "^button8" busid
 -- | 
 button9 :: Pattern Double -> ControlPattern
 button9 = pF "button9"
+button9Count :: String -> ControlPattern
+button9Count name = pStateF "button9" name (maybe 0 (+1))
+button9CountTo :: String -> Pattern Double -> Pattern ValueMap
+button9CountTo name ipat = innerJoin $ (\i -> pStateF "button9" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 button9bus :: Pattern Int -> Pattern Double -> ControlPattern
 button9bus busid pat = (pF "button9" pat) # (pI "^button9" busid)
 button9recv :: Pattern Int -> ControlPattern
@@ -359,6 +475,11 @@ button9recv busid = pI "^button9" busid
 -- | 
 ccn :: Pattern Double -> ControlPattern
 ccn = pF "ccn"
+ccnCount :: String -> ControlPattern
+ccnCount name = pStateF "ccn" name (maybe 0 (+1))
+ccnCountTo :: String -> Pattern Double -> Pattern ValueMap
+ccnCountTo name ipat = innerJoin $ (\i -> pStateF "ccn" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 ccnbus :: Pattern Int -> Pattern Double -> ControlPattern
 ccnbus busid pat = (pF "ccn" pat) # (pI "^ccn" busid)
 ccnrecv :: Pattern Int -> ControlPattern
@@ -367,6 +488,11 @@ ccnrecv busid = pI "^ccn" busid
 -- | 
 ccv :: Pattern Double -> ControlPattern
 ccv = pF "ccv"
+ccvCount :: String -> ControlPattern
+ccvCount name = pStateF "ccv" name (maybe 0 (+1))
+ccvCountTo :: String -> Pattern Double -> Pattern ValueMap
+ccvCountTo name ipat = innerJoin $ (\i -> pStateF "ccv" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 ccvbus :: Pattern Int -> Pattern Double -> ControlPattern
 ccvbus busid pat = (pF "ccv" pat) # (pI "^ccv" busid)
 ccvrecv :: Pattern Int -> ControlPattern
@@ -381,6 +507,11 @@ channelbus _ _ = error $ "Control parameter 'channel' can't be sent to a bus."
 -- | 
 clhatdecay :: Pattern Double -> ControlPattern
 clhatdecay = pF "clhatdecay"
+clhatdecayCount :: String -> ControlPattern
+clhatdecayCount name = pStateF "clhatdecay" name (maybe 0 (+1))
+clhatdecayCountTo :: String -> Pattern Double -> Pattern ValueMap
+clhatdecayCountTo name ipat = innerJoin $ (\i -> pStateF "clhatdecay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 clhatdecaybus :: Pattern Int -> Pattern Double -> ControlPattern
 clhatdecaybus busid pat = (pF "clhatdecay" pat) # (pI "^clhatdecay" busid)
 clhatdecayrecv :: Pattern Int -> ControlPattern
@@ -389,6 +520,11 @@ clhatdecayrecv busid = pI "^clhatdecay" busid
 -- | fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
 coarse :: Pattern Double -> ControlPattern
 coarse = pF "coarse"
+coarseCount :: String -> ControlPattern
+coarseCount name = pStateF "coarse" name (maybe 0 (+1))
+coarseCountTo :: String -> Pattern Double -> Pattern ValueMap
+coarseCountTo name ipat = innerJoin $ (\i -> pStateF "coarse" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 coarsebus :: Pattern Int -> Pattern Double -> ControlPattern
 coarsebus busid pat = (pF "coarse" pat) # (pI "^coarse" busid)
 coarserecv :: Pattern Int -> ControlPattern
@@ -397,6 +533,11 @@ coarserecv busid = pI "^coarse" busid
 -- | Spectral comb
 comb :: Pattern Double -> ControlPattern
 comb = pF "comb"
+combCount :: String -> ControlPattern
+combCount name = pStateF "comb" name (maybe 0 (+1))
+combCountTo :: String -> Pattern Double -> Pattern ValueMap
+combCountTo name ipat = innerJoin $ (\i -> pStateF "comb" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 combbus :: Pattern Int -> Pattern Double -> ControlPattern
 combbus busid pat = (pF "comb" pat) # (pI "^comb" busid)
 combrecv :: Pattern Int -> ControlPattern
@@ -405,6 +546,11 @@ combrecv busid = pI "^comb" busid
 -- | 
 control :: Pattern Double -> ControlPattern
 control = pF "control"
+controlCount :: String -> ControlPattern
+controlCount name = pStateF "control" name (maybe 0 (+1))
+controlCountTo :: String -> Pattern Double -> Pattern ValueMap
+controlCountTo name ipat = innerJoin $ (\i -> pStateF "control" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 controlbus :: Pattern Int -> Pattern Double -> ControlPattern
 controlbus busid pat = (pF "control" pat) # (pI "^control" busid)
 controlrecv :: Pattern Int -> ControlPattern
@@ -413,6 +559,11 @@ controlrecv busid = pI "^control" busid
 -- | 
 cps :: Pattern Double -> ControlPattern
 cps = pF "cps"
+cpsCount :: String -> ControlPattern
+cpsCount name = pStateF "cps" name (maybe 0 (+1))
+cpsCountTo :: String -> Pattern Double -> Pattern ValueMap
+cpsCountTo name ipat = innerJoin $ (\i -> pStateF "cps" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 cpsbus :: Pattern Int -> Pattern Double -> ControlPattern
 cpsbus busid pat = (pF "cps" pat) # (pI "^cps" busid)
 cpsrecv :: Pattern Int -> ControlPattern
@@ -421,6 +572,11 @@ cpsrecv busid = pI "^cps" busid
 -- | bit crushing, a pattern of numbers from 1 (for drastic reduction in bit-depth) to 16 (for barely no reduction).
 crush :: Pattern Double -> ControlPattern
 crush = pF "crush"
+crushCount :: String -> ControlPattern
+crushCount name = pStateF "crush" name (maybe 0 (+1))
+crushCountTo :: String -> Pattern Double -> Pattern ValueMap
+crushCountTo name ipat = innerJoin $ (\i -> pStateF "crush" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 crushbus :: Pattern Int -> Pattern Double -> ControlPattern
 crushbus busid pat = (pF "crush" pat) # (pI "^crush" busid)
 crushrecv :: Pattern Int -> ControlPattern
@@ -429,6 +585,11 @@ crushrecv busid = pI "^crush" busid
 -- | 
 ctlNum :: Pattern Double -> ControlPattern
 ctlNum = pF "ctlNum"
+ctlNumCount :: String -> ControlPattern
+ctlNumCount name = pStateF "ctlNum" name (maybe 0 (+1))
+ctlNumCountTo :: String -> Pattern Double -> Pattern ValueMap
+ctlNumCountTo name ipat = innerJoin $ (\i -> pStateF "ctlNum" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 ctlNumbus :: Pattern Int -> Pattern Double -> ControlPattern
 ctlNumbus busid pat = (pF "ctlNum" pat) # (pI "^ctlNum" busid)
 ctlNumrecv :: Pattern Int -> ControlPattern
@@ -437,6 +598,11 @@ ctlNumrecv busid = pI "^ctlNum" busid
 -- | 
 ctranspose :: Pattern Double -> ControlPattern
 ctranspose = pF "ctranspose"
+ctransposeCount :: String -> ControlPattern
+ctransposeCount name = pStateF "ctranspose" name (maybe 0 (+1))
+ctransposeCountTo :: String -> Pattern Double -> Pattern ValueMap
+ctransposeCountTo name ipat = innerJoin $ (\i -> pStateF "ctranspose" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 ctransposebus :: Pattern Int -> Pattern Double -> ControlPattern
 ctransposebus busid pat = (pF "ctranspose" pat) # (pI "^ctranspose" busid)
 ctransposerecv :: Pattern Int -> ControlPattern
@@ -453,6 +619,11 @@ cutrecv busid = pI "^cut" busid
 -- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter.
 cutoff :: Pattern Double -> ControlPattern
 cutoff = pF "cutoff"
+cutoffCount :: String -> ControlPattern
+cutoffCount name = pStateF "cutoff" name (maybe 0 (+1))
+cutoffCountTo :: String -> Pattern Double -> Pattern ValueMap
+cutoffCountTo name ipat = innerJoin $ (\i -> pStateF "cutoff" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 cutoffbus :: Pattern Int -> Pattern Double -> ControlPattern
 cutoffbus busid pat = (pF "cutoff" pat) # (pI "^cutoff" busid)
 cutoffrecv :: Pattern Int -> ControlPattern
@@ -461,6 +632,11 @@ cutoffrecv busid = pI "^cutoff" busid
 -- | 
 cutoffegint :: Pattern Double -> ControlPattern
 cutoffegint = pF "cutoffegint"
+cutoffegintCount :: String -> ControlPattern
+cutoffegintCount name = pStateF "cutoffegint" name (maybe 0 (+1))
+cutoffegintCountTo :: String -> Pattern Double -> Pattern ValueMap
+cutoffegintCountTo name ipat = innerJoin $ (\i -> pStateF "cutoffegint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 cutoffegintbus :: Pattern Int -> Pattern Double -> ControlPattern
 cutoffegintbus busid pat = (pF "cutoffegint" pat) # (pI "^cutoffegint" busid)
 cutoffegintrecv :: Pattern Int -> ControlPattern
@@ -469,6 +645,11 @@ cutoffegintrecv busid = pI "^cutoffegint" busid
 -- | 
 decay :: Pattern Double -> ControlPattern
 decay = pF "decay"
+decayCount :: String -> ControlPattern
+decayCount name = pStateF "decay" name (maybe 0 (+1))
+decayCountTo :: String -> Pattern Double -> Pattern ValueMap
+decayCountTo name ipat = innerJoin $ (\i -> pStateF "decay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 decaybus :: Pattern Int -> Pattern Double -> ControlPattern
 decaybus busid pat = (pF "decay" pat) # (pI "^decay" busid)
 decayrecv :: Pattern Int -> ControlPattern
@@ -477,6 +658,11 @@ decayrecv busid = pI "^decay" busid
 -- | 
 degree :: Pattern Double -> ControlPattern
 degree = pF "degree"
+degreeCount :: String -> ControlPattern
+degreeCount name = pStateF "degree" name (maybe 0 (+1))
+degreeCountTo :: String -> Pattern Double -> Pattern ValueMap
+degreeCountTo name ipat = innerJoin $ (\i -> pStateF "degree" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 degreebus :: Pattern Int -> Pattern Double -> ControlPattern
 degreebus busid pat = (pF "degree" pat) # (pI "^degree" busid)
 degreerecv :: Pattern Int -> ControlPattern
@@ -485,6 +671,11 @@ degreerecv busid = pI "^degree" busid
 -- | a pattern of numbers from 0 to 1. Sets the level of the delay signal.
 delay :: Pattern Double -> ControlPattern
 delay = pF "delay"
+delayCount :: String -> ControlPattern
+delayCount name = pStateF "delay" name (maybe 0 (+1))
+delayCountTo :: String -> Pattern Double -> Pattern ValueMap
+delayCountTo name ipat = innerJoin $ (\i -> pStateF "delay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 delaybus :: Pattern Int -> Pattern Double -> ControlPattern
 delaybus busid pat = (pF "delay" pat) # (pI "^delay" busid)
 delayrecv :: Pattern Int -> ControlPattern
@@ -493,6 +684,11 @@ delayrecv busid = pI "^delay" busid
 -- | a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
 delayfeedback :: Pattern Double -> ControlPattern
 delayfeedback = pF "delayfeedback"
+delayfeedbackCount :: String -> ControlPattern
+delayfeedbackCount name = pStateF "delayfeedback" name (maybe 0 (+1))
+delayfeedbackCountTo :: String -> Pattern Double -> Pattern ValueMap
+delayfeedbackCountTo name ipat = innerJoin $ (\i -> pStateF "delayfeedback" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 delayfeedbackbus :: Pattern Int -> Pattern Double -> ControlPattern
 delayfeedbackbus busid pat = (pF "delayfeedback" pat) # (pI "^delayfeedback" busid)
 delayfeedbackrecv :: Pattern Int -> ControlPattern
@@ -501,6 +697,11 @@ delayfeedbackrecv busid = pI "^delayfeedback" busid
 -- | a pattern of numbers from 0 to 1. Sets the length of the delay.
 delaytime :: Pattern Double -> ControlPattern
 delaytime = pF "delaytime"
+delaytimeCount :: String -> ControlPattern
+delaytimeCount name = pStateF "delaytime" name (maybe 0 (+1))
+delaytimeCountTo :: String -> Pattern Double -> Pattern ValueMap
+delaytimeCountTo name ipat = innerJoin $ (\i -> pStateF "delaytime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 delaytimebus :: Pattern Int -> Pattern Double -> ControlPattern
 delaytimebus busid pat = (pF "delaytime" pat) # (pI "^delaytime" busid)
 delaytimerecv :: Pattern Int -> ControlPattern
@@ -509,6 +710,11 @@ delaytimerecv busid = pI "^delaytime" busid
 -- | 
 detune :: Pattern Double -> ControlPattern
 detune = pF "detune"
+detuneCount :: String -> ControlPattern
+detuneCount name = pStateF "detune" name (maybe 0 (+1))
+detuneCountTo :: String -> Pattern Double -> Pattern ValueMap
+detuneCountTo name ipat = innerJoin $ (\i -> pStateF "detune" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 detunebus :: Pattern Int -> Pattern Double -> ControlPattern
 detunebus busid pat = (pF "detune" pat) # (pI "^detune" busid)
 detunerecv :: Pattern Int -> ControlPattern
@@ -517,6 +723,11 @@ detunerecv busid = pI "^detune" busid
 -- | noisy fuzzy distortion
 distort :: Pattern Double -> ControlPattern
 distort = pF "distort"
+distortCount :: String -> ControlPattern
+distortCount name = pStateF "distort" name (maybe 0 (+1))
+distortCountTo :: String -> Pattern Double -> Pattern ValueMap
+distortCountTo name ipat = innerJoin $ (\i -> pStateF "distort" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 distortbus :: Pattern Int -> Pattern Double -> ControlPattern
 distortbus busid pat = (pF "distort" pat) # (pI "^distort" busid)
 distortrecv :: Pattern Int -> ControlPattern
@@ -525,6 +736,11 @@ distortrecv busid = pI "^distort" busid
 -- | DJ filter, below 0.5 is low pass filter, above is high pass filter.
 djf :: Pattern Double -> ControlPattern
 djf = pF "djf"
+djfCount :: String -> ControlPattern
+djfCount name = pStateF "djf" name (maybe 0 (+1))
+djfCountTo :: String -> Pattern Double -> Pattern ValueMap
+djfCountTo name ipat = innerJoin $ (\i -> pStateF "djf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 djfbus :: Pattern Int -> Pattern Double -> ControlPattern
 djfbus busid pat = (pF "djf" pat) # (pI "^djf" busid)
 djfrecv :: Pattern Int -> ControlPattern
@@ -533,6 +749,11 @@ djfrecv busid = pI "^djf" busid
 -- | when set to `1` will disable all reverb for this pattern. See `room` and `size` for more information about reverb.
 dry :: Pattern Double -> ControlPattern
 dry = pF "dry"
+dryCount :: String -> ControlPattern
+dryCount name = pStateF "dry" name (maybe 0 (+1))
+dryCountTo :: String -> Pattern Double -> Pattern ValueMap
+dryCountTo name ipat = innerJoin $ (\i -> pStateF "dry" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 drybus :: Pattern Int -> Pattern Double -> ControlPattern
 drybus busid pat = (pF "dry" pat) # (pI "^dry" busid)
 dryrecv :: Pattern Int -> ControlPattern
@@ -541,6 +762,11 @@ dryrecv busid = pI "^dry" busid
 -- | 
 dur :: Pattern Double -> ControlPattern
 dur = pF "dur"
+durCount :: String -> ControlPattern
+durCount name = pStateF "dur" name (maybe 0 (+1))
+durCountTo :: String -> Pattern Double -> Pattern ValueMap
+durCountTo name ipat = innerJoin $ (\i -> pStateF "dur" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 durbus :: Pattern Int -> Pattern Double -> ControlPattern
 durbus busid pat = (pF "dur" pat) # (pI "^dur" busid)
 durrecv :: Pattern Int -> ControlPattern
@@ -549,12 +775,22 @@ durrecv busid = pI "^dur" busid
 -- | the same as `begin`, but cuts the end off samples, shortening them; e.g. `0.75` to cut off the last quarter of each sample.
 end :: Pattern Double -> ControlPattern
 end = pF "end"
+endCount :: String -> ControlPattern
+endCount name = pStateF "end" name (maybe 0 (+1))
+endCountTo :: String -> Pattern Double -> Pattern ValueMap
+endCountTo name ipat = innerJoin $ (\i -> pStateF "end" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 endbus :: Pattern Int -> Pattern Double -> ControlPattern
 endbus _ _ = error $ "Control parameter 'end' can't be sent to a bus."
 
 -- | Spectral enhance
 enhance :: Pattern Double -> ControlPattern
 enhance = pF "enhance"
+enhanceCount :: String -> ControlPattern
+enhanceCount name = pStateF "enhance" name (maybe 0 (+1))
+enhanceCountTo :: String -> Pattern Double -> Pattern ValueMap
+enhanceCountTo name ipat = innerJoin $ (\i -> pStateF "enhance" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 enhancebus :: Pattern Int -> Pattern Double -> ControlPattern
 enhancebus busid pat = (pF "enhance" pat) # (pI "^enhance" busid)
 enhancerecv :: Pattern Int -> ControlPattern
@@ -563,6 +799,11 @@ enhancerecv busid = pI "^enhance" busid
 -- | 
 expression :: Pattern Double -> ControlPattern
 expression = pF "expression"
+expressionCount :: String -> ControlPattern
+expressionCount name = pStateF "expression" name (maybe 0 (+1))
+expressionCountTo :: String -> Pattern Double -> Pattern ValueMap
+expressionCountTo name ipat = innerJoin $ (\i -> pStateF "expression" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 expressionbus :: Pattern Int -> Pattern Double -> ControlPattern
 expressionbus busid pat = (pF "expression" pat) # (pI "^expression" busid)
 expressionrecv :: Pattern Int -> ControlPattern
@@ -571,6 +812,11 @@ expressionrecv busid = pI "^expression" busid
 -- | 
 frameRate :: Pattern Double -> ControlPattern
 frameRate = pF "frameRate"
+frameRateCount :: String -> ControlPattern
+frameRateCount name = pStateF "frameRate" name (maybe 0 (+1))
+frameRateCountTo :: String -> Pattern Double -> Pattern ValueMap
+frameRateCountTo name ipat = innerJoin $ (\i -> pStateF "frameRate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 frameRatebus :: Pattern Int -> Pattern Double -> ControlPattern
 frameRatebus busid pat = (pF "frameRate" pat) # (pI "^frameRate" busid)
 frameRaterecv :: Pattern Int -> ControlPattern
@@ -579,6 +825,11 @@ frameRaterecv busid = pI "^frameRate" busid
 -- | 
 frames :: Pattern Double -> ControlPattern
 frames = pF "frames"
+framesCount :: String -> ControlPattern
+framesCount name = pStateF "frames" name (maybe 0 (+1))
+framesCountTo :: String -> Pattern Double -> Pattern ValueMap
+framesCountTo name ipat = innerJoin $ (\i -> pStateF "frames" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 framesbus :: Pattern Int -> Pattern Double -> ControlPattern
 framesbus busid pat = (pF "frames" pat) # (pI "^frames" busid)
 framesrecv :: Pattern Int -> ControlPattern
@@ -587,6 +838,11 @@ framesrecv busid = pI "^frames" busid
 -- | Spectral freeze
 freeze :: Pattern Double -> ControlPattern
 freeze = pF "freeze"
+freezeCount :: String -> ControlPattern
+freezeCount name = pStateF "freeze" name (maybe 0 (+1))
+freezeCountTo :: String -> Pattern Double -> Pattern ValueMap
+freezeCountTo name ipat = innerJoin $ (\i -> pStateF "freeze" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 freezebus :: Pattern Int -> Pattern Double -> ControlPattern
 freezebus busid pat = (pF "freeze" pat) # (pI "^freeze" busid)
 freezerecv :: Pattern Int -> ControlPattern
@@ -595,6 +851,11 @@ freezerecv busid = pI "^freeze" busid
 -- | 
 freq :: Pattern Double -> ControlPattern
 freq = pF "freq"
+freqCount :: String -> ControlPattern
+freqCount name = pStateF "freq" name (maybe 0 (+1))
+freqCountTo :: String -> Pattern Double -> Pattern ValueMap
+freqCountTo name ipat = innerJoin $ (\i -> pStateF "freq" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 freqbus :: Pattern Int -> Pattern Double -> ControlPattern
 freqbus busid pat = (pF "freq" pat) # (pI "^freq" busid)
 freqrecv :: Pattern Int -> ControlPattern
@@ -603,6 +864,11 @@ freqrecv busid = pI "^freq" busid
 -- | for internal sound routing
 from :: Pattern Double -> ControlPattern
 from = pF "from"
+fromCount :: String -> ControlPattern
+fromCount name = pStateF "from" name (maybe 0 (+1))
+fromCountTo :: String -> Pattern Double -> Pattern ValueMap
+fromCountTo name ipat = innerJoin $ (\i -> pStateF "from" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 frombus :: Pattern Int -> Pattern Double -> ControlPattern
 frombus busid pat = (pF "from" pat) # (pI "^from" busid)
 fromrecv :: Pattern Int -> ControlPattern
@@ -611,6 +877,11 @@ fromrecv busid = pI "^from" busid
 -- | frequency shifter
 fshift :: Pattern Double -> ControlPattern
 fshift = pF "fshift"
+fshiftCount :: String -> ControlPattern
+fshiftCount name = pStateF "fshift" name (maybe 0 (+1))
+fshiftCountTo :: String -> Pattern Double -> Pattern ValueMap
+fshiftCountTo name ipat = innerJoin $ (\i -> pStateF "fshift" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 fshiftbus :: Pattern Int -> Pattern Double -> ControlPattern
 fshiftbus busid pat = (pF "fshift" pat) # (pI "^fshift" busid)
 fshiftrecv :: Pattern Int -> ControlPattern
@@ -619,6 +890,11 @@ fshiftrecv busid = pI "^fshift" busid
 -- | frequency shifter
 fshiftnote :: Pattern Double -> ControlPattern
 fshiftnote = pF "fshiftnote"
+fshiftnoteCount :: String -> ControlPattern
+fshiftnoteCount name = pStateF "fshiftnote" name (maybe 0 (+1))
+fshiftnoteCountTo :: String -> Pattern Double -> Pattern ValueMap
+fshiftnoteCountTo name ipat = innerJoin $ (\i -> pStateF "fshiftnote" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 fshiftnotebus :: Pattern Int -> Pattern Double -> ControlPattern
 fshiftnotebus busid pat = (pF "fshiftnote" pat) # (pI "^fshiftnote" busid)
 fshiftnoterecv :: Pattern Int -> ControlPattern
@@ -627,6 +903,11 @@ fshiftnoterecv busid = pI "^fshiftnote" busid
 -- | frequency shifter
 fshiftphase :: Pattern Double -> ControlPattern
 fshiftphase = pF "fshiftphase"
+fshiftphaseCount :: String -> ControlPattern
+fshiftphaseCount name = pStateF "fshiftphase" name (maybe 0 (+1))
+fshiftphaseCountTo :: String -> Pattern Double -> Pattern ValueMap
+fshiftphaseCountTo name ipat = innerJoin $ (\i -> pStateF "fshiftphase" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 fshiftphasebus :: Pattern Int -> Pattern Double -> ControlPattern
 fshiftphasebus busid pat = (pF "fshiftphase" pat) # (pI "^fshiftphase" busid)
 fshiftphaserecv :: Pattern Int -> ControlPattern
@@ -635,12 +916,22 @@ fshiftphaserecv busid = pI "^fshiftphase" busid
 -- | a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder. For the linear equivalent, see @amp@.
 gain :: Pattern Double -> ControlPattern
 gain = pF "gain"
+gainCount :: String -> ControlPattern
+gainCount name = pStateF "gain" name (maybe 0 (+1))
+gainCountTo :: String -> Pattern Double -> Pattern ValueMap
+gainCountTo name ipat = innerJoin $ (\i -> pStateF "gain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 gainbus :: Pattern Int -> Pattern Double -> ControlPattern
 gainbus _ _ = error $ "Control parameter 'gain' can't be sent to a bus."
 
 -- | 
 gate :: Pattern Double -> ControlPattern
 gate = pF "gate"
+gateCount :: String -> ControlPattern
+gateCount name = pStateF "gate" name (maybe 0 (+1))
+gateCountTo :: String -> Pattern Double -> Pattern ValueMap
+gateCountTo name ipat = innerJoin $ (\i -> pStateF "gate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 gatebus :: Pattern Int -> Pattern Double -> ControlPattern
 gatebus busid pat = (pF "gate" pat) # (pI "^gate" busid)
 gaterecv :: Pattern Int -> ControlPattern
@@ -649,6 +940,11 @@ gaterecv busid = pI "^gate" busid
 -- | 
 harmonic :: Pattern Double -> ControlPattern
 harmonic = pF "harmonic"
+harmonicCount :: String -> ControlPattern
+harmonicCount name = pStateF "harmonic" name (maybe 0 (+1))
+harmonicCountTo :: String -> Pattern Double -> Pattern ValueMap
+harmonicCountTo name ipat = innerJoin $ (\i -> pStateF "harmonic" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 harmonicbus :: Pattern Int -> Pattern Double -> ControlPattern
 harmonicbus busid pat = (pF "harmonic" pat) # (pI "^harmonic" busid)
 harmonicrecv :: Pattern Int -> ControlPattern
@@ -657,6 +953,11 @@ harmonicrecv busid = pI "^harmonic" busid
 -- | 
 hatgrain :: Pattern Double -> ControlPattern
 hatgrain = pF "hatgrain"
+hatgrainCount :: String -> ControlPattern
+hatgrainCount name = pStateF "hatgrain" name (maybe 0 (+1))
+hatgrainCountTo :: String -> Pattern Double -> Pattern ValueMap
+hatgrainCountTo name ipat = innerJoin $ (\i -> pStateF "hatgrain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 hatgrainbus :: Pattern Int -> Pattern Double -> ControlPattern
 hatgrainbus busid pat = (pF "hatgrain" pat) # (pI "^hatgrain" busid)
 hatgrainrecv :: Pattern Int -> ControlPattern
@@ -665,6 +966,11 @@ hatgrainrecv busid = pI "^hatgrain" busid
 -- | High pass sort of spectral filter
 hbrick :: Pattern Double -> ControlPattern
 hbrick = pF "hbrick"
+hbrickCount :: String -> ControlPattern
+hbrickCount name = pStateF "hbrick" name (maybe 0 (+1))
+hbrickCountTo :: String -> Pattern Double -> Pattern ValueMap
+hbrickCountTo name ipat = innerJoin $ (\i -> pStateF "hbrick" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 hbrickbus :: Pattern Int -> Pattern Double -> ControlPattern
 hbrickbus busid pat = (pF "hbrick" pat) # (pI "^hbrick" busid)
 hbrickrecv :: Pattern Int -> ControlPattern
@@ -673,6 +979,11 @@ hbrickrecv busid = pI "^hbrick" busid
 -- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter. Also has alias @hpf@
 hcutoff :: Pattern Double -> ControlPattern
 hcutoff = pF "hcutoff"
+hcutoffCount :: String -> ControlPattern
+hcutoffCount name = pStateF "hcutoff" name (maybe 0 (+1))
+hcutoffCountTo :: String -> Pattern Double -> Pattern ValueMap
+hcutoffCountTo name ipat = innerJoin $ (\i -> pStateF "hcutoff" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 hcutoffbus :: Pattern Int -> Pattern Double -> ControlPattern
 hcutoffbus busid pat = (pF "hcutoff" pat) # (pI "^hcutoff" busid)
 hcutoffrecv :: Pattern Int -> ControlPattern
@@ -681,6 +992,11 @@ hcutoffrecv busid = pI "^hcutoff" busid
 -- | a pattern of numbers to specify the hold time (in seconds) of an envelope applied to each sample. Only takes effect if `attack` and `release` are also specified.
 hold :: Pattern Double -> ControlPattern
 hold = pF "hold"
+holdCount :: String -> ControlPattern
+holdCount name = pStateF "hold" name (maybe 0 (+1))
+holdCountTo :: String -> Pattern Double -> Pattern ValueMap
+holdCountTo name ipat = innerJoin $ (\i -> pStateF "hold" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 holdbus :: Pattern Int -> Pattern Double -> ControlPattern
 holdbus busid pat = (pF "hold" pat) # (pI "^hold" busid)
 holdrecv :: Pattern Int -> ControlPattern
@@ -689,6 +1005,11 @@ holdrecv busid = pI "^hold" busid
 -- | 
 hours :: Pattern Double -> ControlPattern
 hours = pF "hours"
+hoursCount :: String -> ControlPattern
+hoursCount name = pStateF "hours" name (maybe 0 (+1))
+hoursCountTo :: String -> Pattern Double -> Pattern ValueMap
+hoursCountTo name ipat = innerJoin $ (\i -> pStateF "hours" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 hoursbus :: Pattern Int -> Pattern Double -> ControlPattern
 hoursbus busid pat = (pF "hours" pat) # (pI "^hours" busid)
 hoursrecv :: Pattern Int -> ControlPattern
@@ -697,6 +1018,11 @@ hoursrecv busid = pI "^hours" busid
 -- | a pattern of numbers from 0 to 1. Applies the resonance of the high-pass filter. Has alias @hpq@
 hresonance :: Pattern Double -> ControlPattern
 hresonance = pF "hresonance"
+hresonanceCount :: String -> ControlPattern
+hresonanceCount name = pStateF "hresonance" name (maybe 0 (+1))
+hresonanceCountTo :: String -> Pattern Double -> Pattern ValueMap
+hresonanceCountTo name ipat = innerJoin $ (\i -> pStateF "hresonance" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 hresonancebus :: Pattern Int -> Pattern Double -> ControlPattern
 hresonancebus busid pat = (pF "hresonance" pat) # (pI "^hresonance" busid)
 hresonancerecv :: Pattern Int -> ControlPattern
@@ -705,6 +1031,11 @@ hresonancerecv busid = pI "^hresonance" busid
 -- | 
 imag :: Pattern Double -> ControlPattern
 imag = pF "imag"
+imagCount :: String -> ControlPattern
+imagCount name = pStateF "imag" name (maybe 0 (+1))
+imagCountTo :: String -> Pattern Double -> Pattern ValueMap
+imagCountTo name ipat = innerJoin $ (\i -> pStateF "imag" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 imagbus :: Pattern Int -> Pattern Double -> ControlPattern
 imagbus busid pat = (pF "imag" pat) # (pI "^imag" busid)
 imagrecv :: Pattern Int -> ControlPattern
@@ -713,6 +1044,11 @@ imagrecv busid = pI "^imag" busid
 -- | 
 kcutoff :: Pattern Double -> ControlPattern
 kcutoff = pF "kcutoff"
+kcutoffCount :: String -> ControlPattern
+kcutoffCount name = pStateF "kcutoff" name (maybe 0 (+1))
+kcutoffCountTo :: String -> Pattern Double -> Pattern ValueMap
+kcutoffCountTo name ipat = innerJoin $ (\i -> pStateF "kcutoff" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 kcutoffbus :: Pattern Int -> Pattern Double -> ControlPattern
 kcutoffbus busid pat = (pF "kcutoff" pat) # (pI "^kcutoff" busid)
 kcutoffrecv :: Pattern Int -> ControlPattern
@@ -721,6 +1057,11 @@ kcutoffrecv busid = pI "^kcutoff" busid
 -- | shape/bass enhancer
 krush :: Pattern Double -> ControlPattern
 krush = pF "krush"
+krushCount :: String -> ControlPattern
+krushCount name = pStateF "krush" name (maybe 0 (+1))
+krushCountTo :: String -> Pattern Double -> Pattern ValueMap
+krushCountTo name ipat = innerJoin $ (\i -> pStateF "krush" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 krushbus :: Pattern Int -> Pattern Double -> ControlPattern
 krushbus busid pat = (pF "krush" pat) # (pI "^krush" busid)
 krushrecv :: Pattern Int -> ControlPattern
@@ -729,6 +1070,11 @@ krushrecv busid = pI "^krush" busid
 -- | 
 lagogo :: Pattern Double -> ControlPattern
 lagogo = pF "lagogo"
+lagogoCount :: String -> ControlPattern
+lagogoCount name = pStateF "lagogo" name (maybe 0 (+1))
+lagogoCountTo :: String -> Pattern Double -> Pattern ValueMap
+lagogoCountTo name ipat = innerJoin $ (\i -> pStateF "lagogo" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lagogobus :: Pattern Int -> Pattern Double -> ControlPattern
 lagogobus busid pat = (pF "lagogo" pat) # (pI "^lagogo" busid)
 lagogorecv :: Pattern Int -> ControlPattern
@@ -737,6 +1083,11 @@ lagogorecv busid = pI "^lagogo" busid
 -- | Low pass sort of spectral filter
 lbrick :: Pattern Double -> ControlPattern
 lbrick = pF "lbrick"
+lbrickCount :: String -> ControlPattern
+lbrickCount name = pStateF "lbrick" name (maybe 0 (+1))
+lbrickCountTo :: String -> Pattern Double -> Pattern ValueMap
+lbrickCountTo name ipat = innerJoin $ (\i -> pStateF "lbrick" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lbrickbus :: Pattern Int -> Pattern Double -> ControlPattern
 lbrickbus busid pat = (pF "lbrick" pat) # (pI "^lbrick" busid)
 lbrickrecv :: Pattern Int -> ControlPattern
@@ -745,6 +1096,11 @@ lbrickrecv busid = pI "^lbrick" busid
 -- | 
 lclap :: Pattern Double -> ControlPattern
 lclap = pF "lclap"
+lclapCount :: String -> ControlPattern
+lclapCount name = pStateF "lclap" name (maybe 0 (+1))
+lclapCountTo :: String -> Pattern Double -> Pattern ValueMap
+lclapCountTo name ipat = innerJoin $ (\i -> pStateF "lclap" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lclapbus :: Pattern Int -> Pattern Double -> ControlPattern
 lclapbus busid pat = (pF "lclap" pat) # (pI "^lclap" busid)
 lclaprecv :: Pattern Int -> ControlPattern
@@ -753,6 +1109,11 @@ lclaprecv busid = pI "^lclap" busid
 -- | 
 lclaves :: Pattern Double -> ControlPattern
 lclaves = pF "lclaves"
+lclavesCount :: String -> ControlPattern
+lclavesCount name = pStateF "lclaves" name (maybe 0 (+1))
+lclavesCountTo :: String -> Pattern Double -> Pattern ValueMap
+lclavesCountTo name ipat = innerJoin $ (\i -> pStateF "lclaves" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lclavesbus :: Pattern Int -> Pattern Double -> ControlPattern
 lclavesbus busid pat = (pF "lclaves" pat) # (pI "^lclaves" busid)
 lclavesrecv :: Pattern Int -> ControlPattern
@@ -761,6 +1122,11 @@ lclavesrecv busid = pI "^lclaves" busid
 -- | 
 lclhat :: Pattern Double -> ControlPattern
 lclhat = pF "lclhat"
+lclhatCount :: String -> ControlPattern
+lclhatCount name = pStateF "lclhat" name (maybe 0 (+1))
+lclhatCountTo :: String -> Pattern Double -> Pattern ValueMap
+lclhatCountTo name ipat = innerJoin $ (\i -> pStateF "lclhat" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lclhatbus :: Pattern Int -> Pattern Double -> ControlPattern
 lclhatbus busid pat = (pF "lclhat" pat) # (pI "^lclhat" busid)
 lclhatrecv :: Pattern Int -> ControlPattern
@@ -769,6 +1135,11 @@ lclhatrecv busid = pI "^lclhat" busid
 -- | 
 lcrash :: Pattern Double -> ControlPattern
 lcrash = pF "lcrash"
+lcrashCount :: String -> ControlPattern
+lcrashCount name = pStateF "lcrash" name (maybe 0 (+1))
+lcrashCountTo :: String -> Pattern Double -> Pattern ValueMap
+lcrashCountTo name ipat = innerJoin $ (\i -> pStateF "lcrash" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lcrashbus :: Pattern Int -> Pattern Double -> ControlPattern
 lcrashbus busid pat = (pF "lcrash" pat) # (pI "^lcrash" busid)
 lcrashrecv :: Pattern Int -> ControlPattern
@@ -777,12 +1148,22 @@ lcrashrecv busid = pI "^lcrash" busid
 -- | controls the amount of overlap between two adjacent sounds
 legato :: Pattern Double -> ControlPattern
 legato = pF "legato"
+legatoCount :: String -> ControlPattern
+legatoCount name = pStateF "legato" name (maybe 0 (+1))
+legatoCountTo :: String -> Pattern Double -> Pattern ValueMap
+legatoCountTo name ipat = innerJoin $ (\i -> pStateF "legato" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 legatobus :: Pattern Int -> Pattern Double -> ControlPattern
 legatobus _ _ = error $ "Control parameter 'legato' can't be sent to a bus."
 
 -- | 
 leslie :: Pattern Double -> ControlPattern
 leslie = pF "leslie"
+leslieCount :: String -> ControlPattern
+leslieCount name = pStateF "leslie" name (maybe 0 (+1))
+leslieCountTo :: String -> Pattern Double -> Pattern ValueMap
+leslieCountTo name ipat = innerJoin $ (\i -> pStateF "leslie" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lesliebus :: Pattern Int -> Pattern Double -> ControlPattern
 lesliebus busid pat = (pF "leslie" pat) # (pI "^leslie" busid)
 leslierecv :: Pattern Int -> ControlPattern
@@ -791,6 +1172,11 @@ leslierecv busid = pI "^leslie" busid
 -- | 
 lfo :: Pattern Double -> ControlPattern
 lfo = pF "lfo"
+lfoCount :: String -> ControlPattern
+lfoCount name = pStateF "lfo" name (maybe 0 (+1))
+lfoCountTo :: String -> Pattern Double -> Pattern ValueMap
+lfoCountTo name ipat = innerJoin $ (\i -> pStateF "lfo" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lfobus :: Pattern Int -> Pattern Double -> ControlPattern
 lfobus busid pat = (pF "lfo" pat) # (pI "^lfo" busid)
 lforecv :: Pattern Int -> ControlPattern
@@ -799,6 +1185,11 @@ lforecv busid = pI "^lfo" busid
 -- | 
 lfocutoffint :: Pattern Double -> ControlPattern
 lfocutoffint = pF "lfocutoffint"
+lfocutoffintCount :: String -> ControlPattern
+lfocutoffintCount name = pStateF "lfocutoffint" name (maybe 0 (+1))
+lfocutoffintCountTo :: String -> Pattern Double -> Pattern ValueMap
+lfocutoffintCountTo name ipat = innerJoin $ (\i -> pStateF "lfocutoffint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lfocutoffintbus :: Pattern Int -> Pattern Double -> ControlPattern
 lfocutoffintbus busid pat = (pF "lfocutoffint" pat) # (pI "^lfocutoffint" busid)
 lfocutoffintrecv :: Pattern Int -> ControlPattern
@@ -807,6 +1198,11 @@ lfocutoffintrecv busid = pI "^lfocutoffint" busid
 -- | 
 lfodelay :: Pattern Double -> ControlPattern
 lfodelay = pF "lfodelay"
+lfodelayCount :: String -> ControlPattern
+lfodelayCount name = pStateF "lfodelay" name (maybe 0 (+1))
+lfodelayCountTo :: String -> Pattern Double -> Pattern ValueMap
+lfodelayCountTo name ipat = innerJoin $ (\i -> pStateF "lfodelay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lfodelaybus :: Pattern Int -> Pattern Double -> ControlPattern
 lfodelaybus busid pat = (pF "lfodelay" pat) # (pI "^lfodelay" busid)
 lfodelayrecv :: Pattern Int -> ControlPattern
@@ -815,6 +1211,11 @@ lfodelayrecv busid = pI "^lfodelay" busid
 -- | 
 lfoint :: Pattern Double -> ControlPattern
 lfoint = pF "lfoint"
+lfointCount :: String -> ControlPattern
+lfointCount name = pStateF "lfoint" name (maybe 0 (+1))
+lfointCountTo :: String -> Pattern Double -> Pattern ValueMap
+lfointCountTo name ipat = innerJoin $ (\i -> pStateF "lfoint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lfointbus :: Pattern Int -> Pattern Double -> ControlPattern
 lfointbus busid pat = (pF "lfoint" pat) # (pI "^lfoint" busid)
 lfointrecv :: Pattern Int -> ControlPattern
@@ -823,6 +1224,11 @@ lfointrecv busid = pI "^lfoint" busid
 -- | 
 lfopitchint :: Pattern Double -> ControlPattern
 lfopitchint = pF "lfopitchint"
+lfopitchintCount :: String -> ControlPattern
+lfopitchintCount name = pStateF "lfopitchint" name (maybe 0 (+1))
+lfopitchintCountTo :: String -> Pattern Double -> Pattern ValueMap
+lfopitchintCountTo name ipat = innerJoin $ (\i -> pStateF "lfopitchint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lfopitchintbus :: Pattern Int -> Pattern Double -> ControlPattern
 lfopitchintbus busid pat = (pF "lfopitchint" pat) # (pI "^lfopitchint" busid)
 lfopitchintrecv :: Pattern Int -> ControlPattern
@@ -831,6 +1237,11 @@ lfopitchintrecv busid = pI "^lfopitchint" busid
 -- | 
 lfoshape :: Pattern Double -> ControlPattern
 lfoshape = pF "lfoshape"
+lfoshapeCount :: String -> ControlPattern
+lfoshapeCount name = pStateF "lfoshape" name (maybe 0 (+1))
+lfoshapeCountTo :: String -> Pattern Double -> Pattern ValueMap
+lfoshapeCountTo name ipat = innerJoin $ (\i -> pStateF "lfoshape" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lfoshapebus :: Pattern Int -> Pattern Double -> ControlPattern
 lfoshapebus busid pat = (pF "lfoshape" pat) # (pI "^lfoshape" busid)
 lfoshaperecv :: Pattern Int -> ControlPattern
@@ -839,6 +1250,11 @@ lfoshaperecv busid = pI "^lfoshape" busid
 -- | 
 lfosync :: Pattern Double -> ControlPattern
 lfosync = pF "lfosync"
+lfosyncCount :: String -> ControlPattern
+lfosyncCount name = pStateF "lfosync" name (maybe 0 (+1))
+lfosyncCountTo :: String -> Pattern Double -> Pattern ValueMap
+lfosyncCountTo name ipat = innerJoin $ (\i -> pStateF "lfosync" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lfosyncbus :: Pattern Int -> Pattern Double -> ControlPattern
 lfosyncbus busid pat = (pF "lfosync" pat) # (pI "^lfosync" busid)
 lfosyncrecv :: Pattern Int -> ControlPattern
@@ -847,6 +1263,11 @@ lfosyncrecv busid = pI "^lfosync" busid
 -- | 
 lhitom :: Pattern Double -> ControlPattern
 lhitom = pF "lhitom"
+lhitomCount :: String -> ControlPattern
+lhitomCount name = pStateF "lhitom" name (maybe 0 (+1))
+lhitomCountTo :: String -> Pattern Double -> Pattern ValueMap
+lhitomCountTo name ipat = innerJoin $ (\i -> pStateF "lhitom" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lhitombus :: Pattern Int -> Pattern Double -> ControlPattern
 lhitombus busid pat = (pF "lhitom" pat) # (pI "^lhitom" busid)
 lhitomrecv :: Pattern Int -> ControlPattern
@@ -855,6 +1276,11 @@ lhitomrecv busid = pI "^lhitom" busid
 -- | 
 lkick :: Pattern Double -> ControlPattern
 lkick = pF "lkick"
+lkickCount :: String -> ControlPattern
+lkickCount name = pStateF "lkick" name (maybe 0 (+1))
+lkickCountTo :: String -> Pattern Double -> Pattern ValueMap
+lkickCountTo name ipat = innerJoin $ (\i -> pStateF "lkick" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lkickbus :: Pattern Int -> Pattern Double -> ControlPattern
 lkickbus busid pat = (pF "lkick" pat) # (pI "^lkick" busid)
 lkickrecv :: Pattern Int -> ControlPattern
@@ -863,6 +1289,11 @@ lkickrecv busid = pI "^lkick" busid
 -- | 
 llotom :: Pattern Double -> ControlPattern
 llotom = pF "llotom"
+llotomCount :: String -> ControlPattern
+llotomCount name = pStateF "llotom" name (maybe 0 (+1))
+llotomCountTo :: String -> Pattern Double -> Pattern ValueMap
+llotomCountTo name ipat = innerJoin $ (\i -> pStateF "llotom" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 llotombus :: Pattern Int -> Pattern Double -> ControlPattern
 llotombus busid pat = (pF "llotom" pat) # (pI "^llotom" busid)
 llotomrecv :: Pattern Int -> ControlPattern
@@ -871,6 +1302,11 @@ llotomrecv busid = pI "^llotom" busid
 -- | A pattern of numbers. Specifies whether delaytime is calculated relative to cps. When set to 1, delaytime is a direct multiple of a cycle.
 lock :: Pattern Double -> ControlPattern
 lock = pF "lock"
+lockCount :: String -> ControlPattern
+lockCount name = pStateF "lock" name (maybe 0 (+1))
+lockCountTo :: String -> Pattern Double -> Pattern ValueMap
+lockCountTo name ipat = innerJoin $ (\i -> pStateF "lock" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lockbus :: Pattern Int -> Pattern Double -> ControlPattern
 lockbus busid pat = (pF "lock" pat) # (pI "^lock" busid)
 lockrecv :: Pattern Int -> ControlPattern
@@ -879,12 +1315,22 @@ lockrecv busid = pI "^lock" busid
 -- | loops the sample (from `begin` to `end`) the specified number of times.
 loop :: Pattern Double -> ControlPattern
 loop = pF "loop"
+loopCount :: String -> ControlPattern
+loopCount name = pStateF "loop" name (maybe 0 (+1))
+loopCountTo :: String -> Pattern Double -> Pattern ValueMap
+loopCountTo name ipat = innerJoin $ (\i -> pStateF "loop" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 loopbus :: Pattern Int -> Pattern Double -> ControlPattern
 loopbus _ _ = error $ "Control parameter 'loop' can't be sent to a bus."
 
 -- | 
 lophat :: Pattern Double -> ControlPattern
 lophat = pF "lophat"
+lophatCount :: String -> ControlPattern
+lophatCount name = pStateF "lophat" name (maybe 0 (+1))
+lophatCountTo :: String -> Pattern Double -> Pattern ValueMap
+lophatCountTo name ipat = innerJoin $ (\i -> pStateF "lophat" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lophatbus :: Pattern Int -> Pattern Double -> ControlPattern
 lophatbus busid pat = (pF "lophat" pat) # (pI "^lophat" busid)
 lophatrecv :: Pattern Int -> ControlPattern
@@ -893,6 +1339,11 @@ lophatrecv busid = pI "^lophat" busid
 -- | 
 lrate :: Pattern Double -> ControlPattern
 lrate = pF "lrate"
+lrateCount :: String -> ControlPattern
+lrateCount name = pStateF "lrate" name (maybe 0 (+1))
+lrateCountTo :: String -> Pattern Double -> Pattern ValueMap
+lrateCountTo name ipat = innerJoin $ (\i -> pStateF "lrate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lratebus :: Pattern Int -> Pattern Double -> ControlPattern
 lratebus busid pat = (pF "lrate" pat) # (pI "^lrate" busid)
 lraterecv :: Pattern Int -> ControlPattern
@@ -901,6 +1352,11 @@ lraterecv busid = pI "^lrate" busid
 -- | 
 lsize :: Pattern Double -> ControlPattern
 lsize = pF "lsize"
+lsizeCount :: String -> ControlPattern
+lsizeCount name = pStateF "lsize" name (maybe 0 (+1))
+lsizeCountTo :: String -> Pattern Double -> Pattern ValueMap
+lsizeCountTo name ipat = innerJoin $ (\i -> pStateF "lsize" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lsizebus :: Pattern Int -> Pattern Double -> ControlPattern
 lsizebus busid pat = (pF "lsize" pat) # (pI "^lsize" busid)
 lsizerecv :: Pattern Int -> ControlPattern
@@ -909,6 +1365,11 @@ lsizerecv busid = pI "^lsize" busid
 -- | 
 lsnare :: Pattern Double -> ControlPattern
 lsnare = pF "lsnare"
+lsnareCount :: String -> ControlPattern
+lsnareCount name = pStateF "lsnare" name (maybe 0 (+1))
+lsnareCountTo :: String -> Pattern Double -> Pattern ValueMap
+lsnareCountTo name ipat = innerJoin $ (\i -> pStateF "lsnare" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 lsnarebus :: Pattern Int -> Pattern Double -> ControlPattern
 lsnarebus busid pat = (pF "lsnare" pat) # (pI "^lsnare" busid)
 lsnarerecv :: Pattern Int -> ControlPattern
@@ -917,6 +1378,11 @@ lsnarerecv busid = pI "^lsnare" busid
 -- | 
 midibend :: Pattern Double -> ControlPattern
 midibend = pF "midibend"
+midibendCount :: String -> ControlPattern
+midibendCount name = pStateF "midibend" name (maybe 0 (+1))
+midibendCountTo :: String -> Pattern Double -> Pattern ValueMap
+midibendCountTo name ipat = innerJoin $ (\i -> pStateF "midibend" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 midibendbus :: Pattern Int -> Pattern Double -> ControlPattern
 midibendbus busid pat = (pF "midibend" pat) # (pI "^midibend" busid)
 midibendrecv :: Pattern Int -> ControlPattern
@@ -925,6 +1391,11 @@ midibendrecv busid = pI "^midibend" busid
 -- | 
 midichan :: Pattern Double -> ControlPattern
 midichan = pF "midichan"
+midichanCount :: String -> ControlPattern
+midichanCount name = pStateF "midichan" name (maybe 0 (+1))
+midichanCountTo :: String -> Pattern Double -> Pattern ValueMap
+midichanCountTo name ipat = innerJoin $ (\i -> pStateF "midichan" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 midichanbus :: Pattern Int -> Pattern Double -> ControlPattern
 midichanbus busid pat = (pF "midichan" pat) # (pI "^midichan" busid)
 midichanrecv :: Pattern Int -> ControlPattern
@@ -941,6 +1412,11 @@ midicmdrecv busid = pI "^midicmd" busid
 -- | 
 miditouch :: Pattern Double -> ControlPattern
 miditouch = pF "miditouch"
+miditouchCount :: String -> ControlPattern
+miditouchCount name = pStateF "miditouch" name (maybe 0 (+1))
+miditouchCountTo :: String -> Pattern Double -> Pattern ValueMap
+miditouchCountTo name ipat = innerJoin $ (\i -> pStateF "miditouch" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 miditouchbus :: Pattern Int -> Pattern Double -> ControlPattern
 miditouchbus busid pat = (pF "miditouch" pat) # (pI "^miditouch" busid)
 miditouchrecv :: Pattern Int -> ControlPattern
@@ -949,6 +1425,11 @@ miditouchrecv busid = pI "^miditouch" busid
 -- | 
 minutes :: Pattern Double -> ControlPattern
 minutes = pF "minutes"
+minutesCount :: String -> ControlPattern
+minutesCount name = pStateF "minutes" name (maybe 0 (+1))
+minutesCountTo :: String -> Pattern Double -> Pattern ValueMap
+minutesCountTo name ipat = innerJoin $ (\i -> pStateF "minutes" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 minutesbus :: Pattern Int -> Pattern Double -> ControlPattern
 minutesbus busid pat = (pF "minutes" pat) # (pI "^minutes" busid)
 minutesrecv :: Pattern Int -> ControlPattern
@@ -957,6 +1438,11 @@ minutesrecv busid = pI "^minutes" busid
 -- | 
 modwheel :: Pattern Double -> ControlPattern
 modwheel = pF "modwheel"
+modwheelCount :: String -> ControlPattern
+modwheelCount name = pStateF "modwheel" name (maybe 0 (+1))
+modwheelCountTo :: String -> Pattern Double -> Pattern ValueMap
+modwheelCountTo name ipat = innerJoin $ (\i -> pStateF "modwheel" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 modwheelbus :: Pattern Int -> Pattern Double -> ControlPattern
 modwheelbus busid pat = (pF "modwheel" pat) # (pI "^modwheel" busid)
 modwheelrecv :: Pattern Int -> ControlPattern
@@ -965,6 +1451,11 @@ modwheelrecv busid = pI "^modwheel" busid
 -- | 
 mtranspose :: Pattern Double -> ControlPattern
 mtranspose = pF "mtranspose"
+mtransposeCount :: String -> ControlPattern
+mtransposeCount name = pStateF "mtranspose" name (maybe 0 (+1))
+mtransposeCountTo :: String -> Pattern Double -> Pattern ValueMap
+mtransposeCountTo name ipat = innerJoin $ (\i -> pStateF "mtranspose" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 mtransposebus :: Pattern Int -> Pattern Double -> ControlPattern
 mtransposebus busid pat = (pF "mtranspose" pat) # (pI "^mtranspose" busid)
 mtransposerecv :: Pattern Int -> ControlPattern
@@ -973,12 +1464,22 @@ mtransposerecv busid = pI "^mtranspose" busid
 -- | The note or sample number to choose for a synth or sampleset
 n :: Pattern Note -> ControlPattern
 n = pN "n"
+nCount :: String -> ControlPattern
+nCount name = pStateF "n" name (maybe 0 (+1))
+nCountTo :: String -> Pattern Double -> Pattern ValueMap
+nCountTo name ipat = innerJoin $ (\i -> pStateF "n" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 nbus :: Pattern Int -> Pattern Note -> ControlPattern
 nbus _ _ = error $ "Control parameter 'n' can't be sent to a bus."
 
 -- | The note or pitch to play a sound or synth with
 note :: Pattern Note -> ControlPattern
 note = pN "note"
+noteCount :: String -> ControlPattern
+noteCount name = pStateF "note" name (maybe 0 (+1))
+noteCountTo :: String -> Pattern Double -> Pattern ValueMap
+noteCountTo name ipat = innerJoin $ (\i -> pStateF "note" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 notebus :: Pattern Int -> Pattern Note -> ControlPattern
 notebus _ _ = error $ "Control parameter 'note' can't be sent to a bus."
 
@@ -1001,6 +1502,11 @@ nrpnvrecv busid = pI "^nrpnv" busid
 -- | Nudges events into the future by the specified number of seconds. Negative numbers work up to a point as well (due to internal latency)
 nudge :: Pattern Double -> ControlPattern
 nudge = pF "nudge"
+nudgeCount :: String -> ControlPattern
+nudgeCount name = pStateF "nudge" name (maybe 0 (+1))
+nudgeCountTo :: String -> Pattern Double -> Pattern ValueMap
+nudgeCountTo name ipat = innerJoin $ (\i -> pStateF "nudge" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 nudgebus :: Pattern Int -> Pattern Double -> ControlPattern
 nudgebus busid pat = (pF "nudge" pat) # (pI "^nudge" busid)
 nudgerecv :: Pattern Int -> ControlPattern
@@ -1015,6 +1521,11 @@ octavebus _ _ = error $ "Control parameter 'octave' can't be sent to a bus."
 -- | 
 octaveR :: Pattern Double -> ControlPattern
 octaveR = pF "octaveR"
+octaveRCount :: String -> ControlPattern
+octaveRCount name = pStateF "octaveR" name (maybe 0 (+1))
+octaveRCountTo :: String -> Pattern Double -> Pattern ValueMap
+octaveRCountTo name ipat = innerJoin $ (\i -> pStateF "octaveR" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 octaveRbus :: Pattern Int -> Pattern Double -> ControlPattern
 octaveRbus busid pat = (pF "octaveR" pat) # (pI "^octaveR" busid)
 octaveRrecv :: Pattern Int -> ControlPattern
@@ -1023,6 +1534,11 @@ octaveRrecv busid = pI "^octaveR" busid
 -- | octaver effect
 octer :: Pattern Double -> ControlPattern
 octer = pF "octer"
+octerCount :: String -> ControlPattern
+octerCount name = pStateF "octer" name (maybe 0 (+1))
+octerCountTo :: String -> Pattern Double -> Pattern ValueMap
+octerCountTo name ipat = innerJoin $ (\i -> pStateF "octer" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 octerbus :: Pattern Int -> Pattern Double -> ControlPattern
 octerbus busid pat = (pF "octer" pat) # (pI "^octer" busid)
 octerrecv :: Pattern Int -> ControlPattern
@@ -1031,6 +1547,11 @@ octerrecv busid = pI "^octer" busid
 -- | octaver effect
 octersub :: Pattern Double -> ControlPattern
 octersub = pF "octersub"
+octersubCount :: String -> ControlPattern
+octersubCount name = pStateF "octersub" name (maybe 0 (+1))
+octersubCountTo :: String -> Pattern Double -> Pattern ValueMap
+octersubCountTo name ipat = innerJoin $ (\i -> pStateF "octersub" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 octersubbus :: Pattern Int -> Pattern Double -> ControlPattern
 octersubbus busid pat = (pF "octersub" pat) # (pI "^octersub" busid)
 octersubrecv :: Pattern Int -> ControlPattern
@@ -1039,6 +1560,11 @@ octersubrecv busid = pI "^octersub" busid
 -- | octaver effect
 octersubsub :: Pattern Double -> ControlPattern
 octersubsub = pF "octersubsub"
+octersubsubCount :: String -> ControlPattern
+octersubsubCount name = pStateF "octersubsub" name (maybe 0 (+1))
+octersubsubCountTo :: String -> Pattern Double -> Pattern ValueMap
+octersubsubCountTo name ipat = innerJoin $ (\i -> pStateF "octersubsub" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 octersubsubbus :: Pattern Int -> Pattern Double -> ControlPattern
 octersubsubbus busid pat = (pF "octersubsub" pat) # (pI "^octersubsub" busid)
 octersubsubrecv :: Pattern Int -> ControlPattern
@@ -1047,12 +1573,22 @@ octersubsubrecv busid = pI "^octersubsub" busid
 -- | 
 offset :: Pattern Double -> ControlPattern
 offset = pF "offset"
+offsetCount :: String -> ControlPattern
+offsetCount name = pStateF "offset" name (maybe 0 (+1))
+offsetCountTo :: String -> Pattern Double -> Pattern ValueMap
+offsetCountTo name ipat = innerJoin $ (\i -> pStateF "offset" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 offsetbus :: Pattern Int -> Pattern Double -> ControlPattern
 offsetbus _ _ = error $ "Control parameter 'offset' can't be sent to a bus."
 
 -- | 
 ophatdecay :: Pattern Double -> ControlPattern
 ophatdecay = pF "ophatdecay"
+ophatdecayCount :: String -> ControlPattern
+ophatdecayCount name = pStateF "ophatdecay" name (maybe 0 (+1))
+ophatdecayCountTo :: String -> Pattern Double -> Pattern ValueMap
+ophatdecayCountTo name ipat = innerJoin $ (\i -> pStateF "ophatdecay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 ophatdecaybus :: Pattern Int -> Pattern Double -> ControlPattern
 ophatdecaybus busid pat = (pF "ophatdecay" pat) # (pI "^ophatdecay" busid)
 ophatdecayrecv :: Pattern Int -> ControlPattern
@@ -1069,12 +1605,22 @@ orbitrecv busid = pI "^orbit" busid
 -- | 
 overgain :: Pattern Double -> ControlPattern
 overgain = pF "overgain"
+overgainCount :: String -> ControlPattern
+overgainCount name = pStateF "overgain" name (maybe 0 (+1))
+overgainCountTo :: String -> Pattern Double -> Pattern ValueMap
+overgainCountTo name ipat = innerJoin $ (\i -> pStateF "overgain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 overgainbus :: Pattern Int -> Pattern Double -> ControlPattern
 overgainbus _ _ = error $ "Control parameter 'overgain' can't be sent to a bus."
 
 -- | 
 overshape :: Pattern Double -> ControlPattern
 overshape = pF "overshape"
+overshapeCount :: String -> ControlPattern
+overshapeCount name = pStateF "overshape" name (maybe 0 (+1))
+overshapeCountTo :: String -> Pattern Double -> Pattern ValueMap
+overshapeCountTo name ipat = innerJoin $ (\i -> pStateF "overshape" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 overshapebus :: Pattern Int -> Pattern Double -> ControlPattern
 overshapebus busid pat = (pF "overshape" pat) # (pI "^overshape" busid)
 overshaperecv :: Pattern Int -> ControlPattern
@@ -1083,6 +1629,11 @@ overshaperecv busid = pI "^overshape" busid
 -- | a pattern of numbers between 0 and 1, from left to right (assuming stereo), once round a circle (assuming multichannel)
 pan :: Pattern Double -> ControlPattern
 pan = pF "pan"
+panCount :: String -> ControlPattern
+panCount name = pStateF "pan" name (maybe 0 (+1))
+panCountTo :: String -> Pattern Double -> Pattern ValueMap
+panCountTo name ipat = innerJoin $ (\i -> pStateF "pan" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 panbus :: Pattern Int -> Pattern Double -> ControlPattern
 panbus busid pat = (pF "pan" pat) # (pI "^pan" busid)
 panrecv :: Pattern Int -> ControlPattern
@@ -1091,6 +1642,11 @@ panrecv busid = pI "^pan" busid
 -- | a pattern of numbers between -1.0 and 1.0, which controls the relative position of the centre pan in a pair of adjacent speakers (multichannel only)
 panorient :: Pattern Double -> ControlPattern
 panorient = pF "panorient"
+panorientCount :: String -> ControlPattern
+panorientCount name = pStateF "panorient" name (maybe 0 (+1))
+panorientCountTo :: String -> Pattern Double -> Pattern ValueMap
+panorientCountTo name ipat = innerJoin $ (\i -> pStateF "panorient" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 panorientbus :: Pattern Int -> Pattern Double -> ControlPattern
 panorientbus busid pat = (pF "panorient" pat) # (pI "^panorient" busid)
 panorientrecv :: Pattern Int -> ControlPattern
@@ -1099,6 +1655,11 @@ panorientrecv busid = pI "^panorient" busid
 -- | a pattern of numbers between -inf and inf, which controls how much multichannel output is fanned out (negative is backwards ordering)
 panspan :: Pattern Double -> ControlPattern
 panspan = pF "panspan"
+panspanCount :: String -> ControlPattern
+panspanCount name = pStateF "panspan" name (maybe 0 (+1))
+panspanCountTo :: String -> Pattern Double -> Pattern ValueMap
+panspanCountTo name ipat = innerJoin $ (\i -> pStateF "panspan" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 panspanbus :: Pattern Int -> Pattern Double -> ControlPattern
 panspanbus busid pat = (pF "panspan" pat) # (pI "^panspan" busid)
 panspanrecv :: Pattern Int -> ControlPattern
@@ -1107,6 +1668,11 @@ panspanrecv busid = pI "^panspan" busid
 -- | a pattern of numbers between 0.0 and 1.0, which controls the multichannel spread range (multichannel only)
 pansplay :: Pattern Double -> ControlPattern
 pansplay = pF "pansplay"
+pansplayCount :: String -> ControlPattern
+pansplayCount name = pStateF "pansplay" name (maybe 0 (+1))
+pansplayCountTo :: String -> Pattern Double -> Pattern ValueMap
+pansplayCountTo name ipat = innerJoin $ (\i -> pStateF "pansplay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 pansplaybus :: Pattern Int -> Pattern Double -> ControlPattern
 pansplaybus busid pat = (pF "pansplay" pat) # (pI "^pansplay" busid)
 pansplayrecv :: Pattern Int -> ControlPattern
@@ -1115,6 +1681,11 @@ pansplayrecv busid = pI "^pansplay" busid
 -- | a pattern of numbers between 0.0 and inf, which controls how much each channel is distributed over neighbours (multichannel only)
 panwidth :: Pattern Double -> ControlPattern
 panwidth = pF "panwidth"
+panwidthCount :: String -> ControlPattern
+panwidthCount name = pStateF "panwidth" name (maybe 0 (+1))
+panwidthCountTo :: String -> Pattern Double -> Pattern ValueMap
+panwidthCountTo name ipat = innerJoin $ (\i -> pStateF "panwidth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 panwidthbus :: Pattern Int -> Pattern Double -> ControlPattern
 panwidthbus busid pat = (pF "panwidth" pat) # (pI "^panwidth" busid)
 panwidthrecv :: Pattern Int -> ControlPattern
@@ -1123,6 +1694,11 @@ panwidthrecv busid = pI "^panwidth" busid
 -- | 
 partials :: Pattern Double -> ControlPattern
 partials = pF "partials"
+partialsCount :: String -> ControlPattern
+partialsCount name = pStateF "partials" name (maybe 0 (+1))
+partialsCountTo :: String -> Pattern Double -> Pattern ValueMap
+partialsCountTo name ipat = innerJoin $ (\i -> pStateF "partials" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 partialsbus :: Pattern Int -> Pattern Double -> ControlPattern
 partialsbus busid pat = (pF "partials" pat) # (pI "^partials" busid)
 partialsrecv :: Pattern Int -> ControlPattern
@@ -1131,6 +1707,11 @@ partialsrecv busid = pI "^partials" busid
 -- | Phaser Audio DSP effect | params are 'phaserrate' and 'phaserdepth'
 phaserdepth :: Pattern Double -> ControlPattern
 phaserdepth = pF "phaserdepth"
+phaserdepthCount :: String -> ControlPattern
+phaserdepthCount name = pStateF "phaserdepth" name (maybe 0 (+1))
+phaserdepthCountTo :: String -> Pattern Double -> Pattern ValueMap
+phaserdepthCountTo name ipat = innerJoin $ (\i -> pStateF "phaserdepth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 phaserdepthbus :: Pattern Int -> Pattern Double -> ControlPattern
 phaserdepthbus busid pat = (pF "phaserdepth" pat) # (pI "^phaserdepth" busid)
 phaserdepthrecv :: Pattern Int -> ControlPattern
@@ -1139,6 +1720,11 @@ phaserdepthrecv busid = pI "^phaserdepth" busid
 -- | Phaser Audio DSP effect | params are 'phaserrate' and 'phaserdepth'
 phaserrate :: Pattern Double -> ControlPattern
 phaserrate = pF "phaserrate"
+phaserrateCount :: String -> ControlPattern
+phaserrateCount name = pStateF "phaserrate" name (maybe 0 (+1))
+phaserrateCountTo :: String -> Pattern Double -> Pattern ValueMap
+phaserrateCountTo name ipat = innerJoin $ (\i -> pStateF "phaserrate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 phaserratebus :: Pattern Int -> Pattern Double -> ControlPattern
 phaserratebus busid pat = (pF "phaserrate" pat) # (pI "^phaserrate" busid)
 phaserraterecv :: Pattern Int -> ControlPattern
@@ -1147,6 +1733,11 @@ phaserraterecv busid = pI "^phaserrate" busid
 -- | 
 pitch1 :: Pattern Double -> ControlPattern
 pitch1 = pF "pitch1"
+pitch1Count :: String -> ControlPattern
+pitch1Count name = pStateF "pitch1" name (maybe 0 (+1))
+pitch1CountTo :: String -> Pattern Double -> Pattern ValueMap
+pitch1CountTo name ipat = innerJoin $ (\i -> pStateF "pitch1" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 pitch1bus :: Pattern Int -> Pattern Double -> ControlPattern
 pitch1bus busid pat = (pF "pitch1" pat) # (pI "^pitch1" busid)
 pitch1recv :: Pattern Int -> ControlPattern
@@ -1155,6 +1746,11 @@ pitch1recv busid = pI "^pitch1" busid
 -- | 
 pitch2 :: Pattern Double -> ControlPattern
 pitch2 = pF "pitch2"
+pitch2Count :: String -> ControlPattern
+pitch2Count name = pStateF "pitch2" name (maybe 0 (+1))
+pitch2CountTo :: String -> Pattern Double -> Pattern ValueMap
+pitch2CountTo name ipat = innerJoin $ (\i -> pStateF "pitch2" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 pitch2bus :: Pattern Int -> Pattern Double -> ControlPattern
 pitch2bus busid pat = (pF "pitch2" pat) # (pI "^pitch2" busid)
 pitch2recv :: Pattern Int -> ControlPattern
@@ -1163,6 +1759,11 @@ pitch2recv busid = pI "^pitch2" busid
 -- | 
 pitch3 :: Pattern Double -> ControlPattern
 pitch3 = pF "pitch3"
+pitch3Count :: String -> ControlPattern
+pitch3Count name = pStateF "pitch3" name (maybe 0 (+1))
+pitch3CountTo :: String -> Pattern Double -> Pattern ValueMap
+pitch3CountTo name ipat = innerJoin $ (\i -> pStateF "pitch3" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 pitch3bus :: Pattern Int -> Pattern Double -> ControlPattern
 pitch3bus busid pat = (pF "pitch3" pat) # (pI "^pitch3" busid)
 pitch3recv :: Pattern Int -> ControlPattern
@@ -1171,6 +1772,11 @@ pitch3recv busid = pI "^pitch3" busid
 -- | 
 polyTouch :: Pattern Double -> ControlPattern
 polyTouch = pF "polyTouch"
+polyTouchCount :: String -> ControlPattern
+polyTouchCount name = pStateF "polyTouch" name (maybe 0 (+1))
+polyTouchCountTo :: String -> Pattern Double -> Pattern ValueMap
+polyTouchCountTo name ipat = innerJoin $ (\i -> pStateF "polyTouch" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 polyTouchbus :: Pattern Int -> Pattern Double -> ControlPattern
 polyTouchbus busid pat = (pF "polyTouch" pat) # (pI "^polyTouch" busid)
 polyTouchrecv :: Pattern Int -> ControlPattern
@@ -1179,6 +1785,11 @@ polyTouchrecv busid = pI "^polyTouch" busid
 -- | 
 portamento :: Pattern Double -> ControlPattern
 portamento = pF "portamento"
+portamentoCount :: String -> ControlPattern
+portamentoCount name = pStateF "portamento" name (maybe 0 (+1))
+portamentoCountTo :: String -> Pattern Double -> Pattern ValueMap
+portamentoCountTo name ipat = innerJoin $ (\i -> pStateF "portamento" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 portamentobus :: Pattern Int -> Pattern Double -> ControlPattern
 portamentobus busid pat = (pF "portamento" pat) # (pI "^portamento" busid)
 portamentorecv :: Pattern Int -> ControlPattern
@@ -1187,6 +1798,11 @@ portamentorecv busid = pI "^portamento" busid
 -- | 
 progNum :: Pattern Double -> ControlPattern
 progNum = pF "progNum"
+progNumCount :: String -> ControlPattern
+progNumCount name = pStateF "progNum" name (maybe 0 (+1))
+progNumCountTo :: String -> Pattern Double -> Pattern ValueMap
+progNumCountTo name ipat = innerJoin $ (\i -> pStateF "progNum" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 progNumbus :: Pattern Int -> Pattern Double -> ControlPattern
 progNumbus busid pat = (pF "progNum" pat) # (pI "^progNum" busid)
 progNumrecv :: Pattern Int -> ControlPattern
@@ -1195,6 +1811,11 @@ progNumrecv busid = pI "^progNum" busid
 -- | used in SuperDirt softsynths as a control rate or 'speed'
 rate :: Pattern Double -> ControlPattern
 rate = pF "rate"
+rateCount :: String -> ControlPattern
+rateCount name = pStateF "rate" name (maybe 0 (+1))
+rateCountTo :: String -> Pattern Double -> Pattern ValueMap
+rateCountTo name ipat = innerJoin $ (\i -> pStateF "rate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 ratebus :: Pattern Int -> Pattern Double -> ControlPattern
 ratebus busid pat = (pF "rate" pat) # (pI "^rate" busid)
 raterecv :: Pattern Int -> ControlPattern
@@ -1203,6 +1824,11 @@ raterecv busid = pI "^rate" busid
 -- | Spectral conform
 real :: Pattern Double -> ControlPattern
 real = pF "real"
+realCount :: String -> ControlPattern
+realCount name = pStateF "real" name (maybe 0 (+1))
+realCountTo :: String -> Pattern Double -> Pattern ValueMap
+realCountTo name ipat = innerJoin $ (\i -> pStateF "real" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 realbus :: Pattern Int -> Pattern Double -> ControlPattern
 realbus busid pat = (pF "real" pat) # (pI "^real" busid)
 realrecv :: Pattern Int -> ControlPattern
@@ -1211,6 +1837,11 @@ realrecv busid = pI "^real" busid
 -- | a pattern of numbers to specify the release time (in seconds) of an envelope applied to each sample.
 release :: Pattern Double -> ControlPattern
 release = pF "release"
+releaseCount :: String -> ControlPattern
+releaseCount name = pStateF "release" name (maybe 0 (+1))
+releaseCountTo :: String -> Pattern Double -> Pattern ValueMap
+releaseCountTo name ipat = innerJoin $ (\i -> pStateF "release" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 releasebus :: Pattern Int -> Pattern Double -> ControlPattern
 releasebus busid pat = (pF "release" pat) # (pI "^release" busid)
 releaserecv :: Pattern Int -> ControlPattern
@@ -1219,6 +1850,11 @@ releaserecv busid = pI "^release" busid
 -- | a pattern of numbers from 0 to 1. Specifies the resonance of the low-pass filter.
 resonance :: Pattern Double -> ControlPattern
 resonance = pF "resonance"
+resonanceCount :: String -> ControlPattern
+resonanceCount name = pStateF "resonance" name (maybe 0 (+1))
+resonanceCountTo :: String -> Pattern Double -> Pattern ValueMap
+resonanceCountTo name ipat = innerJoin $ (\i -> pStateF "resonance" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 resonancebus :: Pattern Int -> Pattern Double -> ControlPattern
 resonancebus busid pat = (pF "resonance" pat) # (pI "^resonance" busid)
 resonancerecv :: Pattern Int -> ControlPattern
@@ -1227,6 +1863,11 @@ resonancerecv busid = pI "^resonance" busid
 -- | ring modulation
 ring :: Pattern Double -> ControlPattern
 ring = pF "ring"
+ringCount :: String -> ControlPattern
+ringCount name = pStateF "ring" name (maybe 0 (+1))
+ringCountTo :: String -> Pattern Double -> Pattern ValueMap
+ringCountTo name ipat = innerJoin $ (\i -> pStateF "ring" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 ringbus :: Pattern Int -> Pattern Double -> ControlPattern
 ringbus busid pat = (pF "ring" pat) # (pI "^ring" busid)
 ringrecv :: Pattern Int -> ControlPattern
@@ -1235,6 +1876,11 @@ ringrecv busid = pI "^ring" busid
 -- | ring modulation
 ringdf :: Pattern Double -> ControlPattern
 ringdf = pF "ringdf"
+ringdfCount :: String -> ControlPattern
+ringdfCount name = pStateF "ringdf" name (maybe 0 (+1))
+ringdfCountTo :: String -> Pattern Double -> Pattern ValueMap
+ringdfCountTo name ipat = innerJoin $ (\i -> pStateF "ringdf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 ringdfbus :: Pattern Int -> Pattern Double -> ControlPattern
 ringdfbus busid pat = (pF "ringdf" pat) # (pI "^ringdf" busid)
 ringdfrecv :: Pattern Int -> ControlPattern
@@ -1243,6 +1889,11 @@ ringdfrecv busid = pI "^ringdf" busid
 -- | ring modulation
 ringf :: Pattern Double -> ControlPattern
 ringf = pF "ringf"
+ringfCount :: String -> ControlPattern
+ringfCount name = pStateF "ringf" name (maybe 0 (+1))
+ringfCountTo :: String -> Pattern Double -> Pattern ValueMap
+ringfCountTo name ipat = innerJoin $ (\i -> pStateF "ringf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 ringfbus :: Pattern Int -> Pattern Double -> ControlPattern
 ringfbus busid pat = (pF "ringf" pat) # (pI "^ringf" busid)
 ringfrecv :: Pattern Int -> ControlPattern
@@ -1251,6 +1902,11 @@ ringfrecv busid = pI "^ringf" busid
 -- | a pattern of numbers from 0 to 1. Sets the level of reverb.
 room :: Pattern Double -> ControlPattern
 room = pF "room"
+roomCount :: String -> ControlPattern
+roomCount name = pStateF "room" name (maybe 0 (+1))
+roomCountTo :: String -> Pattern Double -> Pattern ValueMap
+roomCountTo name ipat = innerJoin $ (\i -> pStateF "room" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 roombus :: Pattern Int -> Pattern Double -> ControlPattern
 roombus busid pat = (pF "room" pat) # (pI "^room" busid)
 roomrecv :: Pattern Int -> ControlPattern
@@ -1259,6 +1915,11 @@ roomrecv busid = pI "^room" busid
 -- | 
 sagogo :: Pattern Double -> ControlPattern
 sagogo = pF "sagogo"
+sagogoCount :: String -> ControlPattern
+sagogoCount name = pStateF "sagogo" name (maybe 0 (+1))
+sagogoCountTo :: String -> Pattern Double -> Pattern ValueMap
+sagogoCountTo name ipat = innerJoin $ (\i -> pStateF "sagogo" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 sagogobus :: Pattern Int -> Pattern Double -> ControlPattern
 sagogobus busid pat = (pF "sagogo" pat) # (pI "^sagogo" busid)
 sagogorecv :: Pattern Int -> ControlPattern
@@ -1267,6 +1928,11 @@ sagogorecv busid = pI "^sagogo" busid
 -- | 
 sclap :: Pattern Double -> ControlPattern
 sclap = pF "sclap"
+sclapCount :: String -> ControlPattern
+sclapCount name = pStateF "sclap" name (maybe 0 (+1))
+sclapCountTo :: String -> Pattern Double -> Pattern ValueMap
+sclapCountTo name ipat = innerJoin $ (\i -> pStateF "sclap" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 sclapbus :: Pattern Int -> Pattern Double -> ControlPattern
 sclapbus busid pat = (pF "sclap" pat) # (pI "^sclap" busid)
 sclaprecv :: Pattern Int -> ControlPattern
@@ -1275,6 +1941,11 @@ sclaprecv busid = pI "^sclap" busid
 -- | 
 sclaves :: Pattern Double -> ControlPattern
 sclaves = pF "sclaves"
+sclavesCount :: String -> ControlPattern
+sclavesCount name = pStateF "sclaves" name (maybe 0 (+1))
+sclavesCountTo :: String -> Pattern Double -> Pattern ValueMap
+sclavesCountTo name ipat = innerJoin $ (\i -> pStateF "sclaves" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 sclavesbus :: Pattern Int -> Pattern Double -> ControlPattern
 sclavesbus busid pat = (pF "sclaves" pat) # (pI "^sclaves" busid)
 sclavesrecv :: Pattern Int -> ControlPattern
@@ -1283,6 +1954,11 @@ sclavesrecv busid = pI "^sclaves" busid
 -- | Spectral scramble
 scram :: Pattern Double -> ControlPattern
 scram = pF "scram"
+scramCount :: String -> ControlPattern
+scramCount name = pStateF "scram" name (maybe 0 (+1))
+scramCountTo :: String -> Pattern Double -> Pattern ValueMap
+scramCountTo name ipat = innerJoin $ (\i -> pStateF "scram" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 scrambus :: Pattern Int -> Pattern Double -> ControlPattern
 scrambus busid pat = (pF "scram" pat) # (pI "^scram" busid)
 scramrecv :: Pattern Int -> ControlPattern
@@ -1291,6 +1967,11 @@ scramrecv busid = pI "^scram" busid
 -- | 
 scrash :: Pattern Double -> ControlPattern
 scrash = pF "scrash"
+scrashCount :: String -> ControlPattern
+scrashCount name = pStateF "scrash" name (maybe 0 (+1))
+scrashCountTo :: String -> Pattern Double -> Pattern ValueMap
+scrashCountTo name ipat = innerJoin $ (\i -> pStateF "scrash" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 scrashbus :: Pattern Int -> Pattern Double -> ControlPattern
 scrashbus busid pat = (pF "scrash" pat) # (pI "^scrash" busid)
 scrashrecv :: Pattern Int -> ControlPattern
@@ -1299,6 +1980,11 @@ scrashrecv busid = pI "^scrash" busid
 -- | 
 seconds :: Pattern Double -> ControlPattern
 seconds = pF "seconds"
+secondsCount :: String -> ControlPattern
+secondsCount name = pStateF "seconds" name (maybe 0 (+1))
+secondsCountTo :: String -> Pattern Double -> Pattern ValueMap
+secondsCountTo name ipat = innerJoin $ (\i -> pStateF "seconds" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 secondsbus :: Pattern Int -> Pattern Double -> ControlPattern
 secondsbus busid pat = (pF "seconds" pat) # (pI "^seconds" busid)
 secondsrecv :: Pattern Int -> ControlPattern
@@ -1307,6 +1993,11 @@ secondsrecv busid = pI "^seconds" busid
 -- | 
 semitone :: Pattern Double -> ControlPattern
 semitone = pF "semitone"
+semitoneCount :: String -> ControlPattern
+semitoneCount name = pStateF "semitone" name (maybe 0 (+1))
+semitoneCountTo :: String -> Pattern Double -> Pattern ValueMap
+semitoneCountTo name ipat = innerJoin $ (\i -> pStateF "semitone" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 semitonebus :: Pattern Int -> Pattern Double -> ControlPattern
 semitonebus busid pat = (pF "semitone" pat) # (pI "^semitone" busid)
 semitonerecv :: Pattern Int -> ControlPattern
@@ -1315,6 +2006,11 @@ semitonerecv busid = pI "^semitone" busid
 -- | wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion.
 shape :: Pattern Double -> ControlPattern
 shape = pF "shape"
+shapeCount :: String -> ControlPattern
+shapeCount name = pStateF "shape" name (maybe 0 (+1))
+shapeCountTo :: String -> Pattern Double -> Pattern ValueMap
+shapeCountTo name ipat = innerJoin $ (\i -> pStateF "shape" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 shapebus :: Pattern Int -> Pattern Double -> ControlPattern
 shapebus busid pat = (pF "shape" pat) # (pI "^shape" busid)
 shaperecv :: Pattern Int -> ControlPattern
@@ -1323,6 +2019,11 @@ shaperecv busid = pI "^shape" busid
 -- | a pattern of numbers from 0 to 1. Sets the perceptual size (reverb time) of the `room` to be used in reverb.
 size :: Pattern Double -> ControlPattern
 size = pF "size"
+sizeCount :: String -> ControlPattern
+sizeCount name = pStateF "size" name (maybe 0 (+1))
+sizeCountTo :: String -> Pattern Double -> Pattern ValueMap
+sizeCountTo name ipat = innerJoin $ (\i -> pStateF "size" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 sizebus :: Pattern Int -> Pattern Double -> ControlPattern
 sizebus busid pat = (pF "size" pat) # (pI "^size" busid)
 sizerecv :: Pattern Int -> ControlPattern
@@ -1331,6 +2032,11 @@ sizerecv busid = pI "^size" busid
 -- | 
 slide :: Pattern Double -> ControlPattern
 slide = pF "slide"
+slideCount :: String -> ControlPattern
+slideCount name = pStateF "slide" name (maybe 0 (+1))
+slideCountTo :: String -> Pattern Double -> Pattern ValueMap
+slideCountTo name ipat = innerJoin $ (\i -> pStateF "slide" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slidebus :: Pattern Int -> Pattern Double -> ControlPattern
 slidebus busid pat = (pF "slide" pat) # (pI "^slide" busid)
 sliderecv :: Pattern Int -> ControlPattern
@@ -1339,6 +2045,11 @@ sliderecv busid = pI "^slide" busid
 -- | 
 slider0 :: Pattern Double -> ControlPattern
 slider0 = pF "slider0"
+slider0Count :: String -> ControlPattern
+slider0Count name = pStateF "slider0" name (maybe 0 (+1))
+slider0CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider0CountTo name ipat = innerJoin $ (\i -> pStateF "slider0" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider0bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider0bus busid pat = (pF "slider0" pat) # (pI "^slider0" busid)
 slider0recv :: Pattern Int -> ControlPattern
@@ -1347,6 +2058,11 @@ slider0recv busid = pI "^slider0" busid
 -- | 
 slider1 :: Pattern Double -> ControlPattern
 slider1 = pF "slider1"
+slider1Count :: String -> ControlPattern
+slider1Count name = pStateF "slider1" name (maybe 0 (+1))
+slider1CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider1CountTo name ipat = innerJoin $ (\i -> pStateF "slider1" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider1bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider1bus busid pat = (pF "slider1" pat) # (pI "^slider1" busid)
 slider1recv :: Pattern Int -> ControlPattern
@@ -1355,6 +2071,11 @@ slider1recv busid = pI "^slider1" busid
 -- | 
 slider10 :: Pattern Double -> ControlPattern
 slider10 = pF "slider10"
+slider10Count :: String -> ControlPattern
+slider10Count name = pStateF "slider10" name (maybe 0 (+1))
+slider10CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider10CountTo name ipat = innerJoin $ (\i -> pStateF "slider10" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider10bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider10bus busid pat = (pF "slider10" pat) # (pI "^slider10" busid)
 slider10recv :: Pattern Int -> ControlPattern
@@ -1363,6 +2084,11 @@ slider10recv busid = pI "^slider10" busid
 -- | 
 slider11 :: Pattern Double -> ControlPattern
 slider11 = pF "slider11"
+slider11Count :: String -> ControlPattern
+slider11Count name = pStateF "slider11" name (maybe 0 (+1))
+slider11CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider11CountTo name ipat = innerJoin $ (\i -> pStateF "slider11" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider11bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider11bus busid pat = (pF "slider11" pat) # (pI "^slider11" busid)
 slider11recv :: Pattern Int -> ControlPattern
@@ -1371,6 +2097,11 @@ slider11recv busid = pI "^slider11" busid
 -- | 
 slider12 :: Pattern Double -> ControlPattern
 slider12 = pF "slider12"
+slider12Count :: String -> ControlPattern
+slider12Count name = pStateF "slider12" name (maybe 0 (+1))
+slider12CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider12CountTo name ipat = innerJoin $ (\i -> pStateF "slider12" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider12bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider12bus busid pat = (pF "slider12" pat) # (pI "^slider12" busid)
 slider12recv :: Pattern Int -> ControlPattern
@@ -1379,6 +2110,11 @@ slider12recv busid = pI "^slider12" busid
 -- | 
 slider13 :: Pattern Double -> ControlPattern
 slider13 = pF "slider13"
+slider13Count :: String -> ControlPattern
+slider13Count name = pStateF "slider13" name (maybe 0 (+1))
+slider13CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider13CountTo name ipat = innerJoin $ (\i -> pStateF "slider13" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider13bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider13bus busid pat = (pF "slider13" pat) # (pI "^slider13" busid)
 slider13recv :: Pattern Int -> ControlPattern
@@ -1387,6 +2123,11 @@ slider13recv busid = pI "^slider13" busid
 -- | 
 slider14 :: Pattern Double -> ControlPattern
 slider14 = pF "slider14"
+slider14Count :: String -> ControlPattern
+slider14Count name = pStateF "slider14" name (maybe 0 (+1))
+slider14CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider14CountTo name ipat = innerJoin $ (\i -> pStateF "slider14" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider14bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider14bus busid pat = (pF "slider14" pat) # (pI "^slider14" busid)
 slider14recv :: Pattern Int -> ControlPattern
@@ -1395,6 +2136,11 @@ slider14recv busid = pI "^slider14" busid
 -- | 
 slider15 :: Pattern Double -> ControlPattern
 slider15 = pF "slider15"
+slider15Count :: String -> ControlPattern
+slider15Count name = pStateF "slider15" name (maybe 0 (+1))
+slider15CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider15CountTo name ipat = innerJoin $ (\i -> pStateF "slider15" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider15bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider15bus busid pat = (pF "slider15" pat) # (pI "^slider15" busid)
 slider15recv :: Pattern Int -> ControlPattern
@@ -1403,6 +2149,11 @@ slider15recv busid = pI "^slider15" busid
 -- | 
 slider2 :: Pattern Double -> ControlPattern
 slider2 = pF "slider2"
+slider2Count :: String -> ControlPattern
+slider2Count name = pStateF "slider2" name (maybe 0 (+1))
+slider2CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider2CountTo name ipat = innerJoin $ (\i -> pStateF "slider2" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider2bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider2bus busid pat = (pF "slider2" pat) # (pI "^slider2" busid)
 slider2recv :: Pattern Int -> ControlPattern
@@ -1411,6 +2162,11 @@ slider2recv busid = pI "^slider2" busid
 -- | 
 slider3 :: Pattern Double -> ControlPattern
 slider3 = pF "slider3"
+slider3Count :: String -> ControlPattern
+slider3Count name = pStateF "slider3" name (maybe 0 (+1))
+slider3CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider3CountTo name ipat = innerJoin $ (\i -> pStateF "slider3" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider3bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider3bus busid pat = (pF "slider3" pat) # (pI "^slider3" busid)
 slider3recv :: Pattern Int -> ControlPattern
@@ -1419,6 +2175,11 @@ slider3recv busid = pI "^slider3" busid
 -- | 
 slider4 :: Pattern Double -> ControlPattern
 slider4 = pF "slider4"
+slider4Count :: String -> ControlPattern
+slider4Count name = pStateF "slider4" name (maybe 0 (+1))
+slider4CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider4CountTo name ipat = innerJoin $ (\i -> pStateF "slider4" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider4bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider4bus busid pat = (pF "slider4" pat) # (pI "^slider4" busid)
 slider4recv :: Pattern Int -> ControlPattern
@@ -1427,6 +2188,11 @@ slider4recv busid = pI "^slider4" busid
 -- | 
 slider5 :: Pattern Double -> ControlPattern
 slider5 = pF "slider5"
+slider5Count :: String -> ControlPattern
+slider5Count name = pStateF "slider5" name (maybe 0 (+1))
+slider5CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider5CountTo name ipat = innerJoin $ (\i -> pStateF "slider5" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider5bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider5bus busid pat = (pF "slider5" pat) # (pI "^slider5" busid)
 slider5recv :: Pattern Int -> ControlPattern
@@ -1435,6 +2201,11 @@ slider5recv busid = pI "^slider5" busid
 -- | 
 slider6 :: Pattern Double -> ControlPattern
 slider6 = pF "slider6"
+slider6Count :: String -> ControlPattern
+slider6Count name = pStateF "slider6" name (maybe 0 (+1))
+slider6CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider6CountTo name ipat = innerJoin $ (\i -> pStateF "slider6" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider6bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider6bus busid pat = (pF "slider6" pat) # (pI "^slider6" busid)
 slider6recv :: Pattern Int -> ControlPattern
@@ -1443,6 +2214,11 @@ slider6recv busid = pI "^slider6" busid
 -- | 
 slider7 :: Pattern Double -> ControlPattern
 slider7 = pF "slider7"
+slider7Count :: String -> ControlPattern
+slider7Count name = pStateF "slider7" name (maybe 0 (+1))
+slider7CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider7CountTo name ipat = innerJoin $ (\i -> pStateF "slider7" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider7bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider7bus busid pat = (pF "slider7" pat) # (pI "^slider7" busid)
 slider7recv :: Pattern Int -> ControlPattern
@@ -1451,6 +2227,11 @@ slider7recv busid = pI "^slider7" busid
 -- | 
 slider8 :: Pattern Double -> ControlPattern
 slider8 = pF "slider8"
+slider8Count :: String -> ControlPattern
+slider8Count name = pStateF "slider8" name (maybe 0 (+1))
+slider8CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider8CountTo name ipat = innerJoin $ (\i -> pStateF "slider8" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider8bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider8bus busid pat = (pF "slider8" pat) # (pI "^slider8" busid)
 slider8recv :: Pattern Int -> ControlPattern
@@ -1459,6 +2240,11 @@ slider8recv busid = pI "^slider8" busid
 -- | 
 slider9 :: Pattern Double -> ControlPattern
 slider9 = pF "slider9"
+slider9Count :: String -> ControlPattern
+slider9Count name = pStateF "slider9" name (maybe 0 (+1))
+slider9CountTo :: String -> Pattern Double -> Pattern ValueMap
+slider9CountTo name ipat = innerJoin $ (\i -> pStateF "slider9" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 slider9bus :: Pattern Int -> Pattern Double -> ControlPattern
 slider9bus busid pat = (pF "slider9" pat) # (pI "^slider9" busid)
 slider9recv :: Pattern Int -> ControlPattern
@@ -1467,6 +2253,11 @@ slider9recv busid = pI "^slider9" busid
 -- | Spectral smear
 smear :: Pattern Double -> ControlPattern
 smear = pF "smear"
+smearCount :: String -> ControlPattern
+smearCount name = pStateF "smear" name (maybe 0 (+1))
+smearCountTo :: String -> Pattern Double -> Pattern ValueMap
+smearCountTo name ipat = innerJoin $ (\i -> pStateF "smear" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 smearbus :: Pattern Int -> Pattern Double -> ControlPattern
 smearbus busid pat = (pF "smear" pat) # (pI "^smear" busid)
 smearrecv :: Pattern Int -> ControlPattern
@@ -1475,6 +2266,11 @@ smearrecv busid = pI "^smear" busid
 -- | 
 songPtr :: Pattern Double -> ControlPattern
 songPtr = pF "songPtr"
+songPtrCount :: String -> ControlPattern
+songPtrCount name = pStateF "songPtr" name (maybe 0 (+1))
+songPtrCountTo :: String -> Pattern Double -> Pattern ValueMap
+songPtrCountTo name ipat = innerJoin $ (\i -> pStateF "songPtr" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 songPtrbus :: Pattern Int -> Pattern Double -> ControlPattern
 songPtrbus busid pat = (pF "songPtr" pat) # (pI "^songPtr" busid)
 songPtrrecv :: Pattern Int -> ControlPattern
@@ -1483,12 +2279,22 @@ songPtrrecv busid = pI "^songPtr" busid
 -- | a pattern of numbers which changes the speed of sample playback, i.e. a cheap way of changing pitch. Negative values will play the sample backwards!
 speed :: Pattern Double -> ControlPattern
 speed = pF "speed"
+speedCount :: String -> ControlPattern
+speedCount name = pStateF "speed" name (maybe 0 (+1))
+speedCountTo :: String -> Pattern Double -> Pattern ValueMap
+speedCountTo name ipat = innerJoin $ (\i -> pStateF "speed" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 speedbus :: Pattern Int -> Pattern Double -> ControlPattern
 speedbus _ _ = error $ "Control parameter 'speed' can't be sent to a bus."
 
 -- | 
 squiz :: Pattern Double -> ControlPattern
 squiz = pF "squiz"
+squizCount :: String -> ControlPattern
+squizCount name = pStateF "squiz" name (maybe 0 (+1))
+squizCountTo :: String -> Pattern Double -> Pattern ValueMap
+squizCountTo name ipat = innerJoin $ (\i -> pStateF "squiz" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 squizbus :: Pattern Int -> Pattern Double -> ControlPattern
 squizbus busid pat = (pF "squiz" pat) # (pI "^squiz" busid)
 squizrecv :: Pattern Int -> ControlPattern
@@ -1497,6 +2303,11 @@ squizrecv busid = pI "^squiz" busid
 -- | 
 stepsPerOctave :: Pattern Double -> ControlPattern
 stepsPerOctave = pF "stepsPerOctave"
+stepsPerOctaveCount :: String -> ControlPattern
+stepsPerOctaveCount name = pStateF "stepsPerOctave" name (maybe 0 (+1))
+stepsPerOctaveCountTo :: String -> Pattern Double -> Pattern ValueMap
+stepsPerOctaveCountTo name ipat = innerJoin $ (\i -> pStateF "stepsPerOctave" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 stepsPerOctavebus :: Pattern Int -> Pattern Double -> ControlPattern
 stepsPerOctavebus busid pat = (pF "stepsPerOctave" pat) # (pI "^stepsPerOctave" busid)
 stepsPerOctaverecv :: Pattern Int -> ControlPattern
@@ -1505,6 +2316,11 @@ stepsPerOctaverecv busid = pI "^stepsPerOctave" busid
 -- | 
 stutterdepth :: Pattern Double -> ControlPattern
 stutterdepth = pF "stutterdepth"
+stutterdepthCount :: String -> ControlPattern
+stutterdepthCount name = pStateF "stutterdepth" name (maybe 0 (+1))
+stutterdepthCountTo :: String -> Pattern Double -> Pattern ValueMap
+stutterdepthCountTo name ipat = innerJoin $ (\i -> pStateF "stutterdepth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 stutterdepthbus :: Pattern Int -> Pattern Double -> ControlPattern
 stutterdepthbus busid pat = (pF "stutterdepth" pat) # (pI "^stutterdepth" busid)
 stutterdepthrecv :: Pattern Int -> ControlPattern
@@ -1513,6 +2329,11 @@ stutterdepthrecv busid = pI "^stutterdepth" busid
 -- | 
 stuttertime :: Pattern Double -> ControlPattern
 stuttertime = pF "stuttertime"
+stuttertimeCount :: String -> ControlPattern
+stuttertimeCount name = pStateF "stuttertime" name (maybe 0 (+1))
+stuttertimeCountTo :: String -> Pattern Double -> Pattern ValueMap
+stuttertimeCountTo name ipat = innerJoin $ (\i -> pStateF "stuttertime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 stuttertimebus :: Pattern Int -> Pattern Double -> ControlPattern
 stuttertimebus busid pat = (pF "stuttertime" pat) # (pI "^stuttertime" busid)
 stuttertimerecv :: Pattern Int -> ControlPattern
@@ -1521,12 +2342,22 @@ stuttertimerecv busid = pI "^stuttertime" busid
 -- | 
 sustain :: Pattern Double -> ControlPattern
 sustain = pF "sustain"
+sustainCount :: String -> ControlPattern
+sustainCount name = pStateF "sustain" name (maybe 0 (+1))
+sustainCountTo :: String -> Pattern Double -> Pattern ValueMap
+sustainCountTo name ipat = innerJoin $ (\i -> pStateF "sustain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 sustainbus :: Pattern Int -> Pattern Double -> ControlPattern
 sustainbus _ _ = error $ "Control parameter 'sustain' can't be sent to a bus."
 
 -- | 
 sustainpedal :: Pattern Double -> ControlPattern
 sustainpedal = pF "sustainpedal"
+sustainpedalCount :: String -> ControlPattern
+sustainpedalCount name = pStateF "sustainpedal" name (maybe 0 (+1))
+sustainpedalCountTo :: String -> Pattern Double -> Pattern ValueMap
+sustainpedalCountTo name ipat = innerJoin $ (\i -> pStateF "sustainpedal" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 sustainpedalbus :: Pattern Int -> Pattern Double -> ControlPattern
 sustainpedalbus busid pat = (pF "sustainpedal" pat) # (pI "^sustainpedal" busid)
 sustainpedalrecv :: Pattern Int -> ControlPattern
@@ -1535,6 +2366,11 @@ sustainpedalrecv busid = pI "^sustainpedal" busid
 -- | for internal sound routing
 to :: Pattern Double -> ControlPattern
 to = pF "to"
+toCount :: String -> ControlPattern
+toCount name = pStateF "to" name (maybe 0 (+1))
+toCountTo :: String -> Pattern Double -> Pattern ValueMap
+toCountTo name ipat = innerJoin $ (\i -> pStateF "to" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 tobus :: Pattern Int -> Pattern Double -> ControlPattern
 tobus busid pat = (pF "to" pat) # (pI "^to" busid)
 torecv :: Pattern Int -> ControlPattern
@@ -1551,6 +2387,11 @@ toArgrecv busid = pI "^toArg" busid
 -- | 
 tomdecay :: Pattern Double -> ControlPattern
 tomdecay = pF "tomdecay"
+tomdecayCount :: String -> ControlPattern
+tomdecayCount name = pStateF "tomdecay" name (maybe 0 (+1))
+tomdecayCountTo :: String -> Pattern Double -> Pattern ValueMap
+tomdecayCountTo name ipat = innerJoin $ (\i -> pStateF "tomdecay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 tomdecaybus :: Pattern Int -> Pattern Double -> ControlPattern
 tomdecaybus busid pat = (pF "tomdecay" pat) # (pI "^tomdecay" busid)
 tomdecayrecv :: Pattern Int -> ControlPattern
@@ -1559,6 +2400,11 @@ tomdecayrecv busid = pI "^tomdecay" busid
 -- | Tremolo Audio DSP effect | params are 'tremolorate' and 'tremolodepth'
 tremolodepth :: Pattern Double -> ControlPattern
 tremolodepth = pF "tremolodepth"
+tremolodepthCount :: String -> ControlPattern
+tremolodepthCount name = pStateF "tremolodepth" name (maybe 0 (+1))
+tremolodepthCountTo :: String -> Pattern Double -> Pattern ValueMap
+tremolodepthCountTo name ipat = innerJoin $ (\i -> pStateF "tremolodepth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 tremolodepthbus :: Pattern Int -> Pattern Double -> ControlPattern
 tremolodepthbus busid pat = (pF "tremolodepth" pat) # (pI "^tremolodepth" busid)
 tremolodepthrecv :: Pattern Int -> ControlPattern
@@ -1567,6 +2413,11 @@ tremolodepthrecv busid = pI "^tremolodepth" busid
 -- | Tremolo Audio DSP effect | params are 'tremolorate' and 'tremolodepth'
 tremolorate :: Pattern Double -> ControlPattern
 tremolorate = pF "tremolorate"
+tremolorateCount :: String -> ControlPattern
+tremolorateCount name = pStateF "tremolorate" name (maybe 0 (+1))
+tremolorateCountTo :: String -> Pattern Double -> Pattern ValueMap
+tremolorateCountTo name ipat = innerJoin $ (\i -> pStateF "tremolorate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 tremoloratebus :: Pattern Int -> Pattern Double -> ControlPattern
 tremoloratebus busid pat = (pF "tremolorate" pat) # (pI "^tremolorate" busid)
 tremoloraterecv :: Pattern Int -> ControlPattern
@@ -1575,6 +2426,11 @@ tremoloraterecv busid = pI "^tremolorate" busid
 -- | tube distortion
 triode :: Pattern Double -> ControlPattern
 triode = pF "triode"
+triodeCount :: String -> ControlPattern
+triodeCount name = pStateF "triode" name (maybe 0 (+1))
+triodeCountTo :: String -> Pattern Double -> Pattern ValueMap
+triodeCountTo name ipat = innerJoin $ (\i -> pStateF "triode" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 triodebus :: Pattern Int -> Pattern Double -> ControlPattern
 triodebus busid pat = (pF "triode" pat) # (pI "^triode" busid)
 trioderecv :: Pattern Int -> ControlPattern
@@ -1583,6 +2439,11 @@ trioderecv busid = pI "^triode" busid
 -- | 
 tsdelay :: Pattern Double -> ControlPattern
 tsdelay = pF "tsdelay"
+tsdelayCount :: String -> ControlPattern
+tsdelayCount name = pStateF "tsdelay" name (maybe 0 (+1))
+tsdelayCountTo :: String -> Pattern Double -> Pattern ValueMap
+tsdelayCountTo name ipat = innerJoin $ (\i -> pStateF "tsdelay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 tsdelaybus :: Pattern Int -> Pattern Double -> ControlPattern
 tsdelaybus busid pat = (pF "tsdelay" pat) # (pI "^tsdelay" busid)
 tsdelayrecv :: Pattern Int -> ControlPattern
@@ -1591,6 +2452,11 @@ tsdelayrecv busid = pI "^tsdelay" busid
 -- | 
 uid :: Pattern Double -> ControlPattern
 uid = pF "uid"
+uidCount :: String -> ControlPattern
+uidCount name = pStateF "uid" name (maybe 0 (+1))
+uidCountTo :: String -> Pattern Double -> Pattern ValueMap
+uidCountTo name ipat = innerJoin $ (\i -> pStateF "uid" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 uidbus :: Pattern Int -> Pattern Double -> ControlPattern
 uidbus busid pat = (pF "uid" pat) # (pI "^uid" busid)
 uidrecv :: Pattern Int -> ControlPattern
@@ -1605,6 +2471,11 @@ unitbus _ _ = error $ "Control parameter 'unit' can't be sent to a bus."
 -- | 
 val :: Pattern Double -> ControlPattern
 val = pF "val"
+valCount :: String -> ControlPattern
+valCount name = pStateF "val" name (maybe 0 (+1))
+valCountTo :: String -> Pattern Double -> Pattern ValueMap
+valCountTo name ipat = innerJoin $ (\i -> pStateF "val" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 valbus :: Pattern Int -> Pattern Double -> ControlPattern
 valbus busid pat = (pF "val" pat) # (pI "^val" busid)
 valrecv :: Pattern Int -> ControlPattern
@@ -1613,6 +2484,11 @@ valrecv busid = pI "^val" busid
 -- | 
 vcfegint :: Pattern Double -> ControlPattern
 vcfegint = pF "vcfegint"
+vcfegintCount :: String -> ControlPattern
+vcfegintCount name = pStateF "vcfegint" name (maybe 0 (+1))
+vcfegintCountTo :: String -> Pattern Double -> Pattern ValueMap
+vcfegintCountTo name ipat = innerJoin $ (\i -> pStateF "vcfegint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 vcfegintbus :: Pattern Int -> Pattern Double -> ControlPattern
 vcfegintbus busid pat = (pF "vcfegint" pat) # (pI "^vcfegint" busid)
 vcfegintrecv :: Pattern Int -> ControlPattern
@@ -1621,6 +2497,11 @@ vcfegintrecv busid = pI "^vcfegint" busid
 -- | 
 vcoegint :: Pattern Double -> ControlPattern
 vcoegint = pF "vcoegint"
+vcoegintCount :: String -> ControlPattern
+vcoegintCount name = pStateF "vcoegint" name (maybe 0 (+1))
+vcoegintCountTo :: String -> Pattern Double -> Pattern ValueMap
+vcoegintCountTo name ipat = innerJoin $ (\i -> pStateF "vcoegint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 vcoegintbus :: Pattern Int -> Pattern Double -> ControlPattern
 vcoegintbus busid pat = (pF "vcoegint" pat) # (pI "^vcoegint" busid)
 vcoegintrecv :: Pattern Int -> ControlPattern
@@ -1629,6 +2510,11 @@ vcoegintrecv busid = pI "^vcoegint" busid
 -- | 
 velocity :: Pattern Double -> ControlPattern
 velocity = pF "velocity"
+velocityCount :: String -> ControlPattern
+velocityCount name = pStateF "velocity" name (maybe 0 (+1))
+velocityCountTo :: String -> Pattern Double -> Pattern ValueMap
+velocityCountTo name ipat = innerJoin $ (\i -> pStateF "velocity" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 velocitybus :: Pattern Int -> Pattern Double -> ControlPattern
 velocitybus busid pat = (pF "velocity" pat) # (pI "^velocity" busid)
 velocityrecv :: Pattern Int -> ControlPattern
@@ -1637,6 +2523,11 @@ velocityrecv busid = pI "^velocity" busid
 -- | 
 voice :: Pattern Double -> ControlPattern
 voice = pF "voice"
+voiceCount :: String -> ControlPattern
+voiceCount name = pStateF "voice" name (maybe 0 (+1))
+voiceCountTo :: String -> Pattern Double -> Pattern ValueMap
+voiceCountTo name ipat = innerJoin $ (\i -> pStateF "voice" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 voicebus :: Pattern Int -> Pattern Double -> ControlPattern
 voicebus busid pat = (pF "voice" pat) # (pI "^voice" busid)
 voicerecv :: Pattern Int -> ControlPattern
@@ -1653,6 +2544,11 @@ vowelrecv busid = pI "^vowel" busid
 -- | 
 waveloss :: Pattern Double -> ControlPattern
 waveloss = pF "waveloss"
+wavelossCount :: String -> ControlPattern
+wavelossCount name = pStateF "waveloss" name (maybe 0 (+1))
+wavelossCountTo :: String -> Pattern Double -> Pattern ValueMap
+wavelossCountTo name ipat = innerJoin $ (\i -> pStateF "waveloss" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 wavelossbus :: Pattern Int -> Pattern Double -> ControlPattern
 wavelossbus busid pat = (pF "waveloss" pat) # (pI "^waveloss" busid)
 wavelossrecv :: Pattern Int -> ControlPattern
@@ -1661,6 +2557,11 @@ wavelossrecv busid = pI "^waveloss" busid
 -- | 
 xsdelay :: Pattern Double -> ControlPattern
 xsdelay = pF "xsdelay"
+xsdelayCount :: String -> ControlPattern
+xsdelayCount name = pStateF "xsdelay" name (maybe 0 (+1))
+xsdelayCountTo :: String -> Pattern Double -> Pattern ValueMap
+xsdelayCountTo name ipat = innerJoin $ (\i -> pStateF "xsdelay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
 xsdelaybus :: Pattern Int -> Pattern Double -> ControlPattern
 xsdelaybus busid pat = (pF "xsdelay" pat) # (pI "^xsdelay" busid)
 xsdelayrecv :: Pattern Int -> ControlPattern

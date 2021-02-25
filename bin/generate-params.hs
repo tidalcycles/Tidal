@@ -37,8 +37,16 @@ controls = intercalate "\n" $ map fs $ sortBy (compare `on` (\(_,x,_) -> x)) gen
         control (t, name, desc) =
           concat ["-- | " ++ desc ++ "\n",
                   name, " :: ", toType t, " -> ControlPattern\n",
-                  name, " = ", toFunc t, " \"", name, "\"\n"
+                  name, " = ", toFunc t, " \"", name, "\"\n",
+                  counters t name
                  ]
+        counters "note" name = counters "f" name
+        counters "f" name = concat [name, "Count :: String -> ControlPattern\n",
+                                    name, "Count name = pStateF \"",name,"\" name (maybe 0 (+1))\n",
+                                    name, "CountTo :: String -> Pattern Double -> Pattern ValueMap\n",
+                                    name, "CountTo name ipat = innerJoin $ (\\i -> pStateF \"",name,"\" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat\n\n"
+                                   ]
+        counters _ _ = ""
         bus (t,name,desc) | elem name nobus = concat [
                               name, "bus :: Pattern Int -> ", toType t, " -> ControlPattern\n",
                               name, "bus _ _ = error $ \"Control parameter '" ++ name ++ "' can't be sent to a bus.\"\n"
