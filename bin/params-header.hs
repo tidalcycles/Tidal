@@ -79,6 +79,15 @@ pStateF name sName update = pure $ Map.singleton name $ VState statef
         statef sMap = (Map.insert sName v sMap, v) 
           where v = VF $ update $ (Map.lookup sName sMap) >>= getF
 
+pStateList :: String -> String -> [Value] -> ControlPattern
+pStateList name sName xs = pure $ Map.singleton name $ VState statef
+  where statef :: ValueMap -> (ValueMap, Value)
+        statef sMap = (Map.insert sName (VList $ tail xs') sMap, head xs') 
+          where xs' = fromMaybe (cycle xs) ((Map.lookup sName sMap) >>= getList)
+
+pStateListF :: String -> String -> [Double] -> ControlPattern
+pStateListF name sName = pStateList name sName . map VF
+
 -- | Grouped params
 
 sound :: Pattern String -> ControlPattern
