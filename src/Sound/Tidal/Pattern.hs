@@ -625,6 +625,8 @@ instance Valuable Bool where
   toValue a = VB a
 instance Valuable [Word8] where
   toValue a = VX a
+instance Valuable [Value] where
+  toValue a = VList a
 
 instance Eq Value where
   (VS x) == (VS y) = x == y
@@ -752,6 +754,10 @@ getR _  = Nothing
 getBlob :: Value -> Maybe [Word8]
 getBlob (VX xs) = Just xs
 getBlob _  = Nothing
+
+getList :: Value -> Maybe [Value]
+getList (VList vs) = Just vs
+getList _  = Nothing
 
 valueToPattern :: Value -> Pattern Value
 valueToPattern (VPattern pat) = pat

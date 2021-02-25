@@ -668,3 +668,14 @@ verbose c s = when (cVerbose c) $ putStrLn s
 
 recvMessagesTimeout :: (O.Transport t) => Double -> t -> IO [O.Message]
 recvMessagesTimeout n sock = fmap (maybe [] O.packetMessages) $ O.recvPacketTimeout n sock
+
+
+streamGetcps :: Stream -> IO O.Time
+streamGetcps s = do tempo <- readMVar $ sTempoMV s
+                    return $ T.cps tempo
+
+streamGetnow :: Stream -> IO Double
+streamGetnow s = do tempo <- readMVar $ sTempoMV s
+                    now <- O.time
+                    return $ fromRational $ T.timeToCycles tempo now
+
