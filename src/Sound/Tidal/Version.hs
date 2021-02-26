@@ -21,7 +21,7 @@ import Paths_tidal
 -}
 
 tidal_version :: String
-tidal_version = "1.7.2"
+tidal_version = "1.7.3"
 
 tidal_status :: IO ()
 tidal_status = tidal_status_string >>= putStrLn 
