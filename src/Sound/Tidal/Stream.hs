@@ -647,6 +647,7 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
             bufferIndices [] = []
             bufferIndices (x:xs') | x == (O.ASCII_String $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
                                   | otherwise = bufferIndices xs'
+        -- External controller commands
         act (O.Message x (O.Int32 k:v:[]))
           = act (O.Message x [O.string $ show k,v])
         act (O.Message _ (O.ASCII_String k:v@(O.Float _):[]))
@@ -655,6 +656,19 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
           = add (O.ascii_to_string k) (VS (O.ascii_to_string v))
         act (O.Message _ (O.ASCII_String k:O.Int32 v:[]))
           = add (O.ascii_to_string k) (VI (fromIntegral v))
+        -- Stream playback commands
+        act (O.Message "/mute" (O.Int32 k:[]))
+          = streamMute stream (fromIntegral k)
+        act (O.Message "/mute" (O.ASCII_String k:[]))
+          = streamMute stream (O.ascii_to_string k)
+        act (O.Message "/unmute" (O.Int32 k:[]))
+          = streamUnmute stream (fromIntegral k)
+        act (O.Message "/unmute" (O.ASCII_String k:[]))
+          = streamUnmute stream (O.ascii_to_string k)
+        act (O.Message "/muteAll" [])
+          = streamMuteAll stream
+        act (O.Message "/unmuteAll" [])
+          = streamUnmuteAll stream
         act m = hPutStrLn stderr $ "Unhandled OSC: " ++ show m
         add :: String -> Value -> IO ()
         add k v = do sMap <- takeMVar (sStateMV stream)
