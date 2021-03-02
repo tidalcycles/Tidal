@@ -658,11 +658,11 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
           = add (O.ascii_to_string k) (VI (fromIntegral v))
         -- Stream playback commands
         act (O.Message "/mute" (O.Int32 k:[]))
-          = streamMute stream (fromIntegral k)
+          = streamMute stream k
         act (O.Message "/mute" (O.ASCII_String k:[]))
           = streamMute stream (O.ascii_to_string k)
         act (O.Message "/unmute" (O.Int32 k:[]))
-          = streamUnmute stream (fromIntegral k)
+          = streamUnmute stream k
         act (O.Message "/unmute" (O.ASCII_String k:[]))
           = streamUnmute stream (O.ascii_to_string k)
         act (O.Message "/muteAll" [])
