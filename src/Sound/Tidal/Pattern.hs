@@ -449,7 +449,7 @@ filterAnalog :: Pattern a -> Pattern a
 filterAnalog = filterEvents isAnalog
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
-playFor s e = filterWhen (\t -> (t >= s) && (t < e))
+playFor s e pat = Pattern $ \st -> maybe [] (\a -> query pat (st {arc = a})) $ subArc (Arc s e) (arc st)
 
 -- ** Temporal parameter helpers
 
