@@ -287,8 +287,9 @@ substitutePath str cm = parse str
           where (a,b) = break (== '}') xs
 
 getString :: ValueMap -> String -> Maybe String
-getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
-                      where simpleShow :: Value -> String
+getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
+                      where (param, dflt) = break (== '=') s
+                            simpleShow :: Value -> String
                             simpleShow (VS str) = str
                             simpleShow (VI i) = show i
                             simpleShow (VF f) = show f
@@ -299,11 +300,9 @@ getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
                             simpleShow (VState _) = show "<stateful>"
                             simpleShow (VPattern _) = show "<pattern>"
                             simpleShow (VList _) = show "<list>"
-                            (_, dflt) = break (== '=') s
-                            defaultValue :: Maybe String -> Maybe String
-                            defaultValue Nothing | null dflt = Nothing
-                                                 | otherwise = Just $ tail dflt
-                            defaultValue x = x
+                            defaultValue :: String -> Maybe String
+                            defaultValue ('=':dfltVal) = Just dfltVal
+                            defaultValue _ = Nothing
 
 playStack :: PlayMap -> ControlPattern
 playStack pMap = stack $ map pattern active
