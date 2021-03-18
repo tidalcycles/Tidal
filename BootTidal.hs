@@ -66,7 +66,8 @@ let only = (hush >>)
 :}
 
 :{
-let setI = streamSetI tidal
+let get = streamGet tidal
+    setI = streamSetI tidal
     setF = streamSetF tidal
     setS = streamSetS tidal
     setR = streamSetR tidal
