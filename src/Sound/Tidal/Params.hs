@@ -936,6 +936,32 @@ expressionbus busid pat = (pF "expression" pat) # (pI "^expression" busid)
 expressionrecv :: Pattern Int -> ControlPattern
 expressionrecv busid = pI "^expression" busid
 
+-- | As with fadeTime, but controls the fade in time of the grain envelope. Not used if the grain begins at position 0 in the sample.
+fadeInTime :: Pattern Double -> ControlPattern
+fadeInTime = pF "fadeInTime"
+fadeInTimeTake :: String -> [Double] -> ControlPattern
+fadeInTimeTake name xs = pStateListF "fadeInTime" name xs
+fadeInTimeCount :: String -> ControlPattern
+fadeInTimeCount name = pStateF "fadeInTime" name (maybe 0 (+1))
+fadeInTimeCountTo :: String -> Pattern Double -> Pattern ValueMap
+fadeInTimeCountTo name ipat = innerJoin $ (\i -> pStateF "fadeInTime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
+fadeInTimebus :: Pattern Int -> Pattern Double -> ControlPattern
+fadeInTimebus _ _ = error $ "Control parameter 'fadeInTime' can't be sent to a bus."
+
+-- | Used when using begin/end or chop/striate and friends, to change the fade out time of the 'grain' envelope.
+fadeTime :: Pattern Double -> ControlPattern
+fadeTime = pF "fadeTime"
+fadeTimeTake :: String -> [Double] -> ControlPattern
+fadeTimeTake name xs = pStateListF "fadeTime" name xs
+fadeTimeCount :: String -> ControlPattern
+fadeTimeCount name = pStateF "fadeTime" name (maybe 0 (+1))
+fadeTimeCountTo :: String -> Pattern Double -> Pattern ValueMap
+fadeTimeCountTo name ipat = innerJoin $ (\i -> pStateF "fadeTime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
+fadeTimebus :: Pattern Int -> Pattern Double -> ControlPattern
+fadeTimebus _ _ = error $ "Control parameter 'fadeTime' can't be sent to a bus."
+
 -- | 
 frameRate :: Pattern Double -> ControlPattern
 frameRate = pF "frameRate"
@@ -3293,6 +3319,9 @@ gatbus :: Pattern Int -> Pattern Double -> ControlPattern
 gatbus = gatebus
 gatrecv :: Pattern Int -> ControlPattern
 gatrecv = gaterecv
+
+fadeOutTime :: Pattern Double -> ControlPattern
+fadeOutTime = fadeTime
 
 dt :: Pattern Double -> ControlPattern
 dt = delaytime
