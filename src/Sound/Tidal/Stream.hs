@@ -287,8 +287,9 @@ substitutePath str cm = parse str
           where (a,b) = break (== '}') xs
 
 getString :: ValueMap -> String -> Maybe String
-getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
-                      where simpleShow :: Value -> String
+getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
+                      where (param, dflt) = break (== '=') s
+                            simpleShow :: Value -> String
                             simpleShow (VS str) = str
                             simpleShow (VI i) = show i
                             simpleShow (VF f) = show f
@@ -299,11 +300,9 @@ getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
                             simpleShow (VState _) = show "<stateful>"
                             simpleShow (VPattern _) = show "<pattern>"
                             simpleShow (VList _) = show "<list>"
-                            (_, dflt) = break (== '=') s
-                            defaultValue :: Maybe String -> Maybe String
-                            defaultValue Nothing | null dflt = Nothing
-                                                 | otherwise = Just $ tail dflt
-                            defaultValue x = x
+                            defaultValue :: String -> Maybe String
+                            defaultValue ('=':dfltVal) = Just dfltVal
+                            defaultValue _ = Nothing
 
 playStack :: PlayMap -> ControlPattern
 playStack pMap = stack $ map pattern active
@@ -592,6 +591,9 @@ streamAll :: Stream -> (ControlPattern -> ControlPattern) -> IO ()
 streamAll s f = do _ <- swapMVar (sGlobalFMV s) f
                    return ()
 
+streamGet :: Stream -> String -> IO (Maybe Value)
+streamGet s k = Map.lookup k <$> readMVar (sStateMV s)
+
 streamSet :: Valuable a => Stream -> String -> Pattern a -> IO ()
 streamSet s k pat = do sMap <- takeMVar $ sStateMV s
                        let pat' = toValue <$> pat
@@ -648,13 +650,13 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
             bufferIndices (x:xs') | x == (O.ASCII_String $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
                                   | otherwise = bufferIndices xs'
         -- External controller commands
-        act (O.Message x (O.Int32 k:v:[]))
-          = act (O.Message x [O.string $ show k,v])
-        act (O.Message _ (O.ASCII_String k:v@(O.Float _):[]))
+        act (O.Message "/ctrl" (O.Int32 k:v:[]))
+          = act (O.Message "/ctrl" [O.string $ show k,v])
+        act (O.Message "/ctrl" (O.ASCII_String k:v@(O.Float _):[]))
           = add (O.ascii_to_string k) (VF (fromJust $ O.datum_floating v))
-        act (O.Message _ (O.ASCII_String k:O.ASCII_String v:[]))
+        act (O.Message "/ctrl" (O.ASCII_String k:O.ASCII_String v:[]))
           = add (O.ascii_to_string k) (VS (O.ascii_to_string v))
-        act (O.Message _ (O.ASCII_String k:O.Int32 v:[]))
+        act (O.Message "/ctrl" (O.ASCII_String k:O.Int32 v:[]))
           = add (O.ascii_to_string k) (VI (fromIntegral v))
         -- Stream playback commands
         act (O.Message "/mute" (O.Int32 k:[]))
