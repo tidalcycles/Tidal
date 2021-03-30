@@ -248,8 +248,6 @@ genericParams = [
   ("f", "polyTouch", ""),
   ("f", "midibend", ""),
   ("f", "miditouch", ""),
-  ("i", "nrpnn", ""),
-  ("i", "nrpnv", ""),
   ("f", "ctlNum", ""),
   ("f", "frameRate", ""),
   ("f", "frames", ""),
@@ -283,6 +281,7 @@ aliasParams =
   ("f", "dt", "delaytime"),
   ("f", "det", "detune"),
   ("f", "fadeOutTime", "fadeTime"),
+
   ("f", "gat", "gate"),
   ("f", "hg", "hatgrain"),
   ("f", "hpf", "hcutoff"),

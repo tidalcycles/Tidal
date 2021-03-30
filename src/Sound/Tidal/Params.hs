@@ -105,6 +105,12 @@ cc = grp [mF "ccn", mF "ccv"]
 nrpn :: Pattern String -> ControlPattern
 nrpn = grp [mI "nrpn", mI "val"]
 
+nrpnn :: Pattern Int -> ControlPattern
+nrpnn = pI "nrpn"
+
+nrpnv :: Pattern Int -> ControlPattern
+nrpnv = pI "val"
+
 grain' :: Pattern String -> ControlPattern
 grain' = grp [mF "begin", mF "end"]
 
@@ -1741,36 +1747,6 @@ noteCountTo name ipat = innerJoin $ (\i -> pStateF "note" name (maybe 0 ((`mod'`
 
 notebus :: Pattern Int -> Pattern Note -> ControlPattern
 notebus _ _ = error $ "Control parameter 'note' can't be sent to a bus."
-
--- | 
-nrpnn :: Pattern Int -> ControlPattern
-nrpnn = pI "nrpnn"
-nrpnnTake :: String -> [Double] -> ControlPattern
-nrpnnTake name xs = pStateListF "nrpnn" name xs
-nrpnnCount :: String -> ControlPattern
-nrpnnCount name = pStateF "nrpnn" name (maybe 0 (+1))
-nrpnnCountTo :: String -> Pattern Double -> Pattern ValueMap
-nrpnnCountTo name ipat = innerJoin $ (\i -> pStateF "nrpnn" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
-
-nrpnnbus :: Pattern Int -> Pattern Int -> ControlPattern
-nrpnnbus busid pat = (pI "nrpnn" pat) # (pI "^nrpnn" busid)
-nrpnnrecv :: Pattern Int -> ControlPattern
-nrpnnrecv busid = pI "^nrpnn" busid
-
--- | 
-nrpnv :: Pattern Int -> ControlPattern
-nrpnv = pI "nrpnv"
-nrpnvTake :: String -> [Double] -> ControlPattern
-nrpnvTake name xs = pStateListF "nrpnv" name xs
-nrpnvCount :: String -> ControlPattern
-nrpnvCount name = pStateF "nrpnv" name (maybe 0 (+1))
-nrpnvCountTo :: String -> Pattern Double -> Pattern ValueMap
-nrpnvCountTo name ipat = innerJoin $ (\i -> pStateF "nrpnv" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
-
-nrpnvbus :: Pattern Int -> Pattern Int -> ControlPattern
-nrpnvbus busid pat = (pI "nrpnv" pat) # (pI "^nrpnv" busid)
-nrpnvrecv :: Pattern Int -> ControlPattern
-nrpnvrecv busid = pI "^nrpnv" busid
 
 -- | Nudges events into the future by the specified number of seconds. Negative numbers work up to a point as well (due to internal latency)
 nudge :: Pattern Double -> ControlPattern
