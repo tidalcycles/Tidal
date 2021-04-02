@@ -95,7 +95,26 @@ nobus = ["midinote",
          "channel",
          "lag",
          "offset",
-         "sound"
+         "sound",
+         "array",
+         "midichan",
+         "control",
+         "ccn",
+         "ccv",
+         "polyTouch",
+         "midibend",
+         "miditouch",
+         "ctlNum",
+         "frameRate",
+         "frames",
+         "hours",
+         "midicmd",
+         "minutes",
+         "progNum",
+         "seconds",
+         "songPtr",
+         "uid",
+         "val"
         ]
 
 genericParams :: [(String, String, String)]
