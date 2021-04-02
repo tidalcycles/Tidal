@@ -222,9 +222,7 @@ array = pX "array"
 arrayTake :: String -> [Double] -> ControlPattern
 arrayTake name xs = pStateListF "array" name xs
 arraybus :: Pattern Int -> Pattern [Word8] -> ControlPattern
-arraybus busid pat = (pX "array" pat) # (pI "^array" busid)
-arrayrecv :: Pattern Int -> ControlPattern
-arrayrecv busid = pI "^array" busid
+arraybus _ _ = error $ "Control parameter 'array' can't be sent to a bus."
 
 -- | a pattern of numbers to specify the attack time (in seconds) of an envelope applied to each sample.
 attack :: Pattern Double -> ControlPattern
@@ -552,9 +550,7 @@ ccnCountTo :: String -> Pattern Double -> Pattern ValueMap
 ccnCountTo name ipat = innerJoin $ (\i -> pStateF "ccn" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ccnbus :: Pattern Int -> Pattern Double -> ControlPattern
-ccnbus busid pat = (pF "ccn" pat) # (pI "^ccn" busid)
-ccnrecv :: Pattern Int -> ControlPattern
-ccnrecv busid = pI "^ccn" busid
+ccnbus _ _ = error $ "Control parameter 'ccn' can't be sent to a bus."
 
 -- | 
 ccv :: Pattern Double -> ControlPattern
@@ -567,9 +563,7 @@ ccvCountTo :: String -> Pattern Double -> Pattern ValueMap
 ccvCountTo name ipat = innerJoin $ (\i -> pStateF "ccv" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ccvbus :: Pattern Int -> Pattern Double -> ControlPattern
-ccvbus busid pat = (pF "ccv" pat) # (pI "^ccv" busid)
-ccvrecv :: Pattern Int -> ControlPattern
-ccvrecv busid = pI "^ccv" busid
+ccvbus _ _ = error $ "Control parameter 'ccv' can't be sent to a bus."
 
 -- | choose the channel the pattern is sent to in superdirt
 channel :: Pattern Int -> ControlPattern
@@ -640,9 +634,7 @@ controlCountTo :: String -> Pattern Double -> Pattern ValueMap
 controlCountTo name ipat = innerJoin $ (\i -> pStateF "control" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 controlbus :: Pattern Int -> Pattern Double -> ControlPattern
-controlbus busid pat = (pF "control" pat) # (pI "^control" busid)
-controlrecv :: Pattern Int -> ControlPattern
-controlrecv busid = pI "^control" busid
+controlbus _ _ = error $ "Control parameter 'control' can't be sent to a bus."
 
 -- | 
 cps :: Pattern Double -> ControlPattern
@@ -685,9 +677,7 @@ ctlNumCountTo :: String -> Pattern Double -> Pattern ValueMap
 ctlNumCountTo name ipat = innerJoin $ (\i -> pStateF "ctlNum" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ctlNumbus :: Pattern Int -> Pattern Double -> ControlPattern
-ctlNumbus busid pat = (pF "ctlNum" pat) # (pI "^ctlNum" busid)
-ctlNumrecv :: Pattern Int -> ControlPattern
-ctlNumrecv busid = pI "^ctlNum" busid
+ctlNumbus _ _ = error $ "Control parameter 'ctlNum' can't be sent to a bus."
 
 -- | 
 ctranspose :: Pattern Double -> ControlPattern
@@ -979,9 +969,7 @@ frameRateCountTo :: String -> Pattern Double -> Pattern ValueMap
 frameRateCountTo name ipat = innerJoin $ (\i -> pStateF "frameRate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 frameRatebus :: Pattern Int -> Pattern Double -> ControlPattern
-frameRatebus busid pat = (pF "frameRate" pat) # (pI "^frameRate" busid)
-frameRaterecv :: Pattern Int -> ControlPattern
-frameRaterecv busid = pI "^frameRate" busid
+frameRatebus _ _ = error $ "Control parameter 'frameRate' can't be sent to a bus."
 
 -- | 
 frames :: Pattern Double -> ControlPattern
@@ -994,9 +982,7 @@ framesCountTo :: String -> Pattern Double -> Pattern ValueMap
 framesCountTo name ipat = innerJoin $ (\i -> pStateF "frames" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 framesbus :: Pattern Int -> Pattern Double -> ControlPattern
-framesbus busid pat = (pF "frames" pat) # (pI "^frames" busid)
-framesrecv :: Pattern Int -> ControlPattern
-framesrecv busid = pI "^frames" busid
+framesbus _ _ = error $ "Control parameter 'frames' can't be sent to a bus."
 
 -- | Spectral freeze
 freeze :: Pattern Double -> ControlPattern
@@ -1202,9 +1188,7 @@ hoursCountTo :: String -> Pattern Double -> Pattern ValueMap
 hoursCountTo name ipat = innerJoin $ (\i -> pStateF "hours" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 hoursbus :: Pattern Int -> Pattern Double -> ControlPattern
-hoursbus busid pat = (pF "hours" pat) # (pI "^hours" busid)
-hoursrecv :: Pattern Int -> ControlPattern
-hoursrecv busid = pI "^hours" busid
+hoursbus _ _ = error $ "Control parameter 'hours' can't be sent to a bus."
 
 -- | a pattern of numbers from 0 to 1. Applies the resonance of the high-pass filter. Has alias @hpq@
 hresonance :: Pattern Double -> ControlPattern
@@ -1633,9 +1617,7 @@ midibendCountTo :: String -> Pattern Double -> Pattern ValueMap
 midibendCountTo name ipat = innerJoin $ (\i -> pStateF "midibend" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 midibendbus :: Pattern Int -> Pattern Double -> ControlPattern
-midibendbus busid pat = (pF "midibend" pat) # (pI "^midibend" busid)
-midibendrecv :: Pattern Int -> ControlPattern
-midibendrecv busid = pI "^midibend" busid
+midibendbus _ _ = error $ "Control parameter 'midibend' can't be sent to a bus."
 
 -- | 
 midichan :: Pattern Double -> ControlPattern
@@ -1648,9 +1630,7 @@ midichanCountTo :: String -> Pattern Double -> Pattern ValueMap
 midichanCountTo name ipat = innerJoin $ (\i -> pStateF "midichan" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 midichanbus :: Pattern Int -> Pattern Double -> ControlPattern
-midichanbus busid pat = (pF "midichan" pat) # (pI "^midichan" busid)
-midichanrecv :: Pattern Int -> ControlPattern
-midichanrecv busid = pI "^midichan" busid
+midichanbus _ _ = error $ "Control parameter 'midichan' can't be sent to a bus."
 
 -- | 
 midicmd :: Pattern String -> ControlPattern
@@ -1658,9 +1638,7 @@ midicmd = pS "midicmd"
 midicmdTake :: String -> [Double] -> ControlPattern
 midicmdTake name xs = pStateListF "midicmd" name xs
 midicmdbus :: Pattern Int -> Pattern String -> ControlPattern
-midicmdbus busid pat = (pS "midicmd" pat) # (pI "^midicmd" busid)
-midicmdrecv :: Pattern Int -> ControlPattern
-midicmdrecv busid = pI "^midicmd" busid
+midicmdbus _ _ = error $ "Control parameter 'midicmd' can't be sent to a bus."
 
 -- | 
 miditouch :: Pattern Double -> ControlPattern
@@ -1673,9 +1651,7 @@ miditouchCountTo :: String -> Pattern Double -> Pattern ValueMap
 miditouchCountTo name ipat = innerJoin $ (\i -> pStateF "miditouch" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 miditouchbus :: Pattern Int -> Pattern Double -> ControlPattern
-miditouchbus busid pat = (pF "miditouch" pat) # (pI "^miditouch" busid)
-miditouchrecv :: Pattern Int -> ControlPattern
-miditouchrecv busid = pI "^miditouch" busid
+miditouchbus _ _ = error $ "Control parameter 'miditouch' can't be sent to a bus."
 
 -- | 
 minutes :: Pattern Double -> ControlPattern
@@ -1688,9 +1664,7 @@ minutesCountTo :: String -> Pattern Double -> Pattern ValueMap
 minutesCountTo name ipat = innerJoin $ (\i -> pStateF "minutes" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 minutesbus :: Pattern Int -> Pattern Double -> ControlPattern
-minutesbus busid pat = (pF "minutes" pat) # (pI "^minutes" busid)
-minutesrecv :: Pattern Int -> ControlPattern
-minutesrecv busid = pI "^minutes" busid
+minutesbus _ _ = error $ "Control parameter 'minutes' can't be sent to a bus."
 
 -- | 
 modwheel :: Pattern Double -> ControlPattern
@@ -2083,9 +2057,7 @@ polyTouchCountTo :: String -> Pattern Double -> Pattern ValueMap
 polyTouchCountTo name ipat = innerJoin $ (\i -> pStateF "polyTouch" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 polyTouchbus :: Pattern Int -> Pattern Double -> ControlPattern
-polyTouchbus busid pat = (pF "polyTouch" pat) # (pI "^polyTouch" busid)
-polyTouchrecv :: Pattern Int -> ControlPattern
-polyTouchrecv busid = pI "^polyTouch" busid
+polyTouchbus _ _ = error $ "Control parameter 'polyTouch' can't be sent to a bus."
 
 -- | 
 portamento :: Pattern Double -> ControlPattern
@@ -2113,9 +2085,7 @@ progNumCountTo :: String -> Pattern Double -> Pattern ValueMap
 progNumCountTo name ipat = innerJoin $ (\i -> pStateF "progNum" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 progNumbus :: Pattern Int -> Pattern Double -> ControlPattern
-progNumbus busid pat = (pF "progNum" pat) # (pI "^progNum" busid)
-progNumrecv :: Pattern Int -> ControlPattern
-progNumrecv busid = pI "^progNum" busid
+progNumbus _ _ = error $ "Control parameter 'progNum' can't be sent to a bus."
 
 -- | used in SuperDirt softsynths as a control rate or 'speed'
 rate :: Pattern Double -> ControlPattern
@@ -2323,9 +2293,7 @@ secondsCountTo :: String -> Pattern Double -> Pattern ValueMap
 secondsCountTo name ipat = innerJoin $ (\i -> pStateF "seconds" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 secondsbus :: Pattern Int -> Pattern Double -> ControlPattern
-secondsbus busid pat = (pF "seconds" pat) # (pI "^seconds" busid)
-secondsrecv :: Pattern Int -> ControlPattern
-secondsrecv busid = pI "^seconds" busid
+secondsbus _ _ = error $ "Control parameter 'seconds' can't be sent to a bus."
 
 -- | 
 semitone :: Pattern Double -> ControlPattern
@@ -2653,9 +2621,7 @@ songPtrCountTo :: String -> Pattern Double -> Pattern ValueMap
 songPtrCountTo name ipat = innerJoin $ (\i -> pStateF "songPtr" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 songPtrbus :: Pattern Int -> Pattern Double -> ControlPattern
-songPtrbus busid pat = (pF "songPtr" pat) # (pI "^songPtr" busid)
-songPtrrecv :: Pattern Int -> ControlPattern
-songPtrrecv busid = pI "^songPtr" busid
+songPtrbus _ _ = error $ "Control parameter 'songPtr' can't be sent to a bus."
 
 -- | a pattern of numbers which changes the speed of sample playback, i.e. a cheap way of changing pitch. Negative values will play the sample backwards!
 speed :: Pattern Double -> ControlPattern
@@ -2869,9 +2835,7 @@ uidCountTo :: String -> Pattern Double -> Pattern ValueMap
 uidCountTo name ipat = innerJoin $ (\i -> pStateF "uid" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 uidbus :: Pattern Int -> Pattern Double -> ControlPattern
-uidbus busid pat = (pF "uid" pat) # (pI "^uid" busid)
-uidrecv :: Pattern Int -> ControlPattern
-uidrecv busid = pI "^uid" busid
+uidbus _ _ = error $ "Control parameter 'uid' can't be sent to a bus."
 
 -- | used in conjunction with `speed`, accepts values of "r" (rate, default behavior), "c" (cycles), or "s" (seconds). Using `unit "c"` means `speed` will be interpreted in units of cycles, e.g. `speed "1"` means samples will be stretched to fill a cycle. Using `unit "s"` means the playback speed will be adjusted so that the duration is the number of seconds specified by `speed`.
 unit :: Pattern String -> ControlPattern
@@ -2892,9 +2856,7 @@ valCountTo :: String -> Pattern Double -> Pattern ValueMap
 valCountTo name ipat = innerJoin $ (\i -> pStateF "val" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 valbus :: Pattern Int -> Pattern Double -> ControlPattern
-valbus busid pat = (pF "val" pat) # (pI "^val" busid)
-valrecv :: Pattern Int -> ControlPattern
-valrecv busid = pI "^val" busid
+valbus _ _ = error $ "Control parameter 'val' can't be sent to a bus."
 
 -- | 
 vcfegint :: Pattern Double -> ControlPattern
