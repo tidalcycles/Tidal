@@ -99,7 +99,7 @@ pStateListS name sName = pStateList name sName . map VS
 sound :: Pattern String -> ControlPattern
 sound = grp [mS "s", mF "n"]
 
-sTake :: String -> [Double] -> ControlPattern
+sTake :: String -> [String] -> ControlPattern
 sTake name xs = pStateListS "s" name xs
 
 cc :: Pattern String -> ControlPattern
