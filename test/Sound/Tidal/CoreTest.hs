@@ -4,6 +4,7 @@ module Sound.Tidal.CoreTest where
 
 import Data.List (sort)
 import Data.Ratio
+import qualified Data.Map as Map
 import Sound.Tidal.Context
 import Test.Microspec
 import TestUtils
@@ -12,6 +13,29 @@ import Prelude hiding ((*>), (<*))
 run :: Microspec ()
 run =
   describe "Sound.Tidal.Core" $ do
+    describe "Elemental patterns" $ do
+      let sampleOf :: Pattern Double -> Rational -> Double
+          sampleOf pat t = (value . head) $ query pat (State (Arc t t) Map.empty)
+      describe "are in range [0, 1]" $ do
+        let inNormalRange pat t = (y >= 0) && (y <= 1)
+              where y = sampleOf pat t
+        it "sine" $ inNormalRange sine
+        it "cosine" $ inNormalRange cosine
+        it "saw" $ inNormalRange saw
+        it "isaw" $ inNormalRange isaw
+        it "tri" $ inNormalRange tri
+        it "square" $ inNormalRange square
+      describe "have correctly-scaled bipolar variants" $ do
+        let areCorrectlyScaled pat pat2 t = (y * 2 - 1) ~== y2
+              where y = sampleOf pat t
+                    y2 = sampleOf pat2 t
+        it "sine" $ areCorrectlyScaled sine sine2
+        it "cosine" $ areCorrectlyScaled cosine cosine2
+        it "saw" $ areCorrectlyScaled saw saw2
+        it "isaw" $ areCorrectlyScaled isaw isaw2
+        it "tri" $ areCorrectlyScaled tri tri2
+        it "square" $ areCorrectlyScaled square square2
+    
     describe "append" $
       it "can switch between the cycles from two pures" $ do
         queryArc (append (pure "a") (pure "b")) (Arc 0 5)
@@ -23,6 +47,7 @@ run =
               (((3, 4), (3, 4)), "b"),
               (((4, 5), (4, 5)), "a")
             ]
+
     describe "cat" $ do
       it "can switch between the cycles from three pures" $ do
         queryArc (cat [pure "a", pure "b", pure "c"]) (Arc 0 5)
@@ -42,6 +67,7 @@ run =
               (Arc 0 10)
               (rev $ cat [a, b, c])
               (cat [rev a, rev b, rev c])
+
     describe "fastCat" $ do
       it "can switch between the cycles from three pures inside one cycle" $ do
         it "1" $
