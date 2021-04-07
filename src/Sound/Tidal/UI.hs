@@ -1451,6 +1451,47 @@ _arp name p = arpWith f p
         thumbup xs = concatMap (\x -> [thumb,x]) $ tail xs
           where thumb = head xs
 
+{- | `rolled` plays each note of a chord quickly in order, as opposed to simultaneously; to give a chord a harp-like effect.
+This will played from the lowest note to the highest note of the chord
+@
+rolled $ n "c'maj'4" # s "superpiano"
+@
+
+You can reverse this order by using the `rolled'` function
+
+@
+rolled' $ n "c'maj9" # s "superpiano"
+@
+
+And you can use `rolledBy` or `rolledBy'` to specify the length of the roll. The value in the passed pattern
+is the divisor of the cycle length.
+
+@
+rolledBy "<1 2 4 8 16 3>" $ note "c'maj9" # s "superpiano"
+@
+-}
+
+rolledWith :: ([Event a] -> [EventF (ArcF Time) a]) -> Ratio Integer -> Pattern a -> Pattern a
+rolledWith f t = withEvents aux
+         where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ sortOn whole (f es))
+               steppityIn xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
+               shiftIt n d (Event c (Just (Arc s e)) a' v) = do
+                         a'' <- subArc (Arc newS e) a'
+                         return (Event c (Just $ Arc newS e) a'' v)
+                      where newS = s + (dur * fromIntegral n)
+                            dur = (e - s) / (t*fromIntegral d)
+
+rolledBy :: Pattern (Ratio Integer) -> Pattern a -> Pattern a
+rolledBy pt = tParam (rolledWith id) (segment 1 $ pt)
+
+rolled :: Pattern a -> Pattern a
+rolled = rolledBy 4
+
+rolledBy' :: Pattern (Ratio Integer) -> Pattern a -> Pattern a
+rolledBy' pt = tParam (rolledWith reverse) (segment 1 $ pt)
+
+rolled' :: Pattern a -> Pattern a
+rolled' = rolledBy' 4
 
 {- TODO !
 
