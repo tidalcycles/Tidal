@@ -23,6 +23,14 @@ run =
         compareP (Arc 0 2)
           ("0 1 2 3 4 5 6 7 8 0 10 20 30 40 50" :: Pattern Int)
           (fastCat $ map (pure . read) $ words "0 1 2 3 4 5 6 7 8 0 10 20 30 40 50")
+      it "can parse pattern groups" $ do
+        compareP (Arc 0 1)
+          ("[bd sd] hh" :: Pattern String)
+          (fastCat ["bd sd", "hh"])
+      it "can parse pattern groups shorthand " $ do
+        compareP (Arc 0 1)
+          ("bd sd . hh hh hh" :: Pattern String)
+          ("[bd sd] [hh hh hh]")
       it "can alternate with <>" $ do
         compareP (Arc 0 2)
           ("a <b c>" :: Pattern String)
@@ -63,6 +71,14 @@ run =
         compareP (Arc 0 1)
           ("0.4 0.5? 0.6" :: Pattern Double)
           (fastcat[0.4, degradeByDefault 0.5, 0.6])
+      it "can handle ? on replicated value" $ do
+        compareP (Arc 0 1)
+          ("a!8?" :: Pattern String)
+          ("[a!8]?" :: Pattern String)
+      it "can handle ? on streched value" $ do
+        compareP (Arc 0 1)
+          ("a*4@0.25?" :: Pattern String)
+          ("[a*4@0.25]?" :: Pattern String)
       it "can stretch with @" $ do
         comparePD (Arc 0 1)
           ("a@2 b" :: Pattern String)
@@ -111,6 +127,14 @@ run =
         compareP (Arc 0 2)
           ("c'major e'minor f'dim7" :: Pattern Int)
           ("c e f" + "'major 'minor 'dim7")
+      it "handle trailing and leading whitespaces" $ do
+        compareP (Arc 0 1)
+          ("  bd  " :: Pattern String)
+          ("bd" :: Pattern String)
+      it "can parse negative ratio shorthands" $ do
+        compareP (Arc 0 1)
+          ("h -h" :: Pattern Double)
+          ("0.5 -0.5" :: Pattern Double)
       it "doesn't crash on zeroes (1)" $ do
         compareP (Arc 0 2)
           ("cp/0" :: Pattern String)

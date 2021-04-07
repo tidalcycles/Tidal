@@ -4,8 +4,6 @@ module Sound.Tidal.Parse.TH where
 
 import Language.Haskell.TH
 import Language.Haskellish
-import Control.Monad
-import Data.Map
 
 -- example: $(fromTidal "jux") ...is translated as... T.jux <$ reserved "jux"
 fromTidal :: String -> Q Exp

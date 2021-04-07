@@ -1,7 +1,7 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, RecordWildCards #-}
+{-# LANGUAGE FlexibleInstances, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz, stepcount) where
+module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz, stepcount, showStateful) where
 
 
 {-
@@ -33,16 +33,27 @@ import qualified Data.Map.Strict as Map
 instance (Show a) => Show (Pattern a) where
   show = showPattern (Arc 0 1)
 
+showStateful :: ControlPattern -> String
+showStateful p = intercalate "\n" evStrings
+  where (_, evs) = resolveState (Map.empty) $ sortOn part $ queryArc (filterOnsets p) (Arc 0 1)
+        evs' = map showEvent evs
+        maxPartLength :: Int
+        maxPartLength = maximum $ map (length . fst) evs'
+        evString :: (String, String) -> String
+        evString ev = ((replicate (maxPartLength - (length (fst ev))) ' ')
+                       ++ fst ev
+                       ++ snd ev
+                      )
+        evStrings = map evString evs'
+
 showPattern :: Show a => Arc -> Pattern a -> String
 showPattern a p = intercalate "\n" evStrings
   where evs = map showEvent $ sortOn part $ queryArc p a
         maxPartLength :: Int
         maxPartLength = maximum $ map (length . fst) evs
         evString :: (String, String) -> String
-        evString ev = ((replicate (maxPartLength - (length (fst ev))) ' ')
-                       ++ fst ev
-                       ++ snd ev
-                      )
+        evString ev = replicate (maxPartLength - length (fst ev)) ' '
+                       ++ uncurry (++) ev
         evStrings = map evString evs
 
 showEvent :: Show a => Event a -> (String, String)
@@ -64,26 +75,25 @@ instance Show Context where
   show (Context cs) = show cs
 
 instance Show Value where
-  show (VS s bus)  = showbus bus $ ('"':s) ++ "\""
-  show (VI i bus)  = showbus bus $ show i
-  show (VF f bus)  = showbus bus $ show f ++ "f"
-  show (VN n bus)  = showbus bus $ show n ++ "n"
-  show (VR r bus)  = showbus bus $ show r ++ "r"
-  show (VB b bus)  = showbus bus $ show b
-  show (VX xs bus) = showbus bus $ show xs
+  show (VS s)  = ('"':s) ++ "\""
+  show (VI i)  = show i
+  show (VF f)  = show f ++ "f"
+  show (VN n)  = show n ++ "n"
+  show (VR r)  = show r ++ "r"
+  show (VB b)  = show b
+  show (VX xs) = show xs
+  show (VPattern pat) = "(" ++ show pat ++ ")"
+  show (VState f) = show $ f Map.empty
+  show (VList _) =  "<list>"
 
-showbus :: Maybe Int -> String -> String
-showbus Nothing s  = s
-showbus (Just i) s = s ++ "(" ++ show i ++ ")"
-
-instance {-# OVERLAPPING #-} Show ControlMap where
+instance {-# OVERLAPPING #-} Show ValueMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
 
 instance {-# OVERLAPPING #-} Show Arc where
   show (Arc s e) = prettyRat s ++ ">" ++ prettyRat e
 
 instance {-# OVERLAPPING #-} Show a => Show (Event a) where
-  show e = show (context e) ++ ((\(a,b) -> a ++ b) $ showEvent e)
+  show e = show (context e) ++ uncurry (++) (showEvent e)
 
 prettyRat :: Rational -> String
 prettyRat r | unit == 0 && frac > 0 = showFrac (numerator frac) (denominator frac)
@@ -140,8 +150,8 @@ showFrac n d = fromMaybe plain $ do n' <- up n
         down _ = Nothing
 
 stepcount :: Pattern a -> Int
-stepcount pat = fromIntegral $ eventSteps $ concatMap (\ev -> [start ev, stop ev]) $ map part $ filter eventHasOnset $ queryArc pat (Arc 0 1)
-  where eventSteps xs = foldr lcm 1 $ map denominator xs
+stepcount pat = fromIntegral $ eventSteps $ concatMap ((\ev -> [start ev, stop ev]) . part) (filter eventHasOnset $ queryArc pat (Arc 0 1))
+  where eventSteps xs = foldr (lcm . denominator) 1 xs
 
 data Render = Render Int Int String
 
@@ -157,23 +167,23 @@ drawLineSz :: Int -> Pattern Char -> Render
 drawLineSz sz pat = joinCycles sz $ drawCycles pat
   where
     drawCycles :: Pattern Char -> [Render]
-    drawCycles pat' = (draw pat'):(drawCycles $ rotL 1 pat')
+    drawCycles pat' = draw pat':drawCycles (rotL 1 pat')
     joinCycles :: Int -> [Render] -> Render
     joinCycles _ [] = Render 0 0 ""
     joinCycles n ((Render cyc l s):cs) | l > n = Render 0 0 ""
-                                       | otherwise = Render (cyc+cyc') (l + l' + 1) $ intercalate "\n" $ map (\(a,b) -> a ++ b) lineZip
-      where 
+                                       | otherwise = Render (cyc+cyc') (l + l' + 1) $ intercalate "\n" $ map (uncurry (++)) lineZip
+      where
         (Render cyc' l' s') = joinCycles (n-l-1) cs
         linesN = max (length $ lines s) (length $ lines s')
         lineZip = take linesN $
-          zip (lines s ++ (repeat $ replicate l ' '))
-              (lines s' ++ (repeat $ replicate l' ' '))
-        
+          zip (lines s ++ repeat (replicate l ' '))
+              (lines s' ++ repeat (replicate l' ' '))
+
       -- where maximum (map (length . head . (++ [""]) . lines) cs)
 
 
 draw :: Pattern Char -> Render
-draw pat = Render 1 s $ (intercalate "\n" $ map ((\x -> ('|':x)) .drawLevel) ls)
+draw pat = Render 1 s (intercalate "\n" $ map (('|' :) .drawLevel) ls)
   where ls = levels pat
         s = stepcount pat
         rs = toRational s
@@ -183,8 +193,8 @@ draw pat = Render 1 s $ (intercalate "\n" $ map ((\x -> ('|':x)) .drawLevel) ls)
         f (' ', x) = x
         f (x, _) = x
         drawEvent :: Event Char -> String
-        drawEvent ev = (replicate (floor $ rs * evStart) ' ')
-                       ++ (value ev:(replicate ((floor $ rs * (evStop - evStart)) - 1) '-'))
+        drawEvent ev = replicate (floor $ rs * evStart) ' '
+                       ++ (value ev:replicate (floor (rs * (evStop - evStart)) - 1) '-')
           where evStart = start $ wholeOrPart ev
                 evStop = stop $ wholeOrPart ev
 

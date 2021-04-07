@@ -25,8 +25,8 @@ data Config = Config {cCtrlListen :: Bool,
                       cTempoAddr :: String,
                       cTempoPort :: Int,
                       cTempoClientPort :: Int,
-                      cSendParts :: Bool,
-                      cSkipTicks :: Int
+                      cSkipTicks :: Int,
+                      cVerbose :: Bool
                      }
 
 defaultConfig :: Config
@@ -37,6 +37,6 @@ defaultConfig = Config {cCtrlListen = True,
                         cTempoAddr = "127.0.0.1",
                         cTempoPort = 9160,
                         cTempoClientPort = 0, -- choose at random
-                        cSendParts = False,
-                        cSkipTicks = 10
+                        cSkipTicks = 10,
+                        cVerbose = True
                        }

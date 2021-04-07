@@ -62,19 +62,20 @@ run =
           in
             compareP overTimeSpan testMe expectedResult
 
-      it "does nothing when set at 0% probability -- const" $ do
-        let
-          overTimeSpan = (Arc 0  2)
-          testMe = sometimesBy 0 (const $ s "cp") (s "bd*8")
-          expectedResult = s "bd*8"
-          in
-            compareP overTimeSpan testMe expectedResult
-
       it "applies the 'rev' function when set at 100% probability" $ do
         let
           overTimeSpan = (Arc 0  1)
           testMe = sometimesBy 1 (rev) (ps "bd*2 hh cp")
           expectedResult = ps "cp hh bd*2"
+          in
+            compareP overTimeSpan testMe expectedResult
+
+    describe "sometimesBy'" $ do
+      it "does nothing when set at 0% probability -- using const" $ do
+        let
+          overTimeSpan = (Arc 0  2)
+          testMe = sometimesBy' 0 (const $ s "cp") (s "bd*8")
+          expectedResult = s "bd*8"
           in
             compareP overTimeSpan testMe expectedResult
 
@@ -148,6 +149,25 @@ run =
           (rot (1) "a ~ [b [c ~ d]] [e <f g>]" :: Pattern String)
           ( "b ~ [c [d ~ e]] [<f g> a]" :: Pattern String)
 
+    describe "ply" $ do
+      it "can ply chords" $ do
+        compareP (Arc 0 1)
+          (ply 3 "[0,1] [3,4,5] 6")
+          ("[0,1]*3 [3,4,5]*3 6*3" :: Pattern Int)
+      it "can pattern the ply factor" $ do
+        compareP (Arc 0 1)
+          (ply "3 4 5" "[0,1] [3,4,5] 6")
+          ("[0,1]*3 [3,4,5]*4 6*5" :: Pattern Int)
+    describe "press" $ do
+      it "can syncopate a pattern" $ do
+        compareP (Arc 0 1)
+          (press "a b [c d] e")
+          ("[~ a] [~ b] [[~ c] [~ d]] [~ e]" :: Pattern String)
+    describe "pressBy" $ do
+      it "can syncopate a pattern by a given amount" $ do
+        compareP (Arc 0 1)
+          (pressBy (1/3) "a b [~ c]")
+          ("[~ a@2] [~ b@2] [~ [~ c@2]]" :: Pattern String)
     describe "fix" $ do
       it "can apply functions conditionally" $ do
         compareP (Arc 0 1)
@@ -185,7 +205,7 @@ run =
     describe "contrastRange" $ do
       it "matches using a pattern of ranges" $ do
         compareP (Arc 0 1)
-          (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VF 0 Nothing, VF 3 Nothing)) $ s "bd" >| n "1 4")
+          (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VN 0, VN 3)) $ s "bd" >| n "1 4")
           (s "bd" >| n "1 4" >| crush "3 0")
 
     describe "euclidFull" $ do
@@ -264,6 +284,10 @@ run =
         compareP (Arc 0 4)
           (bite 4 "0 2*2" (Sound.Tidal.Core.run 8))
           ("[0 1] [4 5]*2" :: Pattern Int)
+      it "can slice a pattern into patternable bits number" $ do
+        compareP (Arc 0 4)
+          (bite "8 4" "0 2*2" (Sound.Tidal.Core.run 8))
+          ("[0] [4 5]*2" :: Pattern Int)
 
     describe "chooseBy" $ do
       it "chooses from elements based on closest scaled double value" $ do
@@ -289,13 +313,28 @@ run =
           (arpeggiate $ "[0,0]*2")
           ("0 0 0 0" :: Pattern Int)
 
+    describe "chunk" $ do
+      it "can chunk a rev pattern" $ do
+        compareP (Arc 0 4)
+          (chunk 2 (rev) $  ("a b c d" :: Pattern String))
+          (slow 2 $ "d c c d a b b a" :: Pattern String)
+      it "can chunk a fast pattern" $ do
+        compareP (Arc 0 4)
+          (chunk 2 (fast 2) $ "a b" :: Pattern String)
+          (slow 2 $ "a b b _ a _ a b" :: Pattern String)
 
-      describe "chunk" $ do
-        it "can chunk a rev pattern" $ do
-          compareP (Arc 0 4)
-            (chunk 2 (rev) $  ("a b c d" :: Pattern String))
-            (slow 2 $ "d c c d a b b a" :: Pattern String)
-        it "can chunk a fast pattern" $ do
-          compareP (Arc 0 4)
-            (chunk 2 (fast 2) $ "a b" :: Pattern String)
-            (slow 2 $ "a b b _ a _ a b" :: Pattern String)
+    describe "binary" $ do
+      it "converts a number to a pattern of boolean" $ do
+        compareP (Arc 0 1)
+          (binary "128")
+          ("t f f f f f f f" :: Pattern Bool)
+
+    describe "binaryN" $ do
+      it "convert a number to a pattern of boolean of specified length" $ do
+        compareP (Arc 0 1)
+          (binaryN 4 "8")
+          ("t f f f" :: Pattern Bool)
+      it "convert a number to a pattern of boolean of specified patternable length" $ do
+        compareP (Arc 0 2)
+          (binaryN "<4 8>" "8")
+          (cat ["t f f f", "f f f f t f f f"] :: Pattern Bool)

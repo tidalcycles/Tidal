@@ -249,7 +249,7 @@ run =
 
     describe "controlI" $ do
       it "can retrieve values from state" $
-       (query (pure 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (pure $ VF 0.5 Nothing)))
+       (query (pure 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (VF 0.5)))
        `shouldBe` [(Event (Context []) (Just $ Arc (0 % 1) (1 % 1)) (Arc (0 % 1) (1 % 1)) 3.5)]
 
     describe "wholeStart" $ do 
@@ -457,51 +457,51 @@ run =
 
     describe "applyFIS" $ do 
       it "apply Float function when value of type VF" $ do 
-        let res = applyFIS (+1) (+1) (++ "1") (VF 1 Nothing)
-        property $ (VF 2.0 Nothing) === res
+        let res = applyFIS (+1) (+1) (++ "1") (VF 1)
+        property $ (VF 2.0) === res
       it "apply Int function when value of type VI" $ do 
-        let res = applyFIS (+1) (+1) (++ "1") (VI 1 Nothing)
-        property $ (VI 2 Nothing) === res
+        let res = applyFIS (+1) (+1) (++ "1") (VI 1)
+        property $ (VI 2) === res
       it "apply String function when value of type VS" $ do
-        let res = applyFIS (+1) (+1) (++ "1") (VS "1" Nothing)
-        property $ (VS "11" Nothing) === res 
+        let res = applyFIS (+1) (+1) (++ "1") (VS "1")
+        property $ (VS "11") === res 
 
     describe "fNum2" $ do
       it "apply Int function for two Int values" $ do 
-        let res = fNum2 (+) (+) (VI 2 Nothing) (VI 3 Nothing)
-        property $ (VI 5 Nothing) === res 
+        let res = fNum2 (+) (+) (VI 2) (VI 3)
+        property $ (VI 5) === res 
       it "apply float function when given two float values" $ do 
-        let res = fNum2 (+) (+) (VF 2 Nothing) (VF 3 Nothing)
-        property $ (VF 5.0 Nothing) === res 
+        let res = fNum2 (+) (+) (VF 2) (VF 3)
+        property $ (VF 5.0) === res 
       it "apply float function when one float and one int value given" $ do
-        let res = fNum2 (+) (+) (VF 2 Nothing) (VI 3 Nothing) 
-        property $ (VF 5.0 Nothing) === res 
+        let res = fNum2 (+) (+) (VF 2) (VI 3) 
+        property $ (VF 5.0) === res 
 
     describe "getI" $ do 
       it "get Just value when Int value is supplied" $ do
-        let res = getI (VI 3 Nothing)
+        let res = getI (VI 3)
         property $ (Just 3) === res
       it "get floored value when float value is supplied" $ do
-        let res = getI (VF 3.5 Nothing)
+        let res = getI (VF 3.5)
         property $ (Just 3) === res
-      it "get Nothing if String value is supplied" $ do
-        let res = getI (VS "3" Nothing)
+      it "get if String value is supplied" $ do
+        let res = getI (VS "3")
         property $ Nothing === res
 
     describe "getF" $ do 
      it "get Just value when Float value is supplied" $ do
-       let res = getF (VF 3 Nothing)
+       let res = getF (VF 3)
        property $ (Just 3.0) === res
      it "get converted value if Int value is supplied" $ do
-       let res = getF (VI 3 Nothing)
+       let res = getF (VI 3)
        property $ (Just 3.0) === res
 
     describe "getS" $ do 
      it "get Just value when String value is supplied" $ do
-       let res = getS (VS "Tidal" Nothing)
+       let res = getS (VS "Tidal")
        property $ (Just "Tidal") === res
      it "get Nothing if Int value is not supplied" $ do
-       let res = getS (VI 3 Nothing) 
+       let res = getS (VI 3) 
        property $ Nothing === res
 
     describe "filterValues" $ do 

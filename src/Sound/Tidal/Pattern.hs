@@ -1,7 +1,8 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleInstances, TypeSynonymInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-
@@ -22,366 +23,49 @@
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-module Sound.Tidal.Pattern where
+module Sound.Tidal.Pattern (module Sound.Tidal.Pattern,
+                            module Sound.Tidal.Time
+                           )
+where
 
 import           Prelude hiding ((<*), (*>))
 
 import           Control.Applicative (liftA2)
---import           Data.Bifunctor (Bifunctor(..))
-import           Data.Data (Data) -- toConstr
 import           GHC.Generics
-import           Data.List (delete, findIndex, sort)
+import           Control.DeepSeq (NFData)
+import           Control.Monad ((>=>))
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
-import           Data.Typeable (Typeable)
-import           Control.DeepSeq (NFData(rnf))
+import           Data.List (delete, findIndex, sort)
 import           Data.Word (Word8)
-import           Sound.Tidal.Utils (matchMaybe)
+import           Data.Data (Data) -- toConstr
+import           Data.Typeable (Typeable)
+
+import           Sound.Tidal.Time
+
 ------------------------------------------------------------------------
 -- * Types
 
--- | Time is rational
-type Time = Rational
-
--- | Note is Double, but with a different parsing
-newtype Note = Note { unNote :: Double } deriving (Typeable, Data, Generic, Eq, Ord, Show, Enum, Num, Fractional)
-instance NFData Note
-
--- | The 'sam' (start of cycle) for the given time value
-sam :: Time -> Time
-sam = fromIntegral . (floor :: Time -> Int)
-
--- | Turns a number into a (rational) time value. An alias for 'toRational'.
-toTime :: Real a => a -> Rational
-toTime = toRational
-
--- | The end point of the current cycle (and starting point of the next cycle)
-nextSam :: Time -> Time
-nextSam = (1+) . sam
-
--- | The position of a time value relative to the start of its cycle.
-cyclePos :: Time -> Time
-cyclePos t = t - sam t
-
--- | An arc of time, with a start time (or onset) and a stop time (or offset)
-data ArcF a = Arc
-  { start :: a
-  , stop :: a
-  } deriving (Eq, Ord, Functor, Show, Generic)
-
-type Arc = ArcF Time
-
-instance NFData a => NFData (ArcF a)
-
-instance Num a => Num (ArcF a) where
-  negate      = fmap negate
-  (+)         = liftA2 (+)
-  (*)         = liftA2 (*)
-  fromInteger = pure . fromInteger
-  abs         = fmap abs
-  signum      = fmap signum
-
-instance (Fractional a) => Fractional (ArcF a) where
-  recip        = fmap recip
-  fromRational = pure . fromRational
-
-sect :: Arc -> Arc -> Arc
-sect (Arc s e) (Arc s' e') = Arc (max s s') (min e e')
-
--- | convex hull union
-hull :: Arc -> Arc -> Arc
-hull (Arc s e) (Arc s' e') = Arc (min s s') (max e e')
-
--- | @subArc i j@ is the timespan that is the intersection of @i@ and @j@.
--- intersection
--- The definition is a bit fiddly as results might be zero-width, but
--- not at the end of an non-zero-width arc - e.g. (0,1) and (1,2) do
--- not intersect, but (1,1) (1,1) does.
-subArc :: Arc -> Arc -> Maybe Arc
-subArc a@(Arc s e) b@(Arc s' e')
-  | and [s'' == e'', s'' == e, s < e] = Nothing
-  | and [s'' == e'', s'' == e', s' < e'] = Nothing
-  | s'' <= e'' = Just (Arc s'' e'')
-  | otherwise = Nothing
-  where (Arc s'' e'') = sect a b
-
-subMaybeArc :: Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)
-subMaybeArc (Just a) (Just b) = do sa <- subArc a b
-                                   return $ Just sa
-subMaybeArc _ _ = Just Nothing
-
-instance Applicative ArcF where
-  pure t = Arc t t
-  (<*>) (Arc sf ef) (Arc sx ex) = Arc (sf sx) (ef ex)
-
--- | The arc of the whole cycle that the given time value falls within
-timeToCycleArc :: Time -> Arc
-timeToCycleArc t = Arc (sam t) (sam t + 1)
-
--- | Shifts an arc to the equivalent one that starts during cycle zero
-cycleArc :: Arc -> Arc
-cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e-s))
-
--- | A list of cycle numbers which are included in the given arc
-cyclesInArc :: Integral a => Arc -> [a]
-cyclesInArc (Arc s e)
-  | s > e = []
-  | s == e = [floor s]
-  | otherwise = [floor s .. ceiling e-1]
-
--- | A list of arcs of the whole cycles which are included in the given arc
-cycleArcsInArc :: Arc -> [Arc]
-cycleArcsInArc = map (timeToCycleArc . (toTime :: Int -> Time)) . cyclesInArc
-
--- | Splits the given 'Arc' into a list of 'Arc's, at cycle boundaries.
-arcCycles :: Arc -> [Arc]
-arcCycles (Arc s e) | s >= e = []
-                | sam s == sam e = [Arc s e]
-                | otherwise = Arc s (nextSam s) : arcCycles (Arc (nextSam s) e)
-
--- | Like arcCycles, but returns zero-width arcs
-arcCyclesZW :: Arc -> [Arc]
-arcCyclesZW (Arc s e) | s == e = [Arc s e]
-                  | otherwise = arcCycles (Arc s e)
-
--- | Similar to 'fmap' but time is relative to the cycle (i.e. the
--- sam of the start of the arc)
-mapCycle :: (Time -> Time) -> Arc -> Arc
-mapCycle f (Arc s e) = Arc (sam' + f (s - sam')) (sam' + f (e - sam'))
-         where sam' = sam s
-
--- | @isIn a t@ is @True@ if @t@ is inside
--- the arc represented by @a@.
-isIn :: Arc -> Time -> Bool
-isIn (Arc s e) t = t >= s && t < e
-
-data Context = Context {contextPosition :: [((Int, Int), (Int, Int))]}
-  deriving (Eq, Ord, Generic)
-
-instance NFData Context
-
-combineContexts :: [Context] -> Context
-combineContexts = Context . concatMap contextPosition
-
-setContext :: Context -> Pattern a -> Pattern a
-setContext c pat = withEvents (map (\e -> e {context = c})) pat
-
-withContext :: (Context -> Context) -> Pattern a -> Pattern a
-withContext f pat = withEvents (map (\e -> e {context = f $ context e})) pat
-
-deltaContext :: Int -> Int -> Pattern a -> Pattern a
-deltaContext column line pat = withEvents (map (\e -> e {context = f $ context e})) pat
-  where f :: Context -> Context
-        f (Context xs) = Context $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
-
--- | An event is a value that's active during a timespan. If a whole
--- is present, the part should be equal to or fit inside it.
-data EventF a b = Event
-  { context :: Context
-  , whole :: Maybe a
-  , part :: a
-  , value :: b
-  } deriving (Eq, Ord, Functor, Generic)
-
-type Event a = EventF (ArcF Time) a
-
-instance (NFData a, NFData b) => NFData (EventF a b)
-
-{-instance Bifunctor EventF where
-  bimap f g (Event w p e) = Event (f w) (f p) (g e)
--}
-
-
-isAnalog :: Event a -> Bool
-isAnalog (Event {whole = Nothing}) = True
-isAnalog _ = False
-
-isDigital :: Event a -> Bool
-isDigital = not . isAnalog
-
--- | `True` if an `Event`'s starts is within given `Arc`
-onsetIn :: Arc -> Event a -> Bool
-onsetIn a e = isIn a (wholeStart e)
-
--- | Compares two lists of events, attempting to combine fragmented events in the process
--- for a 'truer' compare
-compareDefrag :: (Ord a) => [Event a] -> [Event a] -> Bool
-compareDefrag as bs = sort (defragParts as) == sort (defragParts bs)
-
--- | Returns a list of events, with any adjacent parts of the same whole combined
-defragParts :: Eq a => [Event a] -> [Event a]
-defragParts [] = []
-defragParts [e] = [e]
-defragParts (e:es) | isJust i = defraged : defragParts (delete e' es)
-                   | otherwise = e : defragParts es
-  where i = findIndex (isAdjacent e) es
-        e' = es !! fromJust i
-        defraged = Event (context e) (whole e) u (value e)
-        u = hull (part e) (part e')
-
--- | Returns 'True' if the two given events are adjacent parts of the same whole
-isAdjacent :: Eq a => Event a -> Event a -> Bool
-isAdjacent e e' = (whole e == whole e')
-                  && (value e == value e')
-                  && ((stop (part e) == start (part e'))
-                      ||
-                      (stop (part e') == start (part e))
-                     )
-
-wholeOrPart :: Event a -> Arc
-wholeOrPart (Event {whole = Just a}) = a
-wholeOrPart e = part e
-
--- | Get the onset of an event's 'whole'
-wholeStart :: Event a -> Time
-wholeStart = start . wholeOrPart
-
--- | Get the offset of an event's 'whole'
-wholeStop :: Event a -> Time
-wholeStop = stop . wholeOrPart
-
--- | Get the onset of an event's 'whole'
-eventPartStart :: Event a -> Time
-eventPartStart = start . part
-
--- | Get the offset of an event's 'part'
-eventPartStop :: Event a -> Time
-eventPartStop = stop . part
-
--- | Get the timespan of an event's 'part'
-eventPart :: Event a -> Arc
-eventPart = part
-
-eventValue :: Event a -> a
-eventValue = value
-
-eventHasOnset :: Event a -> Bool
-eventHasOnset e | isAnalog e = False
-                | otherwise = start (fromJust $ whole e) == start (part e)
-
--- TODO - Is this used anywhere? Just tests, it seems
--- TODO - support 'context' field
-toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
-toEvent (((ws, we), (ps, pe)), v) = Event (Context []) (Just $ Arc ws we) (Arc ps pe) v
-
 -- | an Arc and some named control values
 data State = State {arc :: Arc,
-                    controls :: StateMap
+                    controls :: ValueMap
                    }
 
--- | A function that represents events taking place over time
-type Query a = (State -> [Event a])
-
--- | A datatype that's basically a query
-data Pattern a = Pattern {query :: Query a}
+-- | A datatype representing events taking place over time
+data Pattern a = Pattern {query :: State -> [Event a]}
   deriving Generic
-
-data Value = VS { svalue :: String,   vbus :: Maybe Int }
-           | VF { fvalue :: Double,   vbus :: Maybe Int }
-           | VN { nvalue :: Note,     vbus :: Maybe Int }
-           | VR { rvalue :: Rational, vbus :: Maybe Int }
-           | VI { ivalue :: Int,      vbus :: Maybe Int }
-           | VB { bvalue :: Bool,     vbus :: Maybe Int }
-           | VX { xvalue :: [Word8],  vbus :: Maybe Int } -- Used for OSC 'blobs'
-           deriving (Typeable, Data, Generic)
-
-class Valuable a where
-  toValue :: a -> Value
-
-instance NFData Value
-
-instance Valuable String where
-  toValue a = VS a Nothing
-instance Valuable Double where
-  toValue a = VF a Nothing
-instance Valuable Rational where
-  toValue a = VR a Nothing
-instance Valuable Int where
-  toValue a = VI a Nothing
-instance Valuable Bool where
-  toValue a = VB a Nothing
-instance Valuable [Word8] where
-  toValue a = VX a Nothing
-
-instance Eq Value where
-  (VS x _) == (VS y _) = x == y
-  (VB x _) == (VB y _) = x == y
-  (VF x _) == (VF y _) = x == y
-  (VI x _) == (VI y _) = x == y
-  (VN x _) == (VN y _) = x == y
-  (VR x _) == (VR y _) = x == y
-  (VX x _) == (VX y _) = x == y
-  
-  (VF x _) == (VI y _) = x == fromIntegral y
-  (VI y _) == (VF x _) = x == fromIntegral y
-
-  (VF x _) == (VR y _) = toRational x == y
-  (VR y _) == (VF x _) = toRational x == y
-  (VI x _) == (VR y _) = toRational x == y
-  (VR y _) == (VI x _) = toRational x == y
-
-  _ == _ = False
-  
-instance Ord Value where
-  compare (VS x _) (VS y _) = compare x y
-  compare (VB x _) (VB y _) = compare x y
-  compare (VF x _) (VF y _) = compare x y
-  compare (VN x _) (VN y _) = compare (unNote x) (unNote y)
-  compare (VI x _) (VI y _) = compare x y
-  compare (VR x _) (VR y _) = compare x y
-  compare (VX x _) (VX y _) = compare x y
-
-  compare (VS _ _) _ = LT
-  compare _ (VS _ _) = GT
-  compare (VB _ _) _ = LT
-  compare _ (VB _ _) = GT
-  compare (VX _ _) _ = LT
-  compare _ (VX _ _) = GT
-
-  compare (VF x _) (VI y _) = compare x (fromIntegral y)
-  compare (VI x _) (VF y _) = compare (fromIntegral x) y
-
-  compare (VR x _) (VI y _) = compare x (fromIntegral y)
-  compare (VI x _) (VR y _) = compare (fromIntegral x) y
-
-  compare (VF x _) (VR y _) = compare x (fromRational y)
-  compare (VR x _) (VF y _) = compare (fromRational x) y
-
-  compare (VN x _) (VI y _) = compare x (fromIntegral y)
-  compare (VI x _) (VN y _) = compare (fromIntegral x) y
-
-  compare (VN x _) (VR y _) = compare (unNote x) (fromRational y)
-  compare (VR x _) (VN y _) = compare (fromRational x) (unNote y)
-
-  compare (VF x _) (VN y _) = compare x (unNote y)
-  compare (VN x _) (VF y _) = compare (unNote x) y
-
-
-type StateMap = Map.Map String (Pattern Value)
-type ControlMap = Map.Map String Value
-type ControlPattern = Pattern ControlMap
-
-------------------------------------------------------------------------
--- * Instances
-
 instance NFData a => NFData (Pattern a)
+
+-- type StateMap = Map.Map String (Pattern Value)
+type ControlPattern = Pattern ValueMap
+
+-- * Functor
 
 instance Functor Pattern where
   -- | apply a function to all the values in a pattern
   fmap f p = p {query = fmap (fmap f) . query p}
 
-applyPatToPat :: (Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)) -> Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPat combineWholes pf px = Pattern q
-    where q st = catMaybes $ concatMap match $ query pf st
-            where
-              match (ef@(Event (Context c) _ fPart f)) =
-                map
-                (\ex@(Event (Context c') _ xPart x) ->
-                  do whole' <- combineWholes (whole ef) (whole ex)
-                     part' <- subArc fPart xPart
-                     return (Event (Context $ c ++ c') whole' part' (f x))
-                )
-                (query px $ st {arc = (wholeOrPart ef)})
+-- * Applicative and friends
 
 instance Applicative Pattern where
   -- | Repeat the given value once per cycle, forever
@@ -389,40 +73,6 @@ instance Applicative Pattern where
     map (\a' -> Event (Context []) (Just a') (sect a a') v) $ cycleArcsInArc a
 
   (<*>) = applyPatToPatBoth
-
-applyPatToPatBoth :: Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPatBoth pf px = Pattern q
-    where q st = catMaybes $ (concatMap match $ query pf st) ++ (concatMap matchX $ query (filterAnalog px) st)
-            where
-              -- match analog events from pf with all events from px
-              match ef@(Event _ Nothing fPart _)   = map (withFX ef) (query px $ st {arc = fPart}) -- analog
-              -- match digital events from pf with digital events from px
-              match ef@(Event _ (Just fWhole) _ _) = map (withFX ef) (query (filterDigital px) $ st {arc = fWhole}) -- digital
-              -- match analog events from px (constrained above) with digital events from px
-              matchX ex@(Event _ Nothing fPart _)  = map (\ef -> withFX ef ex) (query (filterDigital pf) $ st {arc = fPart}) -- digital
-              matchX _ = error "can't happen"
-              withFX ef ex = do whole' <- subMaybeArc (whole ef) (whole ex)
-                                part' <- subArc (part ef) (part ex)
-                                return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
-
-applyPatToPatLeft :: Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPatLeft pf px = Pattern q
-    where q st = catMaybes $ (concatMap match $ query pf st)
-            where
-              match ef = map (withFX ef) (query px $ st {arc = wholeOrPart ef})
-              withFX ef ex = do let whole' = whole ef
-                                part' <- subArc (part ef) (part ex)
-                                return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
-
-applyPatToPatRight :: Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPatRight pf px = Pattern q
-    where q st = catMaybes $ (concatMap match $ query px st)
-            where
-              match ex = map (\ef -> withFX ef ex) (query pf $ st {arc = wholeOrPart ex})
-              withFX ef ex = do let whole' = whole ex
-                                part' <- subArc (part ef) (part ex)
-                                return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
-
 
 -- | Like <*>, but the 'wholes' come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
@@ -433,6 +83,56 @@ applyPatToPatRight pf px = Pattern q
 (*>) = applyPatToPatRight
 
 infixl 4 <*, *>
+applyPatToPat :: (Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)) -> Pattern (a -> b) -> Pattern a -> Pattern b
+applyPatToPat combineWholes pf px = Pattern q
+    where q st = catMaybes $ concatMap match $ query pf st
+            where
+              match ef@(Event (Context c) _ fPart f) =
+                map
+                (\ex@(Event (Context c') _ xPart x) ->
+                  do whole' <- combineWholes (whole ef) (whole ex)
+                     part' <- subArc fPart xPart
+                     return (Event (Context $ c ++ c') whole' part' (f x))
+                )
+                (query px $ st {arc = wholeOrPart ef})
+
+applyPatToPatBoth :: Pattern (a -> b) -> Pattern a -> Pattern b
+applyPatToPatBoth pf px = Pattern q
+    where q st = catMaybes $ (concatMap match $ query pf st) ++ (concatMap matchX $ query (filterAnalog px) st)
+            where
+              -- match analog events from pf with all events from px
+              match ef@(Event _ Nothing fPart _)   = map (withFX ef) (query px $ st {arc = fPart}) -- analog
+              -- match digital events from pf with digital events from px
+              match ef@(Event _ (Just fWhole) _ _) = map (withFX ef) (query (filterDigital px) $ st {arc = fWhole}) -- digital
+              -- match analog events from px (constrained above) with digital events from px
+              matchX ex@(Event _ Nothing fPart _)  = map (`withFX` ex) (query (filterDigital pf) $ st {arc = fPart}) -- digital
+              matchX _ = error "can't happen"
+              withFX ef ex = do whole' <- subMaybeArc (whole ef) (whole ex)
+                                part' <- subArc (part ef) (part ex)
+                                return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
+
+applyPatToPatLeft :: Pattern (a -> b) -> Pattern a -> Pattern b
+applyPatToPatLeft pf px = Pattern q
+    where q st = catMaybes $ concatMap match $ query pf st
+            where
+              match ef = map (withFX ef) (query px $ st {arc = wholeOrPart ef})
+              withFX ef ex = do let whole' = whole ef
+                                part' <- subArc (part ef) (part ex)
+                                return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
+
+applyPatToPatRight :: Pattern (a -> b) -> Pattern a -> Pattern b
+applyPatToPatRight pf px = Pattern q
+    where q st = catMaybes $ concatMap match $ query px st
+            where
+              match ex = map (`withFX` ex) (query pf $ st {arc = wholeOrPart ex})
+              withFX ef ex = do let whole' = whole ex
+                                part' <- subArc (part ef) (part ex)
+                                return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
+
+-- * Monad and friends
+
+-- Note there are four ways of joining - the default 'unwrap' used by @>>=@, as well
+-- as innerJoin, outerJoin and squeezeJoin.
 
 instance Monad Pattern where
   return = pure
@@ -503,28 +203,10 @@ squeezeJoin pp = pp {query = q}
              p' <- subArc oPart iPart
              return (Event (combineContexts [iContext, oContext]) w' p' v)
 
+-- | * Patterns as numbers
+
 noOv :: String -> a
 noOv meth = error $ meth ++ ": not supported for patterns"
-
-class TolerantEq a where
-   (~==) :: a -> a -> Bool
-
-instance TolerantEq Value where
-         (VS a _) ~== (VS b _) = a == b
-         (VI a _) ~== (VI b _) = a == b
-         (VR a _) ~== (VR b _) = a == b
-         (VF a _) ~== (VF b _) = abs (a - b) < 0.000001
-         _ ~== _ = False
-
-instance TolerantEq ControlMap where
-  a ~== b = Map.differenceWith (\a' b' -> if a' ~== b' then Nothing else Just a') a b == Map.empty
-
-instance TolerantEq (Event ControlMap) where
-  (Event _ w p x) ~== (Event _ w' p' x') = w == w' && p == p' && x ~== x'
-
-instance TolerantEq a => TolerantEq [a] where
-  as ~== bs = (length as == length bs) && all (uncurry (~==)) (zip as bs)
-
 
 instance Eq (Pattern a) where
   (==) = noOv "(==)"
@@ -608,17 +290,17 @@ instance (RealFloat a) => RealFloat (Pattern a) where
   isIEEE         = noOv "isIEEE"
   atan2          = liftA2 atan2
 
-instance Num ControlMap where
+instance Num ValueMap where
   negate      = (applyFIS negate negate id <$>)
   (+)         = Map.unionWith (fNum2 (+) (+))
   (*)         = Map.unionWith (fNum2 (*) (*))
-  fromInteger i = Map.singleton "n" $ VI (fromInteger i) Nothing
+  fromInteger i = Map.singleton "n" $ VI (fromInteger i)
   signum      = (applyFIS signum signum id <$>)
   abs         = (applyFIS abs abs id <$>)
 
-instance Fractional ControlMap where
+instance Fractional ValueMap where
   recip        = fmap (applyFIS recip id id)
-  fromRational r = Map.singleton "speed" $ VF (fromRational r) Nothing
+  fromRational r = Map.singleton "speed" $ VF (fromRational r)
 
 ------------------------------------------------------------------------
 -- * Internal functions
@@ -674,57 +356,8 @@ withEvents f p = p {query = f . query p}
 withPart :: (Arc -> Arc) -> Pattern a -> Pattern a
 withPart f = withEvent (\(Event c w p v) -> Event c w (f p) v)
 
--- | Apply one of three functions to a Value, depending on its type
-applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value -> Value
-applyFIS f _ _ (VF f' b) = VF (f f') b
-applyFIS _ f _ (VI i  b) = VI (f i) b
-applyFIS _ _ f (VS s  b) = VS (f s) b
-applyFIS _ _ _ v = v
-
--- | Apply one of two functions to a Value, depending on its type (int
--- or float; strings and rationals are ignored)
-fNum2 :: (Int -> Int -> Int) -> (Double -> Double -> Double) -> Value -> Value -> Value
-fNum2 fInt _      (VI a abus) (VI b bbus) = VI (fInt a b) (matchMaybe abus bbus)
-fNum2 _    fFloat (VF a abus) (VF b bbus) = VF (fFloat a b) (matchMaybe abus bbus)
-fNum2 _    fFloat (VI a abus) (VF b bbus) = VF (fFloat (fromIntegral a) b) (matchMaybe abus bbus)
-fNum2 _    fFloat (VF a abus) (VI b bbus) = VF (fFloat a (fromIntegral b)) (matchMaybe abus bbus)
-fNum2 _    _      x      _      = x
-
-getI :: Value -> Maybe Int
-getI (VI i _) = Just i
-getI (VR x _) = Just $ floor x
-getI (VF x _) = Just $ floor x
-getI _  = Nothing
-
-getF :: Value -> Maybe Double
-getF (VF f _) = Just f
-getF (VR x _) = Just $ fromRational x
-getF (VI x _) = Just $ fromIntegral x
-getF _  = Nothing
-
-getN :: Value -> Maybe Note
-getN (VF f _) = Just $ Note f
-getN (VR x _) = Just $ Note $ fromRational x
-getN (VI x _) = Just $ Note $ fromIntegral x
-getN _  = Nothing
-
-getS :: Value -> Maybe String
-getS (VS s _) = Just s
-getS _  = Nothing
-
-getB :: Value -> Maybe Bool
-getB (VB b _) = Just b
-getB _  = Nothing
-
-getR :: Value -> Maybe Rational
-getR (VR r _) = Just r
-getR (VF x _) = Just $ toRational x
-getR (VI x _) = Just $ toRational x
-getR _  = Nothing
-
-
 _extract :: (Value -> Maybe a) -> String -> ControlPattern -> Pattern a
-_extract f name pat = filterJust $ withValue (\v -> (Map.lookup name v >>= f)) pat
+_extract f name pat = filterJust $ withValue (Map.lookup name >=> f) pat
 
 -- | Extract a pattern of integer values by from a control pattern, given the name of the control
 extractI :: String -> ControlPattern -> Pattern Int
@@ -745,10 +378,6 @@ extractB = _extract getB
 -- | Extract a pattern of rational values by from a control pattern, given the name of the control
 extractR :: String -> ControlPattern -> Pattern Rational
 extractR = _extract getR
-
-getBlob :: Value -> Maybe [Word8]
-getBlob (VX xs _) = Just xs
-getBlob _  = Nothing
 
 compressArc :: Arc -> Pattern a -> Pattern a
 compressArc (Arc s e) p | s > e = empty
@@ -780,6 +409,19 @@ rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 rotR :: Time -> Pattern a -> Pattern a
 rotR t = rotL (negate t)
 
+
+-- | Mark values in the first pattern which match with at least one
+-- value in the second pattern.
+matchManyToOne :: (b -> a -> Bool) -> Pattern a -> Pattern b -> Pattern (Bool, b)
+matchManyToOne f pa pb = pa {query = q}
+  where q st = map match $ query pb st
+          where
+            match ex@(Event xContext xWhole xPart x) =
+              Event (combineContexts $ xContext:map context as') xWhole xPart (any (f x . value) as', x)
+                where as' = as $ start $ wholeOrPart ex
+            as s = query pa $ fQuery s
+            fQuery s = st {arc = Arc s s}
+
 -- ** Event filters
 
 -- | Remove events from patterns that to not meet the given test
@@ -791,7 +433,6 @@ filterValues f p = p {query = filter (f . value) . query p}
 filterJust :: Pattern (Maybe a) -> Pattern a
 filterJust p = fromJust <$> filterValues isJust p
 
--- formerly known as playWhen
 filterWhen :: (Time -> Bool) -> Pattern a -> Pattern a
 filterWhen test p = p {query = filter (test . wholeStart) . query p}
 
@@ -808,7 +449,7 @@ filterAnalog :: Pattern a -> Pattern a
 filterAnalog = filterEvents isAnalog
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
-playFor s e = filterWhen (\t -> (t >= s) && (t < e))
+playFor s e pat = Pattern $ \st -> maybe [] (\a -> query pat (st {arc = a})) $ subArc (Arc s e) (arc st)
 
 -- ** Temporal parameter helpers
 
@@ -824,18 +465,300 @@ tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
 tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 tParamSqueeze f tv p = squeezeJoin $ (`f` p) <$> tv
 
--- | Mark values in the first pattern which match with at least one
--- value in the second pattern.
-matchManyToOne :: (b -> a -> Bool) -> Pattern a -> Pattern b -> Pattern (Bool, b)
-matchManyToOne f pa pb = pa {query = q}
-  where q st = map match $ query pb st
-          where
-            match (ex@(Event xContext xWhole xPart x)) =
-              Event (combineContexts $ xContext:(map context as')) xWhole xPart (any (f x) (map value $ as'), x)
-                where as' = as $ start $ wholeOrPart ex
-            as s = query pa $ fQuery s
-            fQuery s = st {arc = Arc s s}
+-- ** Context
 
--- Set the bus for values within a control pattern
-dial :: Int -> ControlPattern -> ControlPattern
-dial i = fmap (fmap (\v -> v {vbus = Just i}))
+combineContexts :: [Context] -> Context
+combineContexts = Context . concatMap contextPosition
+
+setContext :: Context -> Pattern a -> Pattern a
+setContext c pat = withEvents (map (\e -> e {context = c})) pat
+
+withContext :: (Context -> Context) -> Pattern a -> Pattern a
+withContext f pat = withEvents (map (\e -> e {context = f $ context e})) pat
+
+deltaContext :: Int -> Int -> Pattern a -> Pattern a
+deltaContext column line pat = withEvents (map (\e -> e {context = f $ context e})) pat
+  where f :: Context -> Context
+        f (Context xs) = Context $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
+
+-- ** Events
+
+
+-- | Some context for an event, currently just position within sourcecode
+data Context = Context {contextPosition :: [((Int, Int), (Int, Int))]}
+  deriving (Eq, Ord, Generic)
+instance NFData Context
+
+-- | An event is a value that's active during a timespan. If a whole
+-- is present, the part should be equal to or fit inside it.
+data EventF a b = Event
+  { context :: Context
+  , whole :: Maybe a
+  , part :: a
+  , value :: b
+  } deriving (Eq, Ord, Functor, Generic)
+instance (NFData a, NFData b) => NFData (EventF a b)
+
+type Event a = EventF (ArcF Time) a
+
+-- * Event utilities
+
+isAnalog :: Event a -> Bool
+isAnalog (Event {whole = Nothing}) = True
+isAnalog _ = False
+
+isDigital :: Event a -> Bool
+isDigital = not . isAnalog
+
+-- | `True` if an `Event`'s starts is within given `Arc`
+onsetIn :: Arc -> Event a -> Bool
+onsetIn a e = isIn a (wholeStart e)
+
+-- | Compares two lists of events, attempting to combine fragmented events in the process
+-- for a 'truer' compare
+compareDefrag :: (Ord a) => [Event a] -> [Event a] -> Bool
+compareDefrag as bs = sort (defragParts as) == sort (defragParts bs)
+
+-- | Returns a list of events, with any adjacent parts of the same whole combined
+defragParts :: Eq a => [Event a] -> [Event a]
+defragParts [] = []
+defragParts [e] = [e]
+defragParts (e:es) | isJust i = defraged : defragParts (delete e' es)
+                   | otherwise = e : defragParts es
+  where i = findIndex (isAdjacent e) es
+        e' = es !! fromJust i
+        defraged = Event (context e) (whole e) u (value e)
+        u = hull (part e) (part e')
+
+-- | Returns 'True' if the two given events are adjacent parts of the same whole
+isAdjacent :: Eq a => Event a -> Event a -> Bool
+isAdjacent e e' = (whole e == whole e')
+                  && (value e == value e')
+                  && ((stop (part e) == start (part e'))
+                      ||
+                      (stop (part e') == start (part e))
+                     )
+
+wholeOrPart :: Event a -> Arc
+wholeOrPart (Event {whole = Just a}) = a
+wholeOrPart e = part e
+
+-- | Get the onset of an event's 'whole'
+wholeStart :: Event a -> Time
+wholeStart = start . wholeOrPart
+
+-- | Get the offset of an event's 'whole'
+wholeStop :: Event a -> Time
+wholeStop = stop . wholeOrPart
+
+-- | Get the onset of an event's 'whole'
+eventPartStart :: Event a -> Time
+eventPartStart = start . part
+
+-- | Get the offset of an event's 'part'
+eventPartStop :: Event a -> Time
+eventPartStop = stop . part
+
+-- | Get the timespan of an event's 'part'
+eventPart :: Event a -> Arc
+eventPart = part
+
+eventValue :: Event a -> a
+eventValue = value
+
+eventHasOnset :: Event a -> Bool
+eventHasOnset e | isAnalog e = False
+                | otherwise = start (fromJust $ whole e) == start (part e)
+
+-- TODO - Is this used anywhere? Just tests, it seems
+-- TODO - support 'context' field
+toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
+toEvent (((ws, we), (ps, pe)), v) = Event (Context []) (Just $ Arc ws we) (Arc ps pe) v
+
+ -- Resolves higher order VState values to plain values, by passing through (and changing) state
+resolveState :: ValueMap -> [Event ValueMap] -> (ValueMap, [Event ValueMap])
+resolveState sMap [] = (sMap, [])
+resolveState sMap (e:es) = (sMap'', (e {value = v'}):es')
+  where f sm (VState v) = v sm
+        f sm v = (sm, v)
+        (sMap', v') | eventHasOnset e = Map.mapAccum f sMap (value e)    -- pass state through VState functions
+                    | otherwise = (sMap, Map.filter notVState $ value e) -- filter out VState values without onsets
+        (sMap'', es') = resolveState sMap' es
+        notVState (VState _) = False
+        notVState _ = True
+
+-- ** Values
+
+-- | Polymorphic values
+
+data Value = VS { svalue :: String   }
+           | VF { fvalue :: Double   }
+           | VN { nvalue :: Note     }
+           | VR { rvalue :: Rational }
+           | VI { ivalue :: Int      }
+           | VB { bvalue :: Bool     }
+           | VX { xvalue :: [Word8]  } -- Used for OSC 'blobs'
+           | VPattern {pvalue :: Pattern Value}
+           | VList {lvalue :: [Value]}
+           | VState {statevalue :: ValueMap -> (ValueMap, Value)}
+           deriving (Typeable, Generic)
+
+class Valuable a where
+  toValue :: a -> Value
+instance NFData Value
+
+type ValueMap = Map.Map String Value
+
+-- | Note is Double, but with a different parser
+newtype Note = Note { unNote :: Double } deriving (Typeable, Data, Generic, Eq, Ord, Show, Enum, Num, Fractional, Floating, Real)
+instance NFData Note
+
+instance Valuable String where
+  toValue a = VS a
+instance Valuable Double where
+  toValue a = VF a
+instance Valuable Rational where
+  toValue a = VR a
+instance Valuable Int where
+  toValue a = VI a
+instance Valuable Bool where
+  toValue a = VB a
+instance Valuable [Word8] where
+  toValue a = VX a
+instance Valuable [Value] where
+  toValue a = VList a
+
+instance Eq Value where
+  (VS x) == (VS y) = x == y
+  (VB x) == (VB y) = x == y
+  (VF x) == (VF y) = x == y
+  (VI x) == (VI y) = x == y
+  (VN x) == (VN y) = x == y
+  (VR x) == (VR y) = x == y
+  (VX x) == (VX y) = x == y
+
+  (VF x) == (VI y) = x == fromIntegral y
+  (VI y) == (VF x) = x == fromIntegral y
+
+  (VF x) == (VR y) = toRational x == y
+  (VR y) == (VF x) = toRational x == y
+  (VI x) == (VR y) = toRational x == y
+  (VR y) == (VI x) = toRational x == y
+
+  _ == _ = False
+
+instance Ord Value where
+  compare (VS x) (VS y) = compare x y
+  compare (VB x) (VB y) = compare x y
+  compare (VF x) (VF y) = compare x y
+  compare (VN x) (VN y) = compare (unNote x) (unNote y)
+  compare (VI x) (VI y) = compare x y
+  compare (VR x) (VR y) = compare x y
+  compare (VX x) (VX y) = compare x y
+
+  compare (VS _) _ = LT
+  compare _ (VS _) = GT
+  compare (VB _) _ = LT
+  compare _ (VB _) = GT
+  compare (VX _) _ = LT
+  compare _ (VX _) = GT
+
+  compare (VF x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VF y) = compare (fromIntegral x) y
+
+  compare (VR x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VR y) = compare (fromIntegral x) y
+
+  compare (VF x) (VR y) = compare x (fromRational y)
+  compare (VR x) (VF y) = compare (fromRational x) y
+
+  compare (VN x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VN y) = compare (fromIntegral x) y
+
+  compare (VN x) (VR y) = compare (unNote x) (fromRational y)
+  compare (VR x) (VN y) = compare (fromRational x) (unNote y)
+
+  compare (VF x) (VN y) = compare x (unNote y)
+  compare (VN x) (VF y) = compare (unNote x) y
+
+  -- you can't really compare patterns, state or lists..
+  compare (VPattern _) (VPattern _) = EQ
+  compare (VPattern _) _ = GT
+  compare _ (VPattern _) = LT
+
+  compare (VState _) (VState _) = EQ
+  compare (VState _) _          = GT
+  compare _ (VState _)          = LT
+
+  compare (VList _) (VList _) = EQ
+  compare (VList _) _          = GT
+  compare _ (VList _)          = LT
+
+-- | General utilities..
+
+-- | Apply one of three functions to a Value, depending on its type
+applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value -> Value
+applyFIS f _ _ (VF f') = VF (f f')
+applyFIS f _ _ (VN (Note f')) = VN (Note $ f f')
+applyFIS _ f _ (VI i) = VI (f i)
+applyFIS _ _ f (VS s) = VS (f s)
+applyFIS f f' f'' (VState x) = VState $ \cmap -> (applyFIS f f' f'') <$> (x cmap)
+applyFIS _ _ _ v = v
+
+-- | Apply one of two functions to a pair of Values, depending on their types (int
+-- or float; strings and rationals are ignored)
+fNum2 :: (Int -> Int -> Int) -> (Double -> Double -> Double) -> Value -> Value -> Value
+fNum2 fInt _      (VI a) (VI b) = VI (fInt a b)
+fNum2 _    fFloat (VF a) (VF b) = VF (fFloat a b)
+fNum2 _    fFloat (VN (Note a)) (VN (Note b)) = VN (Note $ fFloat a b)
+fNum2 _    fFloat (VF a) (VN (Note b)) = VN (Note $ fFloat a b)
+fNum2 _    fFloat (VN (Note a)) (VF b) = VN (Note $ fFloat a b)
+fNum2 _    fFloat (VI a) (VF b) = VF (fFloat (fromIntegral a) b)
+fNum2 _    fFloat (VF a) (VI b) = VF (fFloat a (fromIntegral b))
+fNum2 fInt fFloat (VState a) b = VState $ \cmap -> ((\a' -> fNum2 fInt fFloat a' b) <$> (a cmap))
+fNum2 fInt fFloat a (VState b) = VState $ \cmap -> ((\b' -> fNum2 fInt fFloat a b') <$> (b cmap))
+fNum2 _    _      x      _      = x
+
+getI :: Value -> Maybe Int
+getI (VI i) = Just i
+getI (VR x) = Just $ floor x
+getI (VF x) = Just $ floor x
+getI _  = Nothing
+
+getF :: Value -> Maybe Double
+getF (VF f) = Just f
+getF (VR x) = Just $ fromRational x
+getF (VI x) = Just $ fromIntegral x
+getF _  = Nothing
+
+getN :: Value -> Maybe Note
+getN (VF f) = Just $ Note f
+getN (VR x) = Just $ Note $ fromRational x
+getN (VI x) = Just $ Note $ fromIntegral x
+getN _  = Nothing
+
+getS :: Value -> Maybe String
+getS (VS s) = Just s
+getS _  = Nothing
+
+getB :: Value -> Maybe Bool
+getB (VB b) = Just b
+getB _  = Nothing
+
+getR :: Value -> Maybe Rational
+getR (VR r) = Just r
+getR (VF x) = Just $ toRational x
+getR (VI x) = Just $ toRational x
+getR _  = Nothing
+
+getBlob :: Value -> Maybe [Word8]
+getBlob (VX xs) = Just xs
+getBlob _  = Nothing
+
+getList :: Value -> Maybe [Value]
+getList (VList vs) = Just vs
+getList _  = Nothing
+
+valueToPattern :: Value -> Pattern Value
+valueToPattern (VPattern pat) = pat
+valueToPattern v = pure v

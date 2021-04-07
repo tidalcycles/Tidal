@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, BangPatterns #-}
+{-# LANGUAGE FlexibleInstances, BangPatterns #-}
 
 {-
     Core.hs - For functions judged to be 'core' to tidal functionality.
@@ -40,32 +40,76 @@ sig f = Pattern q
           | s > e = []
           | otherwise = [Event (Context []) Nothing (Arc s e) (f (s+((e-s)/2)))]
 
--- | @sine@ returns a 'Pattern' of continuous 'Fractional' values following a
+-- | @sine@ - unipolar sinewave. A pattern of continuous values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
 sine :: Fractional a => Pattern a
 sine = sig $ \t -> (sin_rat ((pi :: Double) * 2 * fromRational t) + 1) / 2
   where sin_rat = fromRational . toRational . sin
 
--- | @cosine@ is a synonym for @0.25 ~> sine@.
+-- | @sine2@ - bipolar sinewave. A pattern of continuous values following a
+-- sinewave with frequency of one cycle, and amplitude from -1 to 1.
+sine2 :: Fractional a => Pattern a
+sine2 = sig $ \t -> sin_rat ((pi :: Double) * 2 * fromRational t)
+  where sin_rat = fromRational . toRational . sin
+
+-- | @cosine@ - unipolar cosine wave. A pattern of continuous values
+-- following a cosine with frequency of one cycle, and amplitude from
+-- 0 to 1. Equivalent to `0.25 ~> sine`.
 cosine :: Fractional a => Pattern a
 cosine = 0.25 `rotR` sine
 
--- | @saw@ is the equivalent of 'sine' for (ascending) sawtooth waves.
+-- | @cosine2@ - bipolar cosine wave. A pattern of continuous values
+-- following a cosine with frequency of one cycle, and amplitude from
+-- -1 to 1. Equivalent to `0.25 ~> sine2`.
+cosine2 :: Fractional a => Pattern a
+cosine2 = 0.25 `rotR` sine
+
+-- | @saw@ - unipolar ascending sawtooth wave. A pattern of continuous values
+-- following a sawtooth with frequency of one cycle, and amplitude from
+-- 0 to 1.
 saw :: (Fractional a, Real a) => Pattern a
 saw = sig $ \t -> mod' (fromRational t) 1
 
--- | @isaw@ is the equivalent of 'sine' for inverse (descending) sawtooth waves.
+-- | @saw2@ - bipolar ascending sawtooth wave. A pattern of continuous values
+-- following a sawtooth with frequency of one cycle, and amplitude from
+-- -1 to 1.
+saw2 :: (Fractional a, Real a) => Pattern a
+saw2 = sig $ \t -> mod' (fromRational t) 1 * 2 - 1
+
+-- | @isaw@ like @saw@, but a descending (inverse) sawtooth.
 isaw :: (Fractional a, Real a) => Pattern a
 isaw = (1-) <$> saw
 
--- | @tri@ is the equivalent of 'sine' for triangular waves.
+-- | @isaw2@ like @saw2@, but a descending (inverse) sawtooth.
+isaw2 :: (Fractional a, Real a) => Pattern a
+isaw2 = (1-) <$> saw
+
+-- | @tri@ - unipolar triangle wave. A pattern of continuous values
+-- following a triangle wave with frequency of one cycle, and amplitude from
+-- 0 to 1.
 tri :: (Fractional a, Real a) => Pattern a
 tri = fastAppend saw isaw
 
--- | @square@ is the equivalent of 'sine' for square waves.
+-- | @tri2@ - bipolar triangle wave. A pattern of continuous values
+-- following a triangle wave with frequency of one cycle, and amplitude from
+-- -1 to 1.
+tri2 :: (Fractional a, Real a) => Pattern a
+tri2 = fastAppend saw isaw
+
+-- | @square@ - unipolar square wave. A pattern of continuous values
+-- following a square wave with frequency of one cycle, and amplitude from
+-- 0 to 1.
+-- | @square@ is like 'sine', for square waves.
 square :: (Fractional a) => Pattern a
 square = sig $
        \t -> fromIntegral ((floor $ mod' (fromRational t :: Double) 1 * 2) :: Integer)
+
+-- | @square2@ - bipolar square wave. A pattern of continuous values
+-- following a square wave with frequency of one cycle, and amplitude from
+-- -1 to 1.
+square2 :: (Fractional a) => Pattern a
+square2 = sig $
+       \t -> fromIntegral (floor (mod' (fromRational t :: Double) 1 * 2) * 2 - 1 :: Integer)
 
 -- | @envL@ is a 'Pattern' of continuous 'Double' values, representing
 -- a linear interpolation between 0 and 1 during the first cycle, then
@@ -97,7 +141,7 @@ class Unionable a where
 instance Unionable a where
   union = const
 
-instance {-# OVERLAPPING #-} Unionable ControlMap where
+instance {-# OVERLAPPING #-} Unionable ValueMap where
   union = Map.union
 
 (|+|) :: (Applicative a, Num b) => a b -> a b -> a b
@@ -215,7 +259,7 @@ append a b = cat [a,b]
 -- in turn, then the second cycle from each, and so on.
 cat :: [Pattern a] -> Pattern a
 cat [] = silence
-cat ps = Pattern $ q
+cat ps = Pattern q
   where n = length ps
         q st = concatMap (f st) $ arcCyclesZW (arc st)
         f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (stop a))}
@@ -332,11 +376,11 @@ rev p =
         })
     }
   where makeWholeRelative :: Event a -> Event a
-        makeWholeRelative (e@(Event {whole = Nothing})) = e
+        makeWholeRelative e@Event {whole = Nothing} = e
         makeWholeRelative (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
           Event c (Just $ Arc (s'-s) (e-e')) p' v
         makeWholeAbsolute :: Event a -> Event a
-        makeWholeAbsolute (e@(Event {whole = Nothing})) = e
+        makeWholeAbsolute e@Event {whole = Nothing} = e
         makeWholeAbsolute (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
           Event c (Just $ Arc (s'-e) (e'+s)) p' v
         midCycle :: Arc -> Time
@@ -450,13 +494,13 @@ _getP_ :: (Value -> Maybe a) -> Pattern Value -> Pattern a
 _getP_ f pat = filterJust $ f <$> pat
 
 _getP :: a -> (Value -> Maybe a) -> Pattern Value -> Pattern a
-_getP d f pat = (fromMaybe d . f) <$> pat
+_getP d f pat = fromMaybe d . f <$> pat
 
 _cX :: a -> (Value -> Maybe a) -> String -> Pattern a
-_cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f) $ Map.lookup s m) a
+_cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f . valueToPattern) $ Map.lookup s m) a
 
 _cX_ :: (Value -> Maybe a) -> String -> Pattern a
-_cX_ f s = Pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f) $ Map.lookup s m) a
+_cX_ f s = Pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f . valueToPattern) $ Map.lookup s m) a
 
 cF :: Double -> String -> Pattern Double
 cF d = _cX d getF

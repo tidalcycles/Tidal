@@ -1,5 +1,7 @@
 module Sound.Tidal.Version where
 
+import Paths_tidal
+
 {-
     Version.hs - For giving the current tidal version.
     Copyright (C) 2020, Alex McLean and contributors
@@ -19,4 +21,12 @@ module Sound.Tidal.Version where
 -}
 
 tidal_version :: String
-tidal_version = "1.6.2"
+tidal_version = "1.7.3"
+
+tidal_status :: IO ()
+tidal_status = tidal_status_string >>= putStrLn 
+
+tidal_status_string :: IO String
+tidal_status_string = do datadir <- getDataDir
+                         return $ "[TidalCycles version " ++ tidal_version ++ "]\nInstalled in " ++ datadir
+

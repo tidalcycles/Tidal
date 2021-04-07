@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns -fno-warn-orphans #-}
-{-# LANGUAGE RecordWildCards #-}
+
 
 module Sound.Tidal.Tempo where
 
@@ -57,7 +57,7 @@ data State = State {ticks   :: Int,
 changeTempo :: MVar Tempo -> (O.Time -> Tempo -> Tempo) -> IO Tempo
 changeTempo tempoMV f = do t <- O.time
                            tempo <- takeMVar tempoMV
-                           let tempo' = f t $ tempo
+                           let tempo' = f t tempo
                            sendTempo tempo'
                            putMVar tempoMV tempo'
                            return tempo'
@@ -99,9 +99,9 @@ timeToCycles tempo t = atCycle tempo + toRational cycleDelta
         cycleDelta = realToFrac (cps tempo) * delta
 
 cyclesToTime :: Tempo -> Rational -> O.Time
-cyclesToTime tempo cyc = atTime tempo + (fromRational timeDelta)
+cyclesToTime tempo cyc = atTime tempo + fromRational timeDelta
   where cycleDelta = cyc - atCycle tempo
-        timeDelta = cycleDelta / (toRational $ cps tempo)
+        timeDelta = cycleDelta / toRational (cps tempo)
 
 {-
 getCurrentCycle :: MVar Tempo -> IO Rational
@@ -126,7 +126,7 @@ clocked config tempoMV callback
         frameTimespan = cFrameTimespan config
         loop st =
           do -- putStrLn $ show $ nowArc ts
-             tempo <- readMVar tempoMV               
+             tempo <- readMVar tempoMV
              t <- O.time
              let logicalT ticks' = start st + fromIntegral ticks' *  frameTimespan
                  logicalNow = logicalT $ ticks st + 1
@@ -140,9 +140,9 @@ clocked config tempoMV callback
              t' <- O.time
              let actualTick = floor $ (t' - start st) / frameTimespan
                  -- reset ticks if ahead/behind by skipTicks or more
-                 ahead = (abs $ actualTick - ticks st) > (cSkipTicks config)
+                 ahead = abs (actualTick - ticks st) > cSkipTicks config
                  newTick | ahead = actualTick
-                         | otherwise = (ticks st) + 1
+                         | otherwise = ticks st + 1
                  st' = st {ticks = newTick,
                            nowArc = P.Arc s e,
                            nowTimespan = (logicalNow,  logicalNow + frameTimespan),
@@ -156,7 +156,7 @@ clocked config tempoMV callback
                       )-}
              loop st'
 
-clientListen :: Config -> MVar Tempo -> O.Time -> IO (ThreadId)
+clientListen :: Config -> MVar Tempo -> O.Time -> IO ThreadId
 clientListen config tempoMV s =
   do -- Listen on random port
      let tempoClientPort = cTempoClientPort config
@@ -172,8 +172,7 @@ clientListen config tempoMV s =
      O.sendTo local (O.p_message "/hello" []) remote
      -- Make tempo mvar
      -- Listen to tempo changes
-     tempoChild <- forkIO $ listenTempo local tempoMV
-     return tempoChild
+     forkIO $ listenTempo local tempoMV
 
 sendTempo :: Tempo -> IO ()
 sendTempo tempo = O.sendTo (localUDP tempo) (O.p_bundle (atTime tempo) [m]) (remoteAddr tempo)
@@ -181,7 +180,7 @@ sendTempo tempo = O.sendTo (localUDP tempo) (O.p_bundle (atTime tempo) [m]) (rem
                                              O.Float $ realToFrac $ cps tempo,
                                              O.Int32 $ if paused tempo then 1 else 0
                                             ]
-  
+
 listenTempo :: O.UDP -> MVar Tempo -> IO ()
 listenTempo udp tempoMV = forever $ do pkt <- O.recvPacket udp
                                        act Nothing pkt
@@ -216,20 +215,20 @@ serverListen config = catchAny run (\_ -> return Nothing) -- probably just alrea
         act :: O.UDP -> N.SockAddr -> Maybe O.Time -> ([N.SockAddr], O.Packet) -> O.Packet -> IO ([N.SockAddr], O.Packet)
         act udp c _ (cs,msg) (O.Packet_Bundle (O.Bundle ts ms)) = foldM (act udp c (Just ts)) (cs,msg) $ map O.Packet_Message ms
         act udp c _ (cs,msg) (O.Packet_Message (O.Message "/hello" []))
-          = do O.sendTo udp msg c 
+          = do O.sendTo udp msg c
                return (nub (c:cs),msg)
         act udp _ (Just ts) (cs,_) (O.Packet_Message (O.Message "/transmit/cps/cycle" params)) =
           do let path' = "/cps/cycle"
                  msg' = O.p_bundle ts [O.Message path' params]
              mapM_ (O.sendTo udp msg') cs
              return (cs, msg')
-        act _ x _ (cs,msg) pkt = do writeError $ "Unknown packet (serv): " ++ show pkt ++ " / " ++ (show x)
+        act _ x _ (cs,msg) pkt = do writeError $ "Unknown packet (serv): " ++ show pkt ++ " / " ++ show x
                                     return (cs,msg)
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch
         defaultCpsMessage = do ts <- O.time
-                               return $ O.p_bundle ts [O.Message "/cps/cycle" [O.Float $ 0,
-                                                                               O.Float $ realToFrac $ defaultCps,
+                               return $ O.p_bundle ts [O.Message "/cps/cycle" [O.Float 0,
+                                                                               O.Float $ realToFrac defaultCps,
                                                                                O.Int32 0
                                                                               ]
                                                     ]
