@@ -30,7 +30,7 @@ import           Data.Bits (testBit, Bits, xor, shiftL, shiftR)
 -- import           Control.Monad.Primitive (PrimState, PrimMonad)
 -- import qualified Data.Vector as V
 -- import           Data.Word (Word32)
-import           Data.Ratio ((%))
+import           Data.Ratio ((%), Ratio)
 import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
