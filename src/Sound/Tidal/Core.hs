@@ -343,9 +343,9 @@ density :: Pattern Time -> Pattern a -> Pattern a
 density = fast
 
 _fast :: Time -> Pattern a -> Pattern a
-_fast r p | r == 0 = silence
-          | r < 0 = rev $ _fast (negate r) p
-          | otherwise = withResultTime (/ r) $ withQueryTime (* r) p
+_fast rate pat | rate == 0 = silence
+               | rate < 0 = rev $ _fast (negate rate) pat
+               | otherwise = withResultTime (/ rate) $ withQueryTime (* rate) pat
 
 -- | Slow down a pattern by the given time pattern
 slow :: Pattern Time -> Pattern a -> Pattern a
