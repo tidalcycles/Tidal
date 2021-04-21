@@ -587,6 +587,9 @@ streamHush s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {pattern = silen
 streamUnmuteAll :: Stream -> IO ()
 streamUnmuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = False})
 
+streamUnsoloAll :: Stream -> IO ()
+streamUnsoloAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {solo = False})
+
 streamAll :: Stream -> (ControlPattern -> ControlPattern) -> IO ()
 streamAll s f = do _ <- swapMVar (sGlobalFMV s) f
                    return ()
@@ -667,10 +670,22 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
           = streamUnmute stream k
         act (O.Message "/unmute" (O.ASCII_String k:[]))
           = streamUnmute stream (O.ascii_to_string k)
+        act (O.Message "/solo" (O.Int32 k:[]))
+          = streamSolo stream k
+        act (O.Message "/solo" (O.ASCII_String k:[]))
+          = streamSolo stream (O.ascii_to_string k)
+        act (O.Message "/unsolo" (O.Int32 k:[]))
+          = streamUnsolo stream k
+        act (O.Message "/unsolo" (O.ASCII_String k:[]))
+          = streamUnsolo stream (O.ascii_to_string k)
         act (O.Message "/muteAll" [])
           = streamMuteAll stream
         act (O.Message "/unmuteAll" [])
           = streamUnmuteAll stream
+        act (O.Message "/unsoloAll" [])
+          = streamUnsoloAll stream
+        act (O.Message "/hush" [])
+          = streamHush stream
         act m = hPutStrLn stderr $ "Unhandled OSC: " ++ show m
         add :: String -> Value -> IO ()
         add k v = do sMap <- takeMVar (sStateMV stream)

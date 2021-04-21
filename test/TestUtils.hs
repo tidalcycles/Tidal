@@ -15,6 +15,9 @@ import qualified Data.Map.Strict as Map
 class TolerantEq a where
    (~==) :: a -> a -> Bool
 
+instance TolerantEq Double where
+  a ~== b = abs (a - b) < 0.000001
+
 instance TolerantEq Value where
          (VS a) ~== (VS b) = a == b
          (VI a) ~== (VI b) = a == b

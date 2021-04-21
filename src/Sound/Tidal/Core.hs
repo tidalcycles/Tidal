@@ -62,7 +62,7 @@ cosine = 0.25 `rotR` sine
 -- following a cosine with frequency of one cycle, and amplitude from
 -- -1 to 1. Equivalent to `0.25 ~> sine2`.
 cosine2 :: Fractional a => Pattern a
-cosine2 = 0.25 `rotR` sine
+cosine2 = 0.25 `rotR` sine2
 
 -- | @saw@ - unipolar ascending sawtooth wave. A pattern of continuous values
 -- following a sawtooth with frequency of one cycle, and amplitude from
@@ -82,7 +82,7 @@ isaw = (1-) <$> saw
 
 -- | @isaw2@ like @saw2@, but a descending (inverse) sawtooth.
 isaw2 :: (Fractional a, Real a) => Pattern a
-isaw2 = (1-) <$> saw
+isaw2 = (*(-1)) <$> saw2
 
 -- | @tri@ - unipolar triangle wave. A pattern of continuous values
 -- following a triangle wave with frequency of one cycle, and amplitude from
@@ -94,7 +94,7 @@ tri = fastAppend saw isaw
 -- following a triangle wave with frequency of one cycle, and amplitude from
 -- -1 to 1.
 tri2 :: (Fractional a, Real a) => Pattern a
-tri2 = fastAppend saw isaw
+tri2 = fastAppend saw2 isaw2
 
 -- | @square@ - unipolar square wave. A pattern of continuous values
 -- following a square wave with frequency of one cycle, and amplitude from

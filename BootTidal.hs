@@ -19,6 +19,7 @@ let only = (hush >>)
     mute = streamMute tidal
     unmute = streamUnmute tidal
     unmuteAll = streamUnmuteAll tidal
+    unsoloAll = streamUnsoloAll tidal
     solo = streamSolo tidal
     unsolo = streamUnsolo tidal
     once = streamOnce tidal

@@ -1,5 +1,15 @@
 # TidalCycles log of changes
 
+## 1.7.3 - Symonds Yat
+   * Signed ratio shorthands now supported @ndr_brt
+   * OSC API - mute/unmute stream @mindofmatthew
+   * improve performance of playFor/seqP @yaxu
+   * Expand tests with autodiscovered laws @RSWilli
+   * Add `getState` to BootTidal @mindofmatthew
+   * add fadeTime / fadeInTime / fadeOutTime params for grain envelopes @yaxu
+   * Fix for nrpnn and nrpnv params @yaxu
+   * Disable busses for MIDI parameters @mindofmatthew
+   
 ## 1.7.2 - IKLECTIK c
    * tidal-parse additions and improved errors, haskellish dependency fix @dktr0
    * spring cleaning and delinting, recreated Time.hs, renamed ControlMap toValueMAp @yaxu
