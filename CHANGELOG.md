@@ -1,5 +1,10 @@
 # TidalCycles log of changes
 
+## 1.7.4 - Symonds Yat b
+   * Fixes for bipolar waveforms (sine2, etc) @mindofmatthew
+   * More playback controls for OSC API @mindofmatthew
+   * Disable bus variants for MIDI controls @mindofmatthew
+
 ## 1.7.3 - Symonds Yat
    * Signed ratio shorthands now supported @ndr_brt
    * OSC API - mute/unmute stream @mindofmatthew
