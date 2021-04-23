@@ -469,6 +469,8 @@ doTick fake stream st =
          forM_ ms $ \ m -> send (sListen stream) cx m `E.catch` \ (e :: E.SomeException) -> do
            hPutStrLn stderr $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
 
+     when (tempo /= tempo') $ T.sendTempo tempo'
+
      (tempo', sMap'') `seq` return (tempo', sMap'')
   where modifyState :: ((T.Tempo, ValueMap) -> IO (T.Tempo, ValueMap)) -> IO ()
         modifyState io = E.mask $ \restore -> do
