@@ -452,8 +452,8 @@ pNote = wrapPos $ fmap (fmap Note) $ do s <- sign
                                         let v = applySign s f
                                         do TPat_Stack . map (TPat_Atom Nothing . (+ v)) <$> parseChord
                                            <|> return (TPat_Atom Nothing v)
-                                           <|> do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
-                                           <|> do TPat_Atom Nothing <$> pRatioChar
+                                     <|> do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
+                                     <|> do TPat_Atom Nothing <$> pRatioChar
 
 pBool :: MyParser (TPat Bool)
 pBool = wrapPos $ do oneOf "t1"
