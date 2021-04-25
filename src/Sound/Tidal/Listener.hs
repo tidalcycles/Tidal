@@ -32,7 +32,7 @@ listen = do -- start Haskell interpreter, with input and output mutable variable
             local <- udpServer "127.0.0.1" listenPort
             putStrLn $ "Listening for OSC commands on port " ++ show listenPort
             putStrLn $ "Sending replies to port " ++ show remotePort
-            putStrLn $ "Starting tidal interpreter.. "
+            putStrLn "Starting tidal interpreter.. "
             let remoteTarget = Target {oName = "atom",
                                        oAddress = "127.0.0.1",
                                        oPort = remotePort,
@@ -53,7 +53,7 @@ listen = do -- start Haskell interpreter, with input and output mutable variable
                 st      = State mIn mOut local remote stream
             loop st
               where
-                loop st = 
+                loop st =
                   do -- wait for, read and act on OSC message
                      m <- recvMessage (sLocal st)
                      st' <- act st m
@@ -79,7 +79,7 @@ act st (Just (Message "/code" [ASCII_String a_ident, ASCII_String a_code])) =
        where respond ident (HintOK pat) =
                do T.streamReplace (sStream st) ident pat
                   O.sendTo (sLocal st) (O.p_message "/code/ok" [string ident]) (sRemote st)
-             respond ident (HintError s) = 
+             respond ident (HintError s) =
                O.sendTo (sLocal st) (O.p_message "/code/error" [string ident, string s]) (sRemote st)
 
 act st (Just (Message "/ping" [])) =
@@ -87,8 +87,8 @@ act st (Just (Message "/ping" [])) =
      return st
 
 act st (Just (Message "/cps" [])) =
-  do cps <- getcps (st)
-     O.sendTo (sLocal st) (O.p_message "/cps" [float (cps)]) (sRemote st)
+  do cps <- getcps st
+     O.sendTo (sLocal st) (O.p_message "/cps" [float cps]) (sRemote st)
      return st
 
 act st Nothing = do putStrLn "not a message?"
