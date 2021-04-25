@@ -1,5 +1,6 @@
 module Sound.Tidal.Listener where
 
+import Sound.Tidal.Stream (Target(..))
 import qualified Sound.Tidal.Context as T
 import Sound.Tidal.Hint
 import Sound.OSC.FD as O
@@ -32,8 +33,15 @@ listen = do -- start Haskell interpreter, with input and output mutable variable
             putStrLn $ "Listening for OSC commands on port " ++ show listenPort
             putStrLn $ "Sending replies to port " ++ show remotePort
             putStrLn $ "Starting tidal interpreter.. "
-            let remoteTarget = T.Target "atom" "127.0.0.1" remotePort 0.1 Nothing T.Live
-            stream <- T.startStream T.defaultConfig [(T.superdirtTarget {T.oLatency = 0.1},
+            let remoteTarget = Target {oName = "atom",
+                                       oAddress = "127.0.0.1",
+                                       oPort = remotePort,
+                                       oBusPort = Nothing,
+                                       oLatency = 0.1,
+                                       oWindow = Nothing,
+                                       oSchedule = T.Live,
+                                       oHandshake = True}
+            stream <- T.startStream T.defaultConfig [(T.superdirtTarget {oLatency = 0.1},
                                                       [T.superdirtShape]
                                                      ),
                                                      (remoteTarget,

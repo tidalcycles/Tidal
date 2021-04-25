@@ -20,7 +20,7 @@ executable tidal-listener
                        Sound.Tidal.Hint
   -- other-extensions:
   build-depends:       base ==4.*,
-                       tidal >=1.6.1,
+                       tidal >=1.7.1,
                        hosc,
                        unix,
                        hint,
