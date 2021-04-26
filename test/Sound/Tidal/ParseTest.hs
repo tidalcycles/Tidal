@@ -127,10 +127,18 @@ run =
         compareP (Arc 0 2)
           ("c'major e'minor f'dim7" :: Pattern Int)
           ("c e f" + "'major 'minor 'dim7")
+      it "can parse note chords" $ do
+        compareP (Arc 0 2)
+          ("c'major c'minor" :: Pattern Note)
+          ("'major 'minor")
       it "handle trailing and leading whitespaces" $ do
         compareP (Arc 0 1)
           ("  bd  " :: Pattern String)
           ("bd" :: Pattern String)
+      it "can parse negative ratio shorthands" $ do
+        compareP (Arc 0 1)
+          ("h -h" :: Pattern Double)
+          ("0.5 -0.5" :: Pattern Double)
       it "doesn't crash on zeroes (1)" $ do
         compareP (Arc 0 2)
           ("cp/0" :: Pattern String)

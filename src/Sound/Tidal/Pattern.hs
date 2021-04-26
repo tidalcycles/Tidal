@@ -330,11 +330,11 @@ withResultTime f = withResultArc (\(Arc s e) -> Arc (f s) (f e))
 
 -- | Apply a function to the timespan of the query
 withQueryArc :: (Arc -> Arc) -> Pattern a -> Pattern a
-withQueryArc f p = p {query = query p . (\(State a m) -> State (f a) m)}
+withQueryArc f pat = pat {query = query pat . (\(State a m) -> State (f a) m)}
 
 -- | Apply a function to the time (both start and end) of the query
 withQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
-withQueryTime f = withQueryArc (\(Arc s e) -> Arc (f s) (f e))
+withQueryTime f pat = withQueryArc (\(Arc s e) -> Arc (f s) (f e)) pat
 
 -- | @withEvent f p@ returns a new @Pattern@ with each event mapped over
 -- function @f@.
@@ -449,7 +449,7 @@ filterAnalog :: Pattern a -> Pattern a
 filterAnalog = filterEvents isAnalog
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
-playFor s e = filterWhen (\t -> (t >= s) && (t < e))
+playFor s e pat = Pattern $ \st -> maybe [] (\a -> query pat (st {arc = a})) $ subArc (Arc s e) (arc st)
 
 -- ** Temporal parameter helpers
 
@@ -482,7 +482,6 @@ deltaContext column line pat = withEvents (map (\e -> e {context = f $ context e
         f (Context xs) = Context $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
 
 -- ** Events
-
 
 -- | Some context for an event, currently just position within sourcecode
 data Context = Context {contextPosition :: [((Int, Int), (Int, Int))]}

@@ -287,8 +287,9 @@ substitutePath str cm = parse str
           where (a,b) = break (== '}') xs
 
 getString :: ValueMap -> String -> Maybe String
-getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
-                      where simpleShow :: Value -> String
+getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
+                      where (param, dflt) = break (== '=') s
+                            simpleShow :: Value -> String
                             simpleShow (VS str) = str
                             simpleShow (VI i) = show i
                             simpleShow (VF f) = show f
@@ -299,11 +300,9 @@ getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
                             simpleShow (VState _) = show "<stateful>"
                             simpleShow (VPattern _) = show "<pattern>"
                             simpleShow (VList _) = show "<list>"
-                            (_, dflt) = break (== '=') s
-                            defaultValue :: Maybe String -> Maybe String
-                            defaultValue Nothing | null dflt = Nothing
-                                                 | otherwise = Just $ tail dflt
-                            defaultValue x = x
+                            defaultValue :: String -> Maybe String
+                            defaultValue ('=':dfltVal) = Just dfltVal
+                            defaultValue _ = Nothing
 
 playStack :: PlayMap -> ControlPattern
 playStack pMap = stack $ map pattern active
@@ -470,6 +469,8 @@ doTick fake stream st =
          forM_ ms $ \ m -> send (sListen stream) cx m `E.catch` \ (e :: E.SomeException) -> do
            hPutStrLn stderr $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
 
+     when (tempo /= tempo') $ T.sendTempo tempo'
+
      (tempo', sMap'') `seq` return (tempo', sMap'')
   where modifyState :: ((T.Tempo, ValueMap) -> IO (T.Tempo, ValueMap)) -> IO ()
         modifyState io = E.mask $ \restore -> do
@@ -588,9 +589,15 @@ streamHush s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {pattern = silen
 streamUnmuteAll :: Stream -> IO ()
 streamUnmuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = False})
 
+streamUnsoloAll :: Stream -> IO ()
+streamUnsoloAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {solo = False})
+
 streamAll :: Stream -> (ControlPattern -> ControlPattern) -> IO ()
 streamAll s f = do _ <- swapMVar (sGlobalFMV s) f
                    return ()
+
+streamGet :: Stream -> String -> IO (Maybe Value)
+streamGet s k = Map.lookup k <$> readMVar (sStateMV s)
 
 streamSet :: Valuable a => Stream -> String -> Pattern a -> IO ()
 streamSet s k pat = do sMap <- takeMVar $ sStateMV s
@@ -647,14 +654,40 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
             bufferIndices [] = []
             bufferIndices (x:xs') | x == (O.ASCII_String $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
                                   | otherwise = bufferIndices xs'
-        act (O.Message x (O.Int32 k:v:[]))
-          = act (O.Message x [O.string $ show k,v])
-        act (O.Message _ (O.ASCII_String k:v@(O.Float _):[]))
+        -- External controller commands
+        act (O.Message "/ctrl" (O.Int32 k:v:[]))
+          = act (O.Message "/ctrl" [O.string $ show k,v])
+        act (O.Message "/ctrl" (O.ASCII_String k:v@(O.Float _):[]))
           = add (O.ascii_to_string k) (VF (fromJust $ O.datum_floating v))
-        act (O.Message _ (O.ASCII_String k:O.ASCII_String v:[]))
+        act (O.Message "/ctrl" (O.ASCII_String k:O.ASCII_String v:[]))
           = add (O.ascii_to_string k) (VS (O.ascii_to_string v))
-        act (O.Message _ (O.ASCII_String k:O.Int32 v:[]))
+        act (O.Message "/ctrl" (O.ASCII_String k:O.Int32 v:[]))
           = add (O.ascii_to_string k) (VI (fromIntegral v))
+        -- Stream playback commands
+        act (O.Message "/mute" (O.Int32 k:[]))
+          = streamMute stream k
+        act (O.Message "/mute" (O.ASCII_String k:[]))
+          = streamMute stream (O.ascii_to_string k)
+        act (O.Message "/unmute" (O.Int32 k:[]))
+          = streamUnmute stream k
+        act (O.Message "/unmute" (O.ASCII_String k:[]))
+          = streamUnmute stream (O.ascii_to_string k)
+        act (O.Message "/solo" (O.Int32 k:[]))
+          = streamSolo stream k
+        act (O.Message "/solo" (O.ASCII_String k:[]))
+          = streamSolo stream (O.ascii_to_string k)
+        act (O.Message "/unsolo" (O.Int32 k:[]))
+          = streamUnsolo stream k
+        act (O.Message "/unsolo" (O.ASCII_String k:[]))
+          = streamUnsolo stream (O.ascii_to_string k)
+        act (O.Message "/muteAll" [])
+          = streamMuteAll stream
+        act (O.Message "/unmuteAll" [])
+          = streamUnmuteAll stream
+        act (O.Message "/unsoloAll" [])
+          = streamUnsoloAll stream
+        act (O.Message "/hush" [])
+          = streamHush stream
         act m = hPutStrLn stderr $ "Unhandled OSC: " ++ show m
         add :: String -> Value -> IO ()
         add k v = do sMap <- takeMVar (sStateMV stream)

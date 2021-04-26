@@ -321,12 +321,11 @@ sign  =  do char '-'
          <|> return Positive
 
 intOrFloat :: MyParser Double
-intOrFloat =  do s   <- sign
-                 num <- naturalOrFloat
-                 return (case num of
-                            Right x -> applySign s x
-                            Left  x -> fromIntegral $ applySign s x
-                        )
+intOrFloat = do num <- naturalOrFloat
+                return (case num of
+                  Right x -> x
+                  Left  x -> fromIntegral x
+                  )
 
 parseRhythm :: Parseable a => MyParser (TPat a) -> String -> Either ParseError (TPat a)
 parseRhythm f = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
@@ -439,18 +438,22 @@ pChar :: MyParser (TPat Char)
 pChar = wrapPos $ TPat_Atom Nothing <$> pCharNum
 
 pDouble :: MyParser (TPat Double)
-pDouble = wrapPos $ do f <- choice [intOrFloat, pRatioChar, parseNote] <?> "float"
-                       do TPat_Stack . map (TPat_Atom Nothing . (+ f)) <$> parseChord
-                         <|> return (TPat_Atom Nothing f)
+pDouble = wrapPos $ do s <- sign
+                       f <- choice [intOrFloat, pRatioChar, parseNote] <?> "float"
+                       let v = applySign s f
+                       do TPat_Stack . map (TPat_Atom Nothing . (+ v)) <$> parseChord
+                         <|> return (TPat_Atom Nothing v)
                       <|>
                          do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
 
 pNote :: MyParser (TPat Note)
-pNote = wrapPos $ fmap (fmap Note) $ do f <- choice [intOrFloat, parseNote] <?> "float"
-                                        do TPat_Stack . map (TPat_Atom Nothing . (+ f)) <$> parseChord
-                                           <|> return (TPat_Atom Nothing f)
-                                           <|> do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
-                                           <|> do TPat_Atom Nothing <$> pRatioChar
+pNote = wrapPos $ fmap (fmap Note) $ do s <- sign
+                                        f <- choice [intOrFloat, parseNote] <?> "float"
+                                        let v = applySign s f
+                                        do TPat_Stack . map (TPat_Atom Nothing . (+ v)) <$> parseChord
+                                           <|> return (TPat_Atom Nothing v)
+                                     <|> do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
+                                     <|> do TPat_Atom Nothing <$> pRatioChar
 
 pBool :: MyParser (TPat Bool)
 pBool = wrapPos $ do oneOf "t1"

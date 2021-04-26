@@ -105,6 +105,12 @@ cc = grp [mF "ccn", mF "ccv"]
 nrpn :: Pattern String -> ControlPattern
 nrpn = grp [mI "nrpn", mI "val"]
 
+nrpnn :: Pattern Int -> ControlPattern
+nrpnn = pI "nrpn"
+
+nrpnv :: Pattern Int -> ControlPattern
+nrpnv = pI "val"
+
 grain' :: Pattern String -> ControlPattern
 grain' = grp [mF "begin", mF "end"]
 
