@@ -14,17 +14,22 @@ maintainer:          alex@slab.org
 build-type:          Simple
 extra-source-files:  CHANGELOG.md, README.md
 
-executable tidal-listener
-  main-is:             Sound/Tidal/ListenerMain.hs
-  other-modules:       Sound.Tidal.Listener
+library
+  hs-source-dirs:      src
+  exposed-modules:     Sound.Tidal.Listener
                        Sound.Tidal.Hint
-  -- other-extensions:
-  build-depends:       base ==4.*,
+  build-depends:       base >= 4.7 && < 5,
                        tidal >=1.7.1,
                        hosc,
                        unix,
                        hint,
                        network
-  hs-source-dirs:
-                 src
+  default-language:    Haskell2010
+
+
+executable tidal-listener
+  main-is:             Main.hs
+  build-depends:       base ==4.*,
+                       tidal-listener
+  hs-source-dirs:       app
   default-language:    Haskell2010
