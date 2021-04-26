@@ -188,12 +188,12 @@ draw pat = Render 1 s (intercalate "\n" $ map (('|' :) .drawLevel) ls)
         s = stepcount pat
         rs = toRational s
         drawLevel :: [Event Char] -> String
-        drawLevel [] = replicate s ' '
-        drawLevel (e:es) = map f $ take s $ zip (drawLevel es ++ repeat ' ') (drawEvent e ++ repeat ' ')
-        f (' ', x) = x
+        drawLevel [] = replicate s '.'
+        drawLevel (e:es) = map f $ take s $ zip (drawLevel es ++ repeat '.') (drawEvent e ++ repeat '.')
+        f ('.', x) = x
         f (x, _) = x
         drawEvent :: Event Char -> String
-        drawEvent ev = replicate (floor $ rs * evStart) ' '
+        drawEvent ev = replicate (floor $ rs * evStart) '.'
                        ++ (value ev:replicate (floor (rs * (evStop - evStart)) - 1) '-')
           where evStart = start $ wholeOrPart ev
                 evStop = stop $ wholeOrPart ev
