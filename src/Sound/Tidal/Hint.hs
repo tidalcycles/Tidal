@@ -4,7 +4,6 @@ import           Control.Exception
 import           Language.Haskell.Interpreter as Hint
 import           Sound.Tidal.Context
 import           System.IO
-import           System.Posix.Signals
 import           Control.Concurrent.MVar
 import           Data.List (intercalate,isPrefixOf)
 import           Sound.Tidal.Utils
@@ -16,41 +15,55 @@ instance Show Response where
   show (HintOK p)    = "Ok: " ++ show p
   show (HintError s) = "Error: " ++ s
 
-{-
 runJob :: String -> IO (Response)
 runJob job = do putStrLn $ "Parsing: " ++ job
                 result <- hintControlPattern job
                 let response = case result of
-                      Left err -> Error (show err)
-                      Right p -> OK p
+                      Left err -> HintError (show err)
+                      Right p -> HintOK p
                 return response
--}
 
-libs = ["Prelude","Sound.Tidal.Context", -- ,"Sound.OSC.Datum",
-        "Sound.Tidal.Simple"
-       ]
+libs = [
+    "Sound.Tidal.Context"
+  , "Sound.Tidal.Simple"
+  , "Control.Applicative"
+  , "Data.Bifunctor"
+  , "Data.Bits"
+  , "Data.Bool"
+  , "Data.Char"
+  , "Data.Either"
+  , "Data.Foldable"
+  , "Data.Function"
+  , "Data.Functor"
+  , "Data.Int"
+  , "Data.List"
+  , "Data.Map"
+  , "Data.Maybe"
+  , "Data.Monoid"
+  , "Data.Ord"
+  , "Data.Ratio"
+  , "Data.Semigroup"
+  , "Data.String"
+  , "Data.Traversable"
+  , "Data.Tuple"
+  , "Data.Typeable"
+  , "GHC.Float"
+  , "GHC.Real"
+  ]
 
-{-
+exts = [OverloadedStrings, NoImplicitPrelude]
+
 hintControlPattern  :: String -> IO (Either InterpreterError ControlPattern)
 hintControlPattern s = Hint.runInterpreter $ do
-  Hint.set [languageExtensions := [OverloadedStrings]]
+  Hint.set [languageExtensions := exts]
   Hint.setImports libs
   Hint.interpret s (Hint.as :: ControlPattern)
--}
 
 hintJob  :: MVar String -> MVar Response -> IO ()
 hintJob mIn mOut =
-  do {-installHandler sigINT Ignore Nothing
-     installHandler sigTERM Ignore Nothing
-     installHandler sigPIPE Ignore Nothing
-     installHandler sigHUP Ignore Nothing
-     installHandler sigKILL Ignore Nothing
-     installHandler sigSTOP Ignore Nothing-}
-     result <- catch (do Hint.runInterpreter $ do
-                           --_ <- liftIO $ installHandler sigINT Ignore Nothing
-                           Hint.set [languageExtensions := [OverloadedStrings]]
-                           --Hint.setImports libs
-                           Hint.setImportsQ $ (Prelude.map (\x -> (x, Nothing)) libs) ++ [("Data.Map", Nothing)]
+  do result <- catch (do Hint.runInterpreter $ do
+                           Hint.set [languageExtensions := exts]
+                           Hint.setImports libs
                            hintLoop
                      )
                (\e -> return (Left $ UnknownError $ "exception" ++ show (e :: SomeException)))
@@ -61,7 +74,6 @@ hintJob mIn mOut =
          parseError (WontCompile es) = "Compile error: " ++ (intercalate "\n" (Prelude.map errMsg es))
          parseError (NotAllowed s) = "NotAllowed error: " ++ s
          parseError (GhcException s) = "GHC Exception: " ++ s
-         --parseError _ = "Strange error"
 
      takeMVar mIn
      putMVar mOut response
@@ -71,8 +83,8 @@ hintJob mIn mOut =
                          t <- Hint.typeChecksWithDetails munged
                          interp t munged
                          hintLoop
-           interp (Left errors) _ = do liftIO $ do putMVar mOut $ HintError $ "Didn't typecheck" ++ (concatMap show errors)
-                                                   hPutStrLn stderr $ "error: " ++ (concatMap show errors)
+           interp (Left errors) _ = do liftIO $ do putMVar mOut $ HintError $ "Didn't typecheck " ++ concatMap show errors
+                                                   hPutStrLn stderr $ "error: " ++ concatMap show errors
                                                    takeMVar mIn
                                        return ()
            interp (Right t) s =
