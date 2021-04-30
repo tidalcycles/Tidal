@@ -4,7 +4,6 @@ import           Control.Exception
 import           Language.Haskell.Interpreter as Hint
 import           Sound.Tidal.Context
 import           System.IO
-import           System.Posix.Signals
 import           Control.Concurrent.MVar
 import           Data.List (intercalate,isPrefixOf)
 import           Sound.Tidal.Utils
@@ -24,29 +23,47 @@ runJob job = do putStrLn $ "Parsing: " ++ job
                       Right p -> HintOK p
                 return response
 
-libs = ["Prelude","Sound.Tidal.Context", -- ,"Sound.OSC.Datum",
-        "Sound.Tidal.Simple"
-       ]
+libs = [
+    "Sound.Tidal.Context"
+  , "Sound.Tidal.Simple"
+  , "Control.Applicative"
+  , "Data.Bifunctor"
+  , "Data.Bits"
+  , "Data.Bool"
+  , "Data.Char"
+  , "Data.Either"
+  , "Data.Foldable"
+  , "Data.Function"
+  , "Data.Functor"
+  , "Data.Int"
+  , "Data.List"
+  , "Data.Map"
+  , "Data.Maybe"
+  , "Data.Monoid"
+  , "Data.Ord"
+  , "Data.Ratio"
+  , "Data.Semigroup"
+  , "Data.String"
+  , "Data.Traversable"
+  , "Data.Tuple"
+  , "Data.Typeable"
+  , "GHC.Float"
+  , "GHC.Real"
+  ]
+
+exts = [OverloadedStrings, NoImplicitPrelude]
 
 hintControlPattern  :: String -> IO (Either InterpreterError ControlPattern)
 hintControlPattern s = Hint.runInterpreter $ do
-  Hint.set [languageExtensions := [OverloadedStrings]]
+  Hint.set [languageExtensions := exts]
   Hint.setImports libs
   Hint.interpret s (Hint.as :: ControlPattern)
 
 hintJob  :: MVar String -> MVar Response -> IO ()
 hintJob mIn mOut =
-  do {-installHandler sigINT Ignore Nothing
-     installHandler sigTERM Ignore Nothing
-     installHandler sigPIPE Ignore Nothing
-     installHandler sigHUP Ignore Nothing
-     installHandler sigKILL Ignore Nothing
-     installHandler sigSTOP Ignore Nothing-}
-     result <- catch (do Hint.runInterpreter $ do
-                           --_ <- liftIO $ installHandler sigINT Ignore Nothing
-                           Hint.set [languageExtensions := [OverloadedStrings]]
-                           --Hint.setImports libs
-                           Hint.setImportsQ $ (Prelude.map (\x -> (x, Nothing)) libs) ++ [("Data.Map", Nothing)]
+  do result <- catch (do Hint.runInterpreter $ do
+                           Hint.set [languageExtensions := exts]
+                           Hint.setImports libs
                            hintLoop
                      )
                (\e -> return (Left $ UnknownError $ "exception" ++ show (e :: SomeException)))
