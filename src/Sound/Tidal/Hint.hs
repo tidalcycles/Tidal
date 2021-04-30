@@ -74,7 +74,6 @@ hintJob mIn mOut =
          parseError (WontCompile es) = "Compile error: " ++ (intercalate "\n" (Prelude.map errMsg es))
          parseError (NotAllowed s) = "NotAllowed error: " ++ s
          parseError (GhcException s) = "GHC Exception: " ++ s
-         --parseError _ = "Strange error"
 
      takeMVar mIn
      putMVar mOut response
