@@ -16,27 +16,23 @@ instance Show Response where
   show (HintOK p)    = "Ok: " ++ show p
   show (HintError s) = "Error: " ++ s
 
-{-
 runJob :: String -> IO (Response)
 runJob job = do putStrLn $ "Parsing: " ++ job
                 result <- hintControlPattern job
                 let response = case result of
-                      Left err -> Error (show err)
-                      Right p -> OK p
+                      Left err -> HintError (show err)
+                      Right p -> HintOK p
                 return response
--}
 
 libs = ["Prelude","Sound.Tidal.Context", -- ,"Sound.OSC.Datum",
         "Sound.Tidal.Simple"
        ]
 
-{-
 hintControlPattern  :: String -> IO (Either InterpreterError ControlPattern)
 hintControlPattern s = Hint.runInterpreter $ do
   Hint.set [languageExtensions := [OverloadedStrings]]
   Hint.setImports libs
   Hint.interpret s (Hint.as :: ControlPattern)
--}
 
 hintJob  :: MVar String -> MVar Response -> IO ()
 hintJob mIn mOut =
