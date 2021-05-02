@@ -10,7 +10,7 @@ license-file:        LICENSE
 author:              Lizzie Wilson and Alex McLean
 maintainer:          alex@slab.org
 -- copyright:
--- category:
+category:            Sound
 build-type:          Simple
 extra-source-files:  CHANGELOG.md, README.md
 
