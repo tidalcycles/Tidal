@@ -75,6 +75,7 @@ test-suite tests
   ghc-options: -Wall
   other-modules: Sound.Tidal.ControlTest
                  Sound.Tidal.CoreTest
+                 Sound.Tidal.ChordsTest
                  Sound.Tidal.ParamsTest
                  Sound.Tidal.ParseTest
                  Sound.Tidal.PatternTest
