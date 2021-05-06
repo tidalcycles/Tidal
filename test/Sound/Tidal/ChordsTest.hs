@@ -7,13 +7,7 @@ import Test.Microspec
 
 import Prelude hiding ((<*), (*>))
 
-import Sound.Tidal.Chords
-import Sound.Tidal.ParseBP
 import Sound.Tidal.Pattern
-import           Text.ParserCombinators.Parsec
-import           Text.ParserCombinators.Parsec.Language ( haskellDef )
-import qualified Text.ParserCombinators.Parsec.Token as P
-import qualified Text.Parsec.Prim
 
 run :: Microspec ()
 run =
@@ -22,7 +16,7 @@ run =
         describe "open voiced chords" $ do
             it "can subtract 12 from the first and third element of a list, and sort them in ascending numerical order" $ do
                 compareP (Arc 0 1)
-                    (runParser Sound.Tidal.ParseBP.parseChord 0 "" "major'o")
+                    ("major'o")
                     ("[-12, -5, 4]"::Pattern Rational)
         -- describe "edge cases" $ do
             -- -- fails currently, to fix
