@@ -565,22 +565,25 @@ pE thing = do (n,k,s) <- parens pair
                    return (a, b, c)
 
 pRatio :: MyParser Rational
-pRatio = do s <- sign
-            n <- read <$> many1 digit
-            result <- do char '%'
-                         d <- decimal
-                         return (n%d)
-                      <|>
-                      do char '.'
-                         frac <- many1 digit
-                         -- A hack, but not sure if doing this
-                         -- numerically would be any faster..
-                         return (toRational ((read $ show n ++ "." ++ frac)  :: Double))
-                      <|>
-                      return (n%1)
-            c <- pRatioChar <|> return 1
-            return $ applySign s (result * c)
-         <|> pRatioChar
+pRatio = do 
+  s <- sign
+  r <- do n <- read <$> many1 digit
+          result <- do char '%'
+                       d <- decimal
+                       return (n%d)
+                    <|>
+                    do char '.'
+                       frac <- many1 digit
+                       -- A hack, but not sure if doing this
+                       -- numerically would be any faster..
+                       return (toRational ((read $ show n ++ "." ++ frac) :: Double))
+                    <|>
+                    return (n%1)
+          c <- pRatioChar <|> return 1
+          return (result * c)
+        <|> 
+        pRatioChar
+  return $ applySign s r
 
 pRatioChar :: Fractional a => MyParser a
 pRatioChar = do char 'w'

@@ -330,11 +330,17 @@ run =
           ("t f f f f f f f" :: Pattern Bool)
 
     describe "binaryN" $ do
-      it "convert a number to a pattern of boolean of specified length" $ do
+      it "converts a number to a pattern of boolean of specified length" $ do
         compareP (Arc 0 1)
           (binaryN 4 "8")
           ("t f f f" :: Pattern Bool)
-      it "convert a number to a pattern of boolean of specified patternable length" $ do
+      it "converts a number to a pattern of boolean of specified patternable length" $ do
         compareP (Arc 0 2)
           (binaryN "<4 8>" "8")
           (cat ["t f f f", "f f f f t f f f"] :: Pattern Bool)
+
+    describe "off" $ do
+      it "superimposes and shifts pattern" $ do
+        compareP (Arc 0 1)
+          (off "-e" id $ s "0")
+          (superimpose ("e" <~) $ s "0")
