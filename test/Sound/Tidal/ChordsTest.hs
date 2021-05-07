@@ -8,6 +8,7 @@ import Test.Microspec
 import Prelude hiding ((<*), (*>))
 
 import Sound.Tidal.Pattern
+-- import Sound.Tidal.Params
 
 run :: Microspec ()
 run =
@@ -16,8 +17,8 @@ run =
         describe "open voiced chords" $ do
             it "can subtract 12 from the first and third element of a list, and sort them in ascending numerical order" $ do
                 compareP (Arc 0 1)
-                    ("major'o")
-                    ("[-12, -5, 4]"::Pattern Rational)
+                    ("'major'o")
+                    ("[-12, -5, 4]" :: Pattern Note)
         -- describe "edge cases" $ do
             -- -- fails currently, to fix
             -- it "can do nothing to a 2-note list because there are not enough elements" $ do
