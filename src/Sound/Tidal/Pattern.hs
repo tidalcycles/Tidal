@@ -53,17 +53,12 @@ data State = State {arc :: Arc,
 
 -- | A datatype representing events taking place over time
 data Pattern a = Pattern {query :: State -> [Event a]}
-  deriving Generic
+  deriving (Generic, Functor)
+
 instance NFData a => NFData (Pattern a)
 
 -- type StateMap = Map.Map String (Pattern Value)
 type ControlPattern = Pattern ValueMap
-
--- * Functor
-
-instance Functor Pattern where
-  -- | apply a function to all the values in a pattern
-  fmap f p = p {query = fmap (fmap f) . query p}
 
 -- * Applicative and friends
 
