@@ -8,17 +8,34 @@ import Test.Microspec
 import Prelude hiding ((<*), (*>))
 
 import Sound.Tidal.Pattern
--- import Sound.Tidal.Params
 
 run :: Microspec ()
 run =
-  describe "Sound.Tidal.Scales" $ do
+  describe "Sound.Tidal.Chords" $ do
     describe "chord" $ do
         describe "open voiced chords" $ do
             it "can subtract 12 from the first and third element of a list, and sort them in ascending numerical order" $ do
                 compareP (Arc 0 1)
                     ("'major'o")
                     ("[-12, -5, 4]" :: Pattern Note)
+        describe "chord inversions" $ do
+            it "can add 12 to the first element of a list, and sort in ascending numeric order (1st inversion)" $ do
+                compareP (Arc 0 1)
+                    ("'major'i")
+                    ("[4, 7, 12]" :: Pattern Note)
+            it "can add 12 to the first two elements of a list, and sort in ascending numeric order (2nd inversion)" $ do
+                compareP (Arc 0 1)
+                    ("'major'ii")
+                    ("[7, 12, 16]" :: Pattern Note)
+            it "can add 12 to the first three elements of a list, and sort in ascending numeric order (3rd inversion)" $ do
+                compareP (Arc 0 1)
+                    ("'major'iii")
+                    ("[12, 16, 19]" :: Pattern Note)
+        describe "edge cases" $ do
+            it "gracefully handle an inversion when there are more inversions than notes in the chord (4th inversion of a 3 note chord)" $ do
+                compareP (Arc 0 1)
+                    ("'major'iiii")
+                    ("[16, 19, 24]" :: Pattern Note)
         -- describe "edge cases" $ do
             -- -- fails currently, to fix
             -- it "can do nothing to a 2-note list because there are not enough elements" $ do
