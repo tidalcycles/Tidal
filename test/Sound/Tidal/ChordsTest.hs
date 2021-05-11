@@ -31,6 +31,10 @@ run =
                 compareP (Arc 0 1)
                     ("'major'o")
                     ("[-12, -5, 4]" :: Pattern Note)
+            it "not crash if chord length is < 3" $ do
+                compareP (Arc 0 1)
+                    ("'five'o")
+                    ("[0, 7]" :: Pattern Note)
         describe "chord inversions" $ do
             it "can add 12 to the first element of a list, and sort in ascending numeric order (1st inversion)" $ do
                 compareP (Arc 0 1)

@@ -491,7 +491,7 @@ parseChord = do char '\''
                    o <- length <$> many (char 'o')
                    let chord' = take i $ drop j $ concatMap (\x -> map (+ x) chord) [0,12..]
                    -- open voiced chords
-                   let chordo' = if o > 0 then
+                   let chordo' = if o > 0 && n > 2 then
                                      [ (chord' !! 0 - 12), (chord' !! 2 - 12), (chord' !! 1) ] ++ reverse (take (length chord' - 3) (reverse chord'))
                                  else chord'
                    return chordo'
