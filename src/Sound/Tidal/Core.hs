@@ -26,6 +26,8 @@ import           Data.Fixed (mod')
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (fromMaybe)
 import           Sound.Tidal.Pattern
+import           Data.Ratio ((%))
+import           Sound.Tidal.Utils (enumerate)
 
 -- ** Elemental patterns
 
@@ -259,14 +261,7 @@ append a b = cat [a,b]
 -- in turn, then the second cycle from each, and so on.
 cat :: [Pattern a] -> Pattern a
 cat [] = silence
-cat ps = Pattern q
-  where n = length ps
-        q st = concatMap (f st) $ arcCyclesZW (arc st)
-        f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (stop a))}
-          where p = ps !! i
-                cyc = (floor $ start a) :: Int
-                i = cyc `mod` n
-                offset = (fromIntegral $ cyc - ((cyc - i) `div` n)) :: Time
+cat ps = _slow (toTime $ length ps) $ fastcat ps
 
 -- | Alias for 'cat'
 slowCat :: [Pattern a] -> Pattern a
@@ -290,7 +285,10 @@ fastappend = fastAppend
 -- patterns there are, so the cycles from each are squashed to fit a
 -- single cycle.
 fastCat :: [Pattern a] -> Pattern a
-fastCat ps = _fast (toTime $ length ps) $ cat ps
+fastCat [] = silence
+fastCat xs = stack $ map (\(i, x) -> compressArc (a i) x) $ enumerate xs
+  where a i = Arc (i % len) ((i+1) % len)
+        len = fromIntegral $ length xs
 
 fastcat :: [Pattern a] -> Pattern a
 fastcat = fastCat

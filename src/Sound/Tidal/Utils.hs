@@ -79,8 +79,11 @@ accumulate (x:xs) = scanl (+) x xs
 >>> enumerate ["foo","bar","baz"]
 [(1,"foo"), (2,"bar"), (3,"baz")]
 -}
-enumerate :: [a] -> [(Int, a)]
+enumerate :: (Num a, Enum a) => [b] -> [(a, b)]
 enumerate = zip [0..]
+
+enumerateI :: [b] -> [(Int, b)]
+enumerateI = enumerate
 
 {- | split given list of @a@ by given single a, e.g.
 

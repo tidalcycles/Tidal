@@ -1056,7 +1056,7 @@ randStruct n = splitQueries $ Pattern {query = f}
           where as = map (\(i, Arc s' e') ->
                     (Arc (s' + sam s) (e' + sam s),
                        subArc (Arc s e) (Arc (s' + sam s) (e' + sam s)), i)) $
-                      enumerate $ value $ head $
+                      enumerateI $ value $ head $
                       queryArc (randArcs n) (Arc (sam s) (nextSam s))
                 (Arc s e) = arc st
 
@@ -1398,7 +1398,7 @@ arpg = arpeggiate
 arpWith :: ([EventF (ArcF Time) a] -> [EventF (ArcF Time) b]) -> Pattern a -> Pattern b
 arpWith f p = withEvents munge p
   where munge es = concatMap (spreadOut . f) (groupBy (\a b -> whole a == whole b) $ sortOn whole es)
-        spreadOut xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
+        spreadOut xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerateI xs
         shiftIt n d (Event c (Just (Arc s e)) a' v) =
           do
             a'' <- subArc (Arc newS newE) a'
