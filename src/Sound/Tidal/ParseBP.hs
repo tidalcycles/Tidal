@@ -453,7 +453,7 @@ pNote = wrapPos $ fmap (fmap Note) $ do s <- sign
                                         do TPat_Stack . map (TPat_Atom Nothing . (+ v)) <$> parseChord
                                            <|> return (TPat_Atom Nothing v)
                                      <|> do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
-                                     <|> do TPat_Atom Nothing <$> pRatioChar
+                                     <|> do TPat_Atom Nothing . fromRational <$> pRatio
 
 pBool :: MyParser (TPat Bool)
 pBool = wrapPos $ do oneOf "t1"
@@ -589,7 +589,7 @@ pRatio = do
   return $ applySign s r
 
 pRatioChar :: Fractional a => MyParser a
-pRatioChar = do char 'w'
+pRatioChar = do char 'w';
                 return 1
              <|> do char 'h'
                     return 0.5
