@@ -286,8 +286,8 @@ randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> _irand n
 _splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
 _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure "c")
   where f ev = case Map.lookup "speed" (value ev) of
-                        Nothing -> ev {value = Map.insert "speed" (VF d) (value ev)}
                         (Just (VF s)) -> ev {value = Map.insert "speed" (VF $ d*s) (value ev)}  -- if there is a speed parameter already present
+                        _ -> ev {value = Map.insert "speed" (VF d) (value ev)}
           where d = sz / fromRational (wholeStop ev - wholeStart ev)
                 sz = 1/fromIntegral bits
 
