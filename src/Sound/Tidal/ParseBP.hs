@@ -471,12 +471,6 @@ parseIntNote = do s <- sign
                 where
                   isInt x = x == fromInteger (round x)
 
--- TODO: this seems to be unused
-parseInt :: MyParser Int
-parseInt = do s <- sign
-              i <- integer
-              return $ applySign s $ fromIntegral i
-
 pIntegral :: Integral a => MyParser (TPat a)
 pIntegral = wrapPos $ do i <- parseIntNote
                          do TPat_Stack . map (TPat_Atom Nothing . (+i)) <$> parseChord
