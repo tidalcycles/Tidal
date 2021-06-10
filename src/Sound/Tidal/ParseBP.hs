@@ -464,9 +464,14 @@ pBool = wrapPos $ do oneOf "t1"
 
 parseIntNote  :: Integral i => MyParser i
 parseIntNote = do s <- sign
-                  i <- choice [integer, parseNote]
-                  return $ applySign s $ fromIntegral i
+                  d <- choice [intOrFloat, parseNote]
+                  if isInt d
+                    then return $ applySign s $ round d
+                    else fail "not an integer"
+                where
+                  isInt x = x == fromInteger (round x)
 
+-- TODO: this seems to be unused
 parseInt :: MyParser Int
 parseInt = do s <- sign
               i <- integer
