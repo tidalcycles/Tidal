@@ -1,6 +1,8 @@
 # TidalCycles log of changes
 
 ## 1.7.5 - Dalbeattie
+   * Minor change to _splice so that it respects if the speed parameter was already declared @onthepeakofnormal
+   * Some tests for chords @cleary
    * Remove direct semigroups dependency @yaxu
    * Derive functor for pattern @yaxu
    * Handle negative ratio shorthands for rationals @ndr_brt
