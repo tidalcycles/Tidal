@@ -32,6 +32,8 @@ jobs:
             cabal: 2.4.1.0
           - ghc: 8.0.2
             cabal: 2.4.1.0
+          - ghc: 7.10.3
+            cabal: 2.4.1.0
     name: cabal ${{ matrix.versions.cabal }} - ghc ${{ matrix.versions.ghc }}
     steps:
       - uses: actions/checkout@v2
