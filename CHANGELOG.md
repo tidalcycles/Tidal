@@ -1,5 +1,13 @@
 # TidalCycles log of changes
 
+## 1.7.5 - Dalbeattie
+   * Remove direct semigroups dependency @yaxu
+   * Derive functor for pattern @yaxu
+   * Handle negative ratio shorthands for rationals @ndr_brt
+   * drawLine - draw non-events with periods @yaxu
+   * Parse chord without root note @yaxu
+   * Fix clock sharing between tidal processes @yaxu
+
 ## 1.7.4 - Symonds Yat b
    * Fixes for bipolar waveforms (sine2, etc) @mindofmatthew
    * More playback controls for OSC API @mindofmatthew
