@@ -439,7 +439,7 @@ pChar = wrapPos $ TPat_Atom Nothing <$> pCharNum
 
 pDouble :: MyParser (TPat Double)
 pDouble = wrapPos $ do s <- sign
-                       f <- choice [intOrFloat, pRatioChar, parseNote] <?> "float"
+                       f <- choice [fromRational <$> pRatio, intOrFloat, parseNote] <?> "float"
                        let v = applySign s f
                        do TPat_Stack . map (TPat_Atom Nothing . (+ v)) <$> parseChord
                          <|> return (TPat_Atom Nothing v)
@@ -453,7 +453,7 @@ pNote = wrapPos $ fmap (fmap Note) $ do s <- sign
                                         do TPat_Stack . map (TPat_Atom Nothing . (+ v)) <$> parseChord
                                            <|> return (TPat_Atom Nothing v)
                                      <|> do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
-                                     <|> do TPat_Atom Nothing <$> pRatioChar
+                                     <|> do TPat_Atom Nothing . fromRational <$> pRatio
 
 pBool :: MyParser (TPat Bool)
 pBool = wrapPos $ do oneOf "t1"
@@ -563,6 +563,9 @@ pE thing = do (n,k,s) <- parens pair
                         <|> return (TPat_Atom Nothing 0)
                    return (a, b, c)
 
+pRational :: MyParser (TPat Rational)
+pRational = wrapPos $ TPat_Atom Nothing <$> pRatio
+
 pRatio :: MyParser Rational
 pRatio = do 
   s <- sign
@@ -585,7 +588,7 @@ pRatio = do
   return $ applySign s r
 
 pRatioChar :: Fractional a => MyParser a
-pRatioChar = do char 'w'
+pRatioChar = do char 'w';
                 return 1
              <|> do char 'h'
                     return 0.5
@@ -601,6 +604,3 @@ pRatioChar = do char 'w'
                     return 0.2
              <|> do char 'x'
                     return (1/6)
-
-pRational :: MyParser (TPat Rational)
-pRational = wrapPos $ TPat_Atom Nothing <$> pRatio

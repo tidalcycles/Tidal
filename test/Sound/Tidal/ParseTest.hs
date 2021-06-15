@@ -141,6 +141,10 @@ run =
         compareP (Arc 0 1)
           ("h -h" :: Pattern Double)
           ("0.5 -0.5" :: Pattern Double)
+      it "can parse multiplied ratio shorthands" $ do
+        compareP (Arc 0 1)
+          ("3h -2q 1.5q" :: Pattern Double)
+          ("1.5 -0.5 0.375" :: Pattern Double)
       it "doesn't crash on zeroes (1)" $ do
         compareP (Arc 0 2)
           ("cp/0" :: Pattern String)
