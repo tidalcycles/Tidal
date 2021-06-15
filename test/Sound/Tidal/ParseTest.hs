@@ -2,11 +2,13 @@
 
 module Sound.Tidal.ParseTest where
 
-import TestUtils
 import Test.Microspec
+import TestUtils
+import Control.Exception
 
 import Prelude hiding ((<*), (*>))
 
+import Sound.Tidal.ExceptionsTest (shouldThrow, anyException)
 import Sound.Tidal.Core
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI (_degradeBy)
@@ -151,4 +153,7 @@ run =
         compareP (Arc 0 2)
           ("cp(5,c)" :: Pattern String)
           (silence)
-    where degradeByDefault = _degradeBy 0.5  
+      it "can't parse a floating point number as int" $ do
+        evaluate ("1.5" :: Pattern Int)
+          `shouldThrow` anyException
+    where degradeByDefault = _degradeBy 0.5
