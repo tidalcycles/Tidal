@@ -1,5 +1,10 @@
 # TidalCycles log of changes
 
+## 1.7.6 - Tunnocks
+   * Fix dot shorthand in int patterns so floating point numbers raise an error @ndr-brt
+   * Support factors in ratio shorthand for rational patterns @ndr-brt
+   * support hosc 0.19 @yaxu
+
 ## 1.7.5 - Dalbeattie
    * Minor change to _splice so that it respects if the speed parameter was already declared @onthepeakofnormal
    * Some tests for chords @cleary
