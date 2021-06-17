@@ -1,5 +1,8 @@
 # TidalCycles log of changes
 
+## 1.7.7 - Caramel wafer
+   * Support hosc 0.19 in test suite @yaxu
+
 ## 1.7.6 - Tunnocks
    * Fix dot shorthand in int patterns so floating point numbers raise an error @ndr-brt
    * Support factors in ratio shorthand for rational patterns @ndr-brt
