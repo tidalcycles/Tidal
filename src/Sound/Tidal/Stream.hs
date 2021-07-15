@@ -35,7 +35,8 @@ import qualified Sound.OSC.FD as O
 import qualified Network.Socket          as N
 
 import           Sound.Tidal.Config
-import           Sound.Tidal.Core (stack, silence)
+import           Sound.Tidal.Core (stack, silence, (#))
+import           Sound.Tidal.Params (pS)
 import           Sound.Tidal.Pattern
 import qualified Sound.Tidal.Tempo as T
 import           Sound.Tidal.Utils ((!!!))
@@ -353,14 +354,15 @@ toOSC latency _ e tempo (OSCContext oscpath)
   where cToM :: ((Int,Int),(Int,Int)) -> (Double, Bool, O.Message)
         cToM ((x, y), (x',y')) = (ts,
                                   False, -- bus message ?
-                                  O.Message oscpath $ (O.float delta):(O.float cyc):(map O.int32 [x,y,x',y'])
+                                  O.Message oscpath $ (O.string ident):(O.float delta):(O.float cyc):(map O.int32 [x,y,x',y'])
                                  )
         on = sched tempo $ start $ wholeOrPart e
         off = sched tempo $ stop $ wholeOrPart e
         delta = off - on
         cyc :: Double
         cyc = fromRational $ start $ wholeOrPart e
-        nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
+        nudge = fromMaybe 0 $ Map.lookup "nudge" (value e) >>= getF
+        ident = fromMaybe "unknown" $ Map.lookup "_ident_" (value e) >>= getS
         ts = on + nudge + latency
 
 doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
@@ -538,7 +540,7 @@ streamReplace s k !pat
   = E.catch (do let x = queryArc pat (Arc 0 0)
                 tempo <- readMVar $ sTempoMV s
                 input <- takeMVar $ sStateMV s
-                -- put change time in control input
+                -- put pattern id and change time in control input
                 now <- O.time
                 let cyc = T.timeToCycles tempo now
                 putMVar (sStateMV s) $
@@ -551,8 +553,10 @@ streamReplace s k !pat
           )
     (\(e :: E.SomeException) -> hPutStrLn stderr $ "Error in pattern: " ++ show e
     )
-  where updatePS (Just playState) = do playState {pattern = pat, history = pat:(history playState)}
-        updatePS Nothing = PlayState pat False False [pat]
+  where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
+        updatePS Nothing = PlayState pat' False False [pat']
+        pat' = pat # pS "_ident_" (pure $ show k)
+
 
 streamMute :: Show a => Stream -> a -> IO ()
 streamMute s k = withPatId s (show k) (\x -> x {mute = True})
