@@ -1739,7 +1739,7 @@ _pickF i fs p =  (fs !!! i) p
 -- | @contrast p f f' p'@ splits controlpattern @p'@ in two, applying
 -- the function @f@ to one and @f'@ to the other. This depends on
 -- whether events in it contains values matching with those in @p@.
--- For example in @contrast (n "1") (# crush 3) (# vowel "a") $ n "0 1" # s "bd sn" # speed 3@,
+-- For example in @contrast (# crush 3) (# vowel "a") (n "1") $ n "0 1" # s "bd sn" # speed 3@,
 -- the first event will have the vowel effect applied and the second
 -- will have the crush applied.
 contrast :: (ControlPattern -> ControlPattern) -> (ControlPattern -> ControlPattern)
