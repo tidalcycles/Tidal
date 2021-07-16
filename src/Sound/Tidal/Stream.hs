@@ -362,7 +362,7 @@ toOSC latency _ e tempo (OSCContext oscpath)
         cyc :: Double
         cyc = fromRational $ start $ wholeOrPart e
         nudge = fromMaybe 0 $ Map.lookup "nudge" (value e) >>= getF
-        ident = fromMaybe "unknown" $ Map.lookup "_ident_" (value e) >>= getS
+        ident = fromMaybe "unknown" $ Map.lookup "_id_" (value e) >>= getS
         ts = on + nudge + latency
 
 doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
@@ -555,7 +555,7 @@ streamReplace s k !pat
     )
   where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
         updatePS Nothing = PlayState pat' False False [pat']
-        pat' = pat # pS "_ident_" (pure $ show k)
+        pat' = pat # pS "_id_" (pure $ show k)
 
 
 streamMute :: Show a => Stream -> a -> IO ()

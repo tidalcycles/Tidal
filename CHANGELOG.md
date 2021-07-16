@@ -1,5 +1,8 @@
 # TidalCycles log of changes
 
+## 1.7.8 - Ayatakedai
+   * Add pattern id to patterns as _id_, and send it with /code/highlights
+
 ## 1.7.7 - Caramel wafer
    * Support hosc 0.19 in test suite @yaxu
 
