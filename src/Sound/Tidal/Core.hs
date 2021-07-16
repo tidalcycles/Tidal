@@ -292,6 +292,7 @@ fastappend = fastAppend
 fastCat :: [Pattern a] -> Pattern a
 fastCat ps = _fast (toTime $ length ps) $ cat ps
 
+-- | Alias for @fastCat@
 fastcat :: [Pattern a] -> Pattern a
 fastcat = fastCat
 
@@ -302,6 +303,10 @@ timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) 
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
           arrange _ [] = []
           arrange t ((t',p):tps') = (t,t+t',p) : arrange (t+t') tps'
+
+-- | Alias for @timeCat@
+timecat :: [(Time, Pattern a)] -> Pattern a
+timecat = timeCat
 
 -- | 'overlay' combines two 'Pattern's into a new pattern, so that
 -- their events are combined over time. 
@@ -316,8 +321,6 @@ overlay !p !p' = Pattern $ \st -> query p st ++ query p' st
 -- their events are combined over time.
 stack :: [Pattern a] -> Pattern a
 stack = foldr overlay silence
-
-
 
 -- ** Manipulating time
 
