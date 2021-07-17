@@ -17,8 +17,10 @@ extra-source-files:  CHANGELOG.md, README.md
 library
   hs-source-dirs:      src
   exposed-modules:     Sound.Tidal.Listener
+                       Sound.Tidal.Listener.Config
                        Sound.Tidal.Hint
   build-depends:       base >= 4.7 && < 5,
+                       data-default,
                        tidal >=1.7.1,
                        hosc,
                        unix,
