@@ -471,10 +471,38 @@ setContext c pat = withEvents (map (\e -> e {context = c})) pat
 withContext :: (Context -> Context) -> Pattern a -> Pattern a
 withContext f pat = withEvents (map (\e -> e {context = f $ context e})) pat
 
-deltaContext :: Int -> Int -> Pattern a -> Pattern a
-deltaContext column line pat = withEvents (map (\e -> e {context = f $ context e})) pat
-  where f :: Context -> Context
-        f (Context xs) = Context $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
+-- A hack to add to manipulate source code to add calls to
+-- 'deltaContext' around strings, so events from mininotation know
+-- where they are within a whole tidal pattern
+deltaMini :: String -> String
+deltaMini = outside 0 0
+  where outside :: Int -> Int -> String -> String
+        outside _ _ [] = []
+        outside column line ('"':xs) = "(deltaContext "
+                                         ++ show column
+                                         ++ " "
+                                         ++ show line
+                                         ++ " \""
+                                         ++ inside (column+1) line xs
+        outside _ line ('\n':xs) = '\n':outside 0 (line+1) xs
+        outside column line (x:xs) = x:outside (column+1) line xs
+        inside :: Int -> Int -> String -> String
+        inside _ _ [] = []
+        inside column line ('"':xs) = '"':')':outside (column+1) line xs
+        inside _ line ('\n':xs) = '\n':inside 0 (line+1) xs
+        inside column line (x:xs) = x:inside (column+1) line xs
+
+class Stringy a where
+  deltaContext :: Int -> Int -> a -> a
+
+instance Stringy (Pattern a) where
+  deltaContext column line pat = withEvents (map (\e -> e {context = f $ context e})) pat
+    where f :: Context -> Context
+          f (Context xs) = Context $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
+
+-- deltaContext on an actual (non overloaded) string is a no-op
+instance Stringy String where
+  deltaContext _ _ = id
 
 -- ** Events
 
