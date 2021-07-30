@@ -84,7 +84,7 @@ instance Show Value where
   show (VX xs) = show xs
   show (VPattern pat) = "(" ++ show pat ++ ")"
   show (VState f) = show $ f Map.empty
-  show (VList _) =  "<list>"
+  show (VList vs) = show $ map show vs
 
 instance {-# OVERLAPPING #-} Show ValueMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
