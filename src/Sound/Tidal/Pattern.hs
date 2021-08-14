@@ -297,6 +297,21 @@ instance Fractional ValueMap where
   recip        = fmap (applyFIS recip id id)
   fromRational r = Map.singleton "speed" $ VF (fromRational r)
 
+instance Floating ValueMap
+  where pi = noOv "pi"
+        exp _ = noOv "exp"
+        log _ = noOv "log"
+        sin _ = noOv "sin"
+        cos _ = noOv "cos"
+        asin _ = noOv "asin"
+        acos _ = noOv "acos"
+        atan _ = noOv "atan"
+        sinh _ = noOv "sinh"
+        cosh _ = noOv "cosh"
+        asinh _ = noOv "asinh"
+        acosh _ = noOv "acosh"
+        atanh _ = noOv "atanh"
+
 ------------------------------------------------------------------------
 -- * Internal functions
 
