@@ -141,6 +141,7 @@ minor11sharp = [0,3,7,10,14,18]
 chordTable :: Num a => [(String, [a])]
 chordTable = [("major", major),
               ("maj", major),
+              ("M", major),
               ("aug", aug),
               ("plus", aug),
               ("sharp5", aug),
