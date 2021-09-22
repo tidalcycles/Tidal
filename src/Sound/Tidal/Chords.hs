@@ -115,16 +115,16 @@ sevenFlat10 :: Num a => [a]
 sevenFlat10 = [0,4,7,10,15]
 nineSharp5 :: Num a => [a]
 nineSharp5 = [0,1,13]
-m9sharp5 :: Num a => [a]
-m9sharp5 = [0,1,14]
+minor9sharp5 :: Num a => [a]
+minor9sharp5 = [0,1,14]
 sevenSharp5flat9 :: Num a => [a]
 sevenSharp5flat9 = [0,4,8,10,13]
-m7sharp5flat9 :: Num a => [a]
-m7sharp5flat9 = [0,3,8,10,13]
+minor7sharp5flat9 :: Num a => [a]
+minor7sharp5flat9 = [0,3,8,10,13]
 elevenSharp :: Num a => [a]
 elevenSharp = [0,4,7,10,14,18]
-m11sharp :: Num a => [a]
-m11sharp = [0,3,7,10,14,18]
+minor11sharp :: Num a => [a]
+minor11sharp = [0,3,7,10,14,18]
 
 -- | @chordate cs m n@ selects the @n@th "chord" (a chord is a list of Ints)
 -- from a list of chords @cs@ and transposes it by @m@
@@ -178,6 +178,7 @@ chordTable = [("major", major),
               ("13", thirteen),
               ("minor", minor),
               ("min", minor),
+              ("m", minor),
               ("diminished", diminished),
               ("dim", diminished),
               ("minorSharp5", minorSharp5),
@@ -194,22 +195,30 @@ chordTable = [("major", major),
               ("mSixNine", minorSixNine),
               ("m6by9", minorSixNine),
               ("minor7flat5", minor7flat5),
+              ("minor7f5", minor7flat5),
               ("min7flat5", minor7flat5),
+              ("min7f5", minor7flat5),
               ("m7flat5", minor7flat5),
               ("m7f5", minor7flat5),
               ("minor7", minor7),
               ("min7", minor7),
               ("m7", minor7),
               ("minor7sharp5", minor7sharp5),
+              ("minor7s5", minor7sharp5),
               ("min7sharp5", minor7sharp5),
+              ("min7s5", minor7sharp5),
               ("m7sharp5", minor7sharp5),
               ("m7s5", minor7sharp5),
               ("minor7flat9", minor7flat9),
+              ("minor7f9", minor7flat9),
               ("min7flat9", minor7flat9),
+              ("min7f9", minor7flat9),
               ("m7flat9", minor7flat9),
               ("m7f9", minor7flat9),
               ("minor7sharp9", minor7sharp9),
+              ("minor7s9", minor7sharp9),
               ("min7sharp9", minor7sharp9),
+              ("min7s9", minor7sharp9),
               ("m7sharp9", minor7sharp9),
               ("m7s9", minor7sharp9),
               ("diminished7", diminished7),
@@ -239,16 +248,23 @@ chordTable = [("major", major),
               ("sevenFlat10", sevenFlat10),
               ("7f10", sevenFlat10),
               ("nineSharp5", nineSharp5),
+              ("9sharp5", nineSharp5),
               ("9s5", nineSharp5),
-              ("m9sharp5", m9sharp5),
-              ("m9s5", m9sharp5),
+              ("minor9sharp5", minor9sharp5),
+              ("minor9s5", minor9sharp5),
+              ("min9sharp5", minor9sharp5),
+              ("min9s5", minor9sharp5),
+              ("m9sharp5", minor9sharp5),
+              ("m9s5", minor9sharp5),
               ("sevenSharp5flat9", sevenSharp5flat9),
               ("7s5f9", sevenSharp5flat9),
-              ("m7sharp5flat9", m7sharp5flat9),
+              ("minor7sharp5flat9", minor7sharp5flat9),
+              ("m7sharp5flat9", minor7sharp5flat9),
               ("elevenSharp", elevenSharp),
               ("11s", elevenSharp),
-              ("m11sharp", m11sharp),
-              ("m11s", m11sharp)
+              ("minor11sharp", minor11sharp),
+              ("m11sharp", minor11sharp),
+              ("m11s", minor11sharp)
              ]
 
 chordL :: Num a => Pattern String -> Pattern [a]
