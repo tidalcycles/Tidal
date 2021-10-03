@@ -565,7 +565,7 @@ ifp test f1 f2 p = splitQueries $ p {query = q}
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the
 -- remainer of each cycle.
 wedge :: Pattern Time -> Pattern a -> Pattern a -> Pattern a
-wedge pt pa pb = innerJoin $ (\t -> wedge t pa pb) <$> pt
+wedge pt pa pb = innerJoin $ (\t -> _wedge t pa pb) <$> pt
 
 _wedge :: Time -> Pattern a -> Pattern a -> Pattern a
 _wedge 0 _ p' = p'
