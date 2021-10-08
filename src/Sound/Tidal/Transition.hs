@@ -12,6 +12,7 @@ import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Control
 import Sound.Tidal.Core
+import Sound.Tidal.ID
 import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Stream
@@ -39,12 +40,12 @@ import Sound.Tidal.Utils (enumerate)
 
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 -- the "historyFlag" determines if the new pattern should be placed on the history stack or not
-transition :: Show a => Stream -> Bool -> (Time -> [ControlPattern] -> ControlPattern) -> a -> ControlPattern -> IO ()
+transition :: Stream -> Bool -> (Time -> [ControlPattern] -> ControlPattern) -> ID -> ControlPattern -> IO ()
 transition stream historyFlag f patId !pat =
   do pMap <- takeMVar (sPMapMV stream)
-     let playState = updatePS $ Map.lookup (show patId) pMap
+     let playState = updatePS $ Map.lookup (toID patId) pMap
      pat' <- transition' $ appendPat (not historyFlag) (history playState)
-     let pMap' = Map.insert (show patId) (playState {pattern = pat'}) pMap
+     let pMap' = Map.insert (toID patId) (playState {pattern = pat'}) pMap
      putMVar (sPMapMV stream) pMap'
      return ()
   where
