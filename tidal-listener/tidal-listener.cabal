@@ -19,11 +19,10 @@ library
   exposed-modules:     Sound.Tidal.Listener
                        Sound.Tidal.Listener.Config
                        Sound.Tidal.Hint
-  build-depends:       base >= 4.7 && < 5,
+  build-depends:       base,
                        data-default,
                        tidal >=1.7.1,
                        hosc,
-                       unix,
                        hint,
                        network
   default-language:    Haskell2010
