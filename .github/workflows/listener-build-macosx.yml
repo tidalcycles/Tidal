@@ -3,7 +3,7 @@ name: build-listener-macosx
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "*.*.*"
 
 jobs:
   build:

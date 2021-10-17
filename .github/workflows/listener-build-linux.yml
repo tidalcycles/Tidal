@@ -3,7 +3,7 @@ name: build-listener-linux
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "*.*.*"
 
 jobs:
   build:

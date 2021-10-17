@@ -3,7 +3,7 @@ name: build-listener-windows
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "*.*.*"
 
 jobs:
   build:
