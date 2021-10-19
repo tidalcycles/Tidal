@@ -545,18 +545,18 @@ streamReplace s k !pat
                 now <- O.time
                 let cyc = T.timeToCycles tempo now
                 putMVar (sStateMV s) $
-                  Map.insert ("_t_all") (VR cyc) $ Map.insert ("_t_" ++ toID k) (VR cyc) input
+                  Map.insert ("_t_all") (VR cyc) $ Map.insert ("_t_" ++ unID k) (VR cyc) input
                 -- update the pattern itself
                 pMap <- seq x $ takeMVar $ sPMapMV s
-                let playState = updatePS $ Map.lookup (toID k) pMap
-                putMVar (sPMapMV s) $ Map.insert (toID k) playState pMap
+                let playState = updatePS $ Map.lookup (unID k) pMap
+                putMVar (sPMapMV s) $ Map.insert (unID k) playState pMap
                 return ()
           )
     (\(e :: E.SomeException) -> hPutStrLn stderr $ "Error in pattern: " ++ show e
     )
   where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
         updatePS Nothing = PlayState pat' False False [pat']
-        pat' = pat # pS "_id_" (pure $ toID k)
+        pat' = pat # pS "_id_" (pure $ unID k)
 
 
 streamMute :: Stream -> ID -> IO ()
@@ -577,7 +577,7 @@ streamUnsolo s k = withPatIds s [k] (\x -> x {solo = False})
 withPatIds :: Stream -> [ID] -> (PlayState -> PlayState) -> IO ()
 withPatIds s ks f
   = do playMap <- takeMVar $ sPMapMV s
-       let pMap' = foldr (Map.update (\x -> Just $ f x)) playMap (map toID ks)
+       let pMap' = foldr (Map.update (\x -> Just $ f x)) playMap (map unID ks)
        putMVar (sPMapMV s) pMap'
        return ()
 

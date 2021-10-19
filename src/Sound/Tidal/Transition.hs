@@ -43,9 +43,9 @@ import Sound.Tidal.Utils (enumerate)
 transition :: Stream -> Bool -> (Time -> [ControlPattern] -> ControlPattern) -> ID -> ControlPattern -> IO ()
 transition stream historyFlag f patId !pat =
   do pMap <- takeMVar (sPMapMV stream)
-     let playState = updatePS $ Map.lookup (toID patId) pMap
+     let playState = updatePS $ Map.lookup (unID patId) pMap
      pat' <- transition' $ appendPat (not historyFlag) (history playState)
-     let pMap' = Map.insert (toID patId) (playState {pattern = pat'}) pMap
+     let pMap' = Map.insert (unID patId) (playState {pattern = pat'}) pMap
      putMVar (sPMapMV stream) pMap'
      return ()
   where
