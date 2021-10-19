@@ -20,9 +20,9 @@ module Sound.Tidal.ID (ID(..)) where
 
 import GHC.Exts ( IsString(..) )
 
--- | Typeclass for things that can be coerced to a string and used as an identifier.
--- | Similar to Show, but contrained to strings and integers and designed so that
--- | similar cases (such as 1 and "1") refer to the same value.
+-- | Wrapper for literals that can be coerced to a string and used as an identifier.
+-- | Similar to Show typeclass, but constrained to strings and integers and designed
+-- | so that similar cases (such as 1 and "1") convert to the same value.
 newtype ID = ID { unID :: String }
 
 noOv :: String -> a
