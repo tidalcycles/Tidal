@@ -23,7 +23,7 @@ import GHC.Exts ( IsString(..) )
 -- | Wrapper for literals that can be coerced to a string and used as an identifier.
 -- | Similar to Show typeclass, but constrained to strings and integers and designed
 -- | so that similar cases (such as 1 and "1") convert to the same value.
-newtype ID = ID { unID :: String }
+newtype ID = ID { fromID :: String }
 
 noOv :: String -> a
 noOv meth = error $ meth ++ ": not supported for ids"
