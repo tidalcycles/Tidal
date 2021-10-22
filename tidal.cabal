@@ -33,6 +33,7 @@ library
                        Sound.Tidal.Control
                        Sound.Tidal.Context
                        Sound.Tidal.Core
+                       Sound.Tidal.ID
                        Sound.Tidal.Params
                        Sound.Tidal.ParseBP
                        Sound.Tidal.Pattern

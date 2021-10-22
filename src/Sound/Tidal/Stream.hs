@@ -36,6 +36,7 @@ import qualified Network.Socket          as N
 
 import           Sound.Tidal.Config
 import           Sound.Tidal.Core (stack, silence, (#))
+import           Sound.Tidal.ID
 import           Sound.Tidal.Params (pS)
 import           Sound.Tidal.Pattern
 import qualified Sound.Tidal.Tempo as T
@@ -535,7 +536,7 @@ streamList s = do pMap <- readMVar (sPMapMV s)
 
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 
-streamReplace :: Show a => Stream -> a -> ControlPattern -> IO ()
+streamReplace :: Stream -> ID -> ControlPattern -> IO ()
 streamReplace s k !pat
   = E.catch (do let x = queryArc pat (Arc 0 0)
                 tempo <- readMVar $ sTempoMV s
@@ -544,42 +545,39 @@ streamReplace s k !pat
                 now <- O.time
                 let cyc = T.timeToCycles tempo now
                 putMVar (sStateMV s) $
-                  Map.insert ("_t_all") (VR cyc) $ Map.insert ("_t_" ++ show k) (VR cyc) input
+                  Map.insert ("_t_all") (VR cyc) $ Map.insert ("_t_" ++ fromID k) (VR cyc) input
                 -- update the pattern itself
                 pMap <- seq x $ takeMVar $ sPMapMV s
-                let playState = updatePS $ Map.lookup (show k) pMap
-                putMVar (sPMapMV s) $ Map.insert (show k) playState pMap
+                let playState = updatePS $ Map.lookup (fromID k) pMap
+                putMVar (sPMapMV s) $ Map.insert (fromID k) playState pMap
                 return ()
           )
     (\(e :: E.SomeException) -> hPutStrLn stderr $ "Error in pattern: " ++ show e
     )
   where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
         updatePS Nothing = PlayState pat' False False [pat']
-        pat' = pat # pS "_id_" (pure $ show k)
+        pat' = pat # pS "_id_" (pure $ fromID k)
 
 
-streamMute :: Show a => Stream -> a -> IO ()
-streamMute s k = withPatId s (show k) (\x -> x {mute = True})
+streamMute :: Stream -> ID -> IO ()
+streamMute s k = withPatIds s [k] (\x -> x {mute = True})
 
-streamMutes :: Show a => Stream -> [a] -> IO ()
-streamMutes s ks = withPatIds s (map show ks) (\x -> x {mute = True})
+streamMutes :: Stream -> [ID] -> IO ()
+streamMutes s ks = withPatIds s ks (\x -> x {mute = True})
 
-streamUnmute :: Show a => Stream -> a -> IO ()
-streamUnmute s k = withPatId s (show k) (\x -> x {mute = False})
+streamUnmute :: Stream -> ID -> IO ()
+streamUnmute s k = withPatIds s [k] (\x -> x {mute = False})
 
-streamSolo :: Show a => Stream -> a -> IO ()
-streamSolo s k = withPatId s (show k) (\x -> x {solo = True})
+streamSolo :: Stream -> ID -> IO ()
+streamSolo s k = withPatIds s [k] (\x -> x {solo = True})
 
-streamUnsolo :: Show a => Stream -> a -> IO ()
-streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
+streamUnsolo :: Stream -> ID -> IO ()
+streamUnsolo s k = withPatIds s [k] (\x -> x {solo = False})
 
-withPatId :: Stream -> PatId -> (PlayState -> PlayState) -> IO ()
-withPatId s k f = withPatIds s [k] f
-
-withPatIds :: Stream -> [PatId] -> (PlayState -> PlayState) -> IO ()
+withPatIds :: Stream -> [ID] -> (PlayState -> PlayState) -> IO ()
 withPatIds s ks f
   = do playMap <- takeMVar $ sPMapMV s
-       let pMap' = foldr (Map.update (\x -> Just $ f x)) playMap ks
+       let pMap' = foldr (Map.update (\x -> Just $ f x)) playMap (map fromID ks)
        putMVar (sPMapMV s) pMap'
        return ()
 
@@ -668,22 +666,14 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
         act (O.Message "/ctrl" (O.ASCII_String k:O.Int32 v:[]))
           = add (O.ascii_to_string k) (VI (fromIntegral v))
         -- Stream playback commands
-        act (O.Message "/mute" (O.Int32 k:[]))
-          = streamMute stream k
-        act (O.Message "/mute" (O.ASCII_String k:[]))
-          = streamMute stream (O.ascii_to_string k)
-        act (O.Message "/unmute" (O.Int32 k:[]))
-          = streamUnmute stream k
-        act (O.Message "/unmute" (O.ASCII_String k:[]))
-          = streamUnmute stream (O.ascii_to_string k)
-        act (O.Message "/solo" (O.Int32 k:[]))
-          = streamSolo stream k
-        act (O.Message "/solo" (O.ASCII_String k:[]))
-          = streamSolo stream (O.ascii_to_string k)
-        act (O.Message "/unsolo" (O.Int32 k:[]))
-          = streamUnsolo stream k
-        act (O.Message "/unsolo" (O.ASCII_String k:[]))
-          = streamUnsolo stream (O.ascii_to_string k)
+        act (O.Message "/mute" (k:[]))
+          = withID k $ streamMute stream
+        act (O.Message "/unmute" (k:[]))
+          = withID k $ streamUnmute stream
+        act (O.Message "/solo" (k:[]))
+          = withID k $ streamSolo stream
+        act (O.Message "/unsolo" (k:[]))
+          = withID k $ streamUnsolo stream
         act (O.Message "/muteAll" [])
           = streamMuteAll stream
         act (O.Message "/unmuteAll" [])
@@ -697,6 +687,10 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
         add k v = do sMap <- takeMVar (sStateMV stream)
                      putMVar (sStateMV stream) $ Map.insert k v sMap
                      return ()
+        withID :: O.Datum -> (ID -> IO ()) -> IO ()
+        withID (O.ASCII_String k) func = func $ (ID . O.ascii_to_string) k
+        withID (O.Int32 k) func = func $ (ID . show) k
+        withID _ _ = return ()
 ctrlResponder _ _ _ = return ()
 
 
