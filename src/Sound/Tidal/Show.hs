@@ -78,8 +78,8 @@ instance Show Value where
   show (VS s)  = ('"':s) ++ "\""
   show (VI i)  = show i
   show (VF f)  = show f ++ "f"
-  show (VN n)  = show n ++ "n"
-  show (VR r)  = show r ++ "r"
+  show (VN n)  = show n
+  show (VR r)  = prettyRat r ++ "r"
   show (VB b)  = show b
   show (VX xs) = show xs
   show (VPattern pat) = "(" ++ show pat ++ ")"
