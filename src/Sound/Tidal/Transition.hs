@@ -46,7 +46,7 @@ transition stream historyFlag f patId !pat =
      let playState = updatePS $ Map.lookup (fromID patId) pMap
      pat' <- transition' $ appendPat (not historyFlag) (history playState)
      let pMap' = Map.insert (fromID patId) (playState {pattern = pat'}) pMap
-     swapMVar (sPMapMV stream) pMap'
+     _ <- swapMVar (sPMapMV stream) pMap'
      return ()
   where
     appendPat flag = if flag then (pat:) else id
