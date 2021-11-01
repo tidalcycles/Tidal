@@ -303,13 +303,12 @@ class Moddable a where
 
 instance Moddable Double where
   gmod = mod'
-
+instance Moddable Rational where
+  gmod = mod'
 instance Moddable Note where
   gmod (Note a) (Note b) = Note (mod' a b)
-
 instance Moddable Int where
   gmod = mod
-
 instance Moddable ValueMap where
   gmod = Map.unionWith (fNum2 mod mod')
 
