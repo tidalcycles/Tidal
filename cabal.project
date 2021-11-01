@@ -1,1 +1,1 @@
-packages: ./ tidal-parse
+packages: ./ tidal-parse tidal-listener
