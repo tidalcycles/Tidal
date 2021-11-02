@@ -40,6 +40,7 @@ import           Data.List (delete, findIndex, sort)
 import           Data.Word (Word8)
 import           Data.Data (Data) -- toConstr
 import           Data.Typeable (Typeable)
+import           Data.Fixed (mod')
 
 import           Sound.Tidal.Time
 
@@ -296,6 +297,20 @@ instance Num ValueMap where
 instance Fractional ValueMap where
   recip        = fmap (applyFIS recip id id)
   fromRational r = Map.singleton "speed" $ VF (fromRational r)
+
+class Moddable a where
+  gmod :: a -> a -> a
+
+instance Moddable Double where
+  gmod = mod'
+instance Moddable Rational where
+  gmod = mod'
+instance Moddable Note where
+  gmod (Note a) (Note b) = Note (mod' a b)
+instance Moddable Int where
+  gmod = mod
+instance Moddable ValueMap where
+  gmod = Map.unionWith (fNum2 mod mod')
 
 instance Floating ValueMap
   where pi = noOv "pi"

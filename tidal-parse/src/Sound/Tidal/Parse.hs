@@ -523,7 +523,7 @@ numMergeOperator =
   $(fromHaskell "*") <|>
   $(fromHaskell "-")
 
-realMergeOperator :: Real a => H (Pattern a -> Pattern a -> Pattern a)
+realMergeOperator :: T.Moddable a => H (Pattern a -> Pattern a -> Pattern a)
 realMergeOperator =
   $(fromTidal "|%|") <|>
   $(fromTidal "|%") <|>

@@ -179,12 +179,12 @@ a |-  b = (-) <$> a <* b
 ( -|) :: Num a => Pattern a -> Pattern a -> Pattern a
 a  -| b = (-) <$> a *> b
 
-(|%|) :: (Applicative a, Real b) => a b -> a b -> a b
-a |%| b = mod' <$> a <*> b
-(|% ) :: Real a => Pattern a -> Pattern a -> Pattern a
-a |%  b = mod' <$> a <* b
-( %|) :: Real a => Pattern a -> Pattern a -> Pattern a
-a  %| b = mod' <$> a *> b
+(|%|) :: (Applicative a, Moddable b) => a b -> a b -> a b
+a |%| b = gmod <$> a <*> b
+(|% ) :: Moddable a => Pattern a -> Pattern a -> Pattern a
+a |%  b = gmod <$> a <* b
+( %|) :: Moddable a => Pattern a -> Pattern a -> Pattern a
+a  %| b = gmod <$> a *> b
 
 (|**|) :: (Applicative a, Floating b) => a b -> a b -> a b
 a |**| b = (**) <$> a <*> b
