@@ -4,7 +4,7 @@ module Tidal.Inputs where
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Core
-import Sound.Tidal.ParseBP
+import Sound.Tidal.ParseBP()
 import Sound.Tidal.Params
 import Sound.Tidal.Control
 import Sound.Tidal.UI
@@ -15,16 +15,16 @@ columns = setColumns [Case, Allocated, Max, Live, GCs]
 
 {- Pattern inputs -}
 xs3 :: [Time]
-xs3 = [1..10^3]
+xs3 = [1..10000]
 
 xs4 :: [Time]
-xs4 = [1..10^4]
+xs4 = [1..100000]
 
 xs5 :: [Time]
-xs5 = [1..10^5]
+xs5 = [1..1000000]
 
 xs6 :: [Time]
-xs6 = [1..10^6]
+xs6 = [1..10000000]
 
 xsA :: [Time]
 xsA = [500000..1500000]
@@ -58,9 +58,12 @@ pattApp2 = sequence appendBig
 
 {- Arc Inputs -}
 arcFunc :: Arc -> Arc
-arcFunc (Arc s e) = Arc (s * 2) (e * 4)
+arcFunc (Arc st en) = Arc (st * 2) (en * 4)
 
+wqaMed :: Pattern Time
 wqaMed = fromList xs5
+
+wqaBig :: Pattern Time
 wqaBig = fromList xs6
 
 {- fix inputs -}
@@ -84,7 +87,7 @@ fixArg2 =
 
 {- Euclid inputs -}
 ecA1 :: [Pattern Int]
-ecA1 = [1, 10^5]
+ecA1 = [1, 1000000]
 
 ecA2 :: Pattern String
 ecA2 = "x"
