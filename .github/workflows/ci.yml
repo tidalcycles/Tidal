@@ -69,20 +69,19 @@ jobs:
         versions:
           - ghc: latest
             resolver: nightly
-#          - ghc: 8.8.4
-#            resolver: lts-16.31
-#          - ghc: 8.6.4
-#            resolver: lts-12.26
     name: stack resolver ${{ matrix.versions.resolver }} - ghc ${{ matrix.versions.ghc }}
     steps:
       - uses: actions/checkout@v2
+
+      - name: Set nightly resolver version
+        run: echo "NIGHTLY_VERSION=$(stack ls snapshots --nightly remote | tail -3 | head -1 | awk '{print $3}')" >> $GITHUB_ENV
 
       - name: cache ~/.stack
         uses: actions/cache@v2
         with:
           path: |
             ~/.stack
-          key: stack-${{ runner.os }}-${{ matrix.versions.resolver }}
+          key: stack-${{ runner.os }}-${{ env.NIGHTLY_VERSION }}
 
       - name: install stack and ghc
         uses: haskell/actions/setup@v1
