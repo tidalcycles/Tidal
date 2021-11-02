@@ -1,38 +1,45 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Tidal.Inputs where 
+module Tidal.Inputs where
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Core
 import Sound.Tidal.ParseBP
-import Sound.Tidal.Core
 import Sound.Tidal.Params
 import Sound.Tidal.Control
 import Sound.Tidal.UI
-import Weigh 
+import Weigh
 
-columns :: Weigh () 
-columns = setColumns [Case, Allocated, Max, Live, GCs] 
+columns :: Weigh ()
+columns = setColumns [Case, Allocated, Max, Live, GCs]
 
-{- Pattern inputs -} 
+{- Pattern inputs -}
+xs3 :: [Time]
 xs3 = [1..10^3]
+
+xs4 :: [Time]
 xs4 = [1..10^4]
+
+xs5 :: [Time]
 xs5 = [1..10^5]
+
+xs6 :: [Time]
 xs6 = [1..10^6]
 
+xsA :: [Time]
 xsA = [500000..1500000]
 
 catPattSmall :: [Pattern Time]
 catPattSmall = pure <$> xs3
 
 catPattMed :: [Pattern Time]
-catPattMed = pure <$> xs4 
+catPattMed = pure <$> xs4
 
 catPattMedB :: [Pattern Time]
 catPattMedB = pure <$> xs5
 
 catPattBig :: [Pattern Time]
-catPattBig = pure <$> xs6 
+catPattBig = pure <$> xs6
 
 timeCatMed :: [(Time, Pattern Time)]
 timeCatMed = zip xs5 catPattMed
@@ -41,23 +48,23 @@ timeCatBig :: [(Time, Pattern Time)]
 timeCatBig = zip xs6 catPattBig
 
 appendBig :: [Pattern Time]
-appendBig = pure <$> xsA 
+appendBig = pure <$> xsA
 
 pattApp1 :: Pattern [Time]
-pattApp1 = sequence catPattBig 
+pattApp1 = sequence catPattBig
 
 pattApp2 :: Pattern [Time]
 pattApp2 = sequence appendBig
 
 {- Arc Inputs -}
-arcFunc :: Arc -> Arc 
-arcFunc (Arc s e) = Arc (s * 2) (e * 4) 
+arcFunc :: Arc -> Arc
+arcFunc (Arc s e) = Arc (s * 2) (e * 4)
 
-wqaMed = fromList xs5 
+wqaMed = fromList xs5
 wqaBig = fromList xs6
 
-{- fix inputs -} 
-fixArg1 :: ControlPattern 
+{- fix inputs -}
+fixArg1 :: ControlPattern
 fixArg1 = pF "cc64" 1
 
 fixArg2 :: ControlPattern
@@ -76,8 +83,8 @@ fixArg2 =
     #  pF "cc69" (cF 0 "69")
 
 {- Euclid inputs -}
-ecA1 :: [Pattern Int] 
+ecA1 :: [Pattern Int]
 ecA1 = [1, 10^5]
 
-ecA2 :: Pattern String 
+ecA2 :: Pattern String
 ecA2 = "x"
