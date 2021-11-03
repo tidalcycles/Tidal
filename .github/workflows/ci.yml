@@ -64,30 +64,25 @@ jobs:
         run: cabal v2-test ${{ matrix.versions.args }} --enable-tests --enable-benchmarks all
   stack:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        versions:
-          - ghc: latest
-            resolver: nightly
-    name: stack resolver ${{ matrix.versions.resolver }} - ghc ${{ matrix.versions.ghc }}
+    name: stack resolver
     steps:
       - uses: actions/checkout@v2
 
       - name: Set nightly resolver version
-        run: echo "NIGHTLY_VERSION=$(stack ls snapshots --nightly remote | tail -3 | head -1 | awk '{print $3}')" >> $GITHUB_ENV
+        run: echo "LTS_RESOLVER=$(stack ls snapshots --lts remote | tail -3 | head -1 | awk '{print $3}')" >> $GITHUB_ENV
 
       - name: cache ~/.stack
         uses: actions/cache@v2
         with:
           path: |
             ~/.stack
-          key: stack-${{ runner.os }}-${{ env.NIGHTLY_VERSION }}
+          key: stack-${{ runner.os }}-${{ env.LTS_RESOLVER }}
 
       - name: install stack and ghc
         uses: haskell/actions/setup@v1
         with:
           enable-stack: true
-          ghc-version: ${{ matrix.versions.ghc }}
+          ghc-version: latest
 
       - name: test
-        run: stack --no-terminal --resolver ${{ matrix.versions.resolver }} --system-ghc test --haddock --no-haddock-deps
+        run: stack --no-terminal --resolver ${{ env.LTS_RESOLVER }} --system-ghc test --haddock --no-haddock-deps
