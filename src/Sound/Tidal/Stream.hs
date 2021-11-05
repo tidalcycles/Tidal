@@ -35,7 +35,9 @@ import qualified Sound.OSC.FD as O
 import qualified Network.Socket          as N
 
 import           Sound.Tidal.Config
-import           Sound.Tidal.Core (stack, silence)
+import           Sound.Tidal.Core (stack, silence, (#))
+import           Sound.Tidal.ID
+import           Sound.Tidal.Params (pS)
 import           Sound.Tidal.Pattern
 import qualified Sound.Tidal.Tempo as T
 import           Sound.Tidal.Utils ((!!!))
@@ -49,7 +51,7 @@ import           Sound.Tidal.Version
 
 data Stream = Stream {sConfig :: Config,
                       sBusses :: MVar [Int],
-                      sInput :: MVar StateMap,
+                      sStateMV :: MVar ValueMap,
                       -- sOutput :: MVar ControlPattern,
                       sListen :: Maybe O.UDP,
                       sPMapMV :: MVar PlayMap,
@@ -207,7 +209,7 @@ startStream config oscmap
                    ) oscmap
        let stream = Stream {sConfig = config,
                             sBusses = bussesMV,
-                            sInput = sMapMV,
+                            sStateMV  = sMapMV,
                             sListen = listen,
                             sPMapMV = pMapMV,
                             sTempoMV = tempoMV,
@@ -216,7 +218,7 @@ startStream config oscmap
                            }
        sendHandshakes stream
        _ <- T.clocked config tempoMV $ onTick stream
-       _ <- forkIO $ ctrlResponder config stream
+       _ <- forkIO $ ctrlResponder 0 config stream
        return stream
 
 -- It only really works to handshake with one target at the moment..
@@ -262,7 +264,8 @@ toDatum (VR x) = O.float $ ((fromRational x) :: Double)
 toDatum (VB True) = O.int32 (1 :: Int)
 toDatum (VB False) = O.int32 (0 :: Int)
 toDatum (VX xs) = O.Blob $ O.blob_pack xs
-
+toDatum _ = error "toDatum: unhandled value"
+  
 toData :: OSC -> Event ValueMap -> Maybe [O.Datum]
 toData (OSC {args = ArgList as}) e = fmap (fmap (toDatum)) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
 toData (OSC {args = Named rqrd}) e
@@ -286,8 +289,9 @@ substitutePath str cm = parse str
           where (a,b) = break (== '}') xs
 
 getString :: ValueMap -> String -> Maybe String
-getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
-                      where simpleShow :: Value -> String
+getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
+                      where (param, dflt) = break (== '=') s
+                            simpleShow :: Value -> String
                             simpleShow (VS str) = str
                             simpleShow (VI i) = show i
                             simpleShow (VF f) = show f
@@ -295,11 +299,12 @@ getString cm s = defaultValue $ simpleShow <$> Map.lookup s cm
                             simpleShow (VR r) = show r
                             simpleShow (VB b) = show b
                             simpleShow (VX xs) = show xs
-                            (_, dflt) = break (== '=') s
-                            defaultValue :: Maybe String -> Maybe String
-                            defaultValue Nothing | null dflt = Nothing
-                                                 | otherwise = Just $ tail dflt
-                            defaultValue x = x
+                            simpleShow (VState _) = show "<stateful>"
+                            simpleShow (VPattern _) = show "<pattern>"
+                            simpleShow (VList _) = show "<list>"
+                            defaultValue :: String -> Maybe String
+                            defaultValue ('=':dfltVal) = Just dfltVal
+                            defaultValue _ = Nothing
 
 playStack :: PlayMap -> ControlPattern
 playStack pMap = stack $ map pattern active
@@ -350,14 +355,15 @@ toOSC latency _ e tempo (OSCContext oscpath)
   where cToM :: ((Int,Int),(Int,Int)) -> (Double, Bool, O.Message)
         cToM ((x, y), (x',y')) = (ts,
                                   False, -- bus message ?
-                                  O.Message oscpath $ (O.float delta):(O.float cyc):(map O.int32 [x,y,x',y'])
+                                  O.Message oscpath $ (O.string ident):(O.float delta):(O.float cyc):(map O.int32 [x,y,x',y'])
                                  )
         on = sched tempo $ start $ wholeOrPart e
         off = sched tempo $ stop $ wholeOrPart e
         delta = off - on
         cyc :: Double
         cyc = fromRational $ start $ wholeOrPart e
-        nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ value e
+        nudge = fromMaybe 0 $ Map.lookup "nudge" (value e) >>= getF
+        ident = fromMaybe "unknown" $ Map.lookup "_id_" (value e) >>= getS
         ts = on + nudge + latency
 
 doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
@@ -427,9 +433,8 @@ doTick fake stream st =
     hPutStrLn stderr $ "Return to previous pattern."
     setPreviousPatternOrSilence stream
            ) $
-  modifyMVar_ (sTempoMV stream) $ \ tempo -> do
+  modifyState $ \(tempo, sMap) -> do
      pMap <- readMVar (sPMapMV stream)
-     sMap <- readMVar (sInput stream)
      busses <- readMVar (sBusses stream)
      sGlobalF <- readMVar (sGlobalFMV stream)
      -- putStrLn $ show st
@@ -442,17 +447,21 @@ doTick fake stream st =
              | otherwise = patstack
          frameEnd = snd $ T.nowTimespan st
          -- add cps to state
-         sMap' = Map.insert "_cps" (pure $ VF (T.cps tempo)) sMap
+         sMap' = Map.insert "_cps" (VF (T.cps tempo)) sMap
          --filterOns = filter eventHasOnset
          extraLatency | fake = 0
                       | otherwise = cFrameTimespan config + T.nudged tempo
+         -- First the state is used to query the pattern
          es = sortOn (start . part) $ query pat (State {arc = T.nowArc st,
                                                         controls = sMap'
                                                        }
                                                 )
+         -- Then it's passed through the events
+         (sMap'', es') = resolveState sMap' es
+         
          -- TODO onset is calculated in toOSC as well..
          on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
-         (tes, tempo') = processCps tempo $ es
+         (tes, tempo') = processCps tempo $ es'
      forM_ cxs $ \cx@(Cx target _ oscs _ _) -> do
          let latency = oLatency target + extraLatency
              ms = concatMap (\(t, e) ->
@@ -463,8 +472,16 @@ doTick fake stream st =
          forM_ ms $ \ m -> send (sListen stream) cx m `E.catch` \ (e :: E.SomeException) -> do
            hPutStrLn stderr $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
 
-     tempo' `seq` return tempo'
+     when (tempo /= tempo') $ T.sendTempo tempo'
 
+     (tempo', sMap'') `seq` return (tempo', sMap'')
+  where modifyState :: ((T.Tempo, ValueMap) -> IO (T.Tempo, ValueMap)) -> IO ()
+        modifyState io = E.mask $ \restore -> do
+          s <- takeMVar (sStateMV stream)
+          t <- takeMVar (sTempoMV stream)
+          (t', s') <- restore (io (t, s)) `E.onException` (do {putMVar (sStateMV stream) s; putMVar (sTempoMV stream) t; return ()})
+          putMVar (sStateMV stream) s'
+          putMVar (sTempoMV stream) t'
 
 setPreviousPatternOrSilence :: Stream -> IO ()
 setPreviousPatternOrSilence stream =
@@ -519,49 +536,48 @@ streamList s = do pMap <- readMVar (sPMapMV s)
 
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 
-streamReplace :: Show a => Stream -> a -> ControlPattern -> IO ()
+streamReplace :: Stream -> ID -> ControlPattern -> IO ()
 streamReplace s k !pat
   = E.catch (do let x = queryArc pat (Arc 0 0)
                 tempo <- readMVar $ sTempoMV s
-                input <- takeMVar $ sInput s
-                -- put change time in control input
+                input <- takeMVar $ sStateMV s
+                -- put pattern id and change time in control input
                 now <- O.time
                 let cyc = T.timeToCycles tempo now
-                putMVar (sInput s) $
-                  Map.insert ("_t_all") (pure $ VR cyc) $ Map.insert ("_t_" ++ show k) (pure $ VR cyc) input
+                putMVar (sStateMV s) $
+                  Map.insert ("_t_all") (VR cyc) $ Map.insert ("_t_" ++ fromID k) (VR cyc) input
                 -- update the pattern itself
                 pMap <- seq x $ takeMVar $ sPMapMV s
-                let playState = updatePS $ Map.lookup (show k) pMap
-                putMVar (sPMapMV s) $ Map.insert (show k) playState pMap
+                let playState = updatePS $ Map.lookup (fromID k) pMap
+                putMVar (sPMapMV s) $ Map.insert (fromID k) playState pMap
                 return ()
           )
     (\(e :: E.SomeException) -> hPutStrLn stderr $ "Error in pattern: " ++ show e
     )
-  where updatePS (Just playState) = do playState {pattern = pat, history = pat:(history playState)}
-        updatePS Nothing = PlayState pat False False [pat]
+  where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
+        updatePS Nothing = PlayState pat' False False [pat']
+        pat' = pat # pS "_id_" (pure $ fromID k)
 
-streamMute :: Show a => Stream -> a -> IO ()
-streamMute s k = withPatId s (show k) (\x -> x {mute = True})
 
-streamMutes :: Show a => Stream -> [a] -> IO ()
-streamMutes s ks = withPatIds s (map show ks) (\x -> x {mute = True})
+streamMute :: Stream -> ID -> IO ()
+streamMute s k = withPatIds s [k] (\x -> x {mute = True})
 
-streamUnmute :: Show a => Stream -> a -> IO ()
-streamUnmute s k = withPatId s (show k) (\x -> x {mute = False})
+streamMutes :: Stream -> [ID] -> IO ()
+streamMutes s ks = withPatIds s ks (\x -> x {mute = True})
 
-streamSolo :: Show a => Stream -> a -> IO ()
-streamSolo s k = withPatId s (show k) (\x -> x {solo = True})
+streamUnmute :: Stream -> ID -> IO ()
+streamUnmute s k = withPatIds s [k] (\x -> x {mute = False})
 
-streamUnsolo :: Show a => Stream -> a -> IO ()
-streamUnsolo s k = withPatId s (show k) (\x -> x {solo = False})
+streamSolo :: Stream -> ID -> IO ()
+streamSolo s k = withPatIds s [k] (\x -> x {solo = True})
 
-withPatId :: Stream -> PatId -> (PlayState -> PlayState) -> IO ()
-withPatId s k f = withPatIds s [k] f
+streamUnsolo :: Stream -> ID -> IO ()
+streamUnsolo s k = withPatIds s [k] (\x -> x {solo = False})
 
-withPatIds :: Stream -> [PatId] -> (PlayState -> PlayState) -> IO ()
+withPatIds :: Stream -> [ID] -> (PlayState -> PlayState) -> IO ()
 withPatIds s ks f
   = do playMap <- takeMVar $ sPMapMV s
-       let pMap' = foldr (Map.update (\x -> Just $ f x)) playMap ks
+       let pMap' = foldr (Map.update (\x -> Just $ f x)) playMap (map fromID ks)
        putMVar (sPMapMV s) pMap'
        return ()
 
@@ -575,15 +591,21 @@ streamHush s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {pattern = silen
 streamUnmuteAll :: Stream -> IO ()
 streamUnmuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = False})
 
+streamUnsoloAll :: Stream -> IO ()
+streamUnsoloAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {solo = False})
+
 streamAll :: Stream -> (ControlPattern -> ControlPattern) -> IO ()
 streamAll s f = do _ <- swapMVar (sGlobalFMV s) f
                    return ()
 
+streamGet :: Stream -> String -> IO (Maybe Value)
+streamGet s k = Map.lookup k <$> readMVar (sStateMV s)
+
 streamSet :: Valuable a => Stream -> String -> Pattern a -> IO ()
-streamSet s k pat = do sMap <- takeMVar $ sInput s
+streamSet s k pat = do sMap <- takeMVar $ sStateMV s
                        let pat' = toValue <$> pat
-                           sMap' = Map.insert k pat' sMap
-                       putMVar (sInput s) $ sMap'
+                           sMap' = Map.insert k (VPattern pat') sMap
+                       putMVar (sStateMV s) $ sMap'
 
 streamSetI :: Stream -> String -> Pattern Int -> IO ()
 streamSetI = streamSet
@@ -612,15 +634,17 @@ openListener c
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch
 
-ctrlResponder :: Config -> Stream -> IO ()
-ctrlResponder c (stream@(Stream {sListen = Just sock})) = do ms <- recvMessagesTimeout 2 sock
-                                                             if (null ms)
-                                                               then checkHandshake -- there was a timeout, check handshake
-                                                               else mapM_ act ms
-                                                             ctrlResponder c stream
+ctrlResponder :: Int -> Config -> Stream -> IO ()
+ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
+  = do ms <- recvMessagesTimeout 2 sock
+       if (null ms)
+         then do checkHandshake -- there was a timeout, check handshake
+                 ctrlResponder (waits+1) c stream
+         else do mapM_ act ms
+                 ctrlResponder 0 c stream
      where
         checkHandshake = do busses <- readMVar (sBusses stream)
-                            when (null busses) $ do verbose c $ "Waiting for SuperDirt.."
+                            when (null busses) $ do when  (waits == 0) $ verbose c $ "Waiting for SuperDirt (v.1.7.2 or higher).."
                                                     sendHandshakes stream
 
         act (O.Message "/dirt/hello" _) = sendHandshakes stream
@@ -632,20 +656,42 @@ ctrlResponder c (stream@(Stream {sListen = Just sock})) = do ms <- recvMessagesT
             bufferIndices [] = []
             bufferIndices (x:xs') | x == (O.ASCII_String $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
                                   | otherwise = bufferIndices xs'
-        act (O.Message x (O.Int32 k:v:[]))
-          = act (O.Message x [O.string $ show k,v])
-        act (O.Message _ (O.ASCII_String k:v@(O.Float _):[]))
+        -- External controller commands
+        act (O.Message "/ctrl" (O.Int32 k:v:[]))
+          = act (O.Message "/ctrl" [O.string $ show k,v])
+        act (O.Message "/ctrl" (O.ASCII_String k:v@(O.Float _):[]))
           = add (O.ascii_to_string k) (VF (fromJust $ O.datum_floating v))
-        act (O.Message _ (O.ASCII_String k:O.ASCII_String v:[]))
+        act (O.Message "/ctrl" (O.ASCII_String k:O.ASCII_String v:[]))
           = add (O.ascii_to_string k) (VS (O.ascii_to_string v))
-        act (O.Message _ (O.ASCII_String k:O.Int32 v:[]))
+        act (O.Message "/ctrl" (O.ASCII_String k:O.Int32 v:[]))
           = add (O.ascii_to_string k) (VI (fromIntegral v))
+        -- Stream playback commands
+        act (O.Message "/mute" (k:[]))
+          = withID k $ streamMute stream
+        act (O.Message "/unmute" (k:[]))
+          = withID k $ streamUnmute stream
+        act (O.Message "/solo" (k:[]))
+          = withID k $ streamSolo stream
+        act (O.Message "/unsolo" (k:[]))
+          = withID k $ streamUnsolo stream
+        act (O.Message "/muteAll" [])
+          = streamMuteAll stream
+        act (O.Message "/unmuteAll" [])
+          = streamUnmuteAll stream
+        act (O.Message "/unsoloAll" [])
+          = streamUnsoloAll stream
+        act (O.Message "/hush" [])
+          = streamHush stream
         act m = hPutStrLn stderr $ "Unhandled OSC: " ++ show m
         add :: String -> Value -> IO ()
-        add k v = do sMap <- takeMVar (sInput stream)
-                     putMVar (sInput stream) $ Map.insert k (pure v) sMap
+        add k v = do sMap <- takeMVar (sStateMV stream)
+                     putMVar (sStateMV stream) $ Map.insert k v sMap
                      return ()
-ctrlResponder _ _ = return ()
+        withID :: O.Datum -> (ID -> IO ()) -> IO ()
+        withID (O.ASCII_String k) func = func $ (ID . O.ascii_to_string) k
+        withID (O.Int32 k) func = func $ (ID . show) k
+        withID _ _ = return ()
+ctrlResponder _ _ _ = return ()
 
 
 verbose :: Config -> String -> IO ()
@@ -653,3 +699,14 @@ verbose c s = when (cVerbose c) $ putStrLn s
 
 recvMessagesTimeout :: (O.Transport t) => Double -> t -> IO [O.Message]
 recvMessagesTimeout n sock = fmap (maybe [] O.packetMessages) $ O.recvPacketTimeout n sock
+
+
+streamGetcps :: Stream -> IO O.Time
+streamGetcps s = do tempo <- readMVar $ sTempoMV s
+                    return $ T.cps tempo
+
+streamGetnow :: Stream -> IO Double
+streamGetnow s = do tempo <- readMVar $ sTempoMV s
+                    now <- O.time
+                    return $ fromRational $ T.timeToCycles tempo now
+

@@ -5,7 +5,7 @@ module Sound.Tidal.ExceptionsTest where
 import Test.Microspec
 import Control.Exception
 import Control.DeepSeq
-import Data.Typeable (typeOf)
+import Data.Typeable ()
 import Prelude hiding ((<*), (*>))
 
 import Sound.Tidal.Pattern

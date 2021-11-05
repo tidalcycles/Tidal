@@ -1,9 +1,7 @@
-module Sound.Tidal.Version where
-
-import Paths_tidal
+module Sound.Tidal.ID (ID(..)) where
 
 {-
-    Version.hs - For giving the current tidal version.
+    ID.hs - Polymorphic pattern identifiers
     Copyright (C) 2020, Alex McLean and contributors
 
     This library is free software: you can redistribute it and/or modify
@@ -20,13 +18,23 @@ import Paths_tidal
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-tidal_version :: String
-tidal_version = "1.7.8"
+import GHC.Exts ( IsString(..) )
 
-tidal_status :: IO ()
-tidal_status = tidal_status_string >>= putStrLn 
+-- | Wrapper for literals that can be coerced to a string and used as an identifier.
+-- | Similar to Show typeclass, but constrained to strings and integers and designed
+-- | so that similar cases (such as 1 and "1") convert to the same value.
+newtype ID = ID { fromID :: String }
 
-tidal_status_string :: IO String
-tidal_status_string = do datadir <- getDataDir
-                         return $ "[TidalCycles version " ++ tidal_version ++ "]\nInstalled in " ++ datadir
+noOv :: String -> a
+noOv meth = error $ meth ++ ": not supported for ids"
 
+instance Num ID where
+  fromInteger = ID . show
+  (+) = noOv "+"
+  (*) = noOv "*"
+  abs = noOv "abs"
+  signum = noOv "signum"
+  (-) = noOv "-"
+
+instance IsString ID where
+  fromString = ID

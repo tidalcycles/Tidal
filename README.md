@@ -7,8 +7,8 @@ Language for live coding of pattern
 For documentation, mailing list and more info see here:  
   https://tidalcycles.org/
 
-You can help speed up Tidal development by sending coffee here:  
-  https://ko-fi.com/yaxulive#
+You can help speed up Tidal development by contributing to the collective fund here:  
+  https://opencollective.com/tidalcycles
 
 (c) Alex McLean and contributors, 2021
 

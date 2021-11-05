@@ -37,8 +37,19 @@ controls = intercalate "\n" $ map fs $ sortBy (compare `on` (\(_,x,_) -> x)) gen
         control (t, name, desc) =
           concat ["-- | " ++ desc ++ "\n",
                   name, " :: ", toType t, " -> ControlPattern\n",
-                  name, " = ", toFunc t, " \"", name, "\"\n"
+                  name, " = ", toFunc t, " \"", name, "\"\n",
+                  name, "Take :: String -> [Double] -> ControlPattern\n",
+                  name, "Take name xs = pStateListF \"",name,"\" name xs\n",
+                  counters t name
                  ]
+        counters "note" name = counters "f" name
+        counters "i" name = counters "f" name
+        counters "f" name = concat [name, "Count :: String -> ControlPattern\n",
+                                    name, "Count name = pStateF \"",name,"\" name (maybe 0 (+1))\n",
+                                    name, "CountTo :: String -> Pattern Double -> Pattern ValueMap\n",
+                                    name, "CountTo name ipat = innerJoin $ (\\i -> pStateF \"",name,"\" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat\n\n"
+                                   ]
+        counters _ _ = ""
         bus (t,name,desc) | elem name nobus = concat [
                               name, "bus :: Pattern Int -> ", toType t, " -> ControlPattern\n",
                               name, "bus _ _ = error $ \"Control parameter '" ++ name ++ "' can't be sent to a bus.\"\n"
@@ -84,7 +95,26 @@ nobus = ["midinote",
          "channel",
          "lag",
          "offset",
-         "sound"
+         "sound",
+         "array",
+         "midichan",
+         "control",
+         "ccn",
+         "ccv",
+         "polyTouch",
+         "midibend",
+         "miditouch",
+         "ctlNum",
+         "frameRate",
+         "frames",
+         "hours",
+         "midicmd",
+         "minutes",
+         "progNum",
+         "seconds",
+         "songPtr",
+         "uid",
+         "val"
         ]
 
 genericParams :: [(String, String, String)]
@@ -114,6 +144,8 @@ genericParams = [
   ("f", "djf", "DJ filter, below 0.5 is low pass filter, above is high pass filter."),
   ("f", "dry", "when set to `1` will disable all reverb for this pattern. See `room` and `size` for more information about reverb."),
   ("f", "end", "the same as `begin`, but cuts the end off samples, shortening them; e.g. `0.75` to cut off the last quarter of each sample."),
+  ("f", "fadeTime", "Used when using begin/end or chop/striate and friends, to change the fade out time of the 'grain' envelope."),
+  ("f", "fadeInTime", "As with fadeTime, but controls the fade in time of the grain envelope. Not used if the grain begins at position 0 in the sample."),
   ("f", "freq", ""),
   ("f", "gain", "a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder. For the linear equivalent, see @amp@."),
   ("f", "gate", ""),
@@ -235,8 +267,6 @@ genericParams = [
   ("f", "polyTouch", ""),
   ("f", "midibend", ""),
   ("f", "miditouch", ""),
-  ("i", "nrpnn", ""),
-  ("i", "nrpnv", ""),
   ("f", "ctlNum", ""),
   ("f", "frameRate", ""),
   ("f", "frames", ""),
@@ -269,6 +299,8 @@ aliasParams =
   ("f", "delayt", "delaytime"),
   ("f", "dt", "delaytime"),
   ("f", "det", "detune"),
+  ("f", "fadeOutTime", "fadeTime"),
+
   ("f", "gat", "gate"),
   ("f", "hg", "hatgrain"),
   ("f", "hpf", "hcutoff"),

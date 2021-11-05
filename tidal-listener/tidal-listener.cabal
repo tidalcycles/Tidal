@@ -1,0 +1,36 @@
+cabal-version:       >=1.10
+
+name:                tidal-listener
+version:             0.1.0.0
+-- synopsis:
+-- description:
+-- bug-reports:
+license:             GPL-3 
+license-file:        LICENSE
+author:              Lizzie Wilson and Alex McLean
+maintainer:          alex@slab.org
+-- copyright:
+category:            Sound
+build-type:          Simple
+extra-source-files:  CHANGELOG.md, README.md
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Sound.Tidal.Listener
+                       Sound.Tidal.Listener.Config
+                       Sound.Tidal.Hint
+  build-depends:       base,
+                       data-default,
+                       tidal >=1.7.1,
+                       hosc,
+                       hint,
+                       network
+  default-language:    Haskell2010
+
+
+executable tidal-listener
+  main-is:             Main.hs
+  build-depends:       base ==4.*,
+                       tidal-listener
+  hs-source-dirs:       app
+  default-language:    Haskell2010

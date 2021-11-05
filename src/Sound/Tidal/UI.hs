@@ -142,14 +142,14 @@ will generate a smooth random pattern for the cutoff frequency which will
 repeat every cycle (because the saw does)
 The `perlin` function uses the cycle count as input and can be used much like @rand@.
 -}
-perlinWith :: Pattern Double -> Pattern Double
-perlinWith p = interp <$> (p-pa) <*> (timeToRand <$> pa) <*> (timeToRand <$> pb) where
+perlinWith :: Fractional a => Pattern Double -> Pattern a
+perlinWith p = fmap realToFrac $ (interp) <$> (p-pa) <*> (timeToRand <$> pa) <*> (timeToRand <$> pb) where
   pa = (fromIntegral :: Int -> Double) . floor <$> p
   pb = (fromIntegral :: Int -> Double) . (+1) . floor <$> p
   interp x a b = a + smootherStep x * (b-a)
   smootherStep x = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
 
-perlin :: Pattern Double
+perlin :: Fractional a => Pattern a
 perlin = perlinWith (sig fromRational)
 
 {- `perlin2With` is Perlin noise with a 2-dimensional input. This can be
@@ -564,10 +564,14 @@ ifp test f1 f2 p = splitQueries $ p {query = q}
 -- | @wedge t p p'@ combines patterns @p@ and @p'@ by squashing the
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the
 -- remainer of each cycle.
-wedge :: Time -> Pattern a -> Pattern a -> Pattern a
-wedge 0 _ p' = p'
-wedge 1 p _ = p
-wedge t p p' = overlay (_fastGap (1/t) p) (t `rotR` _fastGap (1/(1-t)) p')
+wedge :: Pattern Time -> Pattern a -> Pattern a -> Pattern a
+wedge pt pa pb = innerJoin $ (\t -> _wedge t pa pb) <$> pt
+
+_wedge :: Time -> Pattern a -> Pattern a -> Pattern a
+_wedge 0 _ p' = p'
+_wedge 1 p _ = p
+_wedge t p p' = overlay (_fastGap (1/t) p) (t `rotR` _fastGap (1/(1-t)) p')
+
 
 {- | @whenmod@ has a similar form and behavior to `every`, but requires an
 additional number. Applies the function to the pattern, when the
@@ -1739,7 +1743,7 @@ _pickF i fs p =  (fs !!! i) p
 -- | @contrast p f f' p'@ splits controlpattern @p'@ in two, applying
 -- the function @f@ to one and @f'@ to the other. This depends on
 -- whether events in it contains values matching with those in @p@.
--- For example in @contrast (n "1") (# crush 3) (# vowel "a") $ n "0 1" # s "bd sn" # speed 3@,
+-- For example in @contrast (# crush 3) (# vowel "a") (n "1") $ n "0 1" # s "bd sn" # speed 3@,
 -- the first event will have the vowel effect applied and the second
 -- will have the crush applied.
 contrast :: (ControlPattern -> ControlPattern) -> (ControlPattern -> ControlPattern)

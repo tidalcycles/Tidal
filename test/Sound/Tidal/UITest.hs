@@ -313,28 +313,34 @@ run =
           (arpeggiate $ "[0,0]*2")
           ("0 0 0 0" :: Pattern Int)
 
-      describe "chunk" $ do
-        it "can chunk a rev pattern" $ do
-          compareP (Arc 0 4)
-            (chunk 2 (rev) $  ("a b c d" :: Pattern String))
-            (slow 2 $ "d c c d a b b a" :: Pattern String)
-        it "can chunk a fast pattern" $ do
-          compareP (Arc 0 4)
-            (chunk 2 (fast 2) $ "a b" :: Pattern String)
-            (slow 2 $ "a b b _ a _ a b" :: Pattern String)
+    describe "chunk" $ do
+      it "can chunk a rev pattern" $ do
+        compareP (Arc 0 4)
+          (chunk 2 (rev) $  ("a b c d" :: Pattern String))
+          (slow 2 $ "d c c d a b b a" :: Pattern String)
+      it "can chunk a fast pattern" $ do
+        compareP (Arc 0 4)
+          (chunk 2 (fast 2) $ "a b" :: Pattern String)
+          (slow 2 $ "a b b _ a _ a b" :: Pattern String)
 
-      describe "binary" $ do
-        it "converts a number to a pattern of boolean" $ do
-          compareP (Arc 0 1)
-            (binary "128")
-            ("t f f f f f f f" :: Pattern Bool)
+    describe "binary" $ do
+      it "converts a number to a pattern of boolean" $ do
+        compareP (Arc 0 1)
+          (binary "128")
+          ("t f f f f f f f" :: Pattern Bool)
 
-      describe "binaryN" $ do
-        it "convert a number to a pattern of boolean of specified length" $ do
-          compareP (Arc 0 1)
-            (binaryN 4 "8")
-            ("t f f f" :: Pattern Bool)
-        it "convert a number to a pattern of boolean of specified patternable length" $ do
-          compareP (Arc 0 2)
-            (binaryN "<4 8>" "8")
-            (cat ["t f f f", "f f f f t f f f"] :: Pattern Bool)
+    describe "binaryN" $ do
+      it "converts a number to a pattern of boolean of specified length" $ do
+        compareP (Arc 0 1)
+          (binaryN 4 "8")
+          ("t f f f" :: Pattern Bool)
+      it "converts a number to a pattern of boolean of specified patternable length" $ do
+        compareP (Arc 0 2)
+          (binaryN "<4 8>" "8")
+          (cat ["t f f f", "f f f f t f f f"] :: Pattern Bool)
+
+    describe "off" $ do
+      it "superimposes and shifts pattern" $ do
+        compareP (Arc 0 1)
+          (off "-e" id $ s "0")
+          (superimpose ("e" <~) $ s "0")

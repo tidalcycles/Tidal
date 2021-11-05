@@ -29,6 +29,7 @@ import Sound.Tidal.Core ((#))
 import Sound.Tidal.Utils
 import Data.Maybe (fromMaybe)
 import Data.Word (Word8)
+import Data.Fixed (mod')
 
 -- | group multiple params into one
 grp :: [String -> ValueMap] -> Pattern String -> ControlPattern
@@ -72,16 +73,43 @@ pS name = fmap (Map.singleton name . VS)
 pX :: String -> Pattern [Word8] -> ControlPattern
 pX name = fmap (Map.singleton name . VX)
 
+pStateF :: String -> String -> (Maybe Double -> Double) -> ControlPattern
+pStateF name sName update = pure $ Map.singleton name $ VState statef
+  where statef :: ValueMap -> (ValueMap, Value)
+        statef sMap = (Map.insert sName v sMap, v) 
+          where v = VF $ update $ (Map.lookup sName sMap) >>= getF
+
+pStateList :: String -> String -> [Value] -> ControlPattern
+pStateList name sName xs = pure $ Map.singleton name $ VState statef
+  where statef :: ValueMap -> (ValueMap, Value)
+        statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped) 
+          where xs' = fromMaybe xs ((Map.lookup sName sMap) >>= getList)
+                -- do this instead of a cycle, so it can get updated with the a list
+                looped | null xs' = xs
+                       | otherwise = xs'
+
+pStateListF :: String -> String -> [Double] -> ControlPattern
+pStateListF name sName = pStateList name sName . map VF
+
 -- | Grouped params
 
 sound :: Pattern String -> ControlPattern
 sound = grp [mS "s", mF "n"]
+
+sTake :: String -> [Double] -> ControlPattern
+sTake name xs = pStateListF "s" name xs
 
 cc :: Pattern String -> ControlPattern
 cc = grp [mF "ccn", mF "ccv"]
 
 nrpn :: Pattern String -> ControlPattern
 nrpn = grp [mI "nrpn", mI "val"]
+
+nrpnn :: Pattern Int -> ControlPattern
+nrpnn = pI "nrpn"
+
+nrpnv :: Pattern Int -> ControlPattern
+nrpnv = pI "val"
 
 grain' :: Pattern String -> ControlPattern
 grain' = grp [mF "begin", mF "end"]

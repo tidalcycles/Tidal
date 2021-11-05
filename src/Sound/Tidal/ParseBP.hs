@@ -321,12 +321,11 @@ sign  =  do char '-'
          <|> return Positive
 
 intOrFloat :: MyParser Double
-intOrFloat =  do s   <- sign
-                 num <- naturalOrFloat
-                 return (case num of
-                            Right x -> applySign s x
-                            Left  x -> fromIntegral $ applySign s x
-                        )
+intOrFloat = do num <- naturalOrFloat
+                return (case num of
+                  Right x -> x
+                  Left  x -> fromIntegral x
+                  )
 
 parseRhythm :: Parseable a => MyParser (TPat a) -> String -> Either ParseError (TPat a)
 parseRhythm f = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
@@ -439,18 +438,22 @@ pChar :: MyParser (TPat Char)
 pChar = wrapPos $ TPat_Atom Nothing <$> pCharNum
 
 pDouble :: MyParser (TPat Double)
-pDouble = wrapPos $ do f <- choice [intOrFloat, pRatioChar, parseNote] <?> "float"
-                       do TPat_Stack . map (TPat_Atom Nothing . (+ f)) <$> parseChord
-                         <|> return (TPat_Atom Nothing f)
+pDouble = wrapPos $ do s <- sign
+                       f <- choice [fromRational <$> pRatio, intOrFloat, parseNote] <?> "float"
+                       let v = applySign s f
+                       do TPat_Stack . map (TPat_Atom Nothing . (+ v)) <$> parseChord
+                         <|> return (TPat_Atom Nothing v)
                       <|>
                          do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
 
 pNote :: MyParser (TPat Note)
-pNote = wrapPos $ fmap (fmap Note) $ do f <- choice [intOrFloat, parseNote] <?> "float"
-                                        do TPat_Stack . map (TPat_Atom Nothing . (+ f)) <$> parseChord
-                                           <|> return (TPat_Atom Nothing f)
-                                           <|> do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
-                                           <|> do TPat_Atom Nothing <$> pRatioChar
+pNote = wrapPos $ fmap (fmap Note) $ do s <- sign
+                                        f <- choice [intOrFloat, parseNote] <?> "float"
+                                        let v = applySign s f
+                                        do TPat_Stack . map (TPat_Atom Nothing . (+ v)) <$> parseChord
+                                           <|> return (TPat_Atom Nothing v)
+                                     <|> do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
+                                     <|> do TPat_Atom Nothing . fromRational <$> pRatio
 
 pBool :: MyParser (TPat Bool)
 pBool = wrapPos $ do oneOf "t1"
@@ -461,13 +464,12 @@ pBool = wrapPos $ do oneOf "t1"
 
 parseIntNote  :: Integral i => MyParser i
 parseIntNote = do s <- sign
-                  i <- choice [integer, parseNote]
-                  return $ applySign s $ fromIntegral i
-
-parseInt :: MyParser Int
-parseInt = do s <- sign
-              i <- integer
-              return $ applySign s $ fromIntegral i
+                  d <- choice [intOrFloat, parseNote]
+                  if isInt d
+                    then return $ applySign s $ round d
+                    else fail "not an integer"
+                where
+                  isInt x = x == fromInteger (round x)
 
 pIntegral :: Integral a => MyParser (TPat a)
 pIntegral = wrapPos $ do i <- parseIntNote
@@ -481,12 +483,17 @@ parseChord = do char '\''
                 name <- many1 $ letter <|> digit
                 let chord = fromMaybe [0] $ lookup name chordTable
                 do char '\''
-                   notFollowedBy space <?> "chord range or 'i'"
+                   notFollowedBy space <?> "chord range or 'i' or 'o'"
                    let n = length chord
                    i <- option n (fromIntegral <$> integer)
                    j <- length <$> many (char 'i')
+                   o <- length <$> many (char 'o')
                    let chord' = take i $ drop j $ concatMap (\x -> map (+ x) chord) [0,12..]
-                   return chord'
+                   -- open voiced chords
+                   let chordo' = if o > 0 && n > 2 then
+                                     [ (chord' !! 0 - 12), (chord' !! 2 - 12), (chord' !! 1) ] ++ reverse (take (length chord' - 3) (reverse chord'))
+                                 else chord'
+                   return chordo'
                   <|> return chord
 
 parseNote :: Num a => MyParser a
@@ -556,26 +563,32 @@ pE thing = do (n,k,s) <- parens pair
                         <|> return (TPat_Atom Nothing 0)
                    return (a, b, c)
 
+pRational :: MyParser (TPat Rational)
+pRational = wrapPos $ TPat_Atom Nothing <$> pRatio
+
 pRatio :: MyParser Rational
-pRatio = do s <- sign
-            n <- read <$> many1 digit
-            result <- do char '%'
-                         d <- decimal
-                         return (n%d)
-                      <|>
-                      do char '.'
-                         frac <- many1 digit
-                         -- A hack, but not sure if doing this
-                         -- numerically would be any faster..
-                         return (toRational ((read $ show n ++ "." ++ frac)  :: Double))
-                      <|>
-                      return (n%1)
-            c <- pRatioChar <|> return 1
-            return $ applySign s (result * c)
-         <|> pRatioChar
+pRatio = do 
+  s <- sign
+  r <- do n <- read <$> many1 digit
+          result <- do char '%'
+                       d <- decimal
+                       return (n%d)
+                    <|>
+                    do char '.'
+                       frac <- many1 digit
+                       -- A hack, but not sure if doing this
+                       -- numerically would be any faster..
+                       return (toRational ((read $ show n ++ "." ++ frac) :: Double))
+                    <|>
+                    return (n%1)
+          c <- pRatioChar <|> return 1
+          return (result * c)
+        <|> 
+        pRatioChar
+  return $ applySign s r
 
 pRatioChar :: Fractional a => MyParser a
-pRatioChar = do char 'w'
+pRatioChar = do char 'w';
                 return 1
              <|> do char 'h'
                     return 0.5
@@ -591,6 +604,3 @@ pRatioChar = do char 'w'
                     return 0.2
              <|> do char 'x'
                     return (1/6)
-
-pRational :: MyParser (TPat Rational)
-pRational = wrapPos $ TPat_Atom Nothing <$> pRatio

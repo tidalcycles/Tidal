@@ -46,6 +46,14 @@ data Tempo = Tempo {atTime  :: O.Time,
                    }
   deriving Show
 
+instance Eq Tempo where
+  (==) t t' = and [(atTime t)  == (atTime t'),
+                   (atCycle t) == (atCycle t'),
+                   (cps t)     == (cps t'),
+                   (paused t)  == (paused t'),
+                   (nudged t)  == (nudged t')
+                  ]
+
 data State = State {ticks   :: Int,
                     start   :: O.Time,
                     nowTimespan :: (O.Time, O.Time),

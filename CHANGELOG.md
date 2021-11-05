@@ -1,5 +1,49 @@
 # TidalCycles log of changes
 
+## 1.7.8 - Ayatakedai
+   * Add pattern id to patterns as _id_, and send it with /code/highlights
+
+## 1.7.7 - Caramel wafer
+   * Support hosc 0.19 in test suite @yaxu
+
+## 1.7.6 - Tunnocks
+   * Fix dot shorthand in int patterns so floating point numbers raise an error @ndr-brt
+   * Support factors in ratio shorthand for rational patterns @ndr-brt
+   * support hosc 0.19 @yaxu
+
+## 1.7.5 - Dalbeattie
+   * Minor change to _splice so that it respects if the speed parameter was already declared @onthepeakofnormal
+   * Some tests for chords @cleary
+   * Remove direct semigroups dependency @yaxu
+   * Derive functor for pattern @yaxu
+   * Handle negative ratio shorthands for rationals @ndr_brt
+   * drawLine - draw non-events with periods @yaxu
+   * Parse chord without root note @yaxu
+   * Fix clock sharing between tidal processes @yaxu
+
+## 1.7.4 - Symonds Yat b
+   * Fixes for bipolar waveforms (sine2, etc) @mindofmatthew
+   * More playback controls for OSC API @mindofmatthew
+   * Disable bus variants for MIDI controls @mindofmatthew
+
+## 1.7.3 - Symonds Yat
+   * Signed ratio shorthands now supported @ndr_brt
+   * OSC API - mute/unmute stream @mindofmatthew
+   * improve performance of playFor/seqP @yaxu
+   * Expand tests with autodiscovered laws @RSWilli
+   * Add `getState` to BootTidal @mindofmatthew
+   * add fadeTime / fadeInTime / fadeOutTime params for grain envelopes @yaxu
+   * Fix for nrpnn and nrpnv params @yaxu
+   * Disable busses for MIDI parameters @mindofmatthew
+   
+## 1.7.2 - IKLECTIK c
+   * tidal-parse additions and improved errors, haskellish dependency fix @dktr0
+   * spring cleaning and delinting, recreated Time.hs, renamed ControlMap toValueMAp @yaxu
+   * start of [major refactoring of chords](https://club.tidalcycles.org/t/rfc-working-on-making-chord-naming-chordlist-more-consistent/2717/56) @cleary
+   * fix `.` mininotation operator @zudov
+   * stateful event parameters, for counting @yaxu
+   * Move some stuff from BootTidal.hs to the tidal library, to reduce dependencies there @yaxu
+
 ## 1.7.1 - IKLECTIK b
         * Fix stack build @yaxu
         * Add tidal_status command @yaxu

@@ -4,7 +4,7 @@ module Sound.Tidal.Transition where
 
 import Prelude hiding ((<*), (*>))
 
-import Control.Concurrent.MVar (readMVar, takeMVar, putMVar)
+import Control.Concurrent.MVar (readMVar, swapMVar)
 
 import qualified Sound.OSC.FD as O
 import qualified Data.Map.Strict as Map
@@ -12,6 +12,7 @@ import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Control
 import Sound.Tidal.Core
+import Sound.Tidal.ID
 import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Stream
@@ -39,13 +40,13 @@ import Sound.Tidal.Utils (enumerate)
 
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 -- the "historyFlag" determines if the new pattern should be placed on the history stack or not
-transition :: Show a => Stream -> Bool -> (Time -> [ControlPattern] -> ControlPattern) -> a -> ControlPattern -> IO ()
+transition :: Stream -> Bool -> (Time -> [ControlPattern] -> ControlPattern) -> ID -> ControlPattern -> IO ()
 transition stream historyFlag f patId !pat =
-  do pMap <- takeMVar (sPMapMV stream)
-     let playState = updatePS $ Map.lookup (show patId) pMap
+  do pMap <- readMVar (sPMapMV stream)
+     let playState = updatePS $ Map.lookup (fromID patId) pMap
      pat' <- transition' $ appendPat (not historyFlag) (history playState)
-     let pMap' = Map.insert (show patId) (playState {pattern = pat'}) pMap
-     putMVar (sPMapMV stream) pMap'
+     let pMap' = Map.insert (fromID patId) (playState {pattern = pat'}) pMap
+     _ <- swapMVar (sPMapMV stream) pMap'
      return ()
   where
     appendPat flag = if flag then (pat:) else id

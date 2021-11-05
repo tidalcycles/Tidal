@@ -62,7 +62,7 @@ cosine = 0.25 `rotR` sine
 -- following a cosine with frequency of one cycle, and amplitude from
 -- -1 to 1. Equivalent to `0.25 ~> sine2`.
 cosine2 :: Fractional a => Pattern a
-cosine2 = 0.25 `rotR` sine
+cosine2 = 0.25 `rotR` sine2
 
 -- | @saw@ - unipolar ascending sawtooth wave. A pattern of continuous values
 -- following a sawtooth with frequency of one cycle, and amplitude from
@@ -82,7 +82,7 @@ isaw = (1-) <$> saw
 
 -- | @isaw2@ like @saw2@, but a descending (inverse) sawtooth.
 isaw2 :: (Fractional a, Real a) => Pattern a
-isaw2 = (1-) <$> saw
+isaw2 = (*(-1)) <$> saw2
 
 -- | @tri@ - unipolar triangle wave. A pattern of continuous values
 -- following a triangle wave with frequency of one cycle, and amplitude from
@@ -94,7 +94,7 @@ tri = fastAppend saw isaw
 -- following a triangle wave with frequency of one cycle, and amplitude from
 -- -1 to 1.
 tri2 :: (Fractional a, Real a) => Pattern a
-tri2 = fastAppend saw isaw
+tri2 = fastAppend saw2 isaw2
 
 -- | @square@ - unipolar square wave. A pattern of continuous values
 -- following a square wave with frequency of one cycle, and amplitude from
@@ -179,12 +179,12 @@ a |-  b = (-) <$> a <* b
 ( -|) :: Num a => Pattern a -> Pattern a -> Pattern a
 a  -| b = (-) <$> a *> b
 
-(|%|) :: (Applicative a, Real b) => a b -> a b -> a b
-a |%| b = mod' <$> a <*> b
-(|% ) :: Real a => Pattern a -> Pattern a -> Pattern a
-a |%  b = mod' <$> a <* b
-( %|) :: Real a => Pattern a -> Pattern a -> Pattern a
-a  %| b = mod' <$> a *> b
+(|%|) :: (Applicative a, Moddable b) => a b -> a b -> a b
+a |%| b = gmod <$> a <*> b
+(|% ) :: Moddable a => Pattern a -> Pattern a -> Pattern a
+a |%  b = gmod <$> a <* b
+( %|) :: Moddable a => Pattern a -> Pattern a -> Pattern a
+a  %| b = gmod <$> a *> b
 
 (|**|) :: (Applicative a, Floating b) => a b -> a b -> a b
 a |**| b = (**) <$> a <*> b
@@ -292,6 +292,7 @@ fastappend = fastAppend
 fastCat :: [Pattern a] -> Pattern a
 fastCat ps = _fast (toTime $ length ps) $ cat ps
 
+-- | Alias for @fastCat@
 fastcat :: [Pattern a] -> Pattern a
 fastcat = fastCat
 
@@ -302,6 +303,10 @@ timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) 
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
           arrange _ [] = []
           arrange t ((t',p):tps') = (t,t+t',p) : arrange (t+t') tps'
+
+-- | Alias for @timeCat@
+timecat :: [(Time, Pattern a)] -> Pattern a
+timecat = timeCat
 
 -- | 'overlay' combines two 'Pattern's into a new pattern, so that
 -- their events are combined over time. 
@@ -316,8 +321,6 @@ overlay !p !p' = Pattern $ \st -> query p st ++ query p' st
 -- their events are combined over time.
 stack :: [Pattern a] -> Pattern a
 stack = foldr overlay silence
-
-
 
 -- ** Manipulating time
 
@@ -343,9 +346,9 @@ density :: Pattern Time -> Pattern a -> Pattern a
 density = fast
 
 _fast :: Time -> Pattern a -> Pattern a
-_fast r p | r == 0 = silence
-          | r < 0 = rev $ _fast (negate r) p
-          | otherwise = withResultTime (/ r) $ withQueryTime (* r) p
+_fast rate pat | rate == 0 = silence
+               | rate < 0 = rev $ _fast (negate rate) pat
+               | otherwise = withResultTime (/ rate) $ withQueryTime (* rate) pat
 
 -- | Slow down a pattern by the given time pattern
 slow :: Pattern Time -> Pattern a -> Pattern a
@@ -497,10 +500,10 @@ _getP :: a -> (Value -> Maybe a) -> Pattern Value -> Pattern a
 _getP d f pat = fromMaybe d . f <$> pat
 
 _cX :: a -> (Value -> Maybe a) -> String -> Pattern a
-_cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f) $ Map.lookup s m) a
+_cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f . valueToPattern) $ Map.lookup s m) a
 
 _cX_ :: (Value -> Maybe a) -> String -> Pattern a
-_cX_ f s = Pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f) $ Map.lookup s m) a
+_cX_ f s = Pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f . valueToPattern) $ Map.lookup s m) a
 
 cF :: Double -> String -> Pattern Double
 cF d = _cX d getF

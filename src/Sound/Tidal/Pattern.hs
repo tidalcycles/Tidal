@@ -1,5 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-
@@ -21,9 +24,7 @@
 -}
 
 module Sound.Tidal.Pattern (module Sound.Tidal.Pattern,
-                            module Sound.Tidal.Time,
-                            module Sound.Tidal.Value,
-                            module Sound.Tidal.Event
+                            module Sound.Tidal.Time
                            )
 where
 
@@ -35,32 +36,30 @@ import           Control.DeepSeq (NFData)
 import           Control.Monad ((>=>))
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
+import           Data.List (delete, findIndex, sort)
+import           Data.Word (Word8)
+import           Data.Data (Data) -- toConstr
+import           Data.Typeable (Typeable)
+import           Data.Fixed (mod')
 
 import           Sound.Tidal.Time
-import           Sound.Tidal.Value
-import           Sound.Tidal.Event
 
 ------------------------------------------------------------------------
 -- * Types
 
 -- | an Arc and some named control values
 data State = State {arc :: Arc,
-                    controls :: StateMap
+                    controls :: ValueMap
                    }
 
 -- | A datatype representing events taking place over time
 data Pattern a = Pattern {query :: State -> [Event a]}
-  deriving Generic
+  deriving (Generic, Functor)
+
 instance NFData a => NFData (Pattern a)
 
-type StateMap = Map.Map String (Pattern Value)
+-- type StateMap = Map.Map String (Pattern Value)
 type ControlPattern = Pattern ValueMap
-
--- * Functor
-
-instance Functor Pattern where
-  -- | apply a function to all the values in a pattern
-  fmap f p = p {query = fmap (fmap f) . query p}
 
 -- * Applicative and friends
 
@@ -299,6 +298,35 @@ instance Fractional ValueMap where
   recip        = fmap (applyFIS recip id id)
   fromRational r = Map.singleton "speed" $ VF (fromRational r)
 
+class Moddable a where
+  gmod :: a -> a -> a
+
+instance Moddable Double where
+  gmod = mod'
+instance Moddable Rational where
+  gmod = mod'
+instance Moddable Note where
+  gmod (Note a) (Note b) = Note (mod' a b)
+instance Moddable Int where
+  gmod = mod
+instance Moddable ValueMap where
+  gmod = Map.unionWith (fNum2 mod mod')
+
+instance Floating ValueMap
+  where pi = noOv "pi"
+        exp _ = noOv "exp"
+        log _ = noOv "log"
+        sin _ = noOv "sin"
+        cos _ = noOv "cos"
+        asin _ = noOv "asin"
+        acos _ = noOv "acos"
+        atan _ = noOv "atan"
+        sinh _ = noOv "sinh"
+        cosh _ = noOv "cosh"
+        asinh _ = noOv "asinh"
+        acosh _ = noOv "acosh"
+        atanh _ = noOv "atanh"
+
 ------------------------------------------------------------------------
 -- * Internal functions
 
@@ -327,11 +355,11 @@ withResultTime f = withResultArc (\(Arc s e) -> Arc (f s) (f e))
 
 -- | Apply a function to the timespan of the query
 withQueryArc :: (Arc -> Arc) -> Pattern a -> Pattern a
-withQueryArc f p = p {query = query p . (\(State a m) -> State (f a) m)}
+withQueryArc f pat = pat {query = query pat . (\(State a m) -> State (f a) m)}
 
 -- | Apply a function to the time (both start and end) of the query
 withQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
-withQueryTime f = withQueryArc (\(Arc s e) -> Arc (f s) (f e))
+withQueryTime f pat = withQueryArc (\(Arc s e) -> Arc (f s) (f e)) pat
 
 -- | @withEvent f p@ returns a new @Pattern@ with each event mapped over
 -- function @f@.
@@ -446,7 +474,7 @@ filterAnalog :: Pattern a -> Pattern a
 filterAnalog = filterEvents isAnalog
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
-playFor s e = filterWhen (\t -> (t >= s) && (t < e))
+playFor s e pat = Pattern $ \st -> maybe [] (\a -> query pat (st {arc = a})) $ subArc (Arc s e) (arc st)
 
 -- ** Temporal parameter helpers
 
@@ -473,7 +501,316 @@ setContext c pat = withEvents (map (\e -> e {context = c})) pat
 withContext :: (Context -> Context) -> Pattern a -> Pattern a
 withContext f pat = withEvents (map (\e -> e {context = f $ context e})) pat
 
-deltaContext :: Int -> Int -> Pattern a -> Pattern a
-deltaContext column line pat = withEvents (map (\e -> e {context = f $ context e})) pat
-  where f :: Context -> Context
-        f (Context xs) = Context $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
+-- A hack to add to manipulate source code to add calls to
+-- 'deltaContext' around strings, so events from mininotation know
+-- where they are within a whole tidal pattern
+deltaMini :: String -> String
+deltaMini = outside 0 0
+  where outside :: Int -> Int -> String -> String
+        outside _ _ [] = []
+        outside column line ('"':xs) = "(deltaContext "
+                                         ++ show column
+                                         ++ " "
+                                         ++ show line
+                                         ++ " \""
+                                         ++ inside (column+1) line xs
+        outside _ line ('\n':xs) = '\n':outside 0 (line+1) xs
+        outside column line (x:xs) = x:outside (column+1) line xs
+        inside :: Int -> Int -> String -> String
+        inside _ _ [] = []
+        inside column line ('"':xs) = '"':')':outside (column+1) line xs
+        inside _ line ('\n':xs) = '\n':inside 0 (line+1) xs
+        inside column line (x:xs) = x:inside (column+1) line xs
+
+class Stringy a where
+  deltaContext :: Int -> Int -> a -> a
+
+instance Stringy (Pattern a) where
+  deltaContext column line pat = withEvents (map (\e -> e {context = f $ context e})) pat
+    where f :: Context -> Context
+          f (Context xs) = Context $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
+
+-- deltaContext on an actual (non overloaded) string is a no-op
+instance Stringy String where
+  deltaContext _ _ = id
+
+-- ** Events
+
+-- | Some context for an event, currently just position within sourcecode
+data Context = Context {contextPosition :: [((Int, Int), (Int, Int))]}
+  deriving (Eq, Ord, Generic)
+instance NFData Context
+
+-- | An event is a value that's active during a timespan. If a whole
+-- is present, the part should be equal to or fit inside it.
+data EventF a b = Event
+  { context :: Context
+  , whole :: Maybe a
+  , part :: a
+  , value :: b
+  } deriving (Eq, Ord, Functor, Generic)
+instance (NFData a, NFData b) => NFData (EventF a b)
+
+type Event a = EventF (ArcF Time) a
+
+-- * Event utilities
+
+isAnalog :: Event a -> Bool
+isAnalog (Event {whole = Nothing}) = True
+isAnalog _ = False
+
+isDigital :: Event a -> Bool
+isDigital = not . isAnalog
+
+-- | `True` if an `Event`'s starts is within given `Arc`
+onsetIn :: Arc -> Event a -> Bool
+onsetIn a e = isIn a (wholeStart e)
+
+-- | Compares two lists of events, attempting to combine fragmented events in the process
+-- for a 'truer' compare
+compareDefrag :: (Ord a) => [Event a] -> [Event a] -> Bool
+compareDefrag as bs = sort (defragParts as) == sort (defragParts bs)
+
+-- | Returns a list of events, with any adjacent parts of the same whole combined
+defragParts :: Eq a => [Event a] -> [Event a]
+defragParts [] = []
+defragParts [e] = [e]
+defragParts (e:es) | isJust i = defraged : defragParts (delete e' es)
+                   | otherwise = e : defragParts es
+  where i = findIndex (isAdjacent e) es
+        e' = es !! fromJust i
+        defraged = Event (context e) (whole e) u (value e)
+        u = hull (part e) (part e')
+
+-- | Returns 'True' if the two given events are adjacent parts of the same whole
+isAdjacent :: Eq a => Event a -> Event a -> Bool
+isAdjacent e e' = (whole e == whole e')
+                  && (value e == value e')
+                  && ((stop (part e) == start (part e'))
+                      ||
+                      (stop (part e') == start (part e))
+                     )
+
+wholeOrPart :: Event a -> Arc
+wholeOrPart (Event {whole = Just a}) = a
+wholeOrPart e = part e
+
+-- | Get the onset of an event's 'whole'
+wholeStart :: Event a -> Time
+wholeStart = start . wholeOrPart
+
+-- | Get the offset of an event's 'whole'
+wholeStop :: Event a -> Time
+wholeStop = stop . wholeOrPart
+
+-- | Get the onset of an event's 'whole'
+eventPartStart :: Event a -> Time
+eventPartStart = start . part
+
+-- | Get the offset of an event's 'part'
+eventPartStop :: Event a -> Time
+eventPartStop = stop . part
+
+-- | Get the timespan of an event's 'part'
+eventPart :: Event a -> Arc
+eventPart = part
+
+eventValue :: Event a -> a
+eventValue = value
+
+eventHasOnset :: Event a -> Bool
+eventHasOnset e | isAnalog e = False
+                | otherwise = start (fromJust $ whole e) == start (part e)
+
+-- TODO - Is this used anywhere? Just tests, it seems
+-- TODO - support 'context' field
+toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
+toEvent (((ws, we), (ps, pe)), v) = Event (Context []) (Just $ Arc ws we) (Arc ps pe) v
+
+ -- Resolves higher order VState values to plain values, by passing through (and changing) state
+resolveState :: ValueMap -> [Event ValueMap] -> (ValueMap, [Event ValueMap])
+resolveState sMap [] = (sMap, [])
+resolveState sMap (e:es) = (sMap'', (e {value = v'}):es')
+  where f sm (VState v) = v sm
+        f sm v = (sm, v)
+        (sMap', v') | eventHasOnset e = Map.mapAccum f sMap (value e)    -- pass state through VState functions
+                    | otherwise = (sMap, Map.filter notVState $ value e) -- filter out VState values without onsets
+        (sMap'', es') = resolveState sMap' es
+        notVState (VState _) = False
+        notVState _ = True
+
+-- ** Values
+
+-- | Polymorphic values
+
+data Value = VS { svalue :: String   }
+           | VF { fvalue :: Double   }
+           | VN { nvalue :: Note     }
+           | VR { rvalue :: Rational }
+           | VI { ivalue :: Int      }
+           | VB { bvalue :: Bool     }
+           | VX { xvalue :: [Word8]  } -- Used for OSC 'blobs'
+           | VPattern {pvalue :: Pattern Value}
+           | VList {lvalue :: [Value]}
+           | VState {statevalue :: ValueMap -> (ValueMap, Value)}
+           deriving (Typeable, Generic)
+
+class Valuable a where
+  toValue :: a -> Value
+instance NFData Value
+
+type ValueMap = Map.Map String Value
+
+-- | Note is Double, but with a different parser
+newtype Note = Note { unNote :: Double } deriving (Typeable, Data, Generic, Eq, Ord, Show, Enum, Num, Fractional, Floating, Real)
+instance NFData Note
+
+instance Valuable String where
+  toValue a = VS a
+instance Valuable Double where
+  toValue a = VF a
+instance Valuable Rational where
+  toValue a = VR a
+instance Valuable Int where
+  toValue a = VI a
+instance Valuable Bool where
+  toValue a = VB a
+instance Valuable [Word8] where
+  toValue a = VX a
+instance Valuable [Value] where
+  toValue a = VList a
+
+instance Eq Value where
+  (VS x) == (VS y) = x == y
+  (VB x) == (VB y) = x == y
+  (VF x) == (VF y) = x == y
+  (VI x) == (VI y) = x == y
+  (VN x) == (VN y) = x == y
+  (VR x) == (VR y) = x == y
+  (VX x) == (VX y) = x == y
+
+  (VF x) == (VI y) = x == fromIntegral y
+  (VI y) == (VF x) = x == fromIntegral y
+
+  (VF x) == (VR y) = toRational x == y
+  (VR y) == (VF x) = toRational x == y
+  (VI x) == (VR y) = toRational x == y
+  (VR y) == (VI x) = toRational x == y
+
+  _ == _ = False
+
+instance Ord Value where
+  compare (VS x) (VS y) = compare x y
+  compare (VB x) (VB y) = compare x y
+  compare (VF x) (VF y) = compare x y
+  compare (VN x) (VN y) = compare (unNote x) (unNote y)
+  compare (VI x) (VI y) = compare x y
+  compare (VR x) (VR y) = compare x y
+  compare (VX x) (VX y) = compare x y
+
+  compare (VS _) _ = LT
+  compare _ (VS _) = GT
+  compare (VB _) _ = LT
+  compare _ (VB _) = GT
+  compare (VX _) _ = LT
+  compare _ (VX _) = GT
+
+  compare (VF x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VF y) = compare (fromIntegral x) y
+
+  compare (VR x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VR y) = compare (fromIntegral x) y
+
+  compare (VF x) (VR y) = compare x (fromRational y)
+  compare (VR x) (VF y) = compare (fromRational x) y
+
+  compare (VN x) (VI y) = compare x (fromIntegral y)
+  compare (VI x) (VN y) = compare (fromIntegral x) y
+
+  compare (VN x) (VR y) = compare (unNote x) (fromRational y)
+  compare (VR x) (VN y) = compare (fromRational x) (unNote y)
+
+  compare (VF x) (VN y) = compare x (unNote y)
+  compare (VN x) (VF y) = compare (unNote x) y
+
+  -- you can't really compare patterns, state or lists..
+  compare (VPattern _) (VPattern _) = EQ
+  compare (VPattern _) _ = GT
+  compare _ (VPattern _) = LT
+
+  compare (VState _) (VState _) = EQ
+  compare (VState _) _          = GT
+  compare _ (VState _)          = LT
+
+  compare (VList _) (VList _) = EQ
+  compare (VList _) _          = GT
+  compare _ (VList _)          = LT
+
+-- | General utilities..
+
+-- | Apply one of three functions to a Value, depending on its type
+applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value -> Value
+applyFIS f _ _ (VF f') = VF (f f')
+applyFIS f _ _ (VN (Note f')) = VN (Note $ f f')
+applyFIS _ f _ (VI i) = VI (f i)
+applyFIS _ _ f (VS s) = VS (f s)
+applyFIS f f' f'' (VState x) = VState $ \cmap -> (applyFIS f f' f'') <$> (x cmap)
+applyFIS _ _ _ v = v
+
+-- | Apply one of two functions to a pair of Values, depending on their types (int
+-- or float; strings and rationals are ignored)
+fNum2 :: (Int -> Int -> Int) -> (Double -> Double -> Double) -> Value -> Value -> Value
+fNum2 fInt _      (VI a) (VI b) = VI (fInt a b)
+fNum2 _    fFloat (VF a) (VF b) = VF (fFloat a b)
+fNum2 _    fFloat (VN (Note a)) (VN (Note b)) = VN (Note $ fFloat a b)
+fNum2 _    fFloat (VF a) (VN (Note b)) = VN (Note $ fFloat a b)
+fNum2 _    fFloat (VN (Note a)) (VF b) = VN (Note $ fFloat a b)
+fNum2 _    fFloat (VI a) (VF b) = VF (fFloat (fromIntegral a) b)
+fNum2 _    fFloat (VF a) (VI b) = VF (fFloat a (fromIntegral b))
+fNum2 fInt fFloat (VState a) b = VState $ \cmap -> ((\a' -> fNum2 fInt fFloat a' b) <$> (a cmap))
+fNum2 fInt fFloat a (VState b) = VState $ \cmap -> ((\b' -> fNum2 fInt fFloat a b') <$> (b cmap))
+fNum2 _    _      x      _      = x
+
+getI :: Value -> Maybe Int
+getI (VI i) = Just i
+getI (VR x) = Just $ floor x
+getI (VF x) = Just $ floor x
+getI _  = Nothing
+
+getF :: Value -> Maybe Double
+getF (VF f) = Just f
+getF (VR x) = Just $ fromRational x
+getF (VI x) = Just $ fromIntegral x
+getF _  = Nothing
+
+getN :: Value -> Maybe Note
+getN (VF f) = Just $ Note f
+getN (VR x) = Just $ Note $ fromRational x
+getN (VI x) = Just $ Note $ fromIntegral x
+getN _  = Nothing
+
+getS :: Value -> Maybe String
+getS (VS s) = Just s
+getS _  = Nothing
+
+getB :: Value -> Maybe Bool
+getB (VB b) = Just b
+getB _  = Nothing
+
+getR :: Value -> Maybe Rational
+getR (VR r) = Just r
+getR (VF x) = Just $ toRational x
+getR (VI x) = Just $ toRational x
+getR _  = Nothing
+
+getBlob :: Value -> Maybe [Word8]
+getBlob (VX xs) = Just xs
+getBlob _  = Nothing
+
+getList :: Value -> Maybe [Value]
+getList (VList vs) = Just vs
+getList _  = Nothing
+
+valueToPattern :: Value -> Pattern Value
+valueToPattern (VPattern pat) = pat
+valueToPattern v = pure v

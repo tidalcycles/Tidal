@@ -2,11 +2,13 @@
 
 module Sound.Tidal.ParseTest where
 
-import TestUtils
 import Test.Microspec
+import TestUtils
+import Control.Exception
 
 import Prelude hiding ((<*), (*>))
 
+import Sound.Tidal.ExceptionsTest (shouldThrow, anyException)
 import Sound.Tidal.Core
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI (_degradeBy)
@@ -127,10 +129,22 @@ run =
         compareP (Arc 0 2)
           ("c'major e'minor f'dim7" :: Pattern Int)
           ("c e f" + "'major 'minor 'dim7")
+      it "can parse note chords" $ do
+        compareP (Arc 0 2)
+          ("c'major c'minor" :: Pattern Note)
+          ("'major 'minor")
       it "handle trailing and leading whitespaces" $ do
         compareP (Arc 0 1)
           ("  bd  " :: Pattern String)
           ("bd" :: Pattern String)
+      it "can parse negative ratio shorthands" $ do
+        compareP (Arc 0 1)
+          ("h -h" :: Pattern Double)
+          ("0.5 -0.5" :: Pattern Double)
+      it "can parse multiplied ratio shorthands" $ do
+        compareP (Arc 0 1)
+          ("3h -2q 1.5q" :: Pattern Double)
+          ("1.5 -0.5 0.375" :: Pattern Double)
       it "doesn't crash on zeroes (1)" $ do
         compareP (Arc 0 2)
           ("cp/0" :: Pattern String)
@@ -143,4 +157,7 @@ run =
         compareP (Arc 0 2)
           ("cp(5,c)" :: Pattern String)
           (silence)
-    where degradeByDefault = _degradeBy 0.5  
+      it "can't parse a floating point number as int" $ do
+        evaluate ("1.5" :: Pattern Int)
+          `shouldThrow` anyException
+    where degradeByDefault = _degradeBy 0.5
