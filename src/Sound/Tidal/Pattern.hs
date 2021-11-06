@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -230,6 +231,12 @@ instance Enum a => Enum (Pattern a) where
   enumFromThen   = noOv "enumFromThen"
   enumFromTo     = noOv "enumFromTo"
   enumFromThenTo = noOv "enumFromThenTo"
+
+instance Monoid (Pattern a) where
+  mempty = empty
+
+instance Semigroup (Pattern a) where
+  (<>) !p !p' = Pattern $ \st -> query p st ++ query p' st
 
 instance (Num a, Ord a) => Real (Pattern a) where
   toRational = noOv "toRational"
