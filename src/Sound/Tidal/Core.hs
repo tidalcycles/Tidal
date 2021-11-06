@@ -311,11 +311,7 @@ timecat = timeCat
 -- | 'overlay' combines two 'Pattern's into a new pattern, so that
 -- their events are combined over time. 
 overlay :: Pattern a -> Pattern a -> Pattern a
-overlay !p !p' = Pattern $ \st -> query p st ++ query p' st
-
--- | An infix alias of @overlay@
-(<>) :: Pattern a -> Pattern a -> Pattern a
-(<>) = overlay
+overlay = (<>)
 
 -- | 'stack' combines a list of 'Pattern's into a new pattern, so that
 -- their events are combined over time.
