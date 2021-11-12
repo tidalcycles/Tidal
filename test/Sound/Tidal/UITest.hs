@@ -364,3 +364,9 @@ run =
         compareP (Arc 0 1)
           ((1 <~) $ timeLoop "<2 1>" $ sound "b")
           (sound "b")
+    describe "necklace" $ do
+      it "can specify rhythm by IOI" $ do
+        compareP (Arc 0 1)
+          (necklace 12 [4,2])
+          ("t f f f t f t f f f t f")
+      

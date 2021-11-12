@@ -1971,3 +1971,13 @@ grain :: Pattern Double -> Pattern Double -> ControlPattern
 grain s w = P.begin b # P.end e
   where b = s
         e = s + w
+
+-- | For specifying a boolean pattern according to a list of offsets
+-- (aka inter-onset intervals).  For example `necklace 12 [4,2]` is
+-- the same as "t f f f t f t f f f t f". That is, 12 steps per cycle,
+-- with true values alternating between every 4 and every 2 steps.
+necklace :: Rational -> [Int] -> Pattern Bool
+necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ listToPat $ list xs
+  where list :: [Int] -> [Bool]
+        list [] = []
+        list (x:xs') = (True:(replicate (x-1) False)) ++ list xs'
