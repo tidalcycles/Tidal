@@ -161,6 +161,14 @@ run =
         compareP (Arc 0 1)
           ("3h -2q 1.5q" :: Pattern Double)
           ("1.5 -0.5 0.375" :: Pattern Double)
+      it "can parse exponential notation value for pattern double" $ do
+        compareP (Arc 0 1)
+          ("1e3" :: Pattern Double)
+          ("1000" :: Pattern Double)
+      it "can parse negative exponential notation value for pattern double" $ do
+        compareP (Arc 0 1)
+          ("400e-3" :: Pattern Double)
+          ("0.4" :: Pattern Double)
       it "doesn't crash on zeroes (1)" $ do
         compareP (Arc 0 2)
           ("cp/0" :: Pattern String)

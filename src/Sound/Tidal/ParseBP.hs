@@ -580,6 +580,10 @@ pRatio = do
                               return (toRational ((read $ show n ++ "." ++ frac) :: Double))
                     )
                     <|>
+                    do char 'e'
+                       e <- many1 (char '-' <|> digit)
+                       return (toRational ((read $ show n ++ "e" ++ e) :: Double))
+                    <|>
                     return (n%1)
           c <- pRatioChar <|> return 1
           return (result * c)
