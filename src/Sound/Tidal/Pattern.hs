@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -230,6 +231,12 @@ instance Enum a => Enum (Pattern a) where
   enumFromThen   = noOv "enumFromThen"
   enumFromTo     = noOv "enumFromTo"
   enumFromThenTo = noOv "enumFromThenTo"
+
+instance Monoid (Pattern a) where
+  mempty = empty
+
+instance Semigroup (Pattern a) where
+  (<>) !p !p' = Pattern $ \st -> query p st ++ query p' st
 
 instance (Num a, Ord a) => Real (Pattern a) where
   toRational = noOv "toRational"
@@ -662,8 +669,16 @@ instance NFData Value
 type ValueMap = Map.Map String Value
 
 -- | Note is Double, but with a different parser
-newtype Note = Note { unNote :: Double } deriving (Typeable, Data, Generic, Eq, Ord, Show, Enum, Num, Fractional, Floating, Real)
+newtype Note = Note { unNote :: Double } deriving (Typeable, Data, Generic, Eq, Ord, Enum, Num, Fractional, Floating, Real)
 instance NFData Note
+
+instance Show Note where
+  show n = (show . unNote $ n) ++ "n (" ++ pitchClass ++ octave ++ ")"
+    where
+      pitchClass = pcs !! mod noteInt 12
+      octave = show $ div noteInt 12 + 5
+      noteInt = round . unNote $ n
+      pcs = ["c", "cs", "d", "ds", "e", "f", "fs", "g", "gs", "a", "as", "b"]
 
 instance Valuable String where
   toValue a = VS a

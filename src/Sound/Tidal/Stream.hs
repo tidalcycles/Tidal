@@ -558,7 +558,6 @@ streamReplace s k !pat
         updatePS Nothing = PlayState pat' False False [pat']
         pat' = pat # pS "_id_" (pure $ fromID k)
 
-
 streamMute :: Stream -> ID -> IO ()
 streamMute s k = withPatIds s [k] (\x -> x {mute = True})
 
@@ -593,6 +592,9 @@ streamUnmuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = Fal
 
 streamUnsoloAll :: Stream -> IO ()
 streamUnsoloAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {solo = False})
+
+streamSilence :: Stream -> ID -> IO ()
+streamSilence s k = withPatIds s [k] (\x -> x {pattern = silence, history = silence:history x})
 
 streamAll :: Stream -> (ControlPattern -> ControlPattern) -> IO ()
 streamAll s f = do _ <- swapMVar (sGlobalFMV s) f
@@ -682,6 +684,8 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
           = streamUnsoloAll stream
         act (O.Message "/hush" [])
           = streamHush stream
+        act (O.Message "/silence" (k:[]))
+          = withID k $ streamSilence stream
         act m = hPutStrLn stderr $ "Unhandled OSC: " ++ show m
         add :: String -> Value -> IO ()
         add k v = do sMap <- takeMVar (sStateMV stream)

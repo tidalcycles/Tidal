@@ -320,6 +320,7 @@ aliasParams =
   ("f", "lpf", "cutoff"),
   ("f", "lpq", "resonance"),
   ("f", "lsn", "lsnare"),
+  ("note", "number", "n"),
   ("f", "ohdecay", "ophatdecay"),
   ("f", "phasdp", "phaserdepth"),
   ("f", "phasr", "phaserrate"),

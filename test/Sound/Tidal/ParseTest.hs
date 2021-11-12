@@ -97,6 +97,22 @@ run =
         compareP (Arc 0 2)
           ("0 .. 8" :: Pattern Rational)
           ("0 1 2 3 4 5 6 7 8")
+      it "can parse .. with doubles" $ do
+        compareP (Arc 0 2)
+          ("0.0 .. 8.0" :: Pattern Double)
+          ("0 1 2 3 4 5 6 7 8")
+      it "can parse .. with doubles, without spaces" $ do
+        compareP (Arc 0 2)
+          ("0.0..8.0" :: Pattern Double)
+          ("0 1 2 3 4 5 6 7 8")
+      it "can parse .. with notes" $ do
+        compareP (Arc 0 2)
+          ("0.0 .. 8.0" :: Pattern Note)
+          ("0 1 2 3 4 5 6 7 8")
+      it "can parse .. with notes, without spaces" $ do
+        compareP (Arc 0 2)
+          ("0..8" :: Pattern Note)
+          ("0 1 2 3 4 5 6 7 8")
       it "can handle repeats (!) and durations (@) with <>" $ do
         compareP (Arc 0 31)
           ("<a!3 b ! c@5>" :: Pattern String)

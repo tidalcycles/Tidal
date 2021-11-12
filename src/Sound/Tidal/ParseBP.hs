@@ -321,11 +321,9 @@ sign  =  do char '-'
          <|> return Positive
 
 intOrFloat :: MyParser Double
-intOrFloat = do num <- naturalOrFloat
-                return (case num of
-                  Right x -> x
-                  Left  x -> fromIntegral x
-                  )
+intOrFloat = do -- use 'try' to avoid consuming the first '.' in a '..' range.
+                try float
+                <|> fromIntegral <$> integer
 
 parseRhythm :: Parseable a => MyParser (TPat a) -> String -> Either ParseError (TPat a)
 parseRhythm f = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
@@ -439,7 +437,7 @@ pChar = wrapPos $ TPat_Atom Nothing <$> pCharNum
 
 pDouble :: MyParser (TPat Double)
 pDouble = wrapPos $ do s <- sign
-                       f <- choice [fromRational <$> pRatio, intOrFloat, parseNote] <?> "float"
+                       f <- choice [fromRational <$> pRatio, parseNote] <?> "float"
                        let v = applySign s f
                        do TPat_Stack . map (TPat_Atom Nothing . (+ v)) <$> parseChord
                          <|> return (TPat_Atom Nothing v)
@@ -574,11 +572,13 @@ pRatio = do
                        d <- decimal
                        return (n%d)
                     <|>
-                    do char '.'
-                       frac <- many1 digit
-                       -- A hack, but not sure if doing this
-                       -- numerically would be any faster..
-                       return (toRational ((read $ show n ++ "." ++ frac) :: Double))
+                    -- use 'try' here to avoid consuming the first '.' of '..' ranges
+                    (try $ do char '.'
+                              frac <- many1 digit
+                              -- A hack, but not sure if doing this
+                              -- numerically would be any faster..
+                              return (toRational ((read $ show n ++ "." ++ frac) :: Double))
+                    )
                     <|>
                     return (n%1)
           c <- pRatioChar <|> return 1

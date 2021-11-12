@@ -12,12 +12,15 @@ on:
 jobs:
   cabal:
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       matrix:
+        experimental: [false]
         versions:
           - ghc: latest
             cabal: latest
             args: --allow-newer=base,template-haskell
+            experimental: true
           - ghc: 9.0.1
             cabal: 3.4.0.0
             args: --allow-newer=base,template-haskell
@@ -30,10 +33,6 @@ jobs:
           - ghc: 8.6.5
             cabal: 2.4.1.0
           - ghc: 8.4.4
-            cabal: 2.4.1.0
-          - ghc: 8.2.2
-            cabal: 2.4.1.0
-          - ghc: 8.0.2
             cabal: 2.4.1.0
     name: cabal ${{ matrix.versions.cabal }} - ghc ${{ matrix.versions.ghc }}
     steps:

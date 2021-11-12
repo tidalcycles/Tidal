@@ -3128,6 +3128,9 @@ ohdecaybus = ophatdecaybus
 ohdecayrecv :: Pattern Int -> ControlPattern
 ohdecayrecv = ophatdecayrecv
 
+number :: Pattern Note -> ControlPattern
+number = n
+
 lsn :: Pattern Double -> ControlPattern
 lsn = lsnare
 lsnbus :: Pattern Int -> Pattern Double -> ControlPattern

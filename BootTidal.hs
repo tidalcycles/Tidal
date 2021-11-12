@@ -77,3 +77,5 @@ let getState = streamGet tidal
 
 :set prompt "tidal> "
 :set prompt-cont ""
+
+default (Pattern String, Integer, Double)
