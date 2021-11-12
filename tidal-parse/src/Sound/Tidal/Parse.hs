@@ -819,7 +819,9 @@ instance Parse (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern
   parser =
     $(fromTidal "off") <|>
     $(fromTidal "plyWith") <|>
-    (parser :: H (Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*!> parser
+    (parser :: H (Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*!> parser <|>
+    (parser :: H (Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*!> parser
+
 
 pTime_pAB_pA_pB :: H (Pattern Time -> (Pattern a -> Pattern b) -> Pattern a -> Pattern b)
 pTime_pAB_pA_pB =
@@ -883,11 +885,15 @@ instance Parse (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPatt
 instance Parse (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "every'")
 
+instance Parse (Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "stutWith")
+
 instance Parse (Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "whenmod")
 
 instance Parse ((ControlPattern -> ControlPattern) -> (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern) where
   parser = $(fromTidal "contrast")
+
 
 
 -- * -> * -> * -> * -> * -> *
