@@ -12,6 +12,14 @@ fromTidal x = do
   let z = appE [|reserved|] $ return (LitE $ StringL x)
   uInfixE y [|(<$)|] z
 
+-- example: $(fromTidalList ["major","minor"])
+fromTidalList :: [String] -> Q Exp
+fromTidalList xs = do
+  xs' <- mapM fromTidal xs -- :: Q [Exp]
+  choice <- [|(<|>)|]
+  let f a b = UInfixE a choice b
+  return $ foldl1 f xs'
+
 -- example: $(fromHaskell "+") ...is translated as... + <$ reserved "+"
 fromHaskell :: String -> Q Exp
 fromHaskell x = do

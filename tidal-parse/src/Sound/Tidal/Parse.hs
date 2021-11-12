@@ -11,6 +11,7 @@ import qualified Data.Text
 
 import           Sound.Tidal.Context (Pattern,ValueMap,ControlPattern,Enumerable,Time)
 import qualified Sound.Tidal.Context as T
+import qualified Sound.Tidal.Chords as T
 import           Sound.Tidal.Parse.TH
 
 type H = Haskellish ()
@@ -56,6 +57,16 @@ instance (Parse a, Parse b) => Parse (a,b) where
 
 instance Parse a => Parse [a] where
   parser = list parser
+
+chords :: Num a => H [a]
+chords =
+  $(fromTidalList ["major","aug","six","sixNine","major7","major9","add9","major11",
+  "add11","major13","add13","dom7","dom9","dom11","dom13","sevenFlat5","sevenSharp5",
+  "sevenFlat9","nine","eleven","thirteen","minor","diminished","minorSharp5","minor6",
+  "minorSixNine","minor7flat5","minor7","minor7sharp5","minor7flat9","minor7sharp9",
+  "diminished7","minor9","minor11","minor13","one","five","sus2","sus4","sevenSus2",
+  "sevenSus4","nineSus4","sevenFlat10","nineSharp5","minor9sharp5","sevenSharp5flat9",
+  "minor7sharp5flat9","elevenSharp","minor11sharp"])
 
 instance Parse ValueMap where
   parser = empty
