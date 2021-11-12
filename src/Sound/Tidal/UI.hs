@@ -1254,11 +1254,17 @@ _chunk' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
 chunk' :: Integral a1 => Pattern a1 -> (Pattern a2 -> Pattern a2) -> Pattern a2 -> Pattern a2
 chunk' npat f p = innerJoin $ (\n -> _chunk' n f p) <$> npat
 
+_inside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
+_inside n f p = _fast n $ f (_slow n p)
+
 inside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
-inside n f p = density n $ f (slow n p)
+inside np f p = innerJoin $ (\n -> _inside n f p) <$> np
+
+_outside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
+_outside n = _inside (1/n)
 
 outside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
-outside n = inside (1/n)
+outside np f p = innerJoin $ (\n -> _outside n f p) <$> np
 
 loopFirst :: Pattern a -> Pattern a
 loopFirst p = splitQueries $ p {query = f}
