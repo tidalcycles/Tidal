@@ -177,7 +177,10 @@ parseBP_E s = toE parsed
     toE (Right tp) = toPat tp
 
 parseTPat :: Parseable a => String -> Either ParseError (TPat a)
-parseTPat = parseRhythm tPatParser
+parseTPat = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
+  where f' = do tPatParser
+             <|> do symbol "~" <?> "rest"
+                    return TPat_Silence
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
 cP s = innerJoin $ parseBP_E <$> _cX_ getS s
@@ -324,12 +327,6 @@ intOrFloat :: MyParser Double
 intOrFloat = do -- use 'try' to avoid consuming the first '.' in a '..' range.
                 try float
                 <|> fromIntegral <$> integer
-
-parseRhythm :: Parseable a => MyParser (TPat a) -> String -> Either ParseError (TPat a)
-parseRhythm f = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
-  where f' = do f
-                <|> do symbol "~" <?> "rest"
-                       return TPat_Silence
 
 pSequence :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
 pSequence f = do
