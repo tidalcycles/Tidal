@@ -184,6 +184,14 @@ run =
         compareP (Arc 0 1)
           ("4e2q" :: Pattern Double)
           ("100" :: Pattern Double)
+      it "can parse euclid pattern" $ do
+        compareP (Arc 0 1)
+          ("bd(3,8,1)" :: Pattern String)
+          ("~ ~ bd ~ ~ bd ~ bd")
+      it "can parse euclid bool pattern" $ do
+        compareP (Arc 0 1)
+          ("t(3,8,1)" :: Pattern Bool)
+          ("f f t f f t f t")
       it "doesn't crash on zeroes (1)" $ do
         compareP (Arc 0 2)
           ("cp/0" :: Pattern String)
