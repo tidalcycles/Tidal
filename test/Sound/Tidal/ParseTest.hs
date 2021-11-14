@@ -129,6 +129,13 @@ run =
         compareP (Arc 0 2)
           ("1%3@0.5 3%4@1%6 3%4@1%6 3%4@1%6" :: Pattern Rational)
           ("1%3 0.75*3")
+      it "can handle ratio shortands on a fraction" $ do
+        compareP (Arc 0 1)
+          ("1%3t" :: Pattern Rational)
+          ("1%9" :: Pattern Rational)
+      it "cannot handle fractional with floating point numerator or denominator" $ do
+        evaluate ("1.2%5.3" :: Pattern Time)
+          `shouldThrow` anyException
       it "can parse a chord" $ do
         compareP (Arc 0 2)
           ("'major" :: Pattern Int)
@@ -169,6 +176,10 @@ run =
         compareP (Arc 0 1)
           ("400e-3" :: Pattern Double)
           ("0.4" :: Pattern Double)
+      it "can parse ratio shortand on exponential notation value" $ do
+        compareP (Arc 0 1)
+          ("4e2q" :: Pattern Double)
+          ("100" :: Pattern Double)
       it "doesn't crash on zeroes (1)" $ do
         compareP (Arc 0 2)
           ("cp/0" :: Pattern String)
