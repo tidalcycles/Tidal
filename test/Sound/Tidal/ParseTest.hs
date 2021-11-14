@@ -133,6 +133,10 @@ run =
         compareP (Arc 0 1)
           ("1%3t" :: Pattern Rational)
           ("1%9" :: Pattern Rational)
+      it "can handle ratio shortands on a floating point number" $ do
+        compareP (Arc 0 1)
+          ("3.33t" :: Pattern Double)
+          ("1.11" :: Pattern Double)
       it "cannot handle fractional with floating point numerator or denominator" $ do
         evaluate ("1.2%5.3" :: Pattern Time)
           `shouldThrow` anyException
