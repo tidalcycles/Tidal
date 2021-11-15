@@ -58,16 +58,6 @@ instance (Parse a, Parse b) => Parse (a,b) where
 instance Parse a => Parse [a] where
   parser = list parser
 
-chords :: Num a => H [a]
-chords =
-  $(fromTidalList ["major","aug","six","sixNine","major7","major9","add9","major11",
-  "add11","major13","add13","dom7","dom9","dom11","dom13","sevenFlat5","sevenSharp5",
-  "sevenFlat9","nine","eleven","thirteen","minor","diminished","minorSharp5","minor6",
-  "minorSixNine","minor7flat5","minor7","minor7sharp5","minor7flat9","minor7sharp9",
-  "diminished7","minor9","minor11","minor13","one","five","sus2","sus4","sevenSus2",
-  "sevenSus4","nineSus4","sevenFlat10","nineSharp5","minor9sharp5","sevenSharp5flat9",
-  "minor7sharp5flat9","elevenSharp","minor11sharp"])
-
 instance Parse ValueMap where
   parser = empty
 
@@ -80,6 +70,16 @@ instance Parse ControlPattern where
     listCp_cp <*!> parser <|>
     genericPatternExpressions
     <?> "expected ControlPattern"
+
+chords :: Num a => H [a]
+chords =
+  $(fromTidalList ["major","aug","six","sixNine","major7","major9","add9","major11",
+  "add11","major13","add13","dom7","dom9","dom11","dom13","sevenFlat5","sevenSharp5",
+  "sevenFlat9","nine","eleven","thirteen","minor","diminished","minorSharp5","minor6",
+  "minorSixNine","minor7flat5","minor7","minor7sharp5","minor7flat9","minor7sharp9",
+  "diminished7","minor9","minor11","minor13","one","five","sus2","sus4","sevenSus2",
+  "sevenSus4","nineSus4","sevenFlat10","nineSharp5","minor9sharp5","sevenSharp5flat9",
+  "minor7sharp5flat9","elevenSharp","minor11sharp"])
 
 genericPatternExpressions :: forall a. (Parse a, Parse (Pattern a),Parse (Pattern a -> Pattern a)) => H (Pattern a)
 genericPatternExpressions =
@@ -106,10 +106,10 @@ pString_listTupleStringPattern_listTupleStringTransformation_p = time_pString_li
 time_pString_listTupleStringPattern_listTupleStringTransformation_p :: H (Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a)
 time_pString_listTupleStringPattern_listTupleStringTransformation_p = $(fromTidal "ur")
 
-
 numPatternExpressions :: (Num a,Parse a) => H (Pattern a)
 numPatternExpressions =
   $(fromTidal "irand") <*!> parser <|>
+  (parser :: H ([a] -> Pattern a)) <*!> chords <|>
   pInt_pNumA <*!> parser
 
 fractionalPatternExpressions :: Fractional a => H (Pattern a)
