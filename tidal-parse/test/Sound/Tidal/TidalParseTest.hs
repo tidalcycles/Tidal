@@ -5,6 +5,7 @@ module Sound.Tidal.TidalParseTest where
 import Test.Microspec hiding (run)
 import Sound.Tidal.Parse
 import Sound.Tidal.Context as Tidal
+import Sound.Tidal.Chords as Tidal
 import Data.Either
 import qualified Data.Map.Strict as Map
 
@@ -258,3 +259,7 @@ run =
     it "parses an example with stutWith" $
        "stutWith 16 0.125 (|* gain 0.9) $ s \"bass:2/2\"" `parsesTo`
        (stutWith 16 0.125 (|* gain 0.9) $ s "bass:2/2")
+
+    it "parses an example with choose and a chords from Sound.Tidal.Chords" $
+       "s \"arpy*8\" # note (choose major)" `parsesTo`
+       (s "arpy*8" # note (Tidal.choose major))
