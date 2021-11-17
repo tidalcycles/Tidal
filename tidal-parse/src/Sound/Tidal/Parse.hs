@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, FlexibleInstances, FlexibleContexts, ScopedTypeVariables, UndecidableInstances, OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell, FlexibleInstances, FlexibleContexts, ScopedTypeVariables, OverloadedStrings #-}
 
 module Sound.Tidal.Parse (parseTidal) where
 
