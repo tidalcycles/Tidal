@@ -263,3 +263,7 @@ run =
     it "parses an example with choose and a chords from Sound.Tidal.Chords" $
        "s \"arpy*8\" # note (choose major)" `parsesTo`
        (s "arpy*8" # note (Tidal.choose major))
+
+    it "parses an example with the SemiGroup operator" $
+       "s \"bd*4\" <> s \"cp*5\"" `parsesTo`
+       (s "bd*4" <> s "cp*5")

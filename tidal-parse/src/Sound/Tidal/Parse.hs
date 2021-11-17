@@ -528,7 +528,8 @@ unionableMergeOperator =
   $(fromTidal ">|") <|>
   $(fromTidal "|<|") <|>
   $(fromTidal "|<") <|>
-  $(fromTidal "<|")
+  $(fromTidal "<|") <|>
+  $(fromHaskell "<>")
 
 numMergeOperator :: (Num a, Parse (Pattern a)) => H (Pattern a -> Pattern a -> Pattern a)
 numMergeOperator =
