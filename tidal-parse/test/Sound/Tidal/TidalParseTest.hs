@@ -254,3 +254,7 @@ run =
     it "parses an example with sew" $
        "sound \"cp*16\" |+| gain (sew \"t(3,8)\" \"1*8\" \"0.75*8\")" `parsesTo`
        (sound "cp*16" |+| gain (sew "t(3,8)" "1*8" "0.75*8"))
+
+    it "parses an example with stutWith" $
+       "stutWith 16 0.125 (|* gain 0.9) $ s \"bass:2/2\"" `parsesTo`
+       (stutWith 16 0.125 (|* gain 0.9) $ s "bass:2/2")
