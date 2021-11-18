@@ -151,9 +151,7 @@ dirtTarget = Target {oName = "Dirt",
                     }
 
 dirtShape :: OSC
-dirtShape = OSC "/play" $ ArgList [("sec", iDefault 0),
-                                   ("usec", iDefault 0),
-                                   ("cps", fDefault 0),
+dirtShape = OSC "/play" $ ArgList [("cps", fDefault 0),
                                    ("s", required),
                                    ("offset", fDefault 0),
                                    ("begin", fDefault 0),
@@ -184,8 +182,8 @@ dirtShape = OSC "/play" $ ArgList [("sec", iDefault 0),
                                    ("attack", fDefault (-1)),
                                    ("hold", fDefault 0),
                                    ("release", fDefault (-1)),
-                                   ("orbit", iDefault 0),
-                                   ("id", iDefault 0)
+                                   ("orbit", iDefault 0) -- ,
+                                   -- ("id", iDefault 0)
                                   ]
 
 startStream :: Config -> [(Target, [OSC])] -> IO Stream
