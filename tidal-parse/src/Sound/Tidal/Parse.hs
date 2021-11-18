@@ -700,7 +700,8 @@ instance Parse ([ControlPattern -> ControlPattern] -> ControlPattern -> ControlP
   parser =
     $(fromTidal "jux'") <|>
     $(fromTidal "juxcut'") <|>
-    lPatApatA_patA_patA -- *** pathway leading to spread(etc) should be incorporated here?
+    lPatApatA_patA_patA
+-- *** pathway leading to spread(etc) should be incorporated above
 
 instance {-# OVERLAPPABLE #-} Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) => Parse ([Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
   parser = lPatApatA_patA_patA
