@@ -146,7 +146,9 @@ instance Parse (Pattern String) where
   parser =
     parseBP <|>
     genericPatternExpressions <|>
-    (parser :: H (Pattern Int -> Pattern String)) <*!> parser
+    (parser :: H (Pattern Int -> Pattern String)) <*!> parser <|>
+    (parser :: H (String -> Pattern String)) <*!> parser <|>
+    (parser :: H ([(String, String)] -> Pattern String)) <*!> parser
     <?> "expected Pattern String"
 
 parseBP :: (Enumerable a, T.Parseable a) => H (Pattern a)
@@ -422,6 +424,14 @@ instance Parse (Pattern Int -> Pattern String) where
     pString_pInt_pString <*!> parser <|>
     pA_pB <|>
     a_patternB
+
+instance Parse (String -> Pattern String) where
+  parser =
+    (parser :: H (String -> String -> Pattern String)) <*> parser <|>
+    (parser :: H ([String] -> String -> Pattern String )) <*> parser
+
+instance Parse ([(String, String)] -> Pattern String) where
+  parser = $(fromTidal "steps")
 
 -- note: missing pA_pB and a_patternB pathways
 pInt_pNumA :: (Num a, Parse [a]) => H (Pattern Int -> Pattern a)
@@ -808,6 +818,12 @@ pDouble_list_p = $(fromTidal "chooseBy")
 
 pDouble_tupleADouble_p :: Parse a => H (Pattern Double -> [(a,Double)] -> Pattern a)
 pDouble_tupleADouble_p = $(fromTidal "wchooseBy")
+
+instance Parse (String -> String -> Pattern String) where
+  parser = $(fromTidal "step")
+
+instance Parse ([String] -> String -> Pattern String) where
+  parser = $(fromTidal "step'")
 
 -- * -> * -> * -> *
 

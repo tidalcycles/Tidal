@@ -271,3 +271,15 @@ run =
     it "parses an example with the SemiGroup operator" $
        "s \"bd*4\" <> s \"cp*5\"" `parsesTo`
        (s "bd*4" <> s "cp*5")
+
+    it "parses an example with step" $
+       "s (step \"tink\" \"xx x\")" `parsesTo`
+       (s (step "tink" "xx x"))
+
+    it "parses an example with step'" $
+       "s (step' [\"tink\",\"feel\"] \"01 0\")" `parsesTo`
+       (s (step' ["tink","feel"] "01 0"))
+
+    it "parses an example with steps" $
+       "s (steps [(\"tink\",\" x x\"),(\"feel\", \"x x \")])" `parsesTo`
+       (s (steps [("tink"," x x"),("feel", "x x ")]))
