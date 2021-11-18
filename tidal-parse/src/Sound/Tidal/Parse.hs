@@ -104,6 +104,7 @@ genericPatternExpressions =
   (parser :: H ([Pattern a] -> Pattern a)) <*!> parser <|>
   (parser :: H ([(Pattern a, Double)] -> Pattern a)) <*!> parser <|>
   (parser :: H ([Pattern a -> Pattern a] -> Pattern a)) <*!> parser <|>
+  (parser :: H ([(Time, Pattern a)] -> Pattern a)) <*!> parser <|>  
   pInt_p <*!> parser <|>
   list_p <*!> parser <|>
   tupleADouble_p <*!> parser <|>
@@ -476,6 +477,8 @@ tupleADouble_p =
   $(fromTidal "wchoose") <|>
   pDouble_tupleADouble_p <*!> parser
 
+instance Parse ([(Time, Pattern a)] -> Pattern a) where
+  parser = $(fromTidal "timeCat") <|> $(fromTidal "timecat")
 
 -- * -> * -> *
 
