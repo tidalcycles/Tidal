@@ -778,6 +778,7 @@ genericAppliedTransformations =
   (parser :: H ((Time,Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*!> parser <|>
   (parser :: H (Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*!> parser
 
+
 instance Parse ([a] -> Pattern Int -> Pattern a) where
   parser = (parser :: H (Pattern Int -> [a] -> Pattern Int -> Pattern a)) <*!> parser
   -- *** pathway leading to spread(etc) should be incorporated here
@@ -904,6 +905,7 @@ instance Parse (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern 
     $(fromTidal "every") <|>
     $(fromTidal "plyWith") <|>
     $(fromTidal "chunk") <|>
+    $(fromTidal "chunk'") <|> -- note: chunk' is actually generalized to Integral, but not clear what non-Int cases would be
     (parser :: H (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*!> parser
 
 instance Parse (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
