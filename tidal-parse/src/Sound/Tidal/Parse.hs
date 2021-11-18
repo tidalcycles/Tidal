@@ -261,13 +261,14 @@ instance Parse (Pattern Int -> Pattern Int) where
 instance Parse (Pattern Integer -> Pattern Integer) where
   parser = genericTransformations <|> numTransformations <|> ordTransformations <?> "expected Pattern Integer -> Pattern Integer"
 instance Parse (Pattern Time -> Pattern Time) where
-  parser = genericTransformations <|> numTransformations <|> ordTransformations <?> "expected Pattern Time -> Pattern Time"
+  parser = genericTransformations <|> numTransformations <|> ordTransformations <|> realFracTransformations <?> "expected Pattern Time -> Pattern Time"
 instance Parse (Pattern Double -> Pattern Double) where
   parser =
     genericTransformations <|>
     numTransformations <|>
     floatingTransformations <|>
     ordTransformations <|>
+    realFracTransformations <|>
     $(fromTidal "perlin2")
     <?> "expected Pattern Double -> Pattern Double"
 instance Parse (Pattern T.Note -> Pattern T.Note) where
@@ -329,6 +330,9 @@ floatingTransformations :: (Floating a, Parse a, Parse (Pattern a)) => H (Patter
 floatingTransformations =
   floatingMergeOperator <*!> parser <|>
   floating_pFloating_pFloating <*!> parser
+
+realFracTransformations :: (RealFrac a, Parse a) => H (Pattern a -> Pattern a)
+realFracTransformations = realFrac_pRealFrac_pRealFrac <*!> parser
 
 instance Parse ([a] -> Pattern a) where
   parser =
@@ -843,6 +847,9 @@ instance Parse (String -> String -> String) where
 
 floating_pFloating_pFloating :: (Floating a, Parse a) => H (a -> Pattern a -> Pattern a)
 floating_pFloating_pFloating = floating_floating_pFloating_pFloating <*!> parser
+
+realFrac_pRealFrac_pRealFrac :: RealFrac a => H (a -> Pattern a -> Pattern a)
+realFrac_pRealFrac_pRealFrac = $(fromTidal "quantise")
 
 -- * -> * -> * -> *
 
