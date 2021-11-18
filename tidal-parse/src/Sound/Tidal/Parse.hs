@@ -50,7 +50,10 @@ instance Parse T.Note where
   parser = (T.Note . fromIntegral <$> integer) <|> (T.Note . realToFrac <$> rational) <?> "expected literal Note"
 
 instance Parse String where
-  parser = string <?> "expected literal String"
+  parser =
+    string <|>
+    (parser :: H (String -> String)) <*!> parser
+    <?> "expected String"
 
 instance (Parse a, Parse b) => Parse (a,b) where
   parser = Haskellish.tuple parser parser
@@ -432,6 +435,9 @@ instance Parse (String -> Pattern String) where
 
 instance Parse ([(String, String)] -> Pattern String) where
   parser = $(fromTidal "steps")
+
+instance Parse (String -> String) where
+  parser = (parser :: H (String -> String -> String)) <*!> parser
 
 -- note: missing pA_pB and a_patternB pathways
 pInt_pNumA :: (Num a, Parse [a]) => H (Pattern Int -> Pattern a)
@@ -825,6 +831,9 @@ instance Parse (String -> String -> Pattern String) where
 instance Parse ([String] -> String -> Pattern String) where
   parser = $(fromTidal "step'")
 
+instance Parse (String -> String -> String) where
+  parser = (parser :: H (Int -> String -> String -> String)) <*!> parser
+
 -- * -> * -> * -> *
 
 numTernaryTransformations :: Num a => H (Pattern a -> Pattern a -> Pattern a -> Pattern a)
@@ -935,6 +944,9 @@ instance Parse (Time -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a) wher
 
 instance Parse (Pattern Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
   parser = $(fromTidal "selectF")
+
+instance Parse (Int -> String -> String -> String) where
+  parser = $(fromTidal "lindenmayer")
 
 -- * -> * -> * -> * -> *
 
