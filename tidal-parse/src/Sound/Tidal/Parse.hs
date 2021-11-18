@@ -843,7 +843,9 @@ instance Parse ((a -> b -> Pattern c) -> [a] -> b -> Pattern c) where
   parser =
     $(fromTidal "spread") <|>
     $(fromTidal "slowspread") <|>
-    $(fromTidal "fastspread")
+    $(fromTidal "fastspread") <|>
+    $(fromTidal "spreadChoose") <|>
+    $(fromTidal "spreadr")
 
 pInt_p_p_p :: H (Pattern Int -> Pattern a -> Pattern a -> Pattern a)
 pInt_p_p_p = (parser :: H (Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a)) <*!> parser
