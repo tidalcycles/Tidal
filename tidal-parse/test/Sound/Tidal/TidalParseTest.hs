@@ -164,6 +164,10 @@ run =
       "spread ($) [fast 2,fast 4] $ s \"bd cp\"" `parsesTo`
         (spread ($) [fast 2,fast 4] $ s "bd cp")
 
+    it "parses functions spread over transformations of a control pattern, via spreadf" $
+      "spreadf [fast 2,fast 4] $ s \"bd cp\"" `parsesTo`
+        (spreadf [fast 2,fast 4] $ s "bd cp")
+
     it "parses an $ application spread over partially applied transformations of a Control Pattern" $
       "spread ($) [density 2, rev, slow 2, striate 3] $ sound \"[bd*2 [~ bd]] [sn future]*2 cp jvbass*4\"" `parsesTo`
         (spread ($) [density 2, rev, slow 2, striate 3] $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4")

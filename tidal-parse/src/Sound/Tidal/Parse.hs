@@ -223,7 +223,9 @@ a_patternB :: forall a b. Parse (a -> Pattern b) => H (a -> Pattern b)
 a_patternB = listAtoPatternB_a_patternB <*> parser <?> "expected a -> Pattern b"
 
 listAtoPatternB_a_patternB :: H ([a -> Pattern b] -> a -> Pattern b)
-listAtoPatternB_a_patternB = $(fromTidal "layer")
+listAtoPatternB_a_patternB =
+  $(fromTidal "layer") <|>
+  $(fromTidal "spreadf")
 
 {- -- a_patternB2 :: (Parse (a -> b -> Pattern c),Parse [a]) => H (b -> Pattern c)
 -- a_patternB2 = return id
