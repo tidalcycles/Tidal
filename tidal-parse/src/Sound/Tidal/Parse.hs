@@ -612,7 +612,9 @@ instance Parse (Time -> Pattern a -> Pattern a) where
   parser =
     $(fromTidal "rotL") <|>
     $(fromTidal "rotR") <|>
-    (parser :: H (Time -> Time -> Pattern a -> Pattern a)) <*!> parser
+    (parser :: H (Time -> Time -> Pattern a -> Pattern a)) <*!> parser <|>
+    integral_time_pA_pA <*!> (parser :: H Int) -- we over-specialized this to Int since don't know of case where this wouldn't suffice
+    
 
 instance Parse (Pattern Int -> Pattern Int -> Pattern Bool) where
   parser = $(fromTidal "binaryN")
@@ -972,6 +974,9 @@ instance Parse (Int -> String -> String -> String) where
 floating_floating_pFloating_pFloating :: Floating a => H (a -> a -> Pattern a -> Pattern a)
 floating_floating_pFloating_pFloating = $(fromTidal "rangex")
 -- note: rangex actually generalized to Functor a rather than Pattern a, so we are over-specializing
+
+integral_time_pA_pA :: Integral i => H (i -> Time -> Pattern a -> Pattern a)
+integral_time_pA_pA = $(fromTidal "stutter")
 
 
 -- * -> * -> * -> * -> *
