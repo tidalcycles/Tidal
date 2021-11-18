@@ -104,7 +104,7 @@ genericPatternExpressions =
   (parser :: H ([Pattern a] -> Pattern a)) <*!> parser <|>
   (parser :: H ([(Pattern a, Double)] -> Pattern a)) <*!> parser <|>
   (parser :: H ([Pattern a -> Pattern a] -> Pattern a)) <*!> parser <|>
-  (parser :: H ([(Time, Pattern a)] -> Pattern a)) <*!> parser <|>  
+  (parser :: H ([(Time, Pattern a)] -> Pattern a)) <*!> parser <|>
   pInt_p <*!> parser <|>
   list_p <*!> parser <|>
   tupleADouble_p <*!> parser <|>
@@ -549,6 +549,7 @@ genericBinaryPatternFunctions =
   unionableMergeOperator <|>
   pInt_p_p_p <*!> parser <|>
   pBool_p_p_p <*!> parser <|>
+  pTime_p_p_p <*!> parser <|>
   (parser :: H (Pattern Bool -> Pattern a -> Pattern a -> Pattern a)) <*!> parser <|>
   constParser
 
@@ -855,6 +856,9 @@ instance Parse (Time -> Time -> Pattern a -> Pattern a) where
 instance Parse (Pattern Time -> Pattern Time -> Pattern a -> Pattern a) where
   parser = $(fromTidal "swingBy")
 
+pTime_p_p_p :: H (Pattern Time -> Pattern a -> Pattern a -> Pattern a)
+pTime_p_p_p = $(fromTidal "wedge")
+
 instance Parse (Pattern Bool -> Pattern a -> Pattern a -> Pattern a) where
   parser = $(fromTidal "sew")
 
@@ -952,6 +956,7 @@ instance Parse (Pattern Double -> [Pattern a -> Pattern a] -> Pattern a -> Patte
 
 instance Parse (Int -> String -> String -> String) where
   parser = $(fromTidal "lindenmayer")
+
 
 -- * -> * -> * -> * -> *
 
