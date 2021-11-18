@@ -325,8 +325,10 @@ ordTransformations :: Ord a => H (Pattern a -> Pattern a)
 ordTransformations =
   pInt_pOrd_pOrd <*!> parser
 
-floatingTransformations :: (Floating a, Parse (Pattern a)) => H (Pattern a -> Pattern a)
-floatingTransformations = floatingMergeOperator <*!> parser
+floatingTransformations :: (Floating a, Parse a, Parse (Pattern a)) => H (Pattern a -> Pattern a)
+floatingTransformations =
+  floatingMergeOperator <*!> parser <|>
+  floating_pFloating_pFloating <*!> parser
 
 instance Parse ([a] -> Pattern a) where
   parser =
@@ -839,6 +841,9 @@ instance Parse ([String] -> String -> Pattern String) where
 instance Parse (String -> String -> String) where
   parser = (parser :: H (Int -> String -> String -> String)) <*!> parser
 
+floating_pFloating_pFloating :: (Floating a, Parse a) => H (a -> Pattern a -> Pattern a)
+floating_pFloating_pFloating = floating_floating_pFloating_pFloating <*!> parser
+
 -- * -> * -> * -> *
 
 numTernaryTransformations :: Num a => H (Pattern a -> Pattern a -> Pattern a -> Pattern a)
@@ -956,6 +961,10 @@ instance Parse (Pattern Double -> [Pattern a -> Pattern a] -> Pattern a -> Patte
 
 instance Parse (Int -> String -> String -> String) where
   parser = $(fromTidal "lindenmayer")
+
+floating_floating_pFloating_pFloating :: Floating a => H (a -> a -> Pattern a -> Pattern a)
+floating_floating_pFloating_pFloating = $(fromTidal "rangex")
+-- note: rangex actually generalized to Functor a rather than Pattern a, so we are over-specializing
 
 
 -- * -> * -> * -> * -> *
