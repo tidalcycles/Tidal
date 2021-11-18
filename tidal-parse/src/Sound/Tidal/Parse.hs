@@ -614,7 +614,7 @@ instance Parse (Time -> Pattern a -> Pattern a) where
     $(fromTidal "rotR") <|>
     (parser :: H (Time -> Time -> Pattern a -> Pattern a)) <*!> parser <|>
     integral_time_pA_pA <*!> (parser :: H Int) -- we over-specialized this to Int since don't know of case where this wouldn't suffice
-    
+
 
 instance Parse (Pattern Int -> Pattern Int -> Pattern Bool) where
   parser = $(fromTidal "binaryN")
@@ -700,8 +700,7 @@ instance Parse ([ControlPattern -> ControlPattern] -> ControlPattern -> ControlP
   parser =
     $(fromTidal "jux'") <|>
     $(fromTidal "juxcut'") <|>
-    lPatApatA_patA_patA
-    -- *** pathway leading to spread(etc) should be incorporated here ???
+    lPatApatA_patA_patA -- *** pathway leading to spread(etc) should be incorporated here?
 
 instance {-# OVERLAPPABLE #-} Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) => Parse ([Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
   parser = lPatApatA_patA_patA
