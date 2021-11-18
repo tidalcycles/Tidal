@@ -240,8 +240,8 @@ instance Parse (ControlPattern -> ControlPattern) where
     $(fromTidal "silent") <|>
     (parser :: H (Pattern Int -> ControlPattern -> ControlPattern)) <*!> parser <|>
     (parser :: H (Pattern Double -> ControlPattern -> ControlPattern)) <*!> parser <|>
-    (parser :: H (Pattern Time -> ControlPattern -> ControlPattern)) <*!> parser <|>
-    lCpCp_cp_cp <*!> parser
+    (parser :: H (Pattern Time -> ControlPattern -> ControlPattern)) <*!> parser
+    -- lCpCp_cp_cp <*!> parser
     <?> "expected ControlPattern -> ControlPattern"
 
 instance Parse (Pattern Bool -> Pattern Bool) where
@@ -265,7 +265,7 @@ instance Parse (Pattern Double -> Pattern Double) where
 instance Parse (Pattern T.Note -> Pattern T.Note) where
   parser = genericTransformations <|> numTransformations <|> floatingTransformations <|> ordTransformations <?> "expected Pattern Note -> Pattern Note"
 
-genericTransformations :: forall a. (Parse (Pattern a), Parse (Pattern a -> Pattern a), Parse (Pattern a -> Pattern a -> Pattern a), Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)) => H (Pattern a -> Pattern a)
+genericTransformations :: forall a. (Parse (Pattern a), Parse (Pattern a -> Pattern a), Parse (Pattern a -> Pattern a -> Pattern a), Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a), Parse ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)) => H (Pattern a -> Pattern a)
 genericTransformations =
     simpleComposition <|>
     $(fromHaskell "id") <|>
@@ -666,10 +666,21 @@ pBool_p_p =
     $(fromTidal "struct") <|>
     $(fromTidal "substruct")
 
-instance Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) => Parse ([Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
+instance Parse ([ControlPattern -> ControlPattern] -> ControlPattern -> ControlPattern) where
   parser =
-    (parser :: H (((Pattern a -> Pattern a) -> Pattern a -> Pattern a) -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser <|>
-    (parser :: H (Pattern Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
+    $(fromTidal "jux'") <|>
+    $(fromTidal "juxcut'") <|>
+    lPatApatA_patA_patA
+    -- *** pathway leading to spread(etc) should be incorporated here ???
+
+instance {-# OVERLAPPABLE #-} Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) => Parse ([Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
+  parser = lPatApatA_patA_patA
+
+lPatApatA_patA_patA :: Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a) => H ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)
+lPatApatA_patA_patA =
+  (parser :: H (((Pattern a -> Pattern a) -> Pattern a -> Pattern a) -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: H (Pattern Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser <|>
+  (parser :: H (Pattern Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*> parser
 
 lp_p_p :: Parse (Pattern a -> Pattern a -> Pattern a) => H ([Pattern a] -> Pattern a -> Pattern a)
 lp_p_p = (parser :: H ((Pattern a -> Pattern a -> Pattern a) -> [Pattern a] -> Pattern a -> Pattern a)) <*> parser
@@ -790,10 +801,6 @@ instance Parse (Pattern a -> [Pattern a -> Pattern a] -> Pattern a) where
 pAB_pA_pB :: H ((Pattern a -> Pattern b) -> Pattern a -> Pattern b)
 pAB_pA_pB = pTime_pAB_pA_pB <*!> parser
 
-lCpCp_cp_cp :: H ([ControlPattern -> ControlPattern] -> ControlPattern -> ControlPattern)
-lCpCp_cp_cp = $(fromTidal "jux'") <|> $(fromTidal "juxcut'")
--- *** pathway leading to spread(etc) should be incorporated here
-
 pDouble_list_p :: Parse a => H (Pattern Double -> [a] -> Pattern a)
 pDouble_list_p = $(fromTidal "chooseBy")
 
@@ -845,7 +852,7 @@ pBool_p_p_p :: H (Pattern Bool -> Pattern a -> Pattern a -> Pattern a)
 pBool_p_p_p = $(fromTidal "stitch")
 
 instance Parse (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern) where
-  parser = $(fromTidal "striate'")
+  parser = $(fromTidal "striate'") <|> $(fromTidal "striateBy")
 
 instance Parse (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern) where
   parser = (parser :: H (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*!> parser
@@ -905,6 +912,9 @@ instance Parse (Time -> ControlPattern -> [ControlPattern] -> ControlPattern) wh
 
 instance Parse (Time -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a) where
   parser = $(fromTidal "weaveWith")
+
+instance Parse (Pattern Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a) where
+  parser = $(fromTidal "selectF")
 
 -- * -> * -> * -> * -> *
 
