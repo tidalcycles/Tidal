@@ -127,7 +127,9 @@ numPatternExpressions =
 fractionalPatternExpressions :: Fractional a => H (Pattern a)
 fractionalPatternExpressions =
   $(fromTidal "rand") <|>
-  pInt_pFractionalA <*!> parser
+  $(fromTidal "perlin") <|>
+  pInt_pFractionalA <*!> parser <|>
+  pDouble_pFractionalA <*!> parser
 
 silence :: H (Pattern a)
 silence = $(fromTidal "silence") -- ie. T.silence <$ reserved "silence", see Sound.Tidal.Parse.TH
@@ -192,8 +194,7 @@ instance Parse (Pattern Double) where
     $(fromTidal "envEq") <|>
     $(fromTidal "envEqR") <|>
     $(fromTidal "envL") <|>
-    $(fromTidal "envLR") <|>
-    $(fromTidal "perlin")
+    $(fromTidal "envLR")
     <?> "expected Pattern Double"
 
 instance Parse (Pattern T.Note) where
@@ -254,7 +255,13 @@ instance Parse (Pattern Integer -> Pattern Integer) where
 instance Parse (Pattern Time -> Pattern Time) where
   parser = genericTransformations <|> numTransformations <|> ordTransformations <?> "expected Pattern Time -> Pattern Time"
 instance Parse (Pattern Double -> Pattern Double) where
-  parser = genericTransformations <|> numTransformations <|> floatingTransformations <|> ordTransformations <?> "expected Pattern Double -> Pattern Double"
+  parser =
+    genericTransformations <|>
+    numTransformations <|>
+    floatingTransformations <|>
+    ordTransformations <|>
+    $(fromTidal "perlin2")
+    <?> "expected Pattern Double -> Pattern Double"
 instance Parse (Pattern T.Note -> Pattern T.Note) where
   parser = genericTransformations <|> numTransformations <|> floatingTransformations <|> ordTransformations <?> "expected Pattern Note -> Pattern Note"
 
@@ -422,6 +429,9 @@ pInt_pNumA = listNumA_pInt_pA <*!> parser
 pInt_pFractionalA :: Fractional a => H (Pattern Int -> Pattern a)
 pInt_pFractionalA = (parser :: Fractional a => H (Pattern String -> Pattern Int -> Pattern a)) <*!> parser
 
+pDouble_pFractionalA :: Fractional a => H (Pattern Double -> Pattern a)
+pDouble_pFractionalA = $(fromTidal "perlinWith")
+
 -- note: mising a_patternB pathway
 listCp_cp :: H ([ControlPattern] -> ControlPattern)
 listCp_cp = (parser :: H (ControlPattern -> [ControlPattern] -> ControlPattern)) <*!> parser
@@ -486,6 +496,7 @@ instance Parse (Pattern Double -> Pattern Double -> Pattern Double) where
     numMergeOperator <|>
     realMergeOperator <|>
     fractionalMergeOperator <|>
+    $(fromTidal "perlin2With") <|>
     pDouble_p_p
     <?> "expected Pattern Double -> Pattern Double -> Pattern Double"
 
