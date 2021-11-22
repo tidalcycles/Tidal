@@ -1,0 +1,46 @@
+cabal-version:       2.2
+name:                tidal-link
+version:             0.0.1
+synopsis:            Ableton Link integration for Tidal
+-- description:
+homepage:            http://tidalcycles.org/
+license:             GPL-3.0-only
+license-file:        LICENSE
+author:              Pierre Krafft
+maintainer:          Pierre Krafft <kpierre@outlook.com>, Alex McLean <alex@slab.org>
+Stability:           Experimental
+Copyright:           (c) Pierre Krafft and contributors, 2021
+category:            Sound
+build-type:          Simple
+tested-with:         GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.3
+
+Extra-source-files: README.md
+
+Description: Ableton Link integration for Tidal, to let Tidal sync with external clocks
+
+library
+  ghc-options: -Wall
+  hs-source-dirs:
+                 src/hs
+
+  default-language:    Haskell2010
+
+  Exposed-modules:     Sound.Tidal.Link
+
+  Build-depends:
+      base >=4.8 && <5
+
+  cxx-sources: src/c/link_wrapper.cpp
+  include-dirs:
+    src/c
+    link/include
+    link/modules/asio-standalone/asio/include
+  extra-libraries:
+      stdc++
+      iphlpapi
+  cxx-options:
+    -DLINK_PLATFORM_WINDOWS=1
+
+source-repository head
+  type:     git
+  location: https://github.com/tidalcycles/Tidal
