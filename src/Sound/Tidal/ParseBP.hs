@@ -177,7 +177,10 @@ parseBP_E s = toE parsed
     toE (Right tp) = toPat tp
 
 parseTPat :: Parseable a => String -> Either ParseError (TPat a)
-parseTPat = parseRhythm tPatParser
+parseTPat = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
+  where f' = do tPatParser
+             <|> do symbol "~" <?> "rest"
+                    return TPat_Silence
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
 cP s = innerJoin $ parseBP_E <$> _cX_ getS s
@@ -325,13 +328,7 @@ intOrFloat = do -- use 'try' to avoid consuming the first '.' in a '..' range.
                 try float
                 <|> fromIntegral <$> integer
 
-parseRhythm :: Parseable a => MyParser (TPat a) -> String -> Either ParseError (TPat a)
-parseRhythm f = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
-  where f' = do f
-                <|> do symbol "~" <?> "rest"
-                       return TPat_Silence
-
-pSequence :: Parseable a => MyParser (TPat a) -> GenParser Char Int (TPat a)
+pSequence :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
 pSequence f = do
   spaces
   s <- many $ do
@@ -441,7 +438,7 @@ pDouble = wrapPos $ do s <- sign
                        let v = applySign s f
                        do TPat_Stack . map (TPat_Atom Nothing . (+ v)) <$> parseChord
                          <|> return (TPat_Atom Nothing v)
-                      <|>
+                       <|>
                          do TPat_Stack . map (TPat_Atom Nothing) <$> parseChord
 
 pNote :: MyParser (TPat Note)
@@ -466,8 +463,6 @@ parseIntNote = do s <- sign
                   if isInt d
                     then return $ applySign s $ round d
                     else fail "not an integer"
-                where
-                  isInt x = x == fromInteger (round x)
 
 pIntegral :: Integral a => MyParser (TPat a)
 pIntegral = wrapPos $ do i <- parseIntNote
@@ -567,40 +562,37 @@ pRational = wrapPos $ TPat_Atom Nothing <$> pRatio
 pRatio :: MyParser Rational
 pRatio = do 
   s <- sign
-  r <- do n <- read <$> many1 digit
-          result <- do char '%'
-                       d <- decimal
-                       return (n%d)
-                    <|>
-                    -- use 'try' here to avoid consuming the first '.' of '..' ranges
-                    (try $ do char '.'
-                              frac <- many1 digit
-                              -- A hack, but not sure if doing this
-                              -- numerically would be any faster..
-                              return (toRational ((read $ show n ++ "." ++ frac) :: Double))
-                    )
-                    <|>
-                    return (n%1)
-          c <- pRatioChar <|> return 1
-          return (result * c)
-        <|> 
-        pRatioChar
+  r <- do n <- try intOrFloat
+          v <- pFraction n <|> return (toRational n)
+          r <- pRatioChar <|> return 1
+          return (v * r)
+       <|>
+       pRatioChar
   return $ applySign s r
 
+pFraction :: RealFrac a => a -> MyParser Rational
+pFraction n = do
+  char '%'
+  d <- integer
+  if (isInt n)
+    then return ((round n) % d)
+    else fail "fractions need int numerator and denominator"
+
 pRatioChar :: Fractional a => MyParser a
-pRatioChar = do char 'w';
-                return 1
-             <|> do char 'h'
-                    return 0.5
-             <|> do char 'q'
-                    return 0.25
-             <|> do char 'e'
-                    return 0.125
-             <|> do char 's'
-                    return 0.0625
-             <|> do char 't'
-                    return (1/3)
-             <|> do char 'f'
-                    return 0.2
-             <|> do char 'x'
-                    return (1/6)
+pRatioChar = pRatioSingleChar 'w' 1
+             <|> pRatioSingleChar 'h' 0.5
+             <|> pRatioSingleChar 'q' 0.25
+             <|> pRatioSingleChar 'e' 0.125
+             <|> pRatioSingleChar 's' 0.0625
+             <|> pRatioSingleChar 't' (1/3)
+             <|> pRatioSingleChar 'f' 0.2
+             <|> pRatioSingleChar 'x' (1/6)
+
+pRatioSingleChar :: Fractional a => Char -> a -> MyParser a
+pRatioSingleChar c v = try $ do
+  char c
+  notFollowedBy (letter)
+  return v
+
+isInt :: RealFrac a => a -> Bool
+isInt x = x == fromInteger (round x)
