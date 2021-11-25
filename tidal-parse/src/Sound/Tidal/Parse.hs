@@ -200,7 +200,9 @@ instance Parse (Pattern Double) where
     $(fromTidal "envEq") <|>
     $(fromTidal "envEqR") <|>
     $(fromTidal "envL") <|>
-    $(fromTidal "envLR")
+    $(fromTidal "envLR") <|>
+    (parser :: H (String -> Pattern Double)) <*!> parser <|>
+    $(fromTidalList (fmap (\x -> "in" ++ show x) ([0..127] :: [Int])))
     <?> "expected Pattern Double"
 
 instance Parse (Pattern T.Note) where
@@ -485,6 +487,13 @@ tupleADouble_p =
 
 instance Parse ([(Time, Pattern a)] -> Pattern a) where
   parser = $(fromTidal "timeCat") <|> $(fromTidal "timecat")
+
+instance Parse (String -> Pattern Double) where
+  parser =
+    $(fromTidal "cF_") <|>
+    $(fromTidal "cF0") <|>
+    (parser :: H (Double -> String -> Pattern Double)) <*!> parser
+
 
 -- * -> * -> *
 
@@ -852,6 +861,10 @@ floating_pFloating_pFloating = floating_floating_pFloating_pFloating <*!> parser
 
 realFrac_pRealFrac_pRealFrac :: RealFrac a => H (a -> Pattern a -> Pattern a)
 realFrac_pRealFrac_pRealFrac = $(fromTidal "quantise")
+
+instance Parse (Double -> String -> Pattern Double) where
+  parser = $(fromTidal "cF")
+
 
 -- * -> * -> * -> *
 
