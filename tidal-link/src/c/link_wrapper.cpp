@@ -8,6 +8,8 @@ public:
     LinkWrapper()
         : link(120.0)
     {
+        // link.enableStartStopSync(true);
+
     }
 
     double beatTime()
@@ -21,11 +23,18 @@ public:
       return link.clock().micros();
     }
 
+    void enable_link() {
+        this->link.enable(true);
+    }
+
 private:
     ableton::Link link;
+    // double quantum;
+    double latency = 0.0;
+
 };
 
-link_wrapper_t* wrapper_create(void)
+__declspec(dllexport) link_wrapper_t* wrapper_create(void)
 {
     LinkWrapper* t;
 
@@ -38,10 +47,19 @@ link_wrapper_t* wrapper_create(void)
     return (link_wrapper_t*)t;
 }
 
-double beat_time(link_wrapper_t* link) {
+__declspec(dllexport) double enable_link(link_wrapper_t* link) {
+    try {
+        ((LinkWrapper*)link)->enable_link();
+        return 0.0;
+    } catch (...) {
+        return 1.0;
+    }
+}
+
+__declspec(dllexport) double beat_time(link_wrapper_t* link) {
   return(((LinkWrapper*)link)->beatTime());
 }
 
-double link_wrapper_test() {
+__declspec(dllexport) double link_wrapper_test() {
     return 54;
 }

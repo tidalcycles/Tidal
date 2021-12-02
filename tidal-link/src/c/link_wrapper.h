@@ -12,9 +12,10 @@ extern "C" {
 // Define opaque structure
 typedef struct _link_wrapper_t link_wrapper_t;
 
-double link_wrapper_test();
-link_wrapper_t* wrapper_create();
-double beat_time(link_wrapper_t* link);
+__declspec(dllexport) double link_wrapper_test();
+__declspec(dllexport) link_wrapper_t* wrapper_create();
+__declspec(dllexport) double beat_time(link_wrapper_t* link);
+__declspec(dllexport) double enable_link(link_wrapper_t* link);
 
 #ifdef __cplusplus
 }
