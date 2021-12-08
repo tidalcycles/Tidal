@@ -344,29 +344,39 @@ run =
         compareP (Arc 0 1)
           (off "-e" id $ s "0")
           (superimpose ("e" <~) $ s "0")
+
     describe "loopFirst" $ do
       it "plays the first cycle" $ do
         compareP (Arc 0 1)
           (loopFirst $ rotL 3 $ slow 8 $ "0 .. 7" :: Pattern Int)
           ("3")
+
     describe "loopCycles" $ do
       it "plays the first n cycles" $ do
         compareP (Arc 0 1)
           (loopFirst $ rotL 3 $ slow 8 $ "0 .. 7" :: Pattern Int)
           ("3")
+
     describe "timeLoop" $ do
       it "can loop time" $ do
         compareP (Arc 0 1)
           ((3 <~) $ (timeLoop 3 $ sound "<a b c d>"))
           (sound "a")
+
     describe "timeLoop" $ do
       it "can pattern time" $ do
         compareP (Arc 0 1)
           ((1 <~) $ timeLoop "<2 1>" $ sound "b")
           (sound "b")
+
     describe "necklace" $ do
       it "can specify rhythm by IOI" $ do
         compareP (Arc 0 1)
           (necklace 12 [4,2])
           ("t f f f t f t f f f t f")
-      
+
+    describe "quantise" $ do
+      it "can quantise notes" $ do
+        compareP (Arc 0 1)
+          (segment 2 $ quantise 1 $ sine :: Pattern Note)
+          ("1 0" :: Pattern Note)

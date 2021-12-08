@@ -669,7 +669,9 @@ instance NFData Value
 type ValueMap = Map.Map String Value
 
 -- | Note is Double, but with a different parser
-newtype Note = Note { unNote :: Double } deriving (Typeable, Data, Generic, Eq, Ord, Enum, Num, Fractional, Floating, Real)
+newtype Note = Note { unNote :: Double }
+  deriving (Typeable, Data, Generic, Eq, Ord, Enum, Num, Fractional, Floating, Real, RealFrac)
+
 instance NFData Note
 
 instance Show Note where
