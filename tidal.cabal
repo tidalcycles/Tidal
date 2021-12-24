@@ -1,5 +1,5 @@
 name:                tidal
-version:             1.7.9
+version:             1.7.10
 synopsis:            Pattern language for improvised music
 description:         Tidal is a domain specific language for live coding patterns.
 homepage:            http://tidalcycles.org/
