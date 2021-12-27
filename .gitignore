@@ -17,6 +17,7 @@ out/
 *.lock
 *.iml
 *.swp
+.vscode/
 
 # text editor temp files
 *~
