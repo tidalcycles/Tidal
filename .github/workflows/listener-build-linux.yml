@@ -38,7 +38,7 @@ jobs:
       run: |
         cabal update
         cabal build --enable-tests tidal-listener
-	cabal build
+        cabal build
 
     - name: move GHC libs and configs
       run: |
