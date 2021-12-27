@@ -49,8 +49,9 @@ main = do
     $ catch (core tidal)
     $ \ (e :: SomeException) -> message stderr $ show e
 
+core :: C.Stream -> I.InterpreterT IO ()
 core tidal = do
-    message stdout "safe-tidal-cli starts"
+    message stdout "[tidal] starting..."
   -- more settings at
   -- https://github.com/tidalcycles/tidali/blob/master/src/Main.hs
     I.set [ I.languageExtensions
@@ -63,19 +64,20 @@ core tidal = do
       , "Sound.Tidal.Safe.Boot"
       ]
     -- FIXME: replace lazy IO by some streaming mechanism?
-    message stdout "safe-tidal-cli has loaded modules"
+    message stdout "[tidal] modules loaded..."
     input <- liftIO getContents 
-    message stdout "safe-tidal-cli has acquired input"
+    message stdout "[tidal] ready"
     mapM_ (work tidal . unlines) $ blocks $ lines input
     message stdout "safe-tidal-cli is done"
 
+second :: Int
 second = 10^6 :: Int
 
 -- | will show at most 10 lines, at most 80 chars per line,
 -- and run (evaluation and print) for at most 1 second
 message :: Handle -> String -> I.InterpreterT IO ()
 message h s = do
-  let safe = unlines . safe_list 10 ["..."] . map (safe_list 120 "...") . lines
+  let safe = unlines . safe_list 20 ["..."] . map (safe_list 120 "...") . lines
   liftIO $ void $ timeout (1 * second) $ do
     hPutStrLn h (safe s) ; hFlush h
 
@@ -89,7 +91,7 @@ safe_list n msg xs =
 
 work :: C.Stream -> String -> I.InterpreterT IO ()
 work tidal contents = 
-        ( if take 2 contents `elem` [ ":t", ":i", ":d" ]
+        ( if take 2 contents `elem` [ ":t", ":i", ":d", ":s" ]
           then do
             -- https://github.com/haskell-hint/hint/issues/101
             message stderr $ "not implemented " <>  contents
