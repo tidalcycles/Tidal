@@ -40,6 +40,7 @@ let only = (hush >>)
     jumpIn i t = transition tidal True (Sound.Tidal.Transition.jumpIn t) i
     jumpIn' i t = transition tidal True (Sound.Tidal.Transition.jumpIn' t) i
     jumpMod i t = transition tidal True (Sound.Tidal.Transition.jumpMod t) i
+    jumpMod' i t p = transition tidal True (ojumpMod' t p) i
     mortal i lifespan release = transition tidal True (Sound.Tidal.Transition.mortal lifespan release) i
     interpolate i = transition tidal True (Sound.Tidal.Transition.interpolate) i
     interpolateIn i t = transition tidal True (Sound.Tidal.Transition.interpolateIn t) i
