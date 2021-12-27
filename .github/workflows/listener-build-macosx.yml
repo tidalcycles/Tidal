@@ -39,6 +39,7 @@ jobs:
         run: |
           cabal update
           cabal build --enable-tests tidal-listener
+          cabal build
 
       - name: move GHC libs and configs
         run: |
@@ -97,8 +98,10 @@ jobs:
           sed -i '' 's+gcc+$topdir/bin/fake_gcc.sh+g' tidal-listener/binary/haskell-libs/settings
           chmod 755 tidal-listener/binary/haskell-libs/bin/fake_gcc.sh
 
-      - name: move executable
-        run: cp -r dist-newstyle/build/x86_64-osx/ghc-${{ matrix.ghc }}/tidal-listener-0.1.0.0/x/tidal-listener/build/tidal-listener/tidal-listener tidal-listener/binary/tidal-listener
+      - name: move executables
+        run: |
+          cp -r dist-newstyle/build/x86_64-osx/ghc-${{ matrix.ghc }}/tidal-listener-0.1.0.0/x/tidal-listener/build/tidal-listener/tidal-listener tidal-listener/binary/tidal-listener
+          cp -r dist-newstyle/build/x86_64-osx/ghc-${{ matrix.ghc }}/tidal-1.7.10/x/tidal/build/tidal/tidal tidal-listener/binary/tidal
 
       - name: zip files
         run: |
