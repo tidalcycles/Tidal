@@ -27,6 +27,14 @@ public:
         this->link.enable(true);
     }
 
+    setTempoAtBeat(double tempo, double inBeats) {
+        auto sessionState = link.captureAppSessionState();
+        auto quantum = 4;
+        auto time = sessionState.timeAtBeat(inBeats, quantum);
+        sessionState.setTempo(tempo, time);
+        link.commitAppSessionState(sessionState);
+    }
+
 private:
     ableton::Link link;
     // double quantum;
@@ -58,6 +66,10 @@ __declspec(dllexport) double enable_link(link_wrapper_t* link) {
 
 __declspec(dllexport) double beat_time(link_wrapper_t* link) {
   return(((LinkWrapper*)link)->beatTime());
+}
+
+__declspec(dllexport) void set_tempo_at_beat(link_wrapper_t* link, double tempo, double inBeats) {
+  (((LinkWrapper*)link)->setTempoAtBeat(tempo, inBeats));
 }
 
 __declspec(dllexport) double link_wrapper_test() {

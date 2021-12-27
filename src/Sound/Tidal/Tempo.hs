@@ -13,6 +13,10 @@ import Data.List (nub)
 import qualified Control.Exception as E
 import Sound.Tidal.Config
 import Sound.Tidal.Utils (writeError)
+import Foreign.Ptr
+import Sound.Tidal.Link (wrapper_create, enable_link, show_beat, set_tempo_at_beat, LinkWrapper)
+import Foreign.C.Types (CDouble(..))
+import Data.Coerce (coerce)
 
 {-
     Tempo.hs - Tidal's scheduler
@@ -128,11 +132,21 @@ clocked config tempoMV callback
                        nowArc = P.Arc 0 0,
                        starting = True
                       }
-       clockTid <- forkIO $ loop st
+       clockTid <- forkIO $ loop_init st
        return [listenTid, clockTid]
   where frameTimespan :: Double
         frameTimespan = cFrameTimespan config
-        loop st =
+        -- create startloop function and create the link wrapper there
+        loop_init st =
+          do
+            print "Creating wrapper"
+            link_wrapper <- wrapper_create
+            print "Wrapper created. Enabling link."
+            was_enabled <- enable_link link_wrapper
+            print $ "Link enabled: " ++ show was_enabled
+            show_beat link_wrapper
+            loop st link_wrapper
+        loop st lw =
           do -- putStrLn $ show $ nowArc ts
              tempo <- readMVar tempoMV
              t <- O.time
@@ -156,13 +170,20 @@ clocked config tempoMV callback
                            nowTimespan = (logicalNow,  logicalNow + frameTimespan),
                            starting = not (synched tempo)
                           }
-             when ahead $ writeError $ "skip: " ++ show (actualTick - ticks st)
+             when ahead $ writeError $ "skip: " ++ (show (actualTick - ticks st))
+             show_beat lw
+             let newbpm = coerce $ (cps tempo) * 60
+             print $ "Setting tempo to " ++ (show newbpm)
+             set_tempo_at_beat lw newbpm 0
+             print "Tempo set"
+             now <- O.time
+             print $ show $ floor $ timeToCycles tempo now
              callback st'
-             {-putStrLn ("actual tick: " ++ show actualTick
+             putStrLn ("actual tick: " ++ show actualTick
                        ++ " old tick: " ++ show (ticks st)
                        ++ " new tick: " ++ show newTick
-                      )-}
-             loop st'
+                      )
+             loop st' lw
 
 clientListen :: Config -> MVar Tempo -> O.Time -> IO ThreadId
 clientListen config tempoMV s =

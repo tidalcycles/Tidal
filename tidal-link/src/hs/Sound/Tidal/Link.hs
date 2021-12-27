@@ -1,6 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
-module Sound.Tidal.Link (hello, link_wrapper_test, wrapper_create, show_beat, enable_link, beat_time) where
+module Sound.Tidal.Link (hello, link_wrapper_test, wrapper_create, show_beat, enable_link, beat_time, set_tempo_at_beat, LinkWrapper) where
 
 -- import Foreign
 import Foreign.Ptr
@@ -20,6 +20,9 @@ foreign import ccall "link_wrapper.h beat_time"
 
 foreign import ccall "link_wrapper.h enable_link"
   enable_link :: Ptr LinkWrapper -> IO (CDouble)
+
+foreign import ccall "link_wrapper.h set_tempo_at_beat"
+  set_tempo_at_beat :: Ptr LinkWrapper -> CDouble -> CDouble -> IO ()
 
 show_beat :: (Ptr LinkWrapper) -> IO ()
 show_beat link = do
