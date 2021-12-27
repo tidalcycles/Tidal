@@ -1,14 +1,37 @@
+{-
+    Tidal REPL - mimicking ghci
+
+    Copyright (C) 2021 Johannes Waldmann and contributors
+
+    Forked from:
+    https://github.com/jwaldmann/safe-tidal-cli/
+
+    This library is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this library.  If not, see <http://www.gnu.org/licenses/>.
+-}
+
 {-# language PatternSignatures, LambdaCase #-}
 
 import qualified Language.Haskell.Interpreter as I
 import qualified Sound.Tidal.Safe.Context as C
 import Control.Monad (void)
 import Control.Exception (throw)
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class ( MonadIO(liftIO) )
 import Control.Monad.Catch
+    ( SomeException, MonadCatch(catch), catches, Handler(Handler) )
 -- import qualified Mueval.Resources as MR
-import System.Timeout
-import System.IO
+import System.Timeout ( timeout )
+import System.IO ( hFlush, stderr, stdout, hPutStrLn, Handle )
 import Data.Char (isSpace)
 import Data.List (isPrefixOf)
 
@@ -98,15 +121,17 @@ work tidal contents =
         message stderr $ show e
       ]
 
--- | What is a "block"? Depends on flok,
--- https://github.com/munshkr/flok/issues/64#issuecomment-614589330
+-- | Mimicking ghci, where a block is wrapped in `:{` and `:}`, on otherwise empty lines.
+
 blocks :: [String] -> [[String]]
 blocks [] = []
-blocks css =
-  let blank = all isSpace
-      (pre, midpost) = span blank css
-      (mid, post) = span (not . blank) midpost
-  in  mid : blocks post
+blocks (":{":ls) = b:(blocks ls')
+  where (b, ls') = block ls
+blocks (l:ls) = [l]:(blocks ls)
 
-
+block :: [String] -> ([String], [String])
+block [] = ([],[])
+block (":}":ls) = ([],ls)
+block (l:ls) = (l:b, ls')
+  where (b, ls') = block ls
 
