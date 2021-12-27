@@ -16,6 +16,7 @@ out/
 .idea/
 *.lock
 *.iml
+*.swp
 
 # text editor temp files
 *~

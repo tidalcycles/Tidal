@@ -33,11 +33,14 @@ library
                        Sound.Tidal.Control
                        Sound.Tidal.Context
                        Sound.Tidal.Core
+                       Sound.Tidal.EspGrid
                        Sound.Tidal.ID
                        Sound.Tidal.Params
                        Sound.Tidal.ParseBP
                        Sound.Tidal.Pattern
                        Sound.Tidal.Scales
+                       Sound.Tidal.Safe.Context
+                       Sound.Tidal.Safe.Boot
                        Sound.Tidal.Show
                        Sound.Tidal.Simple
                        Sound.Tidal.Stream
@@ -47,7 +50,6 @@ library
                        Sound.Tidal.UI
                        Sound.Tidal.Utils
                        Sound.Tidal.Version
-                       Sound.Tidal.EspGrid
                        Paths_tidal
   Build-depends:
       base >=4.8 && <5
@@ -64,7 +66,19 @@ library
     , deepseq >= 1.1.0.0
     , primitive < 0.8
     , random < 1.3
+    , exceptions < 0.11
+    , mtl >= 2.2
 
+executable tidal
+  hs-source-dirs: main
+  main-is: Main.hs
+  build-depends: base >=4.8 && < 5
+               , tidal == 1.7.10
+               , hint < 0.10
+               , exceptions < 0.11
+               , async < 2.3
+  default-language:    Haskell2010
+    
 test-suite tests
   type: exitcode-stdio-1.0
   main-is: Test.hs
