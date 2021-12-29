@@ -1,5 +1,15 @@
 # TidalCycles log of changes
 
+## 1.7.10 - Tama b
+
+* Derive RealFrac for Note by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/876
+* Add timescale and timewin control params by @yaxu in https://github.com/tidalcycles/Tidal/pull/878
+* deriving typeclass memberships for ID by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/879
+* Adds the jumpMod' transition by @th-four in https://github.com/tidalcycles/Tidal/pull/881
+* Import safe-tidal-cli ghci simulator as tidal binary by @yaxu in https://github.com/tidalcycles/Tidal/pull/880
+* Tweaks to tidal binary, and add to linux workflow by @yaxu in https://github.com/tidalcycles/Tidal/pull/882
+* add tidal ghci replacement to macos and windows workflows by @yaxu in https://github.com/tidalcycles/Tidal/pull/883
+
 ## 1.7.9 - Tama
 
 ### What's Changed

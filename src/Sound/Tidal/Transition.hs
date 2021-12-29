@@ -143,6 +143,10 @@ jumpIn' n now = wash id id ((nextSam now) - now + (fromIntegral n)) 0 0 now
 jumpMod :: Int -> Time -> [ControlPattern] -> ControlPattern
 jumpMod n now = jumpIn' ((n-1) - ((floor now) `mod` n)) now
 
+-- | Sharp `jump` transition at next cycle boundary where cycle mod n == p
+jumpMod' :: Int -> Int -> Time -> [ControlPattern] -> ControlPattern
+jumpMod' n p now = Sound.Tidal.Transition.jumpIn' ((n-1) - ((floor now) `mod` n) + p) now
+
 -- | Degrade the new pattern over time until it ends in silence
 mortal :: Time -> Time -> Time -> [ControlPattern] -> ControlPattern
 mortal _ _ _ [] = silence
