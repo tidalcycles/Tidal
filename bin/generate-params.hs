@@ -1,7 +1,7 @@
 #!/usr/bin/runhaskell
 
 -- This can be run with e.g.:
--- runhaskell generate-params.txt > ../src/Sound/Tidal/Params.hs
+-- runhaskell generate-params.hs > ../src/Sound/Tidal/Params.hs
 
 import Data.List
 import Data.Function
