@@ -55,7 +55,16 @@ data State = State {arc :: Arc,
 
 -- | A datatype representing events taking place over time
 data Pattern a = Pattern {query :: State -> [Event a]}
-  deriving (Generic, Functor)
+  } deriving (Functor, Generic)
+
+instance (Eq a, Eq b) => Eq (EventF a b) where
+  (==) x y = let relevant e = (whole e, part e, value e)
+             in relevant x == relevant y
+
+instance (Ord a, Ord b) => Ord (EventF a b) where
+  (<=) x y = let relevant e = (whole e, part e, value e)
+             in relevant x <= relevant y
+
 
 instance NFData a => NFData (Pattern a)
 
@@ -341,7 +350,7 @@ empty :: Pattern a
 empty = Pattern {query = const []}
 
 queryArc :: Pattern a -> Arc -> [Event a]
-queryArc p a = query p $ State a Map.empty 
+queryArc p a = query p $ State a Map.empty
 
 -- | Splits queries that span cycles. For example `query p (0.5, 1.5)` would be
 -- turned into two queries, `(0.5,1)` and `(1,1.5)`, and the results
@@ -422,7 +431,7 @@ compressArcTo (Arc s e) = compressArc (Arc (cyclePos s) (e - sam s))
 
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = empty
-_fastGap r p = splitQueries $ 
+_fastGap r p = splitQueries $
   withResultArc (\(Arc s e) -> Arc (sam s + ((s - sam s)/r'))
                              (sam s + ((e - sam s)/r'))
                  ) $ p {query = f}
@@ -555,7 +564,16 @@ data EventF a b = Event
   , whole :: Maybe a
   , part :: a
   , value :: b
-  } deriving (Eq, Ord, Functor, Generic)
+  } deriving (Functor, Generic)
+
+instance (Eq a, Eq b) => Eq (EventF a b) where
+  (==) x y = let relevant e = (whole e, part e, value e)
+             in relevant x == relevant y
+
+instance (Ord a, Ord b) => Ord (EventF a b) where
+  (<=) x y = let relevant e = (whole e, part e, value e)
+             in relevant x <= relevant y
+
 instance (NFData a, NFData b) => NFData (EventF a b)
 
 type Event a = EventF (ArcF Time) a
