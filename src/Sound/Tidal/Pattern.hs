@@ -341,7 +341,7 @@ empty :: Pattern a
 empty = Pattern {query = const []}
 
 queryArc :: Pattern a -> Arc -> [Event a]
-queryArc p a = query p $ State a Map.empty 
+queryArc p a = query p $ State a Map.empty
 
 -- | Splits queries that span cycles. For example `query p (0.5, 1.5)` would be
 -- turned into two queries, `(0.5,1)` and `(1,1.5)`, and the results
@@ -422,7 +422,7 @@ compressArcTo (Arc s e) = compressArc (Arc (cyclePos s) (e - sam s))
 
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = empty
-_fastGap r p = splitQueries $ 
+_fastGap r p = splitQueries $
   withResultArc (\(Arc s e) -> Arc (sam s + ((s - sam s)/r'))
                              (sam s + ((e - sam s)/r'))
                  ) $ p {query = f}
