@@ -23,6 +23,25 @@ run =
         let res = fmap (+1) (Arc 3 5)
         property $ ((Arc 4 6) :: Arc) === res
 
+    describe "Some non-derived Event instances (missing: NFData)" $ do
+      let e = Event { context = Context []
+                    , whole = Just 0
+                    , part = 0
+                    , value = 0 }
+          f = e { context = Context $ [((1,1),(1,1))] }
+      describe "Eq: Context is irrelevant to Event equality (and everything else is relevant)" $
+        and [ e == f
+            , e /= e { whole   = Just 1 }
+            , e /= e { part    = 1 }
+            , e /= e { value   = 1 } ]
+      describe "Ord: Context is irrelevant to Event ordering (and everything else is relevant)" $
+        and [ e < f { whole = Just 1 }
+            , f < e { whole = Just 1 }
+            , e < f { part  = 1 }
+            , f < e { part  = 1 }
+            , e < f { value = 1 }
+            , f < e { value = 1 } ]
+
   {-
     describe "Event" $ do
       it "(Bifunctor) first: Apply a function to the Arc elements: whole and part" $ do
