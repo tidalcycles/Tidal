@@ -555,7 +555,18 @@ data EventF a b = Event
   , whole :: Maybe a
   , part :: a
   , value :: b
-  } deriving (Eq, Ord, Functor, Generic)
+  } deriving (Functor, Generic)
+
+-- | Ignore the `context` field when comparing `Event`s.
+instance (Eq a, Eq b) => Eq (EventF a b) where
+  (==) x y = let relevant e = (part e, value e, whole e)
+             in relevant x == relevant y
+
+-- | Ignore the `context` field when comparing `Event`s.
+instance (Ord a, Ord b) => Ord (EventF a b) where
+  (<=) x y = let relevant e = (part e, value e, whole e)
+             in relevant x <= relevant y
+
 instance (NFData a, NFData b) => NFData (EventF a b)
 
 type Event a = EventF (ArcF Time) a
