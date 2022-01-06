@@ -27,7 +27,6 @@ library
   autogen-modules:     Paths_tidal
 
   Exposed-modules:     Sound.Tidal.Bjorklund
-                       Sound.Tidal.Carabiner
                        Sound.Tidal.Chords
                        Sound.Tidal.Config
                        Sound.Tidal.Control

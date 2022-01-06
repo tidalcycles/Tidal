@@ -4,13 +4,15 @@
 module Sound.Tidal.Tempo where
 
 import Control.Concurrent.MVar
+-- import Control.Concurrent.Chan
 import qualified Sound.Tidal.Pattern as P
 import qualified Sound.OSC.FD as O
-import qualified Network.Socket as N
+-- import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
-import Control.Monad (forever, when, foldM)
-import Data.List (nub)
-import qualified Control.Exception as E
+import Control.Monad (when)
+-- import Control.Monad (forever, when, foldM)
+-- import Data.List (nub)
+-- import qualified Control.Exception as E
 import Sound.Tidal.Config
 import Sound.Tidal.Utils (writeError)
 import Foreign.Ptr
@@ -39,13 +41,16 @@ import Data.Coerce (coerce)
 instance Show O.UDP where
   show _ = "-unshowable-"
 
+-- atTime is at what time tempo what changed.
+-- In case of change via pattern, time of event start is used.
+-- In case of resetCycle, time of processing the cycle reset is used.
 data Tempo = Tempo {atTime  :: O.Time,
                     atCycle :: Rational,
                     cps     :: O.Time,
                     paused  :: Bool,
                     nudged  :: Double,
-                    localUDP   :: O.UDP,
-                    remoteAddr :: N.SockAddr,
+                    -- localUDP   :: O.UDP,
+                    -- remoteAddr :: N.SockAddr,
                     synched :: Bool
                    }
   deriving Show
@@ -58,6 +63,8 @@ instance Eq Tempo where
                    (nudged t)  == (nudged t')
                   ]
 
+data TempoAction = ResetCycles | SingleTick P.ControlPattern | SetNudge Double
+
 data State = State {ticks   :: Int,
                     start   :: O.Time,
                     nowTimespan :: (O.Time, O.Time),
@@ -66,13 +73,11 @@ data State = State {ticks   :: Int,
                    }
   deriving Show
 
-changeTempo :: MVar Tempo -> (O.Time -> Tempo -> Tempo) -> IO Tempo
-changeTempo tempoMV f = do t <- O.time
-                           tempo <- takeMVar tempoMV
-                           let tempo' = f t tempo
-                           sendTempo tempo'
-                           putMVar tempoMV tempo'
-                           return tempo'
+data ActionHandler =
+  ActionHandler {
+    onTick :: State -> Tempo -> P.ValueMap -> IO (Tempo, P.ValueMap),
+    onSingleTick :: State -> Tempo -> P.ValueMap -> P.ControlPattern -> IO (Tempo, P.ValueMap)
+  }
 
 changeTempo' :: Tempo -> O.Time -> Rational -> Tempo
 changeTempo' tempo newCps cyc = tempo {atTime = cyclesToTime tempo cyc,
@@ -80,18 +85,16 @@ changeTempo' tempo newCps cyc = tempo {atTime = cyclesToTime tempo cyc,
                                        atCycle = cyc
                                       }
 
-resetCycles :: MVar Tempo -> IO Tempo
-resetCycles tempoMV = changeTempo tempoMV (\t tempo -> tempo {atTime = t, atCycle = 0})
+resetCycles :: MVar [TempoAction] -> IO ()
+resetCycles actionsMV = modifyMVar_ actionsMV (\actions -> return $ ResetCycles : actions)
 
-setCps :: MVar Tempo -> O.Time -> IO Tempo
-setCps tempoMV newCps = changeTempo tempoMV (\t tempo -> tempo {atTime = t,
-                                                                atCycle = timeToCycles tempo t,
-                                                                cps = newCps
-                                                               })
+setNudge :: MVar [TempoAction] -> Double -> IO ()
+setNudge actionsMV nudge = modifyMVar_ actionsMV (\actions -> return $ SetNudge nudge : actions)
 
 defaultCps :: O.Time
 defaultCps = 0.5625
 
+{-
 defaultTempo :: O.Time -> O.UDP -> N.SockAddr -> Tempo
 defaultTempo t local remote = Tempo {atTime   = t,
                                      atCycle  = 0,
@@ -100,6 +103,16 @@ defaultTempo t local remote = Tempo {atTime   = t,
                                      nudged   = 0,
                                      localUDP   = local,
                                      remoteAddr = remote,
+                                     synched = False
+                                    }
+-}
+
+defaultTempo :: O.Time -> Tempo
+defaultTempo t = Tempo {atTime   = t,
+                                     atCycle  = 0,
+                                     cps      = defaultCps,
+                                     paused   = False,
+                                     nudged   = 0,
                                      synched = False
                                     }
 
@@ -115,29 +128,29 @@ cyclesToTime tempo cyc = atTime tempo + fromRational timeDelta
   where cycleDelta = cyc - atCycle tempo
         timeDelta = cycleDelta / toRational (cps tempo)
 
-{-
-getCurrentCycle :: MVar Tempo -> IO Rational
-getCurrentCycle t = (readMVar t) >>= (cyclesNow) >>= (return . toRational)
--}
-
-clocked :: Config -> MVar Tempo -> (State -> IO ()) -> IO [ThreadId]
-clocked config tempoMV callback
+-- clocked assumes tempoMV is empty
+clocked :: Config -> MVar Tempo -> MVar P.ValueMap -> MVar [TempoAction] -> ActionHandler -> IO [ThreadId]
+clocked config tempoMV stateMV actionsMV ac
   = do s <- O.time
        -- TODO - do something with thread id
-       _ <- serverListen config
-       listenTid <- clientListen config tempoMV s
+       -- _ <- serverListen config
+       -- clientListen assumes tempoMV is empty
+       -- listenTid <- clientListen config tempoMV s
        let st = State {ticks = 0,
                        start = s,
                        nowTimespan = (s, s + frameTimespan),
                        nowArc = P.Arc 0 0,
                        starting = True
                       }
-       clockTid <- forkIO $ loop_init st
-       return [listenTid, clockTid]
+       let t = defaultTempo s
+       clockTid <- forkIO $ loop_init st t
+       -- return [listenTid, clockTid]
+       return [clockTid]
   where frameTimespan :: Double
         frameTimespan = cFrameTimespan config
         -- create startloop function and create the link wrapper there
-        loop_init st =
+        loop_init :: State -> Tempo -> IO a
+        loop_init st t =
           do
             print "Creating wrapper"
             link_wrapper <- wrapper_create
@@ -145,46 +158,86 @@ clocked config tempoMV callback
             was_enabled <- enable_link link_wrapper
             print $ "Link enabled: " ++ show was_enabled
             show_beat link_wrapper
-            loop st link_wrapper
-        loop st lw =
-          do -- putStrLn $ show $ nowArc ts
-             tempo <- readMVar tempoMV
-             t <- O.time
-             let logicalT ticks' = start st + fromIntegral ticks' *  frameTimespan
-                 logicalNow = logicalT $ ticks st + 1
-                 -- Wait maximum of two frames
-                 delta = min (frameTimespan * 2) (logicalNow - t)
-                 e = timeToCycles tempo logicalNow
-                 s = if starting st && synched tempo
-                     then timeToCycles tempo (logicalT $ ticks st)
-                     else P.stop $ nowArc st
-             when (t < logicalNow) $ threadDelay (floor $ delta * 1000000)
-             t' <- O.time
-             let actualTick = floor $ (t' - start st) / frameTimespan
-                 -- reset ticks if ahead/behind by skipTicks or more
-                 ahead = abs (actualTick - ticks st) > cSkipTicks config
-                 newTick | ahead = actualTick
-                         | otherwise = ticks st + 1
-                 st' = st {ticks = newTick,
-                           nowArc = P.Arc s e,
-                           nowTimespan = (logicalNow,  logicalNow + frameTimespan),
-                           starting = not (synched tempo)
-                          }
-             when ahead $ writeError $ "skip: " ++ (show (actualTick - ticks st))
-             show_beat lw
-             let newbpm = coerce $ (cps tempo) * 60
-             print $ "Setting tempo to " ++ (show newbpm)
-             set_tempo_at_beat lw newbpm 0
-             print "Tempo set"
-             now <- O.time
-             print $ show $ floor $ timeToCycles tempo now
-             callback st'
-             putStrLn ("actual tick: " ++ show actualTick
+            putMVar actionsMV []
+            putMVar tempoMV t
+            loop st link_wrapper t
+        -- Time is processed at a fixed rate according to configuration
+        -- logicalTime gives the time when a tick starts based on when
+        -- processing first started.
+        logicalTime :: O.Time -> Int -> O.Time
+        logicalTime startTime ticks' = startTime + fromIntegral ticks' * frameTimespan
+        loop :: State -> Ptr LinkWrapper -> Tempo -> IO a 
+        loop st lw tempo =
+          do
+            t <- O.time
+            let logicalStart = logicalTime (start st) $ ticks st
+                logicalEnd   = logicalTime (start st) $ ticks st + 1
+                -- Wait maximum of two frames
+                delta = min (frameTimespan * 2) (logicalEnd - t)
+                e = timeToCycles tempo logicalEnd
+                s = if starting st && synched tempo
+                    then timeToCycles tempo logicalStart
+                    else P.stop $ nowArc st
+            when (t < logicalEnd) $ threadDelay (floor $ delta * 1000000)
+            t' <- O.time
+            let actualTick = floor $ (t' - start st) / frameTimespan
+                -- reset ticks if ahead/behind by skipTicks or more
+                ahead = abs (actualTick - ticks st) > cSkipTicks config
+                newTick | ahead = actualTick
+                        | otherwise = ticks st + 1
+                st' = st {ticks = newTick,
+                          nowArc = P.Arc s e,
+                          nowTimespan = (logicalEnd,  logicalEnd + frameTimespan),
+                          starting = not (synched tempo)
+                        }
+            when ahead $ writeError $ "skip: " ++ (show (actualTick - ticks st))
+            streamState <- takeMVar stateMV
+            actions <- swapMVar actionsMV [] 
+            -- tempo <- takeMVar tempoMV
+            (st'', tempo', streamState') <- handleActions st' t' actions (tempo, streamState)
+            (tempo'', streamState'') <- (onTick ac) st'' tempo' streamState'
+            {-when (tempo /= tempo') $ do
+              sendTempo tempo'
+              when (cps tempo /= cps tempo') $ do
+                let newBpm = coerce $ (cps tempo) * 60
+                set_tempo_at_beat lw newBpm 0-}
+            when (cps tempo /= cps tempo'') $ do
+              let newBpm = coerce $ (cps tempo'') * 60
+              set_tempo_at_beat lw newBpm 0
+            putMVar stateMV streamState''
+            _ <- swapMVar tempoMV tempo''
+            {- putStrLn ("actual tick: " ++ show actualTick
                        ++ " old tick: " ++ show (ticks st)
                        ++ " new tick: " ++ show newTick
-                      )
-             loop st' lw
+                      )-}
+            loop st'' lw tempo''
+        handleActions :: State -> O.Time -> [TempoAction] -> (Tempo, P.ValueMap) -> IO (State, Tempo, P.ValueMap)
+        handleActions st _ [] (tempo, streamState) = return (st, tempo, streamState)
+        handleActions st t (ResetCycles : otherActions) ts =
+          do
+            (st', tempo', streamState') <- handleActions st t otherActions ts
+            let tempo'' = tempo' { atTime = t, atCycle = 0 }
+            let logicalEnd   = logicalTime (start st') $ ticks st' + 1
+                e = timeToCycles tempo'' logicalEnd
+                st'' = st' {
+                          nowArc = P.Arc 0 e,
+                          nowTimespan = (logicalEnd,  logicalEnd + frameTimespan),
+                          starting = not (synched tempo'')
+                        }
+            return (st'', tempo'', streamState')
+        handleActions st t (SingleTick pat : otherActions) ts =
+          do
+            (st', tempo', streamState') <- handleActions st t otherActions ts
+            (tempo'', streamState'') <- (onSingleTick ac) st' tempo' streamState' pat
+            return (st', tempo'', streamState'')
+        handleActions st t (SetNudge nudge : otherActions) ts =
+          do
+            (st', tempo', streamState') <- handleActions st t otherActions ts
+            let tempo'' = tempo' {nudged = nudge}
+            return (st', tempo'', streamState')
 
+{-
+-- clientListen assumes tempoMV is empty
 clientListen :: Config -> MVar Tempo -> O.Time -> IO ThreadId
 clientListen config tempoMV s =
   do -- Listen on random port
@@ -196,12 +249,13 @@ clientListen config tempoMV s =
      let (N.SockAddrInet _ a) = N.addrAddress remote_addr
          remote = N.SockAddrInet (fromIntegral port) a
          t = defaultTempo s local remote
+     print "Write clientListen"
      putMVar tempoMV t
      -- Send to clock port from same port that's listened to
      O.sendTo local (O.p_message "/hello" []) remote
      -- Make tempo mvar
      -- Listen to tempo changes
-     forkIO $ listenTempo local tempoMV
+     tid <- forkIO $ listenTempo local tempoMV
 
 sendTempo :: Tempo -> IO ()
 sendTempo tempo = O.sendTo (localUDP tempo) (O.p_bundle (atTime tempo) [m]) (remoteAddr tempo)
@@ -263,3 +317,4 @@ serverListen config = catchAny run (\_ -> return Nothing) -- probably just alrea
                                                     ]
 
 
+-}

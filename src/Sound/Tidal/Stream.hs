@@ -55,7 +55,10 @@ data Stream = Stream {sConfig :: Config,
                       -- sOutput :: MVar ControlPattern,
                       sListen :: Maybe O.UDP,
                       sPMapMV :: MVar PlayMap,
+                      -- Can be used to read current tempo
+                      -- Only use readMVar, not takeMVar, while in Stream.hs
                       sTempoMV :: MVar T.Tempo,
+                      sActionsMV :: MVar [T.TempoAction],
                       sGlobalFMV :: MVar (ControlPattern -> ControlPattern),
                       sCxs :: [Cx]
                      }
@@ -188,6 +191,9 @@ dirtShape = OSC "/play" $ ArgList [("sec", iDefault 0),
                                    ("id", iDefault 0)
                                   ]
 
+-- Start an instance of Tidal
+-- Spawns a thread within Tempo that acts as the clock
+-- Spawns a thread that listens to and acts on OSC control messages
 startStream :: Config -> [(Target, [OSC])] -> IO Stream
 startStream config oscmap 
   = do sMapMV <- newMVar Map.empty
@@ -195,6 +201,7 @@ startStream config oscmap
        bussesMV <- newMVar []
        globalFMV <- newMVar id
        tempoMV <- newEmptyMVar
+       actionsMV <- newEmptyMVar
 
        tidal_status_string >>= verbose config
        verbose config $ "Listening for external controls on " ++ cCtrlAddr config ++ ":" ++ show (cCtrlPort config)
@@ -213,11 +220,18 @@ startStream config oscmap
                             sListen = listen,
                             sPMapMV = pMapMV,
                             sTempoMV = tempoMV,
+                            sActionsMV = actionsMV,
                             sGlobalFMV = globalFMV,
                             sCxs = cxs
                            }
        sendHandshakes stream
-       _ <- T.clocked config tempoMV $ onTick stream
+       let ac = T.ActionHandler {
+         T.onTick = onTick stream,
+         T.onSingleTick = onSingleTick stream
+         }
+       -- Spawn a thread that acts as the clock
+       _ <- T.clocked config tempoMV sMapMV actionsMV ac
+       -- Spawn a thread to handle OSC control messages
        _ <- forkIO $ ctrlResponder 0 config stream
        return stream
 
@@ -249,6 +263,7 @@ resolve host port = do let hints = N.defaultHints { N.addrSocketType = N.Stream 
                        addr:_ <- N.getAddrInfo (Just hints) (Just host) (Just port)
                        return addr
 
+-- Start an instance of Tidal with superdirt OSC
 startTidal :: Target -> Config -> IO Stream
 startTidal target config = startStream config [(target, [superdirtShape])]
 
@@ -366,19 +381,9 @@ toOSC latency _ e tempo (OSCContext oscpath)
         ident = fromMaybe "unknown" $ Map.lookup "_id_" (value e) >>= getS
         ts = on + nudge + latency
 
-doCps :: MVar T.Tempo -> (Double, Maybe Value) -> IO ()
-doCps tempoMV (d, Just (VF cps)) =
-  do _ <- forkIO $ do threadDelay $ floor $ d * 1000000
-                      -- hack to stop things from stopping !
-                      -- TODO is this still needed?
-                      _ <- T.setCps tempoMV (max 0.00001 cps)
-                      return ()
-     return ()
-doCps _ _ = return ()
-
-onTick :: Stream -> T.State -> IO ()
-onTick stream st
-  = do doTick False stream st
+onTick :: Stream -> T.State -> T.Tempo -> ValueMap -> IO (T.Tempo, ValueMap)
+onTick stream st tempo s
+  = do doTick False stream st tempo s
 
 processCps :: T.Tempo -> [Event ValueMap] -> ([(T.Tempo, Event ValueMap)], T.Tempo)
 processCps t [] = ([], t)
@@ -390,28 +395,36 @@ processCps t (e:evs) = (((t', e):es'), t'')
         t' = (maybe t (\newCps -> T.changeTempo' t newCps (eventPartStart e)) cps')
         (es', t'') = processCps t' evs
 
+-- streamFirst but with random cycle instead of always first cicle
 streamOnce :: Stream -> ControlPattern -> IO ()
 streamOnce st p = do i <- getStdRandom $ randomR (0, 8192)
                      streamFirst st $ rotL (toRational (i :: Int)) p
 
+-- here let's do modifyMVar_ on actions
 streamFirst :: Stream -> ControlPattern -> IO ()
-streamFirst stream pat = do now <- O.time
-                            tempo <- readMVar (sTempoMV stream)
-                            pMapMV <- newMVar $ Map.singleton "fake"
-                                      (PlayState {pattern = pat,
-                                                  mute = False,
-                                                  solo = False,
-                                                  history = []
-                                                 }
-                                      )
-                            let cps = T.cps tempo
-                                state = T.State {T.ticks = 0,
-                                                 T.start = now,
-                                                 T.nowTimespan = (now, now + (1/cps)),
-                                                 T.starting = True, -- really?
-                                                 T.nowArc = (Arc 0 1)
-                                                }
-                            doTick True (stream {sPMapMV = pMapMV}) state
+streamFirst stream pat = modifyMVar_ (sActionsMV stream) (\actions -> return $ (T.SingleTick pat) : actions)
+
+-- here we also need to accept a cp
+onSingleTick :: Stream -> T.State -> T.Tempo -> ValueMap -> ControlPattern -> IO (T.Tempo, ValueMap)
+onSingleTick stream st tempo s pat = do
+  print "Stream onSingleTick"
+  pMapMV <- newMVar $ Map.singleton "fake"
+          (PlayState {pattern = pat,
+                      mute = False,
+                      solo = False,
+                      history = []
+                      }
+          )
+  now <- O.time
+  let cps = T.cps tempo
+      state = T.State {T.ticks = 0,
+                        T.start = now,
+                        T.nowTimespan = (now, now + (1/cps)),
+                        T.starting = True, -- really?
+                        T.nowArc = (Arc 0 1)
+                      }
+  print "Let's doTick"
+  doTick True (stream {sPMapMV = pMapMV}) state tempo s
 
 -- | Query the current pattern (contained in argument @stream :: Stream@)
 -- for the events in the current arc (contained in argument @st :: T.State@),
@@ -426,14 +439,14 @@ streamFirst stream pat = do now <- O.time
 -- this function prints a warning and resets the current pattern
 -- to the previous one (or to silence if there isn't one) and continues,
 -- because the likely reason is that something is wrong with the current pattern.
-doTick :: Bool -> Stream -> T.State -> IO ()
-doTick fake stream st =
+doTick :: Bool -> Stream -> T.State -> T.Tempo -> ValueMap -> IO (T.Tempo, ValueMap)
+doTick fake stream st tempo sMap =
   E.handle (\ (e :: E.SomeException) -> do
     hPutStrLn stderr $ "Failed to Stream.doTick: " ++ show e
     hPutStrLn stderr $ "Return to previous pattern."
     setPreviousPatternOrSilence stream
-           ) $
-  modifyState $ \(tempo, sMap) -> do
+    return (tempo, sMap)
+           ) $ do
      pMap <- readMVar (sPMapMV stream)
      busses <- readMVar (sBusses stream)
      sGlobalF <- readMVar (sGlobalFMV stream)
@@ -460,6 +473,7 @@ doTick fake stream st =
          (sMap'', es') = resolveState sMap' es
          
          -- TODO onset is calculated in toOSC as well..
+         on :: Event a -> T.Tempo -> Double
          on e tempo'' = (sched tempo'' $ start $ wholeOrPart e)
          (tes, tempo') = processCps tempo $ es'
      forM_ cxs $ \cx@(Cx target _ oscs _ _) -> do
@@ -471,17 +485,7 @@ doTick fake stream st =
                           ) tes
          forM_ ms $ \ m -> send (sListen stream) cx m `E.catch` \ (e :: E.SomeException) -> do
            hPutStrLn stderr $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
-
-     when (tempo /= tempo') $ T.sendTempo tempo'
-
      (tempo', sMap'') `seq` return (tempo', sMap'')
-  where modifyState :: ((T.Tempo, ValueMap) -> IO (T.Tempo, ValueMap)) -> IO ()
-        modifyState io = E.mask $ \restore -> do
-          s <- takeMVar (sStateMV stream)
-          t <- takeMVar (sTempoMV stream)
-          (t', s') <- restore (io (t, s)) `E.onException` (do {putMVar (sStateMV stream) s; putMVar (sTempoMV stream) t; return ()})
-          putMVar (sStateMV stream) s'
-          putMVar (sTempoMV stream) t'
 
 setPreviousPatternOrSilence :: Stream -> IO ()
 setPreviousPatternOrSilence stream =
@@ -514,12 +518,10 @@ sched tempo c = ((fromRational $ c - (T.atCycle tempo)) / T.cps tempo)
 -- Interaction
 
 streamNudgeAll :: Stream -> Double -> IO ()
-streamNudgeAll s nudge = do tempo <- takeMVar $ sTempoMV s
-                            putMVar (sTempoMV s) $ tempo {T.nudged = nudge}
+streamNudgeAll s nudge = T.setNudge (sActionsMV s) nudge
 
 streamResetCycles :: Stream -> IO ()
-streamResetCycles s = do _ <- T.resetCycles (sTempoMV s)
-                         return ()
+streamResetCycles s =T.resetCycles (sActionsMV s)
 
 hasSolo :: Map.Map k PlayState -> Bool
 hasSolo = (>= 1) . length . filter solo . Map.elems
@@ -539,17 +541,22 @@ streamList s = do pMap <- readMVar (sPMapMV s)
 streamReplace :: Stream -> ID -> ControlPattern -> IO ()
 streamReplace s k !pat
   = E.catch (do let x = queryArc pat (Arc 0 0)
+                print "Read streamReplace tempo"
                 tempo <- readMVar $ sTempoMV s
+                print "Read streamReplace state (input)"
                 input <- takeMVar $ sStateMV s
                 -- put pattern id and change time in control input
                 now <- O.time
                 let cyc = T.timeToCycles tempo now
+                print "Write streamReplace state"
                 putMVar (sStateMV s) $
                   Map.insert ("_t_all") (VR cyc) $ Map.insert ("_t_" ++ fromID k) (VR cyc) input
                 -- update the pattern itself
                 pMap <- seq x $ takeMVar $ sPMapMV s
                 let playState = updatePS $ Map.lookup (fromID k) pMap
+                print "Write streamReplace pMap"
                 putMVar (sPMapMV s) $ Map.insert (fromID k) playState pMap
+                print "Return () streamReplace"
                 return ()
           )
     (\(e :: E.SomeException) -> hPutStrLn stderr $ "Error in pattern: " ++ show e
@@ -636,6 +643,7 @@ openListener c
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch
 
+-- Listen to and act on OSC control messages
 ctrlResponder :: Int -> Config -> Stream -> IO ()
 ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
   = do ms <- recvMessagesTimeout 2 sock
@@ -706,11 +714,17 @@ recvMessagesTimeout n sock = fmap (maybe [] O.packetMessages) $ O.recvPacketTime
 
 
 streamGetcps :: Stream -> IO O.Time
-streamGetcps s = do tempo <- readMVar $ sTempoMV s
-                    return $ T.cps tempo
+streamGetcps s =
+  do
+    print "Read streamGetCps"
+    tempo <- readMVar $ sTempoMV s
+    return $ T.cps tempo
 
 streamGetnow :: Stream -> IO Double
-streamGetnow s = do tempo <- readMVar $ sTempoMV s
-                    now <- O.time
-                    return $ fromRational $ T.timeToCycles tempo now
+streamGetnow s =
+  do
+    print "Read streamGetNow"
+    tempo <- readMVar $ sTempoMV s
+    now <- O.time
+    return $ fromRational $ T.timeToCycles tempo now
 
