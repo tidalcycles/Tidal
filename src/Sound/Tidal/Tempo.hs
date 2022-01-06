@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, BangPatterns #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns -fno-warn-orphans #-}
 
 
@@ -10,15 +11,18 @@ import qualified Sound.OSC.FD as O
 -- import qualified Network.Socket as N
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
 import Control.Monad (when)
+import qualified Data.Map.Strict as Map
 -- import Control.Monad (forever, when, foldM)
 -- import Data.List (nub)
--- import qualified Control.Exception as E
+import qualified Control.Exception as E
+import Sound.Tidal.ID
 import Sound.Tidal.Config
 import Sound.Tidal.Utils (writeError)
 import Foreign.Ptr
 import Sound.Tidal.Link (wrapper_create, enable_link, show_beat, set_tempo_at_beat, LinkWrapper)
 import Foreign.C.Types (CDouble(..))
 import Data.Coerce (coerce)
+import System.IO (hPutStrLn, stderr)
 
 {-
     Tempo.hs - Tidal's scheduler
@@ -63,7 +67,11 @@ instance Eq Tempo where
                    (nudged t)  == (nudged t')
                   ]
 
-data TempoAction = ResetCycles | SingleTick P.ControlPattern | SetNudge Double
+data TempoAction =
+  ResetCycles
+  | SingleTick P.ControlPattern
+  | SetNudge Double
+  | StreamReplace ID P.ControlPattern
 
 data State = State {ticks   :: Int,
                     start   :: O.Time,
@@ -76,7 +84,8 @@ data State = State {ticks   :: Int,
 data ActionHandler =
   ActionHandler {
     onTick :: State -> Tempo -> P.ValueMap -> IO (Tempo, P.ValueMap),
-    onSingleTick :: State -> Tempo -> P.ValueMap -> P.ControlPattern -> IO (Tempo, P.ValueMap)
+    onSingleTick :: State -> Tempo -> P.ValueMap -> P.ControlPattern -> IO (Tempo, P.ValueMap),
+    updatePattern :: ID -> P.ControlPattern -> IO ()
   }
 
 changeTempo' :: Tempo -> O.Time -> Rational -> Tempo
@@ -235,6 +244,21 @@ clocked config tempoMV stateMV actionsMV ac
             (st', tempo', streamState') <- handleActions st t otherActions ts
             let tempo'' = tempo' {nudged = nudge}
             return (st', tempo'', streamState')
+        handleActions st t (StreamReplace k pat : otherActions) ts =
+          do
+            (st', tempo', streamState') <- handleActions st t otherActions ts
+            E.catch (
+              do
+                -- put pattern id and change time in control input
+                let cyc = timeToCycles tempo' t
+                let streamState'' = Map.insert ("_t_all") (P.VR cyc) $ Map.insert ("_t_" ++ fromID k) (P.VR cyc) streamState'
+                (updatePattern ac) k pat
+                return (st', tempo', streamState'')
+              )
+              (\(e :: E.SomeException) -> do
+                hPutStrLn stderr $ "Error in pattern: " ++ show e
+                return (st', tempo', streamState')
+              )
 
 {-
 -- clientListen assumes tempoMV is empty

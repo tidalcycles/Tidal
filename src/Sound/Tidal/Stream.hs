@@ -227,7 +227,8 @@ startStream config oscmap
        sendHandshakes stream
        let ac = T.ActionHandler {
          T.onTick = onTick stream,
-         T.onSingleTick = onSingleTick stream
+         T.onSingleTick = onSingleTick stream,
+         T.updatePattern = updatePattern stream
          }
        -- Spawn a thread that acts as the clock
        _ <- T.clocked config tempoMV sMapMV actionsMV ac
@@ -385,6 +386,17 @@ onTick :: Stream -> T.State -> T.Tempo -> ValueMap -> IO (T.Tempo, ValueMap)
 onTick stream st tempo s
   = do doTick False stream st tempo s
 
+updatePattern :: Stream -> ID -> ControlPattern -> IO ()
+updatePattern stream k pat = do
+  let x = queryArc pat (Arc 0 0)
+  pMap <- seq x $ takeMVar (sPMapMV stream)
+  let playState = updatePS $ Map.lookup (fromID k) pMap
+  print "Write streamReplace pMap"
+  putMVar (sPMapMV stream) $ Map.insert (fromID k) playState pMap
+  where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
+        updatePS Nothing = PlayState pat' False False [pat']
+        pat' = pat # pS "_id_" (pure $ fromID k)
+
 processCps :: T.Tempo -> [Event ValueMap] -> ([(T.Tempo, Event ValueMap)], T.Tempo)
 processCps t [] = ([], t)
 -- If an event has a tempo change, that affects the following events..
@@ -404,7 +416,6 @@ streamOnce st p = do i <- getStdRandom $ randomR (0, 8192)
 streamFirst :: Stream -> ControlPattern -> IO ()
 streamFirst stream pat = modifyMVar_ (sActionsMV stream) (\actions -> return $ (T.SingleTick pat) : actions)
 
--- here we also need to accept a cp
 onSingleTick :: Stream -> T.State -> T.Tempo -> ValueMap -> ControlPattern -> IO (T.Tempo, ValueMap)
 onSingleTick stream st tempo s pat = do
   print "Stream onSingleTick"
@@ -540,30 +551,7 @@ streamList s = do pMap <- readMVar (sPMapMV s)
 
 streamReplace :: Stream -> ID -> ControlPattern -> IO ()
 streamReplace s k !pat
-  = E.catch (do let x = queryArc pat (Arc 0 0)
-                print "Read streamReplace tempo"
-                tempo <- readMVar $ sTempoMV s
-                print "Read streamReplace state (input)"
-                input <- takeMVar $ sStateMV s
-                -- put pattern id and change time in control input
-                now <- O.time
-                let cyc = T.timeToCycles tempo now
-                print "Write streamReplace state"
-                putMVar (sStateMV s) $
-                  Map.insert ("_t_all") (VR cyc) $ Map.insert ("_t_" ++ fromID k) (VR cyc) input
-                -- update the pattern itself
-                pMap <- seq x $ takeMVar $ sPMapMV s
-                let playState = updatePS $ Map.lookup (fromID k) pMap
-                print "Write streamReplace pMap"
-                putMVar (sPMapMV s) $ Map.insert (fromID k) playState pMap
-                print "Return () streamReplace"
-                return ()
-          )
-    (\(e :: E.SomeException) -> hPutStrLn stderr $ "Error in pattern: " ++ show e
-    )
-  where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
-        updatePS Nothing = PlayState pat' False False [pat']
-        pat' = pat # pS "_id_" (pure $ fromID k)
+  = modifyMVar_ (sActionsMV s) (\actions -> return $ (T.StreamReplace k pat) : actions)
 
 streamMute :: Stream -> ID -> IO ()
 streamMute s k = withPatIds s [k] (\x -> x {mute = True})
