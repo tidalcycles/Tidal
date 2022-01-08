@@ -11,8 +11,8 @@ maintainer:          Pierre Krafft <kpierre@outlook.com>, Alex McLean <alex@slab
 Stability:           Experimental
 Copyright:           (c) Pierre Krafft and contributors, 2021
 category:            Sound
-build-type:          Simple
-tested-with:         GHC == 9.0.1
+build-type:          Custom
+tested-with:         GHC == 9.2.1
 
 extra-source-files: README.md
 
@@ -38,27 +38,13 @@ library
   Build-depends:
       base >=4.8 && <5
 
-  cxx-sources: link/extensions/abl_link/src/abl_link.cpp
-  include-dirs:
-    link/include
-    link/modules/asio-standalone/asio/include
-    link/extensions/abl_link/include
-
-  cxx-options:
-    -DLINK_PLATFORM_WINDOWS=1 -Wno-multichar -Wno-subobject-linkage -g
-
-executable linktest
-  ghc-options: -Wall
-  hs-source-dirs:
-                 src/hs
-  main-is: Main.hs
-
-  default-language:    Haskell2010
-
-  Build-depends:
-      base >=4.8 && <5,
-      tidal-link
-
 source-repository head
   type:     git
   location: https://github.com/tidalcycles/Tidal
+
+custom-setup
+  setup-depends:
+    base >=4.8 && <5,
+    Cabal >= 3.2 && < 4,
+    directory >=1.3 && <2,
+    filepath >=1.4 && <2
