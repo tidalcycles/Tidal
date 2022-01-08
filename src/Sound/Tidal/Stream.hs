@@ -382,10 +382,12 @@ toOSC latency _ e tempo (OSCContext oscpath)
         ident = fromMaybe "unknown" $ Map.lookup "_id_" (value e) >>= getS
         ts = on + nudge + latency
 
+-- Used for Tempo callback
 onTick :: Stream -> T.State -> T.Tempo -> ValueMap -> IO (T.Tempo, ValueMap)
 onTick stream st tempo s
   = do doTick False stream st tempo s
 
+-- Used for Tempo callback
 updatePattern :: Stream -> ID -> ControlPattern -> IO ()
 updatePattern stream k pat = do
   let x = queryArc pat (Arc 0 0)
@@ -416,6 +418,7 @@ streamOnce st p = do i <- getStdRandom $ randomR (0, 8192)
 streamFirst :: Stream -> ControlPattern -> IO ()
 streamFirst stream pat = modifyMVar_ (sActionsMV stream) (\actions -> return $ (T.SingleTick pat) : actions)
 
+-- Used for Tempo callback
 onSingleTick :: Stream -> T.State -> T.Tempo -> ValueMap -> ControlPattern -> IO (T.Tempo, ValueMap)
 onSingleTick stream st tempo s pat = do
   print "Stream onSingleTick"
