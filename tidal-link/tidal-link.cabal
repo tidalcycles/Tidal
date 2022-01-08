@@ -45,7 +45,7 @@ library
     link/extensions/abl_link/include
 
   cxx-options:
-    -DLINK_PLATFORM_WINDOWS=1 -Wno-multichar -g
+    -DLINK_PLATFORM_WINDOWS=1 -Wno-multichar -Wno-subobject-linkage -g
 
 executable linktest
   ghc-options: -Wall

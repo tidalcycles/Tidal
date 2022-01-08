@@ -57,6 +57,9 @@ hello = do
     print "Created link"
     _ <- getLine
     print "gotline"
+    now <- abl_link_clock_micros link
+    print $ "Now: " ++ show now
+    print "gotline"
     abl_link_enable link (CBool 1)
     print "Link enabled"
     _ <- getLine
@@ -64,9 +67,6 @@ hello = do
     sessionState <- abl_link_create_session_state
     print "Created sessionState"
     _ <- getLine
-    print "gotline"
-    now <- abl_link_clock_micros link
-    print $ "Now: " ++ show now
     _ <- getLine
     print "gotline"
     abl_link_capture_app_session_state link sessionState
