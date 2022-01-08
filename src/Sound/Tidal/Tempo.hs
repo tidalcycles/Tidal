@@ -19,7 +19,7 @@ import Sound.Tidal.ID
 import Sound.Tidal.Config
 import Sound.Tidal.Utils (writeError)
 import Foreign.Ptr
-import Sound.Tidal.Link (wrapper_create, enable_link, show_beat, set_tempo_at_beat, LinkWrapper)
+import Sound.Tidal.Link
 import Foreign.C.Types (CDouble(..))
 import Data.Coerce (coerce)
 import System.IO (hPutStrLn, stderr)
@@ -162,11 +162,16 @@ clocked config tempoMV stateMV actionsMV ac
         loop_init st t =
           do
             print "Creating wrapper"
-            link_wrapper <- wrapper_create
+            let bpm = coerce $ (cps t) * 60
+            link_wrapper <- link_create bpm
             print "Wrapper created. Enabling link."
-            was_enabled <- enable_link link_wrapper
-            print $ "Link enabled: " ++ show was_enabled
-            show_beat link_wrapper
+            was_enabled <- link_enable True link_wrapper
+            sessionState <- link_create_session_state
+            link_capture_app_session_state link_wrapper sessionState
+            now <- link_clock_micros link_wrapper
+            beat <- link_beat_at_time sessionState now 1
+            print $ "beat: " ++ show beat
+            link_destroy_session_state sessionState
             putMVar actionsMV []
             putMVar tempoMV t
             loop st link_wrapper t
@@ -175,7 +180,7 @@ clocked config tempoMV stateMV actionsMV ac
         -- processing first started.
         logicalTime :: O.Time -> Int -> O.Time
         logicalTime startTime ticks' = startTime + fromIntegral ticks' * frameTimespan
-        loop :: State -> Ptr LinkWrapper -> Tempo -> IO a 
+        loop :: State -> AbletonLink -> Tempo -> IO a 
         loop st lw tempo =
           do
             t <- O.time
@@ -210,9 +215,9 @@ clocked config tempoMV stateMV actionsMV ac
               when (cps tempo /= cps tempo') $ do
                 let newBpm = coerce $ (cps tempo) * 60
                 set_tempo_at_beat lw newBpm 0-}
-            when (cps tempo /= cps tempo'') $ do
-              let newBpm = coerce $ (cps tempo'') * 60
-              set_tempo_at_beat lw newBpm 0
+            -- when (cps tempo /= cps tempo'') $ do
+            --   let newBpm = coerce $ (cps tempo'') * 60
+            --   set_tempo_at_beat lw newBpm 0
             putMVar stateMV streamState''
             _ <- swapMVar tempoMV tempo''
             {- putStrLn ("actual tick: " ++ show actualTick

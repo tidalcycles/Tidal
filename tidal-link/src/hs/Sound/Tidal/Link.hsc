@@ -1,7 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
--- module Sound.Tidal.Link (hello, wrapper_create, show_beat, enable_link, beat_time, set_tempo_at_beat, LinkWrapper) where
-module Sound.Tidal.Link (hello, abl_link_create, abl_link_enable, AbletonLink) where
+module Sound.Tidal.Link where
 
 #include "abl_link.h"
 
@@ -32,51 +31,59 @@ instance Storable SessionState where
     #{poke abl_link_session_state,impl} ptr impl
 
 foreign import ccall "abl_link.h abl_link_create"
-  abl_link_create :: CDouble -> IO AbletonLink
+  link_create :: CDouble -> IO AbletonLink
 
 foreign import ccall "abl_link.h abl_link_enable"
   abl_link_enable :: AbletonLink -> CBool -> IO ()
 
+link_enable :: Bool -> AbletonLink -> IO ()
+link_enable True al = abl_link_enable al (CBool 1)
+link_enable False al = abl_link_enable al (CBool 0)
+
 foreign import ccall "abl_link.h abl_link_create_session_state"
-  abl_link_create_session_state :: IO SessionState
+  link_create_session_state :: IO SessionState
 
 foreign import ccall "abl_link.h abl_link_capture_app_session_state"
-  abl_link_capture_app_session_state :: AbletonLink -> SessionState -> IO ()
+  link_capture_app_session_state :: AbletonLink -> SessionState -> IO ()
 
 foreign import ccall "abl_link.h abl_link_clock_micros"
-  abl_link_clock_micros :: AbletonLink -> IO Int64
+  link_clock_micros :: AbletonLink -> IO Int64
 
 foreign import ccall "abl_link.h abl_link_beat_at_time"
-  abl_link_beat_at_time :: SessionState -> Int64 -> CDouble -> IO CDouble
+  link_beat_at_time :: SessionState -> Int64 -> CDouble -> IO CDouble
+
+foreign import ccall "abl_link.h abl_link_destroy_session_state"
+  link_destroy_session_state :: SessionState -> IO ()
 
 -- |Test
 hello :: IO ()
 hello = do
     print "hello"
-    link <- abl_link_create 88
+    link <- link_create 88
     print "Created link"
     _ <- getLine
     print "gotline"
-    now <- abl_link_clock_micros link
+    now <- link_clock_micros link
     print $ "Now: " ++ show now
     print "gotline"
-    abl_link_enable link (CBool 1)
+    link_enable True link
     print "Link enabled"
     _ <- getLine
     print "gotline"
-    sessionState <- abl_link_create_session_state
+    sessionState <- link_create_session_state
     print "Created sessionState"
     _ <- getLine
     _ <- getLine
     print "gotline"
-    abl_link_capture_app_session_state link sessionState
+    link_capture_app_session_state link sessionState
     _line_1 <- getLine
     print "gotline"
-    beat <- abl_link_beat_at_time sessionState now 1
+    beat <- link_beat_at_time sessionState now 1
     print $ "beat: " ++ show beat
     _line_2 <- getLine
     print "gotline"
-    now' <- abl_link_clock_micros link
+    now' <- link_clock_micros link
     print $ "Now': " ++ show now'
-    beat' <- abl_link_beat_at_time sessionState now' 1
+    beat' <- link_beat_at_time sessionState now' 1
     print $ "beat': " ++ show beat'
+    link_destroy_session_state sessionState
