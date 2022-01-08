@@ -38,6 +38,11 @@ library
   Build-depends:
       base >=4.8 && <5
 
+  include-dirs:
+    link/include
+    link/modules/asio-standalone/asio/include
+    link/extensions/abl_link/include
+
 source-repository head
   type:     git
   location: https://github.com/tidalcycles/Tidal
