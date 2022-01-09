@@ -5,7 +5,6 @@ module Sound.Tidal.Link where
 #include "abl_link.h"
 
 import Foreign
--- import Foreign.C.String
 import Foreign.C.Types
 import Data.Int()
 
@@ -36,65 +35,71 @@ instance Storable SessionState where
     #{poke abl_link_session_state,impl} ptr impl
 
 foreign import ccall "abl_link.h abl_link_create"
-  link_create :: BPM -> IO AbletonLink
+  create :: BPM -> IO AbletonLink
 
 foreign import ccall "abl_link.h abl_link_enable"
   abl_link_enable :: AbletonLink -> CBool -> IO ()
 
-link_enable :: Bool -> AbletonLink -> IO ()
-link_enable True al = abl_link_enable al (CBool 1)
-link_enable False al = abl_link_enable al (CBool 0)
+setEnabled :: Bool -> AbletonLink -> IO ()
+setEnabled True al = abl_link_enable al (CBool 1)
+setEnabled False al = abl_link_enable al (CBool 0)
+
+enable :: AbletonLink -> IO ()
+enable = setEnabled True
+
+disable :: AbletonLink -> IO ()
+disable = setEnabled False
 
 foreign import ccall "abl_link.h abl_link_create_session_state"
-  link_create_session_state :: IO SessionState
+  createSessionState :: IO SessionState
 
 foreign import ccall "abl_link.h abl_link_capture_app_session_state"
-  link_capture_app_session_state :: AbletonLink -> SessionState -> IO ()
+  captureAppSessionState :: AbletonLink -> SessionState -> IO ()
 
 foreign import ccall "abl_link.h abl_link_commit_app_session_state"
-  link_commit_app_session_state :: AbletonLink -> SessionState -> IO ()
+  commitAppSessionState :: AbletonLink -> SessionState -> IO ()
 
 foreign import ccall "abl_link.h abl_link_destroy_session_state"
-  link_destroy_session_state :: SessionState -> IO ()
+  destroySessionState :: SessionState -> IO ()
 
 foreign import ccall "abl_link.h abl_link_clock_micros"
-  link_clock_micros :: AbletonLink -> IO Micros
+  clock :: AbletonLink -> IO Micros
 
 foreign import ccall "abl_link.h abl_link_beat_at_time"
-  link_beat_at_time :: SessionState -> Micros -> Quantum -> IO Beat
+  beatAtTime :: SessionState -> Micros -> Quantum -> IO Beat
 
 foreign import ccall "abl_link.h abl_link_set_tempo"
-  link_set_tempo :: SessionState -> BPM -> Micros -> IO ()
+  setTempo :: SessionState -> BPM -> Micros -> IO ()
 
 -- |Test
 hello :: IO ()
 hello = do
     print "hello"
-    link <- link_create 88
+    link <- create 88
     print "Created link"
     _ <- getLine
     print "gotline"
-    now <- link_clock_micros link
+    now <- clock link
     print $ "Now: " ++ show now
     print "gotline"
-    link_enable True link
+    enable link
     print "Link enabled"
     _ <- getLine
     print "gotline"
-    sessionState <- link_create_session_state
+    sessionState <- createSessionState
     print "Created sessionState"
     _ <- getLine
     _ <- getLine
     print "gotline"
-    link_capture_app_session_state link sessionState
+    captureAppSessionState link sessionState
     _line_1 <- getLine
     print "gotline"
-    beat <- link_beat_at_time sessionState now 1
+    beat <- beatAtTime sessionState now 1
     print $ "beat: " ++ show beat
     _line_2 <- getLine
     print "gotline"
-    now' <- link_clock_micros link
+    now' <- clock link
     print $ "Now': " ++ show now'
-    beat' <- link_beat_at_time sessionState now' 1
+    beat' <- beatAtTime sessionState now' 1
     print $ "beat': " ++ show beat'
-    link_destroy_session_state sessionState
+    destroySessionState sessionState

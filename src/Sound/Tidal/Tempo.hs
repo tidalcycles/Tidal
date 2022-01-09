@@ -19,7 +19,7 @@ import Sound.Tidal.ID
 import Sound.Tidal.Config
 import Sound.Tidal.Utils (writeError)
 import Foreign.Ptr
-import Sound.Tidal.Link
+import qualified Sound.Tidal.Link as Link
 import Foreign.C.Types (CDouble(..))
 import Data.Coerce (coerce)
 import System.IO (hPutStrLn, stderr)
@@ -152,26 +152,25 @@ clocked config tempoMV stateMV actionsMV ac
                        starting = True
                       }
        let t = defaultTempo s
-       clockTid <- forkIO $ loop_init st t
+       clockTid <- forkIO $ loopInit st t
        -- return [listenTid, clockTid]
        return [clockTid]
   where frameTimespan :: Double
         frameTimespan = cFrameTimespan config
         -- create startloop function and create the link wrapper there
-        loop_init :: State -> Tempo -> IO a
-        loop_init st t =
+        loopInit :: State -> Tempo -> IO a
+        loopInit st t =
           do
             print "Creating wrapper"
             let bpm = coerce $ (cps t) * 60
-            al <- link_create bpm
+            al <- Link.create bpm
             print "Wrapper created. Enabling link."
-            was_enabled <- link_enable True al
-            sessionState <- link_create_session_state
-            link_capture_app_session_state al sessionState
-            now <- link_clock_micros al
-            beat <- link_beat_at_time sessionState now 1
-            print $ "beat: " ++ show beat
-            link_destroy_session_state sessionState
+            was_enabled <- Link.enable al
+            sessionState <- Link.createSessionState
+            Link.captureAppSessionState al sessionState
+            now <- Link.clock al
+            
+            Link.destroySessionState sessionState
             putMVar actionsMV []
             putMVar tempoMV t
             loop st al t
@@ -180,7 +179,7 @@ clocked config tempoMV stateMV actionsMV ac
         -- processing first started.
         logicalTime :: O.Time -> Int -> O.Time
         logicalTime startTime ticks' = startTime + fromIntegral ticks' * frameTimespan
-        loop :: State -> AbletonLink -> Tempo -> IO a 
+        loop :: State -> Link.AbletonLink -> Tempo -> IO a 
         loop st lw tempo =
           do
             t <- O.time
@@ -217,7 +216,7 @@ clocked config tempoMV stateMV actionsMV ac
                 set_tempo_at_beat lw newBpm 0-}
             when (cps tempo /= cps tempo'') $ do
               let newBpm = coerce $ (cps tempo'') * 60
-              set_tempo_at_now lw newBpm
+              setTempoNow lw newBpm
             putMVar stateMV streamState''
             _ <- swapMVar tempoMV tempo''
             {- putStrLn ("actual tick: " ++ show actualTick
@@ -225,14 +224,14 @@ clocked config tempoMV stateMV actionsMV ac
                        ++ " new tick: " ++ show newTick
                       )-}
             loop st'' lw tempo''
-        set_tempo_at_now :: AbletonLink -> BPM -> IO ()
-        set_tempo_at_now al bpm = do
-          sessionState <- link_create_session_state
-          link_capture_app_session_state al sessionState
-          now <- link_clock_micros al
-          link_set_tempo sessionState bpm now
-          link_commit_app_session_state al sessionState
-          link_destroy_session_state sessionState
+        setTempoNow :: Link.AbletonLink -> Link.BPM -> IO ()
+        setTempoNow al bpm = do
+          sessionState <- Link.createSessionState
+          Link.captureAppSessionState al sessionState
+          now <- Link.clock al
+          Link.setTempo sessionState bpm now
+          Link.commitAppSessionState al sessionState
+          Link.destroySessionState sessionState
         handleActions :: State -> O.Time -> [TempoAction] -> (Tempo, P.ValueMap) -> IO (State, Tempo, P.ValueMap)
         handleActions st _ [] (tempo, streamState) = return (st, tempo, streamState)
         handleActions st t (ResetCycles : otherActions) ts =
