@@ -11,6 +11,12 @@ import Data.Int()
 newtype AbletonLink = AbletonLink (Ptr ())
 newtype SessionState = SessionState (Ptr ())
 
+instance Show AbletonLink where
+  show _ = "-unshowable-"
+
+instance Show SessionState where
+  show _ = "-unshowable-"
+
 type Beat    = CDouble
 type BPM     = CDouble
 type Micros  = Int64
@@ -56,11 +62,22 @@ foreign import ccall "abl_link.h abl_link_create_session_state"
 foreign import ccall "abl_link.h abl_link_capture_app_session_state"
   captureAppSessionState :: AbletonLink -> SessionState -> IO ()
 
+createAndCaptureAppSessionState :: AbletonLink -> IO SessionState
+createAndCaptureAppSessionState al = do
+  sessionState <- createSessionState
+  captureAppSessionState al sessionState
+  return sessionState
+
 foreign import ccall "abl_link.h abl_link_commit_app_session_state"
   commitAppSessionState :: AbletonLink -> SessionState -> IO ()
 
 foreign import ccall "abl_link.h abl_link_destroy_session_state"
   destroySessionState :: SessionState -> IO ()
+
+commitAndDestroyAppSessionState :: AbletonLink -> SessionState -> IO ()
+commitAndDestroyAppSessionState al ss = do
+  commitAppSessionState al ss
+  destroySessionState ss
 
 foreign import ccall "abl_link.h abl_link_clock_micros"
   clock :: AbletonLink -> IO Micros
@@ -70,6 +87,9 @@ foreign import ccall "abl_link.h abl_link_beat_at_time"
 
 foreign import ccall "abl_link.h abl_link_set_tempo"
   setTempo :: SessionState -> BPM -> Micros -> IO ()
+
+foreign import ccall "abl_link.h abl_link_request_beat_at_time"
+  requestBeatAtTime :: SessionState -> Beat -> Micros -> Quantum -> IO ()
 
 -- |Test
 hello :: IO ()

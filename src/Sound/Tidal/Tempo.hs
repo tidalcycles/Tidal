@@ -77,7 +77,8 @@ data State = State {ticks   :: Int,
                     start   :: O.Time,
                     nowTimespan :: (O.Time, O.Time),
                     nowArc  :: P.Arc,
-                    starting :: Bool
+                    starting :: Bool,
+                    al :: Link.AbletonLink
                    }
   deriving Show
 
@@ -145,42 +146,43 @@ clocked config tempoMV stateMV actionsMV ac
        -- _ <- serverListen config
        -- clientListen assumes tempoMV is empty
        -- listenTid <- clientListen config tempoMV s
-       let st = State {ticks = 0,
-                       start = s,
-                       nowTimespan = (s, s + frameTimespan),
-                       nowArc = P.Arc 0 0,
-                       starting = True
-                      }
-       let t = defaultTempo s
-       clockTid <- forkIO $ loopInit st t
+       clockTid <- forkIO $ loopInit s
        -- return [listenTid, clockTid]
        return [clockTid]
   where frameTimespan :: Double
         frameTimespan = cFrameTimespan config
         -- create startloop function and create the link wrapper there
-        loopInit :: State -> Tempo -> IO a
-        loopInit st t =
+        loopInit :: O.Time -> IO a
+        loopInit s =
           do
-            print "Creating wrapper"
+            let t = defaultTempo s
             let bpm = coerce $ (cps t) * 60
-            al <- Link.create bpm
-            print "Wrapper created. Enabling link."
-            was_enabled <- Link.enable al
-            sessionState <- Link.createSessionState
-            Link.captureAppSessionState al sessionState
-            now <- Link.clock al
-            
-            Link.destroySessionState sessionState
+            abletonLink <- Link.create bpm
+            was_enabled <- Link.enable abletonLink
+            sessionState <- Link.createAndCaptureAppSessionState abletonLink
+            now <- Link.clock abletonLink
+            -- TODO: When connected to other peers,
+            -- requestBeatAtTime will map beat 0 to time in the future.
+            -- We need to handle negative beats and wait for us to get in sync
+            Link.requestBeatAtTime sessionState 0 now bpc
+            Link.commitAndDestroyAppSessionState abletonLink sessionState
             putMVar actionsMV []
             putMVar tempoMV t
-            loop st al t
+            let st = State {ticks = 0,
+                       start = s,
+                       nowTimespan = (s, s + frameTimespan),
+                       nowArc = P.Arc 0 0,
+                       starting = True,
+                       al = abletonLink
+                      }
+            loop st t
         -- Time is processed at a fixed rate according to configuration
         -- logicalTime gives the time when a tick starts based on when
         -- processing first started.
         logicalTime :: O.Time -> Int -> O.Time
         logicalTime startTime ticks' = startTime + fromIntegral ticks' * frameTimespan
-        loop :: State -> Link.AbletonLink -> Tempo -> IO a 
-        loop st lw tempo =
+        loop :: State -> Tempo -> IO a 
+        loop st tempo =
           do
             t <- O.time
             let logicalStart = logicalTime (start st) $ ticks st
@@ -209,28 +211,24 @@ clocked config tempoMV stateMV actionsMV ac
             -- tempo <- takeMVar tempoMV
             (st'', tempo', streamState') <- handleActions st' t' actions (tempo, streamState)
             (tempo'', streamState'') <- (onTick ac) st'' tempo' streamState'
-            {-when (tempo /= tempo') $ do
-              sendTempo tempo'
-              when (cps tempo /= cps tempo') $ do
-                let newBpm = coerce $ (cps tempo) * 60
-                set_tempo_at_beat lw newBpm 0-}
             when (cps tempo /= cps tempo'') $ do
               let newBpm = coerce $ (cps tempo'') * 60
-              setTempoNow lw newBpm
+              setTempoNow (al st) newBpm
             putMVar stateMV streamState''
             _ <- swapMVar tempoMV tempo''
             {- putStrLn ("actual tick: " ++ show actualTick
                        ++ " old tick: " ++ show (ticks st)
                        ++ " new tick: " ++ show newTick
                       )-}
-            loop st'' lw tempo''
+            loop st'' tempo''
         setTempoNow :: Link.AbletonLink -> Link.BPM -> IO ()
-        setTempoNow al bpm = do
-          sessionState <- Link.createSessionState
-          Link.captureAppSessionState al sessionState
-          now <- Link.clock al
+        setTempoNow abletonLink bpm = do
+          sessionState <- Link.createAndCaptureAppSessionState abletonLink
+          now <- Link.clock abletonLink
           Link.setTempo sessionState bpm now
-          Link.commitAppSessionState al sessionState
+          Link.commitAppSessionState abletonLink sessionState
+          beat <- Link.beatAtTime sessionState now bpc
+          print $ "Set tempo to " ++ (show bpm) ++ " at " ++ (show beat)
           Link.destroySessionState sessionState
         handleActions :: State -> O.Time -> [TempoAction] -> (Tempo, P.ValueMap) -> IO (State, Tempo, P.ValueMap)
         handleActions st _ [] (tempo, streamState) = return (st, tempo, streamState)
@@ -245,6 +243,16 @@ clocked config tempoMV stateMV actionsMV ac
                           nowTimespan = (logicalEnd,  logicalEnd + frameTimespan),
                           starting = not (synched tempo'')
                         }
+            sessionState <- Link.createAndCaptureAppSessionState (al st')
+            -- TODO: handleActions should use link time instead
+            -- TODO: When connected to other peers,
+            -- requestBeatAtTime will map beat 0 to time in the future.
+            -- We need to handle negative beats and wait for us to get in sync
+            now <- Link.clock (al st')
+            Link.requestBeatAtTime sessionState 0 now bpc
+            beat <- Link.beatAtTime sessionState now bpc
+            print $ "Reset beat to 0. Now is mapped to beat " ++ (show beat)
+            Link.commitAndDestroyAppSessionState (al st') sessionState
             return (st'', tempo'', streamState')
         handleActions st t (SingleTick pat : otherActions) ts =
           do
@@ -271,6 +279,9 @@ clocked config tempoMV stateMV actionsMV ac
                 hPutStrLn stderr $ "Error in pattern: " ++ show e
                 return (st', tempo', streamState')
               )
+
+bpc :: Link.Quantum
+bpc = 4
 
 {-
 -- clientListen assumes tempoMV is empty
