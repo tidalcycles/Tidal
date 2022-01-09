@@ -12,6 +12,11 @@ import Data.Int()
 newtype AbletonLink = AbletonLink (Ptr ())
 newtype SessionState = SessionState (Ptr ())
 
+type Beat    = CDouble
+type BPM     = CDouble
+type Micros  = Int64
+type Quantum = CDouble
+
 instance Storable AbletonLink where
   alignment _ = #{alignment abl_link}
   sizeOf    _ = #{size abl_link}
@@ -31,7 +36,7 @@ instance Storable SessionState where
     #{poke abl_link_session_state,impl} ptr impl
 
 foreign import ccall "abl_link.h abl_link_create"
-  link_create :: CDouble -> IO AbletonLink
+  link_create :: BPM -> IO AbletonLink
 
 foreign import ccall "abl_link.h abl_link_enable"
   abl_link_enable :: AbletonLink -> CBool -> IO ()
@@ -46,14 +51,20 @@ foreign import ccall "abl_link.h abl_link_create_session_state"
 foreign import ccall "abl_link.h abl_link_capture_app_session_state"
   link_capture_app_session_state :: AbletonLink -> SessionState -> IO ()
 
-foreign import ccall "abl_link.h abl_link_clock_micros"
-  link_clock_micros :: AbletonLink -> IO Int64
-
-foreign import ccall "abl_link.h abl_link_beat_at_time"
-  link_beat_at_time :: SessionState -> Int64 -> CDouble -> IO CDouble
+foreign import ccall "abl_link.h abl_link_commit_app_session_state"
+  link_commit_app_session_state :: AbletonLink -> SessionState -> IO ()
 
 foreign import ccall "abl_link.h abl_link_destroy_session_state"
   link_destroy_session_state :: SessionState -> IO ()
+
+foreign import ccall "abl_link.h abl_link_clock_micros"
+  link_clock_micros :: AbletonLink -> IO Micros
+
+foreign import ccall "abl_link.h abl_link_beat_at_time"
+  link_beat_at_time :: SessionState -> Micros -> Quantum -> IO Beat
+
+foreign import ccall "abl_link.h abl_link_set_tempo"
+  link_set_tempo :: SessionState -> BPM -> Micros -> IO ()
 
 -- |Test
 hello :: IO ()

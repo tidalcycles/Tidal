@@ -163,18 +163,18 @@ clocked config tempoMV stateMV actionsMV ac
           do
             print "Creating wrapper"
             let bpm = coerce $ (cps t) * 60
-            link_wrapper <- link_create bpm
+            al <- link_create bpm
             print "Wrapper created. Enabling link."
-            was_enabled <- link_enable True link_wrapper
+            was_enabled <- link_enable True al
             sessionState <- link_create_session_state
-            link_capture_app_session_state link_wrapper sessionState
-            now <- link_clock_micros link_wrapper
+            link_capture_app_session_state al sessionState
+            now <- link_clock_micros al
             beat <- link_beat_at_time sessionState now 1
             print $ "beat: " ++ show beat
             link_destroy_session_state sessionState
             putMVar actionsMV []
             putMVar tempoMV t
-            loop st link_wrapper t
+            loop st al t
         -- Time is processed at a fixed rate according to configuration
         -- logicalTime gives the time when a tick starts based on when
         -- processing first started.
@@ -215,9 +215,9 @@ clocked config tempoMV stateMV actionsMV ac
               when (cps tempo /= cps tempo') $ do
                 let newBpm = coerce $ (cps tempo) * 60
                 set_tempo_at_beat lw newBpm 0-}
-            -- when (cps tempo /= cps tempo'') $ do
-            --   let newBpm = coerce $ (cps tempo'') * 60
-            --   set_tempo_at_beat lw newBpm 0
+            when (cps tempo /= cps tempo'') $ do
+              let newBpm = coerce $ (cps tempo'') * 60
+              set_tempo_at_now lw newBpm
             putMVar stateMV streamState''
             _ <- swapMVar tempoMV tempo''
             {- putStrLn ("actual tick: " ++ show actualTick
@@ -225,6 +225,14 @@ clocked config tempoMV stateMV actionsMV ac
                        ++ " new tick: " ++ show newTick
                       )-}
             loop st'' lw tempo''
+        set_tempo_at_now :: AbletonLink -> BPM -> IO ()
+        set_tempo_at_now al bpm = do
+          sessionState <- link_create_session_state
+          link_capture_app_session_state al sessionState
+          now <- link_clock_micros al
+          link_set_tempo sessionState bpm now
+          link_commit_app_session_state al sessionState
+          link_destroy_session_state sessionState
         handleActions :: State -> O.Time -> [TempoAction] -> (Tempo, P.ValueMap) -> IO (State, Tempo, P.ValueMap)
         handleActions st _ [] (tempo, streamState) = return (st, tempo, streamState)
         handleActions st t (ResetCycles : otherActions) ts =
