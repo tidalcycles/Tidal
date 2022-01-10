@@ -1461,7 +1461,7 @@ And you can use `rolledBy` or `rolledBy'` to specify the length of the roll. The
 is the divisor of the cycle length.
 
 @
-rolledBy "<1 2 4 8 16 3>" $ note "c'maj9" # s "superpiano"
+rolledBy "<1 0.5 0.25 0.125>" $ note "c'maj9" # s "superpiano"
 @
 -}
 
@@ -1473,19 +1473,19 @@ rolledWith f t = withEvents aux
                          a'' <- subArc (Arc newS e) a'
                          return (Event c (Just $ Arc newS e) a'' v)
                       where newS = s + (dur * fromIntegral n)
-                            dur = (e - s) / (t*fromIntegral d)
+                            dur = (e - s) / ((1/t)*fromIntegral d)
 
 rolledBy :: Pattern (Ratio Integer) -> Pattern a -> Pattern a
 rolledBy pt = tParam (rolledWith id) (segment 1 $ pt)
 
 rolled :: Pattern a -> Pattern a
-rolled = rolledBy 4
+rolled = rolledBy (1/4)
 
 rolledBy' :: Pattern (Ratio Integer) -> Pattern a -> Pattern a
 rolledBy' pt = tParam (rolledWith reverse) (segment 1 $ pt)
 
 rolled' :: Pattern a -> Pattern a
-rolled' = rolledBy' 4
+rolled' = rolledBy' (1/4)
 
 {- TODO !
 
