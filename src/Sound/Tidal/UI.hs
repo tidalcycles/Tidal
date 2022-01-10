@@ -1474,6 +1474,7 @@ rolledWith f t = withEvents aux
                          return (Event c (Just $ Arc newS e) a'' v)
                       where newS = s + (dur * fromIntegral n)
                             dur = (e - s) / ((1/t)*fromIntegral d)
+               shiftIt _ _ ev =  return ev
 
 rolledBy :: Pattern (Ratio Integer) -> Pattern a -> Pattern a
 rolledBy pt = tParam (rolledWith id) (segment 1 $ pt)
