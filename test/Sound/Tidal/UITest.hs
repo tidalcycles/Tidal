@@ -53,6 +53,37 @@ run =
           ("0*4" :: Pattern Double)
       -}
 
+    describe "rolledBy" $ do
+      it "shifts each start of events in a list correctly" $ do
+        let
+          overTimeSpan = (Arc 0 1)
+          testMe = rolledBy "0.5" $ n ("[0,1,2,3]")
+          expectedResult = n "[0, ~ 1@7, ~@2 2@6, ~@3 3@5]"
+          in
+            compareP overTimeSpan testMe expectedResult
+      it "trims the pattern when it gets bigger then one cycle" $ do
+        let
+          overTimeSpan = (Arc 0  1)
+          testMe = rolledBy "1.5" $ n ("[0,1,2]")
+          expectedResult = n "[0, ~ 1]"
+          in
+            compareP overTimeSpan testMe expectedResult
+      it "does nothing for continous functions" $ do
+        let
+          overTimeSpan = (Arc 0  1)
+          testMe = n (rolledBy "0.25" (irand 0) |+ "[0,12]")
+          expectedResult = n (irand 0) |+ n "[0, 12]"
+          in
+            compareP overTimeSpan testMe expectedResult
+      it "does nothing when passing zero as time value" $ do
+        let
+          overTimeSpan = (Arc 0  1)
+          testMe = n (rolledBy "0" "[0,1,2,3]")
+          expectedResult = n "[0,1,2,3]"
+          in
+            compareP overTimeSpan testMe expectedResult
+
+
     describe "sometimesBy" $ do
       it "does nothing when set at 0% probability" $ do
         let
