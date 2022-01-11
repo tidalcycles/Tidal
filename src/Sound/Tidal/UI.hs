@@ -1467,13 +1467,15 @@ rolledBy "<1 0.5 0.25 0.125>" $ note "c'maj9" # s "superpiano"
 
 rolledWith :: ([Event a] -> [EventF (ArcF Time) a]) -> Ratio Integer -> Pattern a -> Pattern a
 rolledWith f t = withEvents aux
-         where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ sortOn whole (f es))
-               steppityIn xs = mapMaybe (\(n, x) -> shiftIt n (length xs) x) $ enumerate xs
+         where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ (f es))
+               steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
+               timeguard _ _ ev 0 = return ev
+               timeguard n xs ev t = (shiftIt n (length xs) ev)
                shiftIt n d (Event c (Just (Arc s e)) a' v) = do
                          a'' <- subArc (Arc newS e) a'
                          return (Event c (Just $ Arc newS e) a'' v)
                       where newS = s + (dur * fromIntegral n)
-                            dur = (e - s) / ((1/t)*fromIntegral d)
+                            dur = ((e - s)) / ((1/t)*fromIntegral d)
                shiftIt _ _ ev =  return ev
 
 rolledBy :: Pattern (Ratio Integer) -> Pattern a -> Pattern a
