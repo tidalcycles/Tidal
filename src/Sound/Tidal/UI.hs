@@ -1470,7 +1470,7 @@ rolledWith f t = withEvents aux
          where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ (f es))
                steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
                timeguard _ _ ev 0 = return ev
-               timeguard n xs ev t = (shiftIt n (length xs) ev)
+               timeguard n xs ev _ = (shiftIt n (length xs) ev)
                shiftIt n d (Event c (Just (Arc s e)) a' v) = do
                          a'' <- subArc (Arc newS e) a'
                          return (Event c (Just $ Arc newS e) a'' v)
