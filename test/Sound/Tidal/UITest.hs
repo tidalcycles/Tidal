@@ -68,7 +68,7 @@ run =
           expectedResult = n "[3, ~ 2@7, ~@2 1@6, ~@3 0@5]"
           in
             compareP overTimeSpan testMe expectedResult
-      it "trims the pattern when it gets bigger then one cycle" $ do
+      it "trims the result pattern if it becomes larger than the original pattern" $ do
         let
           overTimeSpan = (Arc 0  1)
           testMe = rolledBy "1.5" $ n ("[0,1,2]")
