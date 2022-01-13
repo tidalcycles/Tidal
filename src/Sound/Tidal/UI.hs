@@ -1451,23 +1451,19 @@ This will played from the lowest note to the highest note of the chord
 rolled $ n "c'maj'4" # s "superpiano"
 @
 
-You can reverse this order by using the `rolled'` function
-
-@
-rolled' $ n "c'maj9" # s "superpiano"
-@
 
 And you can use `rolledBy` or `rolledBy'` to specify the length of the roll. The value in the passed pattern
-is the divisor of the cycle length.
+is the divisor of the cycle length. A negative value will play the arpeggio in reverse order.
 
 @
-rolledBy "<1 0.5 0.25 0.125>" $ note "c'maj9" # s "superpiano"
+rolledBy "<1 -0.5 0.25 -0.125>" $ note "c'maj9" # s "superpiano"
 @
 -}
 
-rolledWith :: ([Event a] -> [EventF (ArcF Time) a]) -> Ratio Integer -> Pattern a -> Pattern a
-rolledWith f t = withEvents aux
-         where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ (f es))
+rolledWith :: Ratio Integer -> Pattern a -> Pattern a
+rolledWith t = withEvents aux
+         where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ ((isRev t) es))
+               isRev b = (\x -> if x > 0 then id else reverse ) b 
                steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
                timeguard _ _ ev 0 = return ev
                timeguard n xs ev _ = (shiftIt n (length xs) ev)
@@ -1475,20 +1471,14 @@ rolledWith f t = withEvents aux
                          a'' <- subArc (Arc newS e) a'
                          return (Event c (Just $ Arc newS e) a'' v)
                       where newS = s + (dur * fromIntegral n)
-                            dur = ((e - s)) / ((1/t)*fromIntegral d)
+                            dur = ((e - s)) / ((1/ (abs t))*fromIntegral d)
                shiftIt _ _ ev =  return ev
 
 rolledBy :: Pattern (Ratio Integer) -> Pattern a -> Pattern a
-rolledBy pt = tParam (rolledWith id) (segment 1 $ pt)
+rolledBy pt = tParam rolledWith (segment 1 $ pt)
 
 rolled :: Pattern a -> Pattern a
 rolled = rolledBy (1/4)
-
-rolledBy' :: Pattern (Ratio Integer) -> Pattern a -> Pattern a
-rolledBy' pt = tParam (rolledWith reverse) (segment 1 $ pt)
-
-rolled' :: Pattern a -> Pattern a
-rolled' = rolledBy' (1/4)
 
 {- TODO !
 

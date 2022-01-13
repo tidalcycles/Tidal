@@ -61,6 +61,13 @@ run =
           expectedResult = n "[0, ~ 1@7, ~@2 2@6, ~@3 3@5]"
           in
             compareP overTimeSpan testMe expectedResult
+      it "shifts each start of events in a list correctly in reverse order" $ do
+        let
+          overTimeSpan = (Arc 0 1)
+          testMe = rolledBy "-0.5" $ n ("[0,1,2,3]")
+          expectedResult = n "[3, ~ 2@7, ~@2 1@6, ~@3 0@5]"
+          in
+            compareP overTimeSpan testMe expectedResult
       it "trims the pattern when it gets bigger then one cycle" $ do
         let
           overTimeSpan = (Arc 0  1)
