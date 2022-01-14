@@ -26,11 +26,6 @@ import           Prelude hiding ((<*), (*>))
 import           Data.Char (digitToInt, isDigit, ord)
 import           Data.Bits (testBit, Bits, xor, shiftL, shiftR)
 
--- import           System.Random (randoms, mkStdGen)
--- import           Control.Monad.ST
--- import           Control.Monad.Primitive (PrimState, PrimMonad)
--- import qualified Data.Vector as V
--- import           Data.Word (Word32)
 import           Data.Ratio ((%), Ratio)
 import           Data.Fixed (mod')
 import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
