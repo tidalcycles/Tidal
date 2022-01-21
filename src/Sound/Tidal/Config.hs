@@ -1,5 +1,8 @@
 module Sound.Tidal.Config where
 
+import qualified Sound.Tidal.Link as Link
+import Data.Int(Int64)
+
 {-
     Config.hs - For default Tidal configuration values.
     Copyright (C) 2020, Alex McLean and contributors
@@ -21,11 +24,12 @@ module Sound.Tidal.Config where
 data Config = Config {cCtrlListen :: Bool,
                       cCtrlAddr :: String,
                       cCtrlPort :: Int,
-                      cFrameTimespan :: Double,
+                      cFrameTimespan :: Link.Micros,
+                      cProcessAhead :: Link.Micros,
                       cTempoAddr :: String,
                       cTempoPort :: Int,
                       cTempoClientPort :: Int,
-                      cSkipTicks :: Int,
+                      cSkipTicks :: Int64,
                       cVerbose :: Bool
                      }
 
@@ -33,7 +37,8 @@ defaultConfig :: Config
 defaultConfig = Config {cCtrlListen = True,
                         cCtrlAddr ="127.0.0.1",
                         cCtrlPort = 6010,
-                        cFrameTimespan = 1/20,
+                        cFrameTimespan = 50000,
+                        cProcessAhead = 250000,
                         cTempoAddr = "127.0.0.1",
                         cTempoPort = 9160,
                         cTempoClientPort = 0, -- choose at random

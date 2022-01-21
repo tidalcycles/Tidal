@@ -46,7 +46,6 @@ library
                        Sound.Tidal.UI
                        Sound.Tidal.Utils
                        Sound.Tidal.Version
-                       Sound.Tidal.EspGrid
                        Paths_tidal
   Build-depends:
       base >=4.8 && <5

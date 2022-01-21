@@ -18,11 +18,12 @@ import qualified Control.Exception as E
 import Sound.Tidal.ID
 import Sound.Tidal.Config
 import Sound.Tidal.Utils (writeError)
-import Foreign.Ptr
 import qualified Sound.Tidal.Link as Link
 import Foreign.C.Types (CDouble(..))
 import Data.Coerce (coerce)
 import System.IO (hPutStrLn, stderr)
+import Data.Int(Int64)
+import Debug.Trace (trace)
 
 {-
     Tempo.hs - Tidal's scheduler
@@ -45,55 +46,36 @@ import System.IO (hPutStrLn, stderr)
 instance Show O.UDP where
   show _ = "-unshowable-"
 
--- atTime is at what time tempo what changed.
--- In case of change via pattern, time of event start is used.
--- In case of resetCycle, time of processing the cycle reset is used.
-data Tempo = Tempo {atTime  :: O.Time,
-                    atCycle :: Rational,
-                    cps     :: O.Time,
-                    paused  :: Bool,
-                    nudged  :: Double,
-                    -- localUDP   :: O.UDP,
-                    -- remoteAddr :: N.SockAddr,
-                    synched :: Bool
-                   }
-  deriving Show
-
-instance Eq Tempo where
-  (==) t t' = and [(atTime t)  == (atTime t'),
-                   (atCycle t) == (atCycle t'),
-                   (cps t)     == (cps t'),
-                   (paused t)  == (paused t'),
-                   (nudged t)  == (nudged t')
-                  ]
-
 data TempoAction =
   ResetCycles
   | SingleTick P.ControlPattern
   | SetNudge Double
   | StreamReplace ID P.ControlPattern
 
-data State = State {ticks   :: Int,
-                    start   :: O.Time,
-                    nowTimespan :: (O.Time, O.Time),
-                    nowArc  :: P.Arc,
-                    starting :: Bool,
-                    al :: Link.AbletonLink
+data State = State {ticks    :: Int64,
+                    start    :: Link.Micros,
+                    nowEnd   :: Link.Micros,
+                    nowArc   :: P.Arc,
+                    nudged   :: Double,
+                    al       :: Link.AbletonLink
                    }
   deriving Show
 
 data ActionHandler =
   ActionHandler {
-    onTick :: State -> Tempo -> P.ValueMap -> IO (Tempo, P.ValueMap),
-    onSingleTick :: State -> Tempo -> P.ValueMap -> P.ControlPattern -> IO (Tempo, P.ValueMap),
+    onTick :: State -> LinkOperations -> P.ValueMap -> IO P.ValueMap,
+    onSingleTick :: Link.Micros -> LinkOperations -> P.ValueMap -> P.ControlPattern -> IO P.ValueMap,
     updatePattern :: ID -> P.ControlPattern -> IO ()
   }
 
-changeTempo' :: Tempo -> O.Time -> Rational -> Tempo
-changeTempo' tempo newCps cyc = tempo {atTime = cyclesToTime tempo cyc,
-                                       cps = newCps,
-                                       atCycle = cyc
-                                      }
+data LinkOperations =
+  LinkOperations {
+    timeAtBeat :: Link.Beat -> Link.Quantum -> IO Link.Micros,
+    beatAtTime :: Link.Micros -> Link.Quantum -> IO Link.Beat,
+    getTempo :: IO Link.BPM,
+    setTempo :: Link.BPM -> Link.Micros -> IO (),
+    linkToOscTime :: Link.Micros -> O.Time
+  }
 
 resetCycles :: MVar [TempoAction] -> IO ()
 resetCycles actionsMV = modifyMVar_ actionsMV (\actions -> return $ ResetCycles : actions)
@@ -104,180 +86,213 @@ setNudge actionsMV nudge = modifyMVar_ actionsMV (\actions -> return $ SetNudge 
 defaultCps :: O.Time
 defaultCps = 0.5625
 
-{-
-defaultTempo :: O.Time -> O.UDP -> N.SockAddr -> Tempo
-defaultTempo t local remote = Tempo {atTime   = t,
-                                     atCycle  = 0,
-                                     cps      = defaultCps,
-                                     paused   = False,
-                                     nudged   = 0,
-                                     localUDP   = local,
-                                     remoteAddr = remote,
-                                     synched = False
-                                    }
--}
+timeToCycles :: LinkOperations -> Link.Micros -> IO P.Time
+timeToCycles ops time = do
+  beat <- (beatAtTime ops) time bpc
+  return $! (toRational beat) / (toRational bpc)
 
-defaultTempo :: O.Time -> Tempo
-defaultTempo t = Tempo {atTime   = t,
-                                     atCycle  = 0,
-                                     cps      = defaultCps,
-                                     paused   = False,
-                                     nudged   = 0,
-                                     synched = False
-                                    }
+timeToCycles' :: Link.SessionState -> Link.Micros -> IO P.Time
+timeToCycles' ss time = do
+  beat <- Link.beatAtTime ss time bpc
+  return $! (toRational beat) / (toRational bpc)
 
--- | Returns the given time in terms of
--- cycles relative to metrical grid of a given Tempo
-timeToCycles :: Tempo -> O.Time -> Rational
-timeToCycles tempo t = atCycle tempo + toRational cycleDelta
-  where delta = t - atTime tempo
-        cycleDelta = realToFrac (cps tempo) * delta
+cyclesToTime :: Link.SessionState -> P.Time -> IO Link.Micros
+cyclesToTime ss cyc = do
+  let beat = (fromRational cyc) * bpc
+  Link.timeAtBeat ss beat bpc
 
-cyclesToTime :: Tempo -> Rational -> O.Time
-cyclesToTime tempo cyc = atTime tempo + fromRational timeDelta
-  where cycleDelta = cyc - atCycle tempo
-        timeDelta = cycleDelta / toRational (cps tempo)
+addMicrosToOsc :: Link.Micros -> O.Time -> O.Time
+addMicrosToOsc m t = ((fromIntegral m) / 1000000) + t
 
 -- clocked assumes tempoMV is empty
-clocked :: Config -> MVar Tempo -> MVar P.ValueMap -> MVar [TempoAction] -> ActionHandler -> IO [ThreadId]
-clocked config tempoMV stateMV actionsMV ac
-  = do s <- O.time
+clocked :: Config -> MVar P.ValueMap -> MVar [TempoAction] -> ActionHandler -> IO [ThreadId]
+clocked config stateMV actionsMV ac
+  = do --s <- O.time
        -- TODO - do something with thread id
        -- _ <- serverListen config
        -- clientListen assumes tempoMV is empty
        -- listenTid <- clientListen config tempoMV s
-       clockTid <- forkIO $ loopInit s
+      clockTid <- forkIO $ loopInit
        -- return [listenTid, clockTid]
-       return [clockTid]
-  where frameTimespan :: Double
+      return $! [clockTid]
+  where frameTimespan :: Link.Micros
         frameTimespan = cFrameTimespan config
         -- create startloop function and create the link wrapper there
-        loopInit :: O.Time -> IO a
-        loopInit s =
+        loopInit :: IO a
+        loopInit =
           do
-            let t = defaultTempo s
-            let bpm = coerce $ (cps t) * 60
+            let bpm = (coerce defaultCps) * 60 * bpc
             abletonLink <- Link.create bpm
-            was_enabled <- Link.enable abletonLink
+            Link.enable abletonLink
             sessionState <- Link.createAndCaptureAppSessionState abletonLink
             now <- Link.clock abletonLink
-            -- TODO: When connected to other peers,
-            -- requestBeatAtTime will map beat 0 to time in the future.
-            -- We need to handle negative beats and wait for us to get in sync
-            Link.requestBeatAtTime sessionState 0 now bpc
-            Link.commitAndDestroyAppSessionState abletonLink sessionState
+            let startAt = now + processAhead
+            Link.requestBeatAtTime sessionState 0 startAt bpc
+            Link.commitAppSessionState abletonLink sessionState
             putMVar actionsMV []
-            putMVar tempoMV t
             let st = State {ticks = 0,
-                       start = s,
-                       nowTimespan = (s, s + frameTimespan),
+                       start = now,
+                       nowEnd = logicalTime now 1,
                        nowArc = P.Arc 0 0,
-                       starting = True,
+                       nudged = 0,
                        al = abletonLink
                       }
-            loop st t
+            checkArc $! st
         -- Time is processed at a fixed rate according to configuration
         -- logicalTime gives the time when a tick starts based on when
         -- processing first started.
-        logicalTime :: O.Time -> Int -> O.Time
-        logicalTime startTime ticks' = startTime + fromIntegral ticks' * frameTimespan
-        loop :: State -> Tempo -> IO a 
-        loop st tempo =
+        logicalTime :: Link.Micros -> Int64 -> Link.Micros
+        logicalTime startTime ticks' = startTime + ticks' * frameTimespan
+        -- tick moves the logical time forward or recalculates the ticks in case
+        -- the logical time is out of sync with Link time.
+        -- tick delays the thread when logical time is ahead of Link time.
+        tick :: State -> IO a
+        tick st = do
+          now <- Link.clock (al st)
+          let preferredNewTick = ticks st + 1
+              logicalNow = logicalTime (start st) preferredNewTick
+              aheadOfNow = now - processAhead
+              actualTick = (aheadOfNow - start st) `div` frameTimespan
+              drifted    = abs (actualTick - preferredNewTick) > cSkipTicks config
+              newTick | drifted   = actualTick
+                      | otherwise = preferredNewTick
+              st' = st {ticks = newTick}
+              delta = min frameTimespan (logicalNow - aheadOfNow)
+          if drifted
+            then writeError $ "skip: " ++ (show (actualTick - ticks st))
+            else when (delta > 0) $ threadDelay $ fromIntegral delta
+          checkArc st'
+        -- The reference time Link uses,
+        -- is the time the audio for a certain beat hits the speaker.
+        -- Processing of the nowArc should happen early enough for
+        -- all events in the nowArc to hit the speaker, but not too early.
+        -- Processing thus needs to happen a short while before the start
+        -- of nowArc. For now, this short while = frameTimespan.
+        -- The nowArc that will be used starts at the current end and ends
+        -- at the cycle where we predict it will end at.
+        -- checkArc should therefore look at the end of the currently stored
+        -- nowArc rather than at the start of it.
+        -- If processing is late, we anyway keep processing at the same rate.
+        -- Ticks are only skipped if processing gets very out of sync.
+        -- When ticks are skipped, the events are still processed,
+        -- but multiple frames are merged.
+        -- It is possible for the nowArc to be several ticks in the future.
+        -- This likely only happens when we are starting up or have reset
+        -- the cycles, but perhaps it can also happen if bpm is changed
+        -- drastically?
+        -- When it happens, we just wait for time to pass until the nowArc
+        -- is close enough in time.
+        processAhead :: Link.Micros
+        processAhead = cProcessAhead config
+        checkArc :: State -> IO a
+        checkArc st = do
+          actions <- swapMVar actionsMV [] 
+          st' <- processActions st actions
+          let logicalEnd = logicalTime (start st') $ ticks st' + 1
+              nextArcStartCycle = P.stop $ nowArc st'
+          ss <- Link.createAndCaptureAppSessionState (al st')
+          arcStartTime <- cyclesToTime ss nextArcStartCycle
+          Link.destroySessionState ss
+          if (arcStartTime < logicalEnd)
+            then processArc st'
+            else tick st'
+        processArc :: State -> IO a 
+        processArc st =
           do
-            t <- O.time
-            let logicalStart = logicalTime (start st) $ ticks st
-                logicalEnd   = logicalTime (start st) $ ticks st + 1
-                -- Wait maximum of two frames
-                delta = min (frameTimespan * 2) (logicalEnd - t)
-                e = timeToCycles tempo logicalEnd
-                s = if starting st && synched tempo
-                    then timeToCycles tempo logicalStart
-                    else P.stop $ nowArc st
-            when (t < logicalEnd) $ threadDelay (floor $ delta * 1000000)
-            t' <- O.time
-            let actualTick = floor $ (t' - start st) / frameTimespan
-                -- reset ticks if ahead/behind by skipTicks or more
-                ahead = abs (actualTick - ticks st) > cSkipTicks config
-                newTick | ahead = actualTick
-                        | otherwise = ticks st + 1
-                st' = st {ticks = newTick,
-                          nowArc = P.Arc s e,
-                          nowTimespan = (logicalEnd,  logicalEnd + frameTimespan),
-                          starting = not (synched tempo)
-                        }
-            when ahead $ writeError $ "skip: " ++ (show (actualTick - ticks st))
             streamState <- takeMVar stateMV
-            actions <- swapMVar actionsMV [] 
-            -- tempo <- takeMVar tempoMV
-            (st'', tempo', streamState') <- handleActions st' t' actions (tempo, streamState)
-            (tempo'', streamState'') <- (onTick ac) st'' tempo' streamState'
-            when (cps tempo /= cps tempo'') $ do
-              let newBpm = coerce $ (cps tempo'') * 60
-              setTempoNow (al st) newBpm
-            putMVar stateMV streamState''
-            _ <- swapMVar tempoMV tempo''
-            {- putStrLn ("actual tick: " ++ show actualTick
-                       ++ " old tick: " ++ show (ticks st)
-                       ++ " new tick: " ++ show newTick
-                      )-}
-            loop st'' tempo''
-        setTempoNow :: Link.AbletonLink -> Link.BPM -> IO ()
-        setTempoNow abletonLink bpm = do
-          sessionState <- Link.createAndCaptureAppSessionState abletonLink
-          now <- Link.clock abletonLink
-          Link.setTempo sessionState bpm now
-          Link.commitAppSessionState abletonLink sessionState
-          beat <- Link.beatAtTime sessionState now bpc
-          print $ "Set tempo to " ++ (show bpm) ++ " at " ++ (show beat)
-          Link.destroySessionState sessionState
-        handleActions :: State -> O.Time -> [TempoAction] -> (Tempo, P.ValueMap) -> IO (State, Tempo, P.ValueMap)
-        handleActions st _ [] (tempo, streamState) = return (st, tempo, streamState)
-        handleActions st t (ResetCycles : otherActions) ts =
-          do
-            (st', tempo', streamState') <- handleActions st t otherActions ts
-            let tempo'' = tempo' { atTime = t, atCycle = 0 }
-            let logicalEnd   = logicalTime (start st') $ ticks st' + 1
-                e = timeToCycles tempo'' logicalEnd
-                st'' = st' {
-                          nowArc = P.Arc 0 e,
-                          nowTimespan = (logicalEnd,  logicalEnd + frameTimespan),
-                          starting = not (synched tempo'')
+            let logicalEnd   = logicalTime (start st) $ ticks st + 1
+                startCycle = P.stop $ nowArc st
+            sessionState <- Link.createAndCaptureAppSessionState (al st)
+            endCycle <- timeToCycles' sessionState logicalEnd
+            let st' = st {nowArc = P.Arc startCycle endCycle,
+                          nowEnd = logicalEnd
                         }
-            sessionState <- Link.createAndCaptureAppSessionState (al st')
-            -- TODO: handleActions should use link time instead
-            -- TODO: When connected to other peers,
-            -- requestBeatAtTime will map beat 0 to time in the future.
-            -- We need to handle negative beats and wait for us to get in sync
-            now <- Link.clock (al st')
+            nowOsc <- O.time
+            nowLink <- Link.clock (al st)
+            let ops = LinkOperations {
+              timeAtBeat = Link.timeAtBeat sessionState,
+              beatAtTime = Link.beatAtTime sessionState,
+              getTempo = Link.getTempo sessionState,
+              setTempo = Link.setTempo sessionState,
+              linkToOscTime = \lt -> addMicrosToOsc (nowLink - lt) nowOsc
+            }
+            streamState' <- (onTick ac) st' ops streamState
+            Link.commitAndDestroyAppSessionState (al st) sessionState
+            putMVar stateMV streamState'
+            tick st'
+        processActions :: State -> [TempoAction] -> IO State
+        processActions st [] = return $! st
+        processActions st actions = do
+          streamState <- takeMVar stateMV
+          (st', streamState') <- handleActions st actions streamState
+          putMVar stateMV streamState'
+          return $! st'
+        handleActions :: State -> [TempoAction] -> P.ValueMap -> IO (State, P.ValueMap)
+        handleActions st [] streamState = return (st, streamState)
+        handleActions st (ResetCycles : otherActions) streamState =
+          do
+            (st', streamState') <- handleActions st otherActions streamState
+            sessionState <- Link.createAndCaptureAppSessionState (al st)
+
+            let logicalEnd   = logicalTime (start st') $ ticks st' + 1
+                -- e = timeToCycles' tempo'' logicalEnd
+                st'' = st' {
+                          nowArc = P.Arc 0 0,
+                          nowEnd = logicalEnd + frameTimespan
+                        }
+            now <- Link.clock (al st)
             Link.requestBeatAtTime sessionState 0 now bpc
-            beat <- Link.beatAtTime sessionState now bpc
-            print $ "Reset beat to 0. Now is mapped to beat " ++ (show beat)
-            Link.commitAndDestroyAppSessionState (al st') sessionState
-            return (st'', tempo'', streamState')
-        handleActions st t (SingleTick pat : otherActions) ts =
+            Link.commitAndDestroyAppSessionState (al st) sessionState
+            return (st'', streamState')
+        handleActions st (SingleTick pat : otherActions) streamState =
           do
-            (st', tempo', streamState') <- handleActions st t otherActions ts
-            (tempo'', streamState'') <- (onSingleTick ac) st' tempo' streamState' pat
-            return (st', tempo'', streamState'')
-        handleActions st t (SetNudge nudge : otherActions) ts =
+            (st', streamState') <- handleActions st otherActions streamState
+            -- onSingleTick assumes it runs at beat 0.
+            -- The best way to achieve that is to use forceBeatAtTime.
+            -- But using forceBeatAtTime means we can not commit its session state.
+            -- Another session state, which we will commit,
+            -- is introduced to keep track of tempo changes.
+            sessionState <- Link.createAndCaptureAppSessionState (al st)
+            zeroedSessionState <- Link.createAndCaptureAppSessionState (al st)
+            nowOsc <- O.time
+            nowLink <- Link.clock (al st)
+            Link.forceBeatAtTime zeroedSessionState 0 nowLink bpc
+            let ops = LinkOperations {
+              timeAtBeat = Link.timeAtBeat zeroedSessionState,
+              beatAtTime = Link.beatAtTime zeroedSessionState,
+              getTempo = Link.getTempo zeroedSessionState,
+              setTempo = \bpm micros ->
+                            Link.setTempo zeroedSessionState bpm micros >>
+                            Link.setTempo sessionState bpm micros,
+              linkToOscTime = \lt -> addMicrosToOsc (nowLink - lt) nowOsc
+            }
+            streamState'' <- (onSingleTick ac) nowLink ops streamState' pat
+            Link.commitAndDestroyAppSessionState (al st) sessionState
+            Link.destroySessionState zeroedSessionState
+            return (st', streamState'')
+        handleActions st (SetNudge nudge : otherActions) streamState =
           do
-            (st', tempo', streamState') <- handleActions st t otherActions ts
-            let tempo'' = tempo' {nudged = nudge}
-            return (st', tempo'', streamState')
-        handleActions st t (StreamReplace k pat : otherActions) ts =
+            (st', streamState') <- handleActions st otherActions streamState
+            let st'' = st' {nudged = nudge}
+            return (st'', streamState')
+        handleActions st (StreamReplace k pat : otherActions) streamState =
           do
-            (st', tempo', streamState') <- handleActions st t otherActions ts
+            (st', streamState') <- handleActions st otherActions streamState
             E.catch (
               do
+                now <- Link.clock (al st')
+                sessionState <- Link.createAndCaptureAppSessionState (al st)
+                beat <- Link.beatAtTime sessionState now bpc
+                Link.destroySessionState sessionState
+                let cyc = beat / bpc
                 -- put pattern id and change time in control input
-                let cyc = timeToCycles tempo' t
-                let streamState'' = Map.insert ("_t_all") (P.VR cyc) $ Map.insert ("_t_" ++ fromID k) (P.VR cyc) streamState'
+                let streamState'' = Map.insert ("_t_all") (P.VR $! toRational cyc) $ Map.insert ("_t_" ++ fromID k) (P.VR $! toRational cyc) streamState'
                 (updatePattern ac) k pat
-                return (st', tempo', streamState'')
+                return (st', streamState'')
               )
               (\(e :: E.SomeException) -> do
                 hPutStrLn stderr $ "Error in pattern: " ++ show e
-                return (st', tempo', streamState')
+                return (st', streamState')
               )
 
 bpc :: Link.Quantum

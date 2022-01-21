@@ -40,7 +40,10 @@ import Sound.Tidal.Utils (enumerate)
 
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 -- the "historyFlag" determines if the new pattern should be placed on the history stack or not
+-- TODO: Fix transition
 transition :: Stream -> Bool -> (Time -> [ControlPattern] -> ControlPattern) -> ID -> ControlPattern -> IO ()
+transition _ _ _ _ _ = return ()
+{-transition :: Stream -> Bool -> (Time -> [ControlPattern] -> ControlPattern) -> ID -> ControlPattern -> IO ()
 transition stream historyFlag f patId !pat =
   do pMap <- readMVar (sPMapMV stream)
      let playState = updatePS $ Map.lookup (fromID patId) pMap
@@ -59,7 +62,7 @@ transition stream historyFlag f patId !pat =
     transition' pat' = do tempo <- readMVar $ sTempoMV stream
                           now <- O.time
                           let c = timeToCycles tempo now
-                          return $ f c pat'
+                          return $ f c pat'-}
 
 mortalOverlay :: Time -> Time -> [Pattern a] -> Pattern a
 mortalOverlay _ _ [] = silence

@@ -8,8 +8,11 @@ import Foreign
 import Foreign.C.Types
 import Data.Int()
 
-newtype AbletonLink = AbletonLink (Ptr ())
-newtype SessionState = SessionState (Ptr ())
+data AbletonLinkImpl
+data SessionStateImpl
+
+newtype AbletonLink = AbletonLink (Ptr AbletonLinkImpl)
+newtype SessionState = SessionState (Ptr SessionStateImpl)
 
 instance Show AbletonLink where
   show _ = "-unshowable-"
@@ -85,11 +88,20 @@ foreign import ccall "abl_link.h abl_link_clock_micros"
 foreign import ccall "abl_link.h abl_link_beat_at_time"
   beatAtTime :: SessionState -> Micros -> Quantum -> IO Beat
 
+foreign import ccall "abl_link.h abl_link_time_at_beat"
+  timeAtBeat :: SessionState -> Beat -> Quantum -> IO Micros
+
+foreign import ccall "abl_link.h abl_link_tempo"
+  getTempo :: SessionState -> IO BPM
+
 foreign import ccall "abl_link.h abl_link_set_tempo"
   setTempo :: SessionState -> BPM -> Micros -> IO ()
 
 foreign import ccall "abl_link.h abl_link_request_beat_at_time"
   requestBeatAtTime :: SessionState -> Beat -> Micros -> Quantum -> IO ()
+
+foreign import ccall "abl_link.h abl_link_force_beat_at_time"
+  forceBeatAtTime :: SessionState -> Beat -> Micros -> Quantum -> IO ()
 
 -- |Test
 hello :: IO ()
@@ -109,11 +121,11 @@ hello = do
     sessionState <- createSessionState
     print "Created sessionState"
     _ <- getLine
-    _ <- getLine
     print "gotline"
     captureAppSessionState link sessionState
     _line_1 <- getLine
     print "gotline"
+    setTempo sessionState 130 now
     beat <- beatAtTime sessionState now 1
     print $ "beat: " ++ show beat
     _line_2 <- getLine
@@ -122,4 +134,6 @@ hello = do
     print $ "Now': " ++ show now'
     beat' <- beatAtTime sessionState now' 1
     print $ "beat': " ++ show beat'
-    destroySessionState sessionState
+    commitAndDestroyAppSessionState link sessionState
+    _line_3 <- getLine
+    print $ "done"
