@@ -25,6 +25,9 @@ import System.IO (hPutStrLn, stderr)
 import Data.Int(Int64)
 import Debug.Trace (trace)
 
+import Sound.Tidal.StreamTypes
+import Sound.Tidal.Core (silence)
+
 {-
     Tempo.hs - Tidal's scheduler
     Copyright (C) 2020, Alex McLean and contributors
@@ -46,11 +49,14 @@ import Debug.Trace (trace)
 instance Show O.UDP where
   show _ = "-unshowable-"
 
+type TransitionMapper = P.Time -> [P.ControlPattern] -> P.ControlPattern
+
 data TempoAction =
   ResetCycles
   | SingleTick P.ControlPattern
   | SetNudge Double
   | StreamReplace ID P.ControlPattern
+  | Transition Bool TransitionMapper ID P.ControlPattern
 
 data State = State {ticks    :: Int64,
                     start    :: Link.Micros,
@@ -105,10 +111,9 @@ addMicrosToOsc :: Link.Micros -> O.Time -> O.Time
 addMicrosToOsc m t = ((fromIntegral m) / 1000000) + t
 
 -- clocked assumes tempoMV is empty
-clocked :: Config -> MVar P.ValueMap -> MVar [TempoAction] -> ActionHandler -> IO [ThreadId]
-clocked config stateMV actionsMV ac
-  = do --s <- O.time
-       -- TODO - do something with thread id
+clocked :: Config -> MVar P.ValueMap -> MVar PlayMap -> MVar [TempoAction] -> ActionHandler -> IO [ThreadId]
+clocked config stateMV mapMV actionsMV ac
+  = do -- TODO - do something with thread id
        -- _ <- serverListen config
        -- clientListen assumes tempoMV is empty
        -- listenTid <- clientListen config tempoMV s
@@ -281,7 +286,7 @@ clocked config stateMV actionsMV ac
             E.catch (
               do
                 now <- Link.clock (al st')
-                sessionState <- Link.createAndCaptureAppSessionState (al st)
+                sessionState <- Link.createAndCaptureAppSessionState (al st')
                 beat <- Link.beatAtTime sessionState now bpc
                 Link.destroySessionState sessionState
                 let cyc = beat / bpc
@@ -294,6 +299,27 @@ clocked config stateMV actionsMV ac
                 hPutStrLn stderr $ "Error in pattern: " ++ show e
                 return (st', streamState')
               )
+        handleActions st (Transition historyFlag f patId pat : otherActions) streamState =
+          do
+            (st', streamState') <- handleActions st otherActions streamState
+            let
+              appendPat flag = if flag then (pat:) else id
+              updatePS (Just playState) = playState {history = (appendPat historyFlag) (history playState)}
+              updatePS Nothing = PlayState {pattern = silence,
+                                            mute = False,
+                                            solo = False,
+                                            history = (appendPat historyFlag) (silence:[])
+                                          }
+              transition' pat' = do now <- Link.clock (al st')
+                                    ss <- Link.createAndCaptureAppSessionState (al st')
+                                    c <- timeToCycles' ss now
+                                    return $! f c pat'
+            pMap <- readMVar mapMV
+            let playState = updatePS $ Map.lookup (fromID patId) pMap
+            pat' <- transition' $ appendPat (not historyFlag) (history playState)
+            let pMap' = Map.insert (fromID patId) (playState {pattern = pat'}) pMap
+            _ <- swapMVar mapMV pMap'
+            return (st', streamState')
 
 bpc :: Link.Quantum
 bpc = 4

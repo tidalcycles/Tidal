@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
 {-# language DeriveGeneric, StandaloneDeriving #-}
 
-module Sound.Tidal.Stream where
+module Sound.Tidal.Stream (module Sound.Tidal.Stream) where
 
 {-
     Stream.hs - Tidal's thingie for turning patterns into OSC streams
@@ -53,6 +53,8 @@ import           Data.Word (Word8)
 
 import           Sound.Tidal.Version
 
+import Sound.Tidal.StreamTypes as Sound.Tidal.Stream
+
 data Stream = Stream {sConfig :: Config,
                       sBusses :: MVar [Int],
                       sStateMV :: MVar ValueMap,
@@ -63,8 +65,6 @@ data Stream = Stream {sConfig :: Config,
                       sGlobalFMV :: MVar (ControlPattern -> ControlPattern),
                       sCxs :: [Cx]
                      }
-
-type PatId = String
 
 data Cx = Cx {cxTarget :: Target,
               cxUDP :: O.UDP,
@@ -102,15 +102,6 @@ data OSC = OSC {path :: String,
                }
          | OSCContext {path :: String}
          deriving Show
-
-data PlayState = PlayState {pattern :: ControlPattern,
-                            mute :: Bool,
-                            solo :: Bool,
-                            history :: [ControlPattern]
-                           }
-               deriving Show
-
-type PlayMap = Map.Map PatId PlayState
 
 data ProcessedEvent =
   ProcessedEvent {
@@ -243,7 +234,7 @@ startStream config oscmap
          T.updatePattern = updatePattern stream
          }
        -- Spawn a thread that acts as the clock
-       _ <- T.clocked config sMapMV actionsMV ac
+       _ <- T.clocked config sMapMV pMapMV actionsMV ac
        -- Spawn a thread to handle OSC control messages
        _ <- forkIO $ ctrlResponder 0 config stream
        return stream

@@ -40,6 +40,7 @@ library
                        Sound.Tidal.Show
                        Sound.Tidal.Simple
                        Sound.Tidal.Stream
+                       Sound.Tidal.StreamTypes
                        Sound.Tidal.Tempo
                        Sound.Tidal.Time
                        Sound.Tidal.Transition
