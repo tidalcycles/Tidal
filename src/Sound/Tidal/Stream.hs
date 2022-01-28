@@ -202,7 +202,10 @@ startStream config oscmap
                                         remote_bus_addr <- if isJust $ oBusPort target
                                                            then Just <$> resolve (oAddress target) (show $ fromJust $ oBusPort target)
                                                            else return Nothing
-                                        u <- O.openUDP (oAddress target) (oPort target)
+                                        --u <- O.openUDP (oAddress target) (oPort target)
+                                        u <- O.udp_socket (\sock sockaddr -> do N.setSocketOption sock N.Broadcast 1
+                                                                                N.connect sock sockaddr
+                                                          ) (oAddress target) (oPort target)
                                         return $ Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}                                        
                    ) oscmap
        let stream = Stream {sConfig = config,
