@@ -6,8 +6,32 @@ import Sound.Tidal.Context
 import System.IO (hSetEncoding, stdout, utf8)
 hSetEncoding stdout utf8
 
+:{
+ctrlTarget :: Target
+ctrlTarget = Target {oName = "Ctrl",
+                     oAddress = "192.168.0.255",
+                     oPort = 6010,
+                     oBusPort = Nothing,
+                     oLatency = 0,
+                     oWindow = Nothing,
+                     oSchedule = Live,
+                     oHandshake = False
+                    }
+:}
+
+:{
+ctrlShape :: OSC
+ctrlShape = OSC "/ctrl" $ ArgList [("name", required),
+                                   ("val", sDefault "")
+                                  ]
+:}
+
 -- total latency = oLatency + cFrameTimespan
-tidal <- startTidal (superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oPort = 57120}) (defaultConfig {cVerbose = True, cFrameTimespan = 1/20})
+--tidal <- startTidal (superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oPort = 57120}) (default)
+
+c = defaultConfig {cCtrlAddr = "0.0.0.0",cVerbose = True, cFrameTimespan = 1/20}
+sd = superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oPort = 57120}
+tidal <- startStream c [(sd, [superdirtShape]), (ctrlTarget, [ctrlShape])]
 
 :{
 let only = (hush >>)
