@@ -630,6 +630,7 @@ openListener c
   | otherwise  = return Nothing
   where
         run = do sock <- O.udpServer (cCtrlAddr c) (cCtrlPort c)
+                 N.setSocketOption (O.udpSocket sock) N.Broadcast 1
                  return $ Just sock
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch
