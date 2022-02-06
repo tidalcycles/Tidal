@@ -29,11 +29,15 @@ library
   Build-depends:
       base >=4.8 && <5
 
-  extra-libraries:
-      stdc++
-      iphlpapi
-      winmm
-      ws2_32
+  if os(windows)
+    extra-libraries:
+        stdc++
+        iphlpapi
+        winmm
+        ws2_32
+  else 
+    extra-libraries:
+        stdc++
 
   Build-depends:
       base >=4.8 && <5

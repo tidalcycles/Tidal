@@ -45,9 +45,7 @@ myReplHook ::
   [String] ->
   IO ()
 myReplHook pdesc lbinfo uhooks rflags args = do
-  putStrLn "Calling GCC"
   _ <- buildTidalLink pdesc lbinfo
-  putStrLn "Calling buildHook"
   replHook simpleUserHooks (addTidalLinkToPackage pdesc lbinfo) lbinfo uhooks rflags args
 
 sharedLibName :: String
@@ -82,7 +80,14 @@ buildTidalLink pdesc lbinfo = do
       , "-DLINK_PLATFORM_WINDOWS=1"
       , "-Wno-multichar", "-Wno-subobject-linkage", "-g", "-liphlpapi", "-lwinmm"
       , "-lws2_32", "-lstdc++"]
-    args _ = []
+    args _ =
+      ["-xc++", "-static-libgcc", "-static-libstdc++", "-shared", "-o"
+      , (binInstDir pdesc lbinfo) </> ("lib" ++ sharedLibName) <.> (dllExtension $ hostPlatform lbinfo)
+      , "-Isrc/c", "-Ilink/include"
+      , "-Ilink/modules/asio-standalone/asio/include", "-Ilink/extensions/abl_link/include"
+      , "link/extensions/abl_link/src/abl_link.cpp"
+      , "-DLINK_PLATFORM_LINUX=1", "-fPIC"
+      , "-Wno-multichar", "-Wno-subobject-linkage", "-g", "-lstdc++"]
 
 addTidalLinkToPackage ::
   PackageDescription ->

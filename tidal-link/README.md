@@ -2,10 +2,10 @@
 
 Ableton Link integration for Tidal
 
-So far it is only a skeleton that builds with Ableton link included.
-
-Only tested on Windows, which should mean that it compiles C++
+Tested to work on Windows, which should mean that it compiles C++
 using the GHC packaged MinGW version of gcc/g++.
+
+Tested to build and load on Linux, but issues with SuperCollider means it's not tested,
 
 GHCI:
 > ghci --version
@@ -23,12 +23,20 @@ or
 
 > cabal v1-repl
 
-Call hello function to see the code in action
-
 Installs a shared library into cabal bin dir.
 Cabal bin dir must therefore be on path or added as option to
 ghci `-L<cabal bin dir>`.
 The shared library must be loaded as well: `-ltidallink`.
+
+Loading on Linux when using ghcup thus becomes `ghci -L~/.cabal/bin/ -ltidallink -XOverloadedStrings`
+
+The shared library must be registered in Linux, so add the folder to /etc/ld.so.conf. In my case, the file now looks like
+```
+include /etc/ld.so.conf.d/*.conf
+/home/pierre/.cabal/bin
+```
+Followed by `sudo ldconfig`
+
 
 To run as executable, add to tidal-link.cabal:
 ```
