@@ -35,9 +35,12 @@ library
         iphlpapi
         winmm
         ws2_32
-  else 
+  else
     extra-libraries:
         stdc++
+    cxx-options:
+      -DLINK_PLATFORM_LINUX=1 -Wno-multichar -Wno-subobject-linkage -g
+    cxx-sources: link/extensions/abl_link/src/abl_link.cpp
 
   Build-depends:
       base >=4.8 && <5

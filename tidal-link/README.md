@@ -5,7 +5,7 @@ Ableton Link integration for Tidal
 Tested to work on Windows, which should mean that it compiles C++
 using the GHC packaged MinGW version of gcc/g++.
 
-Tested to build and load on Linux, but issues with SuperCollider means it's not tested,
+Tested to build and load on Linux, but issues with SuperCollider on my machine means it's not tested,
 
 GHCI:
 > ghci --version
@@ -16,29 +16,18 @@ Cabal:
 > cabal-install version 3.6.2.0
 > compiled using version 3.6.2.0 of the Cabal library
 
-Built using
-> cabal v1-build
-
-or
-
-> cabal v1-repl
-
-Installs a shared library into cabal bin dir.
+On Windows, this installs a DLL into cabal bin dir.
+The reason is due to problems reported in https://gitlab.haskell.org/ghc/ghc/-/issues/20918.
+Please try to reproduce the bug on your Windows machine and report your findings!!
 Cabal bin dir must therefore be on path or added as option to
 ghci `-L<cabal bin dir>`.
 The shared library must be loaded as well: `-ltidallink`.
 
-Loading on Linux when using ghcup thus becomes `ghci -L~/.cabal/bin/ -ltidallink -XOverloadedStrings`
+Loading on Windows thus becomes something like this `ghci -LC:\\tools\\cabal\\bin -ltidallink -XOverloadedStrings`
 
-The shared library must be registered in Linux, so add the folder to /etc/ld.so.conf. In my case, the file now looks like
-```
-include /etc/ld.so.conf.d/*.conf
-/home/pierre/.cabal/bin
-```
-Followed by `sudo ldconfig`
+On Linux, the mentioned bug does not appear. Link is thus statically linked and Tidal can be used as normal.
 
-
-To run as executable, add to tidal-link.cabal:
+To run as executable on Windows, add to tidal-link.cabal:
 ```
 executable link-tester
   ghc-options: -Wall

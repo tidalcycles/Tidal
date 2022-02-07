@@ -23,31 +23,42 @@ main :: IO ()
 main =
   defaultMainWithHooks
     simpleUserHooks
-      { buildHook = myBuildHook
-        , replHook = myReplHook
+      { buildHook = linkBuildHook
+        , replHook = linkReplHook
       }
 
-myBuildHook ::
+isWindows :: LocalBuildInfo -> Bool
+isWindows lbinfo =
+  case hostPlatform lbinfo of
+    (Platform _ Windows) -> True
+    _                    -> False
+
+linkBuildHook ::
   PackageDescription ->
   LocalBuildInfo ->
   UserHooks ->
   BuildFlags ->
   IO ()
-myBuildHook pdesc lbinfo uhooks bflags = do
-  _ <- buildTidalLink pdesc lbinfo
-  buildHook simpleUserHooks (addTidalLinkToPackage pdesc lbinfo) lbinfo uhooks bflags
+linkBuildHook pdesc lbinfo uhooks bflags
+  | isWindows lbinfo =
+      buildTidalLink pdesc lbinfo >>
+      buildHook simpleUserHooks (addTidalLinkToPackage pdesc lbinfo) lbinfo uhooks bflags
+  | otherwise =
+      buildHook simpleUserHooks pdesc lbinfo uhooks bflags
 
-myReplHook ::
+linkReplHook ::
   PackageDescription ->
   LocalBuildInfo ->
   UserHooks ->
   ReplFlags ->
   [String] ->
   IO ()
-myReplHook pdesc lbinfo uhooks rflags args = do
-  _ <- buildTidalLink pdesc lbinfo
-  replHook simpleUserHooks (addTidalLinkToPackage pdesc lbinfo) lbinfo uhooks rflags args
-
+linkReplHook pdesc lbinfo uhooks rflags args
+  | isWindows lbinfo =
+    buildTidalLink pdesc lbinfo >>
+    replHook simpleUserHooks (addTidalLinkToPackage pdesc lbinfo) lbinfo uhooks rflags args
+  | otherwise =
+    replHook simpleUserHooks pdesc lbinfo uhooks rflags args
 sharedLibName :: String
 sharedLibName = "tidallink"
 
@@ -63,15 +74,14 @@ buildTidalLink ::
   LocalBuildInfo ->
   IO String
 buildTidalLink pdesc lbinfo = do
-  print $ show $ args $ hostPlatform lbinfo
   getDbProgramOutput
     Verbosity.normal
     gccProgram
     (withPrograms lbinfo)
-    (args $ hostPlatform lbinfo)
+    args
   where
-    args :: Platform -> [ProgArg]
-    args (Platform _ Windows) =
+    args :: [ProgArg]
+    args =
       ["-xc++", "-static-libgcc", "-static-libstdc++", "-shared", "-o"
       , (binInstDir pdesc lbinfo) </> sharedLibName <.> (dllExtension $ hostPlatform lbinfo)
       , "-Isrc/c", "-Ilink/include"
@@ -80,14 +90,6 @@ buildTidalLink pdesc lbinfo = do
       , "-DLINK_PLATFORM_WINDOWS=1"
       , "-Wno-multichar", "-Wno-subobject-linkage", "-g", "-liphlpapi", "-lwinmm"
       , "-lws2_32", "-lstdc++"]
-    args _ =
-      ["-xc++", "-static-libgcc", "-static-libstdc++", "-shared", "-o"
-      , (binInstDir pdesc lbinfo) </> ("lib" ++ sharedLibName) <.> (dllExtension $ hostPlatform lbinfo)
-      , "-Isrc/c", "-Ilink/include"
-      , "-Ilink/modules/asio-standalone/asio/include", "-Ilink/extensions/abl_link/include"
-      , "link/extensions/abl_link/src/abl_link.cpp"
-      , "-DLINK_PLATFORM_LINUX=1", "-fPIC"
-      , "-Wno-multichar", "-Wno-subobject-linkage", "-g", "-lstdc++"]
 
 addTidalLinkToPackage ::
   PackageDescription ->

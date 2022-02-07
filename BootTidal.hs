@@ -6,8 +6,8 @@ import Sound.Tidal.Context
 import System.IO (hSetEncoding, stdout, utf8)
 hSetEncoding stdout utf8
 
--- total latency = oLatency + cFrameTimespan
-tidal <- startTidal (superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oPort = 57120}) (defaultConfig {cVerbose = True, cFrameTimespan = 1/20})
+-- total latency = oLatency + cFrameTimespan. No longer true since moving to link?
+tidal <- startTidal (superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oPort = 57120}) (defaultConfig {cVerbose = True, cFrameTimespan = 50000})
 
 :{
 let only = (hush >>)
