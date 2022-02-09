@@ -202,7 +202,10 @@ startStream config oscmap
                                         remote_bus_addr <- if isJust $ oBusPort target
                                                            then Just <$> resolve (oAddress target) (show $ fromJust $ oBusPort target)
                                                            else return Nothing
-                                        u <- O.openUDP (oAddress target) (oPort target)
+                                        let broadcast = if cCtrlBroadcast config then 1 else 0
+                                        u <- O.udp_socket (\sock sockaddr -> do N.setSocketOption sock N.Broadcast broadcast
+                                                                                N.connect sock sockaddr
+                                                          ) (oAddress target) (oPort target)
                                         return $ Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}                                        
                    ) oscmap
        let stream = Stream {sConfig = config,
@@ -630,6 +633,7 @@ openListener c
   | otherwise  = return Nothing
   where
         run = do sock <- O.udpServer (cCtrlAddr c) (cCtrlPort c)
+                 when (cCtrlBroadcast c) $ N.setSocketOption (O.udpSocket sock) N.Broadcast 1
                  return $ Just sock
         catchAny :: IO a -> (E.SomeException -> IO a) -> IO a
         catchAny = E.catch
