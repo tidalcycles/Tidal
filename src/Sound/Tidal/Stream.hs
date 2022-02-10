@@ -412,20 +412,20 @@ processCps ops = mapM processEvent
     processEvent e = do
       let wope = wholeOrPart e
           partStartCycle = start $ part e
-          partStartBeat = (realToFrac partStartCycle) * T.bpc
+          partStartBeat = (T.cyclesToBeat ops) (realToFrac partStartCycle)
           onCycle = start wope
-          onBeat = (realToFrac onCycle) * T.bpc
+          onBeat = (T.cyclesToBeat ops) (realToFrac onCycle)
           offCycle = stop wope
-          offBeat = (realToFrac offCycle) * T.bpc
-      on <- (T.timeAtBeat ops) onBeat T.bpc
-      onPart <- (T.timeAtBeat ops) partStartBeat T.bpc
+          offBeat = (T.cyclesToBeat ops) (realToFrac offCycle)
+      on <- (T.timeAtBeat ops) onBeat
+      onPart <- (T.timeAtBeat ops) partStartBeat
       when (eventHasOnset e) (do
         let cps' = Map.lookup "cps" (value e) >>= getF
-        maybe (return ()) (\newCps -> (T.setTempo ops) (newCps * 60 * T.bpc) on) $ coerce cps' 
+        maybe (return ()) (\newCps -> (T.setTempo ops) ((T.cyclesToBeat ops) (newCps * 60)) on) $ coerce cps' 
         )
-      off <- (T.timeAtBeat ops) offBeat T.bpc
+      off <- (T.timeAtBeat ops) offBeat
       bpm <- (T.getTempo ops)
-      let cps = bpm / T.bpc
+      let cps = (T.beatToCycles ops) bpm
       let delta = off - on
       return $! ProcessedEvent {
           peHasOnset = eventHasOnset e,
@@ -469,8 +469,8 @@ onSingleTick stream now ops s pat = do
                       }
           )
   bpm <- (T.getTempo ops)
-  let cps = realToFrac $ bpm / T.bpc
-  nowEnd <- (T.timeAtBeat ops) cps T.bpc
+  let cps = realToFrac $ (T.beatToCycles ops) bpm
+  nowEnd <- (T.timeAtBeat ops) cps
 
   let state = T.State {T.ticks = 0,
                         T.start = now,
@@ -516,7 +516,7 @@ doTick fake stream st ops sMap =
         frameEnd :: Link.Micros
         frameEnd = T.nowEnd st
         -- add cps to 
-        cps = bpm / T.bpc
+        cps = (T.beatToCycles ops) bpm
         sMap' = Map.insert "_cps" (VF $ coerce cps) sMap
         --filterOns = filter eventHasOnset
         extraLatency | fake = 0

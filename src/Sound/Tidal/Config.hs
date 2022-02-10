@@ -2,6 +2,7 @@ module Sound.Tidal.Config where
 
 import qualified Sound.Tidal.Link as Link
 import Data.Int(Int64)
+import Foreign.C.Types (CDouble)
 
 {-
     Config.hs - For default Tidal configuration values.
@@ -30,7 +31,9 @@ data Config = Config {cCtrlListen :: Bool,
                       cTempoPort :: Int,
                       cTempoClientPort :: Int,
                       cSkipTicks :: Int64,
-                      cVerbose :: Bool
+                      cVerbose :: Bool,
+                      cQuantum :: CDouble,
+                      cCyclesPerBeat :: CDouble
                      }
 
 defaultConfig :: Config
@@ -43,5 +46,7 @@ defaultConfig = Config {cCtrlListen = True,
                         cTempoPort = 9160,
                         cTempoClientPort = 0, -- choose at random
                         cSkipTicks = 10,
-                        cVerbose = True
+                        cVerbose = True,
+                        cQuantum = 4,
+                        cCyclesPerBeat = 4
                        }

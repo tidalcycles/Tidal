@@ -23,7 +23,6 @@ import Foreign.C.Types (CDouble(..))
 import Data.Coerce (coerce)
 import System.IO (hPutStrLn, stderr)
 import Data.Int(Int64)
-import Debug.Trace (trace)
 
 import Sound.Tidal.StreamTypes
 import Sound.Tidal.Core (silence)
@@ -76,11 +75,13 @@ data ActionHandler =
 
 data LinkOperations =
   LinkOperations {
-    timeAtBeat :: Link.Beat -> Link.Quantum -> IO Link.Micros,
-    beatAtTime :: Link.Micros -> Link.Quantum -> IO Link.Beat,
+    timeAtBeat :: Link.Beat -> IO Link.Micros,
+    timeToCycles :: Link.Micros -> IO P.Time,
     getTempo :: IO Link.BPM,
     setTempo :: Link.BPM -> Link.Micros -> IO (),
-    linkToOscTime :: Link.Micros -> O.Time
+    linkToOscTime :: Link.Micros -> O.Time,
+    beatToCycles :: CDouble -> CDouble,
+    cyclesToBeat :: CDouble -> CDouble
   }
 
 resetCycles :: MVar [TempoAction] -> IO ()
@@ -92,20 +93,15 @@ setNudge actionsMV nudge = modifyMVar_ actionsMV (\actions -> return $ SetNudge 
 defaultCps :: O.Time
 defaultCps = 0.5625
 
-timeToCycles :: LinkOperations -> Link.Micros -> IO P.Time
-timeToCycles ops time = do
-  beat <- (beatAtTime ops) time bpc
-  return $! (toRational beat) / (toRational bpc)
+timeToCycles' :: Config -> Link.SessionState -> Link.Micros -> IO P.Time
+timeToCycles' config ss time = do
+  beat <- Link.beatAtTime ss time (cQuantum config)
+  return $! (toRational beat) / (toRational (cCyclesPerBeat config))
 
-timeToCycles' :: Link.SessionState -> Link.Micros -> IO P.Time
-timeToCycles' ss time = do
-  beat <- Link.beatAtTime ss time bpc
-  return $! (toRational beat) / (toRational bpc)
-
-cyclesToTime :: Link.SessionState -> P.Time -> IO Link.Micros
-cyclesToTime ss cyc = do
-  let beat = (fromRational cyc) * bpc
-  Link.timeAtBeat ss beat bpc
+cyclesToTime :: Config -> Link.SessionState -> P.Time -> IO Link.Micros
+cyclesToTime config ss cyc = do
+  let beat = (fromRational cyc) * (cCyclesPerBeat config)
+  Link.timeAtBeat ss beat (cQuantum config)
 
 addMicrosToOsc :: Link.Micros -> O.Time -> O.Time
 addMicrosToOsc m t = ((fromIntegral m) / 1000000) + t
@@ -123,16 +119,20 @@ clocked config stateMV mapMV actionsMV ac
   where frameTimespan :: Link.Micros
         frameTimespan = cFrameTimespan config
         -- create startloop function and create the link wrapper there
+        quantum :: CDouble
+        quantum = cQuantum config
+        cyclesPerBeat :: CDouble
+        cyclesPerBeat = cCyclesPerBeat config
         loopInit :: IO a
         loopInit =
           do
-            let bpm = (coerce defaultCps) * 60 * bpc
+            let bpm = (coerce defaultCps) * 60 * cyclesPerBeat
             abletonLink <- Link.create bpm
             Link.enable abletonLink
             sessionState <- Link.createAndCaptureAppSessionState abletonLink
             now <- Link.clock abletonLink
             let startAt = now + processAhead
-            Link.requestBeatAtTime sessionState 0 startAt bpc
+            Link.requestBeatAtTime sessionState 0 startAt quantum
             Link.commitAppSessionState abletonLink sessionState
             putMVar actionsMV []
             let st = State {ticks = 0,
@@ -196,7 +196,7 @@ clocked config stateMV mapMV actionsMV ac
           let logicalEnd = logicalTime (start st') $ ticks st' + 1
               nextArcStartCycle = P.stop $ nowArc st'
           ss <- Link.createAndCaptureAppSessionState (al st')
-          arcStartTime <- cyclesToTime ss nextArcStartCycle
+          arcStartTime <- cyclesToTime config ss nextArcStartCycle
           Link.destroySessionState ss
           if (arcStartTime < logicalEnd)
             then processArc st'
@@ -208,23 +208,29 @@ clocked config stateMV mapMV actionsMV ac
             let logicalEnd   = logicalTime (start st) $ ticks st + 1
                 startCycle = P.stop $ nowArc st
             sessionState <- Link.createAndCaptureAppSessionState (al st)
-            endCycle <- timeToCycles' sessionState logicalEnd
+            endCycle <- timeToCycles' config sessionState logicalEnd
             let st' = st {nowArc = P.Arc startCycle endCycle,
                           nowEnd = logicalEnd
                         }
             nowOsc <- O.time
             nowLink <- Link.clock (al st)
             let ops = LinkOperations {
-              timeAtBeat = Link.timeAtBeat sessionState,
-              beatAtTime = Link.beatAtTime sessionState,
+              timeAtBeat = \beat -> Link.timeAtBeat sessionState beat quantum ,
+              timeToCycles = timeToCycles' config sessionState,
               getTempo = Link.getTempo sessionState,
               setTempo = Link.setTempo sessionState,
-              linkToOscTime = \lt -> addMicrosToOsc (nowLink - lt) nowOsc
+              linkToOscTime = \lt -> addMicrosToOsc (nowLink - lt) nowOsc,
+              beatToCycles = btc,
+              cyclesToBeat = ctb
             }
             streamState' <- (onTick ac) st' ops streamState
             Link.commitAndDestroyAppSessionState (al st) sessionState
             putMVar stateMV streamState'
             tick st'
+        btc :: CDouble -> CDouble
+        btc beat = beat / cyclesPerBeat
+        ctb :: CDouble -> CDouble
+        ctb cyc =  cyc * cyclesPerBeat
         processActions :: State -> [TempoAction] -> IO State
         processActions st [] = return $! st
         processActions st actions = do
@@ -240,13 +246,12 @@ clocked config stateMV mapMV actionsMV ac
             sessionState <- Link.createAndCaptureAppSessionState (al st)
 
             let logicalEnd   = logicalTime (start st') $ ticks st' + 1
-                -- e = timeToCycles' tempo'' logicalEnd
                 st'' = st' {
                           nowArc = P.Arc 0 0,
                           nowEnd = logicalEnd + frameTimespan
                         }
             now <- Link.clock (al st)
-            Link.requestBeatAtTime sessionState 0 now bpc
+            Link.requestBeatAtTime sessionState 0 now quantum
             Link.commitAndDestroyAppSessionState (al st) sessionState
             return (st'', streamState')
         handleActions st (SingleTick pat : otherActions) streamState =
@@ -261,15 +266,17 @@ clocked config stateMV mapMV actionsMV ac
             zeroedSessionState <- Link.createAndCaptureAppSessionState (al st)
             nowOsc <- O.time
             nowLink <- Link.clock (al st)
-            Link.forceBeatAtTime zeroedSessionState 0 nowLink bpc
+            Link.forceBeatAtTime zeroedSessionState 0 nowLink quantum
             let ops = LinkOperations {
-              timeAtBeat = Link.timeAtBeat zeroedSessionState,
-              beatAtTime = Link.beatAtTime zeroedSessionState,
+              timeAtBeat = \beat -> Link.timeAtBeat zeroedSessionState beat quantum,
+              timeToCycles = timeToCycles' config zeroedSessionState,
               getTempo = Link.getTempo zeroedSessionState,
               setTempo = \bpm micros ->
                             Link.setTempo zeroedSessionState bpm micros >>
                             Link.setTempo sessionState bpm micros,
-              linkToOscTime = \lt -> addMicrosToOsc (nowLink - lt) nowOsc
+              linkToOscTime = \lt -> addMicrosToOsc (nowLink - lt) nowOsc,
+              beatToCycles = btc,
+              cyclesToBeat = ctb
             }
             streamState'' <- (onSingleTick ac) nowLink ops streamState' pat
             Link.commitAndDestroyAppSessionState (al st) sessionState
@@ -287,11 +294,10 @@ clocked config stateMV mapMV actionsMV ac
               do
                 now <- Link.clock (al st')
                 sessionState <- Link.createAndCaptureAppSessionState (al st')
-                beat <- Link.beatAtTime sessionState now bpc
+                cyc <- timeToCycles' config sessionState now
                 Link.destroySessionState sessionState
-                let cyc = beat / bpc
                 -- put pattern id and change time in control input
-                let streamState'' = Map.insert ("_t_all") (P.VR $! toRational cyc) $ Map.insert ("_t_" ++ fromID k) (P.VR $! toRational cyc) streamState'
+                let streamState'' = Map.insert ("_t_all") (P.VR $! cyc) $ Map.insert ("_t_" ++ fromID k) (P.VR $! cyc) streamState'
                 (updatePattern ac) k pat
                 return (st', streamState'')
               )
@@ -312,7 +318,7 @@ clocked config stateMV mapMV actionsMV ac
                                           }
               transition' pat' = do now <- Link.clock (al st')
                                     ss <- Link.createAndCaptureAppSessionState (al st')
-                                    c <- timeToCycles' ss now
+                                    c <- timeToCycles' config ss now
                                     return $! f c pat'
             pMap <- readMVar mapMV
             let playState = updatePS $ Map.lookup (fromID patId) pMap
@@ -320,9 +326,6 @@ clocked config stateMV mapMV actionsMV ac
             let pMap' = Map.insert (fromID patId) (playState {pattern = pat'}) pMap
             _ <- swapMVar mapMV pMap'
             return (st', streamState')
-
-bpc :: Link.Quantum
-bpc = 4
 
 {-
 -- clientListen assumes tempoMV is empty
