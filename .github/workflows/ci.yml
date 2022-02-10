@@ -1,8 +1,6 @@
 name: ci
 on:
   push:
-    branches:
-      - main
     paths-ignore:
       - "**.md"
   pull_request:
@@ -18,19 +16,27 @@ jobs:
           - ghc: latest
             cabal: latest
             args: --allow-newer=base,template-haskell
+            experimental: true
           - ghc: 9.0.1
             cabal: 3.4.0.0
             args: --allow-newer=base,template-haskell
+            experimental: false
           - ghc: 8.10.1
             cabal: 3.2.0.0
             args: --allow-newer=base,template-haskell
+            experimental: false
           - ghc: 8.8.3
             cabal: 3.0.0.0
             args: --allow-newer=base,template-haskell
+            experimental: false
           - ghc: 8.6.5
             cabal: 2.4.1.0
+            experimental: false
           - ghc: 8.4.4
             cabal: 2.4.1.0
+            experimental: false
+
+    continue-on-error: ${{ matrix.versions.experimental }}
     name: cabal ${{ matrix.versions.cabal }} - ghc ${{ matrix.versions.ghc }}
     steps:
       - uses: actions/checkout@v2

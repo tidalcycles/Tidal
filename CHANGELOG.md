@@ -1,5 +1,49 @@
 # TidalCycles log of changes
 
+## 1.7.10 - Tama b
+
+* Derive RealFrac for Note by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/876
+* Add timescale and timewin control params by @yaxu in https://github.com/tidalcycles/Tidal/pull/878
+* deriving typeclass memberships for ID by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/879
+* Adds the jumpMod' transition by @th-four in https://github.com/tidalcycles/Tidal/pull/881
+* Import safe-tidal-cli ghci simulator as tidal binary by @yaxu in https://github.com/tidalcycles/Tidal/pull/880
+* Tweaks to tidal binary, and add to linux workflow by @yaxu in https://github.com/tidalcycles/Tidal/pull/882
+* add tidal ghci replacement to macos and windows workflows by @yaxu in https://github.com/tidalcycles/Tidal/pull/883
+
+## 1.7.9 - Tama
+
+### What's Changed
+* Show lists of values by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/838
+* Port listener wiki content as README by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/851
+* Chords - consistent naming cont'd by @cleary in https://github.com/tidalcycles/Tidal/pull/840
+* Formalise pattern IDs by @mindofmatthew in https://github.com/tidalcycles/Tidal/pull/807
+* Switch to non-blocking pMap updates for transitions by @bgold-cosmos in https://github.com/tidalcycles/Tidal/pull/858
+* Add listener build workflows by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/852
+* Fix tidal-listener install process by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/861
+* Fix mod by @bgold-cosmos in https://github.com/tidalcycles/Tidal/pull/860
+* Fix stack ci using last lts resolver by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/862
+* Make Pattern instance Monoid by @fbous in https://github.com/tidalcycles/Tidal/pull/865
+* Added OSC playback control for silencing individual patterns by @njanssen in https://github.com/tidalcycles/Tidal/pull/863
+* Use better show instances for notes & rationals by @mindofmatthew in https://github.com/tidalcycles/Tidal/pull/857
+* tidal-listener: Separate build from release by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/866
+* Exponential double by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/871
+* Comments by @JeffreyBenjaminBrown in https://github.com/tidalcycles/Tidal/pull/877
+* Fix for classic dirt support by @yaxu https://github.com/tidalcycles/Tidal/commit/15b5b8b91af08ebad39efe2a7e0712b21f606ca4
+* New alias `number` for `n` by @yaxu https://github.com/tidalcycles/Tidal/commit/ac0be63d686ab37f7b2dcd440d4bd8f3898453e8
+* Allow "0..8" to be parsed as a range of doubles in mininotation by @yaxu https://github.com/tidalcycles/Tidal/commit/55f8ad9b0091b43fdd364eced25bc9c655d157cc
+* Bugfix for `timeLoop` by @yaxu in https://github.com/tidalcycles/Tidal/commit/29f28ed637a7c17ad2b22558d097a694da604e2d
+* Retire pre ghc 8.4 support by @yaxu 
+* Pattern first parameter of `wedge` by @yaxu
+* Allow `|**|` et al to work on control patterns by @yaxu in https://github.com/tidalcycles/Tidal/commit/7142775c2039cae4cde9bdd6f68b3e0cbae2de9d
+* Add alias `timecat` for timeCat` by @yaxu in https://github.com/tidalcycles/Tidal/commit/363889bdc963d9357daf1893d18ab9dfc33ca5ac
+
+### New Contributors
+* @fbous made their first contribution in https://github.com/tidalcycles/Tidal/pull/865
+* @njanssen made their first contribution in https://github.com/tidalcycles/Tidal/pull/863
+* @JeffreyBenjaminBrown made their first contribution in https://github.com/tidalcycles/Tidal/pull/877
+
+**Full Changelog**: https://github.com/tidalcycles/Tidal/compare/1.7.8...1.7.9
+
 ## 1.7.8 - Ayatakedai
    * Add pattern id to patterns as _id_, and send it with /code/highlights
 

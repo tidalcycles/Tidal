@@ -38,7 +38,8 @@ instance (Fractional a) => Fractional (ArcF a) where
 
 -- Utility functions - Time
 
--- | The 'sam' (start of cycle) for the given time value
+-- | The 'sam' (start of cycle) for the given time value.
+-- Cycles have duration 1, so every integer Time value divides two cycles.
 sam :: Time -> Time
 sam = fromIntegral . (floor :: Time -> Int)
 
@@ -87,23 +88,39 @@ subMaybeArc _ _ = Just Nothing
 sect :: Arc -> Arc -> Arc
 sect (Arc s e) (Arc s' e') = Arc (max s s') (min e e')
 
-
--- | The arc of the whole cycle that the given time value falls within
+-- | The Arc returned is the cycle that the Time falls within.
+--
+-- Edge case: If the Time is an integer,
+-- the Arc claiming it is the one starting at that Time,
+-- not the previous one ending at that Time.
 timeToCycleArc :: Time -> Arc
 timeToCycleArc t = Arc (sam t) (sam t + 1)
 
--- | Shifts an arc to the equivalent one that starts during cycle zero
+-- | Shifts an Arc to one of equal duration that starts within cycle zero.
+-- (Note that the output Arc probably does not start *at* Time 0 --
+-- that only happens when the input Arc starts at an integral Time.)
 cycleArc :: Arc -> Arc
 cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e-s))
 
--- | A list of cycle numbers which are included in the given arc
+-- | Returns the numbers of the cycles that the input Arc overlaps
+-- (excluding the input Arc's endpoint, unless it has duration 0 --
+-- see "Edge cases" below).
+-- The "cycle number" of an Arc is equal to its start value.
+-- Thus, for instance, `cyclesInArc (Arc 0 1.5) == [0,1]`.
+-- * Edge cases:
+--     `cyclesInArc $ Arc 0 1.0001 == [0,1]`
+--     `cyclesInArc $ Arc 0 1      == [0]` -- the endpoint is excluded
+--     `cyclesInArc $ Arc 1 1      == [1]` -- unless the Arc has duration 0
 cyclesInArc :: Integral a => Arc -> [a]
 cyclesInArc (Arc s e)
   | s > e = []
   | s == e = [floor s]
   | otherwise = [floor s .. ceiling e-1]
 
--- | A list of arcs of the whole cycles which are included in the given arc
+-- | The whole cycles that overlap the input Arc,
+-- (excluding its endpoint, unless it has duration 0,
+-- similarly to `cyclesInArc` --
+-- see that function's description for details).
 cycleArcsInArc :: Arc -> [Arc]
 cycleArcsInArc = map (timeToCycleArc . (toTime :: Int -> Time)) . cyclesInArc
 

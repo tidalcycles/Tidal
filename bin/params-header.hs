@@ -91,13 +91,16 @@ pStateList name sName xs = pure $ Map.singleton name $ VState statef
 pStateListF :: String -> String -> [Double] -> ControlPattern
 pStateListF name sName = pStateList name sName . map VF
 
+pStateListS :: String -> String -> [String] -> ControlPattern
+pStateListS name sName = pStateList name sName . map VS
+
 -- | Grouped params
 
 sound :: Pattern String -> ControlPattern
 sound = grp [mS "s", mF "n"]
 
-sTake :: String -> [Double] -> ControlPattern
-sTake name xs = pStateListF "s" name xs
+sTake :: String -> [String] -> ControlPattern
+sTake name xs = pStateListS "s" name xs
 
 cc :: Pattern String -> ControlPattern
 cc = grp [mF "ccn", mF "ccv"]

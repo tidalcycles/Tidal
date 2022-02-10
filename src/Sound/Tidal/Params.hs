@@ -2727,6 +2727,32 @@ sustainpedalbus busid pat = (pF "sustainpedal" pat) # (pI "^sustainpedal" busid)
 sustainpedalrecv :: Pattern Int -> ControlPattern
 sustainpedalrecv busid = pI "^sustainpedal" busid
 
+-- | time stretch amount
+timescale :: Pattern Double -> ControlPattern
+timescale = pF "timescale"
+timescaleTake :: String -> [Double] -> ControlPattern
+timescaleTake name xs = pStateListF "timescale" name xs
+timescaleCount :: String -> ControlPattern
+timescaleCount name = pStateF "timescale" name (maybe 0 (+1))
+timescaleCountTo :: String -> Pattern Double -> Pattern ValueMap
+timescaleCountTo name ipat = innerJoin $ (\i -> pStateF "timescale" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
+timescalebus :: Pattern Int -> Pattern Double -> ControlPattern
+timescalebus _ _ = error $ "Control parameter 'timescale' can't be sent to a bus."
+
+-- | time stretch window size
+timescalewin :: Pattern Double -> ControlPattern
+timescalewin = pF "timescalewin"
+timescalewinTake :: String -> [Double] -> ControlPattern
+timescalewinTake name xs = pStateListF "timescalewin" name xs
+timescalewinCount :: String -> ControlPattern
+timescalewinCount name = pStateF "timescalewin" name (maybe 0 (+1))
+timescalewinCountTo :: String -> Pattern Double -> Pattern ValueMap
+timescalewinCountTo name ipat = innerJoin $ (\i -> pStateF "timescalewin" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
+timescalewinbus :: Pattern Int -> Pattern Double -> ControlPattern
+timescalewinbus _ _ = error $ "Control parameter 'timescalewin' can't be sent to a bus."
+
 -- | for internal sound routing
 to :: Pattern Double -> ControlPattern
 to = pF "to"
@@ -3127,6 +3153,9 @@ ohdecaybus :: Pattern Int -> Pattern Double -> ControlPattern
 ohdecaybus = ophatdecaybus
 ohdecayrecv :: Pattern Int -> ControlPattern
 ohdecayrecv = ophatdecayrecv
+
+number :: Pattern Note -> ControlPattern
+number = n
 
 lsn :: Pattern Double -> ControlPattern
 lsn = lsnare

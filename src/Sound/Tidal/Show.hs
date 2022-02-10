@@ -69,7 +69,11 @@ showEvent (Event _ Nothing a e) =
 
 -- Show everything, including event context
 showAll :: Show a => Arc -> Pattern a -> String
-showAll a p = intercalate "\n" $ map show $ sortOn part $ queryArc p a
+showAll a p = intercalate "\n" $ map showEventAll $ sortOn part $ queryArc p a
+
+-- Show context of an event
+showEventAll :: Show a => Event a -> String
+showEventAll e = show (context e) ++ uncurry (++) (showEvent e)
 
 instance Show Context where
   show (Context cs) = show cs
@@ -93,7 +97,7 @@ instance {-# OVERLAPPING #-} Show Arc where
   show (Arc s e) = prettyRat s ++ ">" ++ prettyRat e
 
 instance {-# OVERLAPPING #-} Show a => Show (Event a) where
-  show e = show (context e) ++ uncurry (++) (showEvent e)
+  show e = uncurry (++) (showEvent e)
 
 prettyRat :: Rational -> String
 prettyRat r | unit == 0 && frac > 0 = showFrac (numerator frac) (denominator frac)

@@ -97,6 +97,22 @@ run =
         compareP (Arc 0 2)
           ("0 .. 8" :: Pattern Rational)
           ("0 1 2 3 4 5 6 7 8")
+      it "can parse .. with doubles" $ do
+        compareP (Arc 0 2)
+          ("0.0 .. 8.0" :: Pattern Double)
+          ("0 1 2 3 4 5 6 7 8")
+      it "can parse .. with doubles, without spaces" $ do
+        compareP (Arc 0 2)
+          ("0.0..8.0" :: Pattern Double)
+          ("0 1 2 3 4 5 6 7 8")
+      it "can parse .. with notes" $ do
+        compareP (Arc 0 2)
+          ("0.0 .. 8.0" :: Pattern Note)
+          ("0 1 2 3 4 5 6 7 8")
+      it "can parse .. with notes, without spaces" $ do
+        compareP (Arc 0 2)
+          ("0..8" :: Pattern Note)
+          ("0 1 2 3 4 5 6 7 8")
       it "can handle repeats (!) and durations (@) with <>" $ do
         compareP (Arc 0 31)
           ("<a!3 b ! c@5>" :: Pattern String)
@@ -113,6 +129,17 @@ run =
         compareP (Arc 0 2)
           ("1%3@0.5 3%4@1%6 3%4@1%6 3%4@1%6" :: Pattern Rational)
           ("1%3 0.75*3")
+      it "can handle ratio shortands on a fraction" $ do
+        compareP (Arc 0 1)
+          ("1%3t" :: Pattern Rational)
+          ("1%9" :: Pattern Rational)
+      it "can handle ratio shortands on a floating point number" $ do
+        compareP (Arc 0 1)
+          ("3.33t" :: Pattern Double)
+          ("1.11" :: Pattern Double)
+      it "cannot handle fractional with floating point numerator or denominator" $ do
+        evaluate ("1.2%5.3" :: Pattern Time)
+          `shouldThrow` anyException
       it "can parse a chord" $ do
         compareP (Arc 0 2)
           ("'major" :: Pattern Int)
@@ -145,6 +172,26 @@ run =
         compareP (Arc 0 1)
           ("3h -2q 1.5q" :: Pattern Double)
           ("1.5 -0.5 0.375" :: Pattern Double)
+      it "can parse exponential notation value for pattern double" $ do
+        compareP (Arc 0 1)
+          ("1e3" :: Pattern Double)
+          ("1000" :: Pattern Double)
+      it "can parse negative exponential notation value for pattern double" $ do
+        compareP (Arc 0 1)
+          ("400e-3" :: Pattern Double)
+          ("0.4" :: Pattern Double)
+      it "can parse ratio shortand on exponential notation value" $ do
+        compareP (Arc 0 1)
+          ("4e2q" :: Pattern Double)
+          ("100" :: Pattern Double)
+      it "can parse euclid pattern" $ do
+        compareP (Arc 0 1)
+          ("bd(3,8,1)" :: Pattern String)
+          ("~ ~ bd ~ ~ bd ~ bd")
+      it "can parse euclid bool pattern" $ do
+        compareP (Arc 0 1)
+          ("t(3,8,1)" :: Pattern Bool)
+          ("f f t f f t f t")
       it "doesn't crash on zeroes (1)" $ do
         compareP (Arc 0 2)
           ("cp/0" :: Pattern String)
