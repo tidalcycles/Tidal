@@ -117,7 +117,7 @@ clocked config stateMV mapMV actionsMV ac
        -- return [listenTid, clockTid]
       return $! [clockTid]
   where frameTimespan :: Link.Micros
-        frameTimespan = cFrameTimespan config
+        frameTimespan = round $ (cFrameTimespan config) * 1000000
         -- create startloop function and create the link wrapper there
         quantum :: CDouble
         quantum = cQuantum config
@@ -188,7 +188,7 @@ clocked config stateMV mapMV actionsMV ac
         -- When it happens, we just wait for time to pass until the nowArc
         -- is close enough in time.
         processAhead :: Link.Micros
-        processAhead = cProcessAhead config
+        processAhead = round $ (cProcessAhead config) * 1000000
         checkArc :: State -> IO a
         checkArc st = do
           actions <- swapMVar actionsMV [] 
