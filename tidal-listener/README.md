@@ -1,6 +1,14 @@
 # tidal-listener
 Experimental tidal OSC listener.
 
+## Install
+
+Move to the repository directory and run `cabal install`. 
+
+On Linux systems, the `tidal-listener` binary will be found inside `~/.cabal/bin/`.
+
+## Protocol
+
 This is a work-in-progress and the below is not yet implemented.
 
 Basic protocol ideas (`>`, incoming message `<`, outgoing message)
