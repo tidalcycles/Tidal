@@ -692,6 +692,8 @@ instance Valuable Int where
   toValue a = VI a
 instance Valuable Bool where
   toValue a = VB a
+instance Valuable Note where
+  toValue a = VN a
 instance Valuable [Word8] where
   toValue a = VX a
 instance Valuable [Value] where
