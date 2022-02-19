@@ -560,9 +560,9 @@ pRational :: MyParser (TPat Rational)
 pRational = wrapPos $ TPat_Atom Nothing <$> pRatio
 
 pRatio :: MyParser Rational
-pRatio = do 
+pRatio = do
   s <- sign
-  r <- do n <- try intOrFloat
+  r <- do n <- try (try pFloat <|> pInteger)
           v <- pFraction n <|> return (toRational n)
           r <- pRatioChar <|> return 1
           return (v * r)
@@ -570,12 +570,25 @@ pRatio = do
        pRatioChar
   return $ applySign s r
 
+pInteger :: MyParser Double
+pInteger = read <$> many1 digit
+
+pFloat :: MyParser Double
+pFloat = do
+        i <- many1 digit
+        d <- option "0" (char '.' >> many1 digit)
+        e <- option "0" (char 'e' >> do
+                                    s <- option "" (char '-' >> return "-")
+                                    e' <- many1 digit
+                                    return $ s++e')
+        return $ read (i++"."++d++"e"++e)
+
 pFraction :: RealFrac a => a -> MyParser Rational
 pFraction n = do
   char '%'
-  d <- integer
+  d <- pInteger
   if (isInt n)
-    then return ((round n) % d)
+    then return ((round n) % (round d))
     else fail "fractions need int numerator and denominator"
 
 pRatioChar :: Fractional a => MyParser a
