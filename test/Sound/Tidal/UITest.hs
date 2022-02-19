@@ -136,7 +136,7 @@ run =
           (queryArc (irand 10) (Arc 0.25 0.25)) `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (6 :: Int)]
         it "is patternable" $
           (queryArc (irand "10 2") (Arc 0 1)) `shouldBe` [
-            Event (Context [((1,1),(4,1))]) Nothing (Arc 0 0.5) (6 :: Int), Event (Context [((4,1),(5,1))]) Nothing (Arc 0.5 1) (0 :: Int)
+            Event (Context [((1,1),(3,1))]) Nothing (Arc 0 0.5) (6 :: Int), Event (Context [((4,1),(5,1))]) Nothing (Arc 0.5 1) (0 :: Int)
           ]
 
     describe "range" $ do
