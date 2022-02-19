@@ -324,9 +324,7 @@ sign  =  do char '-'
          <|> return Positive
 
 intOrFloat :: MyParser Double
-intOrFloat = do -- use 'try' to avoid consuming the first '.' in a '..' range.
-                try float
-                <|> fromIntegral <$> integer
+intOrFloat = try pFloat <|> pInteger
 
 pSequence :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
 pSequence f = do
@@ -562,7 +560,7 @@ pRational = wrapPos $ TPat_Atom Nothing <$> pRatio
 pRatio :: MyParser Rational
 pRatio = do
   s <- sign
-  r <- do n <- try (try pFloat <|> pInteger)
+  r <- do n <- try intOrFloat
           v <- pFraction n <|> return (toRational n)
           r <- pRatioChar <|> return 1
           return (v * r)
