@@ -207,4 +207,12 @@ run =
       it "can't parse a floating point number as int" $ do
         evaluate ("1.5" :: Pattern Int)
           `shouldThrow` anyException
+      it "can correctly parse multiplied boolean patterns 1" $ do
+        compareP (Arc 0 1)
+          ("t*2 t*3" :: Pattern Bool)
+          ("1*2 1*3" :: Pattern Bool)
+      it "can correctly parse multiplied boolean patterns 2" $ do
+        compareP (Arc 0 1)
+          ("t*2t t" :: Pattern Bool)
+          ("1*2%3 1" :: Pattern Bool)
     where degradeByDefault = _degradeBy 0.5
