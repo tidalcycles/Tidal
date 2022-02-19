@@ -575,7 +575,6 @@ pInteger = read <$> many1 digit
 
 pFloat :: MyParser Double
 pFloat = do
-<<<<<<< HEAD
         i <- many1 digit
         d <- option "0" (char '.' >> many1 digit)
         e <- option "0" (char 'e' >> do
@@ -583,11 +582,6 @@ pFloat = do
                                     e' <- many1 digit
                                     return $ s++e')
         return $ read (i++"."++d++"e"++e)
-=======
-        x <- many1 digit
-        y <- option "0" (char '.' >> many1 digit)
-        return $ read (x++"."++y)
->>>>>>> 8ba3f35149ba0ac1e567ba6bf730b32b4ee93d1f
 
 pFraction :: RealFrac a => a -> MyParser Rational
 pFraction n = do
