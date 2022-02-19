@@ -560,15 +560,24 @@ pRational :: MyParser (TPat Rational)
 pRational = wrapPos $ TPat_Atom Nothing <$> pRatio
 
 pRatio :: MyParser Rational
-pRatio = do 
+pRatio = do
   s <- sign
-  r <- do n <- try intOrFloat
+  r <- do n <- try (try pFloat <|> pInteger)
           v <- pFraction n <|> return (toRational n)
           r <- pRatioChar <|> return 1
           return (v * r)
        <|>
        pRatioChar
   return $ applySign s r
+
+pInteger :: MyParser Double
+pInteger = read <$> many1 digit
+
+pFloat :: MyParser Double
+pFloat = do
+        x <- many1 digit
+        y <- option "0" (char '.' >> many1 digit)
+        return $ read (x++"."++y)
 
 pFraction :: RealFrac a => a -> MyParser Rational
 pFraction n = do
