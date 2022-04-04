@@ -13,7 +13,7 @@ import Control.Concurrent
 import Control.Concurrent.MVar
 import qualified Network.Socket as N
 import qualified Sound.Tidal.Tempo as Tempo
-import System.Environment(getEnv)
+import System.Environment(lookupEnv)
 
 {-
 https://github.com/tidalcycles/tidal-listener/wiki
@@ -35,8 +35,8 @@ listen = listenWithConfig def
 -- | Configurable variant of @listen@
 listenWithConfig :: ListenerConfig -> IO ()
 listenWithConfig ListenerConfig{..} = do
-            env <- getEnv "WITH_GHC"
-            let mode = if env /= "FALSE" then "with-ghc-mode" else "without-ghc-mode"
+            env <- lookupEnv "WITH_GHC"
+            let mode = if env /= (Just "FALSE") then "with-ghc-mode" else "without-ghc-mode"
             (mIn, mOut) <- startHint
             -- listen
             (remote_addr:_) <- N.getAddrInfo Nothing (Just "127.0.0.1") Nothing
