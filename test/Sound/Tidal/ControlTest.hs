@@ -15,6 +15,19 @@ import Sound.Tidal.Pattern
 run :: Microspec ()
 run =
   describe "Sound.Tidal.Control" $ do
+
+    describe "echo" $ do
+      it "should echo the event by the specified time and multiply the gain factor" $ do
+        compareP (Arc 0 1)
+          (echo 2 0.25 0.5 $ s "bd" # gain "1")
+          (stack [rotR 0 "bd" # gain 1, rotR 0.25 "bd" # gain 0.5])
+
+    describe "echoWith" $ do
+      it "should echo the event by the specified time and apply the specified function" $ do
+        compareP (Arc 0 1)
+          (echoWith 2 0.25 (|* speed 2) $ s "bd" # speed "1")
+          (stack [rotR 0 "bd" # speed 1, rotR 0.25 "bd" # speed 2])
+
     describe "stutWith" $ do
       it "can mimic stut" $ do
         comparePD (Arc 0 1)
