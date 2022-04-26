@@ -129,7 +129,7 @@ applyPatToPatRight pf px = Pattern q
 -- * Monad and friends
 
 -- Note there are four ways of joining - the default 'unwrap' used by @>>=@, as well
--- as innerJoin, outerJoin and squeezeJoin.
+-- as innerJoin, innerJoin and squeezeJoin.
 
 instance Monad Pattern where
   return = pure
