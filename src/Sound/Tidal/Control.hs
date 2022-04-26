@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleInstances, OverloadedStrings, FlexibleContexts, BangPatterns #-}
 
 module Sound.Tidal.Control where
-
 {-
     Control.hs - Functions which concern control patterns, which are
     patterns of hashmaps, used for synth control values.
@@ -174,7 +173,7 @@ you probably shouldn't also specify `begin` or `end`. -}
 striateBy :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
 striateBy = tParam2 _striateBy
 
--- Old name for striateBy, here as a deprecated alias for now.
+-- | DEPRECATED, use 'striateBy' instead.
 striate' :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
 striate' = striateBy
 
@@ -182,7 +181,6 @@ _striateBy :: Int -> Double -> ControlPattern -> ControlPattern
 _striateBy n f p = fastcat $ map (offset . fromIntegral) [0 .. n-1]
   where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.end (pure ((slot * i) + f) :: Pattern Double)
         slot = (1 - f) / fromIntegral n
-
 
 
 {- | `gap` is similar to `chop` in that it granualizes every sample in place as it is played,
@@ -346,23 +344,45 @@ smash' :: Int -> [Pattern Time] -> ControlPattern -> ControlPattern
 smash' n xs p = slowcat $ map (`slow` p') xs
   where p' = _chop n p
 
+{- |
+    Applies a type of delay to a pattern.
+    It has three parameters, which could be called depth, time and feedback.
 
-{- | Stut applies a type of delay to a pattern. It has three parameters,
-which could be called depth, feedback and time. Depth is an integer
-and the others floating point. This adds a bit of echo:
+    This adds a bit of echo:
+    @
+    d1 $ echo 4 0.5 0.2 $ sound "bd sn"
+    @
 
-@
-d1 $ stut 4 0.5 0.2 $ sound "bd sn"
-@
+    The above results in 4 echos, each one 50% quieter than the last, with 1/5th of a cycle between them.
 
-The above results in 4 echos, each one 50% quieter than the last,
-with 1/5th of a cycle between them. It is possible to reverse the echo:
-
-@
-d1 $ stut 4 0.5 (-0.2) $ sound "bd sn"
-@
+    It is possible to reverse the echo:
+    @
+    d1 $ echo 4 0.5 (-0.2) $ sound "bd sn"
+    @
 -}
+echo :: Pattern Integer -> Pattern Rational -> Pattern Double -> ControlPattern -> ControlPattern
+echo = tParam3 _echo
 
+_echo :: Integer -> Rational -> Double -> ControlPattern -> ControlPattern
+_echo count time feedback p = stack (p:map (\x -> ((x%1)*time) `rotR` (p |* P.gain (pure $ (* feedback) (fromIntegral x)))) [1..(count-1)])
+
+{- |
+    Allows to apply a function for each step and overlays the result delayed by the given time.
+
+    @
+    d1 $ echoWith 2 "1%3" (# vowel "{a e i o u}%2") $ sound "bd sn"
+    @
+
+    In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has the @vowel@ filter applied.
+-}
+echoWith :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+echoWith n t f p = innerJoin $ (\a b -> _echoWith a b f p) <$> n <* t
+
+_echoWith :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_echoWith count time f p | count <= 1 = p
+                         | otherwise = overlay (f (time `rotR` _echoWith (count-1) time f p)) p
+
+-- | DEPRECATED, use 'echo' instead
 stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ControlPattern -> ControlPattern
 stut = tParam3 _stut
 
@@ -371,14 +391,7 @@ _stut count feedback steptime p = stack (p:map (\x -> ((x%1)*steptime) `rotR` (p
   where scalegain
           = (+feedback) . (*(1-feedback)) . (/ fromIntegral count) . (fromIntegral count -)
 
-{- | Instead of just decreasing volume to produce echoes, @stut'@ allows to apply a function for each step and overlays the result delayed by the given time.
-
-@
-d1 $ stut' 2 (1%3) (# vowel "{a e i o u}%2") $ sound "bd sn"
-@
-
-In this case there are two _overlays_ delayed by 1/3 of a cycle, where each has the @vowel@ filter applied.
--}
+-- | DEPRECATED, use 'echoWith' instead
 stutWith :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 stutWith n t f p = innerJoin $ (\a b -> _stutWith a b f p) <$> n <* t
 
@@ -386,7 +399,7 @@ _stutWith :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern 
 _stutWith count steptime f p | count <= 1 = p
                              | otherwise = overlay (f (steptime `rotR` _stutWith (count-1) steptime f p)) p
 
--- | The old name for stutWith
+-- | DEPRECATED, use 'echoWith' instead
 stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 stut' = stutWith
 

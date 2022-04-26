@@ -1557,12 +1557,6 @@ while b f pat = sew b (f pat) pat
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n-1)]
 
-echo, triple, quad, double :: Time -> Pattern a -> Pattern a
-echo   = stutter (2 :: Int)
-triple = stutter (3 :: Int)
-quad   = stutter (4 :: Int)
-double = echo
-
 {- | The `jux` function creates strange stereo effects, by applying a
 function to a pattern, but only in the right-hand channel. For
 example, the following reverses the pattern on the righthand side:
