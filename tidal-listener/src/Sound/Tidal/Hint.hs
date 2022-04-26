@@ -8,7 +8,7 @@ import           System.IO
 import           Control.Concurrent.MVar
 import           Data.List (intercalate,isPrefixOf)
 import           Sound.Tidal.Utils
-import           System.Environment(getEnv)
+import           System.Environment(lookupEnv)
 
 data Response = HintOK {parsed :: ControlPattern}
               | HintError {errorMessage :: String}
@@ -60,9 +60,9 @@ ghcArgs = ["-clear-package-db", "-package-db", "haskell-libs/package.conf.d", "-
 
 hintControlPattern  :: String -> IO (Either InterpreterError ControlPattern)
 hintControlPattern s = do
-  env <- getEnv "WITH_GHC"
+  env <- lookupEnv "WITH_GHC"
   case env of
-    "FALSE" -> do
+    Just "FALSE" -> do
         Hint.unsafeRunInterpreterWithArgsLibdir ghcArgs "haskell-libs" $ do
               Hint.set [languageExtensions := exts]
               Hint.setImports libs
@@ -132,7 +132,7 @@ hintJobSafe mIn mOut =
 
 hintJob :: MVar String -> MVar Response -> IO ()
 hintJob mIn mOut = do
-        env <- getEnv "WITH_GHC"
+        env <- lookupEnv "WITH_GHC"
         case env of
-          "FALSE" -> hintJobUnsafe mIn mOut
+          Just "FALSE" -> hintJobUnsafe mIn mOut
           _ -> hintJobSafe mIn mOut
