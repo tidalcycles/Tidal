@@ -1,3 +1,5 @@
+cabal-version:       2.0
+
 name:                tidal
 version:             1.8.0
 synopsis:            Pattern language for improvised music
@@ -11,7 +13,6 @@ Stability:           Experimental
 Copyright:           (c) Alex McLean and other contributors, 2021
 category:            Sound
 build-type:          Simple
-cabal-version:       >=1.10
 tested-with:         GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.3, GHC == 8.10.1, GHC == 9.0.1
 data-files:          BootTidal.hs
 
