@@ -117,11 +117,12 @@ jobs:
     - name: zip files
       run: |
         cd tidal-listener/
-        tar cvfj binary.tar binary/*
+        mv binary tidal
+        tar cvfj linux.tar tidal/*
 
     - uses: actions/upload-artifact@v2
       with:
-        path: tidal-listener/binary.tar
+        path: tidal-listener/linux.tar
 
   release:
     runs-on: ubuntu-latest
@@ -133,4 +134,4 @@ jobs:
 
     - uses: softprops/action-gh-release@v1
       with:
-        files: artifact/binary.tar
+        files: artifact/linux.tar
