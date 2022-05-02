@@ -14,7 +14,7 @@ stripContext = setContext $ Context []
 parsesTo :: String -> ControlPattern -> Property
 parsesTo str p = x `shouldBe` y
   where x = query . stripContext <$> parseTidal str <*> Right (State (Arc 0 16) Map.empty)
-        y = Right $ query (stripContext p) $ State (Arc 0 16) Map.empty
+        y = Right $ queryArc (stripContext p) (Arc 0 16)
 
 causesParseError :: String -> Property
 causesParseError str = isLeft (parseTidal str :: Either String ControlPattern) `shouldBe` True
