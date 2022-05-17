@@ -25,8 +25,9 @@ import           Prelude hiding ((<*), (*>))
 
 import           Data.Char (digitToInt, isDigit, ord)
 import           Data.Bits (testBit, Bits, xor, shiftL, shiftR)
+
+import           Data.Ratio ((%), Ratio)
 import           Data.Fixed (mod')
-import           Data.Ratio ((%))
 import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
@@ -1449,6 +1450,40 @@ _arp name p = arpWith f p
         thumbup xs = concatMap (\x -> [thumb,x]) $ tail xs
           where thumb = head xs
 
+{- | `rolled` plays each note of a chord quickly in order, as opposed to simultaneously; to give a chord a harp-like effect.
+This will played from the lowest note to the highest note of the chord
+@
+rolled $ n "c'maj'4" # s "superpiano"
+@
+
+
+And you can use `rolledBy` or `rolledBy'` to specify the length of the roll. The value in the passed pattern
+is the divisor of the cycle length. A negative value will play the arpeggio in reverse order.
+
+@
+rolledBy "<1 -0.5 0.25 -0.125>" $ note "c'maj9" # s "superpiano"
+@
+-}
+
+rolledWith :: Ratio Integer -> Pattern a -> Pattern a
+rolledWith t = withEvents aux
+         where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ ((isRev t) es))
+               isRev b = (\x -> if x > 0 then id else reverse ) b 
+               steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
+               timeguard _ _ ev 0 = return ev
+               timeguard n xs ev _ = (shiftIt n (length xs) ev)
+               shiftIt n d (Event c (Just (Arc s e)) a' v) = do
+                         a'' <- subArc (Arc newS e) a'
+                         return (Event c (Just $ Arc newS e) a'' v)
+                      where newS = s + (dur * fromIntegral n)
+                            dur = ((e - s)) / ((1/ (abs t))*fromIntegral d)
+               shiftIt _ _ ev =  return ev
+
+rolledBy :: Pattern (Ratio Integer) -> Pattern a -> Pattern a
+rolledBy pt = tParam rolledWith (segment 1 $ pt)
+
+rolled :: Pattern a -> Pattern a
+rolled = rolledBy (1/4)
 
 {- TODO !
 
@@ -1521,12 +1556,6 @@ while b f pat = sew b (f pat) pat
 
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n-1)]
-
-echo, triple, quad, double :: Time -> Pattern a -> Pattern a
-echo   = stutter (2 :: Int)
-triple = stutter (3 :: Int)
-quad   = stutter (4 :: Int)
-double = echo
 
 {- | The `jux` function creates strange stereo effects, by applying a
 function to a pattern, but only in the right-hand channel. For

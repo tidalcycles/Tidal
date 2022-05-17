@@ -1,5 +1,7 @@
+cabal-version:       2.0
+
 name:                tidal
-version:             1.7.8
+version:             1.8.0
 synopsis:            Pattern language for improvised music
 description:         Tidal is a domain specific language for live coding patterns.
 homepage:            http://tidalcycles.org/
@@ -11,7 +13,6 @@ Stability:           Experimental
 Copyright:           (c) Alex McLean and other contributors, 2021
 category:            Sound
 build-type:          Simple
-cabal-version:       >=1.10
 tested-with:         GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.3, GHC == 8.10.1, GHC == 9.0.1
 data-files:          BootTidal.hs
 
@@ -33,11 +34,14 @@ library
                        Sound.Tidal.Control
                        Sound.Tidal.Context
                        Sound.Tidal.Core
+                       Sound.Tidal.EspGrid
                        Sound.Tidal.ID
                        Sound.Tidal.Params
                        Sound.Tidal.ParseBP
                        Sound.Tidal.Pattern
                        Sound.Tidal.Scales
+                       Sound.Tidal.Safe.Context
+                       Sound.Tidal.Safe.Boot
                        Sound.Tidal.Show
                        Sound.Tidal.Simple
                        Sound.Tidal.Stream
@@ -47,7 +51,6 @@ library
                        Sound.Tidal.UI
                        Sound.Tidal.Utils
                        Sound.Tidal.Version
-                       Sound.Tidal.EspGrid
                        Paths_tidal
   Build-depends:
       base >=4.8 && <5
@@ -64,7 +67,19 @@ library
     , deepseq >= 1.1.0.0
     , primitive < 0.8
     , random < 1.3
+    , exceptions < 0.11
+    , mtl >= 2.2
 
+executable tidal
+  hs-source-dirs: main
+  main-is: Main.hs
+  build-depends: base >=4.8 && < 5
+               , tidal
+               , hint < 0.10
+               , exceptions < 0.11
+               , async < 2.3
+  default-language:    Haskell2010
+    
 test-suite tests
   type: exitcode-stdio-1.0
   main-is: Test.hs

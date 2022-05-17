@@ -129,6 +129,17 @@ run =
         compareP (Arc 0 2)
           ("1%3@0.5 3%4@1%6 3%4@1%6 3%4@1%6" :: Pattern Rational)
           ("1%3 0.75*3")
+      it "can handle ratio shortands on a fraction" $ do
+        compareP (Arc 0 1)
+          ("1%3t" :: Pattern Rational)
+          ("1%9" :: Pattern Rational)
+      it "can handle ratio shortands on a floating point number" $ do
+        compareP (Arc 0 1)
+          ("3.33t" :: Pattern Double)
+          ("1.11" :: Pattern Double)
+      it "cannot handle fractional with floating point numerator or denominator" $ do
+        evaluate ("1.2%5.3" :: Pattern Time)
+          `shouldThrow` anyException
       it "can parse a chord" $ do
         compareP (Arc 0 2)
           ("'major" :: Pattern Int)
@@ -161,6 +172,26 @@ run =
         compareP (Arc 0 1)
           ("3h -2q 1.5q" :: Pattern Double)
           ("1.5 -0.5 0.375" :: Pattern Double)
+      it "can parse exponential notation value for pattern double" $ do
+        compareP (Arc 0 1)
+          ("1e3" :: Pattern Double)
+          ("1000" :: Pattern Double)
+      it "can parse negative exponential notation value for pattern double" $ do
+        compareP (Arc 0 1)
+          ("400e-3" :: Pattern Double)
+          ("0.4" :: Pattern Double)
+      it "can parse ratio shortand on exponential notation value" $ do
+        compareP (Arc 0 1)
+          ("4e2q" :: Pattern Double)
+          ("100" :: Pattern Double)
+      it "can parse euclid pattern" $ do
+        compareP (Arc 0 1)
+          ("bd(3,8,1)" :: Pattern String)
+          ("~ ~ bd ~ ~ bd ~ bd")
+      it "can parse euclid bool pattern" $ do
+        compareP (Arc 0 1)
+          ("t(3,8,1)" :: Pattern Bool)
+          ("f f t f f t f t")
       it "doesn't crash on zeroes (1)" $ do
         compareP (Arc 0 2)
           ("cp/0" :: Pattern String)
@@ -176,4 +207,12 @@ run =
       it "can't parse a floating point number as int" $ do
         evaluate ("1.5" :: Pattern Int)
           `shouldThrow` anyException
+      it "can correctly parse multiplied boolean patterns 1" $ do
+        compareP (Arc 0 1)
+          ("t*2 t*3" :: Pattern Bool)
+          ("1*2 1*3" :: Pattern Bool)
+      it "can correctly parse multiplied boolean patterns 2" $ do
+        compareP (Arc 0 1)
+          ("t*2t t" :: Pattern Bool)
+          ("1*2%3 1" :: Pattern Bool)
     where degradeByDefault = _degradeBy 0.5

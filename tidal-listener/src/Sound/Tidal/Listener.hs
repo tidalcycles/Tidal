@@ -13,6 +13,7 @@ import Control.Concurrent
 import Control.Concurrent.MVar
 import qualified Network.Socket as N
 import qualified Sound.Tidal.Tempo as Tempo
+import System.Environment(lookupEnv)
 
 {-
 https://github.com/tidalcycles/tidal-listener/wiki
@@ -34,10 +35,13 @@ listen = listenWithConfig def
 -- | Configurable variant of @listen@
 listenWithConfig :: ListenerConfig -> IO ()
 listenWithConfig ListenerConfig{..} = do
+            env <- lookupEnv "WITH_GHC"
+            let mode = if env /= (Just "FALSE") then "with-ghc-mode" else "without-ghc-mode"
             (mIn, mOut) <- startHint
             -- listen
             (remote_addr:_) <- N.getAddrInfo Nothing (Just "127.0.0.1") Nothing
             local <- udpServer "127.0.0.1" listenPort
+            putStrLn $ "Starting Tidal Listener in " ++ mode
             putStrLn $ "Listening for OSC commands on port " ++ show listenPort
             putStrLn $ "Sending replies to port " ++ show remotePort
             putStrLn "Starting tidal interpreter.. "
@@ -78,17 +82,17 @@ getcps st = do tempo <- readMVar $ T.sTempoMV (sStream st)
 
 act :: State -> Maybe O.Message -> IO State
 act st (Just (Message "/code" [ASCII_String a_ident, ASCII_String a_code])) =
-  do let ident = ascii_to_string a_ident
+  do let ident = ID $ ascii_to_string a_ident
          code = ascii_to_string a_code
      putMVar (sIn st) code
      r <- takeMVar (sOut st)
      respond ident r
      return st
        where respond ident (HintOK pat) =
-               do T.streamReplace (sStream st) (ID ident) pat
-                  O.sendTo (sLocal st) (O.p_message "/code/ok" [string ident]) (sRemote st)
+               do T.streamReplace (sStream st) ident pat
+                  O.sendTo (sLocal st) (O.p_message "/code/ok" [string $ fromID ident]) (sRemote st)
              respond ident (HintError s) =
-               O.sendTo (sLocal st) (O.p_message "/code/error" [string ident, string s]) (sRemote st)
+               O.sendTo (sLocal st) (O.p_message "/code/error" [string $ fromID ident, string s]) (sRemote st)
 
 act st (Just (Message "/ping" [])) =
   do O.sendTo (sLocal st) (O.p_message "/pong" []) (sRemote st)

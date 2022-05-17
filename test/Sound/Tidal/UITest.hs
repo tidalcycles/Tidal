@@ -53,6 +53,44 @@ run =
           ("0*4" :: Pattern Double)
       -}
 
+    describe "rolledBy" $ do
+      it "shifts each start of events in a list correctly" $ do
+        let
+          overTimeSpan = (Arc 0 1)
+          testMe = rolledBy "0.5" $ n ("[0,1,2,3]")
+          expectedResult = n "[0, ~ 1@7, ~@2 2@6, ~@3 3@5]"
+          in
+            compareP overTimeSpan testMe expectedResult
+      it "shifts each start of events in a list correctly in reverse order" $ do
+        let
+          overTimeSpan = (Arc 0 1)
+          testMe = rolledBy "-0.5" $ n ("[0,1,2,3]")
+          expectedResult = n "[3, ~ 2@7, ~@2 1@6, ~@3 0@5]"
+          in
+            compareP overTimeSpan testMe expectedResult
+      it "trims the result pattern if it becomes larger than the original pattern" $ do
+        let
+          overTimeSpan = (Arc 0  1)
+          testMe = rolledBy "1.5" $ n ("[0,1,2]")
+          expectedResult = n "[0, ~ 1]"
+          in
+            compareP overTimeSpan testMe expectedResult
+      it "does nothing for continous functions" $ do
+        let
+          overTimeSpan = (Arc 0  1)
+          testMe = n (rolledBy "0.25" (irand 0) |+ "[0,12]")
+          expectedResult = n (irand 0) |+ n "[0, 12]"
+          in
+            compareP overTimeSpan testMe expectedResult
+      it "does nothing when passing zero as time value" $ do
+        let
+          overTimeSpan = (Arc 0  1)
+          testMe = n (rolledBy "0" "[0,1,2,3]")
+          expectedResult = n "[0,1,2,3]"
+          in
+            compareP overTimeSpan testMe expectedResult
+
+
     describe "sometimesBy" $ do
       it "does nothing when set at 0% probability" $ do
         let
@@ -98,7 +136,7 @@ run =
           (queryArc (irand 10) (Arc 0.25 0.25)) `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (6 :: Int)]
         it "is patternable" $
           (queryArc (irand "10 2") (Arc 0 1)) `shouldBe` [
-            Event (Context [((1,1),(4,1))]) Nothing (Arc 0 0.5) (6 :: Int), Event (Context [((4,1),(5,1))]) Nothing (Arc 0.5 1) (0 :: Int)
+            Event (Context [((1,1),(3,1))]) Nothing (Arc 0 0.5) (6 :: Int), Event (Context [((4,1),(5,1))]) Nothing (Arc 0.5 1) (0 :: Int)
           ]
 
     describe "range" $ do
@@ -344,29 +382,39 @@ run =
         compareP (Arc 0 1)
           (off "-e" id $ s "0")
           (superimpose ("e" <~) $ s "0")
+
     describe "loopFirst" $ do
       it "plays the first cycle" $ do
         compareP (Arc 0 1)
           (loopFirst $ rotL 3 $ slow 8 $ "0 .. 7" :: Pattern Int)
           ("3")
+
     describe "loopCycles" $ do
       it "plays the first n cycles" $ do
         compareP (Arc 0 1)
           (loopFirst $ rotL 3 $ slow 8 $ "0 .. 7" :: Pattern Int)
           ("3")
+
     describe "timeLoop" $ do
       it "can loop time" $ do
         compareP (Arc 0 1)
           ((3 <~) $ (timeLoop 3 $ sound "<a b c d>"))
           (sound "a")
+
     describe "timeLoop" $ do
       it "can pattern time" $ do
         compareP (Arc 0 1)
           ((1 <~) $ timeLoop "<2 1>" $ sound "b")
           (sound "b")
+
     describe "necklace" $ do
       it "can specify rhythm by IOI" $ do
         compareP (Arc 0 1)
           (necklace 12 [4,2])
           ("t f f f t f t f f f t f")
-      
+
+    describe "quantise" $ do
+      it "can quantise notes" $ do
+        compareP (Arc 0 1)
+          (segment 2 $ quantise 1 $ sine :: Pattern Note)
+          ("1 0" :: Pattern Note)
