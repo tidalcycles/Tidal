@@ -82,7 +82,7 @@ jobs:
       - name: move executables
         run: |
           Copy-Item -Path 'dist-newstyle\build\x86_64-windows\ghc-${{ matrix.ghc }}\tidal-listener-0.1.0.0\x\tidal-listener\build\tidal-listener\tidal-listener.exe' -Recurse -Destination 'tidal-listener\binary\tidal-listener.exe'
-          Copy-Item -Path 'dist-newstyle\build\x86_64-windows\ghc-${{ matrix.ghc }}\tidal-1.7.10\x\tidal\build\tidal\tidal.exe' -Recurse -Destination 'tidal-listener\binary\tidal.exe'
+          Copy-Item -Path 'dist-newstyle\build\x86_64-windows\ghc-${{ matrix.ghc }}\tidal-1.8.0\x\tidal\build\tidal\tidal.exe' -Recurse -Destination 'tidal-listener\binary\tidal.exe'
 
       - name: zip files
         run: Compress-Archive -LiteralPath 'tidal-listener\binary\' -DestinationPath 'tidal-listener\windows.zip'
