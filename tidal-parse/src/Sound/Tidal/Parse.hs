@@ -7,6 +7,8 @@ import           Language.Haskellish as Haskellish
 import           Control.Applicative
 import           Data.Bifunctor
 import           Control.Monad.Except
+import           Data.Char
+import           Data.List (dropWhileEnd)
 import qualified Data.Text
 
 import           Sound.Tidal.Context (Pattern,ValueMap,ControlPattern,Enumerable,Time)
@@ -18,11 +20,14 @@ type H = Haskellish ()
 
 -- This is depended upon by Estuary, and changes to its type will cause problems downstream for Estuary.
 parseTidal :: String -> Either String ControlPattern
-parseTidal = f . Language.Haskell.Exts.parseExp
-  where
-    f (ParseOk x) = second fst $ runHaskellish parser () x
-    f (ParseFailed _ "Parse error: EOF") = return T.silence
-    f (ParseFailed l s) = throwError $ show l ++ ": " ++ show s
+parseTidal x =
+  if strip x == [] then (return T.silence)
+    else (f $ Language.Haskell.Exts.parseExp x)
+    where
+      strip = dropWhileEnd isSpace . dropWhile isSpace
+      f (ParseOk x') = second fst $ runHaskellish parser () x'
+      f (ParseFailed l s) = throwError $ show l ++ ": " ++ show s
+
 
 -- The class Parse is a class for all of the types that we know how to parse.
 -- For each type, we provide all the ways we can think of producing that type
@@ -749,7 +754,9 @@ instance Parse (Pattern Int -> ControlPattern -> ControlPattern) where
     (parser :: H (Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern)) <*!> parser
 
 instance Parse (Pattern Double -> ControlPattern -> ControlPattern) where
-  parser = (parser :: H (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern)) <*!> parser
+  parser =
+    (parser :: H (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern)) <*!> parser <|>
+    (parser :: H (Pattern Rational -> Pattern Double -> ControlPattern -> ControlPattern)) <*!> parser
 
 instance Parse (Pattern Time -> ControlPattern -> ControlPattern) where
   parser =
@@ -991,6 +998,8 @@ floating_floating_pFloating_pFloating = $(fromTidal "rangex")
 integral_time_pA_pA :: Integral i => H (i -> Time -> Pattern a -> Pattern a)
 integral_time_pA_pA = $(fromTidal "stutter")
 
+instance Parse (Pattern Rational -> Pattern Double -> ControlPattern -> ControlPattern) where
+  parser = (parser :: H (Pattern Integer -> Pattern Rational -> Pattern Double -> ControlPattern -> ControlPattern)) <*!> parser
 
 -- * -> * -> * -> * -> *
 
@@ -1003,11 +1012,16 @@ instance Parse (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a) whe
 instance Parse (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern) where
   parser = $(fromTidal "stut")
 
+instance Parse (Pattern Integer -> Pattern Rational -> Pattern Double -> ControlPattern -> ControlPattern) where
+  parser = $(fromTidal "echo")
+
 instance Parse (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "every'")
 
 instance Parse (Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
-  parser = $(fromTidal "stutWith")
+  parser =
+    $(fromTidal "stutWith") <|>
+    $(fromTidal "echoWith")
 
 instance Parse (Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "whenmod")
