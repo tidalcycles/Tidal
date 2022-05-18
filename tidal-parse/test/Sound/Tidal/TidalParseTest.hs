@@ -5,6 +5,7 @@ module Sound.Tidal.TidalParseTest where
 import Test.Microspec hiding (run)
 import Sound.Tidal.Parse
 import Sound.Tidal.Context as Tidal
+import Sound.Tidal.Chords as Tidal
 import Data.Either
 import qualified Data.Map.Strict as Map
 
@@ -163,6 +164,10 @@ run =
       "spread ($) [fast 2,fast 4] $ s \"bd cp\"" `parsesTo`
         (spread ($) [fast 2,fast 4] $ s "bd cp")
 
+    it "parses functions spread over transformations of a control pattern, via spreadf" $
+      "spreadf [fast 2,fast 4] $ s \"bd cp\"" `parsesTo`
+        (spreadf [fast 2,fast 4] $ s "bd cp")
+
     it "parses an $ application spread over partially applied transformations of a Control Pattern" $
       "spread ($) [density 2, rev, slow 2, striate 3] $ sound \"[bd*2 [~ bd]] [sn future]*2 cp jvbass*4\"" `parsesTo`
         (spread ($) [density 2, rev, slow 2, striate 3] $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4")
@@ -254,3 +259,27 @@ run =
     it "parses an example with sew" $
        "sound \"cp*16\" |+| gain (sew \"t(3,8)\" \"1*8\" \"0.75*8\")" `parsesTo`
        (sound "cp*16" |+| gain (sew "t(3,8)" "1*8" "0.75*8"))
+
+    it "parses an example with stutWith" $
+       "stutWith 16 0.125 (|* gain 0.9) $ s \"bass:2/2\"" `parsesTo`
+       (stutWith 16 0.125 (|* gain 0.9) $ s "bass:2/2")
+
+    it "parses an example with choose and a chords from Sound.Tidal.Chords" $
+       "s \"arpy*8\" # note (choose major)" `parsesTo`
+       (s "arpy*8" # note (Tidal.choose major))
+
+    it "parses an example with the SemiGroup operator" $
+       "s \"bd*4\" <> s \"cp*5\"" `parsesTo`
+       (s "bd*4" <> s "cp*5")
+
+    it "parses an example with step" $
+       "s (step \"tink\" \"xx x\")" `parsesTo`
+       (s (step "tink" "xx x"))
+
+    it "parses an example with step'" $
+       "s (step' [\"tink\",\"feel\"] \"01 0\")" `parsesTo`
+       (s (step' ["tink","feel"] "01 0"))
+
+    it "parses an example with steps" $
+       "s (steps [(\"tink\",\" x x\"),(\"feel\", \"x x \")])" `parsesTo`
+       (s (steps [("tink"," x x"),("feel", "x x ")]))
