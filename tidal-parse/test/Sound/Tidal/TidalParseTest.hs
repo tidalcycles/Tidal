@@ -30,6 +30,12 @@ run =
     it "parses a string containing only spaces as silence" $
       "    " `parsesTo` silence
 
+    it "parses a string containing only a one-line comment as silence" $
+      "-- commented out" `parsesTo` silence
+
+    it "parses a string containing only a multi-line comment as silence" $
+      "{- commented out \n this is another line}" `parsesTo` silence
+
     it "parses the identifier silence as silence" $
       "silence" `parsesTo` silence
 
