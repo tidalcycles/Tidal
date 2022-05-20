@@ -428,17 +428,6 @@ run =
         let res = defragParts [(Event (Context []) (Just $ Arc 1 2) (Arc 3 4) 5), (Event (Context []) (Just $ Arc 7 8) (Arc 4 3) (5 :: Int))]
         property $ [Event (Context []) (Just $ Arc 1 2) (Arc 3 4) 5, Event (Context []) (Just $ Arc 7 8) (Arc 4 3) (5 :: Int)] === res
 
-    describe "compareDefrag" $ do 
-      it "compare list with Events with empty list of Events" $ do
-        let res = compareDefrag [Event (Context []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int), Event (Context []) (Just $ Arc 1 2) (Arc 4 3) (5 :: Int)] []
-        property $ False === res 
-      it "compare lists containing same Events but of different length" $ do 
-        let res = compareDefrag [Event (Context []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int), Event (Context []) (Just $ Arc 1 2) (Arc 4 3) 5] [Event (Context []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)]
-        property $ True === res
-      it "compare lists of same length with same Events" $ do 
-        let res = compareDefrag [Event (Context []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)] [Event (Context []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)]
-        property $ True === res 
-
     describe "sect" $ do 
       it "take two Arcs and return - Arc (max of two starts) (min of two ends)" $ do
         let res = sect (Arc 2.2 3) (Arc 2 2.9)

@@ -37,7 +37,7 @@ import           Control.DeepSeq (NFData)
 import           Control.Monad ((>=>))
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
-import           Data.List (delete, findIndex, sort)
+import           Data.List (delete, findIndex)
 import           Data.Word (Word8)
 import           Data.Data (Data) -- toConstr
 import           Data.Typeable (Typeable)
@@ -572,11 +572,6 @@ isDigital = not . isAnalog
 -- | `True` if an `Event`'s starts is within given `Arc`
 onsetIn :: Arc -> Event a -> Bool
 onsetIn a e = isIn a (wholeStart e)
-
--- | Compares two lists of events, attempting to combine fragmented events in the process
--- for a 'truer' compare
-compareDefrag :: (Ord a) => [Event a] -> [Event a] -> Bool
-compareDefrag as bs = sort (defragParts as) == sort (defragParts bs)
 
 -- | Returns a list of events, with any adjacent parts of the same whole combined
 defragParts :: Eq a => [Event a] -> [Event a]
