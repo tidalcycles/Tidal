@@ -718,6 +718,8 @@ In the above, three sounds are picked from the pattern on the right according
 to the structure given by the `e 3 8`. It ends up picking two `bd` sounds, a
 `cp` and missing the `sn` entirely.
 
+A negative first argument provides the inverse of the euclidean pattern.
+
 These types of sequences use "Bjorklund's algorithm", which wasn't made for
 music but for an application in nuclear physics, which is exciting. More
 exciting still is that it is very similar in structure to the one of the first
@@ -756,7 +758,7 @@ euclid = tParam2 _euclid
 
 _euclid :: Int -> Int -> Pattern a -> Pattern a
 _euclid n k a | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
-              | otherwise = _euclidInv (-n) k a
+              | otherwise = fastcat $ fmap (bool a silence) $ bjorklund (-n,k)
 
 {- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
 euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
@@ -810,8 +812,7 @@ euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclidInv = tParam2 _euclidInv
 
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
-_euclidInv n k a | n >= 0 = fastcat $ fmap (bool a silence) $ bjorklund (n,k)
-                 | otherwise = _euclid (-n) k a
+_euclidInv n k a = _euclid (-n) k a
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
