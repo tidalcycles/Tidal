@@ -306,6 +306,15 @@ run =
             (euclid 11 24 "x", "x ~ ~ x ~ x ~ x ~ x ~ x ~ ~ x ~ x ~ x ~ x ~ x ~"),
             (euclid 13 24 "x", "x ~ x x ~ x ~ x ~ x ~ x ~ x x ~ x ~ x ~ x ~ x ~")
           ] :: [(Pattern String, String)])
+      it "can be called with a negative first value to give the inverse" $ do
+        compareP (Arc 0 1)
+          (euclid (-3) 8 ("bd" :: Pattern String))
+          (euclidInv 3 8 ("bd" :: Pattern String))
+      it "can be called with a negative first value to give the inverse (patternable)" $ do
+        compareP (Arc 0 1)
+          (euclid (-3) 8 ("bd" :: Pattern String))
+          ("bd(-3,8)" :: Pattern String)
+
 
     describe "wedge" $ do
       it "should not freeze tidal amount is 1" $ do
