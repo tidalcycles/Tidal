@@ -110,7 +110,7 @@ rand :: Fractional a => Pattern a
 rand = Pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ (timeToRand ((e + s)/2) :: Double))])
 
 -- | Boolean rand - a continuous stream of true/false values, with a 50/50 chance.
-brand :: Pattern Bool 
+brand :: Pattern Bool
 brand = _brandBy 0.5
 
 -- | Boolean rand with probability as input, e.g. brandBy 0.25 is 25% chance of being true.
@@ -718,6 +718,8 @@ In the above, three sounds are picked from the pattern on the right according
 to the structure given by the `e 3 8`. It ends up picking two `bd` sounds, a
 `cp` and missing the `sn` entirely.
 
+A negative first argument provides the inverse of the euclidean pattern.
+
 These types of sequences use "Bjorklund's algorithm", which wasn't made for
 music but for an application in nuclear physics, which is exciting. More
 exciting still is that it is very similar in structure to the one of the first
@@ -755,7 +757,8 @@ euclid :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclid = tParam2 _euclid
 
 _euclid :: Int -> Int -> Pattern a -> Pattern a
-_euclid n k a = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
+_euclid n k a | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
+              | otherwise = fastcat $ fmap (bool a silence) $ bjorklund (-n,k)
 
 {- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
 euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
@@ -809,7 +812,7 @@ euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclidInv = tParam2 _euclidInv
 
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
-_euclidInv n k a = fastcat $ fmap (bool a silence) $ bjorklund (n,k)
+_euclidInv n k a = _euclid (-n) k a
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
@@ -1468,7 +1471,7 @@ rolledBy "<1 -0.5 0.25 -0.125>" $ note "c'maj9" # s "superpiano"
 rolledWith :: Ratio Integer -> Pattern a -> Pattern a
 rolledWith t = withEvents aux
          where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ ((isRev t) es))
-               isRev b = (\x -> if x > 0 then id else reverse ) b 
+               isRev b = (\x -> if x > 0 then id else reverse ) b
                steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
                timeguard _ _ ev 0 = return ev
                timeguard n xs ev _ = (shiftIt n (length xs) ev)
