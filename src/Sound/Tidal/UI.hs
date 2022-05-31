@@ -1231,32 +1231,31 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
         p' = density cyc p
         from' = density cyc from
 
-{-| @chunk n f p@ treats the given pattern @p@ as having @n@ chunks, and applies the function @f@ to one of those sections per cycle, running from left to right.
+{-|
+  Treats the given pattern @p@ as having @n@ chunks, and applies the function @f@ to one of those sections per cycle.
+  Running:
+   - from left to right if chunk number is positive
+   - from right to left if chunk number is negative
 
-@
-d1 $ chunk 4 (density 4) $ sound "cp sn arpy [mt lt]"
-@
+  @
+  d1 $ chunk 4 (fast 4) $ sound "cp sn arpy [mt lt]"
+  @
 -}
-_chunk :: Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-_chunk n f p = cat [withinArc (Arc (i % fromIntegral n) ((i+1) % fromIntegral n)) f p | i <- [0 .. fromIntegral n - 1]]
-
-
 chunk :: Pattern Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-chunk npat f p  = innerJoin $ (\n -> _chunk n f p) <$> npat
+chunk npat f p = innerJoin $ (\n -> _chunk n f p) <$> npat
 
--- deprecated (renamed to chunk)
-runWith :: Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-runWith = _chunk
+_chunk :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+_chunk n f p | n >= 0 = cat [withinArc (Arc (i % fromIntegral n) ((i+1) % fromIntegral n)) f p | i <- [0 .. fromIntegral n - 1]]
+             | otherwise = do i <- _slow (toRational (-n)) $ rev $ run (fromIntegral (-n))
+                              withinArc (Arc (i % fromIntegral (-n)) ((i+1) % fromIntegral (-n))) f p
 
-{-| @chunk'@ works much the same as `chunk`, but runs from right to left.
--}
--- this was throwing a parse error when I ran it in tidal whenever I changed the function name..
-_chunk' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-_chunk' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
-                   withinArc (Arc (i % fromIntegral n) ((i+)1 % fromIntegral n)) f p
-
+-- | DEPRECATED, use 'chunk' with negative numbers instead
 chunk' :: Integral a1 => Pattern a1 -> (Pattern a2 -> Pattern a2) -> Pattern a2 -> Pattern a2
 chunk' npat f p = innerJoin $ (\n -> _chunk' n f p) <$> npat
+
+-- | DEPRECATED, use '_chunk' with negative numbers instead
+_chunk' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+_chunk' n f p = _chunk (-n) f p
 
 _inside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 _inside n f p = _fast n $ f (_slow n p)

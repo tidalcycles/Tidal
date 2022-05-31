@@ -369,6 +369,10 @@ run =
         compareP (Arc 0 4)
           (chunk 2 (fast 2) $ "a b" :: Pattern String)
           (slow 2 $ "a b b _ a _ a b" :: Pattern String)
+      it "should chunk backward with a negative number" $ do
+        compareP (Arc 0 4)
+          (chunk (-2) (rev) $ ("a b c d" :: Pattern String))
+          (slow 2 $ "a b b a d c c d" :: Pattern String)
 
     describe "binary" $ do
       it "converts a number to a pattern of boolean" $ do
