@@ -32,9 +32,8 @@ library
       base >=4.8 && <5
     , tidal >= 1.8 && <1.9
     , transformers >= 0.5 && < 0.5.7
-    , haskell-src-exts >= 1.17.1 && < 1.24
     , template-haskell
-    , haskellish
+    , haskellish >= 0.3.2 && < 0.4
     , containers < 0.7
     , mtl >= 2.2.2 && <2.3
     , text < 1.3

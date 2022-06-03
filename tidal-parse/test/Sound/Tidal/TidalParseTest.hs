@@ -42,6 +42,12 @@ run =
     it "parses a very simple single 's' pattern" $
       "s \"bd cp\"" `parsesTo` s "bd cp"
 
+    it "parses a very simple single 's' pattern with a same line comment" $
+       "s \"bd cp\" -- comment " `parsesTo` s "bd cp"
+
+    it "parses a very simple single 's' pattern with a multi line comment" $
+       "s \"bd cp\" {- \n comment -}" `parsesTo` s "bd cp"
+
     it "parses a very simple single 'sound' pattern" $
       "sound \"bd cp\"" `parsesTo` sound "bd cp"
 

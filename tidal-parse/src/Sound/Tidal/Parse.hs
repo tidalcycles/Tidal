@@ -2,7 +2,6 @@
 
 module Sound.Tidal.Parse (parseTidal) where
 
-import           Language.Haskell.Exts
 import           Language.Haskellish as Haskellish
 import           Control.Applicative
 import           Data.Bifunctor
@@ -20,13 +19,14 @@ type H = Haskellish ()
 
 -- This is depended upon by Estuary, and changes to its type will cause problems downstream for Estuary.
 parseTidal :: String -> Either String ControlPattern
-parseTidal x =
-  if strip x == [] then (return T.silence)
-    else (f $ Language.Haskell.Exts.parseExp x)
-    where
-      strip = dropWhileEnd isSpace . dropWhile isSpace
-      f (ParseOk x') = second fst $ runHaskellish parser () x'
-      f (ParseFailed l s) = throwError $ show l ++ ": " ++ show s
+parseTidal x = if x' == [] then (return T.silence) else r
+  where
+    x' = dropWhileEnd isSpace $ dropWhile isSpace $ Haskellish.removeComments x
+    r = bimap showSyntaxError fst $ Haskellish.parseAndRun parser () x
+
+showSyntaxError :: (Span,Data.Text.Text) -> String
+showSyntaxError (((lineNumber,columnNumber),(_,_)),msg) =
+  show lineNumber ++ ":" ++ show columnNumber ++ " " ++ Data.Text.unpack msg
 
 
 -- The class Parse is a class for all of the types that we know how to parse.
