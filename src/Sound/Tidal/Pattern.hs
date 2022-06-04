@@ -79,7 +79,11 @@ instance Applicative Pattern where
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
 (*>) = applyPatToPatRight
 
-infixl 4 <*, *>
+-- | Like <*>, but the 'wholes' come from the left
+(<<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
+(<<*) = applyPatToPatSqueeze
+
+infixl 4 <*, *>, <<*
 applyPatToPat :: (Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)) -> Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPat combineWholes pf px = Pattern q
     where q st = catMaybes $ concatMap match $ query pf st
@@ -125,6 +129,9 @@ applyPatToPatRight pf px = Pattern q
               withFX ef ex = do let whole' = whole ex
                                 part' <- subArc (part ef) (part ex)
                                 return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
+
+applyPatToPatSqueeze :: Pattern (a -> b) -> Pattern a -> Pattern b
+applyPatToPatSqueeze pf px = squeezeJoin $ (\f -> f <$> px) <$> pf
 
 -- * Monad and friends
 
