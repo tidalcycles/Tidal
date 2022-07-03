@@ -27,7 +27,6 @@ library
                        network
   default-language:    Haskell2010
 
-
 executable tidal-listener
   main-is:             Main.hs
   build-depends:       base ==4.*,
