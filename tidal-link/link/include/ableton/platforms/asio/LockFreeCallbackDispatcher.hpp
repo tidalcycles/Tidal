@@ -59,11 +59,7 @@ public:
 
   void invoke()
   {
-    if (mMutex.try_lock())
-    {
-      mCondition.notify_one();
-      mMutex.unlock();
-    }
+    mCondition.notify_one();
   }
 
 private:

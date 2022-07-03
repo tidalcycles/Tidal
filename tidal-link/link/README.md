@@ -15,7 +15,7 @@ would like to incorporate Link into a proprietary software application, please c
 
 # Building and Running Link Examples
 
-Link relies on `asio-standalone` and `catch` as submodules. After checking out the
+Link relies on `asio-standalone` as a submodule. After checking out the
 main repositories, those submodules have to be loaded using
 
 ```

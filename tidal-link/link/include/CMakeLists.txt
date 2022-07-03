@@ -11,7 +11,6 @@ project(LinkCore)
 set(link_core_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ableton/link)
 set(link_core_HEADERS
   ${link_core_DIR}/Beats.hpp
-  ${link_core_DIR}/CircularFifo.hpp
   ${link_core_DIR}/ClientSessionTimelines.hpp
   ${link_core_DIR}/Controller.hpp
   ${link_core_DIR}/Gateway.hpp
@@ -36,6 +35,7 @@ set(link_core_HEADERS
   ${link_core_DIR}/StartStopState.hpp
   ${link_core_DIR}/Tempo.hpp
   ${link_core_DIR}/Timeline.hpp
+  ${link_core_DIR}/TripleBuffer.hpp
   ${link_core_DIR}/v1/Messages.hpp
   PARENT_SCOPE
 )

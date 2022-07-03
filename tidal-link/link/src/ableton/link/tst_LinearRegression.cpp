@@ -29,8 +29,9 @@ namespace link
 
 TEST_CASE("LinearRegression")
 {
-  using Vector = std::vector<std::pair<double, double>>;
   using Array = std::array<std::pair<double, double>, 1>;
+  using Vector = std::vector<std::pair<double, double>>;
+  using FloatVector = std::vector<std::pair<float, float>>;
 
   SECTION("OnePoint")
   {
@@ -61,6 +62,33 @@ TEST_CASE("LinearRegression")
     for (int i = 1; i < 10000; ++i)
     {
       data.emplace_back(i, i * slope + intercept);
+    }
+
+    const auto result = linearRegression(data.begin(), data.end());
+    CHECK(slope == Approx(result.first));
+    CHECK(intercept == Approx(result.second));
+  }
+
+  SECTION("TwoPoints Float")
+  {
+    FloatVector data;
+    data.emplace_back(0.f, 0.f);
+    data.emplace_back(666666.6f, 66666.6f);
+
+    const auto result = linearRegression(data.begin(), data.end());
+    CHECK(0.1f == Approx(result.first));
+    CHECK(0.f == Approx(result.second));
+  }
+
+  SECTION("10000Points Float")
+  {
+    FloatVector data;
+    const float slope = -0.2f;
+    const float intercept = -357.53456f;
+
+    for (int i = 1; i < 500; ++i)
+    {
+      data.emplace_back(static_cast<float>(i), static_cast<float>(i) * slope + intercept);
     }
 
     const auto result = linearRegression(data.begin(), data.end());
