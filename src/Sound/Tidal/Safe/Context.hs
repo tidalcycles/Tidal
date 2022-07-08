@@ -51,7 +51,6 @@ module Sound.Tidal.Safe.Context
 where
 
 import Data.Ratio as C
-import Sound.Tidal.Carabiner as C
 import Sound.Tidal.Config as C
 import Sound.Tidal.Control as C
 import Sound.Tidal.Core as C
@@ -65,7 +64,6 @@ import Sound.Tidal.Stream
 -- import Sound.Tidal.Transition as C
 import Sound.Tidal.UI as C
 import Sound.Tidal.Version as C
-import Sound.Tidal.EspGrid as C
 
 import qualified Sound.Tidal.Context as C
 import Sound.Tidal.Context

@@ -963,7 +963,7 @@ discretise = segment
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' rotL (_segment 1 $ (%1) . fromIntegral <$> (_irand (length ps) :: Pattern Int)) (slowcat ps)
+randcat ps = spread' rotL (_segment 1 $ (% 1) . fromIntegral <$> (_irand (length ps) :: Pattern Int)) (slowcat ps)
 
 wrandcat :: [(Pattern a, Double)] -> Pattern a
 wrandcat ps = unwrap $ wchooseBy (segment 1 rand) ps

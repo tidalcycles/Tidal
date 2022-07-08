@@ -28,13 +28,11 @@ library
   autogen-modules:     Paths_tidal
 
   Exposed-modules:     Sound.Tidal.Bjorklund
-                       Sound.Tidal.Carabiner
                        Sound.Tidal.Chords
                        Sound.Tidal.Config
                        Sound.Tidal.Control
                        Sound.Tidal.Context
                        Sound.Tidal.Core
-                       Sound.Tidal.EspGrid
                        Sound.Tidal.ID
                        Sound.Tidal.Params
                        Sound.Tidal.ParseBP
@@ -45,6 +43,7 @@ library
                        Sound.Tidal.Show
                        Sound.Tidal.Simple
                        Sound.Tidal.Stream
+                       Sound.Tidal.StreamTypes
                        Sound.Tidal.Tempo
                        Sound.Tidal.Time
                        Sound.Tidal.Transition
@@ -69,6 +68,7 @@ library
     , random < 1.3
     , exceptions < 0.11
     , mtl >= 2.2
+    , tidal-link
 
 executable tidal
   hs-source-dirs: main
@@ -79,6 +79,9 @@ executable tidal
                , exceptions < 0.11
                , async < 2.3
   default-language:    Haskell2010
+  if os(windows) && impl(ghc >= 9.4.0)
+    -- https://github.com/haskell-hint/hint/issues/150 + https://github.com/haskell-hint/hint/issues/151 + https://github.com/tidalcycles/Tidal/pull/898
+    buildable: False
     
 test-suite tests
   type: exitcode-stdio-1.0
