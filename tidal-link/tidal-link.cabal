@@ -14,7 +14,11 @@ category:            Sound
 build-type:          Simple
 tested-with:         GHC == 9.2.4
 
-extra-source-files: README.md
+extra-source-files:
+  README.md
+  link/**/*.hpp
+  link/**/*.ipp
+  link/**/*.h
 
 description: Ableton Link integration for Tidal, to let Tidal sync with external clocks
 
