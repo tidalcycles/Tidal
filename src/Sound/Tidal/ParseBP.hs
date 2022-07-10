@@ -23,7 +23,7 @@ module Sound.Tidal.ParseBP where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Control.Applicative (liftA2)
+import           Control.Applicative ()
 import qualified Control.Exception as E
 import           Data.Bifunctor (first)
 import           Data.Colour
@@ -393,14 +393,14 @@ pSequence f = do
 pRepeat :: TPat a -> MyParser (TPat a)
 pRepeat a = do es <- many1 $ do char '!'
                                 n <- (subtract 1 . read <$> many1 digit) <|> return 1
-                                -- spaces
+                                spaces
                                 return n
                return $ TPat_Repeat (1 + sum es) a
 
 pElongate :: TPat a -> MyParser (TPat a)
 pElongate a = do rs <- many1 $ do oneOf "@_"
                                   r <- (subtract 1 <$> pRatio) <|> return 1
-                                  -- spaces
+                                  spaces
                                   return r
                  return $ TPat_Elongate (1 + sum rs) a
 
@@ -552,12 +552,12 @@ pColour = wrapPos $ do name <- many1 letter <?> "colour name"
 
 pMult :: TPat a -> MyParser (TPat a)
 pMult thing = do char '*'
-                 -- spaces
+                 spaces
                  r <- pRational <|> pPolyIn pRational <|> pPolyOut pRational
                  return $ TPat_Fast r thing
               <|>
               do char '/'
-                 -- spaces
+                 spaces
                  r <- pRational <|> pPolyIn pRational <|> pPolyOut pRational
                  return $ TPat_Slow r thing
               <|>
@@ -566,7 +566,7 @@ pMult thing = do char '*'
 pRand :: TPat a -> MyParser (TPat a)
 pRand thing = do char '?'
                  r <- float <|> return 0.5
-                 -- spaces
+                 spaces
                  seed <- newSeed
                  return $ TPat_DegradeBy seed r thing
               <|> return thing
@@ -680,7 +680,7 @@ parseModRange :: MyParser Modifier
 parseModRange = parseIntNote >>= \i -> return $ Range $ fromIntegral i
 
 parseModifiers :: MyParser [Modifier]
-parseModifiers = try (many1 parseModInv) <|> try (many1 parseModOpen) <|> (many1 parseModRange) <?> "modifier"
+parseModifiers = try (many1 parseModInv) <|> try (many1 parseModOpen) <|> (try $ fmap pure parseModRange) <?> "modifier"
 
 
 pModifiers :: MyParser (TPat [Modifier])
@@ -698,7 +698,7 @@ instance Enumerable [Modifier] where
 pChord :: (Enum a, Num a) => TPat a -> MyParser (TPat a)
 pChord i = do
     char '\''
-    n <- pSequence pVocable
-    ms <- option [] (char '\'' >> pPart pModifiers `sepBy` char '\'')
+    n <- pPart pVocable
+    ms <- option [] $ many1 $ try (char '\'' >> pPart pModifiers)
     let mods = fmap concat $ sequence ms
     return $ chordToPat (Chord i n mods)
