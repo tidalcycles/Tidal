@@ -551,19 +551,20 @@ setPreviousPatternOrSilence stream =
 -- Send events live by delaying the thread
 send :: Maybe O.UDP -> Cx -> Double -> Double -> (Double, Bool, O.Message) -> IO ()
 send listen cx latency extraLatency (time, isBusMsg, m)
-  | oSchedule target == Pre BundleStamp = sendBndl isBusMsg listen cx $ O.Bundle (time + extraLatency) [m]
+  | oSchedule target == Pre BundleStamp = sendBndl isBusMsg listen cx $ O.Bundle timeWithLatency [m]
   | oSchedule target == Pre MessageStamp = sendO isBusMsg listen cx $ addtime m
   | otherwise = do _ <- forkOS $ do now <- O.time
-                                    threadDelay $ floor $ (time - now - latency  + extraLatency) * 1000000
+                                    threadDelay $ floor $ (timeWithLatency - now) * 1000000
                                     sendO isBusMsg listen cx m
                    return ()
     where addtime (O.Message mpath params) = O.Message mpath ((O.int32 sec):((O.int32 usec):params))
-          ut = O.ntpr_to_ut (time  + extraLatency)
+          ut = O.ntpr_to_ut timeWithLatency
           sec :: Int
           sec = floor ut
           usec :: Int
           usec = floor $ 1000000 * (ut - (fromIntegral sec))
           target = cxTarget cx
+          timeWithLatency = time - latency + extraLatency
 
 -- Interaction
 

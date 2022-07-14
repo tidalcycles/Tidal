@@ -45,7 +45,7 @@ defaultConfig = Config {cCtrlListen = True,
                         cCtrlBroadcast = False,
                         cFrameTimespan = 1/20,
                         cEnableLink = True,
-                        cProcessAhead = 1/4,
+                        cProcessAhead = 3/10,
                         cTempoAddr = "127.0.0.1",
                         cTempoPort = 9160,
                         cTempoClientPort = 0, -- choose at random
