@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, CPP, DeriveFunctor #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances, CPP, DeriveFunctor, GADTs, StandaloneDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-unused-do-bind #-}
 
@@ -29,7 +29,7 @@ import           Data.Bifunctor (first)
 import           Data.Colour
 import           Data.Colour.Names
 import           Data.Functor.Identity (Identity)
-import           Data.List (intercalate)
+import           Data.List (intercalate, (\\))
 import           Data.Maybe
 import           Data.Ratio
 import           Data.Typeable (Typeable)
@@ -62,58 +62,44 @@ type MyParser = Text.Parsec.Prim.Parsec String Int
 
 -- | AST representation of patterns
 
-data TPat a = TPat_Atom (Maybe ((Int, Int), (Int, Int))) a
-            | TPat_Fast (TPat Time) (TPat a)
-            | TPat_Slow (TPat Time) (TPat a)
-            | TPat_DegradeBy Int Double (TPat a)
-            | TPat_CycleChoose Int [TPat a]
-            | TPat_Euclid (TPat Int) (TPat Int) (TPat Int) (TPat a)
-            | TPat_Stack [TPat a]
-            | TPat_Polyrhythm (Maybe (TPat Rational)) [TPat a]
-            | TPat_Seq [TPat a]
-            | TPat_Silence
-            | TPat_Foot
-            | TPat_Elongate Rational (TPat a)
-            | TPat_Repeat Int (TPat a)
-            | TPat_EnumFromTo (TPat a) (TPat a)
-            | TPat_Var String
-            deriving (Show, Functor)
+data TPat a where
+   TPat_Atom :: (Maybe ((Int, Int), (Int, Int))) -> a -> (TPat a)
+   TPat_Fast :: (TPat Time) -> (TPat a) -> (TPat a)
+   TPat_Slow :: (TPat Time) -> (TPat a) -> (TPat a)
+   TPat_DegradeBy :: Int -> Double -> (TPat a) -> (TPat a)
+   TPat_CycleChoose :: Int -> [TPat a] -> (TPat a)
+   TPat_Euclid :: (TPat Int) -> (TPat Int) -> (TPat Int) -> (TPat a) -> (TPat a)
+   TPat_Stack :: [TPat a] -> (TPat a)
+   TPat_Polyrhythm :: (Maybe (TPat Rational)) -> [TPat a] -> (TPat a)
+   TPat_Seq :: [TPat a] -> (TPat a)
+   TPat_Silence :: (TPat a)
+   TPat_Foot :: (TPat a)
+   TPat_Elongate :: Rational -> (TPat a) -> (TPat a)
+   TPat_Repeat :: Int -> (TPat a) -> (TPat a)
+   TPat_EnumFromTo :: (TPat a) -> (TPat a) -> (TPat a)
+   TPat_Var :: String -> (TPat a)
+   TPat_Chord :: (Num a, Enum a, Parseable a, Enumerable a) => (a -> b) -> (TPat a) -> (TPat String) -> (TPat [Modifier]) -> (TPat b)
 
-instance Applicative TPat where
-  (<*>) f (TPat_Atom _ x) = fmap (\g -> g x) f
-  (<*>) f (TPat_Fast t x) = TPat_Fast t (f <*> x)
-  (<*>) f (TPat_Slow t x) = TPat_Slow t (f <*> x)
-  (<*>) f (TPat_DegradeBy i d x) = TPat_DegradeBy i d (f <*> x)
-  (<*>) f (TPat_CycleChoose i xs) = TPat_CycleChoose i (map (\x -> f <*> x) xs)
-  (<*>) f (TPat_Euclid i d o x) = TPat_Euclid i d o (f <*> x)
-  (<*>) f (TPat_Stack xs) = TPat_Stack (map (\x -> f <*> x) xs)
-  (<*>) f (TPat_Polyrhythm r xs) = TPat_Polyrhythm r (map (\x -> f <*> x) xs)
-  (<*>) f (TPat_Seq xs) = TPat_Seq (map (\x -> f <*> x) xs)
-  (<*>) _ TPat_Silence = TPat_Silence
-  (<*>) _ TPat_Foot = TPat_Foot
-  (<*>) f (TPat_Elongate r x) = TPat_Elongate r (f <*> x)
-  (<*>) f (TPat_Repeat i x) = TPat_Repeat i (f <*> x)
-  (<*>) f (TPat_EnumFromTo x y) = TPat_EnumFromTo (f <*> x) (f <*> y)
-  (<*>) _ (TPat_Var s) = TPat_Var s
-  pure x = TPat_Atom Nothing x
+instance Show a => Show (TPat a) where
+  show = tShow
 
-instance Monad TPat where
-  (TPat_Atom _ x) >>= f = f x
-  (TPat_Fast t x) >>= f = TPat_Fast t (x >>= f)
-  (TPat_Slow t x) >>= f = TPat_Slow t (x >>= f)
-  (TPat_DegradeBy i d x) >>= f = TPat_DegradeBy i d (x >>= f)
-  (TPat_CycleChoose i xs) >>= f = TPat_CycleChoose i (map (\x -> x >>= f) xs)
-  (TPat_Euclid i d o x) >>= f = TPat_Euclid i d o (x >>= f)
-  (TPat_Stack xs) >>= f = TPat_Stack (map (\x -> x >>= f) xs)
-  (TPat_Polyrhythm r xs) >>= f = TPat_Polyrhythm r (map (\x -> x >>= f) xs)
-  (TPat_Seq xs) >>= f = TPat_Seq (map (\x -> x >>= f) xs)
-  TPat_Silence >>= _ = TPat_Silence
-  TPat_Foot >>= _ = TPat_Foot
-  (TPat_Elongate r x) >>= f = TPat_Elongate r (x >>= f)
-  (TPat_Repeat i x) >>= f = TPat_Repeat i (x >>= f)
-  (TPat_EnumFromTo x y) >>= f = TPat_EnumFromTo (x >>= f) (y >>= f)
-  TPat_Var s >>= _ = TPat_Var s
-  return = pure
+instance Functor TPat where
+  fmap f (TPat_Atom c v) = TPat_Atom c (f v)
+  fmap f (TPat_Fast t v) = TPat_Fast t (fmap f v)
+  fmap f (TPat_Slow t v) = TPat_Slow t (fmap f v)
+  fmap f (TPat_DegradeBy x r v) = TPat_DegradeBy x r (fmap f v)
+  fmap f (TPat_CycleChoose x vs) = TPat_CycleChoose x (map (fmap f) vs)
+  fmap f (TPat_Euclid a b c v) = TPat_Euclid a b c (fmap f v)
+  fmap f (TPat_Stack vs) = TPat_Stack (map (fmap f) vs)
+  fmap f (TPat_Polyrhythm mSteprate vs) = TPat_Polyrhythm mSteprate (map (fmap f) vs)
+  fmap f (TPat_Seq vs) = TPat_Seq (map (fmap f) vs)
+  fmap _ TPat_Silence = TPat_Silence
+  fmap _ TPat_Foot = TPat_Foot
+  fmap f (TPat_Elongate r v) = TPat_Elongate r (fmap f v)
+  fmap f (TPat_Repeat r v) = TPat_Repeat r (fmap f v)
+  fmap f (TPat_EnumFromTo a b) = TPat_EnumFromTo (fmap f a) (fmap f b)
+  fmap _ (TPat_Var s) = TPat_Var s
+  fmap f (TPat_Chord g iP nP msP) = TPat_Chord (f . g) iP nP msP
 
 tShowList :: (Show a) => [TPat a] -> String
 tShowList vs = "[" ++ intercalate "," (map tShow vs) ++ "]"
@@ -168,6 +154,7 @@ toPat = \case
                       | otherwise = pure $ fst $ head pats
    TPat_Seq xs -> snd $ resolve_seq xs
    TPat_Var s -> getControl s
+   TPat_Chord f iP nP mP -> chordToPat f (toPat iP) (toPat nP) (toPat mP)
    _ -> silence
 
 resolve_tpat :: (Enumerable a, Parseable a) => TPat a -> (Rational, Pattern a)
@@ -470,16 +457,16 @@ pDouble :: MyParser (TPat Double)
 pDouble = wrapPos $ do s <- sign
                        f <- choice [fromRational <$> pRatio, parseNote] <?> "float"
                        let v = applySign s f
-                       pChord (pure v) <|> return (TPat_Atom Nothing v)
-                    <|> pChord (pure 0)
+                       pChord (TPat_Atom Nothing v) <|> return (TPat_Atom Nothing v)
+                    <|> pChord (TPat_Atom Nothing 0)
 
 
 pNote :: MyParser (TPat Note)
 pNote = wrapPos $ fmap (fmap Note) $ do s <- sign
                                         f <- choice [intOrFloat, parseNote] <?> "float"
                                         let v = applySign s f
-                                        pChord (pure v) <|> return (TPat_Atom Nothing v)
-                                     <|> pChord (pure 0)
+                                        pChord (TPat_Atom Nothing v) <|> return (TPat_Atom Nothing v)
+                                     <|> pChord (TPat_Atom Nothing 0)
                                      <|> do TPat_Atom Nothing . fromRational <$> pRatio
 
 pBool :: MyParser (TPat Bool)
@@ -496,11 +483,11 @@ parseIntNote = do s <- sign
                     then return $ applySign s $ round d
                     else fail "not an integer"
 
-pIntegral :: Integral a => MyParser (TPat a)
+pIntegral :: (Integral a, Parseable a, Enumerable a) => MyParser (TPat a)
 pIntegral = wrapPos $ do i <- parseIntNote
-                         pChord (pure i) <|> return (TPat_Atom Nothing i)
+                         pChord (TPat_Atom Nothing i) <|> return (TPat_Atom Nothing i)
                       <|>
-                         pChord (pure 0)
+                         pChord (TPat_Atom Nothing 0)
 
 parseChord :: (Enum a, Num a) => MyParser [a]
 parseChord = do char '\''
@@ -641,17 +628,13 @@ pRatioSingleChar c v = try $ do
 isInt :: RealFrac a => a -> Bool
 isInt x = x == fromInteger (round x)
 
-data Modifier = Range Int | Invert | Open deriving Eq
-
-data Chord a = Chord {cRoot :: TPat a
-                     ,cName :: TPat String
-                     ,cMods :: TPat [Modifier]
-                     }
+data Modifier = Range Int | Drop Int | Invert | Open deriving Eq
 
 instance Show Modifier where
-  show (Range i) = show i
-  show Invert = "i"
-  show Open = "o"
+  show (Range i) = "Range " ++ show i
+  show (Drop i) = "Drop " ++ show i
+  show Invert = "Invert"
+  show Open = "Open"
 
 applyModifier :: (Enum a, Num a) => Modifier -> [a] -> [a]
 applyModifier (Range i) ds = take i $ concatMap (\x -> map (+ x) ds) [0,12..]
@@ -660,18 +643,37 @@ applyModifier Invert (d:ds) = ds ++ [d+12]
 applyModifier Open ds = case length ds > 2 of
                               True -> [ (ds !! 0 - 12), (ds !! 2 - 12), (ds !! 1) ] ++ reverse (take (length ds - 3) (reverse ds))
                               False -> ds
+applyModifier (Drop i) ds = case length ds < i of
+                              True -> ds
+                              False -> (ds!!s - 12):(xs ++ drop 1 ys)
+                          where (xs,ys) = splitAt s ds
+                                s = length ds - i
 
-chordToPat :: (Enum a, Num a) => Chord a -> TPat a
-chordToPat (Chord rP nP msP) = do
-                          ms <- msP
-                          name <- nP
-                          r <- rP
-                          let chord = map (+ r) (fromMaybe [0] $ lookup name chordTable)
-                          TPat_Stack $ fmap return $ foldl (flip applyModifier) chord ms
 
 
 parseModInv :: MyParser Modifier
 parseModInv = char 'i' >> return Invert
+
+-- parseManyInv :: MyParser (TPat [Modifier])
+-- parseManyInv = try $ pure <$> many1 (do parseModInv
+--                                         notFollowedBy (pPart $ fmap pure pInteger)
+--                                         return Invert)
+--             <|> do char 'i'
+--                    nP <- pPart $ fmap pure pInteger
+--                    let msP = do
+--                           n <- nP
+--                           return $ replicate (round n) Invert
+--                    return $ msP
+--
+--
+-- parseManyDrop :: MyParser (TPat [Modifier])
+-- parseManyDrop = do
+--             char 'd'
+--             nP <- pPart pIntegral
+--             let msP = do
+--                   n <- nP
+--                   return $ [Drop n]
+--             return $ msP
 
 parseModOpen :: MyParser Modifier
 parseModOpen = char 'o' >> return Open
@@ -679,13 +681,26 @@ parseModOpen = char 'o' >> return Open
 parseModRange :: MyParser Modifier
 parseModRange = parseIntNote >>= \i -> return $ Range $ fromIntegral i
 
+-- pModifiers :: MyParser (TPat [Modifier])
+-- pModifiers = wrapPos $ (try parseManyInv
+--           -- <|> try parseManyDrop
+--           <|> TPat_Atom Nothing <$> try (many1 parseModOpen)
+--           <|> TPat_Atom Nothing <$> (try $ fmap pure parseModRange)
+--           <?> "modifier")
+
+chordToPat :: (Num a, Enum a) => (a -> b) -> Pattern a -> Pattern String -> Pattern [Modifier] -> Pattern b
+chordToPat f noteP nameP modsP = uncollect $ do
+                    n  <- noteP
+                    name <- nameP
+                    ms <- modsP
+                    let chord = map (+ n) (fromMaybe [0] $ lookup name chordTable)
+                    return $ fmap f $ foldl (flip applyModifier) chord ms
+
 parseModifiers :: MyParser [Modifier]
 parseModifiers = try (many1 parseModInv) <|> try (many1 parseModOpen) <|> (try $ fmap pure parseModRange) <?> "modifier"
 
-
 pModifiers :: MyParser (TPat [Modifier])
 pModifiers = wrapPos $ TPat_Atom Nothing <$> parseModifiers
-
 
 instance Parseable [Modifier] where
   tPatParser = pModifiers
@@ -695,10 +710,54 @@ instance Enumerable [Modifier] where
   fromTo a b = fastFromList [a,b]
   fromThenTo a b c = fastFromList [a,b,c]
 
-pChord :: (Enum a, Num a) => TPat a -> MyParser (TPat a)
+pChord :: (Enum a, Num a, Parseable a, Enumerable a) => TPat a -> MyParser (TPat a)
 pChord i = do
     char '\''
     n <- pPart pVocable
     ms <- option [] $ many1 $ try (char '\'' >> pPart pModifiers)
-    let mods = fmap concat $ sequence ms
-    return $ chordToPat (Chord i n mods)
+    return $ TPat_Chord id i n (TPat_Stack ms)
+
+---
+
+sameDur :: Event a -> Event a -> Bool
+sameDur e1 e2 = (whole e1 == whole e2) && (part e1 == part e2)
+--
+groupEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [[Event a]]
+groupEventsBy _ [] = []
+groupEventsBy f (e:es) = eqs:(groupEventsBy f (es \\ eqs))
+                   where eqs = e:[x | x <- es, f e x]
+--
+-- assumes that all events in the list have same whole/part
+collectEvent :: [Event a] -> Maybe (Event [a])
+collectEvent [] = Nothing
+collectEvent l@(e:_) = Just $ e {context = con, value = vs}
+                      where con = unionC $ map context l
+                            vs = map value l
+                            unionC [] = Context []
+                            unionC ((Context is):cs) = Context (is ++ iss)
+                                                 where Context iss = unionC cs
+--
+collectEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [Event [a]]
+collectEventsBy f es = remNo $ map collectEvent (groupEventsBy f es)
+                     where
+                     remNo [] = []
+                     remNo (Nothing:cs) = remNo cs
+                     remNo ((Just c):cs) = c : (remNo cs)
+--
+collectBy :: Eq a => (Event a -> Event a -> Bool) -> Pattern a -> Pattern [a]
+collectBy f = withEvents (collectEventsBy f)
+--
+collect :: Eq a => Pattern a -> Pattern [a]
+collect = collectBy sameDur
+--
+uncollectEvent :: Event [a] -> [Event a]
+uncollectEvent e = [e {value = (value e)!!i, context = resolveContext i (context e)} | i <-[0..length (value e) - 1]]
+               where resolveContext i (Context xs) = case length xs <= i of
+                                                                  True -> Context []
+                                                                  False -> Context [xs!!i]
+--
+uncollectEvents :: [Event [a]] -> [Event a]
+uncollectEvents = concatMap uncollectEvent
+--
+uncollect :: Pattern [a] -> Pattern a
+uncollect = withEvents uncollectEvents
