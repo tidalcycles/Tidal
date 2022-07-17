@@ -78,7 +78,7 @@ data TPat a where
    TPat_Repeat :: Int -> (TPat a) -> (TPat a)
    TPat_EnumFromTo :: (TPat a) -> (TPat a) -> (TPat a)
    TPat_Var :: String -> (TPat a)
-   TPat_Chord :: (Num a, Enum a, Parseable a, Enumerable a) => (a -> b) -> (TPat a) -> (TPat String) -> (TPat [Modifier]) -> (TPat b)
+   TPat_Chord :: (Num a, Enum a, Parseable a, Enumerable a) => (a -> b) -> (TPat a) -> (TPat String) -> [TPat [Modifier]] -> (TPat b)
 
 instance Show a => Show (TPat a) where
   show = tShow
@@ -154,7 +154,7 @@ toPat = \case
                       | otherwise = pure $ fst $ head pats
    TPat_Seq xs -> snd $ resolve_seq xs
    TPat_Var s -> getControl s
-   TPat_Chord f iP nP mP -> chordToPat f (toPat iP) (toPat nP) (toPat mP)
+   TPat_Chord f iP nP mP -> chordToPatSeq f (toPat iP) (toPat nP) (map toPat mP)
    _ -> silence
 
 resolve_tpat :: (Enumerable a, Parseable a) => TPat a -> (Rational, Pattern a)
@@ -454,20 +454,28 @@ pChar :: MyParser (TPat Char)
 pChar = wrapPos $ TPat_Atom Nothing <$> pCharNum
 
 pDouble :: MyParser (TPat Double)
-pDouble = wrapPos $ do s <- sign
-                       f <- choice [fromRational <$> pRatio, parseNote] <?> "float"
-                       let v = applySign s f
-                       pChord (TPat_Atom Nothing v) <|> return (TPat_Atom Nothing v)
-                    <|> pChord (TPat_Atom Nothing 0)
+pDouble = try $ do d <- pDoubleWithoutChord
+                   pChord d <|> return d
+                <|> pChord (TPat_Atom Nothing 0)
+                <|> pDoubleWithoutChord
 
+pDoubleWithoutChord :: MyParser (TPat Double)
+pDoubleWithoutChord = pPart $ wrapPos $ do s <- sign
+                                           f <- choice [fromRational <$> pRatio, parseNote] <?> "float"
+                                           return $ TPat_Atom Nothing (applySign s f)
 
 pNote :: MyParser (TPat Note)
-pNote = wrapPos $ fmap (fmap Note) $ do s <- sign
-                                        f <- choice [intOrFloat, parseNote] <?> "float"
-                                        let v = applySign s f
-                                        pChord (TPat_Atom Nothing v) <|> return (TPat_Atom Nothing v)
-                                     <|> pChord (TPat_Atom Nothing 0)
-                                     <|> do TPat_Atom Nothing . fromRational <$> pRatio
+pNote = try $ do n <- pNoteWithoutChord
+                 pChord n <|> return n
+        <|> pChord (TPat_Atom Nothing 0)
+        <|> pNoteWithoutChord
+        <|> do TPat_Atom Nothing . fromRational <$> pRatio
+
+pNoteWithoutChord :: MyParser (TPat Note)
+pNoteWithoutChord = pPart $ wrapPos $ do s <- sign
+                                         f <- choice [intOrFloat, parseNote] <?> "float"
+                                         return $ TPat_Atom Nothing (Note $ applySign s f)
+
 
 pBool :: MyParser (TPat Bool)
 pBool = wrapPos $ do oneOf "t1"
@@ -484,10 +492,13 @@ parseIntNote = do s <- sign
                     else fail "not an integer"
 
 pIntegral :: (Integral a, Parseable a, Enumerable a) => MyParser (TPat a)
-pIntegral = wrapPos $ do i <- parseIntNote
-                         pChord (TPat_Atom Nothing i) <|> return (TPat_Atom Nothing i)
-                      <|>
-                         pChord (TPat_Atom Nothing 0)
+pIntegral = try $ do i <- pIntegralWithoutChord
+                     pChord i <|> return i
+            <|> pChord (TPat_Atom Nothing 0)
+            <|> pIntegralWithoutChord
+
+pIntegralWithoutChord :: (Integral a, Parseable a, Enumerable a) => MyParser (TPat a)
+pIntegralWithoutChord = pPart $ wrapPos $ fmap (TPat_Atom Nothing) parseIntNote
 
 parseChord :: (Enum a, Num a) => MyParser [a]
 parseChord = do char '\''
@@ -628,6 +639,53 @@ pRatioSingleChar c v = try $ do
 isInt :: RealFrac a => a -> Bool
 isInt x = x == fromInteger (round x)
 
+---
+
+instance Parseable [Modifier] where
+  tPatParser = pModifiers
+  doEuclid = euclidOff
+
+instance Enumerable [Modifier] where
+  fromTo a b = fastFromList [a,b]
+  fromThenTo a b c = fastFromList [a,b,c]
+
+parseModInv :: MyParser Modifier
+parseModInv = char 'i' >> return Invert
+
+parseModInvNum :: MyParser [Modifier]
+parseModInvNum = do
+              char 'i'
+              n <- pInteger
+              return $ replicate (round n) Invert
+
+parseModDrop :: MyParser [Modifier]
+parseModDrop = do
+              char 'd'
+              n <- pInteger
+              return $ [Drop $ round n]
+
+parseModOpen :: MyParser Modifier
+parseModOpen = char 'o' >> return Open
+
+parseModRange :: MyParser Modifier
+parseModRange = parseIntNote >>= \i -> return $ Range $ fromIntegral i
+
+parseModifiers :: MyParser [Modifier]
+parseModifiers = (many1 parseModOpen) <|> parseModDrop <|> (fmap pure parseModRange) <|> try parseModInvNum <|> (many1 parseModInv)  <?> "modifier"
+
+pModifiers :: MyParser (TPat [Modifier])
+pModifiers = wrapPos $ TPat_Atom Nothing <$> parseModifiers
+
+pChord :: (Enum a, Num a, Parseable a, Enumerable a) => TPat a -> MyParser (TPat a)
+pChord i = do
+    char '\''
+    n <- pPart pVocable <?> "chordname"
+    ms <- option [] $ many1 $ (char '\'' >> pPart pModifiers)
+    return $ TPat_Chord id i n ms
+
+
+-----
+
 data Modifier = Range Int | Drop Int | Invert | Open deriving Eq
 
 instance Show Modifier where
@@ -649,73 +707,22 @@ applyModifier (Drop i) ds = case length ds < i of
                           where (xs,ys) = splitAt s ds
                                 s = length ds - i
 
+applyModifierPat :: (Num a, Enum a) => Pattern [a] -> Pattern [Modifier] -> Pattern [a]
+applyModifierPat pat modsP = do
+                        chord <- pat
+                        ms <- modsP
+                        return $ foldl (flip applyModifier) chord ms
 
+applyModifierPatSeq :: (Num a, Enum a) => (a -> b) -> Pattern [a] -> [Pattern [Modifier]] -> Pattern [b]
+applyModifierPatSeq f pat [] = fmap (map f) pat
+applyModifierPatSeq f pat (mP:msP) = applyModifierPatSeq f (applyModifierPat pat mP) msP
 
-parseModInv :: MyParser Modifier
-parseModInv = char 'i' >> return Invert
-
--- parseManyInv :: MyParser (TPat [Modifier])
--- parseManyInv = try $ pure <$> many1 (do parseModInv
---                                         notFollowedBy (pPart $ fmap pure pInteger)
---                                         return Invert)
---             <|> do char 'i'
---                    nP <- pPart $ fmap pure pInteger
---                    let msP = do
---                           n <- nP
---                           return $ replicate (round n) Invert
---                    return $ msP
---
---
--- parseManyDrop :: MyParser (TPat [Modifier])
--- parseManyDrop = do
---             char 'd'
---             nP <- pPart pIntegral
---             let msP = do
---                   n <- nP
---                   return $ [Drop n]
---             return $ msP
-
-parseModOpen :: MyParser Modifier
-parseModOpen = char 'o' >> return Open
-
-parseModRange :: MyParser Modifier
-parseModRange = parseIntNote >>= \i -> return $ Range $ fromIntegral i
-
--- pModifiers :: MyParser (TPat [Modifier])
--- pModifiers = wrapPos $ (try parseManyInv
---           -- <|> try parseManyDrop
---           <|> TPat_Atom Nothing <$> try (many1 parseModOpen)
---           <|> TPat_Atom Nothing <$> (try $ fmap pure parseModRange)
---           <?> "modifier")
-
-chordToPat :: (Num a, Enum a) => (a -> b) -> Pattern a -> Pattern String -> Pattern [Modifier] -> Pattern b
-chordToPat f noteP nameP modsP = uncollect $ do
+chordToPatSeq :: (Num a, Enum a) => (a -> b) -> Pattern a -> Pattern String -> [Pattern [Modifier]] -> Pattern b
+chordToPatSeq f noteP nameP modsP = uncollect $ do
                     n  <- noteP
                     name <- nameP
-                    ms <- modsP
                     let chord = map (+ n) (fromMaybe [0] $ lookup name chordTable)
-                    return $ fmap f $ foldl (flip applyModifier) chord ms
-
-parseModifiers :: MyParser [Modifier]
-parseModifiers = try (many1 parseModInv) <|> try (many1 parseModOpen) <|> (try $ fmap pure parseModRange) <?> "modifier"
-
-pModifiers :: MyParser (TPat [Modifier])
-pModifiers = wrapPos $ TPat_Atom Nothing <$> parseModifiers
-
-instance Parseable [Modifier] where
-  tPatParser = pModifiers
-  doEuclid = euclidOff
-
-instance Enumerable [Modifier] where
-  fromTo a b = fastFromList [a,b]
-  fromThenTo a b c = fastFromList [a,b,c]
-
-pChord :: (Enum a, Num a, Parseable a, Enumerable a) => TPat a -> MyParser (TPat a)
-pChord i = do
-    char '\''
-    n <- pPart pVocable
-    ms <- option [] $ many1 $ try (char '\'' >> pPart pModifiers)
-    return $ TPat_Chord id i n (TPat_Stack ms)
+                    applyModifierPatSeq f (return chord) modsP
 
 ---
 
