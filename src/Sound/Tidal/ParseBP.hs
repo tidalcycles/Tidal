@@ -29,7 +29,7 @@ import           Data.Bifunctor (first)
 import           Data.Colour
 import           Data.Colour.Names
 import           Data.Functor.Identity (Identity)
-import           Data.List (intercalate, (\\))
+import           Data.List (intercalate)
 import           Data.Maybe
 import           Data.Ratio
 import           Data.Typeable (Typeable)
@@ -42,7 +42,7 @@ import qualified Text.Parsec.Prim
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.UI
 import           Sound.Tidal.Core
-import           Sound.Tidal.Chords (chordTable)
+import           Sound.Tidal.Chords
 import           Sound.Tidal.Utils (fromRight)
 
 data TidalParseError = TidalParseError {parsecError :: ParseError,
@@ -682,89 +682,3 @@ pChord i = do
     n <- pPart pVocable <?> "chordname"
     ms <- option [] $ many1 $ (char '\'' >> pPart pModifiers)
     return $ TPat_Chord id i n ms
-
-
------
-
-data Modifier = Range Int | Drop Int | Invert | Open deriving Eq
-
-instance Show Modifier where
-  show (Range i) = "Range " ++ show i
-  show (Drop i) = "Drop " ++ show i
-  show Invert = "Invert"
-  show Open = "Open"
-
-applyModifier :: (Enum a, Num a) => Modifier -> [a] -> [a]
-applyModifier (Range i) ds = take i $ concatMap (\x -> map (+ x) ds) [0,12..]
-applyModifier Invert [] = []
-applyModifier Invert (d:ds) = ds ++ [d+12]
-applyModifier Open ds = case length ds > 2 of
-                              True -> [ (ds !! 0 - 12), (ds !! 2 - 12), (ds !! 1) ] ++ reverse (take (length ds - 3) (reverse ds))
-                              False -> ds
-applyModifier (Drop i) ds = case length ds < i of
-                              True -> ds
-                              False -> (ds!!s - 12):(xs ++ drop 1 ys)
-                          where (xs,ys) = splitAt s ds
-                                s = length ds - i
-
-applyModifierPat :: (Num a, Enum a) => Pattern [a] -> Pattern [Modifier] -> Pattern [a]
-applyModifierPat pat modsP = do
-                        chord <- pat
-                        ms <- modsP
-                        return $ foldl (flip applyModifier) chord ms
-
-applyModifierPatSeq :: (Num a, Enum a) => (a -> b) -> Pattern [a] -> [Pattern [Modifier]] -> Pattern [b]
-applyModifierPatSeq f pat [] = fmap (map f) pat
-applyModifierPatSeq f pat (mP:msP) = applyModifierPatSeq f (applyModifierPat pat mP) msP
-
-chordToPatSeq :: (Num a, Enum a) => (a -> b) -> Pattern a -> Pattern String -> [Pattern [Modifier]] -> Pattern b
-chordToPatSeq f noteP nameP modsP = uncollect $ do
-                    n  <- noteP
-                    name <- nameP
-                    let chord = map (+ n) (fromMaybe [0] $ lookup name chordTable)
-                    applyModifierPatSeq f (return chord) modsP
-
----
-
-sameDur :: Event a -> Event a -> Bool
-sameDur e1 e2 = (whole e1 == whole e2) && (part e1 == part e2)
---
-groupEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [[Event a]]
-groupEventsBy _ [] = []
-groupEventsBy f (e:es) = eqs:(groupEventsBy f (es \\ eqs))
-                   where eqs = e:[x | x <- es, f e x]
---
--- assumes that all events in the list have same whole/part
-collectEvent :: [Event a] -> Maybe (Event [a])
-collectEvent [] = Nothing
-collectEvent l@(e:_) = Just $ e {context = con, value = vs}
-                      where con = unionC $ map context l
-                            vs = map value l
-                            unionC [] = Context []
-                            unionC ((Context is):cs) = Context (is ++ iss)
-                                                 where Context iss = unionC cs
---
-collectEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [Event [a]]
-collectEventsBy f es = remNo $ map collectEvent (groupEventsBy f es)
-                     where
-                     remNo [] = []
-                     remNo (Nothing:cs) = remNo cs
-                     remNo ((Just c):cs) = c : (remNo cs)
---
-collectBy :: Eq a => (Event a -> Event a -> Bool) -> Pattern a -> Pattern [a]
-collectBy f = withEvents (collectEventsBy f)
---
-collect :: Eq a => Pattern a -> Pattern [a]
-collect = collectBy sameDur
---
-uncollectEvent :: Event [a] -> [Event a]
-uncollectEvent e = [e {value = (value e)!!i, context = resolveContext i (context e)} | i <-[0..length (value e) - 1]]
-               where resolveContext i (Context xs) = case length xs <= i of
-                                                                  True -> Context []
-                                                                  False -> Context [xs!!i]
---
-uncollectEvents :: [Event [a]] -> [Event a]
-uncollectEvents = concatMap uncollectEvent
---
-uncollect :: Pattern [a] -> Pattern a
-uncollect = withEvents uncollectEvents
