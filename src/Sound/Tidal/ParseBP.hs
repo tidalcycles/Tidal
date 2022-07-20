@@ -78,7 +78,7 @@ data TPat a where
    TPat_Repeat :: Int -> (TPat a) -> (TPat a)
    TPat_EnumFromTo :: (TPat a) -> (TPat a) -> (TPat a)
    TPat_Var :: String -> (TPat a)
-   TPat_Chord :: (Num a, Enum a, Parseable a, Enumerable a) => (a -> b) -> (TPat a) -> (TPat String) -> [TPat [Modifier]] -> (TPat b)
+   TPat_Chord :: (Num b, Enum b, Parseable b, Enumerable b) => (b -> a) -> (TPat b) -> (TPat String) -> [TPat [Modifier]] -> (TPat a)
 
 instance Show a => Show (TPat a) where
   show = tShow
