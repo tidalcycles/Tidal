@@ -81,7 +81,22 @@ data TPat a where
    TPat_Chord :: (Num b, Enum b, Parseable b, Enumerable b) => (b -> a) -> (TPat b) -> (TPat String) -> [TPat [Modifier]] -> (TPat a)
 
 instance Show a => Show (TPat a) where
-  show = tShow
+  show (TPat_Atom c v) = "TPat_Atom (" ++ show c ++ ") (" ++ show v ++ ")"
+  show (TPat_Fast t v) = "TPat_Fast (" ++ show t ++ ") (" ++ show v ++ ")"
+  show (TPat_Slow t v) = "TPat_Slow (" ++ show t ++ ") (" ++ show v ++ ")"
+  show (TPat_DegradeBy x r v) = "TPat_DegradeBy (" ++ show x ++ ") (" ++ show r ++ ") (" ++ show v ++ ")"
+  show (TPat_CycleChoose x vs) = "TPat_CycleChoose (" ++ show x ++ ") (" ++ show vs ++ ")"
+  show (TPat_Euclid a b c v) = "TPat_Euclid (" ++ show a ++ ") (" ++ show b ++ ") (" ++ show c ++ ") " ++ show v ++ ")"
+  show (TPat_Stack vs) = "TPat_Stack " ++ show vs
+  show (TPat_Polyrhythm mSteprate vs) = "TPat_Polyrhythm (" ++ show mSteprate ++ ") " ++ show vs
+  show (TPat_Seq vs) = "TPat_Seq " ++ show vs
+  show TPat_Silence = "TPat_Silence"
+  show TPat_Foot = "TPat_Foot"
+  show (TPat_Elongate r v) = "TPat_Elongate (" ++ show r ++ ") (" ++ show v ++ ")"
+  show (TPat_Repeat r v) = "TPat_Repeat (" ++ show r ++ ") (" ++ show v ++ ")"
+  show (TPat_EnumFromTo a b) = "TPat_EnumFromTo (" ++ show a ++ ") (" ++ show b ++ ")"
+  show (TPat_Var s) = "TPat_Var " ++ show s
+  show (TPat_Chord g iP nP msP) = "TPat_Chord (" ++ (show $ fmap g iP) ++ ") (" ++ show nP ++ ") (" ++ show msP ++ ")"
 
 instance Functor TPat where
   fmap f (TPat_Atom c v) = TPat_Atom c (f v)
@@ -129,6 +144,7 @@ tShow (TPat_Seq vs) = snd $ steps_seq vs
 tShow TPat_Silence = "silence"
 tShow (TPat_EnumFromTo a b) = "unwrap $ fromTo <$> (" ++ tShow a ++ ") <*> (" ++ tShow b ++ ")"
 tShow (TPat_Var s) = "getControl " ++ s
+tShow (TPat_Chord f n name mods) = "chord (" ++ (tShow $ fmap f n) ++ ") (" ++ tShow name ++ ") [" ++ (intercalate ", " $ map tShow mods) ++ "]"
 tShow a = "can't happen? " ++ show a
 
 
