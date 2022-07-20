@@ -144,7 +144,7 @@ tShow (TPat_Seq vs) = snd $ steps_seq vs
 tShow TPat_Silence = "silence"
 tShow (TPat_EnumFromTo a b) = "unwrap $ fromTo <$> (" ++ tShow a ++ ") <*> (" ++ tShow b ++ ")"
 tShow (TPat_Var s) = "getControl " ++ s
-tShow (TPat_Chord f n name mods) = "chord (" ++ (tShow $ fmap f n) ++ ") (" ++ tShow name ++ ") [" ++ (intercalate ", " $ map tShow mods) ++ "]"
+tShow (TPat_Chord f n name mods) = "chord (" ++ (tShow $ fmap f n) ++ ") (" ++ tShow name ++ ")" ++ tShowList mods
 tShow a = "can't happen? " ++ show a
 
 
