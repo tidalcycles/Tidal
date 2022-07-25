@@ -22,13 +22,15 @@ import Prelude hiding ((<*), (*>))
 
 import Data.Ratio as C
 
+import Sound.Tidal.Common as C
 import Sound.Tidal.Config as C
 import Sound.Tidal.Control as C
-import Sound.Tidal.Core as C
+import Sound.Tidal.Core as C hiding (rev, cat)
 import Sound.Tidal.Params as C
 import Sound.Tidal.ParseBP as C
 import Sound.Tidal.Pattern as C
 import Sound.Tidal.Scales as C
+import Sound.Tidal.Sequence as C hiding (rev, cat)
 import Sound.Tidal.Show as C
 import Sound.Tidal.Simple as C
 import Sound.Tidal.Stream as C

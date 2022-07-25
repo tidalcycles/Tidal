@@ -29,6 +29,7 @@ library
 
   Exposed-modules:     Sound.Tidal.Bjorklund
                        Sound.Tidal.Chords
+                       Sound.Tidal.Common
                        Sound.Tidal.Config
                        Sound.Tidal.Control
                        Sound.Tidal.Context
@@ -40,6 +41,7 @@ library
                        Sound.Tidal.Scales
                        Sound.Tidal.Safe.Context
                        Sound.Tidal.Safe.Boot
+                       Sound.Tidal.Sequence
                        Sound.Tidal.Show
                        Sound.Tidal.Simple
                        Sound.Tidal.Stream
