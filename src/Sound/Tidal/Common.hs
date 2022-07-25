@@ -6,15 +6,15 @@ import Sound.Tidal.Core as Pat
 
 import Sound.Tidal.Sequence as Seq
 
-class Transformable a where
-  rev :: a -> a
-  cat :: [a] -> a
+class Transformable f where
+  rev :: f a -> f a
+  cat :: [f a] -> f a
 
-instance Transformable (Pattern a) where
+instance Transformable Pattern where
   rev = Pat.rev
   cat = Pat.cat
 
-instance Transformable (Branch a) where
+instance Transformable Branch where
   rev = Seq.rev
   cat = Seq.cat
 
