@@ -14,11 +14,11 @@ instance Transformable Pattern where
   rev = Pat.rev
   cat = Pat.cat
 
-instance Transformable Branch where
+instance Transformable Sequence where
   rev = Seq.rev
   cat = Seq.cat
 
-seqPat :: Seq.Branch a -> Pat.Pattern a
+seqPat :: Seq.Sequence a -> Pat.Pattern a
 seqPat (Seq.Atom _ a) = pure a
 seqPat (Seq.Silence _) = Pat.silence
 seqPat (Seq.Sequence bs) = Pat.timecat $ map (\b -> (seqSpan b, seqPat b)) bs
@@ -31,10 +31,3 @@ seqPat b@(Seq.Stack JustifyRight bs) =
 seqPat b@(Seq.Stack Centre bs) = Pat.stack $
     map (\b' -> rotR (1.5/(seqSpan b / seqSpan b')) $ _fastGap (seqSpan b / seqSpan b') $ seqPat b') bs
 
-{-
-data Strategy = JustifyBoth
-              | Expand
-              | TruncateMax
-              | TruncateMin
-              | RepeatLCM
--}

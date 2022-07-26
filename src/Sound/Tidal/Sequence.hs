@@ -32,23 +32,26 @@ data Strategy = JustifyLeft
               | Centre
               deriving Show
 
-data Branch a = Atom Rational a
-              | Silence Rational
-              | Sequence [Branch a]
-              | Stack Strategy [Branch a]
+data Sequence a = Atom Rational a
+                | Silence Rational
+                | Sequence [Sequence a]
+                | Stack Strategy [Sequence a]
               deriving Show
 
-rev :: Branch a -> Branch a
+rev :: Sequence a -> Sequence a
 rev (Sequence bs) = Sequence $ reverse $ map rev bs
 rev (Stack strategy bs) = Stack strategy $ map rev bs
 rev b = b
 
-cat :: [Branch a] -> Branch a
+cat :: [Sequence a] -> Sequence a
 cat [] = Silence 0
 cat [b] = b
 cat bs = Sequence bs
 
-seqSpan :: Branch a -> Rational
+ply :: Int -> Sequence a -> Sequence a
+ply n (Atom d v) = Sequence $ replicate n $ Atom (d / (toRational n)) v
+
+seqSpan :: Sequence a -> Rational
 seqSpan (Atom s _) = s
 seqSpan (Silence s) = s
 seqSpan (Sequence bs) = sum $ map seqSpan bs
