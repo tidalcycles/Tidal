@@ -1,4 +1,3 @@
-
 {-
     Sequence.hs - core representation of Tidal sequences
     Copyright (C) 2022 Alex McLean and contributors
@@ -16,6 +15,8 @@
     You should have received a copy of the GNU General Public License
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
+
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 module Sound.Tidal.Sequence where
 
@@ -38,6 +39,8 @@ data Sequence a = Atom Rational a
                 | Stack Strategy [Sequence a]
               deriving Show
 
+
+
 rev :: Sequence a -> Sequence a
 rev (Sequence bs) = Sequence $ reverse $ map rev bs
 rev (Stack strategy bs) = Stack strategy $ map rev bs
@@ -57,11 +60,45 @@ seqSpan (Silence s) = s
 seqSpan (Sequence bs) = sum $ map seqSpan bs
 seqSpan (Stack _ []) = 0
 seqSpan (Stack RepeatLCM [b]) = seqSpan b
-seqSpan (Stack RepeatLCM (b:bs)) = foldr lcmRational (seqSpan b) $ map seqSpan bs
+seqSpan (Stack RepeatLCM (b:bs)) = foldr (lcmRational . seqSpan) (seqSpan b) (b:bs)
 seqSpan (Stack TruncateMin (b:bs)) = minimum $ map seqSpan bs
 seqSpan (Stack _ bs) = maximum $ map seqSpan bs
 
-lcmRational a b = (lcm (f a) (f b)) % d
+lcmRational :: Rational->Rational-> Rational
+lcmRational a b = lcm (f a) (f b) % d
   where d = lcm (denominator a) (denominator b)
         f x = numerator x * (d `div` denominator x)
-        
+
+stratApply::Strategy -> [Sequence a] ->Sequence a
+stratApply JustifyLeft bs =
+  let a = maximum $ map seqSpan bs
+      b = map (\x -> Sequence (x: [Silence (a - seqSpan x)])) bs
+  in Stack JustifyLeft b
+
+stratApply JustifyRight bs =
+  let a = maximum $ map seqSpan bs
+      b = map (\x -> Sequence (Silence (a - seqSpan x) : [x])) bs
+  in Stack JustifyRight b
+
+stratApply Centre bs =
+  let a = maximum $ map seqSpan bs
+      b = map( \x -> Sequence ([Silence ((a - seqSpan x)/2)] ++ [x] ++ [Silence ((a - seqSpan x)/2)])) bs
+  in Stack Centre b
+
+stratApply RepeatLCM bs@(x:xs) =
+  let a = foldr (lcmRational . seqSpan) (seqSpan x) xs
+      b = map (\x ->  Sequence $ replicate (fromIntegral $ numerator $ a/seqSpan x) x) bs
+  in Stack RepeatLCM b
+
+--JusttifyBoth
+
+--Expand
+
+--TruncateMax
+
+--TruncateMin
+
+-- Functor for sequences
+-- Applicative
+-- Monad 
+
