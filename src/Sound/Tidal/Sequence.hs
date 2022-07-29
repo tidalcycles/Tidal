@@ -17,6 +17,8 @@
 -}
 
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Avoid lambda" #-}
 
 module Sound.Tidal.Sequence where
 
@@ -39,7 +41,25 @@ data Sequence a = Atom Rational a
                 | Stack Strategy [Sequence a]
               deriving Show
 
+instance Functor Sequence where
+  fmap f (Atom x y) = Atom x (f y)
+  fmap f (Silence x) = Silence x
+  fmap f (Sequence x) = Sequence $ map (fmap f) x
+  fmap f (Stack x y) = Stack x (map (fmap f) y)
 
+instance Applicative Sequence where
+  pure x = Atom 1 x
+  (Atom x f) <*> something = fmap f something
+  Silence x <*> something = Silence x
+  Sequence f <*> something = Sequence $ map (<*> something) f
+  Stack x f <*> something = Stack x (map (<*> something) f)
+
+instance Monad Sequence where
+  return x = Atom 1 x
+  Atom x y >>= f = f y
+  Silence x >>= f = Silence x
+  Sequence x >>= f = Sequence $ map (>>= f) x
+  Stack x y >>= f = Stack x (map (>>= f) y)
 
 rev :: Sequence a -> Sequence a
 rev (Sequence bs) = Sequence $ reverse $ map rev bs
