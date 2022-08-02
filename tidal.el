@@ -5,9 +5,9 @@
 
 ;; Author: alex@slab.org
 ;; Homepage: https://github.com/tidalcycles/Tidal
-;; Version: 0
+;; Version: 0.0.1
 ;; Keywords: tools
-;; Package-Requires: ((haskell-mode "16") (emacs "24"))
+;; Package-Requires: ((haskell-mode "16") (emacs "25.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -32,7 +32,6 @@
 ;; facilities are courtesy `find-lisp'.
 
 ;;; Code:
-
 
 (require 'scheme)
 (require 'comint)
@@ -63,22 +62,16 @@
          (cond
           ((string-equal system-type "windows-nt")
            '(("path" . "echo off && for /f %a in ('ghc-pkg latest tidal') do (for /f \"tokens=2\" %i in ('ghc-pkg describe %a ^| findstr data-dir') do (echo %i))")
-             ("separator" . "\\")
-             ))
+             ("separator" . "\\")))
           ((or (string-equal system-type "darwin") (string-equal system-type "gnu/linux"))
            '(("path" . "echo -n data-dir: && ghc -e 'import Paths_tidal' -e 'getDataDir>>=putStr' 2>/dev/null")
-             ("separator" . "/")
-             ))
-          )
-         ))
+             ("separator" . "/") )))))
     (concat
      (string-trim (cadr (split-string
                          (shell-command-to-string (cdr (assoc "path" filepath))) ":")))
      (cdr (assoc "separator" filepath))
-     "BootTidal.hs")
-    )
-  "*Full path to BootTidal.hs (inferred by introspecting ghc-pkg package db)."
-)
+     "BootTidal.hs"))
+  "*Full path to BootTidal.hs (inferred by introspecting ghc-pkg package db).")
 
 (defvar tidal-literate-p
   t
@@ -90,7 +83,7 @@
 (make-variable-buffer-local 'tidal-literate-p)
 
 (defun tidal-unlit (s)
-  "Remove bird literate marks in S."
+  "Remove bird literate markup in S."
   (replace-regexp-in-string "^> " "" s))
 
 (defun tidal-intersperse (e l)
@@ -110,8 +103,7 @@
      nil
      tidal-interpreter-arguments)
     (tidal-see-output))
-  (tidal-send-string (concat ":script " tidal-boot-script-path))
-)
+  (tidal-send-string (concat ":script " tidal-boot-script-path)))
 
 (defun tidal-see-output ()
   "Show haskell output."
@@ -120,9 +112,9 @@
     (delete-other-windows)
     (with-current-buffer tidal-buffer
       (let ((window (display-buffer (current-buffer))))
-	(goto-char (point-max))
-	(save-selected-window
-	  (set-window-point window (point-max)))))))
+        (goto-char (point-max))
+        (save-selected-window
+          (set-window-point window (point-max)))))))
 
 (defun tidal-quit-haskell ()
   "Quit haskell."
@@ -140,49 +132,47 @@
       (cons c (tidal-chunk-string n (substring s n))))))
 
 (defun tidal-send-string (s)
+  "Send string S to tidal."
   (if (comint-check-proc tidal-buffer)
       (let ((cs (tidal-chunk-string 64 (concat s "\n"))))
         (mapcar (lambda (c) (comint-send-string tidal-buffer c)) cs))
-    (error "no tidal process running?")))
+    (error "No tidal process running?")))
 
 (defun tidal-transform-and-store (f s)
-  "Transform example text into compilable form."
+  "Transform text into compilable form (Using file F and string S)."
   (with-temp-file f
     (mapc (lambda (module)
-	    (insert (concat module "\n")))
-	  tidal-modules)
+            (insert (concat module "\n")))
+          tidal-modules)
     (insert "main = do\n")
     (insert (if tidal-literate-p (tidal-unlit s) s))))
 
 
 (defun tidal-get-now ()
-  "Store the current cycle position in a variable called 'now'."
+  "Store the current cycle position in a tidal variable called `now'."
   (interactive)
   (tidal-send-string "now' <- getNow")
   (tidal-send-string "let now = nextSam now'")
   (tidal-send-string "let retrig = (now `rotR`)")
   (tidal-send-string "let fadeOut n = spread' (_degradeBy) (retrig $ slow n $ envL)")
-  (tidal-send-string "let fadeIn n = spread' (_degradeBy) (retrig $ slow n $ (1-) <$> envL)")
-
-  )
+  (tidal-send-string "let fadeIn n = spread' (_degradeBy) (retrig $ slow n $ (1-) <$> envL)"))
 
 (defun tidal-run-line ()
   "Send the current line to the interpreter."
   (interactive)
-  ;(tidal-get-now)
+  ;;(tidal-get-now)
   (let* ((s (buffer-substring (line-beginning-position)
-			      (line-end-position)))
-	 (s* (if tidal-literate-p
-		 (tidal-unlit s)
-	       s)))
+                              (line-end-position)))
+         (s* (if tidal-literate-p
+                 (tidal-unlit s)
+               s)))
     (tidal-send-string s*))
   (pulse-momentary-highlight-one-line (point))
-  (forward-line)
-  )
+  (forward-line))
 
 (defun tidal-eval-multiple-lines ()
   "Eval the current region in the interpreter as a single line."
-  ;(tidal-get-now)
+  ;;(tidal-get-now)
   (mark-paragraph)
   (let* ((s (buffer-substring-no-properties (region-beginning)
                                             (region-end)))
@@ -193,158 +183,143 @@
     (tidal-send-string s*)
     (tidal-send-string ":}")
     (mark-paragraph)
-    (pulse-momentary-highlight-region (mark) (point))
-    )
-  )
+    (pulse-momentary-highlight-region (mark) (point))))
 
 (defun tidal-run-multiple-lines ()
   "Send the current region to the interpreter as a single line."
   (interactive)
   (if (>= emacs-major-version 25)
       (save-mark-and-excursion
-       (tidal-eval-multiple-lines))
+        (tidal-eval-multiple-lines))
     (save-excursion
-     (tidal-eval-multiple-lines))
-    )
-  )
+      (tidal-eval-multiple-lines))))
 
 (defun tidal-run-d1 ()
   "Send the first instance of d1 to the interpreter as a single line."
   (interactive)
   (goto-char 0)
   (search-forward "d1" nil nil 1)
-  (tidal-run-multiple-lines)
-  )
+  (tidal-run-multiple-lines))
 
 (defun tidal-run-d2 ()
   "Send the d2 to the interpreter as a single line."
   (interactive)
   (goto-char 0)
   (search-forward "d2" nil nil 1)
-  (tidal-run-multiple-lines)
-  )
+  (tidal-run-multiple-lines))
 
 (defun tidal-run-d3 ()
   "Send the d3 to the interpreter as a single line."
   (interactive)
   (goto-char 0)
   (search-forward "d3" nil nil 1)
-  (tidal-run-multiple-lines)
-  )
+  (tidal-run-multiple-lines))
 
 (defun tidal-run-d4 ()
   "Send the d4 to the interpreter as a single line."
   (interactive)
   (goto-char 0)
   (search-forward "d4" nil nil 1)
-  (tidal-run-multiple-lines)
-  )
+  (tidal-run-multiple-lines))
+
 (defun tidal-run-d5 ()
   "Send the d5 to the interpreter as a single line."
   (interactive)
   (goto-char 0)
   (search-forward "d5" nil nil 1)
-  (tidal-run-multiple-lines)
-  )
+  (tidal-run-multiple-lines))
+
 (defun tidal-run-d6 ()
   "Send the d6 to the interpreter as a single line."
   (interactive)
   (goto-char 0)
   (search-forward "d6" nil nil 1)
-  (tidal-run-multiple-lines)
-  )
+  (tidal-run-multiple-lines))
+
 (defun tidal-run-d7 ()
   "Send the d7 to the interpreter as a single line."
   (interactive)
   (goto-char 0)
   (search-forward "d7" nil nil 1)
-  (tidal-run-multiple-lines)
-  )
+  (tidal-run-multiple-lines))
+
 (defun tidal-run-d8 ()
   "Send the d9 to the interpreter as a single line."
   (interactive)
   (goto-char 0)
   (search-forward "d8" nil nil 1)
-  (tidal-run-multiple-lines)
-  )
+  (tidal-run-multiple-lines))
+
 (defun tidal-run-d9 ()
   "Send the d9 to the interpreter as a single line."
   (interactive)
   (goto-char 0)
   (search-forward "d9" nil nil 1)
-  (tidal-run-multiple-lines)
-  )
-
+  (tidal-run-multiple-lines))
 
 (defun tidal-stop-d1 ()
-  "send d1 $ silence as a single line"
+  "Send d1 $ silence as a single line."
   (interactive)
   (tidal-send-string ":{")
   (tidal-send-string " mapM_ ($ silence) [d1]")
-  (tidal-send-string ":}")
-  )
+  (tidal-send-string ":}"))
 
 (defun tidal-stop-d2 ()
-  "send d1 $ silence as a single line"
+  "Send d1 $ silence as a single line."
   (interactive)
   (tidal-send-string ":{")
   (tidal-send-string " mapM_ ($ silence) [d2]")
-  (tidal-send-string ":}")
-  )
+  (tidal-send-string ":}"))
+
 (defun tidal-stop-d3 ()
-  "send d1 $ silence as a single line"
+  "Send d1 $ silence as a single line."
   (interactive)
   (tidal-send-string ":{")
   (tidal-send-string " mapM_ ($ silence) [d3]")
-  (tidal-send-string ":}")
-  )
+  (tidal-send-string ":}"))
 
 
 (defun tidal-stop-d4 ()
-  "send d1 $ silence as a single line"
+  "Send d1 $ silence as a single line."
   (interactive)
   (tidal-send-string ":{")
   (tidal-send-string " mapM_ ($ silence) [d4]")
-  (tidal-send-string ":}")
-  )
+  (tidal-send-string ":}"))
 
 (defun tidal-stop-d5 ()
-  "send d1 $ silence as a single line"
+  "Send d1 $ silence as a single line."
   (interactive)
   (tidal-send-string ":{")
   (tidal-send-string " mapM_ ($ silence) [d5]")
-  (tidal-send-string ":}")
-  )
+  (tidal-send-string ":}"))
+
 (defun tidal-stop-d6 ()
-  "send d1 $ silence as a single line"
+  "Send d1 $ silence as a single line."
   (interactive)
   (tidal-send-string ":{")
   (tidal-send-string " mapM_ ($ silence) [d6]")
-  (tidal-send-string ":}")
-  )
+  (tidal-send-string ":}"))
 
 (defun tidal-stop-d7 ()
-  "send d1 $ silence as a single line"
+  "Send d1 $ silence as a single line."
   (interactive)
   (tidal-send-string ":{")
   (tidal-send-string " mapM_ ($ silence) [d7]")
-  (tidal-send-string ":}")
-  )
+  (tidal-send-string ":}"))
 
 (defun tidal-stop-d8 ()
-  "send d1 $ silence as a single line"
+  "Send d1 $ silence as a single line."
   (interactive)
   (tidal-send-string ":{")
   (tidal-send-string " mapM_ ($ silence) [d8]")
-  (tidal-send-string ":}")
-  )
+  (tidal-send-string ":}"))
+
 (defun tidal-stop-d9 ()
-  "send d1 $ silence as a single line"
+  "Send d1 $ silence as a single line."
   (interactive)
   (tidal-send-string ":{")
   (tidal-send-string " mapM_ ($ silence) [d9]")
-  (tidal-send-string ":}")
-  )
+  (tidal-send-string ":}"))
 
 (defun tidal-run-region ()
   "Place the region in a do block and compile."
@@ -367,17 +342,18 @@
   (tidal-send-string "main"))
 
 (defun tidal-interrupt-haskell ()
+  "Interrupt running process."
   (interactive)
   (if (comint-check-proc tidal-buffer)
       (with-current-buffer tidal-buffer
-	(interrupt-process (get-buffer-process (current-buffer))))
-    (error "no tidal process running?")))
+        (interrupt-process (get-buffer-process (current-buffer))))
+    (error "No tidal process running?")))
 
 (defvar tidal-mode-map nil
   "Tidal keymap.")
 
 (defun tidal-mode-keybindings (map)
-  "Haskell Tidal keybindings."
+  "Haskell Tidal keybindings MAP."
   (define-key map [?\C-c ?\C-s] 'tidal-start-haskell)
   (define-key map [?\C-c ?\C-v] 'tidal-see-output)
   (define-key map [?\C-c ?\C-q] 'tidal-quit-haskell)
@@ -407,7 +383,7 @@
   (define-key map [?\C-v ?\C-8] 'tidal-stop-d8)
   (define-key map [?\C-v ?\C-9] 'tidal-stop-d9))
 
-(defun turn-on-tidal-keybindings ()
+(defun tidal-turn-on-keybindings ()
   "Haskell Tidal keybindings in the local map."
   (local-set-key [?\C-c ?\C-s] 'tidal-start-haskell)
   (local-set-key [?\C-c ?\C-v] 'tidal-see-output)
@@ -439,31 +415,31 @@
   (local-set-key [?\C-v ?\C-9] 'tidal-stop-d9))
 
 (defun tidal-mode-menu (map)
-  "Haskell Tidal menu."
+  "Haskell Tidal menu MAP."
   (define-key map [menu-bar tidal]
-    (cons "Haskell-Tidal" (make-sparse-keymap "Haskell-Tidal")))
+              (cons "Haskell-Tidal" (make-sparse-keymap "Haskell-Tidal")))
   (define-key map [menu-bar tidal help]
-    (cons "Help" (make-sparse-keymap "Help")))
+              (cons "Help" (make-sparse-keymap "Help")))
   (define-key map [menu-bar tidal expression]
-    (cons "Expression" (make-sparse-keymap "Expression")))
+              (cons "Expression" (make-sparse-keymap "Expression")))
   (define-key map [menu-bar tidal expression load-buffer]
-    '("Load buffer" . tidal-load-buffer))
+              '("Load buffer" . tidal-load-buffer))
   (define-key map [menu-bar tidal expression run-main]
-    '("Run main" . tidal-run-main))
+              '("Run main" . tidal-run-main))
   (define-key map [menu-bar tidal expression run-region]
-    '("Run region" . tidal-run-region))
+              '("Run region" . tidal-run-region))
   (define-key map [menu-bar tidal expression run-multiple-lines]
-    '("Run multiple lines" . tidal-run-multiple-lines))
+              '("Run multiple lines" . tidal-run-multiple-lines))
   (define-key map [menu-bar tidal expression run-line]
-    '("Run line" . tidal-run-line))
+              '("Run line" . tidal-run-line))
   (define-key map [menu-bar tidal haskell]
-    (cons "Haskell" (make-sparse-keymap "Haskell")))
+              (cons "Haskell" (make-sparse-keymap "Haskell")))
   (define-key map [menu-bar tidal haskell quit-haskell]
-    '("Quit haskell" . tidal-quit-haskell))
+              '("Quit haskell" . tidal-quit-haskell))
   (define-key map [menu-bar tidal haskell see-output]
-    '("See output" . tidal-see-output))
+              '("See output" . tidal-see-output))
   (define-key map [menu-bar tidal haskell start-haskell]
-    '("Start haskell" . tidal-start-haskell)))
+              '("Start haskell" . tidal-start-haskell)))
 
 (unless tidal-mode-map
   (let ((map (make-sparse-keymap "Haskell-Tidal")))
@@ -484,9 +460,7 @@
   (turn-on-font-lock))
 
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.ltidal$" . literate-tidal-mode))
-;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/haskell-mode/") ;required by olig1905 on linux
-;;(require 'haskell-mode) ;required by olig1905 on linux
+(add-to-list 'auto-mode-alist '("\\.ltidal\\'" . literate-tidal-mode))
 
 ;;;###autoload
 (define-derived-mode
@@ -500,7 +474,7 @@
   (turn-on-font-lock))
 
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.tidal$" . tidal-mode))
+(add-to-list 'auto-mode-alist '("\\.tidal\\'" . tidal-mode))
 
 (provide 'tidal)
 ;;; tidal.el ends here
