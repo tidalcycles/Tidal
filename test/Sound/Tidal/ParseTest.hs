@@ -160,6 +160,42 @@ run =
         compareP (Arc 0 2)
           ("c'major c'minor" :: Pattern Note)
           ("'major 'minor")
+      it "can invert chords" $ do
+        compareP (Arc 0 2)
+          ("c'major'i" :: Pattern Note)
+          ("[4,7,12]")
+      it "can invert chords using a number" $ do
+        compareP (Arc 0 2)
+          ("c'major'i2" :: Pattern Note)
+          ("[7,12,16]")
+      it "spread chords over a range" $ do
+        compareP (Arc 0 2)
+          ("c'major'5 e'min7'5" :: Pattern Note)
+          ("[0,4,7,12,16] [4,7,11,14,16]")
+      it "can open chords" $ do
+        compareP (Arc 0 2)
+          ("c'major'o" :: Pattern Note)
+          ("[-12,-5,4]")
+      it "can drop notes in a chord" $ do
+        compareP (Arc 0 2)
+          ("c'major'd1" :: Pattern Note)
+          ("[-5,0,4]")
+      it "can apply multiple modifiers" $ do
+        compareP (Arc 0 2)
+          ("c'major'i'5" :: Pattern Note)
+          ("[4,7,12,16,19]")
+      it "can pattern modifiers" $ do
+        compareP (Arc 0 2)
+          ("c'major'<i 5>" :: Pattern Note)
+          ("<[4,7,12] [0,4,7,12,16]>")
+      it "can pattern chord names" $ do
+        compareP (Arc 0 2)
+          ("c'<major minor>'i" :: Pattern Note)
+          ("<[4,7,12] [3,7,12]>")
+      it "can pattern chord notes" $ do
+        compareP (Arc 0 2)
+          ("<c e>'<major minor>'i" :: Pattern Note)
+          ("<[4,7,12] [7,11,16]>")
       it "handle trailing and leading whitespaces" $ do
         compareP (Arc 0 1)
           ("  bd  " :: Pattern String)

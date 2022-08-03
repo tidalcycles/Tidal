@@ -274,3 +274,44 @@ chordL p = (\name -> fromMaybe [] $ lookup name chordTable) <$> p
 chordList :: String
 chordList = unwords $ map fst (chordTable :: [(String, [Int])])
 
+data Modifier = Range Int | Drop Int | Invert | Open deriving Eq
+
+instance Show Modifier where
+  show (Range i) = "Range " ++ show i
+  show (Drop i) = "Drop " ++ show i
+  show Invert = "Invert"
+  show Open = "Open"
+
+applyModifier :: (Enum a, Num a) => Modifier -> [a] -> [a]
+applyModifier (Range i) ds = take i $ concatMap (\x -> map (+ x) ds) [0,12..]
+applyModifier Invert [] = []
+applyModifier Invert (d:ds) = ds ++ [d+12]
+applyModifier Open ds = case length ds > 2 of
+                              True -> [ (ds !! 0 - 12), (ds !! 2 - 12), (ds !! 1) ] ++ reverse (take (length ds - 3) (reverse ds))
+                              False -> ds
+applyModifier (Drop i) ds = case length ds < i of
+                              True -> ds
+                              False -> (ds!!s - 12):(xs ++ drop 1 ys)
+                          where (xs,ys) = splitAt s ds
+                                s = length ds - i
+
+applyModifierPat :: (Num a, Enum a) => Pattern [a] -> Pattern [Modifier] -> Pattern [a]
+applyModifierPat pat modsP = do
+                        ch <- pat
+                        ms <- modsP
+                        return $ foldl (flip applyModifier) ch ms
+
+applyModifierPatSeq :: (Num a, Enum a) => (a -> b) -> Pattern [a] -> [Pattern [Modifier]] -> Pattern [b]
+applyModifierPatSeq f pat [] = fmap (map f) pat
+applyModifierPatSeq f pat (mP:msP) = applyModifierPatSeq f (applyModifierPat pat mP) msP
+
+chordToPatSeq :: (Num a, Enum a) => (a -> b) -> Pattern a -> Pattern String -> [Pattern [Modifier]] -> Pattern b
+chordToPatSeq f noteP nameP modsP = uncollect $ do
+                    n  <- noteP
+                    name <- nameP
+                    let ch = map (+ n) (fromMaybe [0] $ lookup name chordTable)
+                    applyModifierPatSeq f (return ch) modsP
+
+-- | turns a given pattern of some Num type, a pattern of chord names and a list of patterns of modifiers into a chord pattern
+chord :: (Num a, Enum a) =>  Pattern a -> Pattern String -> [Pattern [Modifier]] -> Pattern a
+chord = chordToPatSeq id
