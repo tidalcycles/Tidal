@@ -94,16 +94,21 @@
 (defun tidal-start-haskell ()
   "Start haskell."
   (interactive)
-  (if (comint-check-proc tidal-buffer)
-      (error "A tidal process is already running")
-    (apply
-     'make-comint
-     "tidal"
-     tidal-interpreter
-     nil
-     tidal-interpreter-arguments)
-    (tidal-see-output))
-  (tidal-send-string (concat ":script " tidal-boot-script-path)))
+  (save-window-excursion
+    (if (comint-check-proc tidal-buffer)
+        (when (yes-or-no-p
+               "A tidal process is already running.  Do you want to restart it? ")
+          (tidal-restart-haskell))
+      (apply
+       'make-comint-in-buffer
+       "tidal"
+       tidal-buffer
+       tidal-interpreter
+       nil
+       tidal-interpreter-arguments)
+      (tidal-see-output))
+    (tidal-send-string (concat ":script " tidal-boot-script-path)))
+  (switch-to-buffer-other-window tidal-buffer))
 
 (defun tidal-see-output ()
   "Show haskell output."
@@ -121,6 +126,13 @@
   (interactive)
   (kill-buffer tidal-buffer)
   (delete-other-windows))
+
+(defun tidal-restart-haskell ()
+  "Restart haskell."
+  (interactive)
+  (let ((kill-buffer-query-functions nil))
+    (tidal-quit-haskell))
+  (tidal-start-haskell))
 
 (defun tidal-chunk-string (n s)
   "Split a string S into chunks of N characters."
