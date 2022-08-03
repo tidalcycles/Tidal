@@ -37,7 +37,7 @@ import           Control.DeepSeq (NFData)
 import           Control.Monad ((>=>))
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
-import           Data.List (delete, findIndex)
+import           Data.List (delete, findIndex, (\\))
 import           Data.Word (Word8)
 import           Data.Data (Data) -- toConstr
 import           Data.Typeable (Typeable)
@@ -348,7 +348,7 @@ empty :: Pattern a
 empty = Pattern {query = const []}
 
 queryArc :: Pattern a -> Arc -> [Event a]
-queryArc p a = query p $ State a Map.empty 
+queryArc p a = query p $ State a Map.empty
 
 -- | Splits queries that span cycles. For example `query p (0.5, 1.5)` would be
 -- turned into two queries, `(0.5,1)` and `(1,1.5)`, and the results
@@ -429,7 +429,7 @@ compressArcTo (Arc s e) = compressArc (Arc (cyclePos s) (e - sam s))
 
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = empty
-_fastGap r p = splitQueries $ 
+_fastGap r p = splitQueries $
   withResultArc (\(Arc s e) -> Arc (sam s + ((s - sam s)/r'))
                              (sam s + ((e - sam s)/r'))
                  ) $ p {query = f}
@@ -835,3 +835,52 @@ getList _  = Nothing
 valueToPattern :: Value -> Pattern Value
 valueToPattern (VPattern pat) = pat
 valueToPattern v = pure v
+
+--- functions relating to chords/patterns of lists
+
+
+sameDur :: Event a -> Event a -> Bool
+sameDur e1 e2 = (whole e1 == whole e2) && (part e1 == part e2)
+
+groupEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [[Event a]]
+groupEventsBy _ [] = []
+groupEventsBy f (e:es) = eqs:(groupEventsBy f (es \\ eqs))
+                   where eqs = e:[x | x <- es, f e x]
+
+-- assumes that all events in the list have same whole/part
+collectEvent :: [Event a] -> Maybe (Event [a])
+collectEvent [] = Nothing
+collectEvent l@(e:_) = Just $ e {context = con, value = vs}
+                      where con = unionC $ map context l
+                            vs = map value l
+                            unionC [] = Context []
+                            unionC ((Context is):cs) = Context (is ++ iss)
+                                                 where Context iss = unionC cs
+
+collectEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [Event [a]]
+collectEventsBy f es = remNo $ map collectEvent (groupEventsBy f es)
+                     where
+                     remNo [] = []
+                     remNo (Nothing:cs) = remNo cs
+                     remNo ((Just c):cs) = c : (remNo cs)
+
+-- | collects all events satisfying the same constraint into a list
+collectBy :: Eq a => (Event a -> Event a -> Bool) -> Pattern a -> Pattern [a]
+collectBy f = withEvents (collectEventsBy f)
+
+-- | collects all events occuring at the exact same time into a list
+collect :: Eq a => Pattern a -> Pattern [a]
+collect = collectBy sameDur
+
+uncollectEvent :: Event [a] -> [Event a]
+uncollectEvent e = [e {value = (value e)!!i, context = resolveContext i (context e)} | i <-[0..length (value e) - 1]]
+               where resolveContext i (Context xs) = case length xs <= i of
+                                                                  True -> Context []
+                                                                  False -> Context [xs!!i]
+
+uncollectEvents :: [Event [a]] -> [Event a]
+uncollectEvents = concatMap uncollectEvent
+
+-- | merges all values in a list into one pattern by stacking the values
+uncollect :: Pattern [a] -> Pattern a
+uncollect = withEvents uncollectEvents
