@@ -25,6 +25,7 @@ module Sound.Tidal.Sequence where
 import Data.List(inits)
 import Prelude hiding (span)
 import Data.Ratio
+import Sound.Tidal.Bjorklund
 
 data Strategy = JustifyLeft
               | JustifyRight
@@ -86,6 +87,12 @@ funcMap ((Atom x f):xs) y =
       pTill = last p
       q = map (\x -> fmap f x) pTill
   in q ++ funcMap xs (drop (length pTill) y)
+funcMap (Gap x:xs) y=
+  let t = seqSpan (Gap x)
+      p = takeWhile (\q -> sum(map seqSpan q) <= t) $ inits y
+      pTill = last p
+      q = Gap (sum $ map seqSpan pTill)
+  in q : funcMap xs (drop (length pTill) y)
 
 -- | Takes two sequences, which have been obtained using stratApply, or forTwo, and then splits the second sequence with respect
 -- to the break points of the first
@@ -131,6 +138,7 @@ forTwo :: Sequence a1 -> Sequence a2 -> ([Sequence a1], [Sequence a2])
 forTwo a b =
   let p = lcmRational (seqSpan a) (seqSpan b)
   in (unwrap $ replicate (fromIntegral  $ numerator $ p/seqSpan a) a, unwrap $ replicate (fromIntegral $ numerator $ p/seqSpan b) b)
+
 
 -- | Unwrapping a sequence referes to removing the redundancies that are present in the code
 unwrap:: [Sequence a] -> [Sequence a]
@@ -192,7 +200,7 @@ stratApply Expand bs =
       b = map (\x -> expand x $ a/seqSpan x) bs
   in Stack b
 
-stratApply Squeeze bs = 
+stratApply Squeeze bs =
   let a = minimum $ map seqSpan bs
       b = map (\x -> expand x $ a/seqSpan x) bs
   in Stack b
@@ -257,22 +265,50 @@ reduce (Stack x:xs) = Stack (reduce x):reduce xs
 reduce (x:xs) = x:reduce xs
 reduce [] = []
 
+-- | Speed up the sequence
 fast::Rational->Sequence a-> Sequence a
 fast n (Atom x s) = Atom (x/n) s
 fast n (Gap x) = Gap (x/n)
 fast n (Sequence s) = Sequence $ map (\y -> fast n y) s
 fast n (Stack x) = Stack $ map(\y -> fast n y) x
 
+-- | Slow down the sequence
+slow::Rational->Sequence a->Sequence a
+slow n = fast (1/n)
+
+-- | Repeat the sequence a desired number of times without changing duration
+rep::Eq a=>Int -> Sequence a-> Sequence a
+rep n (Atom x s) = Atom (realToFrac n * x) s
+rep n (Gap x) = Gap (realToFrac  n*x)
+rep n (Sequence s) = Sequence $ reduce $  concat $ replicate n s
+rep n (Stack s) = Stack $ map (\x-> rep n x) s
+
+-- | Repeat sequence desired number of times, and squeeze it into the duration of the original sequence
+repSqueeze::Eq a=>Int -> Sequence a-> Sequence a
+repSqueeze n s = fast (realToFrac n) $ rep n s
+
+-- | Takes a list of sequences, and if aligned returns a stack. Otherwise applies default method and returns
+stack::[Sequence a] -> Sequence a
+stack s =
+  let a = foldl (\acc x->if seqSpan x==acc then acc else -1) (seqSpan $ head s) s
+  in if a == (-1) then stratApply Expand s else Stack s
+
+-- | Obtain a euclidean pattern
+euclid::(Int, Int)-> Sequence String
+euclid (a,b)  =
+  let x = bjorklund (a, b)
+      y = map (\t -> if t then Atom 1 "x" else Gap 1) x
+  in Sequence $ reduce y
 
 {-
    EXISTING STUFF IN TIDAL
    Method for showing
-   [] -> Play in double the speed
-   *n -> plays it n times within the step
+   [] -> Play in to fit that measure - I think this is actually the same as Sequence [Sequence a]
+   *n -> plays it n times within the step - replaced by repSqueeze 
    /m -> Plays only once in m steps
-   !n -> Repeat it n times
-   [,] -> Overlays(Polyrhythm)
-   {,} -> Polymeter
+   !n -> Repeat it n times -Replaced by rep
+   [,] -> Overlays(Polyrhythm) - JustifyBoth does this
+   {,} -> Polymeter - repeatLCM does this
    < > Plays one among for each iteration
    () -> Euclidean structures
    -}
