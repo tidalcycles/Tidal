@@ -24,12 +24,15 @@ import Data.Ratio as C
 
 import Sound.Tidal.Config as C
 import Sound.Tidal.Control as C
-import Sound.Tidal.Core as C hiding (rev, cat, ply)
+import Sound.Tidal.Core as C hiding (rev, cat, ply, stack, euclid, fast, slow)
 import Sound.Tidal.Params as C
 import Sound.Tidal.ParseBP as C
 import Sound.Tidal.Pattern as C
 import Sound.Tidal.Scales as C
-import Sound.Tidal.Sequence as C hiding (rev, cat, ply)
+import Sound.Tidal.Sequence as C hiding (rev, cat, ply, stack, 
+                                         -- not yet implemented / namespace conflicts 
+                                         euclid, unwrap, fast, slow
+                                        )
 import Sound.Tidal.Show as C
 import Sound.Tidal.Simple as C
 import Sound.Tidal.Stream as C
@@ -46,18 +49,32 @@ import Sound.Tidal.Sequence as Seq
 class Transformable f where
   rev :: f a -> f a
   cat :: [f a] -> f a
+  stack :: [f a] -> f a
+  euclid :: f Int -> f Int -> f String -> f String
+  fast :: f Rational -> f a -> f a
+  slow :: f Rational -> f a -> f a
 
 instance Transformable Pattern where
   rev = Pat.rev
   cat = Pat.cat
+  stack = Pat.stack
+  euclid = Pat.euclid
+  fast = Pat.fast
+  slow = Pat.slow
 
 instance Transformable Sequence where
   rev = Seq.rev
   cat = Seq.cat
+  stack = Seq.stack
+  -- euclid = Seq.euclid - doesn't yet match
+  -- fast = Seq.fast
+  -- slow = Seq.slow
+
+{-
 
 seqPat :: Seq.Sequence a -> Pat.Pattern a
 seqPat (Seq.Atom _ a) = pure a
-seqPat (Seq.Silence _) = Pat.silence
+seqPat (Seq.Gap _) = Pat.silence
 seqPat (Seq.Sequence bs) = Pat.timecat $ map (\b -> (seqSpan b, seqPat b)) bs
 seqPat (Seq.Stack Expand bs) = Pat.stack $ map seqPat bs
 seqPat b@(Seq.Stack JustifyLeft bs) =
@@ -68,7 +85,6 @@ seqPat b@(Seq.Stack JustifyRight bs) =
 seqPat b@(Seq.Stack Centre bs) = Pat.stack $
     map (\b' -> rotR (1.5/(seqSpan b / seqSpan b')) $ _fastGap (seqSpan b / seqSpan b') $ seqPat b') bs
 
-{-
 data Strategy = JustifyBoth
               | Expand
               | TruncateMax
