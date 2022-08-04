@@ -91,6 +91,7 @@
   (when l
     (cons e (cons (car l) (tidal-intersperse e (cdr l))))))
 
+;;;###autoload
 (defun tidal-start-haskell ()
   "Start haskell."
   (interactive)
@@ -109,6 +110,10 @@
       (tidal-see-output))
     (tidal-send-string (concat ":script " tidal-boot-script-path)))
   (switch-to-buffer-other-window tidal-buffer))
+
+;;;###autoload
+(defalias 'run-tidal #'tidal-start-haskell
+  "Start tidal in the haskell interpreter.")
 
 (defun tidal-see-output ()
   "Show haskell output."
@@ -206,132 +211,38 @@
     (save-excursion
       (tidal-eval-multiple-lines))))
 
-(defun tidal-run-d1 ()
-  "Send the first instance of d1 to the interpreter as a single line."
-  (interactive)
-  (goto-char 0)
-  (search-forward "d1" nil nil 1)
-  (tidal-run-multiple-lines))
+(defmacro tidal-create-runner-run (name)
+  "Macro to generate `d1' style pattern runners with NAME."
+  (let ((run-fname (intern (concat "tidal-run-"  name))))
+    `(defun ,run-fname ()
+       ,(format "Send the %s interpreter as a single line." name)
+       (interactive)
+       (goto-char 0)
+       (search-forward ,name nil nil 1)
+       (tidal-run-multiple-lines))))
 
-(defun tidal-run-d2 ()
-  "Send the d2 to the interpreter as a single line."
-  (interactive)
-  (goto-char 0)
-  (search-forward "d2" nil nil 1)
-  (tidal-run-multiple-lines))
+(defmacro tidal-create-runner-stop (name)
+  "Macro to generate `d1' style pattern runners with NAME."
+  (let ((stop-fname (intern (concat "tidal-stop-"  name))))
+    `(defun ,stop-fname ()
+       ,(format "Send %s $ silence as a single line." name)
+       (interactive)
+       (tidal-send-string ":{")
+       (tidal-send-string " mapM_ ($ silence) [,name]")
+       (tidal-send-string ":}"))))
 
-(defun tidal-run-d3 ()
-  "Send the d3 to the interpreter as a single line."
-  (interactive)
-  (goto-char 0)
-  (search-forward "d3" nil nil 1)
-  (tidal-run-multiple-lines))
+(defun tidal-create-runner (name)
+  "Generate `d1' style pattern runners with NAME.
+Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
+  (eval `(tidal-create-runner-run ,name))
+  (eval `(tidal-create-runner-stop ,name)))
 
-(defun tidal-run-d4 ()
-  "Send the d4 to the interpreter as a single line."
-  (interactive)
-  (goto-char 0)
-  (search-forward "d4" nil nil 1)
-  (tidal-run-multiple-lines))
+;; Generate the functions `tidal-run-d1' and `tidal-stop-d1'
+(tidal-create-runner "d1")
 
-(defun tidal-run-d5 ()
-  "Send the d5 to the interpreter as a single line."
-  (interactive)
-  (goto-char 0)
-  (search-forward "d5" nil nil 1)
-  (tidal-run-multiple-lines))
-
-(defun tidal-run-d6 ()
-  "Send the d6 to the interpreter as a single line."
-  (interactive)
-  (goto-char 0)
-  (search-forward "d6" nil nil 1)
-  (tidal-run-multiple-lines))
-
-(defun tidal-run-d7 ()
-  "Send the d7 to the interpreter as a single line."
-  (interactive)
-  (goto-char 0)
-  (search-forward "d7" nil nil 1)
-  (tidal-run-multiple-lines))
-
-(defun tidal-run-d8 ()
-  "Send the d9 to the interpreter as a single line."
-  (interactive)
-  (goto-char 0)
-  (search-forward "d8" nil nil 1)
-  (tidal-run-multiple-lines))
-
-(defun tidal-run-d9 ()
-  "Send the d9 to the interpreter as a single line."
-  (interactive)
-  (goto-char 0)
-  (search-forward "d9" nil nil 1)
-  (tidal-run-multiple-lines))
-
-(defun tidal-stop-d1 ()
-  "Send d1 $ silence as a single line."
-  (interactive)
-  (tidal-send-string ":{")
-  (tidal-send-string " mapM_ ($ silence) [d1]")
-  (tidal-send-string ":}"))
-
-(defun tidal-stop-d2 ()
-  "Send d1 $ silence as a single line."
-  (interactive)
-  (tidal-send-string ":{")
-  (tidal-send-string " mapM_ ($ silence) [d2]")
-  (tidal-send-string ":}"))
-
-(defun tidal-stop-d3 ()
-  "Send d1 $ silence as a single line."
-  (interactive)
-  (tidal-send-string ":{")
-  (tidal-send-string " mapM_ ($ silence) [d3]")
-  (tidal-send-string ":}"))
-
-
-(defun tidal-stop-d4 ()
-  "Send d1 $ silence as a single line."
-  (interactive)
-  (tidal-send-string ":{")
-  (tidal-send-string " mapM_ ($ silence) [d4]")
-  (tidal-send-string ":}"))
-
-(defun tidal-stop-d5 ()
-  "Send d1 $ silence as a single line."
-  (interactive)
-  (tidal-send-string ":{")
-  (tidal-send-string " mapM_ ($ silence) [d5]")
-  (tidal-send-string ":}"))
-
-(defun tidal-stop-d6 ()
-  "Send d1 $ silence as a single line."
-  (interactive)
-  (tidal-send-string ":{")
-  (tidal-send-string " mapM_ ($ silence) [d6]")
-  (tidal-send-string ":}"))
-
-(defun tidal-stop-d7 ()
-  "Send d1 $ silence as a single line."
-  (interactive)
-  (tidal-send-string ":{")
-  (tidal-send-string " mapM_ ($ silence) [d7]")
-  (tidal-send-string ":}"))
-
-(defun tidal-stop-d8 ()
-  "Send d1 $ silence as a single line."
-  (interactive)
-  (tidal-send-string ":{")
-  (tidal-send-string " mapM_ ($ silence) [d8]")
-  (tidal-send-string ":}"))
-
-(defun tidal-stop-d9 ()
-  "Send d1 $ silence as a single line."
-  (interactive)
-  (tidal-send-string ":{")
-  (tidal-send-string " mapM_ ($ silence) [d9]")
-  (tidal-send-string ":}"))
+;; This generates tidal-run-* and tidal-stop-* functions for d1 to d9.
+(mapc #'tidal-create-runner
+      '("d1" "d2" "d3" "d4" "d5" "d6" "d7" "d8" "d9"))
 
 (defun tidal-run-region ()
   "Place the region in a do block and compile."
