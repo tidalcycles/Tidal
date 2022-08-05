@@ -317,6 +317,13 @@ reduce (Stack x:xs) = Stack (reduce x):reduce xs
 reduce (x:xs) = x:reduce xs
 reduce [] = []
 
+
+applyEvery f (Atom x s) = Atom x (f s)
+applyEvery _ (Gap x) = Gap x 
+applyEvery f (Sequence x) = Sequence $ map (applyEvery f) x
+applyEvery f (Stack x) = Stack $ map (applyEvery f) x
+
+
 applyfToSeq :: (t -> a) -> Sequence t -> Sequence a
 applyfToSeq f (Atom x s) = Atom x (f s)
 applyfToSeq _ (Gap x) = Gap x
@@ -363,6 +370,16 @@ _euclid a b s  =
   let x = bjorklund (a, b)
       y = map (\t -> if t then s else Gap (seqSpan s)) x
   in unwrap $ Sequence y
+
+every :: Sequence Int-> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
+every si f sa = mapSeq (applyfToSeq (every' f) si) sa
+
+every' :: (Sequence a -> Sequence a) -> Int -> Sequence a -> Sequence a
+every' f s = _every s f
+
+_every :: Int -> (Sequence a -> Sequence a) -> Sequence a -> Sequence a
+_every n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
+
 
 
 {-
