@@ -107,8 +107,8 @@
        tidal-interpreter
        nil
        tidal-interpreter-arguments)
-      (tidal-see-output))
-    (tidal-send-string (concat ":script " tidal-boot-script-path)))
+      (tidal-see-output)
+      (tidal-send-string (concat ":script " tidal-boot-script-path))))
   (switch-to-buffer-other-window tidal-buffer))
 
 ;;;###autoload
