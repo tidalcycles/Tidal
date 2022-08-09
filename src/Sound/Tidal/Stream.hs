@@ -223,7 +223,7 @@ startStream config oscmap
                                                           ) (oAddress target) (oPort target)
                                         return $ Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}                                        
                    ) oscmap
-       let bpm = (coerce defaultCps) * 60 * (cCyclesPerBeat config)
+       let bpm = (coerce defaultCps) * 60 * (cBeatsPerCycle config)
        abletonLink <- Link.create bpm
        let stream = Stream {sConfig = config,
                             sBusses = bussesMV,
@@ -746,7 +746,7 @@ streamGetcps s = do
   now <- Link.clock (sLink s)
   ss <- Link.createAndCaptureAppSessionState (sLink s)
   bpm <- Link.getTempo ss
-  return $! coerce $ bpm / (cCyclesPerBeat config) / 60
+  return $! coerce $ bpm / (cBeatsPerCycle config) / 60
 
 streamGetnow :: Stream -> IO Double
 streamGetnow s = do
@@ -754,4 +754,4 @@ streamGetnow s = do
   ss <- Link.createAndCaptureAppSessionState (sLink s)
   now <- Link.clock (sLink s)
   beat <- Link.beatAtTime ss now (cQuantum config)
-  return $! coerce $ beat / (cCyclesPerBeat config)
+  return $! coerce $ beat / (cBeatsPerCycle config)

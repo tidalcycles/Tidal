@@ -88,11 +88,11 @@ setNudge actionsMV nudge = modifyMVar_ actionsMV (\actions -> return $ SetNudge 
 timeToCycles' :: Config -> Link.SessionState -> Link.Micros -> IO P.Time
 timeToCycles' config ss time = do
   beat <- Link.beatAtTime ss time (cQuantum config)
-  return $! (toRational beat) / (toRational (cCyclesPerBeat config))
+  return $! (toRational beat) / (toRational (cBeatsPerCycle config))
 
 cyclesToTime :: Config -> Link.SessionState -> P.Time -> IO Link.Micros
 cyclesToTime config ss cyc = do
-  let beat = (fromRational cyc) * (cCyclesPerBeat config)
+  let beat = (fromRational cyc) * (cBeatsPerCycle config)
   Link.timeAtBeat ss beat (cQuantum config)
 
 addMicrosToOsc :: Link.Micros -> O.Time -> O.Time
@@ -109,7 +109,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
         quantum :: CDouble
         quantum = cQuantum config
         cyclesPerBeat :: CDouble
-        cyclesPerBeat = cCyclesPerBeat config
+        cyclesPerBeat = cBeatsPerCycle config
         loopInit :: IO a
         loopInit =
           do
