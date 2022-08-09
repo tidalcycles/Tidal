@@ -22,6 +22,7 @@ import Data.List(inits)
 import Prelude hiding (span)
 import Data.Ratio
 import Sound.Tidal.Bjorklund
+--import Konnakol.Define
 
 data Strategy = JustifyLeft
               | JustifyRight
@@ -188,7 +189,7 @@ forTwo a b =
   in (unwrapper $ replicate (fromIntegral  $ numerator $ p/seqSpan a) a, unwrapper $ replicate (fromIntegral $ numerator $ p/seqSpan b) b)
 
 unwrap::Sequence a -> Sequence a
-unwrap (Sequence x) = Sequence $  unwrapper x
+unwrap (Sequence x) = Sequence $ unwrapper x
 unwrap (Stack x) = Stack $ map unwrap x
 unwrap s = s
 
@@ -309,14 +310,14 @@ expand (Stack x) r = Stack $ map (`expand` r) x
 
 
 -- | Reduce a list of sequences by removing redundancies
-reduce::Eq a=>[Sequence a] -> [Sequence a]
-reduce ((Atom x1 s1):(Atom x2 s2):xs) = if s1==s2 then reduce $ Atom (x1+x2) s1:xs else Atom x1 s1:reduce ( Atom x2 s2:  xs)
+reduce::[Sequence a] -> [Sequence a]
 reduce (Gap x1:Gap x2:xs) =reduce $ Gap (x1+x2):xs
 reduce (Sequence x:xs) = Sequence (reduce x):reduce xs
 reduce (Stack x:xs) = Stack (reduce x):reduce xs
 reduce (x:xs) = x:reduce xs
 reduce [] = []
 
+-- | Applies a function to within a sequence
 applyfToSeq :: (t -> a) -> Sequence t -> Sequence a
 applyfToSeq f (Atom x s) = Atom x (f s)
 applyfToSeq _ (Gap x) = Gap x
@@ -341,14 +342,14 @@ _slow::Rational -> Sequence a -> Sequence a
 _slow n = _fast (1/n)
 
 -- | Repeat the sequence a desired number of times without changing duration
-rep::Eq a=>Int -> Sequence a-> Sequence a
+rep::Int -> Sequence a-> Sequence a
 rep n (Atom x s) = Atom (realToFrac n * x) s
 rep n (Gap x) = Gap (realToFrac  n*x)
 rep n (Sequence s) = Sequence $ reduce $  concat $ replicate n s
 rep n (Stack s) = Stack $ map (rep n) s
 
 -- | Repeat sequence desired number of times, and squeeze it into the duration of the original sequence
-repSqueeze::Eq a=>Int -> Sequence a-> Sequence a
+repSqueeze::Int -> Sequence a-> Sequence a
 repSqueeze n s = _fast (realToFrac n) $ rep n s
 
 -- | Takes a list of sequences, and if aligned returns a stack. Otherwise applies default method and returns
@@ -364,18 +365,90 @@ _euclid a b s  =
       y = map (\t -> if t then s else Gap (seqSpan s)) x
   in unwrap $ Sequence y
 
+every :: Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
+every si f sa = mapSeq (applyfToSeq (every' f) si) sa
 
-{-
-   EXISTING STUFF IN TIDAL
-   Method for showing
-   < > Plays one among for each iteration
-   every method
-   
-   -}
+every' :: (Sequence a -> Sequence a) -> Int -> Sequence a -> Sequence a
+every' f s = _every s f
 
-{-
-  New stuff that I would like to add
-  * Method which takes an integer and splits sequence recursively at those intervals (fitToTime)
-  * 
--}
+_every :: Int -> (Sequence a -> Sequence a) -> Sequence a -> Sequence a
+_every n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
 
+-- makeSeq:: [Syllable] -> Rational -> Sequence Syllable
+-- makeSeq x r =
+--   let a = lcmRational (realToFrac $ length x) r
+
+--       b = concat $ replicate (div (fromIntegral $ numerator a) (length x)) x
+--       c = map (\t -> if t == Gdot then Gap (1/r) else Atom (1/r) t) b
+--   in unwrap $ Sequence c
+
+fromList:: [a] -> Sequence a
+fromList x=  unwrap $ Sequence $ reduce $  map (Atom 1) x
+
+fastFromList ::[a] -> Sequence a
+fastFromList x = unwrap $ Sequence $ reduce $ map (Atom (realToFrac $ (1%length x))) x
+
+listToPat ::[a] -> Sequence a
+listToPat = fastFromList
+
+fastCat ::  [Sequence a]  -> Sequence a
+fastCat x = _fast (sum $ map seqSpan x) $ Sequence (reduce x)
+
+-- | Alias for @fastCat@
+fastcat :: [Sequence a] -> Sequence a
+fastcat = fastCat
+
+fromMaybes :: [Maybe a] -> Sequence a
+fromMaybes = fastcat . map f
+  where f Nothing = Gap 1
+        f (Just x) = Atom 1 x
+
+run :: (Enum a, Num a) => Sequence a -> Sequence a
+run x = unwrap $ (>>= _run) x
+
+_run :: (Enum a, Num a) => a -> Sequence a
+_run n = unwrap $  fastFromList [0 .. n-1]
+
+
+slowCat :: [Sequence a] -> Sequence a
+slowCat x = cat x
+slowcat :: [Sequence a] -> Sequence a
+slowcat = slowCat
+
+-- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
+scan :: (Enum a, Num a) => Sequence a -> Sequence a
+scan x = unwrap $  (>>= _scan) x
+
+_scan :: (Enum a, Num a) => a -> Sequence a
+_scan n = unwrap $ slowcat $ map _run [1 .. n]
+
+-- | Alternate between cycles of the two given patterns
+append :: Sequence a -> Sequence a -> Sequence a
+append a b = cat [a,b]
+
+-- | Alias for 'append'
+slowAppend :: Sequence a -> Sequence a -> Sequence a
+slowAppend = append
+slowappend :: Sequence a -> Sequence a -> Sequence a
+slowappend = append
+
+-- | Like 'append', but twice as fast
+fastAppend :: Sequence a -> Sequence a -> Sequence a
+fastAppend a b = _fast 2 $ append a b
+fastappend :: Sequence a -> Sequence a -> Sequence a
+fastappend = fastAppend
+
+timeCat :: [(Rational, Sequence a)] -> Sequence a
+timeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x
+
+-- | Alias for @timeCat@
+timecat :: [(Rational, Sequence a)] -> Sequence a
+timecat = timeCat
+
+
+
+
+-- Sequence as a temporary part of Konnakol repo
+-- Rewriting Konnakol entirely
+-- Adding all functions
+-- Which platform meeting would be conducted in

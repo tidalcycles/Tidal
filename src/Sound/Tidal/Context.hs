@@ -41,7 +41,10 @@ import Sound.Tidal.Scales as C
 import Sound.Tidal.Sequence as C hiding (rev, cat, ply, stack, 
                                          unwrap, fast, slow,
                                          -- conflicts
-                                         _euclid, _slow, _fast
+                                         _euclid, _slow, _fast,
+                                         timeCat, timecat,fastAppend, fastappend, slowAppend, slowappend, append, 
+                                         fromList, fastFromList, fromMaybes, run, _run, scan, _scan, every, _every, every',
+                                         listToPat, fastcat, fastCat, slowcat, slowCat
                                         )
 import Sound.Tidal.Show as C
 import Sound.Tidal.Simple as C
@@ -81,7 +84,7 @@ instance Transformable Sequence where
   stack = Seq.stack
   -- euclid = Seq.euclid
   fast = Seq.fast
-  -- slow = Seq.slow
+  slow = Seq.slow
 
 seqPat :: Seq.Sequence a -> Pat.Pattern a
 seqPat (Seq.Atom _ a) = pure a
