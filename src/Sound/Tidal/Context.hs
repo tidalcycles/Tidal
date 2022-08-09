@@ -5,7 +5,8 @@ module Sound.Tidal.Context (module C,
                             Sound.Tidal.Context.stack,
                             Sound.Tidal.Context.euclid,
                             Sound.Tidal.Context.fast,
-                            Sound.Tidal.Context.slow
+                            Sound.Tidal.Context.slow,
+                            Sound.Tidal.Context.seqPat
                            ) where
 
 {-
@@ -82,24 +83,8 @@ instance Transformable Sequence where
   fast = Seq.fast
   -- slow = Seq.slow
 
-{-
-
 seqPat :: Seq.Sequence a -> Pat.Pattern a
 seqPat (Seq.Atom _ a) = pure a
 seqPat (Seq.Gap _) = Pat.silence
 seqPat (Seq.Sequence bs) = Pat.timecat $ map (\b -> (seqSpan b, seqPat b)) bs
-seqPat (Seq.Stack Expand bs) = Pat.stack $ map seqPat bs
-seqPat b@(Seq.Stack JustifyLeft bs) =
-  Pat.stack $ map (\b' -> _fastGap (seqSpan b / seqSpan b') $ seqPat b') bs
-seqPat b@(Seq.Stack JustifyRight bs) =
-  Pat.stack $
-    map (\b' -> rotR (1- (1/(seqSpan b / seqSpan b'))) $ _fastGap (seqSpan b / seqSpan b') $ seqPat b') bs
-seqPat b@(Seq.Stack Centre bs) = Pat.stack $
-    map (\b' -> rotR (1.5/(seqSpan b / seqSpan b')) $ _fastGap (seqSpan b / seqSpan b') $ seqPat b') bs
-
-data Strategy = JustifyBoth
-              | Expand
-              | TruncateMax
-              | TruncateMin
-              | RepeatLCM
--}
+seqPat (Seq.Stack bs) = Pat.stack $ map seqPat bs
