@@ -1,4 +1,12 @@
-module Sound.Tidal.Context (module C) where
+module Sound.Tidal.Context (module C, 
+                            Sound.Tidal.Context.rev,
+                            Sound.Tidal.Context.cat,
+                            Sound.Tidal.Context.ply,
+                            Sound.Tidal.Context.stack,
+                            Sound.Tidal.Context.euclid,
+                            Sound.Tidal.Context.fast,
+                            Sound.Tidal.Context.slow
+                           ) where
 
 {-
     Context.hs - For exposing the core TidalCycles libraries
@@ -24,20 +32,21 @@ import Data.Ratio as C
 
 import Sound.Tidal.Config as C
 import Sound.Tidal.Control as C
-import Sound.Tidal.Core as C hiding (rev, cat, ply, stack, euclid, fast, slow)
+import Sound.Tidal.Core as C hiding (rev, cat, stack, fast, slow)
 import Sound.Tidal.Params as C
 import Sound.Tidal.ParseBP as C
 import Sound.Tidal.Pattern as C
 import Sound.Tidal.Scales as C
 import Sound.Tidal.Sequence as C hiding (rev, cat, ply, stack, 
-                                         -- not yet implemented / namespace conflicts 
-                                         euclid, unwrap, fast, slow
+                                         unwrap, fast, slow,
+                                         -- conflicts
+                                         _euclid, _slow, _fast
                                         )
 import Sound.Tidal.Show as C
 import Sound.Tidal.Simple as C
 import Sound.Tidal.Stream as C
 import Sound.Tidal.Transition as C
-import Sound.Tidal.UI as C
+import Sound.Tidal.UI as C hiding (ply, euclid)
 import Sound.Tidal.Version as C
 
 import Sound.Tidal.Pattern as Pat
@@ -49,6 +58,7 @@ import Sound.Tidal.Sequence as Seq
 class Transformable f where
   rev :: f a -> f a
   cat :: [f a] -> f a
+  ply :: f Rational -> f a -> f a
   stack :: [f a] -> f a
   euclid :: f Int -> f Int -> f String -> f String
   fast :: f Rational -> f a -> f a
@@ -57,6 +67,7 @@ class Transformable f where
 instance Transformable Pattern where
   rev = Pat.rev
   cat = Pat.cat
+  ply = Pat.ply
   stack = Pat.stack
   euclid = Pat.euclid
   fast = Pat.fast
@@ -65,9 +76,10 @@ instance Transformable Pattern where
 instance Transformable Sequence where
   rev = Seq.rev
   cat = Seq.cat
+  -- ply = Seq.ply -- doesn't yet match
   stack = Seq.stack
-  -- euclid = Seq.euclid - doesn't yet match
-  -- fast = Seq.fast
+  -- euclid = Seq.euclid
+  fast = Seq.fast
   -- slow = Seq.slow
 
 {-
