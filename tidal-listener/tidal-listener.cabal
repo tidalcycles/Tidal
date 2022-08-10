@@ -26,6 +26,9 @@ library
                        hint,
                        network
   default-language:    Haskell2010
+  if impl(ghc >= 9.4.0)
+    -- https://github.com/haskell-hint/hint/issues/150 + https://github.com/haskell-hint/hint/issues/151 + https://github.com/tidalcycles/Tidal/pull/898
+    buildable: False
 
 executable tidal-listener
   main-is:             Main.hs
@@ -33,3 +36,7 @@ executable tidal-listener
                        tidal-listener
   hs-source-dirs:       app
   default-language:    Haskell2010
+  if impl(ghc >= 9.4.0)
+    -- https://github.com/haskell-hint/hint/issues/150 + https://github.com/haskell-hint/hint/issues/151 + https://github.com/tidalcycles/Tidal/pull/898
+    buildable: False
+
