@@ -45,8 +45,7 @@ startHint = do mIn <- newEmptyMVar
                forkIO $ hintJob mIn mOut
                return (mIn, mOut)
 
-getcps st = do tempo <- readMVar $ T.sTempoMV (sStream st)
-               return (Tempo.cps tempo)
+getcps st = streamGetcps (sStream st)
 
 run :: State -> String -> IO State
 run st code =

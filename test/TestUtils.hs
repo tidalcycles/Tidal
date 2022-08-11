@@ -36,13 +36,17 @@ instance TolerantEq (Event ValueMap) where
 
 -- | Compare the events of two patterns using the given arc
 compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
-compareP a p p' = (sort $ query (stripContext p) $ State a Map.empty) `shouldBe` (sort $ query (stripContext p') $ State a Map.empty)
+compareP a p p' =
+  (sort $ queryArc (stripContext p) a)
+  `shouldBe`
+  (sort $ queryArc (stripContext p') a)
 
 -- | Like @compareP@, but tries to 'defragment' the events
-comparePD :: (Ord a) => Arc -> Pattern a -> Pattern a -> Bool
-comparePD a p p' = compareDefrag es es'
-  where es = query (stripContext p) (State a Map.empty)
-        es' = query (stripContext p') (State a Map.empty)
+comparePD :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
+comparePD a p p' =
+  (sort $ defragParts $ queryArc (stripContext p) a)
+  `shouldBe`
+  (sort $ defragParts $ queryArc (stripContext p') a)
 
 -- | Like @compareP@, but for control patterns, with some tolerance for floating point error
 compareTol :: Arc -> ControlPattern -> ControlPattern -> Bool

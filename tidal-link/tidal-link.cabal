@@ -1,0 +1,87 @@
+cabal-version:       2.4
+name:                tidal-link
+version:             1.0
+synopsis:            Ableton Link integration for Tidal
+-- description:
+homepage:            http://tidalcycles.org/
+license:             GPL-3.0-only
+license-file:        LICENSE
+author:              Pierre Krafft
+maintainer:          Pierre Krafft <kpierre@outlook.com>, Alex McLean <alex@slab.org>
+Stability:           Experimental
+Copyright:           (c) Pierre Krafft and contributors, 2021
+category:            Sound
+build-type:          Simple
+tested-with:         GHC == 9.2.4
+
+extra-source-files:
+  README.md
+  link/**/*.hpp
+  link/**/*.ipp
+  link/**/*.h
+
+description: Ableton Link integration for Tidal, to let Tidal sync with external clocks
+
+library
+  ghc-options: -Wall
+  hs-source-dirs: src/hs
+
+  default-language:    Haskell2010
+
+  Exposed-modules:     Sound.Tidal.Link
+
+  Build-depends:
+      base >=4.8 && <5
+
+  if os(windows)
+    if impl(ghc >= 9.4.0)
+      extra-libraries:
+          c++
+          iphlpapi
+          winmm
+          ws2_32
+    else
+      extra-libraries:
+          stdc++
+          iphlpapi
+          winmm
+          ws2_32
+    cxx-options:
+      -DLINK_PLATFORM_WINDOWS=1 -Wno-multichar -Wno-subobject-linkage
+    cxx-sources: link/extensions/abl_link/src/abl_link.cpp
+  elif os(darwin)
+    extra-libraries:
+        stdc++
+    cxx-options:
+      -DLINK_PLATFORM_MACOSX=1 -std=c++14 -Wno-multichar -Wno-subobject-linkage
+    cxx-sources: link/extensions/abl_link/src/abl_link.cpp
+  else
+    extra-libraries:
+        stdc++
+    cxx-options:
+      -DLINK_PLATFORM_LINUX=1 -std=c++14 -Wno-multichar -Wno-subobject-linkage
+    cxx-sources: link/extensions/abl_link/src/abl_link.cpp
+
+  Build-depends:
+      base >=4.8 && <5
+
+  include-dirs:
+    link/include
+    link/modules/asio-standalone/asio/include
+    link/extensions/abl_link/include
+
+source-repository head
+  type:     git
+  location: https://github.com/tidalcycles/Tidal
+
+executable linktest
+  ghc-options: -Wall
+  hs-source-dirs:
+                 src/hs
+  main-is: Main.hs
+
+  default-language:    Haskell2010
+
+  Build-depends:
+      base >=4.8 && <5,
+      tidal-link

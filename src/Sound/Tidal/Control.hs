@@ -350,21 +350,21 @@ smash' n xs p = slowcat $ map (`slow` p') xs
 
     This adds a bit of echo:
     @
-    d1 $ echo 4 0.5 0.2 $ sound "bd sn"
+    d1 $ echo 4 0.2 0.5 $ sound "bd sn"
     @
 
     The above results in 4 echos, each one 50% quieter than the last, with 1/5th of a cycle between them.
 
     It is possible to reverse the echo:
     @
-    d1 $ echo 4 0.5 (-0.2) $ sound "bd sn"
+    d1 $ echo 4 (-0.2) 0.5 $ sound "bd sn"
     @
 -}
 echo :: Pattern Integer -> Pattern Rational -> Pattern Double -> ControlPattern -> ControlPattern
 echo = tParam3 _echo
 
 _echo :: Integer -> Rational -> Double -> ControlPattern -> ControlPattern
-_echo count time feedback p = stack (p:map (\x -> ((x%1)*time) `rotR` (p |* P.gain (pure $ (* feedback) (fromIntegral x)))) [1..(count-1)])
+_echo count time feedback p = _echoWith count time (|* P.gain (pure $ feedback)) p
 
 {- |
     Allows to apply a function for each step and overlays the result delayed by the given time.
