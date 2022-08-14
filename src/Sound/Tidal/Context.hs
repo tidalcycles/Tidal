@@ -6,7 +6,32 @@ module Sound.Tidal.Context (module C,
                             Sound.Tidal.Context.euclid,
                             Sound.Tidal.Context.fast,
                             Sound.Tidal.Context.slow,
-                            Sound.Tidal.Context.seqPat
+                            Sound.Tidal.Context.seqPat,
+                            Sound.Tidal.Context._euclid,
+                            Sound.Tidal.Context,_slow,
+                            Sound.Tidal.Context._fast,
+                            Sound.Tidal.Context.timeCat, 
+                            Sound.Tidal.Context.timecat,
+                            Sound.Tidal.Context.fastAppend, 
+                            Sound.Tidal.Context.fastappend, 
+                            Sound.Tidal.Context.slowAppend, 
+                            Sound.Tidal.Context.slowappend, 
+                            Sound.Tidal.Context.append,
+                            Sound.Tidal.Context.fromList, 
+                            Sound.Tidal.Context.fastFromList, 
+                            Sound.Tidal.Context.fromMaybes, 
+                            Sound.Tidal.Context.run, 
+                            Sound.Tidal.Context._run, 
+                            Sound.Tidal.Context.scan, 
+                            Sound.Tidal.Context._scan, 
+                            Sound.Tidal.Context.every, 
+                            Sound.Tidal.Context._every, 
+                            Sound.Tidal.Context.every',
+                            Sound.Tidal.Context.listToPat, 
+                            Sound.Tidal.Context.fastcat, 
+                            Sound.Tidal.Context.fastCat, 
+                            Sound.Tidal.Context.slowcat, 
+                            slowCat
                            ) where
 
 {-
@@ -39,9 +64,7 @@ import Sound.Tidal.ParseBP as C
 import Sound.Tidal.Pattern as C
 import Sound.Tidal.Scales as C
 import Sound.Tidal.Sequence as C hiding (rev, cat, ply, stack, 
-                                         unwrap, fast, slow,
-                                         -- conflicts
-                                         _euclid, _slow, _fast,
+                                         unwrap, fast, slow, euclid, _euclid, _slow, _fast,
                                          timeCat, timecat,fastAppend, fastappend, slowAppend, slowappend, append, 
                                          fromList, fastFromList, fromMaybes, run, _run, scan, _scan, every, _every, every',
                                          listToPat, fastcat, fastCat, slowcat, slowCat
@@ -67,6 +90,30 @@ class Transformable f where
   euclid :: f Int -> f Int -> f String -> f String
   fast :: f Rational -> f a -> f a
   slow :: f Rational -> f a -> f a
+  _euclid :: Int -> Int -> f a-> f a
+  _slow :: Rational -> f a -> f a
+  _fast :: Rational -> f a -> f a
+  timeCat :: [(Rational, f a)] -> f a
+  timecat :: [(Rational, f a)] -> f a
+  fastAppend :: f a -> f a -> f a
+  fastappend :: f a -> f a -> f a
+  slowAppend :: f a -> f a -> f a
+  slowappend :: f a -> f a -> f a
+  append :: f a ->  f a -> f a
+  fromList :: [a] -> f a
+  fastFromList :: [a] -> f a
+  fromMaybes :: [Maybe a] -> f a
+  run :: (Enum a, Num a) => f a -> f a
+  _run :: (Enum a, Num a) => a -> f a
+  scan :: (Enum a, Num a) => f a -> f a
+  _scan :: (Enum a, Num a) => a -> f a
+  every :: f Int -> (f b -> f b) -> f b -> f b
+  _every :: Int -> (f a -> f a) -> f a -> f a
+  listToPat :: [a] -> f a
+  fastcat :: [f a] -> f a 
+  fastCat :: [f a] -> f a
+  slowcat :: [f a] -> f a
+  slowCat :: [f a] -> f a
 
 instance Transformable Pattern where
   rev = Pat.rev
@@ -76,15 +123,63 @@ instance Transformable Pattern where
   euclid = Pat.euclid
   fast = Pat.fast
   slow = Pat.slow
+  _euclid = Pat._euclid
+  _slow = Pat._slow
+  _fast = Pat._fast
+  timeCat = Pat.timeCat
+  timecat = Pat.timecat
+  fastAppend = Pat.fastAppend
+  fastappend = Pat.fastappend
+  slowAppend = Pat.slowAppend
+  slowappend = Pat.slowappend
+  append = Pat.append
+  fromList = Pat.fromList
+  fastFromList = Pat.fastFromList
+  fromMaybes = Pat.fromMaybes
+  run = Pat.run
+  _run = Pat._run
+  scan = Pat.scan
+  _scan = Pat._scan
+  every = Pat.every
+  _every  = Pat._every
+  listToPat = Pat.listToPat
+  fastCat = Pat.fastCat
+  fastcat = Pat.fastcat
+  slowcat = Pat.slowcat
+  slowCat = Pat.slowCat
 
 instance Transformable Sequence where
   rev = Seq.rev
   cat = Seq.cat
   -- ply = Seq.ply -- doesn't yet match
   stack = Seq.stack
-  -- euclid = Seq.euclid
+  euclid = Seq.euclid
   fast = Seq.fast
   slow = Seq.slow
+  _euclid = Seq._euclid
+  _slow = Seq._slow
+  _fast = Seq._fast
+  timeCat = Seq.timeCat
+  timecat = Seq.timecat
+  fastAppend = Seq.fastAppend 
+  fastappend = Seq.fastappend
+  slowAppend = Seq.slowAppend 
+  slowappend = Seq.slowappend
+  append = Seq.append
+  fromList = Seq.fromList
+  fastFromList = Seq.fastFromList
+  fromMaybes = Seq.fromMaybes
+  run = Seq.run
+  _run = Seq._run
+  scan = Seq.scan
+  _scan = Seq._scan 
+  every = Seq.every
+  _every = Seq._every
+  listToPat = Seq.listToPat
+  fastCat = Seq.fastCat
+  fastcat = Seq.fastcat
+  slowCat = Seq.slowCat
+  slowcat = Seq.slowcat
 
 seqPat :: Seq.Sequence a -> Pat.Pattern a
 seqPat (Seq.Atom _ a) = pure a
