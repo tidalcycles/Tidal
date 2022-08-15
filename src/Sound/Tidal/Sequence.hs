@@ -358,8 +358,15 @@ stack s =
   let a = foldl (\acc x->if seqSpan x==acc then acc else -1) (seqSpan $ head s) s
   in if a == (-1) then stratApply Expand s else Stack s
 
+euclid :: Sequence Int -> Sequence Int -> Sequence b -> Sequence b
+euclid s1 s2 sa = 
+  let b = fmap _euclid s1
+      c = b <*> s2
+      d = mapSeq c sa
+  in d
+
 -- | Obtain a euclidean pattern 
-_euclid::Int-> Int-> Sequence a -> Sequence a
+_euclid:: Int-> Int-> Sequence a -> Sequence a
 _euclid a b s  =
   let x = bjorklund (a, b)
       y = map (\t -> if t then s else Gap (seqSpan s)) x
@@ -444,11 +451,3 @@ timeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x
 -- | Alias for @timeCat@
 timecat :: [(Rational, Sequence a)] -> Sequence a
 timecat = timeCat
-
-
-
-
--- Sequence as a temporary part of Konnakol repo
--- Rewriting Konnakol entirely
--- Adding all functions
--- Which platform meeting would be conducted in

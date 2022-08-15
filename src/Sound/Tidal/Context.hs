@@ -8,7 +8,7 @@ module Sound.Tidal.Context (module C,
                             Sound.Tidal.Context.slow,
                             Sound.Tidal.Context.seqPat,
                             Sound.Tidal.Context._euclid,
-                            Sound.Tidal.Context,_slow,
+                            Sound.Tidal.Context._slow,
                             Sound.Tidal.Context._fast,
                             Sound.Tidal.Context.timeCat, 
                             Sound.Tidal.Context.timecat,
@@ -26,12 +26,11 @@ module Sound.Tidal.Context (module C,
                             Sound.Tidal.Context._scan, 
                             Sound.Tidal.Context.every, 
                             Sound.Tidal.Context._every, 
-                            Sound.Tidal.Context.every',
                             Sound.Tidal.Context.listToPat, 
                             Sound.Tidal.Context.fastcat, 
                             Sound.Tidal.Context.fastCat, 
                             Sound.Tidal.Context.slowcat, 
-                            slowCat
+                            Sound.Tidal.Context.slowCat
                            ) where
 
 {-
@@ -58,7 +57,10 @@ import Data.Ratio as C
 
 import Sound.Tidal.Config as C
 import Sound.Tidal.Control as C
-import Sound.Tidal.Core as C hiding (rev, cat, stack, fast, slow)
+import Sound.Tidal.Core as C hiding (rev, cat, stack, fast, slow,_slow, slowcat, _fast, timeCat, timecat, fastAppend, fastappend,
+                                      slowAppend, slowappend, append, fromList, fastfromList,fastFromList,  fromMaybes, run, _run, scan, 
+                                      _scan, every, _every,listToPat, fastCat, fastcat, slowCat, slowcat
+                                      )
 import Sound.Tidal.Params as C
 import Sound.Tidal.ParseBP as C
 import Sound.Tidal.Pattern as C
@@ -73,7 +75,7 @@ import Sound.Tidal.Show as C
 import Sound.Tidal.Simple as C
 import Sound.Tidal.Stream as C
 import Sound.Tidal.Transition as C
-import Sound.Tidal.UI as C hiding (ply, euclid)
+import Sound.Tidal.UI as C hiding (ply, euclid,_euclid)
 import Sound.Tidal.Version as C
 
 import Sound.Tidal.Pattern as Pat
