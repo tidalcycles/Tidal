@@ -212,11 +212,16 @@ cat [] = Gap 0
 cat [b] = b
 cat bs = Sequence bs
 
-ply :: Int -> Sequence a -> Sequence a
-ply n (Atom d v) = Sequence $ replicate n $ Atom (d / toRational n) v
-ply n (Gap x) = Sequence $ replicate n $ Gap (x/ toRational n)
-ply n (Sequence x) = unwrap $ Sequence (map (ply n) x)
-ply n (Stack x) =  Stack (map (ply n) x)
+ply :: Sequence Rational -> Sequence a -> Sequence a
+ply sr s =  mapSeq (applyfToSeq _ply sr) s
+
+
+
+_ply :: Rational -> Sequence a -> Sequence a
+_ply n (Atom d v) = Sequence $ reduce $  ((replicate (floor n) $ Atom (d / toRational n) v) ++ [Atom (d - ((floor n)%1) *d /n ) v])
+_ply _ (Gap x) = Gap x
+_ply n (Sequence x) = unwrap $ Sequence (map (_ply n) x)
+_ply n (Stack x) =  Stack (map (_ply n) x)
 
 seqSpan :: Sequence a -> Rational
 seqSpan (Atom s _) = s
@@ -311,6 +316,7 @@ expand (Stack x) r = Stack $ map (`expand` r) x
 
 -- | Reduce a list of sequences by removing redundancies
 reduce::[Sequence a] -> [Sequence a]
+reduce (Atom 0 _:xs) = reduce xs 
 reduce (Gap x1:Gap x2:xs) =reduce $ Gap (x1+x2):xs
 reduce (Sequence x:xs) = Sequence (reduce x):reduce xs
 reduce (Stack x:xs) = Stack (reduce x):reduce xs

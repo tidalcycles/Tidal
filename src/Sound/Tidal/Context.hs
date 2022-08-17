@@ -30,7 +30,8 @@ module Sound.Tidal.Context (module C,
                             Sound.Tidal.Context.fastcat, 
                             Sound.Tidal.Context.fastCat, 
                             Sound.Tidal.Context.slowcat, 
-                            Sound.Tidal.Context.slowCat
+                            Sound.Tidal.Context.slowCat,
+                            Sound.Tidal.Context.ply
                            ) where
 
 {-
@@ -153,7 +154,7 @@ instance Transformable Pattern where
 instance Transformable Sequence where
   rev = Seq.rev
   cat = Seq.cat
-  -- ply = Seq.ply -- doesn't yet match
+  ply = Seq.ply 
   stack = Seq.stack
   euclid = Seq.euclid
   fast = Seq.fast
