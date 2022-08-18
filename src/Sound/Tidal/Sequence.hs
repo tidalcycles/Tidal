@@ -215,8 +215,6 @@ cat bs = Sequence bs
 ply :: Sequence Rational -> Sequence a -> Sequence a
 ply sr s =  mapSeq (applyfToSeq _ply sr) s
 
-
-
 _ply :: Rational -> Sequence a -> Sequence a
 _ply n (Atom d v) = Sequence $ reduce $  ((replicate (floor n) $ Atom (d / toRational n) v) ++ [Atom (d - ((floor n)%1) *d /n ) v])
 _ply _ (Gap x) = Gap x
@@ -386,6 +384,8 @@ every' f s = _every s f
 
 _every :: Int -> (Sequence a -> Sequence a) -> Sequence a -> Sequence a
 _every n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
+
+
 
 -- makeSeq:: [Syllable] -> Rational -> Sequence Syllable
 -- makeSeq x r =

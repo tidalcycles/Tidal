@@ -28,43 +28,31 @@ library
 
   default-language:    Haskell2010
 
-  Exposed-modules:     Sound.Tidal.Link
+  exposed-modules:     Sound.Tidal.Link
 
-  Build-depends:
+  build-depends:
       base >=4.8 && <5
 
   if os(windows)
-    if impl(ghc >= 9.4.0)
-      extra-libraries:
-          c++
-          iphlpapi
-          winmm
-          ws2_32
-    else
-      extra-libraries:
-          stdc++
-          iphlpapi
-          winmm
-          ws2_32
+    extra-libraries:
+      iphlpapi
+      winmm
+      ws2_32
     cxx-options:
       -DLINK_PLATFORM_WINDOWS=1 -Wno-multichar -Wno-subobject-linkage
-    cxx-sources: link/extensions/abl_link/src/abl_link.cpp
   elif os(darwin)
-    extra-libraries:
-        stdc++
     cxx-options:
       -DLINK_PLATFORM_MACOSX=1 -std=c++14 -Wno-multichar -Wno-subobject-linkage
-    cxx-sources: link/extensions/abl_link/src/abl_link.cpp
   else
-    extra-libraries:
-        stdc++
     cxx-options:
       -DLINK_PLATFORM_LINUX=1 -std=c++14 -Wno-multichar -Wno-subobject-linkage
-    cxx-sources: link/extensions/abl_link/src/abl_link.cpp
+  
+  if impl(ghc >= 9.4)
+    build-depends: system-cxx-std-lib
+  else
+    extra-libraries: stdc++
 
-  Build-depends:
-      base >=4.8 && <5
-
+  cxx-sources: link/extensions/abl_link/src/abl_link.cpp
   include-dirs:
     link/include
     link/modules/asio-standalone/asio/include

@@ -76,7 +76,7 @@ import Sound.Tidal.Show as C
 import Sound.Tidal.Simple as C
 import Sound.Tidal.Stream as C
 import Sound.Tidal.Transition as C
-import Sound.Tidal.UI as C hiding (ply, euclid,_euclid)
+import Sound.Tidal.UI as C hiding (_ply,ply, euclid,_euclid)
 import Sound.Tidal.Version as C
 
 import Sound.Tidal.Pattern as Pat
@@ -89,6 +89,7 @@ class Transformable f where
   rev :: f a -> f a
   cat :: [f a] -> f a
   ply :: f Rational -> f a -> f a
+  _ply :: Rational ->f a-> f a
   stack :: [f a] -> f a
   euclid :: f Int -> f Int -> f String -> f String
   fast :: f Rational -> f a -> f a
@@ -122,6 +123,7 @@ instance Transformable Pattern where
   rev = Pat.rev
   cat = Pat.cat
   ply = Pat.ply
+  _ply = Pat._ply
   stack = Pat.stack
   euclid = Pat.euclid
   fast = Pat.fast
@@ -155,6 +157,7 @@ instance Transformable Sequence where
   rev = Seq.rev
   cat = Seq.cat
   ply = Seq.ply 
+  _ply = Seq._ply
   stack = Seq.stack
   euclid = Seq.euclid
   fast = Seq.fast
