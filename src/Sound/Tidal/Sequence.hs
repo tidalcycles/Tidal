@@ -314,7 +314,7 @@ expand (Stack x) r = Stack $ map (`expand` r) x
 
 -- | Reduce a list of sequences by removing redundancies
 reduce::[Sequence a] -> [Sequence a]
-reduce (Atom 0 _:xs) = reduce xs 
+reduce (Atom 0 _:xs) = reduce xs
 reduce (Gap x1:Gap x2:xs) =reduce $ Gap (x1+x2):xs
 reduce (Sequence x:xs) = Sequence (reduce x):reduce xs
 reduce (Stack x:xs) = Stack (reduce x):reduce xs
@@ -363,7 +363,7 @@ stack s =
   in if a == (-1) then stratApply Expand s else Stack s
 
 euclid :: Sequence Int -> Sequence Int -> Sequence b -> Sequence b
-euclid s1 s2 sa = 
+euclid s1 s2 sa =
   let b = fmap _euclid s1
       c = b <*> s2
       d = mapSeq c sa
@@ -457,3 +457,28 @@ timeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x
 -- | Alias for @timeCat@
 timecat :: [(Rational, Sequence a)] -> Sequence a
 timecat = timeCat
+
+(<~) :: Rational -> Sequence a -> Sequence a
+(<~) t (Sequence x) =
+  let (a,b) = splitUp t x
+  in Sequence (b ++ a)
+(<~) t (Stack x) = Stack $ map (t <~) x
+(<~) t x = x
+
+(~>) :: Rational -> Sequence a -> Sequence a
+(~>) t (Sequence x) =
+  let (a,b) = splitUp (seqSpan (Sequence x) - t) x
+  in Sequence (b ++ a)
+(~>) t (Stack x) = Stack $ map (t ~>) x
+(~>) t x = x
+
+splitUp :: Rational -> [Sequence a] -> ([Sequence a], [Sequence a])
+splitUp t x =
+  let a = takeWhile (\q -> sum (map seqSpan q) <=t ) (inits x)
+      pTill =if null a then [] else  last a
+      l = length pTill
+      tTill = sum (map seqSpan pTill)
+      (p,q) = if tTill == t then (pTill, drop l x)  else
+        let (m,n) =  getPartition (x!!l) (t - tTill)
+        in (pTill ++ [m], n : drop (l+1) x)
+  in (p,q)

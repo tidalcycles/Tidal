@@ -60,7 +60,7 @@ import Sound.Tidal.Config as C
 import Sound.Tidal.Control as C
 import Sound.Tidal.Core as C hiding (rev, cat, stack, fast, slow,_slow, slowcat, _fast, timeCat, timecat, fastAppend, fastappend,
                                       slowAppend, slowappend, append, fromList, fastfromList,fastFromList,  fromMaybes, run, _run, scan, 
-                                      _scan, every, _every,listToPat, fastCat, fastcat, slowCat, slowcat
+                                      _scan, every, _every,listToPat, fastCat, fastcat, slowCat, slowcat, (<~),(~>)
                                       )
 import Sound.Tidal.Params as C
 import Sound.Tidal.ParseBP as C
@@ -118,6 +118,8 @@ class Transformable f where
   fastCat :: [f a] -> f a
   slowcat :: [f a] -> f a
   slowCat :: [f a] -> f a
+  (<~) :: Rational -> f a -> f a
+  (~>) :: Rational -> f a -> f a
 
 instance Transformable Pattern where
   rev = Pat.rev
@@ -152,6 +154,8 @@ instance Transformable Pattern where
   fastcat = Pat.fastcat
   slowcat = Pat.slowcat
   slowCat = Pat.slowCat
+  (<~) = Pat.(<~)
+  (~>) = Pat.(~>)
 
 instance Transformable Sequence where
   rev = Seq.rev
@@ -186,6 +190,8 @@ instance Transformable Sequence where
   fastcat = Seq.fastcat
   slowCat = Seq.slowCat
   slowcat = Seq.slowcat
+  (<~) = Seq.(<~)
+  (>~) = Seq.(>~)
 
 seqPat :: Seq.Sequence a -> Pat.Pattern a
 seqPat (Seq.Atom _ a) = pure a
