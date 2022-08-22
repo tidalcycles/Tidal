@@ -70,7 +70,7 @@ instance Applicative Sequence where
     in Stack d
 
 instance Monad Sequence where
-  return x = Atom 1 x
+  return = pure
   Atom _ y >>= f = f y
   Gap x >>= _ = Gap x
   Sequence x >>= f = Sequence $ map (>>= f) x
@@ -458,27 +458,68 @@ timeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x
 timecat :: [(Rational, Sequence a)] -> Sequence a
 timecat = timeCat
 
-(<~) :: Rational -> Sequence a -> Sequence a
-(<~) t (Sequence x) =
-  let (a,b) = splitUp t x
-  in Sequence (b ++ a)
-(<~) t (Stack x) = Stack $ map (t <~) x
-(<~) t x = x
+-- | An alias for @fast@
+density :: Sequence Rational -> Sequence a -> Sequence a
+density = fast
 
-(~>) :: Rational -> Sequence a -> Sequence a
-(~>) t (Sequence x) =
-  let (a,b) = splitUp (seqSpan (Sequence x) - t) x
-  in Sequence (b ++ a)
-(~>) t (Stack x) = Stack $ map (t ~>) x
-(~>) t x = x
+rotL :: Rational -> Sequence a -> Sequence a
+rotL t (Sequence x) = splitUp t x
+rotL t (Stack x) = Stack $ map (t `rotL`) x
+rotL _ x = x
 
-splitUp :: Rational -> [Sequence a] -> ([Sequence a], [Sequence a])
+rotR :: Rational -> Sequence a -> Sequence a
+rotR t (Sequence x) = splitUp (seqSpan (Sequence x) - t) x
+rotR t (Stack x) = Stack $ map (t `rotR`) x
+rotR _ x = x
+
+splitUp :: Rational -> [Sequence a] -> Sequence a
 splitUp t x =
-  let a = takeWhile (\q -> sum (map seqSpan q) <=t ) (inits x)
+  let a = takeWhile (\m -> sum (map seqSpan m) <=t ) (inits x)
       pTill =if null a then [] else  last a
       l = length pTill
       tTill = sum (map seqSpan pTill)
       (p,q) = if tTill == t then (pTill, drop l x)  else
         let (m,n) =  getPartition (x!!l) (t - tTill)
         in (pTill ++ [m], n : drop (l+1) x)
-  in (p,q)
+  in Sequence $ q++p
+
+-- -- | Shifts a sequence back in time by the given amount, expressed in cycles
+-- (<~) :: Sequence Rational -> Sequence a -> Sequence a
+-- (<~) sr s= mapSeq (applyfToSeq rotL sr) s
+
+-- -- | Shifts a pattern forward in time by the given amount, expressed in cycles
+-- (~>) :: Sequence Rational -> Sequence a -> Sequence a
+-- (~>) sr s = mapSeq (applyfToSeq rotR sr) s
+
+iter :: Sequence Int -> Sequence a ->  Sequence a
+iter sr s = 
+  let (a,b) = forTwo sr s
+  in unwrap $  iterer (Sequence a) (Sequence b) 
+
+iterer :: Sequence Int -> Sequence a -> Sequence a
+iterer (Atom _ s) sr = _iter s sr
+iterer (Gap x) _ = Gap x
+iterer (Sequence x) sr = Sequence $ map (\t -> iterer t sr) x
+iterer (Stack x) sr = stack $ map (\t -> iterer t sr) x
+
+_iter :: Int -> Sequence a -> Sequence a
+_iter n p = slowcat $ map (\i -> ((fromIntegral i) % (fromIntegral n)) `rotL` p) [0 .. (n-1)] 
+
+-- | @iter'@ is the same as @iter@, but decrements the starting
+-- subdivision instead of incrementing it.
+iter' :: Sequence Int -> Sequence c ->Sequence c
+iter' sr s= 
+  let (a,b) = forTwo sr s
+  in unwrap $  iterer' (Sequence a) (Sequence b) 
+
+iterer' :: Sequence Int -> Sequence a -> Sequence a
+iterer' (Atom _ s) sr = _iter' s sr
+iterer' (Gap x) _ = Gap x
+iterer' (Sequence x) sr = Sequence $ map (\t -> iterer' t sr) x
+iterer' (Stack x) sr = stack $ map (\t -> iterer' t sr) x
+
+
+_iter' :: Int -> Sequence a -> Sequence a
+_iter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
+
+

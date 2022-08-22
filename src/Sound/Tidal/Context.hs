@@ -1,4 +1,4 @@
-module Sound.Tidal.Context (module C, 
+module Sound.Tidal.Context (module C,
                             Sound.Tidal.Context.rev,
                             Sound.Tidal.Context.cat,
                             Sound.Tidal.Context.ply,
@@ -10,28 +10,36 @@ module Sound.Tidal.Context (module C,
                             Sound.Tidal.Context._euclid,
                             Sound.Tidal.Context._slow,
                             Sound.Tidal.Context._fast,
-                            Sound.Tidal.Context.timeCat, 
+                            Sound.Tidal.Context.timeCat,
                             Sound.Tidal.Context.timecat,
-                            Sound.Tidal.Context.fastAppend, 
-                            Sound.Tidal.Context.fastappend, 
-                            Sound.Tidal.Context.slowAppend, 
-                            Sound.Tidal.Context.slowappend, 
+                            Sound.Tidal.Context.fastAppend,
+                            Sound.Tidal.Context.fastappend,
+                            Sound.Tidal.Context.slowAppend,
+                            Sound.Tidal.Context.slowappend,
                             Sound.Tidal.Context.append,
-                            Sound.Tidal.Context.fromList, 
-                            Sound.Tidal.Context.fastFromList, 
-                            Sound.Tidal.Context.fromMaybes, 
-                            Sound.Tidal.Context.run, 
-                            Sound.Tidal.Context._run, 
-                            Sound.Tidal.Context.scan, 
-                            Sound.Tidal.Context._scan, 
-                            Sound.Tidal.Context.every, 
-                            Sound.Tidal.Context._every, 
-                            Sound.Tidal.Context.listToPat, 
-                            Sound.Tidal.Context.fastcat, 
-                            Sound.Tidal.Context.fastCat, 
-                            Sound.Tidal.Context.slowcat, 
+                            Sound.Tidal.Context.fromList,
+                            Sound.Tidal.Context.fastFromList,
+                            Sound.Tidal.Context.fromMaybes,
+                            Sound.Tidal.Context.run,
+                            Sound.Tidal.Context._run,
+                            Sound.Tidal.Context.scan,
+                            Sound.Tidal.Context._scan,
+                            Sound.Tidal.Context.every,
+                            Sound.Tidal.Context._every,
+                            Sound.Tidal.Context.listToPat,
+                            Sound.Tidal.Context.fastcat,
+                            Sound.Tidal.Context.fastCat,
+                            Sound.Tidal.Context.slowcat,
                             Sound.Tidal.Context.slowCat,
-                            Sound.Tidal.Context.ply
+                            Sound.Tidal.Context.density,
+                            Sound.Tidal.Context.iter,
+                            Sound.Tidal.Context.iter',
+                            Sound.Tidal.Context._iter,
+                            Sound.Tidal.Context._iter',
+                            Sound.Tidal.Context.rotL,
+                            Sound.Tidal.Context.rotR,
+                            -- Sound.Tidal.Context.`<~`,
+                            -- Sound.Tidal.Context.`~>`
                            ) where
 
 {-
@@ -59,28 +67,29 @@ import Data.Ratio as C
 import Sound.Tidal.Config as C
 import Sound.Tidal.Control as C
 import Sound.Tidal.Core as C hiding (rev, cat, stack, fast, slow,_slow, slowcat, _fast, timeCat, timecat, fastAppend, fastappend,
-                                      slowAppend, slowappend, append, fromList, fastfromList,fastFromList,  fromMaybes, run, _run, scan, 
-                                      _scan, every, _every,listToPat, fastCat, fastcat, slowCat, slowcat, (<~),(~>)
+                                      slowAppend, slowappend, append, fromList, fastFromList,  fromMaybes, run, _run, scan,
+                                      _scan, every, _every,listToPat, fastCat, fastcat, slowCat, slowcat,density -- ,(<~), (~>)
                                       )
 import Sound.Tidal.Params as C
 import Sound.Tidal.ParseBP as C
-import Sound.Tidal.Pattern as C
+import Sound.Tidal.Pattern as C hiding (rotL, rotR)
 import Sound.Tidal.Scales as C
-import Sound.Tidal.Sequence as C hiding (rev, cat, ply, stack, 
+import Sound.Tidal.Sequence as C hiding (rev, cat, ply, stack,
                                          unwrap, fast, slow, euclid, _euclid, _slow, _fast,
-                                         timeCat, timecat,fastAppend, fastappend, slowAppend, slowappend, append, 
+                                         timeCat, timecat,fastAppend, fastappend, slowAppend, slowappend, append,
                                          fromList, fastFromList, fromMaybes, run, _run, scan, _scan, every, _every, every',
-                                         listToPat, fastcat, fastCat, slowcat, slowCat
+                                         listToPat, fastcat, fastCat, slowcat, slowCat, density, iter, _iter, iter', _iter', 
+                                         rotL, rotR --, (<~), (~>)
                                         )
 import Sound.Tidal.Show as C
 import Sound.Tidal.Simple as C
 import Sound.Tidal.Stream as C
 import Sound.Tidal.Transition as C
-import Sound.Tidal.UI as C hiding (_ply,ply, euclid,_euclid)
+import Sound.Tidal.UI as C hiding (_ply,ply, euclid,_euclid, iter, _iter, iter', _iter')
 import Sound.Tidal.Version as C
 
 import Sound.Tidal.Pattern as Pat
-import Sound.Tidal.Core as Pat
+import Sound.Tidal.Core as Pat  
 import Sound.Tidal.UI as Pat
 
 import Sound.Tidal.Sequence as Seq
@@ -114,12 +123,19 @@ class Transformable f where
   every :: f Int -> (f b -> f b) -> f b -> f b
   _every :: Int -> (f a -> f a) -> f a -> f a
   listToPat :: [a] -> f a
-  fastcat :: [f a] -> f a 
+  fastcat :: [f a] -> f a
   fastCat :: [f a] -> f a
   slowcat :: [f a] -> f a
   slowCat :: [f a] -> f a
-  (<~) :: Rational -> f a -> f a
-  (~>) :: Rational -> f a -> f a
+  density :: f Rational -> f a-> f a
+  rotL :: Rational -> f a -> f a
+  rotR :: Rational -> f a -> f a
+  iter :: f Int -> f a -> f a
+  iter' :: f Int -> f a -> f a
+  _iter :: Int -> f a -> f a
+  _iter' :: Int -> f a -> f a
+  -- (<~) :: f Rational -> f a -> f a
+  -- (~>) :: f Rational -> f a -> f a
 
 instance Transformable Pattern where
   rev = Pat.rev
@@ -154,13 +170,20 @@ instance Transformable Pattern where
   fastcat = Pat.fastcat
   slowcat = Pat.slowcat
   slowCat = Pat.slowCat
-  (<~) = Pat.(<~)
-  (~>) = Pat.(~>)
+  density = Pat.density
+  rotL = Pat.rotL
+  rotR = Pat.rotR
+  iter = Pat.iter
+  iter' = Pat.iter'
+  _iter = Pat._iter
+  _iter' = Pat._iter'
+  -- (<~) = Pat.(<~)
+  -- (~>) = Pat.(~>)
 
 instance Transformable Sequence where
   rev = Seq.rev
   cat = Seq.cat
-  ply = Seq.ply 
+  ply = Seq.ply
   _ply = Seq._ply
   stack = Seq.stack
   euclid = Seq.euclid
@@ -171,9 +194,9 @@ instance Transformable Sequence where
   _fast = Seq._fast
   timeCat = Seq.timeCat
   timecat = Seq.timecat
-  fastAppend = Seq.fastAppend 
+  fastAppend = Seq.fastAppend
   fastappend = Seq.fastappend
-  slowAppend = Seq.slowAppend 
+  slowAppend = Seq.slowAppend
   slowappend = Seq.slowappend
   append = Seq.append
   fromList = Seq.fromList
@@ -182,7 +205,7 @@ instance Transformable Sequence where
   run = Seq.run
   _run = Seq._run
   scan = Seq.scan
-  _scan = Seq._scan 
+  _scan = Seq._scan
   every = Seq.every
   _every = Seq._every
   listToPat = Seq.listToPat
@@ -190,11 +213,27 @@ instance Transformable Sequence where
   fastcat = Seq.fastcat
   slowCat = Seq.slowCat
   slowcat = Seq.slowcat
-  (<~) = Seq.(<~)
-  (>~) = Seq.(>~)
+  density = Seq.density
+  rotL = Seq.rotL
+  rotR = Seq.rotR
+  iter = Seq.iter
+  iter' = Seq.iter'
+  _iter = Seq._iter
+  _iter' = Seq._iter'
+  -- (<~) = Seq.(<~)
+  -- (>~) = Seq.(>~)
 
-seqPat :: Seq.Sequence a -> Pat.Pattern a
-seqPat (Seq.Atom _ a) = pure a
-seqPat (Seq.Gap _) = Pat.silence
-seqPat (Seq.Sequence bs) = Pat.timecat $ map (\b -> (seqSpan b, seqPat b)) bs
-seqPat (Seq.Stack bs) = Pat.stack $ map seqPat bs
+
+seqPat :: Seq.Sequence a  -> Pat.Pattern a
+seqPat (Seq.Atom x a) =  Pat.slow (fromRational$ toRational x) (pure a)
+seqPat (Seq.Gap x) =  Pat.slow (fromRational $ toRational x) (Pat.silence)
+seqPat (Seq.Sequence bs) = let t = Seq.seqSpan (Seq.Sequence bs) in 
+  Pat.slow (fromRational $ toRational t) $ Pat.timecat $ map (\b -> (seqSpan b, seqPatHelp b)) bs
+seqPat (Seq.Stack bs) = let t = Seq.seqSpan (Seq.Stack bs) in
+   Pat.slow (fromRational $ toRational t) $ Pat.stack $ map seqPat bs
+
+seqPatHelp :: Seq.Sequence a -> Pat.Pattern a
+seqPatHelp (Seq.Atom _ a) = pure a
+seqPatHelp (Seq.Gap _) = Pat.silence
+seqPatHelp (Seq.Sequence bs) = Pat.timecat $ map (\b -> (seqSpan b, seqPatHelp b)) bs
+seqPatHelp (Seq.Stack bs) = Pat.stack $ map seqPat bs
