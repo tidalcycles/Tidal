@@ -200,7 +200,7 @@ brand = _brandBy 0.5
 
 -- | Boolean rand with probability as input, e.g. brandBy 0.25 is 25% chance of being true.
 brandBy :: Pattern Double -> Pattern Bool
-brandBy probpat = innerJoin $ (\prob -> _brandBy prob) <$> probpat
+brandBy probpat = innerJoin $ _brandBy <$> probpat
 
 _brandBy :: Double -> Pattern Bool
 _brandBy prob = fmap (< prob) rand
@@ -247,8 +247,8 @@ rayley = boxmullerMagnitude . head <$> rands
 
 Takes one parameter 'lambda' which is the expected value.
 -}
-poisson :: (Floating a, Ord a) => Pattern a -> Pattern Int
-poisson lambda = knuthPoisson <$> rands <*> lambda
+poisson :: (Floating a, Ord a, Num b) => Pattern a -> Pattern b
+poisson lambda = fromIntegral <$> (knuthPoisson <$> rands <*> lambda)
 
 
 {- | Binomial distributed random signal.
@@ -256,8 +256,8 @@ poisson lambda = knuthPoisson <$> rands <*> lambda
 Takes two parameters, the number of trials `n`
 and the probability of success `p`
 -}
-binomial :: (Floating a, Ord a) => Pattern Int -> Pattern a -> Pattern Int
-binomial n p = doBernoulli <$> rands <*> n <*> p
+binomial :: (Floating a, Ord a, Num b) => Pattern Int -> Pattern a -> Pattern b
+binomial n p = fromIntegral <$> (doBernoulli <$> rands <*> n <*> p)
 
 
 {- | Negative-binomial (Pascal) distributed signal.
@@ -265,19 +265,20 @@ binomial n p = doBernoulli <$> rands <*> n <*> p
 Takes two parameters, the number of allowed failures `r`
 and the probability of success `p`
 -}
-pascal :: (Floating a, Ord a) => Pattern Int -> Pattern a -> Pattern Int
-pascal r p = bernoulliUntil <$> rands <*> r <*> p
+pascal :: (Floating a, Ord a, Num b) => Pattern Int -> Pattern a -> Pattern b
+pascal r p = fromIntegral <$> (bernoulliUntil <$> rands <*> r <*> p)
 
 {- | Geometric distributed signal.
 
 Takes one parameter, which is the decay rate of the pmf
 -}
-geometric :: (Floating a, Ord a) => Pattern a -> Pattern Int
+geometric :: (Floating a, Ord a, Num b) => Pattern a -> Pattern b
 geometric = pascal 1 . (1-)
 
 -- | Numbers distributed according to benfords law.
 benford :: Pattern Int
-benford = withDistribution benfordsLaw <$> (rands :: Pattern [Double])
+benford = fromIntegral <$> (withDistribution benfordsLaw <$> us)
+  where us = rands :: Pattern [Double]
 
 
 
