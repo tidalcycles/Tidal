@@ -97,10 +97,12 @@ between 0 and 1. If the list is finite, the sequence wraps which can cause
 the result not to be poisson distributed any more.
 -}
 knuthPoisson :: (Floating a, Ord a) => [a] -> a -> Int
-knuthPoisson us lambda = recurse us (exp (-lambda)) 1 0
-  where recurse (u:us') l p k | p > l     = recurse us' l (p * u) (k + 1)
-                              | otherwise = k
+knuthPoisson (u:us) lambda = recurse us p0 u 0
+  where p0 = exp (-lambda)
+        recurse (u':us') l p k | p > l     = recurse us' l (p * u') (k + 1)
+                               | otherwise = k
         recurse [] l p k = recurse us l p k  -- really should not occur
+knuthPoisson [] _ = -1  -- really should not occur either
 
 
 {- | Do n Bernoulli trials, count successes
