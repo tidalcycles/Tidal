@@ -101,6 +101,7 @@ test-suite tests
                  Sound.Tidal.UITest
                  Sound.Tidal.UtilsTest
                  Sound.Tidal.ExceptionsTest
+                 Sound.Tidal.SequenceTest
                  TestUtils
   build-depends:
                 base ==4.*
