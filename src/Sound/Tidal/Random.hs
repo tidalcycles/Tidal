@@ -1,22 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Random (
-    rand
-  , brand
-  , brandBy
-  , gauss
-  , rayley
-  , irand
-  , poisson
-  , binomial
-  , pascal
-  , geometric
-  , benford
-  , perlin
-  , perlin2
-  , perlinWith
-  , perlin2With
-) where
+module Sound.Tidal.Random where
 
 import Data.Bits (xor, shiftR, rotateL)
 import Data.Word (Word32)
