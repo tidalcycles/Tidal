@@ -362,7 +362,6 @@ expand (Gap x) r = Gap (x*r)
 expand (Sequence x) r = Sequence $ map (`expand` r) x
 expand (Stack x) r = Stack $ map (`expand` r) x
 
-
 -- | Reduce a list of sequences by removing redundancies
 reduce::[Sequence a] -> [Sequence a]
 reduce (Atom 0 _:xs) = reduce xs
@@ -383,11 +382,17 @@ applyfToSeq f (Stack x) = Stack $ map (applyfToSeq f) x
 fast :: Sequence Rational -> Sequence a -> Sequence a
 fast sr = mapSeq (applyfToSeq _fast sr)
 
+fastS :: Sequence Rational -> Sequence a -> Strategy -> Sequence a 
+fastS sr= mapSeqS (applyfToSeq _fast sr)
+
 _fast :: Rational -> Sequence a -> Sequence a
 _fast n (Atom x s) = Atom (x/n) s
 _fast n (Gap x) = Gap (x/n)
 _fast n (Sequence s) = Sequence $ map (_fast n) s
 _fast n (Stack x) = Stack $ map(_fast n) x
+
+slowS :: Sequence Rational -> Sequence a -> Strategy -> Sequence a
+slowS sr = mapSeqS (applyfToSeq _slow sr)
 
 -- | Slow down the sequence
 slow::Sequence Rational->Sequence a->Sequence a
@@ -427,6 +432,8 @@ _euclid a b s  =
       y = map (\t -> if t then s else Gap (seqSpan s)) x
   in unwrap $ Sequence y
 
+everyS::Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Strategy -> Sequence b
+everyS si f = mapSeqS (applyfToSeq (every' f) si)
 
 every :: Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
 every si f = mapSeq (applyfToSeq (every' f) si)
@@ -541,6 +548,11 @@ splitUp t x =
 -- (~>) :: Sequence Rational -> Sequence a -> Sequence a
 -- (~>) sr s = mapSeq (applyfToSeq rotR sr) s
 
+iterS :: Sequence Int -> Sequence a -> Strategy -> Sequence a
+iterS sr s st =
+  let (a,b) = forTwoS sr s st
+  in unwrap $  iterer (Sequence a) (Sequence b)
+
 iter :: Sequence Int -> Sequence a ->  Sequence a
 iter sr s =
   let (a,b) = forTwo sr s
@@ -554,6 +566,11 @@ iterer (Stack x) sr = stack $ map (`iterer` sr) x
 
 _iter :: Int -> Sequence a -> Sequence a
 _iter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n-1)]
+
+iterS' :: Sequence Int -> Sequence c -> Strategy -> Sequence c
+iterS' sr s st =
+  let (a,b) = forTwoS sr s st
+  in unwrap $  iterer' (Sequence a) (Sequence b)
 
 -- | @iter'@ is the same as @iter@, but decrements the starting
 -- subdivision instead of incrementing it.
@@ -571,4 +588,4 @@ iterer' (Stack x) sr = stack $ map (`iterer'` sr) x
 _iter' :: Int -> Sequence a -> Sequence a
 _iter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
 
-
+-- Write euclidS
