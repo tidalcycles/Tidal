@@ -50,7 +50,10 @@ library
   if impl(ghc >= 9.4)
     build-depends: system-cxx-std-lib
   else
-    extra-libraries: stdc++
+    if os(darwin)
+      extra-libraries: c++
+    else
+      extra-libraries: stdc++
 
   cxx-sources: link/extensions/abl_link/src/abl_link.cpp
   include-dirs:
