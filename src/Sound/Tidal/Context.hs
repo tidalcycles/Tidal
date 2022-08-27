@@ -38,8 +38,8 @@ module Sound.Tidal.Context (module C,
                             Sound.Tidal.Context._iter',
                             Sound.Tidal.Context.rotL,
                             Sound.Tidal.Context.rotR,
-                            -- Sound.Tidal.Context.`<~`,
-                            -- Sound.Tidal.Context.`~>`
+                            (Sound.Tidal.Context.<~),
+                            (Sound.Tidal.Context.~>)
                            ) where
 
 {-
@@ -68,7 +68,7 @@ import Sound.Tidal.Config as C
 import Sound.Tidal.Control as C
 import Sound.Tidal.Core as C hiding (rev, cat, stack, fast, slow,_slow, slowcat, _fast, timeCat, timecat, fastAppend, fastappend,
                                       slowAppend, slowappend, append, fromList, fastFromList,  fromMaybes, run, _run, scan,
-                                      _scan, every, _every,listToPat, fastCat, fastcat, slowCat, slowcat,density -- ,(<~), (~>)
+                                      _scan, every, _every,listToPat, fastCat, fastcat, slowCat, slowcat,density, (<~), (~>)
                                       )
 import Sound.Tidal.Params as C
 import Sound.Tidal.ParseBP as C
@@ -79,7 +79,7 @@ import Sound.Tidal.Sequence as C hiding (rev, cat, ply, stack,
                                          timeCat, timecat,fastAppend, fastappend, slowAppend, slowappend, append,
                                          fromList, fastFromList, fromMaybes, run, _run, scan, _scan, every, _every, every',
                                          listToPat, fastcat, fastCat, slowcat, slowCat, density, iter, _iter, iter', _iter', 
-                                         rotL, rotR --, (<~), (~>)
+                                         rotL, rotR, (<~), (~>)
                                         )
 import Sound.Tidal.Show as C
 import Sound.Tidal.Simple as C
@@ -134,8 +134,8 @@ class Transformable f where
   iter' :: f Int -> f a -> f a
   _iter :: Int -> f a -> f a
   _iter' :: Int -> f a -> f a
-  -- (<~) :: f Rational -> f a -> f a
-  -- (~>) :: f Rational -> f a -> f a
+  (<~) :: f Rational -> f a -> f a
+  (~>) :: f Rational -> f a -> f a
 
 instance Transformable Pattern where
   rev = Pat.rev
@@ -177,8 +177,8 @@ instance Transformable Pattern where
   iter' = Pat.iter'
   _iter = Pat._iter
   _iter' = Pat._iter'
-  -- (<~) = Pat.(<~)
-  -- (~>) = Pat.(~>)
+  (<~) = (Pat.<~)
+  (~>) = (Pat.~>)
 
 instance Transformable Sequence where
   rev = Seq.rev
@@ -220,8 +220,8 @@ instance Transformable Sequence where
   iter' = Seq.iter'
   _iter = Seq._iter
   _iter' = Seq._iter'
-  -- (<~) = Seq.(<~)
-  -- (>~) = Seq.(>~)
+  (<~) = (Seq.<~)
+  (~>) = (Seq.~>)
 
 
 seqPat :: Seq.Sequence a  -> Pat.Pattern a

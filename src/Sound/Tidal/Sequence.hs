@@ -196,14 +196,11 @@ getPartition (Sequence y) t =
   in (Sequence $ pTill ++ [a], Sequence b)
 getPartition (Stack s) t = let a = map (`getPartition` t) s in (Stack (map fst a),Stack (map snd a))
 
--- | Given two sequences of different types, this function uses the LCM method to align those two sequences
-forTwo :: Sequence a1 -> Sequence a2 -> ([Sequence a1], [Sequence a2])
-forTwo a b =
-  let p = lcmRational (seqSpan a) (seqSpan b)
-  in (unwrapper $ replicate (fromIntegral  $ numerator $ p/seqSpan a) a, unwrapper $ replicate (fromIntegral $ numerator $ p/seqSpan b) b)
 
 forTwoS :: Sequence a1 -> Sequence a2 -> Strategy -> ([Sequence a1], [Sequence a2])
-forTwoS a b RepeatLCM = forTwo a b
+forTwoS a b RepeatLCM = 
+   let p = lcmRational (seqSpan a) (seqSpan b)
+   in (unwrapper $ replicate (fromIntegral  $ numerator $ p/seqSpan a) a, unwrapper $ replicate (fromIntegral $ numerator $ p/seqSpan b) b)
 
 forTwoS a b JustifyLeft =
   let p = max (seqSpan a) (seqSpan b)
@@ -239,6 +236,10 @@ forTwoS a b TruncateMax =
       y = reduce [unwrap $ Sequence $ replicate (floor $ p/seqSpan b) b ++ let Sequence q = cutShort b (realToFrac (p - floor (p/seqSpan b)%1 * seqSpan b)) in q]
   in (x, y)
 
+-- | Given two sequences of different types, this function uses the LCM method to align those two sequences
+forTwo :: Sequence a1 -> Sequence a2 -> ([Sequence a1], [Sequence a2])
+forTwo a b = forTwoS a b Expand
+ 
 unwrap::Sequence a -> Sequence a
 unwrap (Sequence x) = Sequence $ unwrapper x
 unwrap (Stack x) = Stack $ map unwrap x
@@ -422,7 +423,7 @@ euclid :: Sequence Int -> Sequence Int -> Sequence b -> Sequence b
 euclid s1 s2 sa =
   let b = fmap _euclid s1
       c = b <*> s2
-      d = mapSeq c sa
+      d = mapSeqS c sa RepeatLCM
   in d
 
 -- | Obtain a euclidean pattern 
@@ -443,13 +444,6 @@ every' f s = _every s f
 
 _every :: Int -> (Sequence a -> Sequence a) -> Sequence a -> Sequence a
 _every n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
-
--- makeSeq:: [Syllable] -> Rational -> Sequence Syllable
--- makeSeq x r =
---   let a = lcmRational (realToFrac $ length x) r
---       b = concat $ replicate (div (fromIntegral $ numerator a) (length x)) x
---       c = map (\t -> if t == Gdot then Gap (1/r) else Atom (1/r) t) b
---   in unwrap $ Sequence c
 
 fromList:: [a] -> Sequence a
 fromList x=  unwrap $ Sequence $ reduce $  map (Atom 1) x
@@ -540,13 +534,13 @@ splitUp t x =
         in (pTill ++ [m], n : drop (l+1) x)
   in Sequence $ q++p
 
--- -- | Shifts a sequence back in time by the given amount, expressed in cycles
--- (<~) :: Sequence Rational -> Sequence a -> Sequence a
--- (<~) sr s= mapSeq (applyfToSeq rotL sr) s
+-- | Shifts a sequence back in time by the given amount, expressed in cycles
+(<~) :: Sequence Rational -> Sequence a -> Sequence a
+(<~) sr s= mapSeq (applyfToSeq rotL sr) s
 
--- -- | Shifts a pattern forward in time by the given amount, expressed in cycles
--- (~>) :: Sequence Rational -> Sequence a -> Sequence a
--- (~>) sr s = mapSeq (applyfToSeq rotR sr) s
+-- | Shifts a pattern forward in time by the given amount, expressed in cycles
+(~>) :: Sequence Rational -> Sequence a -> Sequence a
+(~>) sr s = mapSeq (applyfToSeq rotR sr) s
 
 iterS :: Sequence Int -> Sequence a -> Strategy -> Sequence a
 iterS sr s st =
@@ -587,5 +581,3 @@ iterer' (Stack x) sr = stack $ map (`iterer'` sr) x
 
 _iter' :: Int -> Sequence a -> Sequence a
 _iter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
-
--- Write euclidS
