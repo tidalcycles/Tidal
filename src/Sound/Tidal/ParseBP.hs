@@ -43,6 +43,7 @@ import           Sound.Tidal.Pattern
 import           Sound.Tidal.UI
 import           Sound.Tidal.Core
 import           Sound.Tidal.Chords
+import           Sound.Tidal.Random (rand)
 import           Sound.Tidal.Utils (fromRight)
 
 data TidalParseError = TidalParseError {parsecError :: ParseError,

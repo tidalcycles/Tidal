@@ -37,6 +37,7 @@ library
                        Sound.Tidal.Params
                        Sound.Tidal.ParseBP
                        Sound.Tidal.Pattern
+                       Sound.Tidal.Random
                        Sound.Tidal.Scales
                        Sound.Tidal.Safe.Context
                        Sound.Tidal.Safe.Boot

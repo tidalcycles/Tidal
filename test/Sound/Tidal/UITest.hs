@@ -15,6 +15,7 @@ import Sound.Tidal.Core
 import Sound.Tidal.Params
 import Sound.Tidal.ParseBP
 import Sound.Tidal.Pattern
+import Sound.Tidal.Random
 import Sound.Tidal.UI
 
 run :: Microspec ()
