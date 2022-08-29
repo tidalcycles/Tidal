@@ -120,15 +120,15 @@ mapSeq (Stack f) something =
 mapSeqS::Sequence (Sequence a-> Sequence b) -> Sequence a -> Strategy-> Sequence b
 mapSeqS (Atom x f) something s =
   let (p,q) = forTwoS (Atom x f) something s
-      c = reAlign p q
+      c = reduce $ reAlign p q
       d = unwrap $ Sequence $ map (map' f) c
   in d
 mapSeqS (Gap x) something s =
   let (p,_) = forTwoS (Gap x) something s
-  in unwrap $ Sequence  p
+  in unwrap $ Sequence p
 mapSeqS (Sequence f) something s =
     let (p,q) = forTwoS (Sequence f) something s
-        c = unwrapper $ reAlign p q
+        c = reduce $ unwrapper $ reAlign p q
         d = unwrap $ Sequence  $ funcSeq p c
     in d
 mapSeqS (Stack f) something s =
@@ -198,9 +198,9 @@ getPartition (Stack s) t = let a = map (`getPartition` t) s in (Stack (map fst a
 
 
 forTwoS :: Sequence a1 -> Sequence a2 -> Strategy -> ([Sequence a1], [Sequence a2])
-forTwoS a b RepeatLCM = 
+forTwoS a b RepeatLCM =
    let p = lcmRational (seqSpan a) (seqSpan b)
-   in (unwrapper $ replicate (fromIntegral  $ numerator $ p/seqSpan a) a, unwrapper $ replicate (fromIntegral $ numerator $ p/seqSpan b) b)
+   in if p ==0 then ([Gap 0],[Gap 0]) else (unwrapper $ replicate (fromIntegral  $ numerator $ p/seqSpan a) a, unwrapper $ replicate (fromIntegral $ numerator $ p/seqSpan b) b)
 
 forTwoS a b JustifyLeft =
   let p = max (seqSpan a) (seqSpan b)
@@ -212,15 +212,15 @@ forTwoS a b JustifyRight =
 
 forTwoS a b Centre =
   let p = max (seqSpan a) (seqSpan b)
-  in (reduce $ ([Gap ((p - seqSpan a)/2)] ++ [a] ++ [Gap ((p - seqSpan a)/2)]), reduce $ ([Gap ((p - seqSpan b)/2)] ++ [b] ++ [Gap ((p - seqSpan b)/2)]))
+  in if p == 0 then ([Gap 0],[Gap 0]) else (reduce $ ([Gap ((p - seqSpan a)/2)] ++ [a] ++ [Gap ((p - seqSpan a)/2)]), reduce $ ([Gap ((p - seqSpan b)/2)] ++ [b] ++ [Gap ((p - seqSpan b)/2)]))
 
 forTwoS a b Expand =
   let p = max (seqSpan a) (seqSpan b)
-  in (reduce [expand a $ p/seqSpan a], reduce [expand b $ p/seqSpan b] )
+  in if p==0 then ([Gap 0], [Gap 0]) else (reduce [expand a $ p/seqSpan a], reduce [expand b $ p/seqSpan b] )
 
 forTwoS a b Squeeze =
   let p = min (seqSpan a) (seqSpan b)
-  in (reduce [expand a $ p/seqSpan a], reduce [expand b $ p/seqSpan b] )
+  in if p == 0 then ([Gap 0], [Gap 0]) else (reduce [expand a $ p/seqSpan a], reduce [expand b $ p/seqSpan b] )
 
 forTwoS a b JustifyBoth =
   let p = max (seqSpan a) (seqSpan b)
@@ -232,14 +232,14 @@ forTwoS a b TruncateMin =
 
 forTwoS a b TruncateMax =
   let p = max (seqSpan a) (seqSpan b)
-      x = reduce [unwrap $ Sequence $ replicate (floor $ p/seqSpan a) a ++ let Sequence q = cutShort a (realToFrac (p - floor (p/seqSpan a)%1 * seqSpan a)) in q]
-      y = reduce [unwrap $ Sequence $ replicate (floor $ p/seqSpan b) b ++ let Sequence q = cutShort b (realToFrac (p - floor (p/seqSpan b)%1 * seqSpan b)) in q]
+      x = if seqSpan a == 0 then [Gap p] else reduce [unwrap $ Sequence $ replicate (floor $ p/seqSpan a) a ++ let Sequence q = cutShort a (realToFrac (p - floor (p/seqSpan a)%1 * seqSpan a)) in q]
+      y = if seqSpan b == 0 then [Gap p] else reduce [unwrap $ Sequence $ replicate (floor $ p/seqSpan b) b ++ let Sequence q = cutShort b (realToFrac (p - floor (p/seqSpan b)%1 * seqSpan b)) in q]
   in (x, y)
 
 -- | Given two sequences of different types, this function uses the LCM method to align those two sequences
 forTwo :: Sequence a1 -> Sequence a2 -> ([Sequence a1], [Sequence a2])
 forTwo a b = forTwoS a b Expand
- 
+
 unwrap::Sequence a -> Sequence a
 unwrap (Sequence x) = Sequence $ unwrapper x
 unwrap (Stack x) = Stack $ map unwrap x
@@ -311,12 +311,12 @@ stratApply RepeatLCM bs@(x:xs) =
 
 stratApply Expand bs =
   let a = maximum $ map seqSpan bs
-      b = map (\x -> expand x $ a/seqSpan x) bs
+      b = map (\x -> if seqSpan x ==0 then Gap a else expand x $ a/seqSpan x) bs
   in Stack b
 
 stratApply Squeeze bs =
   let a = minimum $ map seqSpan bs
-      b = map (\x -> expand x $ a/seqSpan x) bs
+      b = map (\x -> if seqSpan x == 0 then Gap a else expand x $ a/seqSpan x) bs
   in Stack b
 
 stratApply JustifyBoth bs =
@@ -331,7 +331,9 @@ stratApply TruncateMin bs =
 
 stratApply TruncateMax bs =
   let a = maximum $ map seqSpan bs
-      b = map (\x -> unwrap $ Sequence $ replicate (floor $ a/seqSpan x) x ++ let Sequence p = cutShort x (realToFrac (a - floor (a/seqSpan x)%1 * seqSpan x)) in p) bs
+      b = map (\x -> if seqSpan x == 0 then Gap a else unwrap $ Sequence $ replicate (floor $ a/seqSpan x) x
+                ++ let Sequence p = if a== (floor (a/seqSpan x)%1 *seqSpan x) then Sequence []
+                                      else Sequence [cutShort x (realToFrac (a - floor (a/seqSpan x)%1 * seqSpan x))] in p) bs
   in Stack b
 
 -- Return a segment of a sequence
@@ -350,7 +352,7 @@ cutShort (Stack x) r = Stack $ map (`cutShort` r) x
 expand'::Sequence a -> Rational -> Sequence a
 expand' (Atom x s) r = expand (Atom x s) $ r/seqSpan (Atom x s)
 expand' (Gap x) r = expand (Gap x) $ r/seqSpan (Gap x)
-expand' (Sequence [x]) r = Sequence [expand x (r/seqSpan x)]
+expand' (Sequence [x]) r = Sequence [expand' x r]
 expand' (Sequence x) r =
   let Sequence y = (expand (Sequence $ init x) $ (r- seqSpan (last x))/ seqSpan (Sequence $ init x))
   in Sequence (y++ [last x])
@@ -360,7 +362,7 @@ expand' (Stack x) r = Stack $ map (`expand'` r) x
 expand::Sequence a-> Rational -> Sequence a
 expand (Atom x s) r = Atom (x*r) s
 expand (Gap x) r = Gap (x*r)
-expand (Sequence x) r = Sequence $ map (`expand` r) x
+expand (Sequence x) r = Sequence $  map (`expand` r) x
 expand (Stack x) r = Stack $ map (`expand` r) x
 
 -- | Reduce a list of sequences by removing redundancies
@@ -376,17 +378,18 @@ reduce [] = []
 applyfToSeq :: (t -> a) -> Sequence t -> Sequence a
 applyfToSeq f (Atom x s) = Atom x (f s)
 applyfToSeq _ (Gap x) = Gap x
-applyfToSeq f (Sequence x) = Sequence $ map (applyfToSeq f) x
+applyfToSeq f (Sequence x) = Sequence $ reduce $  map (applyfToSeq f) x
 applyfToSeq f (Stack x) = Stack $ map (applyfToSeq f) x
 
 -- | Speed up the sequence
 fast :: Sequence Rational -> Sequence a -> Sequence a
 fast sr = mapSeq (applyfToSeq _fast sr)
 
-fastS :: Sequence Rational -> Sequence a -> Strategy -> Sequence a 
+fastS :: Sequence Rational -> Sequence a -> Strategy -> Sequence a
 fastS sr= mapSeqS (applyfToSeq _fast sr)
 
 _fast :: Rational -> Sequence a -> Sequence a
+_fast 0 _ = Gap 0
 _fast n (Atom x s) = Atom (x/n) s
 _fast n (Gap x) = Gap (x/n)
 _fast n (Sequence s) = Sequence $ map (_fast n) s
@@ -400,13 +403,14 @@ slow::Sequence Rational->Sequence a->Sequence a
 slow sr = mapSeq (applyfToSeq _slow sr)
 
 _slow::Rational -> Sequence a -> Sequence a
-_slow n = _fast (1/n)
+_slow 0 _ = Gap 0
+_slow n s= _fast (1/n) s
 
 -- | Repeat the sequence a desired number of times without changing duration
 rep::Int -> Sequence a-> Sequence a
-rep n (Atom x s) = Atom (realToFrac n * x) s
+rep n (Atom x s) = Sequence $ replicate n (Atom x s)
 rep n (Gap x) = Gap (realToFrac  n*x)
-rep n (Sequence s) = Sequence $ reduce $  concat $ replicate n s
+rep n (Sequence s) = Sequence $ reduce $concat $ replicate n s
 rep n (Stack s) = Stack $ map (rep n) s
 
 -- | Repeat sequence desired number of times, and squeeze it into the duration of the original sequence
@@ -418,6 +422,11 @@ stack::[Sequence a] -> Sequence a
 stack s =
   let a = foldl (\acc x->if seqSpan x==acc then acc else -1) (seqSpan $ head s) s
   in if a == (-1) then stratApply Expand s else Stack s
+
+stackS :: [Sequence a] -> Strategy -> Sequence a
+stackS s strat =
+  let a = foldl (\acc x->if seqSpan x==acc then acc else -1) (seqSpan $ head s) s
+  in if a == (-1) then stratApply strat s else Stack s
 
 euclid :: Sequence Int -> Sequence Int -> Sequence b -> Sequence b
 euclid s1 s2 sa =
@@ -434,13 +443,15 @@ _euclid a b s  =
   in unwrap $ Sequence y
 
 everyS::Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Strategy -> Sequence b
-everyS si f = mapSeqS (applyfToSeq (every' f) si)
+everyS si f sb strat = let (a,b) = forTwoS si sb strat
+                      in unwrap $ every (Sequence a) f (Sequence b)
+
 
 every :: Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
-every si f = mapSeq (applyfToSeq (every' f) si)
-
-every' :: (Sequence a -> Sequence a) -> Int -> Sequence a -> Sequence a
-every' f s = _every s f
+every (Atom x s) f sb = _every s f sb 
+every (Gap _) _ sb = sb 
+every (Sequence x) f sb = Sequence $ reduce $  map (\t -> every t f sb) x 
+every (Stack x) f sb = Stack $ map (\t -> every t f sb) x
 
 _every :: Int -> (Sequence a -> Sequence a) -> Sequence a -> Sequence a
 _every n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
@@ -449,7 +460,8 @@ fromList:: [a] -> Sequence a
 fromList x=  unwrap $ Sequence $ reduce $  map (Atom 1) x
 
 fastFromList ::[a] -> Sequence a
-fastFromList x = unwrap $ Sequence $ reduce $ map (Atom (realToFrac $ (1%length x))) x
+fastFromList [] = Gap 0
+fastFromList x = unwrap $ Sequence $ reduce $ map (Atom (realToFrac (1%length x))) x
 
 listToPat ::[a] -> Sequence a
 listToPat = fastFromList
@@ -467,11 +479,10 @@ fromMaybes = fastcat . map f
         f (Just x) = Atom 1 x
 
 run :: (Enum a, Num a) => Sequence a -> Sequence a
-run x = unwrap $ (>>= _run) x
+run x = _slow (seqSpan x) $ unwrap $ (>>= _run) x
 
 _run :: (Enum a, Num a) => a -> Sequence a
 _run n = unwrap $  fastFromList [0 .. n-1]
-
 
 slowCat :: [Sequence a] -> Sequence a
 slowCat = cat
@@ -481,7 +492,7 @@ slowcat = slowCat
 
 -- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
 scan :: (Enum a, Num a) => Sequence a -> Sequence a
-scan x = unwrap $  (>>= _scan) x
+scan x = _slow (seqSpan x) $ unwrap $  (>>= _scan) x
 
 _scan :: (Enum a, Num a) => a -> Sequence a
 _scan n = unwrap $ slowcat $ map _run [1 .. n]
@@ -536,11 +547,11 @@ splitUp t x =
 
 -- | Shifts a sequence back in time by the given amount, expressed in cycles
 (<~) :: Sequence Rational -> Sequence a -> Sequence a
-(<~) sr s= mapSeq (applyfToSeq rotL sr) s
+(<~) sr = mapSeq (applyfToSeq rotL sr)
 
 -- | Shifts a pattern forward in time by the given amount, expressed in cycles
 (~>) :: Sequence Rational -> Sequence a -> Sequence a
-(~>) sr s = mapSeq (applyfToSeq rotR sr) s
+(~>) sr = mapSeq (applyfToSeq rotR sr)
 
 iterS :: Sequence Int -> Sequence a -> Strategy -> Sequence a
 iterS sr s st =
