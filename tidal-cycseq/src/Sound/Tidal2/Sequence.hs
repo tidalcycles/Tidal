@@ -326,8 +326,9 @@ applyfToSeq f (Sequence x) = Sequence $ map (applyfToSeq f) x
 applyfToSeq f (Stack x) = Stack $ map (applyfToSeq f) x
 
 -- | Speed up the sequence
-fast :: Sequence Rational -> Sequence a -> Sequence a
-fast sr s = mapSeq (applyfToSeq _fast sr) s
+-- TODO - Now provided by Pattern class via patternify
+-- fast :: Sequence Rational -> Sequence a -> Sequence a
+-- fast sr s = mapSeq (applyfToSeq _fast sr) s
 
 _seqFast :: Rational -> Sequence a -> Sequence a
 _seqFast n (Atom x s) = Atom (x/n) s

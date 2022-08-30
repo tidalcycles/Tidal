@@ -45,6 +45,9 @@ _slow t = _fast (1/t)
 slow :: Pattern p => p Rational -> p x -> p x
 slow = _patternify _slow
 
+fast :: Pattern p => p Rational -> p x -> p x
+fast = _patternify _fast
+
 fastappend :: Pattern p => p x -> p x -> p x
 fastappend a b = fastcat [a,b]
 
