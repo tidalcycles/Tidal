@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveFunctor, OverloadedStrings #-}
 
--- (c) Alex McLean 2022
+-- (c) Alex McLean 2022 and contributors
 -- Shared under the terms of the GNU Public License v. 3.0
 
 module Sound.Tidal2.Signal where
@@ -85,17 +85,17 @@ instance Monad Signal where
 bind :: Signal a -> (a -> Signal b) -> Signal b
 bind = bindWhole (liftA2 sect)
 
-bindInner :: Signal a -> (a -> Signal b) -> Signal b
-bindInner = bindWhole const
+innerBind :: Signal a -> (a -> Signal b) -> Signal b
+innerBind = bindWhole const
 
-joinInner :: Signal (Signal a) -> Signal a
-joinInner s = bindInner s id
+innerJoin :: Signal (Signal a) -> Signal a
+innerJoin s = innerBind s id
 
-bindOuter :: Signal a -> (a -> Signal b) -> Signal b
-bindOuter = bindWhole (flip const)
+outerBind :: Signal a -> (a -> Signal b) -> Signal b
+outerBind = bindWhole (flip const)
 
-joinOuter :: Signal (Signal a) -> Signal a
-joinOuter s = bindOuter s id
+outerJoin :: Signal (Signal a) -> Signal a
+outerJoin s = outerBind s id
 
 bindWhole :: (Maybe Span -> Maybe Span -> Maybe Span) -> Signal a -> (a -> Signal b) -> Signal b
 bindWhole chooseWhole pv f = Signal $ \state -> concatMap (match state) $ query pv state
@@ -112,7 +112,7 @@ instance Pattern Signal where
   silence = sigSilence
   atom    = sigAtom
   stack   = sigStack
-  _patternify f x pat = joinInner $ (`f` pat) <$> x
+  _patternify f x pat = innerJoin $ (`f` pat) <$> x
 
 -- ************************************************************ --
 -- General hacks

@@ -1,4 +1,4 @@
--- (c) Alex McLean and contributors 2022
+-- (c) Alex McLean, Aravind Mohandas and contributors 2022
 -- Shared under the terms of the GNU Public License v3.0
 
 module Sound.Tidal2.Pattern where
