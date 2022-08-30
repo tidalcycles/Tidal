@@ -202,11 +202,12 @@ splitQueries :: Signal a -> Signal a
 splitQueries pat = Signal $ \state -> (concatMap (\span -> query pat (state {sSpan = span}))
                                         $ splitSpans $ sSpan state)
 
--- | Concatenate a list of patterns (works a little differently from
--- 'real' tidal, needs some work)
+-- | Concatenate a list of patterns, interleaving cycles.
 sigSlowcat :: [Signal a] -> Signal a
 sigSlowcat pats = splitQueries $ Signal queryCycle
-  where queryCycle state = query (pats !! (mod (floor $ begin $ sSpan state) n)) state
+  where queryCycle state = query (_late (offset $ sSpan state) (pat $ sSpan state)) state
+        pat span = pats !! (mod (floor $ begin $ span) n)
+        offset span = (sam $ begin span) - (sam $ begin span / (toRational n))
         n = length pats
 
 _sigFast :: Rational -> Signal a -> Signal a
