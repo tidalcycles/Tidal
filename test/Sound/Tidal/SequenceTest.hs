@@ -109,8 +109,6 @@ run =
               iter' (Atom 1 3) (Sequence [Atom 2 "bd", Gap 3])
               `shouldBe` Sequence [Atom (2 % 1) "bd",Gap (3 % 1),Gap (1 % 3),Atom (2 % 1) "bd",Gap (8 % 3),Gap (2 % 3),Atom (2 % 1) "bd",Gap (7 % 3)] 
 
-
-
         describe "applying functiions to sequences with strategies" $ do
           describe "fastS" $ 
             it "can speed up sequences" $ do 

@@ -46,7 +46,6 @@ instance Functor Sequence where
   fmap f (Sequence x) = Sequence $ map (fmap f) x
   fmap f (Stack y) = Stack (map (fmap f) y)
 
-
 instance Applicative Sequence where
   pure x = Atom 1 x
   (Atom x f) <*> something =
@@ -117,6 +116,7 @@ mapSeq (Stack f) something =
     let d = map (`mapSeq` something) f
     in Stack d
 
+-- | mapSeq but with a particular strategy
 mapSeqS::Sequence (Sequence a-> Sequence b) -> Sequence a -> Strategy-> Sequence b
 mapSeqS (Atom x f) something s =
   let (p,q) = forTwoS (Atom x f) something s
@@ -196,7 +196,7 @@ getPartition (Sequence y) t =
   in (Sequence $ pTill ++ [a], Sequence b)
 getPartition (Stack s) t = let a = map (`getPartition` t) s in (Stack (map fst a),Stack (map snd a))
 
-
+-- | Takes two sequences of possibly different types, and applies the given strategy to it
 forTwoS :: Sequence a1 -> Sequence a2 -> Strategy -> ([Sequence a1], [Sequence a2])
 forTwoS a b RepeatLCM =
    let p = lcmRational (seqSpan a) (seqSpan b)
@@ -236,16 +236,17 @@ forTwoS a b TruncateMax =
       y = if seqSpan b == 0 then [Gap p] else reduce [unwrap $ Sequence $ replicate (floor $ p/seqSpan b) b ++ let Sequence q = cutShort b (realToFrac (p - floor (p/seqSpan b)%1 * seqSpan b)) in q]
   in (x, y)
 
--- | Given two sequences of different types, this function uses the LCM method to align those two sequences
+-- | Given two sequences of different types, this function uses the Expand method to align those two sequences
 forTwo :: Sequence a1 -> Sequence a2 -> ([Sequence a1], [Sequence a2])
 forTwo a b = forTwoS a b Expand
 
+-- | removes redundant occurence in representation of sequences
 unwrap::Sequence a -> Sequence a
 unwrap (Sequence x) = Sequence $ unwrapper x
 unwrap (Stack x) = Stack $ map unwrap x
 unwrap s = s
 
--- | Unwrapping a sequence referes to removing the redundancies that are present in the code
+-- | applying unwrap to a list of sequences
 unwrapper:: [Sequence a] -> [Sequence a]
 unwrapper [] = []
 unwrapper [Sequence x] = unwrapper x
@@ -254,25 +255,30 @@ unwrapper (Atom x s:xs) = Atom x s : unwrapper xs
 unwrapper (Gap x:xs) = if x ==0 then unwrapper xs else Gap x: unwrapper xs
 unwrapper (Stack x:xs) = Stack x : unwrapper xs
 
+-- | Reverse a sequence
 rev :: Sequence a -> Sequence a
 rev (Sequence bs) = Sequence $ reverse $ map rev bs
 rev (Stack bs) = Stack $ map rev bs
 rev b = b
 
+-- | Concatenate a sequence of sequences into one single sequence
 cat :: [Sequence a] -> Sequence a
 cat [] = Gap 0
 cat [b] = b
 cat bs = Sequence bs
 
+-- | Repeats a sequence a given number of times within its original duration
 ply :: Sequence Rational -> Sequence a -> Sequence a
 ply sr s =  mapSeq (applyfToSeq _ply sr) s
 
+-- | Helper function for ply
 _ply :: Rational -> Sequence a -> Sequence a
 _ply n (Atom d v) = Sequence $ reduce $  ((replicate (floor n) $ Atom (d / toRational n) v) ++ [Atom (d - ((floor n)%1) *d /n ) v])
 _ply _ (Gap x) = Gap x
 _ply n (Sequence x) = unwrap $ Sequence (map (_ply n) x)
 _ply n (Stack x) =  Stack (map (_ply n) x)
 
+-- | Get the timespan for a sequence
 seqSpan :: Sequence a -> Rational
 seqSpan (Atom s _) = s
 seqSpan (Gap s) = s
@@ -280,6 +286,7 @@ seqSpan (Sequence bs) = sum $ map seqSpan bs
 seqSpan (Stack []) = 0
 seqSpan (Stack x) = seqSpan $ head x
 
+-- | Calculate the least common multiple for two given rational numbers
 lcmRational :: Rational->Rational-> Rational
 lcmRational a b = lcm (f a) (f b) % d
   where d = lcm (denominator a) (denominator b)
@@ -385,9 +392,11 @@ applyfToSeq f (Stack x) = Stack $ map (applyfToSeq f) x
 fast :: Sequence Rational -> Sequence a -> Sequence a
 fast sr = mapSeq (applyfToSeq _fast sr)
 
+-- | Speed up the sequence with a given fixed strategy
 fastS :: Sequence Rational -> Sequence a -> Strategy -> Sequence a
 fastS sr= mapSeqS (applyfToSeq _fast sr)
 
+-- | Helper function to speed up the sequence
 _fast :: Rational -> Sequence a -> Sequence a
 _fast 0 _ = Gap 0
 _fast n (Atom x s) = Atom (x/n) s
@@ -395,6 +404,7 @@ _fast n (Gap x) = Gap (x/n)
 _fast n (Sequence s) = Sequence $ map (_fast n) s
 _fast n (Stack x) = Stack $ map(_fast n) x
 
+-- | Slow down the sequence with a given strategy
 slowS :: Sequence Rational -> Sequence a -> Strategy -> Sequence a
 slowS sr = mapSeqS (applyfToSeq _slow sr)
 
@@ -402,6 +412,7 @@ slowS sr = mapSeqS (applyfToSeq _slow sr)
 slow::Sequence Rational->Sequence a->Sequence a
 slow sr = mapSeq (applyfToSeq _slow sr)
 
+-- | Helper function for slow and slowS
 _slow::Rational -> Sequence a -> Sequence a
 _slow 0 _ = Gap 0
 _slow n s= _fast (1/n) s
@@ -417,17 +428,20 @@ rep n (Stack s) = Stack $ map (rep n) s
 repSqueeze::Int -> Sequence a-> Sequence a
 repSqueeze n s = _fast (realToFrac n) $ rep n s
 
--- | Takes a list of sequences, and if aligned returns a stack. Otherwise applies default method and returns
+-- | Takes a list of sequences, and if aligned returns a stack. Otherwise applies default method
+-- (Expand) and returns
 stack::[Sequence a] -> Sequence a
 stack s =
   let a = foldl (\acc x->if seqSpan x==acc then acc else -1) (seqSpan $ head s) s
   in if a == (-1) then stratApply Expand s else Stack s
 
+-- | Works like stack, but user can give the desired strategy 
 stackS :: [Sequence a] -> Strategy -> Sequence a
 stackS s strat =
   let a = foldl (\acc x->if seqSpan x==acc then acc else -1) (seqSpan $ head s) s
   in if a == (-1) then stratApply strat s else Stack s
 
+-- | Takes two sequences containing integers, and applies a euclidean pattern to a third sequence
 euclid :: Sequence Int -> Sequence Int -> Sequence b -> Sequence b
 euclid s1 s2 sa =
   let b = fmap _euclid s1
@@ -435,30 +449,34 @@ euclid s1 s2 sa =
       d = mapSeqS c sa RepeatLCM
   in d
 
--- | Obtain a euclidean pattern 
+-- | Obtain a euclidean pattern (helper function for euclid)
 _euclid:: Int-> Int-> Sequence a -> Sequence a
 _euclid a b s  =
   let x = bjorklund (a, b)
       y = map (\t -> if t then s else Gap (seqSpan s)) x
   in unwrap $ Sequence y
 
-everyS::Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Strategy -> Sequence b
-everyS si f sb strat = let (a,b) = forTwoS si sb strat
-                      in unwrap $ every (Sequence a) f (Sequence b)
-
-
+-- | Apply a function to a sequence every "n" iterations
 every :: Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
 every (Atom x s) f sb = _every s f sb 
 every (Gap _) _ sb = sb 
 every (Sequence x) f sb = Sequence $ reduce $  map (\t -> every t f sb) x 
 every (Stack x) f sb = Stack $ map (\t -> every t f sb) x
 
+-- | Like every, but the strategy for stacking is given
+everyS::Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Strategy -> Sequence b
+everyS si f sb strat = let (a,b) = forTwoS si sb strat
+                      in unwrap $ every (Sequence a) f (Sequence b)
+
+-- | Helper function for every
 _every :: Int -> (Sequence a -> Sequence a) -> Sequence a -> Sequence a
 _every n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
 
+-- | Converts a list into its equivalent sequence
 fromList:: [a] -> Sequence a
 fromList x=  unwrap $ Sequence $ reduce $  map (Atom 1) x
 
+-- | Like fromList, but speeds up the result 
 fastFromList ::[a] -> Sequence a
 fastFromList [] = Gap 0
 fastFromList x = unwrap $ Sequence $ reduce $ map (Atom (realToFrac (1%length x))) x
@@ -466,6 +484,7 @@ fastFromList x = unwrap $ Sequence $ reduce $ map (Atom (realToFrac (1%length x)
 listToPat ::[a] -> Sequence a
 listToPat = fastFromList
 
+-- | Convert list of sequences into a single sequence, sped up 
 fastCat ::  [Sequence a]  -> Sequence a
 fastCat x = _fast (sum $ map seqSpan x) $ Sequence (reduce x)
 
@@ -473,14 +492,17 @@ fastCat x = _fast (sum $ map seqSpan x) $ Sequence (reduce x)
 fastcat :: [Sequence a] -> Sequence a
 fastcat = fastCat
 
+-- | Converts a list of Maybes to its equivalent sequence
 fromMaybes :: [Maybe a] -> Sequence a
 fromMaybes = fastcat . map f
   where f Nothing = Gap 1
         f (Just x) = Atom 1 x
 
+-- | Sequence of whole numbers from 0 to the given number
 run :: (Enum a, Num a) => Sequence a -> Sequence a
 run x = _slow (seqSpan x) $ unwrap $ (>>= _run) x
 
+-- | Helper function for run
 _run :: (Enum a, Num a) => a -> Sequence a
 _run n = unwrap $  fastFromList [0 .. n-1]
 
@@ -513,6 +535,7 @@ fastAppend a b = _fast 2 $ append a b
 fastappend :: Sequence a -> Sequence a -> Sequence a
 fastappend = fastAppend
 
+-- | Similar to @fastCat@, but each pattern is given a relative duration
 timeCat :: [(Rational, Sequence a)] -> Sequence a
 timeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x
 
@@ -524,16 +547,19 @@ timecat = timeCat
 density :: Sequence Rational -> Sequence a -> Sequence a
 density = fast
 
+-- | Shifts a sequence to the left
 rotL :: Rational -> Sequence a -> Sequence a
 rotL t (Sequence x) = splitUp t x
 rotL t (Stack x) = Stack $ map (t `rotL`) x
 rotL _ x = x
 
+-- | Shifts a sequence to the right
 rotR :: Rational -> Sequence a -> Sequence a
 rotR t (Sequence x) = splitUp (seqSpan (Sequence x) - t) x
 rotR t (Stack x) = Stack $ map (t `rotR`) x
 rotR _ x = x
 
+-- | Obtain a section of a list of sequences
 splitUp :: Rational -> [Sequence a] -> Sequence a
 splitUp t x =
   let a = takeWhile (\m -> sum (map seqSpan m) <=t ) (inits x)
@@ -545,22 +571,24 @@ splitUp t x =
         in (pTill ++ [m], n : drop (l+1) x)
   in Sequence $ q++p
 
--- | Shifts a sequence back in time by the given amount, expressed in cycles
+-- | Shifts a sequence back in time by the given amount
 (<~) :: Sequence Rational -> Sequence a -> Sequence a
 (<~) sr = mapSeq (applyfToSeq rotL sr)
 
--- | Shifts a pattern forward in time by the given amount, expressed in cycles
+-- | Shifts a pattern forward in time by the given amount
 (~>) :: Sequence Rational -> Sequence a -> Sequence a
 (~>) sr = mapSeq (applyfToSeq rotR sr)
 
-iterS :: Sequence Int -> Sequence a -> Strategy -> Sequence a
-iterS sr s st =
-  let (a,b) = forTwoS sr s st
-  in unwrap $  iterer (Sequence a) (Sequence b)
-
+-- | Iterates a sequence to fit into a given number of cycles of the sequence while applying rotL
 iter :: Sequence Int -> Sequence a ->  Sequence a
 iter sr s =
   let (a,b) = forTwo sr s
+  in unwrap $  iterer (Sequence a) (Sequence b)
+
+-- | iter with a particular strategy
+iterS :: Sequence Int -> Sequence a -> Strategy -> Sequence a
+iterS sr s st =
+  let (a,b) = forTwoS sr s st
   in unwrap $  iterer (Sequence a) (Sequence b)
 
 iterer :: Sequence Int -> Sequence a -> Sequence a
@@ -572,16 +600,18 @@ iterer (Stack x) sr = stack $ map (`iterer` sr) x
 _iter :: Int -> Sequence a -> Sequence a
 _iter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n-1)]
 
-iterS' :: Sequence Int -> Sequence c -> Strategy -> Sequence c
-iterS' sr s st =
-  let (a,b) = forTwoS sr s st
-  in unwrap $  iterer' (Sequence a) (Sequence b)
 
 -- | @iter'@ is the same as @iter@, but decrements the starting
 -- subdivision instead of incrementing it.
 iter' :: Sequence Int -> Sequence c ->Sequence c
 iter' sr s=
   let (a,b) = forTwo sr s
+  in unwrap $  iterer' (Sequence a) (Sequence b)
+
+-- | iter', but with a particular strategy
+iterS' :: Sequence Int -> Sequence c -> Strategy -> Sequence c
+iterS' sr s st =
+  let (a,b) = forTwoS sr s st
   in unwrap $  iterer' (Sequence a) (Sequence b)
 
 iterer' :: Sequence Int -> Sequence a -> Sequence a
