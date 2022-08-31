@@ -11,7 +11,7 @@ import Data.Maybe (catMaybes)
 import qualified Data.Map.Strict as Map
 import Control.Applicative (liftA2)
 
-import Sound.Tidal2.Time
+import Sound.Tidal2.Span
 import Sound.Tidal2.Value
 import Sound.Tidal2.Event
 import Sound.Tidal2.Pattern

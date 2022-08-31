@@ -4,7 +4,7 @@ module Sound.Tidal2.Event where
 
 import Data.Maybe (fromJust)
 
-import Sound.Tidal2.Time
+import Sound.Tidal2.Span
 
 -- ************************************************************ --
 -- Event

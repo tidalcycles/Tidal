@@ -1,4 +1,4 @@
-module Sound.Tidal2.Time where
+module Sound.Tidal2.Span where
 
 -- (c) Alex McLean 2022
 -- Shared under the terms of the GNU Public License v. 3.0
