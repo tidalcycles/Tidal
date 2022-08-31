@@ -13,39 +13,35 @@ import Control.Applicative (liftA2)
 
 import Sound.Tidal2.Time
 import Sound.Tidal2.Value
+import Sound.Tidal2.Event
 import Sound.Tidal2.Pattern
 
 import Prelude hiding ((<*), (*>))
 import qualified Data.Map.Strict as Map
 
 -- ************************************************************ --
--- Core definition of a Signal
+-- State
 
--- This was known as a 'Pattern' in the previous version of Tidal. A
--- signal is a function from a timespan (possibly with some other
--- state) to events taking place in that timespan.
-
--- | An event - a value, its 'whole' timespan, and the timespan that
--- its active (called a 'part' in tidal v1)
-data Event a = Event {whole :: Maybe Span,
-                      active :: Span, value :: a
-                     }
-  deriving (Show, Functor)
-
--- | A timespan and some named control values
+-- | A timespan and some named control values, used to query a signal
+-- with
 data State = State {sSpan :: Span,
                     sControls :: ValueMap
                    }
 
+-- ************************************************************ --
+-- Signal
+
 -- | A signal - a function from a timespan to a list of events active
 -- during that timespan
+-- This was known as a 'Pattern' in the previous version of Tidal. A
+-- signal is a function from a timespan (possibly with some other
+-- state) to events taking place in that timespan.
+
 data Signal a = Signal {query :: State -> [Event a]}
   deriving (Functor)
 
 instance Show a => Show (Signal a) where
   show pat = show $ querySpan pat (Span 0 1)
-
--- ************************************************************ --
 
 -- | A control signal
 type ControlSignal = Signal ValueMap
@@ -132,13 +128,13 @@ withEventSpan spanf sig = Signal f
                             whole = spanf <$> whole e
                            }) $ query sig s
 
-withEventTime :: (Rational -> Rational) -> Signal a -> Signal a
+withEventTime :: (Time -> Time) -> Signal a -> Signal a
 withEventTime timef sig = Signal f
   where f s = map (\e -> e {active = withSpanTime timef $ active e,
                             whole = withSpanTime timef <$> whole e
                            }) $ query sig s
 
-withSpanTime :: (Rational -> Rational) -> Span -> Span
+withSpanTime :: (Time -> Time) -> Span -> Span
 withSpanTime timef (Span b e) = Span (timef b) (timef e)
 
 withQuery :: (State -> State) -> Signal a -> Signal a
@@ -147,7 +143,7 @@ withQuery statef sig = Signal $ \state -> query sig $ statef state
 withQuerySpan :: (Span -> Span) -> Signal a -> Signal a
 withQuerySpan spanf = withQuery (\state -> state {sSpan = spanf $ sSpan state})
 
-withQueryTime :: (Rational -> Rational) -> Signal a -> Signal a
+withQueryTime :: (Time -> Time) -> Signal a -> Signal a
 withQueryTime timef = withQuerySpan (withSpanTime timef)
 
 -- ************************************************************ --
@@ -159,9 +155,9 @@ sigSilence = Signal (\_ -> [])
 -- | Repeat discrete value once per cycle
 sigAtom :: a -> Signal a
 sigAtom v = Signal $ \state -> map
-                               (\span -> Event (Just $ wholeCycle $ begin span) span v)
+                               (\span -> Event (Just $ wholeCycle $ start span) span v)
                                (splitSpans $ sSpan state)
-  where wholeCycle :: Rational -> Span
+  where wholeCycle :: Time -> Span
         wholeCycle t = Span (sam t) (nextSam t)
 
 -- | A continuous value
@@ -173,7 +169,7 @@ steady v = waveform (const v)
 
 -- | A continuous pattern as a function from time to values. Takes the
 -- midpoint of the given query as the time value.
-waveform :: (Rational -> a) -> Signal a
+waveform :: (Time -> a) -> Signal a
 waveform timeF = Signal $ \(State (Span b e) _) -> 
   [Event {whole = Nothing,
           active = (Span b e),
@@ -182,10 +178,10 @@ waveform timeF = Signal $ \(State (Span b e) _) ->
   ]
 
 -- | Sawtooth waveform
-saw :: Signal Rational
+saw :: Signal Time
 saw = waveform $ \t -> mod' t 1
 
-saw2 :: Signal Rational
+saw2 :: Signal Time
 saw2 = toBipolar saw
 
 -- | Sine waveform
@@ -206,25 +202,25 @@ splitQueries pat = Signal $ \state -> (concatMap (\span -> query pat (state {sSp
 sigSlowcat :: [Signal a] -> Signal a
 sigSlowcat pats = splitQueries $ Signal queryCycle
   where queryCycle state = query (_late (offset $ sSpan state) (pat $ sSpan state)) state
-        pat span = pats !! (mod (floor $ begin $ span) n)
-        offset span = (sam $ begin span) - (sam $ begin span / (toRational n))
+        pat span = pats !! (mod (floor $ start $ span) n)
+        offset span = (sam $ start span) - (sam $ start span / (toRational n))
         n = length pats
 
-_sigFast :: Rational -> Signal a -> Signal a
+_sigFast :: Time -> Signal a -> Signal a
 _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
 
-_sigEarly :: Rational -> Signal a -> Signal a
+_sigEarly :: Time -> Signal a -> Signal a
 _sigEarly t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
 
 sigStack :: [Signal a] -> Signal a
 sigStack pats = Signal $ \s -> concatMap (\pat -> query pat s) pats
 
-squash :: Rational -> Signal a -> Signal a
+squash :: Time -> Signal a -> Signal a
 squash into pat = splitQueries $ withEventSpan ef $ withQuerySpan qf pat
   where qf (Span s e) = Span (sam s + (min 1 $ (s - sam s) / into)) (sam s + (min 1 $ (e - sam s) / into))
         ef (Span s e) = Span (sam s + (s - sam s) * into) (sam s + (e - sam s) * into)
 
-squashTo :: Rational -> Rational -> Signal a -> Signal a
+squashTo :: Time -> Time -> Signal a -> Signal a
 squashTo b e = _late b . squash (e-b)
 
 -- ************************************************************ --
