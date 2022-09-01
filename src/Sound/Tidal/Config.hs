@@ -1,6 +1,5 @@
 module Sound.Tidal.Config where
 
-import qualified Sound.Tidal.Link as Link
 import Data.Int(Int64)
 import Foreign.C.Types (CDouble)
 
@@ -35,7 +34,7 @@ data Config = Config {cCtrlListen :: Bool,
                       cSkipTicks :: Int64,
                       cVerbose :: Bool,
                       cQuantum :: CDouble,
-                      cCyclesPerBeat :: CDouble
+                      cBeatsPerCycle :: CDouble
                      }
 
 defaultConfig :: Config
@@ -52,5 +51,5 @@ defaultConfig = Config {cCtrlListen = True,
                         cSkipTicks = 10,
                         cVerbose = True,
                         cQuantum = 4,
-                        cCyclesPerBeat = 4
+                        cBeatsPerCycle = 4
                        }

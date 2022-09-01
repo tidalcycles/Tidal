@@ -16,7 +16,6 @@ import Sound.Tidal.Config
 import Sound.Tidal.Utils (writeError)
 import qualified Sound.Tidal.Link as Link
 import Foreign.C.Types (CDouble(..))
-import Data.Coerce (coerce)
 import System.IO (hPutStrLn, stderr)
 import Data.Int(Int64)
 
@@ -64,7 +63,7 @@ data State = State {ticks    :: Int64,
 data ActionHandler =
   ActionHandler {
     onTick :: TickState -> LinkOperations -> P.ValueMap -> IO P.ValueMap,
-    onSingleTick :: Link.Micros -> LinkOperations -> P.ValueMap -> P.ControlPattern -> IO P.ValueMap,
+    onSingleTick :: LinkOperations -> P.ValueMap -> P.ControlPattern -> IO P.ValueMap,
     updatePattern :: ID -> P.ControlPattern -> IO ()
   }
 
@@ -88,11 +87,11 @@ setNudge actionsMV nudge = modifyMVar_ actionsMV (\actions -> return $ SetNudge 
 timeToCycles' :: Config -> Link.SessionState -> Link.Micros -> IO P.Time
 timeToCycles' config ss time = do
   beat <- Link.beatAtTime ss time (cQuantum config)
-  return $! (toRational beat) / (toRational (cCyclesPerBeat config))
+  return $! (toRational beat) / (toRational (cBeatsPerCycle config))
 
 cyclesToTime :: Config -> Link.SessionState -> P.Time -> IO Link.Micros
 cyclesToTime config ss cyc = do
-  let beat = (fromRational cyc) * (cCyclesPerBeat config)
+  let beat = (fromRational cyc) * (cBeatsPerCycle config)
   Link.timeAtBeat ss beat (cQuantum config)
 
 addMicrosToOsc :: Link.Micros -> O.Time -> O.Time
@@ -108,8 +107,8 @@ clocked config stateMV mapMV actionsMV ac abletonLink
         frameTimespan = round $ (cFrameTimespan config) * 1000000
         quantum :: CDouble
         quantum = cQuantum config
-        cyclesPerBeat :: CDouble
-        cyclesPerBeat = cCyclesPerBeat config
+        beatsPerCycle :: CDouble
+        beatsPerCycle = cBeatsPerCycle config
         loopInit :: IO a
         loopInit =
           do
@@ -202,9 +201,9 @@ clocked config stateMV mapMV actionsMV ac abletonLink
             putMVar stateMV streamState'
             tick st'
         btc :: CDouble -> CDouble
-        btc beat = beat / cyclesPerBeat
+        btc beat = beat / beatsPerCycle
         ctb :: CDouble -> CDouble
-        ctb cyc =  cyc * cyclesPerBeat
+        ctb cyc =  cyc * beatsPerCycle
         processActions :: State -> [TempoAction] -> IO State
         processActions st [] = return $! st
         processActions st actions = do
@@ -252,7 +251,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
               beatToCycles = btc,
               cyclesToBeat = ctb
             }
-            streamState'' <- (onSingleTick ac) nowLink ops streamState' pat
+            streamState'' <- (onSingleTick ac) ops streamState' pat
             Link.commitAndDestroyAppSessionState abletonLink sessionState
             Link.destroySessionState zeroedSessionState
             return (st', streamState'')
