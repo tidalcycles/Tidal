@@ -1,6 +1,5 @@
 module Sound.Tidal.Config where
 
-import qualified Sound.Tidal.Link as Link
 import Data.Int(Int64)
 import Foreign.C.Types (CDouble)
 

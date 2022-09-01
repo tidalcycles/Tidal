@@ -49,7 +49,6 @@ import           Sound.Tidal.Utils ((!!!))
 import           Data.List (sortOn)
 import           System.Random (getStdRandom, randomR)
 import           Sound.Tidal.Show ()
-import           Data.Word (Word8)
 
 import           Sound.Tidal.Version
 
@@ -206,7 +205,6 @@ startStream config oscmap
        pMapMV <- newMVar Map.empty
        bussesMV <- newMVar []
        globalFMV <- newMVar id
-       tempoMV <- newEmptyMVar
        actionsMV <- newEmptyMVar
 
        tidal_status_string >>= verbose config
@@ -359,8 +357,6 @@ toOSC busses pe osc@(OSC _ _)
         -- Map.mapKeys tail is used to remove ^ from the keys.
         -- In case (value e) has the key "", we will get a crash here.
         playmap' = Map.union (Map.mapKeys tail $ Map.map (\(VI i) -> VS ('c':(show $ toBus i))) busmap) playmap
-        toChannelId (VI i) = VS ('c':(show $ toBus i))
-        toChannelId _      = error "All channels IDs should be VI"
         val = value . peEvent
         -- Only events that start within the current nowArc are included
         playmsg | peHasOnset pe = do
@@ -469,8 +465,8 @@ onTick stream st ops s
 -- However, since the full arc is processed at once and since Link does not support
 -- scheduling, tempo change may affect scheduling of events that happen earlier
 -- in the normal stream (the one handled by onTick).
-onSingleTick :: Stream -> Link.Micros -> T.LinkOperations -> ValueMap -> ControlPattern -> IO ValueMap
-onSingleTick stream now ops s pat = do
+onSingleTick :: Stream -> T.LinkOperations -> ValueMap -> ControlPattern -> IO ValueMap
+onSingleTick stream ops s pat = do
   pMapMV <- newMVar $ Map.singleton "fake"
           (PlayState {pattern = pat,
                       mute = False,
@@ -478,8 +474,6 @@ onSingleTick stream now ops s pat = do
                       history = []
                       }
           )
-  bpm <- (T.getTempo ops)
-  let cps = realToFrac $ ((T.beatToCycles ops) bpm) / 60
 
   -- The nowArc is a full cycle
   let state = TickState {tickArc = (Arc 0 1), tickNudge = 0}
@@ -511,7 +505,6 @@ doTick stream st ops sMap =
       sGlobalF <- readMVar (sGlobalFMV stream)
       bpm <- (T.getTempo ops)
       let
-        config = sConfig stream
         cxs = sCxs stream
         patstack = sGlobalF $ playStack pMap
         cps = ((T.beatToCycles ops) bpm) / 60
@@ -743,7 +736,6 @@ recvMessagesTimeout n sock = fmap (maybe [] O.packetMessages) $ O.recvPacketTime
 streamGetcps :: Stream -> IO Double
 streamGetcps s = do
   let config = sConfig s
-  now <- Link.clock (sLink s)
   ss <- Link.createAndCaptureAppSessionState (sLink s)
   bpm <- Link.getTempo ss
   return $! coerce $ bpm / (cBeatsPerCycle config) / 60

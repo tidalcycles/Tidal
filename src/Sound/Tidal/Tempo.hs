@@ -16,7 +16,6 @@ import Sound.Tidal.Config
 import Sound.Tidal.Utils (writeError)
 import qualified Sound.Tidal.Link as Link
 import Foreign.C.Types (CDouble(..))
-import Data.Coerce (coerce)
 import System.IO (hPutStrLn, stderr)
 import Data.Int(Int64)
 
@@ -64,7 +63,7 @@ data State = State {ticks    :: Int64,
 data ActionHandler =
   ActionHandler {
     onTick :: TickState -> LinkOperations -> P.ValueMap -> IO P.ValueMap,
-    onSingleTick :: Link.Micros -> LinkOperations -> P.ValueMap -> P.ControlPattern -> IO P.ValueMap,
+    onSingleTick :: LinkOperations -> P.ValueMap -> P.ControlPattern -> IO P.ValueMap,
     updatePattern :: ID -> P.ControlPattern -> IO ()
   }
 
@@ -252,7 +251,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
               beatToCycles = btc,
               cyclesToBeat = ctb
             }
-            streamState'' <- (onSingleTick ac) nowLink ops streamState' pat
+            streamState'' <- (onSingleTick ac) ops streamState' pat
             Link.commitAndDestroyAppSessionState abletonLink sessionState
             Link.destroySessionState zeroedSessionState
             return (st', streamState'')
