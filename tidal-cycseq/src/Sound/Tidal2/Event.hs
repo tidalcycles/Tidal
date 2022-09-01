@@ -9,9 +9,15 @@ import Sound.Tidal2.Span
 -- ************************************************************ --
 -- Event
 
+-- | Event metadata, currently just a list of source code position
+-- ranges that an event is tagged with
+data Metadata = Metadata {metaSrcPos :: [((Int, Int), (Int, Int))]}
+  deriving (Show)
+
 -- | An event - a value, its 'whole' timespan, and the timespan that
 -- its active (called a 'part' in tidal v1)
-data Event a = Event {whole :: Maybe Span,
+data Event a = Event {metadata :: Metadata,
+                      whole :: Maybe Span,
                       active :: Span,
                       value :: a
                      }

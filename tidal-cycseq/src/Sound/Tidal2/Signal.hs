@@ -19,6 +19,7 @@ import Sound.Tidal2.Pattern
 import Prelude hiding ((<*), (*>))
 import qualified Data.Map.Strict as Map
 
+-- ************************************************************ --
 -- State
 
 -- | A timespan and some named control values, used to query a signal
