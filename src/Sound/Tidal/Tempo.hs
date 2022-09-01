@@ -108,8 +108,8 @@ clocked config stateMV mapMV actionsMV ac abletonLink
         frameTimespan = round $ (cFrameTimespan config) * 1000000
         quantum :: CDouble
         quantum = cQuantum config
-        cyclesPerBeat :: CDouble
-        cyclesPerBeat = cBeatsPerCycle config
+        beatsPerCycle :: CDouble
+        beatsPerCycle = cBeatsPerCycle config
         loopInit :: IO a
         loopInit =
           do
@@ -202,9 +202,9 @@ clocked config stateMV mapMV actionsMV ac abletonLink
             putMVar stateMV streamState'
             tick st'
         btc :: CDouble -> CDouble
-        btc beat = beat / cyclesPerBeat
+        btc beat = beat / beatsPerCycle
         ctb :: CDouble -> CDouble
-        ctb cyc =  cyc * cyclesPerBeat
+        ctb cyc =  cyc * beatsPerCycle
         processActions :: State -> [TempoAction] -> IO State
         processActions st [] = return $! st
         processActions st actions = do
