@@ -20,15 +20,21 @@ import qualified Data.Map.Strict as Map
 
 -- ************************************************************ --
 -- Core definition of a Signal
-
 -- This was known as a 'Pattern' in the previous version of Tidal. A
 -- signal is a function from a timespan (possibly with some other
 -- state) to events taking place in that timespan.
 
+-- | Event metadata, currently just a list of source code position
+-- ranges that an event is tagged with
+data Metadata = Metadata {metaSrcPos :: [((Int, Int), (Int, Int))]}
+  deriving (Show)
+
 -- | An event - a value, its 'whole' timespan, and the timespan that
 -- its active (called a 'part' in tidal v1)
-data Event a = Event {whole :: Maybe Span,
-                      active :: Span, value :: a
+data Event a = Event {metadata :: Metadata,
+                      whole :: Maybe Span,
+                      active :: Span,
+                      value :: a
                      }
   deriving (Show, Functor)
 
@@ -115,10 +121,14 @@ instance Pattern Signal where
   _patternify f x pat = innerJoin $ (`f` pat) <$> x
 
 -- ************************************************************ --
--- General hacks
+-- General hacks and utilities
 
 instance Show (a -> b) where
   show _ = "<function>"
+
+addMetadata :: Metadata -> Event a -> Event a
+addMetadata m e = e {metadata = m'}
+  where m' = Metadata {metaSrcPos = metaSrcPos (metadata e) ++ metaSrcPos m}
 
 -- ************************************************************ --
 -- Time utilities
