@@ -3,7 +3,7 @@
 
 module Sound.Tidal2.Sequence where
 
-import Sound.Tidal2.Time
+import Sound.Tidal2.Span
 import Sound.Tidal2.Value
 import Sound.Tidal2.Pattern
 

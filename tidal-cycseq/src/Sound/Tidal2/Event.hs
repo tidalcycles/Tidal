@@ -3,6 +3,7 @@
 module Sound.Tidal2.Event where
 
 import Data.Maybe (fromJust)
+import Data.Monoid
 
 import Sound.Tidal2.Span
 
@@ -13,6 +14,12 @@ import Sound.Tidal2.Span
 -- ranges that an event is tagged with
 data Metadata = Metadata {metaSrcPos :: [((Int, Int), (Int, Int))]}
   deriving (Show)
+
+instance Semigroup Metadata where
+  (<>) a b = Metadata (metaSrcPos a ++ metaSrcPos b)
+
+instance Monoid Metadata where
+  mempty = Metadata []
 
 -- | An event - a value, its 'whole' timespan, and the timespan that
 -- its active (called a 'part' in tidal v1)

@@ -61,7 +61,12 @@ app wf patf patv = Signal f
                   evs = (query patv s)
                   apply ef ev = apply' ef ev (maybeSect (active ef) (active ev))
                   apply' ef ev Nothing = Nothing
-                  apply' ef ev (Just s') = Just $ Event (wf (whole ef) (whole ev)) s' (value ef $ value ev)
+                  apply' ef ev (Just s') =
+                    Just $ Event {metadata = metadata ef <> metadata ev,
+                                  whole = wf (whole ef) (whole ev),
+                                  active = s',
+                                  value = value ef $ value ev
+                                 }
 
 -- | Alternative definition of <*>, which takes the wholes from the
 -- pattern of functions (unrelated to the <* in Prelude)
@@ -116,10 +121,6 @@ instance Pattern Signal where
 instance Show (a -> b) where
   show _ = "<function>"
 
-addMetadata :: Metadata -> Event a -> Event a
-addMetadata m e = e {metadata = m'}
-  where m' = Metadata {metaSrcPos = metaSrcPos (metadata e) ++ metaSrcPos m}
-
 -- ************************************************************ --
 -- Time utilities
 
@@ -159,7 +160,12 @@ sigSilence = Signal (\_ -> [])
 -- | Repeat discrete value once per cycle
 sigAtom :: a -> Signal a
 sigAtom v = Signal $ \state -> map
-                               (\span -> Event (Just $ wholeCycle $ start span) span v)
+                               (\span -> Event {metadata = mempty,
+                                                whole = Just $ wholeCycle $ start span,
+                                                active = span,
+                                                value = v
+                                               }
+                               )
                                (splitSpans $ sSpan state)
   where wholeCycle :: Time -> Span
         wholeCycle t = Span (sam t) (nextSam t)
@@ -175,7 +181,8 @@ steady v = waveform (const v)
 -- midpoint of the given query as the time value.
 waveform :: (Time -> a) -> Signal a
 waveform timeF = Signal $ \(State (Span b e) _) -> 
-  [Event {whole = Nothing,
+  [Event {metadata = mempty,
+          whole = Nothing,
           active = (Span b e),
           value = timeF $ b+((e - b)/2)
          }
