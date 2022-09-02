@@ -50,33 +50,45 @@ type ControlSignal = Signal ValueMap
 
 instance Applicative Signal where
   pure = steady
-  (<*>) = app (liftA2 sect)
+  (<*>) = app
 
 -- | Apply a pattern of values to a pattern of functions, given a
 -- function to merge the 'whole' timespans
-app :: (Maybe Span -> Maybe Span -> Maybe Span) -> Signal (a -> b) -> Signal a -> Signal b
-app wf patf patv = Signal f
-    where f s = concatMap (\ef -> catMaybes $ map (apply ef) evs) efs
-            where efs = (query patf s)
-                  evs = (query patv s)
-                  apply ef ev = apply' ef ev (maybeSect (active ef) (active ev))
-                  apply' ef ev Nothing = Nothing
-                  apply' ef ev (Just s') =
-                    Just $ Event {metadata = metadata ef <> metadata ev,
-                                  whole = wf (whole ef) (whole ev),
-                                  active = s',
-                                  value = value ef $ value ev
-                                 }
+app :: Signal (a -> b) -> Signal a -> Signal b
+app patf patv = Signal f
+    where f s = concatMap (\ef -> catMaybes $ map (combine ef) $ query patv s) $ query patf s
+          combine ef ev = do new_active <- maybeSect (active ef) (active ev)
+                             return $ Event {metadata = metadata ef <> metadata ev,
+                                             whole = liftA2 sect (whole ef) (whole ev),
+                                             active = new_active,
+                                             value = value ef $ value ev
+                                            }
 
 -- | Alternative definition of <*>, which takes the wholes from the
 -- pattern of functions (unrelated to the <* in Prelude)
 (<*) :: Signal (a -> b) -> Signal a -> Signal b
-(<*) = app const
-
+(<*) patf patv = Signal f
+  where f s = concatMap (\ef -> catMaybes $ map (combine ef) $ query patv (s {sSpan = wholeOrActive ef})
+                        ) $ query patf s
+        combine ef ev = do new_active <- maybeSect (active ef) (active ev)
+                           return $ Event {metadata = metadata ef <> metadata ev,
+                                           whole = whole ef,
+                                           active = new_active,
+                                           value = value ef $ value ev
+                                          }
+        
 -- | Alternative definition of <*>, which takes the wholes from the
--- pattern of values (unrelated to the *> in Prelude)
+-- pattern of functions (unrelated to the <* in Prelude)
 (*>) :: Signal (a -> b) -> Signal a -> Signal b
-(*>) = app (flip const)
+(*>) patf patv = Signal f
+  where f s = concatMap (\ev -> catMaybes $ map (combine ev) $ query patf (s {sSpan = wholeOrActive ev})
+                        ) $ query patv s
+        combine ev ef = do new_active <- maybeSect (active ef) (active ev)
+                           return $ Event {metadata = metadata ef <> metadata ev,
+                                           whole = whole ev,
+                                           active = new_active,
+                                           value = value ef $ value ev
+                                          }
 
 -- ************************************************************ --
 
