@@ -48,14 +48,14 @@ slow = _patternify _slow
 fast :: Pattern p => p Rational -> p x -> p x
 fast = _patternify _fast
 
-fastappend :: Pattern p => p x -> p x -> p x
-fastappend a b = fastcat [a,b]
+fastAppend :: Pattern p => p x -> p x -> p x
+fastAppend a b = fastcat [a,b]
 
-slowappend :: Pattern p => p x -> p x -> p x
-slowappend a b = slowcat [a,b]
+slowAppend :: Pattern p => p x -> p x -> p x
+slowAppend a b = slowcat [a,b]
 
 append :: Pattern p => p x -> p x -> p x
-append = slowappend
+append = slowAppend
 
 early :: Pattern p => p Rational -> p x -> p x
 early = _patternify _early

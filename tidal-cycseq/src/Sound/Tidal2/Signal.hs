@@ -201,11 +201,25 @@ waveform timeF = Signal $ \(State (Span b e) _) ->
   ]
 
 -- | Sawtooth waveform
-saw :: Signal Time
-saw = waveform $ \t -> mod' t 1
+saw :: (Fractional a, Real a) => Signal a
+saw = waveform $ \t -> mod' (fromRational t) 1
 
-saw2 :: Signal Time
+saw2 :: (Fractional a, Real a) => Signal a
 saw2 = toBipolar saw
+
+-- | Inverse (descending) sawtooth waveform
+isaw :: (Fractional a, Real a) => Signal a
+isaw = (1-) <$> saw
+
+isaw2 :: (Fractional a, Real a) => Signal a
+isaw2 = toBipolar isaw
+
+-- | Triangular wave
+tri :: (Fractional a, Real a) => Signal a
+tri = fastAppend saw isaw
+
+tri2 :: (Fractional a, Real a) => Signal a
+tri2 = toBipolar tri
 
 -- | Sine waveform
 sine :: Fractional a => Signal a
@@ -213,6 +227,20 @@ sine = fromBipolar sine2
 
 sine2 :: Fractional a => Signal a
 sine2 = waveform $ \t -> realToFrac $ sin ((pi :: Double) * 2 * fromRational t)
+
+-- | Cosine waveform
+cosine :: Fractional a => Signal a
+cosine = _late 0.25 sine
+
+cosine2 :: Fractional a => Signal a
+cosine2 = _late 0.25 sine2
+
+-- | Square wave
+square :: Fractional a => Signal a
+square = fastAppend (steady 1) (steady 0)
+
+square2 :: Fractional a => Signal a
+square2 = fastAppend (steady (-1)) (steady 1)
 
 -- ************************************************************ --
 -- Signal manipulations
