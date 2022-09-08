@@ -5,6 +5,10 @@ module Sound.Tidal.Pattern where
 
 import Data.Ratio
 
+import qualified Data.Map.Strict as Map
+
+import Sound.Tidal.Value (ValueMap, Value(S,F))
+
 class Functor f => Pattern f where
   slowcat :: [f a] -> f a
   fastcat :: [f a] -> f a
@@ -15,7 +19,7 @@ class Functor f => Pattern f where
   atom :: a -> f a
   stack :: [f a] -> f a
   _patternify :: (a -> b -> f c) -> (f a -> b -> f c)
-  -- rev :: f a -> f a
+  rev :: f a -> f a
   -- ply :: f Rational -> f a -> f a
   -- _ply :: Rational ->f a-> f a
   -- euclid :: f Int -> f Int -> f String -> f String
@@ -80,3 +84,13 @@ toBipolar pat = fmap (\v -> (v*2)-1) pat
 fromBipolar :: (Pattern p, Fractional x) => p x -> p x
 fromBipolar pat = fmap (\v -> (v+1)/2) pat
 
+-- ************************************************************ --
+
+sound :: (Pattern a) => a String -> a ValueMap
+sound pat = (Map.singleton "sound" . S) <$> pat
+
+
+note :: (Pattern a) => a Double -> a ValueMap
+note pat = (Map.singleton "note" . F) <$> pat
+
+-- ************************************************************ --
