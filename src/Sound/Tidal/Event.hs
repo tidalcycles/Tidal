@@ -39,27 +39,27 @@ isDigital = not . isAnalog
 
 -- | Returns true only if an event starts within given timespan
 onsetIn :: Span -> Event a -> Bool
-onsetIn a e = isIn a (wholeStart e)
+onsetIn a e = isIn a (wholeBegin e)
 
 wholeOrActive :: Event a -> Span
 wholeOrActive (Event {whole = Just a}) = a
 wholeOrActive e = active e
 
 -- | Get the onset of an event's 'whole'
-wholeStart :: Event a -> Time
-wholeStart = start . wholeOrActive
+wholeBegin :: Event a -> Time
+wholeBegin = begin . wholeOrActive
 
 -- | Get the offset of an event's 'whole'
-wholeStop :: Event a -> Time
-wholeStop = stop . wholeOrActive
+wholeEnd :: Event a -> Time
+wholeEnd = end . wholeOrActive
 
 -- | Get the onset of an event's 'whole'
-eventActiveStart :: Event a -> Time
-eventActiveStart = start . active
+eventActiveBegin :: Event a -> Time
+eventActiveBegin = begin . active
 
 -- | Get the offset of an event's 'active'
-eventActiveStop :: Event a -> Time
-eventActiveStop = stop . active
+eventActiveEnd :: Event a -> Time
+eventActiveEnd = end . active
 
 -- | Get the timespan of an event's 'active'
 eventActive :: Event a -> Span
@@ -70,4 +70,9 @@ eventValue = value
 
 eventHasOnset :: Event a -> Bool
 eventHasOnset e | isAnalog e = False
-                | otherwise = start (fromJust $ whole e) == start (active e)
+                | otherwise = begin (fromJust $ whole e) == begin (active e)
+
+withSpan :: (Span -> Span) -> Event a -> Event a
+withSpan f e = e {active = f $ active e,
+                  whole  = f <$> whole e
+                 }
