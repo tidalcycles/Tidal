@@ -6,7 +6,7 @@ module Sound.Tidal.Span where
 type Time = Rational
 
 -- | Timespan (called an arc in tidal v1)
-data Span = Span {start :: Time, stop :: Time}
+data Span = Span {begin :: Time, end :: Time}
   deriving (Show)
 
 -- | @isIn a t@ is @True@ if @t@ is inside
