@@ -3,7 +3,13 @@
 -- (c) Alex McLean 2022 and contributors
 -- Shared under the terms of the GNU Public License v. 3.0
 
-module Sound.Tidal.Signal where
+module Sound.Tidal.Signal (module Sound.Tidal.Signal,
+                           module Sound.Tidal.Span,
+                           module Sound.Tidal.Value,
+                           module Sound.Tidal.Event,
+                           module Sound.Tidal.Pattern
+                          )
+where
 
 import Data.Ratio
 import Data.Fixed (mod')
@@ -17,7 +23,6 @@ import Sound.Tidal.Event
 import Sound.Tidal.Pattern
 
 import Prelude hiding ((<*), (*>))
-import qualified Data.Map.Strict as Map
 
 -- ************************************************************ --
 -- State
@@ -125,6 +130,7 @@ instance Pattern Signal where
   silence = sigSilence
   atom    = sigAtom
   stack   = sigStack
+  rev     = sigRev
   _patternify f x pat = innerJoin $ (`f` pat) <$> x
 
 -- ************************************************************ --
@@ -173,7 +179,7 @@ sigSilence = Signal (\_ -> [])
 sigAtom :: a -> Signal a
 sigAtom v = Signal $ \state -> map
                                (\span -> Event {metadata = mempty,
-                                                whole = Just $ wholeCycle $ start span,
+                                                whole = Just $ wholeCycle $ begin span,
                                                 active = span,
                                                 value = v
                                                }
@@ -242,6 +248,38 @@ square = fastAppend (steady 1) (steady 0)
 square2 :: Fractional a => Signal a
 square2 = fastAppend (steady (-1)) (steady 1)
 
+-- | @envL@ is a 'Pattern' of continuous 'Double' values, representing
+-- a linear interpolation between 0 and 1 during the first cycle, then
+-- staying constant at 1 for all following cycles. Possibly only
+-- useful if you're using something like the retrig function defined
+-- in tidal.el.
+envL :: (Fractional a, Ord a) => Signal a
+envL = waveform $ \t -> max 0 $ min (fromRational t) 1
+
+envL2 :: (Fractional a, Ord a) => Signal a
+envL2 = toBipolar envL
+
+-- | like 'envL' but reversed.
+envLR :: (Fractional a, Ord a) => Signal a
+envLR = (1-) <$> envL
+
+envLR2 :: (Fractional a, Ord a) => Signal a
+envLR2 = toBipolar envLR
+
+-- | 'Equal power' version of 'env', for gain-based transitions
+envEq :: (Fractional a, Ord a, Floating a) => Signal a
+envEq = waveform $ \t -> sqrt (sin (pi/2 * max 0 (min (fromRational (1-t)) 1)))
+
+envEq2 :: (Fractional a, Ord a, Floating a) => Signal a
+envEq2 = toBipolar envEq
+
+-- | Equal power reversed
+envEqR :: (Fractional a, Ord a, Floating a) => Signal a
+envEqR = waveform $ \t -> sqrt (cos (pi/2 * max 0 (min (fromRational (1-t)) 1)))
+
+envEqR2 :: (Fractional a, Ord a, Floating a) => Signal a
+envEqR2 = toBipolar envEqR
+
 -- ************************************************************ --
 -- Signal manipulations
 
@@ -253,8 +291,8 @@ splitQueries pat = Signal $ \state -> (concatMap (\span -> query pat (state {sSp
 sigSlowcat :: [Signal a] -> Signal a
 sigSlowcat pats = splitQueries $ Signal queryCycle
   where queryCycle state = query (_late (offset $ sSpan state) (pat $ sSpan state)) state
-        pat span = pats !! (mod (floor $ start $ span) n)
-        offset span = (sam $ start span) - (sam $ start span / (toRational n))
+        pat span = pats !! (mod (floor $ begin $ span) n)
+        offset span = (sam $ begin span) - (sam $ begin span / (toRational n))
         n = length pats
 
 _sigFast :: Time -> Signal a -> Signal a
@@ -274,6 +312,13 @@ squash into pat = splitQueries $ withEventSpan ef $ withQuerySpan qf pat
 squashTo :: Time -> Time -> Signal a -> Signal a
 squashTo b e = _late b . squash (e-b)
 
+sigRev :: Signal a -> Signal a
+sigRev pat = splitQueries $ Signal f
+  where f state = withSpan reflect <$> (query pat $ state {sSpan = reflect $ sSpan state})
+          where cycle = sam $ begin $ sSpan state
+                next_cycle = nextSam cycle
+                reflect (Span b e) = Span (cycle + (next_cycle - e)) (cycle + (next_cycle - b))
+  
 -- ************************************************************ --
 -- Higher order transformations
 
@@ -296,10 +341,3 @@ squashTo b e = _late b . squash (e-b)
 
 -- ************************************************************ --
 
-sound :: Signal String -> ControlSignal
-sound pat = (Map.singleton "sound" . S) <$> pat
-
-note :: Signal Double -> ControlSignal
-note pat = (Map.singleton "note" . F) <$> pat
-
--- ************************************************************ --
