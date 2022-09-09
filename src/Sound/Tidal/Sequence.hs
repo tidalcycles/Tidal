@@ -1,11 +1,11 @@
 -- (c) Aravind Mohandas, Alex McLean and contributors 2022
 -- Shared under the terms of the GNU Public License v3.0
 
-module Sound.Tidal2.Sequence where
+module Sound.Tidal.Sequence where
 
-import Sound.Tidal2.Span
-import Sound.Tidal2.Value
-import Sound.Tidal2.Pattern
+import Sound.Tidal.Span
+import Sound.Tidal.Value
+import Sound.Tidal.Pattern
 
 import Data.List (inits)
 import Prelude hiding (span)
@@ -70,6 +70,7 @@ instance Pattern Sequence where
   silence = Gap 1
   atom    = pure
   stack   = seqStack
+  rev     = seqRev
   -- _patternify f x pat = joinInner $ (`f` pat) <$> x
 
 -- -- | Takes sequence of functions and a sequence which have been aligned and applies the functions at the corresponding time points
@@ -255,10 +256,10 @@ unwrapper (Atom x s:xs) = Atom x s : unwrapper xs
 unwrapper (Gap x:xs) = if x ==0 then unwrapper xs else Gap x: unwrapper xs
 unwrapper (Stack x:xs) = Stack x : unwrapper xs
 
-rev :: Sequence a -> Sequence a
-rev (Sequence bs) = Sequence $ reverse $ map rev bs
-rev (Stack bs) = Stack $ map rev bs
-rev b = b
+seqRev :: Sequence a -> Sequence a
+seqRev (Sequence bs) = Sequence $ reverse $ map rev bs
+seqRev (Stack bs) = Stack $ map rev bs
+seqRev b = b
 
 cat :: [Sequence a] -> Sequence a
 cat [] = Gap 0
@@ -499,12 +500,6 @@ slowAppend = append
 slowappend :: Sequence a -> Sequence a -> Sequence a
 slowappend = append
 
--- | Like 'append', but twice as fast
-fastAppend :: Sequence a -> Sequence a -> Sequence a
-fastAppend a b = _fast 2 $ append a b
-fastappend :: Sequence a -> Sequence a -> Sequence a
-fastappend = fastAppend
-
 timeCat :: [(Rational, Sequence a)] -> Sequence a
 timeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x
 
@@ -589,4 +584,4 @@ iterer' (Stack x) sr = stack $ map (`iterer'` sr) x
 _iter' :: Int -> Sequence a -> Sequence a
 _iter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
 
-patternify :: (a -> b ->  c) -> (f a -> b -> f c)
+-- patternify :: (a -> b ->  c) -> (f a -> b -> f c)
