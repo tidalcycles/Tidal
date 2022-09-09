@@ -494,22 +494,12 @@ scan x = unwrap $  (>>= _scan) x
 _scan :: (Enum a, Num a) => a -> Sequence a
 _scan n = unwrap $ slowcat $ map _run [1 .. n]
 
--- | Alias for 'append'
-slowAppend :: Sequence a -> Sequence a -> Sequence a
-slowAppend = append
-slowappend :: Sequence a -> Sequence a -> Sequence a
-slowappend = append
-
 timeCat :: [(Rational, Sequence a)] -> Sequence a
 timeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x
 
 -- | Alias for @timeCat@
 timecat :: [(Rational, Sequence a)] -> Sequence a
 timecat = timeCat
-
--- | An alias for @fast@
-density :: Sequence Rational -> Sequence a -> Sequence a
-density = fast
 
 rotL :: Rational -> Sequence a -> Sequence a
 rotL t (Sequence x) = splitUp t x

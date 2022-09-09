@@ -49,8 +49,16 @@ _slow t = _fast (1/t)
 slow :: Pattern p => p Rational -> p x -> p x
 slow = _patternify _slow
 
+-- | An alias for @slow@
+sparsity :: Sequence Rational -> Sequence a -> Sequence a
+sparsity = slow
+
 fast :: Pattern p => p Rational -> p x -> p x
 fast = _patternify _fast
+
+-- | An alias for @fast@
+density :: Sequence Rational -> Sequence a -> Sequence a
+density = fast
 
 fastAppend :: Pattern p => p x -> p x -> p x
 fastAppend a b = fastcat [a,b]
