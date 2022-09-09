@@ -50,14 +50,14 @@ slow :: Pattern p => p Rational -> p x -> p x
 slow = _patternify _slow
 
 -- | An alias for @slow@
-sparsity :: Sequence Rational -> Sequence a -> Sequence a
+sparsity :: Pattern p => p Rational -> p x -> p x
 sparsity = slow
 
 fast :: Pattern p => p Rational -> p x -> p x
 fast = _patternify _fast
 
 -- | An alias for @fast@
-density :: Sequence Rational -> Sequence a -> Sequence a
+density :: Pattern p => p Rational -> p x -> p x
 density = fast
 
 fastAppend :: Pattern p => p x -> p x -> p x
