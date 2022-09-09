@@ -25,111 +25,7 @@ import           Prelude hiding ((<*), (*>))
 import           Data.Fixed (mod')
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (fromMaybe)
-import           Sound.Tidal.Pattern
-
--- ** Elemental patterns
-
--- | An empty pattern
-silence :: Pattern a
-silence = empty
-
--- | Takes a function from time to values, and turns it into a 'Pattern'.
-sig :: (Time -> a) -> Pattern a
-sig f = Pattern q
-  where q (State (Arc s e) _)
-          | s > e = []
-          | otherwise = [Event (Context []) Nothing (Arc s e) (f (s+((e-s)/2)))]
-
--- | @sine@ - unipolar sinewave. A pattern of continuous values following a
--- sinewave with frequency of one cycle, and amplitude from 0 to 1.
-sine :: Fractional a => Pattern a
-sine = sig $ \t -> (sin_rat ((pi :: Double) * 2 * fromRational t) + 1) / 2
-  where sin_rat = fromRational . toRational . sin
-
--- | @sine2@ - bipolar sinewave. A pattern of continuous values following a
--- sinewave with frequency of one cycle, and amplitude from -1 to 1.
-sine2 :: Fractional a => Pattern a
-sine2 = sig $ \t -> sin_rat ((pi :: Double) * 2 * fromRational t)
-  where sin_rat = fromRational . toRational . sin
-
--- | @cosine@ - unipolar cosine wave. A pattern of continuous values
--- following a cosine with frequency of one cycle, and amplitude from
--- 0 to 1. Equivalent to `0.25 ~> sine`.
-cosine :: Fractional a => Pattern a
-cosine = 0.25 `rotR` sine
-
--- | @cosine2@ - bipolar cosine wave. A pattern of continuous values
--- following a cosine with frequency of one cycle, and amplitude from
--- -1 to 1. Equivalent to `0.25 ~> sine2`.
-cosine2 :: Fractional a => Pattern a
-cosine2 = 0.25 `rotR` sine2
-
--- | @saw@ - unipolar ascending sawtooth wave. A pattern of continuous values
--- following a sawtooth with frequency of one cycle, and amplitude from
--- 0 to 1.
-saw :: (Fractional a, Real a) => Pattern a
-saw = sig $ \t -> mod' (fromRational t) 1
-
--- | @saw2@ - bipolar ascending sawtooth wave. A pattern of continuous values
--- following a sawtooth with frequency of one cycle, and amplitude from
--- -1 to 1.
-saw2 :: (Fractional a, Real a) => Pattern a
-saw2 = sig $ \t -> mod' (fromRational t) 1 * 2 - 1
-
--- | @isaw@ like @saw@, but a descending (inverse) sawtooth.
-isaw :: (Fractional a, Real a) => Pattern a
-isaw = (1-) <$> saw
-
--- | @isaw2@ like @saw2@, but a descending (inverse) sawtooth.
-isaw2 :: (Fractional a, Real a) => Pattern a
-isaw2 = (*(-1)) <$> saw2
-
--- | @tri@ - unipolar triangle wave. A pattern of continuous values
--- following a triangle wave with frequency of one cycle, and amplitude from
--- 0 to 1.
-tri :: (Fractional a, Real a) => Pattern a
-tri = fastAppend saw isaw
-
--- | @tri2@ - bipolar triangle wave. A pattern of continuous values
--- following a triangle wave with frequency of one cycle, and amplitude from
--- -1 to 1.
-tri2 :: (Fractional a, Real a) => Pattern a
-tri2 = fastAppend saw2 isaw2
-
--- | @square@ - unipolar square wave. A pattern of continuous values
--- following a square wave with frequency of one cycle, and amplitude from
--- 0 to 1.
--- | @square@ is like 'sine', for square waves.
-square :: (Fractional a) => Pattern a
-square = sig $
-       \t -> fromIntegral ((floor $ mod' (fromRational t :: Double) 1 * 2) :: Integer)
-
--- | @square2@ - bipolar square wave. A pattern of continuous values
--- following a square wave with frequency of one cycle, and amplitude from
--- -1 to 1.
-square2 :: (Fractional a) => Pattern a
-square2 = sig $
-       \t -> fromIntegral (floor (mod' (fromRational t :: Double) 1 * 2) * 2 - 1 :: Integer)
-
--- | @envL@ is a 'Pattern' of continuous 'Double' values, representing
--- a linear interpolation between 0 and 1 during the first cycle, then
--- staying constant at 1 for all following cycles. Possibly only
--- useful if you're using something like the retrig function defined
--- in tidal.el.
-envL :: Pattern Double
-envL = sig $ \t -> max 0 $ min (fromRational t) 1
-
--- | like 'envL' but reversed.
-envLR :: Pattern Double
-envLR = (1-) <$> envL
-
--- | 'Equal power' version of 'env', for gain-based transitions
-envEq :: Pattern Double
-envEq = sig $ \t -> sqrt (sin (pi/2 * max 0 (min (fromRational (1-t)) 1)))
-
--- | Equal power reversed
-envEqR :: Pattern Double
-envEqR = sig $ \t -> sqrt (cos (pi/2 * max 0 (min (fromRational (1-t)) 1)))
+import           Sound.Tidal.Signal
 
 -- ** Pattern algebra
 
@@ -270,54 +166,9 @@ _scan n = slowcat $ map _run [1 .. n]
 
 -- ** Combining patterns
 
--- | Alternate between cycles of the two given patterns
-append :: Pattern a -> Pattern a -> Pattern a
-append a b = cat [a,b]
-
--- | Like 'append', but for a list of patterns. Interlaces them, playing the first cycle from each
--- in turn, then the second cycle from each, and so on.
-cat :: [Pattern a] -> Pattern a
-cat [] = silence
-cat ps = Pattern q
-  where n = length ps
-        q st = concatMap (f st) $ arcCyclesZW (arc st)
-        f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (stop a))}
-          where p = ps !! i
-                cyc = (floor $ start a) :: Int
-                i = cyc `mod` n
-                offset = (fromIntegral $ cyc - ((cyc - i) `div` n)) :: Time
-
--- | Alias for 'cat'
-slowCat :: [Pattern a] -> Pattern a
-slowCat = cat
-slowcat :: [Pattern a] -> Pattern a
-slowcat = slowCat
-
--- | Alias for 'append'
-slowAppend :: Pattern a -> Pattern a -> Pattern a
-slowAppend = append
-slowappend :: Pattern a -> Pattern a -> Pattern a
-slowappend = append
-
--- | Like 'append', but twice as fast
-fastAppend :: Pattern a -> Pattern a -> Pattern a
-fastAppend a b = _fast 2 $ append a b
-fastappend :: Pattern a -> Pattern a -> Pattern a
-fastappend = fastAppend
-
--- | The same as 'cat', but speeds up the result by the number of
--- patterns there are, so the cycles from each are squashed to fit a
--- single cycle.
-fastCat :: [Pattern a] -> Pattern a
-fastCat ps = _fast (toTime $ length ps) $ cat ps
-
--- | Alias for @fastCat@
-fastcat :: [Pattern a] -> Pattern a
-fastcat = fastCat
-
 -- | Similar to @fastCat@, but each pattern is given a relative duration
 timeCat :: [(Time, Pattern a)] -> Pattern a
-timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 tps
+timeCat tps = stack $ map (\(s,e,p) -> compressArc (Span (s/total) (e/total)) p) $ arrange 0 tps
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
           arrange _ [] = []
@@ -327,50 +178,12 @@ timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) 
 timecat :: [(Time, Pattern a)] -> Pattern a
 timecat = timeCat
 
--- | 'overlay' combines two 'Pattern's into a new pattern, so that
--- their events are combined over time. 
-overlay :: Pattern a -> Pattern a -> Pattern a
-overlay = (<>)
-
--- | 'stack' combines a list of 'Pattern's into a new pattern, so that
--- their events are combined over time.
-stack :: [Pattern a] -> Pattern a
-stack = foldr overlay silence
-
 -- ** Manipulating time
-
--- | Shifts a pattern back in time by the given amount, expressed in cycles
-(<~) :: Pattern Time -> Pattern a -> Pattern a
-(<~) = tParam rotL
-
--- | Shifts a pattern forward in time by the given amount, expressed in cycles
-(~>) :: Pattern Time -> Pattern a -> Pattern a
-(~>) = tParam rotR
-
--- | Speed up a pattern by the given time pattern
-fast :: Pattern Time -> Pattern a -> Pattern a
-fast = tParam _fast
 
 -- | Slow down a pattern by the factors in the given time pattern, 'squeezing'
 -- the pattern to fit the slot given in the time pattern
 fastSqueeze :: Pattern Time -> Pattern a -> Pattern a
 fastSqueeze = tParamSqueeze _fast
-
--- | An alias for @fast@
-density :: Pattern Time -> Pattern a -> Pattern a
-density = fast
-
-_fast :: Time -> Pattern a -> Pattern a
-_fast rate pat | rate == 0 = silence
-               | rate < 0 = rev $ _fast (negate rate) pat
-               | otherwise = withResultTime (/ rate) $ withQueryTime (* rate) pat
-
--- | Slow down a pattern by the given time pattern
-slow :: Pattern Time -> Pattern a -> Pattern a
-slow = tParam _slow
-_slow :: Time -> Pattern a -> Pattern a
-_slow 0 _ = silence
-_slow r p = _fast (1/r) p
 
 -- | Slow down a pattern by the factors in the given time pattern, 'squeezing'
 -- the pattern to fit the slot given in the time pattern
@@ -395,19 +208,19 @@ rev p =
     }
   where makeWholeRelative :: Event a -> Event a
         makeWholeRelative e@Event {whole = Nothing} = e
-        makeWholeRelative (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
-          Event c (Just $ Arc (s'-s) (e-e')) p' v
+        makeWholeRelative (Event c (Just (Span s e)) p'@(Span s' e') v) =
+          Event c (Just $ Span (s'-s) (e-e')) p' v
         makeWholeAbsolute :: Event a -> Event a
         makeWholeAbsolute e@Event {whole = Nothing} = e
-        makeWholeAbsolute (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
-          Event c (Just $ Arc (s'-e) (e'+s)) p' v
-        midCycle :: Arc -> Time
-        midCycle (Arc s _) = sam s + 0.5
-        mapParts :: (Arc -> Arc) -> [Event a] -> [Event a]
+        makeWholeAbsolute (Event c (Just (Span s e)) p'@(Span s' e') v) =
+          Event c (Just $ Span (s'-e) (e'+s)) p' v
+        midCycle :: Span -> Time
+        midCycle (Span s _) = sam s + 0.5
+        mapParts :: (Span -> Span) -> [Event a] -> [Event a]
         mapParts f es = (\(Event c w p' v) -> Event c w (f p') v) <$> es
-        -- | Returns the `mirror image' of a 'Arc' around the given point in time
-        mirrorArc :: Time -> Arc -> Arc
-        mirrorArc mid' (Arc s e) = Arc (mid' - (e-mid')) (mid'+(mid'-s))
+        -- | Returns the `mirror image' of a 'Span' around the given point in time
+        mirrorArc :: Time -> Span -> Span
+        mirrorArc mid' (Span s e) = Span (mid' - (e-mid')) (mid'+(mid'-s))
 
 {- | Plays a portion of a pattern, specified by a time arc (start and end time).
 The new resulting pattern is played over the time period of the original pattern:
@@ -423,10 +236,10 @@ d1 $ sound "hh*3 [sn bd]*2"
 @
 -}
 zoom :: (Time, Time) -> Pattern a -> Pattern a
-zoom (s,e) = zoomArc (Arc s e)
+zoom (s,e) = zoomArc (Span s e)
 
-zoomArc :: Arc -> Pattern a -> Pattern a
-zoomArc (Arc s e) p = splitQueries $
+zoomArc :: Span -> Pattern a -> Pattern a
+zoomArc (Span s e) p = splitQueries $
   withResultArc (mapCycle ((/d) . subtract s)) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 
@@ -442,10 +255,10 @@ densityGap :: Pattern Time -> Pattern a -> Pattern a
 densityGap = fastGap
 
 compress :: (Time,Time) -> Pattern a -> Pattern a
-compress (s,e) = compressArc (Arc s e)
+compress (s,e) = compressArc (Span s e)
 
 compressTo :: (Time,Time) -> Pattern a -> Pattern a
-compressTo (s,e) = compressArcTo (Arc s e)
+compressTo (s,e) = compressArcTo (Span s e)
 
 repeatCycles :: Pattern Int -> Pattern a -> Pattern a
 repeatCycles = tParam _repeatCycles
