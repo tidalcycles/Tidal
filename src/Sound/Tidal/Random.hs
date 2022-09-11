@@ -35,10 +35,11 @@ murmur3 seed x = h8
 
 -- stretch 300 cycles over the range of [0,2**29 == 536870912) then apply the xorshift algorithm
 timeToIntSeed :: RealFrac a => a -> Word32
-timeToIntSeed = truncate . (* 2^32) . snd . properFraction . (/ 2^16)
+timeToIntSeed = truncate . (* 2^(32::Int)) . remainder . (/ 2^(16::Int))
+  where remainder = snd . (properFraction :: RealFrac a => a -> (Int, a))
 
 intSeedToRand :: Fractional a => Word32 -> a
-intSeedToRand = (/ 2^32) . realToFrac
+intSeedToRand = (/ 2^(32::Int)) . realToFrac
 
 timeToRand :: (RealFrac a, Fractional b) => a -> b
 timeToRand = intSeedToRand . murmur3 0 . timeToIntSeed
@@ -138,6 +139,18 @@ fmap2 f (x:x':xs) = let (y,y') = f x x' in y:y':fmap2 f xs
 fmap2 _ _         = []
 
 
+(<$$>) :: (Functor f1, Functor f2) => (a -> b) -> f1 (f2 a) -> f1 (f2 b)
+(<$$>) = fmap . fmap
+
+
+erf :: Floating a => a -> a
+erf x = sqrt $ 1 - exp (- c0 * xSq * p1)
+  where p1 = (1 + c1 * xSq) / (1 + c2 * xSq)
+        c0 = 4 / pi
+        c1 = (10 - pi*pi) / (5 * (pi - 3) * pi)
+        c2 = (120 - 60 * pi + 7 * pi*pi) / (15 * (pi - 3) * pi)
+        xSq = x*x
+
 {-|
 
 `rand` generates a continuous pattern of (pseudo-)random numbers between `0` and `1`.
@@ -176,7 +189,7 @@ jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 rand :: Fractional a => Pattern a
 rand = Pattern evts
   where evts (State a@(Arc s e) _) = [Event (Context []) Nothing a val]
-          where val = realToFrac $ timeToRand ((e + s) / 2)
+          where val = realToFrac (timeToRand ((e + s) / 2) :: Double)
 
 -- | Boolean rand - a continuous stream of true/false values, with a 50/50 chance.
 brand :: Pattern Bool
@@ -211,12 +224,25 @@ rands = Pattern evts
           where rnds = timeToRands' $ (e + s) / 2
 
 
--- | Infinite list of Normal (0, 1) random variables (correlated)
+-- | Infinite list of correlated uniform [0, 1) random signals (shifted by 1)
+randsC :: Floating a => Pattern [a]
+randsC = Pattern evts
+  where evts (State a@(Arc s e) _) = [Event (Context []) Nothing a rnds]
+          where rnds = fmap (rnd . fromIntegral) ([1 .. ] :: [Int])
+                rnd k = realToFrac (timeToRand ((e + s)/2 + k / 2) :: Double)
+
+
+-- | Infinite list of Normal (0, 1) random variables (uncorrelated)
 gausss :: Floating a => Pattern [a]
 gausss = Pattern evts
   where evts (State a@(Arc s e) _) = [Event (Context []) Nothing a values]
           where values = fmap2 boxmuller rnds
                 rnds = timeToRands' $ (e + s) / 2
+
+
+-- | Infinite list of correlated normal (0, 1) random signals (shifted by 1)
+gaussC :: Floating a => Pattern [a]
+gaussC = fmap2 boxmuller <$> randsC
 
 
 -- | A normal (Gauss) distributed random signal.
@@ -266,6 +292,10 @@ benford = fromIntegral <$> (withDistribution benfordsLaw <$> us)
 
 
 
+-- CORRELATED RANDOM SIGNALS --
+
+smootherStep :: Floating a => a -> a
+smootherStep x = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
 
 {- | 1D Perlin (smooth) noise, works like rand but smoothly moves between random
 values each cycle. `perlinWith` takes a pattern as the RNG's "input" instead
@@ -282,10 +312,26 @@ perlinWith p = fmap realToFrac $ (interp) <$> (p-pa) <*> (timeToRand <$> pa) <*>
   pa = (fromIntegral :: Int -> Double) . floor <$> p
   pb = (fromIntegral :: Int -> Double) . (+1) . floor <$> p
   interp x a b = a + smootherStep x * (b-a)
-  smootherStep x = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
 
 perlin :: Fractional a => Pattern a
 perlin = perlinWith (sig fromRational)
+
+perlinsWith :: Fractional a => Pattern Double -> Pattern [a]
+perlinsWith p = realToFrac <$$> vals
+  where pas = timeToRands' . fI . floor <$> p
+        pbs = timeToRands' . fI . (+1) . floor <$> p
+        fI :: Int -> Double
+        fI = fromIntegral
+        phase = p - (fI . floor <$> p)
+        interp x (a,b) = a + smootherStep x * (b-a)
+        vals = do
+          x <- phase
+          pas' <- pas
+          pbs' <- pbs
+          return $ interp x <$> zip pas' pbs'
+
+perlins :: Fractional a => Pattern [a]
+perlins = perlinsWith (sig fromRational)
 
 {- `perlin2With` is Perlin noise with a 2-dimensional input. This can be
 useful for more control over how the randomness repeats (or doesn't).
@@ -315,8 +361,41 @@ perlin2With x y = (/2) . (+1) $ interp2 <$> xfrac <*> yfrac <*> dota <*> dotb <*
   dotd = pcos (ce x) (ce y) * (xfrac - 1) + psin (ce x) (ce y) * (yfrac - 1)
   interp2 x' y' a b c d = (1.0 - s x') * (1.0 - s y') * a  +  s x' * (1.0 - s y') * b
                           + (1.0 - s x') * s y' * c  +  s x' * s y' * d
-  s x' = 6.0 * x'**5 - 15.0 * x'**4 + 10.0 * x'**3
+  s = smootherStep
 
 perlin2 :: Pattern Double -> Pattern Double
 perlin2 = perlin2With (sig fromRational)
+
+
+-- | Auto-correlated random signal that is quasi periodic with period 1,
+-- | normal distributed.
+corr :: Floating a => Pattern Int -> Pattern a
+corr n = do
+  nInt <- n
+  rs <- take nInt <$> gaussC
+  let nFloat = fromIntegral nInt
+  return $ sum rs / sqrt nFloat
+
+
+-- | Auto-correlated random signal that is quasi periodic with period 1,
+-- | uniformly distributed.
+corru :: Floating a => Pattern Int -> Pattern a
+corru = fmap erf . corr
+
+
+-- | Auto-correlated random signal generated from random fourier coefficients
+perfur :: (Fractional b, Integral a) => Pattern a -> Pattern b
+perfur n = perlin + (realToFrac <$> vals)
+  where coeff = fmap2 boxmuller . timeToRands' . fI . floor <$> t
+        t = sig fromRational :: Pattern Double
+        fI = fromIntegral :: Int -> Double
+        phase = t - (fI . floor <$> t)
+        phs n' x k = 2 * pi * k * x / fromIntegral n'
+        base n' x = (sin . phs n' x <$> [1..]) ++ (cos . phs n' x <$> [1..])
+        vals = do
+          n' <- n
+          x <- phase
+          cs <- coeff
+          return $ sum $ zipWith (*) cs (base n' x)
+
 
