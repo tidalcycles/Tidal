@@ -5,6 +5,20 @@ module Sound.Tidal.Span where
 
 type Time = Rational
 
+
+-- | The start of the cycle that a given time value is in
+sam :: Time -> Time
+sam s = toRational $ floor s
+
+-- | The start of the next cycle
+nextSam :: Time -> Time
+nextSam s = sam s + 1
+
+-- | The position of a time value relative to the start of its cycle.
+cyclePos :: Time -> Time
+cyclePos t = t - sam t
+
+
 -- | Timespan (called an arc in tidal v1)
 data Span = Span {begin :: Time, end :: Time}
   deriving (Show)
@@ -25,14 +39,6 @@ maybeSect a b = check $ sect a b
         check (Span a b) | b <= a = Nothing
                          | otherwise = Just (Span a b)
 
--- | The start of the cycle that a given time value is in
-sam :: Time -> Time
-sam s = toRational $ floor s
-
--- | The start of the next cycle
-nextSam :: Time -> Time
-nextSam s = sam s + 1
-
 -- | Splits a timespan at cycle boundaries
 splitSpans :: Span -> [Span]
 splitSpans (Span b e) | e <= b = []
@@ -40,3 +46,10 @@ splitSpans (Span b e) | e <= b = []
                       | otherwise
   = (Span b (nextSam b)):(splitSpans (Span (nextSam b) e))
 
+-- | Shifts a timespan to one of equal duration that starts within cycle zero.
+-- (Note that the output timespan probably does not start *at* Time 0 --
+-- that only happens when the input Arc starts at an integral Time.)
+cycleSpan :: Span -> Span
+cycleSpan (Span b e) = Span b' e'
+  where b' = cyclePos b
+        e' = b' + (e - b)

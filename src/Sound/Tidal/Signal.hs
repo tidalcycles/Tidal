@@ -13,7 +13,7 @@ where
 
 import Data.Ratio
 import Data.Fixed (mod')
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, isJust, mapMaybe)
 import qualified Data.Map.Strict as Map
 import Control.Applicative (liftA2)
 
@@ -120,6 +120,21 @@ bindWhole chooseWhole pv f = Signal $ \state -> concatMap (match state) $ query 
   where match state event = map (withWhole event) $ query (f $ value event) (state {sSpan = active event})
         withWhole event event' = event' {whole = chooseWhole (whole event) (whole event')}
 
+-- | Like @join@, but cycles of the inner patterns are compressed to fit the
+-- timespan of the outer whole (or the original query if it's a continuous pattern?)
+-- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
+squeezeJoin :: Signal (Signal a) -> Signal a
+squeezeJoin pp = pp {query = q}
+  where q st = concatMap
+          (\e@(Event m w p v) ->
+             mapMaybe (munge m w p) $ query (_compressSpan (cycleSpan $ wholeOrActive e) v) st {sSpan = p}
+          )
+          (query pp st)
+        munge oMetadata oWhole oPart (Event iMetadata iWhole iPart v) =
+          do w' <- (maybeSect <$> oWhole <*> iWhole)
+             p' <- maybeSect oPart iPart
+             return (Event (iMetadata <> oMetadata) w' p' v)
+
 -- ************************************************************ --
 -- Pattern instance
 
@@ -138,6 +153,12 @@ instance Pattern Signal where
 
 instance Show (a -> b) where
   show _ = "<function>"
+
+filterEvents :: (Event a -> Bool) -> Signal a -> Signal a
+filterEvents f pat = Signal $ \state -> filter f $ query pat state
+
+discreteOnly :: Signal a -> Signal a
+discreteOnly = filterEvents $ isJust . whole
 
 -- ************************************************************ --
 -- Time utilities
@@ -168,6 +189,17 @@ withQuerySpan spanf = withQuery (\state -> state {sSpan = spanf $ sSpan state})
 
 withQueryTime :: (Time -> Time) -> Signal a -> Signal a
 withQueryTime timef = withQuerySpan (withSpanTime timef)
+
+_fastGap :: Time -> Signal a -> Signal a
+_fastGap factor pat = splitQueries $ withEventSpan (scale $ 1/factor) $ withQuerySpan (scale factor) pat
+  where scale factor' span = Span b e
+          where cycle = sam $ begin span
+                b = cycle + (min 1 $ (begin span - cycle) * factor)
+                e = cycle + (min 1 $ (end   span - cycle) * factor)
+
+_compressSpan :: Span -> Signal a -> Signal a
+_compressSpan (Span b e) pat | (b > e || b > 1 || e > 1 || b < 0 || e < 0) = silence
+                             | otherwise = _late b $ _fastGap (1/(e-b)) pat
 
 -- ************************************************************ --
 -- Fundamental signals
@@ -330,14 +362,23 @@ sigRev pat = splitQueries $ Signal f
 (#) :: ControlSignal -> ControlSignal -> ControlSignal
 (#) a b = Map.union <$> a <*> b
 
+addMix :: Num a => Signal a -> Signal a -> Signal a
+addMix a b = (+) <$> a <*> b
+
 (|+|) :: Num a => Signal a -> Signal a -> Signal a
-(|+|) a b = (+) <$> a <*> b
+(|+|) = addMix
+
+addIn :: Num a => Signal a -> Signal a -> Signal a
+addIn a b = ((+) <$> a) <* b
 
 (|+) :: Num a => Signal a -> Signal a -> Signal a
-(|+) a b = ((+) <$> a) <* b
+(|+) = addIn
+
+addOut :: Num a => Signal a -> Signal a -> Signal a
+addOut a b = ((+) <$> a) *> b
 
 (+|) :: Num a => Signal a -> Signal a -> Signal a
-(+|) a b = ((+) <$> a) *> b
+(+|) = addOut
 
 -- ************************************************************ --
 
