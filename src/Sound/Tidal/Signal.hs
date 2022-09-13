@@ -135,6 +135,9 @@ squeezeJoin pp = pp {query = q}
              p' <- maybeSect oPart iPart
              return (Event (iMetadata <> oMetadata) w' p' v)
 
+squeezeBind :: Signal a -> (a -> Signal b) -> Signal b
+squeezeBind pat f = squeezeJoin $ fmap f pat
+
 -- ************************************************************ --
 -- Pattern instance
 
@@ -359,8 +362,8 @@ sigRev pat = splitQueries $ Signal f
 
 -- ************************************************************ --
 
-(#) :: ControlSignal -> ControlSignal -> ControlSignal
-(#) a b = Map.union <$> a <*> b
+mix :: ControlSignal -> ControlSignal -> ControlSignal
+mix a b = Map.union <$> a <*> b
 
 addMix :: Num a => Signal a -> Signal a -> Signal a
 addMix a b = (+) <$> a <*> b
@@ -379,6 +382,12 @@ addOut a b = ((+) <$> a) *> b
 
 (+|) :: Num a => Signal a -> Signal a -> Signal a
 (+|) = addOut
+
+addSqueeze :: Num a => Signal a -> Signal a -> Signal a
+addSqueeze pata patb = squeezeJoin $ fmap (\a -> fmap (\b -> a + b)  patb) pata
+
+addSqueezeOut :: Num a => Signal a -> Signal a -> Signal a
+addSqueezeOut pata patb = squeezeJoin $ fmap (\a -> fmap (\b -> b + a)  pata) patb
 
 -- ************************************************************ --
 
