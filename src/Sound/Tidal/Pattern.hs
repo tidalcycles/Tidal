@@ -102,3 +102,6 @@ note :: (Pattern a) => a Double -> a ValueMap
 note pat = (Map.singleton "note" . F) <$> pat
 
 -- ************************************************************ --
+
+
+
