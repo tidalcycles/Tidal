@@ -138,6 +138,27 @@ squeezeJoin pp = pp {query = q}
 squeezeBind :: Signal a -> (a -> Signal b) -> Signal b
 squeezeBind pat f = squeezeJoin $ fmap f pat
 
+
+-- Flatterns patterns of patterns, by retriggering/resetting inner patterns at onsets of outer pattern haps
+
+_trigTimeJoin :: (Time -> Time) -> Signal (Signal a) -> Signal a
+_trigTimeJoin timeF patOfPats = Signal $ \state -> concatMap (queryInner state) $ query (discreteOnly patOfPats) state
+  where queryInner state outerEvent
+          = map (\innerEvent ->
+                   Event {metadata = metadata innerEvent <> metadata outerEvent,
+                          whole = sect <$> whole innerEvent <*> whole outerEvent,
+                          active = sect (active innerEvent) (active outerEvent),
+                          value = value innerEvent
+                         }
+                ) $ query (_late (timeF $ (begin $ wholeOrActive outerEvent)) (value outerEvent)) state
+
+trigJoin :: Signal (Signal a) -> Signal a
+trigJoin = _trigTimeJoin id
+
+trigZeroJoin :: Signal (Signal a) -> Signal a
+trigZeroJoin = _trigTimeJoin cyclePos
+
+
 -- ************************************************************ --
 -- Pattern instance
 
@@ -388,6 +409,9 @@ addSqueeze pata patb = squeezeJoin $ fmap (\a -> fmap (\b -> a + b)  patb) pata
 
 addSqueezeOut :: Num a => Signal a -> Signal a -> Signal a
 addSqueezeOut pata patb = squeezeJoin $ fmap (\a -> fmap (\b -> b + a)  pata) patb
+
+
+
 
 -- ************************************************************ --
 
