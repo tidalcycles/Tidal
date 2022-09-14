@@ -1,8 +1,43 @@
 # TidalCycles log of changes
 
-## 1.8.2
+## 1.9.0
 
-* Increased upper bounds of the text dependency
+## What's Changed
+
+### General enhancements
+* Rename linux binary name by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/911
+* Fix echo by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/910
+* If first argument of euclid is negative, apply euclidInv by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/916
+* Add squeeze operators (`||+`, `*||`, etc) by @yaxu in https://github.com/tidalcycles/Tidal/pull/919
+* Make chunk reverse direction with negative number by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/918
+* overhaul of the chord parser by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/931
+
+### New ableton link support
+* Use ableton link for scheduling by @Zalastax in https://github.com/tidalcycles/Tidal/pull/898
+* tidal-link: add link source files to extra-source-files, fixes #924 by @yaxu in https://github.com/tidalcycles/Tidal/pull/925
+* Use target latency in all send modes by @Zalastax in https://github.com/tidalcycles/Tidal/pull/927
+* Rename cCyclesPerBeat -> cBeatsPerCycle by @Zalastax in https://github.com/tidalcycles/Tidal/pull/939
+
+### Emacs plugin updates
+* formatting fixes in tidal.el by @zzkt in https://github.com/tidalcycles/Tidal/pull/932
+* a window-excursion for tidal.el by @zzkt in https://github.com/tidalcycles/Tidal/pull/933
+* autoloads for tidal.el by @zzkt in https://github.com/tidalcycles/Tidal/pull/934
+* avoid race in loading bootscript during restart by @zzkt in https://github.com/tidalcycles/Tidal/pull/937
+
+### Tidal-parse (estuary) updates
+* Various updates to tidal-parse by @dktr0 in https://github.com/tidalcycles/Tidal/pull/913 and  https://github.com/tidalcycles/Tidal/pull/941
+
+### Maintenance
+* Increase upper bounds of text dependency by @yaxu in https://github.com/tidalcycles/Tidal/pull/948
+* Use system-cxx-std-lib by @Zalastax in https://github.com/tidalcycles/Tidal/pull/944
+* Use c++ extra library for MacOS by @giuseppelillo in https://github.com/tidalcycles/Tidal/pull/946
+
+## New Contributors
+* @Zalastax made their first contribution in https://github.com/tidalcycles/Tidal/pull/898
+* @zzkt made their first contribution in https://github.com/tidalcycles/Tidal/pull/932
+* @giuseppelillo made their first contribution in https://github.com/tidalcycles/Tidal/pull/946
+
+**Full Changelog**: https://github.com/tidalcycles/Tidal/compare/v1.8.0...v1.9.0
 
 ## 1.8.1
 
