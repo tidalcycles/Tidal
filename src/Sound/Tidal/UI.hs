@@ -110,7 +110,7 @@ rand :: Fractional a => Pattern a
 rand = Pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ (timeToRand ((e + s)/2) :: Double))])
 
 -- | Boolean rand - a continuous stream of true/false values, with a 50/50 chance.
-brand :: Pattern Bool 
+brand :: Pattern Bool
 brand = _brandBy 0.5
 
 -- | Boolean rand with probability as input, e.g. brandBy 0.25 is 25% chance of being true.
@@ -718,6 +718,8 @@ In the above, three sounds are picked from the pattern on the right according
 to the structure given by the `e 3 8`. It ends up picking two `bd` sounds, a
 `cp` and missing the `sn` entirely.
 
+A negative first argument provides the inverse of the euclidean pattern.
+
 These types of sequences use "Bjorklund's algorithm", which wasn't made for
 music but for an application in nuclear physics, which is exciting. More
 exciting still is that it is very similar in structure to the one of the first
@@ -755,7 +757,8 @@ euclid :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclid = tParam2 _euclid
 
 _euclid :: Int -> Int -> Pattern a -> Pattern a
-_euclid n k a = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
+_euclid n k a | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
+              | otherwise = fastcat $ fmap (bool a silence) $ bjorklund (-n,k)
 
 {- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
 euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
@@ -809,7 +812,7 @@ euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclidInv = tParam2 _euclidInv
 
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
-_euclidInv n k a = fastcat $ fmap (bool a silence) $ bjorklund (n,k)
+_euclidInv n k a = _euclid (-n) k a
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
@@ -960,7 +963,7 @@ discretise = segment
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 -- randomises the order in which they are played.
 randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' rotL (_segment 1 $ (%1) . fromIntegral <$> (_irand (length ps) :: Pattern Int)) (slowcat ps)
+randcat ps = spread' rotL (_segment 1 $ (% 1) . fromIntegral <$> (_irand (length ps) :: Pattern Int)) (slowcat ps)
 
 wrandcat :: [(Pattern a, Double)] -> Pattern a
 wrandcat ps = unwrap $ wchooseBy (segment 1 rand) ps
@@ -1228,32 +1231,31 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
         p' = density cyc p
         from' = density cyc from
 
-{-| @chunk n f p@ treats the given pattern @p@ as having @n@ chunks, and applies the function @f@ to one of those sections per cycle, running from left to right.
+{-|
+  Treats the given pattern @p@ as having @n@ chunks, and applies the function @f@ to one of those sections per cycle.
+  Running:
+   - from left to right if chunk number is positive
+   - from right to left if chunk number is negative
 
-@
-d1 $ chunk 4 (density 4) $ sound "cp sn arpy [mt lt]"
-@
+  @
+  d1 $ chunk 4 (fast 4) $ sound "cp sn arpy [mt lt]"
+  @
 -}
-_chunk :: Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-_chunk n f p = cat [withinArc (Arc (i % fromIntegral n) ((i+1) % fromIntegral n)) f p | i <- [0 .. fromIntegral n - 1]]
-
-
 chunk :: Pattern Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-chunk npat f p  = innerJoin $ (\n -> _chunk n f p) <$> npat
+chunk npat f p = innerJoin $ (\n -> _chunk n f p) <$> npat
 
--- deprecated (renamed to chunk)
-runWith :: Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-runWith = _chunk
+_chunk :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+_chunk n f p | n >= 0 = cat [withinArc (Arc (i % fromIntegral n) ((i+1) % fromIntegral n)) f p | i <- [0 .. fromIntegral n - 1]]
+             | otherwise = do i <- _slow (toRational (-n)) $ rev $ run (fromIntegral (-n))
+                              withinArc (Arc (i % fromIntegral (-n)) ((i+1) % fromIntegral (-n))) f p
 
-{-| @chunk'@ works much the same as `chunk`, but runs from right to left.
--}
--- this was throwing a parse error when I ran it in tidal whenever I changed the function name..
-_chunk' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-_chunk' n f p = do i <- _slow (toRational n) $ rev $ run (fromIntegral n)
-                   withinArc (Arc (i % fromIntegral n) ((i+)1 % fromIntegral n)) f p
-
+-- | DEPRECATED, use 'chunk' with negative numbers instead
 chunk' :: Integral a1 => Pattern a1 -> (Pattern a2 -> Pattern a2) -> Pattern a2 -> Pattern a2
 chunk' npat f p = innerJoin $ (\n -> _chunk' n f p) <$> npat
+
+-- | DEPRECATED, use '_chunk' with negative numbers instead
+_chunk' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+_chunk' n f p = _chunk (-n) f p
 
 _inside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 _inside n f p = _fast n $ f (_slow n p)
@@ -1468,7 +1470,7 @@ rolledBy "<1 -0.5 0.25 -0.125>" $ note "c'maj9" # s "superpiano"
 rolledWith :: Ratio Integer -> Pattern a -> Pattern a
 rolledWith t = withEvents aux
          where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ ((isRev t) es))
-               isRev b = (\x -> if x > 0 then id else reverse ) b 
+               isRev b = (\x -> if x > 0 then id else reverse ) b
                steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
                timeguard _ _ ev 0 = return ev
                timeguard n xs ev _ = (shiftIt n (length xs) ev)

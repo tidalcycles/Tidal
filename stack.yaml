@@ -3,6 +3,7 @@ resolver: lts-16.31
 packages:
   - '.'
   - 'tidal-parse'
+  - 'tidal-link'
 
 extra-deps:
   - hosc-0.18.1

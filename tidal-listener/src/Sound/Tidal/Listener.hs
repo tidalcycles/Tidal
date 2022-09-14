@@ -3,7 +3,7 @@ module Sound.Tidal.Listener where
 
 import Data.Default (def)
 
-import Sound.Tidal.Stream (Target(..))
+import Sound.Tidal.Stream (Target(..), streamGetcps)
 import Sound.Tidal.ID
 import qualified Sound.Tidal.Context as T
 import Sound.Tidal.Hint
@@ -77,8 +77,7 @@ startHint = do mIn <- newEmptyMVar
                forkIO $ hintJob mIn mOut
                return (mIn, mOut)
 
-getcps st = do tempo <- readMVar $ T.sTempoMV (sStream st)
-               return (Tempo.cps tempo)
+getcps st = streamGetcps (sStream st)
 
 act :: State -> Maybe O.Message -> IO State
 act st (Just (Message "/code" [ASCII_String a_ident, ASCII_String a_code])) =

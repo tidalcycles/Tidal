@@ -4,9 +4,8 @@ module Sound.Tidal.Transition where
 
 import Prelude hiding ((<*), (*>))
 
-import Control.Concurrent.MVar (readMVar, swapMVar)
+import Control.Concurrent.MVar (modifyMVar_)
 
-import qualified Sound.OSC.FD as O
 import qualified Data.Map.Strict as Map
 -- import Data.Maybe (fromJust)
 
@@ -16,7 +15,7 @@ import Sound.Tidal.ID
 import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Stream
-import Sound.Tidal.Tempo (timeToCycles)
+import Sound.Tidal.Tempo as T
 import Sound.Tidal.UI (fadeOutFrom, fadeInFrom)
 import Sound.Tidal.Utils (enumerate)
 
@@ -42,24 +41,7 @@ import Sound.Tidal.Utils (enumerate)
 -- the "historyFlag" determines if the new pattern should be placed on the history stack or not
 transition :: Stream -> Bool -> (Time -> [ControlPattern] -> ControlPattern) -> ID -> ControlPattern -> IO ()
 transition stream historyFlag f patId !pat =
-  do pMap <- readMVar (sPMapMV stream)
-     let playState = updatePS $ Map.lookup (fromID patId) pMap
-     pat' <- transition' $ appendPat (not historyFlag) (history playState)
-     let pMap' = Map.insert (fromID patId) (playState {pattern = pat'}) pMap
-     _ <- swapMVar (sPMapMV stream) pMap'
-     return ()
-  where
-    appendPat flag = if flag then (pat:) else id
-    updatePS (Just playState) = playState {history = (appendPat historyFlag) (history playState)}
-    updatePS Nothing = PlayState {pattern = silence,
-                                  mute = False,
-                                  solo = False,
-                                  history = (appendPat historyFlag) (silence:[])
-                                 }
-    transition' pat' = do tempo <- readMVar $ sTempoMV stream
-                          now <- O.time
-                          let c = timeToCycles tempo now
-                          return $ f c pat'
+  modifyMVar_ (sActionsMV stream) (\actions -> return $! (T.Transition historyFlag f patId pat) : actions)
 
 mortalOverlay :: Time -> Time -> [Pattern a] -> Pattern a
 mortalOverlay _ _ [] = silence

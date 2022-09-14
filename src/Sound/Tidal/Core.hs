@@ -150,6 +150,9 @@ a |+| b = (+) <$> a <*> b
 a |+  b = (+) <$> a <* b
 ( +|) :: Num a => Pattern a -> Pattern a -> Pattern a
 a  +| b = (+) <$> a *> b
+(||+) :: Num a => Pattern a -> Pattern a -> Pattern a
+a ||+ b = (+) <$> a <<* b
+
 
 (|++|) :: Applicative a => a String -> a String -> a String
 a |++| b = (++) <$> a <*> b
@@ -157,6 +160,8 @@ a |++| b = (++) <$> a <*> b
 a |++  b = (++) <$> a <* b
 ( ++|) :: Pattern String -> Pattern String -> Pattern String
 a  ++| b = (++) <$> a *> b
+(||++) :: Pattern String -> Pattern String -> Pattern String
+a ||++ b = (++) <$> a <<* b
 
 (|/|) :: (Applicative a, Fractional b) => a b -> a b -> a b
 a |/| b = (/) <$> a <*> b
@@ -164,6 +169,8 @@ a |/| b = (/) <$> a <*> b
 a |/  b = (/) <$> a <* b
 ( /|) :: Fractional a => Pattern a -> Pattern a -> Pattern a
 a  /| b = (/) <$> a *> b
+(||/) :: Fractional a => Pattern a -> Pattern a -> Pattern a
+a ||/ b = (/) <$> a <<* b
 
 (|*|) :: (Applicative a, Num b) => a b -> a b -> a b
 a |*| b = (*) <$> a <*> b
@@ -171,6 +178,8 @@ a |*| b = (*) <$> a <*> b
 a |*  b = (*) <$> a <* b
 ( *|) :: Num a => Pattern a -> Pattern a -> Pattern a
 a  *| b = (*) <$> a *> b
+(||*) :: Num a => Pattern a -> Pattern a -> Pattern a
+a ||* b = (*) <$> a <<* b
 
 (|-|) :: (Applicative a, Num b) => a b -> a b -> a b
 a |-| b = (-) <$> a <*> b
@@ -178,6 +187,8 @@ a |-| b = (-) <$> a <*> b
 a |-  b = (-) <$> a <* b
 ( -|) :: Num a => Pattern a -> Pattern a -> Pattern a
 a  -| b = (-) <$> a *> b
+(||-) :: Num a => Pattern a -> Pattern a -> Pattern a
+a ||- b = (-) <$> a <<* b
 
 (|%|) :: (Applicative a, Moddable b) => a b -> a b -> a b
 a |%| b = gmod <$> a <*> b
@@ -185,6 +196,8 @@ a |%| b = gmod <$> a <*> b
 a |%  b = gmod <$> a <* b
 ( %|) :: Moddable a => Pattern a -> Pattern a -> Pattern a
 a  %| b = gmod <$> a *> b
+(||%) :: Moddable a => Pattern a -> Pattern a -> Pattern a
+a ||% b = gmod <$> a <<* b
 
 (|**|) :: (Applicative a, Floating b) => a b -> a b -> a b
 a |**| b = (**) <$> a <*> b
@@ -192,6 +205,8 @@ a |**| b = (**) <$> a <*> b
 a |**  b = (**) <$> a <* b
 ( **|) :: Floating a => Pattern a -> Pattern a -> Pattern a
 a  **| b = (**) <$> a *> b
+(||**) :: Floating a => Pattern a -> Pattern a -> Pattern a
+a ||** b = (**) <$> a <<* b
 
 (|>|) :: (Applicative a, Unionable b) => a b -> a b -> a b
 a |>| b = flip union <$> a <*> b
@@ -199,6 +214,8 @@ a |>| b = flip union <$> a <*> b
 a |>  b = flip union <$> a <* b
 ( >|) :: Unionable a => Pattern a -> Pattern a -> Pattern a
 a  >| b = flip union <$> a *> b
+(||>) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+a ||> b = flip union <$> a <<* b
 
 (|<|) :: (Applicative a, Unionable b) => a b -> a b -> a b
 a |<| b = union <$> a <*> b
@@ -206,6 +223,8 @@ a |<| b = union <$> a <*> b
 a |<  b = union <$> a <* b
 ( <|) :: Unionable a => Pattern a -> Pattern a -> Pattern a
 a  <| b = union <$> a *> b
+(||<) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+a ||< b = union <$> a <<* b
 
 -- Backward compatibility - structure from left, values from right.
 (#) :: Unionable b => Pattern b -> Pattern b -> Pattern b
