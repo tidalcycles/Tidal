@@ -18,7 +18,7 @@ class Functor f => Pattern f where
   silence :: f a
   atom :: a -> f a
   stack :: [f a] -> f a
-  _patternify :: (a -> b -> f c) -> (f a -> b -> f c)
+  _patternify :: (a -> f b -> f c) -> (f a -> f b -> f c)
   rev :: f a -> f a
   -- ply :: f Rational -> f a -> f a
   -- _ply :: Rational ->f a-> f a

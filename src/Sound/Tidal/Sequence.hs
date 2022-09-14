@@ -71,7 +71,7 @@ instance Pattern Sequence where
   atom    = pure
   stack   = seqStack
   rev     = seqRev
-  -- _patternify f x pat = joinInner $ (`f` pat) <$> x
+  _patternify f x pat = mapSeq (applyfToSeq f x) pat
 
 -- -- | Takes sequence of functions and a sequence which have been aligned and applies the functions at the corresponding time points
 funcMap :: [Sequence (a->b)] -> [Sequence a] -> [Sequence b]
