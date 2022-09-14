@@ -1,5 +1,28 @@
 # TidalCycles log of changes
 
+## 1.8.2
+
+* Increased upper bounds of the text dependency
+
+## 1.8.1
+
+* Removed executable from tidal.cabal file (while latest ghc on windows fails to build it)
+
+## 1.8.0 - Sanquhar
+
+* move tidal-listener code by @polymorphicengine in #885
+* Fix a typo incurred (I assume) by a filename change. by @JeffreyBenjaminBrown in #886
+* Hide contexts from Events per default by @polymorphicengine in #887
+* Allow sending/receiving of broadcasted OSC control messages by @yaxu in #894
+* tidal-listener: Add minimal install notes by @gamar3is in #895
+* Add rolled function with variants by @thgrund in #820
+* Valuable instance for Note by @yaxu in #899
+* Add parsers for ints and floats that don't consume trailing whitespace by @polymorphicengine in #900
+* Introduce echo and echoWith, deprecate stut and stutWith by @ndr-brt in #904
+* tidal-listener: Optional WITH_GHC environment variable by @mindofmatthew in #903
+
+Commit list: https://github.com/tidalcycles/Tidal/compare/1.7.10...v1.8.0
+
 ## 1.7.10 - Tama b
 
 * Derive RealFrac for Note by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/876
