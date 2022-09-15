@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor, OverloadedStrings #-}
+{-# LANGUAGE DeriveFunctor, OverloadedStrings, FlexibleInstances #-}
 
 -- (c) Alex McLean 2022 and contributors
 -- Shared under the terms of the GNU Public License v. 3.0
@@ -94,6 +94,8 @@ app patf patv = Signal f
                                            active = new_active,
                                            value = value ef $ value ev
                                           }
+
+infixl 4 <*, *>
 
 -- ************************************************************ --
 
@@ -381,37 +383,5 @@ sigRev pat = splitQueries $ Signal f
 --every :: Int -> (Signal a -> Signal a) -> Signal a -> Signal a
 --every n f pat = splitQueries $ Signal 
 
--- ************************************************************ --
-
-mix :: ControlSignal -> ControlSignal -> ControlSignal
-mix a b = Map.union <$> a <*> b
-
-addMix :: Num a => Signal a -> Signal a -> Signal a
-addMix a b = (+) <$> a <*> b
-
-(|+|) :: Num a => Signal a -> Signal a -> Signal a
-(|+|) = addMix
-
-addIn :: Num a => Signal a -> Signal a -> Signal a
-addIn a b = ((+) <$> a) <* b
-
-(|+) :: Num a => Signal a -> Signal a -> Signal a
-(|+) = addIn
-
-addOut :: Num a => Signal a -> Signal a -> Signal a
-addOut a b = ((+) <$> a) *> b
-
-(+|) :: Num a => Signal a -> Signal a -> Signal a
-(+|) = addOut
-
-addSqueeze :: Num a => Signal a -> Signal a -> Signal a
-addSqueeze pata patb = squeezeJoin $ fmap (\a -> fmap (\b -> a + b)  patb) pata
-
-addSqueezeOut :: Num a => Signal a -> Signal a -> Signal a
-addSqueezeOut pata patb = squeezeJoin $ fmap (\a -> fmap (\b -> b + a)  pata) patb
-
-
-
-
--- ************************************************************ --
+--- ************************************************************ --
 
