@@ -8,6 +8,6 @@ packages:
 extra-deps:
   - hosc-0.18.1
   - microspec-0.2.1.3
-  - haskellish-0.2.4.3
+  - haskellish-0.3.2.1
 
 allow-newer: true
