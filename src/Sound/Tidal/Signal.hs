@@ -13,7 +13,7 @@ where
 
 import Data.Ratio
 import Data.Fixed (mod')
-import Data.Maybe (catMaybes, isJust, mapMaybe)
+import Data.Maybe (catMaybes, isJust, mapMaybe, fromJust)
 import qualified Data.Map.Strict as Map
 import Control.Applicative (liftA2)
 
@@ -182,6 +182,12 @@ instance Show (a -> b) where
 
 filterEvents :: (Event a -> Bool) -> Signal a -> Signal a
 filterEvents f pat = Signal $ \state -> filter f $ query pat state
+
+filterValues :: (a -> Bool) -> Signal a -> Signal a
+filterValues f = filterEvents (f . value)
+
+filterJusts :: Signal (Maybe a) -> Signal a
+filterJusts = fmap fromJust . filterValues isJust
 
 discreteOnly :: Signal a -> Signal a
 discreteOnly = filterEvents $ isJust . whole
