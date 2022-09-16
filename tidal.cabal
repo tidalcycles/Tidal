@@ -1,7 +1,7 @@
 cabal-version:       2.0
 
 name:                tidal
-version:             1.9.1
+version:             1.9.2
 synopsis:            Pattern language for improvised music
 description:         Tidal is a domain specific language for live coding patterns.
 homepage:            http://tidalcycles.org/
@@ -67,7 +67,7 @@ library
     , random < 1.3
     , exceptions < 0.11
     , mtl >= 2.2
-    , tidal-link == 1.0
+    , tidal-link == 1.0.1
 
 test-suite tests
   type: exitcode-stdio-1.0
