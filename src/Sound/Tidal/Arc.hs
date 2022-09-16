@@ -18,10 +18,15 @@ nextSam s = sam s + 1
 cyclePos :: Time -> Time
 cyclePos t = t - sam t
 
-
 -- | Time arc (also known as timespan)
 data Arc = Arc {begin :: Time, end :: Time}
   deriving (Show)
+
+-- | Similar to 'fmap' but time is relative to the cycle (i.e. the
+-- sam of the start of the arc)
+mapCycle :: (Time -> Time) -> Arc -> Arc
+mapCycle f (Arc s e) = Arc (sam' + f (s - sam')) (sam' + f (e - sam'))
+         where sam' = sam s
 
 -- | @isIn a t@ is @True@ if @t@ is inside
 -- the arc represented by @a@.

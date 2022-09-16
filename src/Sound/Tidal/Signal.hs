@@ -384,6 +384,45 @@ late = _patternify _late
 (~>) :: Signal Time -> Signal x -> Signal x
 (~>) = late
 
+{- | Plays a portion of a pattern, specified by start and duration
+The new resulting pattern is played over the time period of the original pattern:
+
+@
+d1 $ zoom 0.25 0.75 $ sound "bd*2 hh*3 [sn bd]*2 drum"
+@
+
+In the pattern above, `zoom` is used with an arc from 25% to 75%. It is equivalent to this pattern:
+
+@
+d1 $ sound "hh*3 [sn bd]*2"
+@
+-}
+zoom :: Signal Time -> Signal Time -> Signal a -> Signal a
+zoom patStart patDur pat = innerJoin $ (\s d -> _zoomArc (Arc s (s+d)) pat) <$> patStart <*> patDur
+
+_zoomArc :: Arc -> Signal a -> Signal a
+_zoomArc (Arc s e) p = splitQueries $
+  withEventArc (mapCycle ((/d) . subtract s)) $ withQueryArc (mapCycle ((+s) . (*d))) p
+     where d = e-s
+
+compress :: Signal Time -> Signal Time -> Signal a -> Signal a
+compress patStart patDur pat = innerJoin $ (\s d -> _compressArc (Arc s (s+d)) pat) <$> patStart <*> patDur
+
+-- compressTo :: (Time,Time) -> Pattern a -> Pattern a
+-- compressTo (s,e)      = compressArcTo (Arc s e)
+
+repeatCycles :: Signal Int -> Signal a -> Signal a
+repeatCycles = _patternify _repeatCycles
+
+_repeatCycles :: Int -> Signal a -> Signal a
+_repeatCycles n p = slowcat $ replicate n p
+
+fastRepeatCycles :: Signal Int -> Signal a -> Signal a
+fastRepeatCycles = _patternify _repeatCycles
+
+_fastRepeatCycles :: Int -> Signal a -> Signal a
+_fastRepeatCycles n p = fastcat $ replicate n p
+
 sigStack :: [Signal a] -> Signal a
 sigStack pats = Signal $ \s -> concatMap (\pat -> query pat s) pats
 

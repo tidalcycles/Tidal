@@ -44,41 +44,6 @@ fastSqueeze = tParamSqueeze _fast
 slowSqueeze :: Pattern Time -> Pattern a -> Pattern a
 slowSqueeze = tParamSqueeze _slow
 
-{- | Plays a portion of a pattern, specified by a time arc (start and end time).
-The new resulting pattern is played over the time period of the original pattern:
-
-@
-d1 $ zoom (0.25, 0.75) $ sound "bd*2 hh*3 [sn bd]*2 drum"
-@
-
-In the pattern above, `zoom` is used with an arc from 25% to 75%. It is equivalent to this pattern:
-
-@
-d1 $ sound "hh*3 [sn bd]*2"
-@
--}
-zoom :: (Time, Time) -> Pattern a -> Pattern a
-zoom (s,e) = zoomArc (Arc s e)
-
-zoomArc :: Arc -> Pattern a -> Pattern a
-zoomArc (Arc s e) p = splitQueries $
-  withResultArc (mapCycle ((/d) . subtract s)) $ withQueryArc (mapCycle ((+s) . (*d))) p
-     where d = e-s
-
-compress :: (Time,Time) -> Pattern a -> Pattern a
-compress (s,e) = compressArc (Arc s e)
-
-compressTo :: (Time,Time) -> Pattern a -> Pattern a
-compressTo (s,e) = compressArcTo (Arc s e)
-
-repeatCycles :: Pattern Int -> Pattern a -> Pattern a
-repeatCycles = tParam _repeatCycles
-
-_repeatCycles :: Int -> Pattern a -> Pattern a
-_repeatCycles n p = cat (replicate n p)
-
-fastRepeatCycles :: Int -> Pattern a -> Pattern a
-fastRepeatCycles n p = cat (replicate n p)
 
 -- | * Higher order functions
 
