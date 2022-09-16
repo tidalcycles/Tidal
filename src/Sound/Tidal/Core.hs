@@ -32,13 +32,6 @@ import           Sound.Tidal.Compose
 
 -- ** Constructing patterns
 
--- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
-scan :: (Enum a, Num a) => Pattern a -> Pattern a
-scan = (>>= _scan)
-
-_scan :: (Enum a, Num a) => a -> Pattern a
-_scan n = slowcat $ map _run [1 .. n]
-
 -- ** Manipulating time
 
 -- | Slow down a pattern by the factors in the given time pattern, 'squeezing'

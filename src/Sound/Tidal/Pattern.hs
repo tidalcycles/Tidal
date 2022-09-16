@@ -29,8 +29,8 @@ class (Functor f, Applicative f, Monad f) => Pattern f where
   -- fromMaybes :: [Maybe a] -> f a
   run :: (Enum a, Num a) => f a -> f a
   _run :: (Enum a, Num a) => a -> f a
-  -- scan :: (Enum a, Num a) => f a -> f a
-  -- _scan :: (Enum a, Num a) => a -> f a
+  scan :: (Enum a, Num a) => f a -> f a
+  _scan :: (Enum a, Num a) => a -> f a
   -- every :: f Int -> (f b -> f b) -> f b -> f b
   -- _every :: Int -> (f a -> f a) -> f a -> f a
   -- listToPat :: [a] -> f a

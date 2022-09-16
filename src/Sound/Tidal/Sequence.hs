@@ -71,6 +71,8 @@ instance Pattern Sequence where
   rev     = seqRev
   run     = seqRun
   _run     = _seqRun
+  scan     = seqScan
+  _scan     = _seqScan
   timeCat = seqTimeCat
   _patternify f x pat = mapSeq (applyfToSeq f x) pat
 
@@ -491,11 +493,11 @@ seqSlowcat [b] = b
 seqSlowcat bs = Sequence bs
 
 -- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
-scan :: (Enum a, Num a) => Sequence a -> Sequence a
-scan x = unwrap $  (>>= _scan) x
+seqScan :: (Enum a, Num a) => Sequence a -> Sequence a
+seqScan x = unwrap $  (>>= _scan) x
 
-_scan :: (Enum a, Num a) => a -> Sequence a
-_scan n = unwrap $ slowcat $ map _seqRun [1 .. n]
+_seqScan :: (Enum a, Num a) => a -> Sequence a
+_seqScan n = unwrap $ slowcat $ map _seqRun [1 .. n]
 
 seqTimeCat :: [(Rational, Sequence a)] -> Sequence a
 seqTimeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x

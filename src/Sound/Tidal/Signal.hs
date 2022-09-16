@@ -173,6 +173,8 @@ instance Pattern Signal where
   rev     = sigRev
   run     = sigRun
   _run    = _sigRun
+  scan     = sigScan
+  _scan    = _sigScan
   timeCat = sigTimeCat
   _patternify f x pat = innerJoin $ (`f` pat) <$> x
 
@@ -408,6 +410,13 @@ sigRun = (>>= _run)
 _sigRun :: (Enum a, Num a) => a -> Signal a
 _sigRun n = fastFromList [0 .. n-1]
 
+
+-- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
+sigScan :: (Enum a, Num a) => Signal a -> Signal a
+sigScan = (>>= _scan)
+
+_sigScan :: (Enum a, Num a) => a -> Signal a
+_sigScan n = slowcat $ map _run [1 .. n]
 
 -- | Similar to @fastCat@, but each pattern is given a relative duration
 sigTimeCat :: [(Time, Signal a)] -> Signal a
