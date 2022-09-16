@@ -73,6 +73,10 @@ setSqueeze, (||=) :: Unionable a => Signal a -> Signal a -> Signal a
 setSqueeze = opSqueeze (flip union)
 (||=) = setSqueeze
 
+setSqueezeOut, (=||) :: Unionable a => Signal a -> Signal a -> Signal a
+setSqueezeOut = opSqueezeOut (flip union)
+(=||) = setSqueezeOut
+
 setTrig, (!=) :: Unionable a => Signal a -> Signal a -> Signal a
 setTrig = opTrig (flip union)
 (!=) = setTrig
@@ -81,7 +85,7 @@ setTrigZero, (!!=) :: Unionable a => Signal a -> Signal a -> Signal a
 setTrigZero = opTrigZero (flip union)
 (!!=) = setTrigZero
 
-infix 4 |=|, |=, =|, ||=, !=, !!=
+infix 4 |=|, |=, =|, ||=, =||, !=, !!=
 
 -- keep
 
@@ -101,6 +105,10 @@ keepSqueeze, (||.) :: Unionable a => Signal a -> Signal a -> Signal a
 keepSqueeze = opSqueeze (union)
 (||.) = keepSqueeze
 
+keepSqueezeOut, (.||) :: Unionable a => Signal a -> Signal a -> Signal a
+keepSqueezeOut = opSqueezeOut (union)
+(.||) = keepSqueezeOut
+
 keepTrig, (!.) :: Unionable a => Signal a -> Signal a -> Signal a
 keepTrig = opTrig (union)
 (!.) = keepTrig
@@ -109,7 +117,7 @@ keepTrigZero, (!!.) :: Unionable a => Signal a -> Signal a -> Signal a
 keepTrigZero = opTrigZero (union)
 (!!.) = keepTrigZero
 
-infix 4 |.|, |., .|, ||., !., !!.
+infix 4 |.|, |., .|, ||., .||, !., !!.
 
 -- add
 
@@ -129,6 +137,10 @@ addSqueeze, (||+) :: Num a => Signal a -> Signal a -> Signal a
 addSqueeze = opSqueeze (+)
 (||+) = addSqueeze
 
+addSqueezeOut, (+||) :: Num a => Signal a -> Signal a -> Signal a
+addSqueezeOut = opSqueezeOut (+)
+(+||) = addSqueezeOut
+
 addTrig, (!+) :: Num a => Signal a -> Signal a -> Signal a
 addTrig = opTrig (+)
 (!+) = addTrig
@@ -137,7 +149,7 @@ addTrigZero, (!!+) :: Num a => Signal a -> Signal a -> Signal a
 addTrigZero = opTrigZero (+)
 (!!+) = addTrigZero
 
-infix 4 |+|, |+, +|, ||+, !+, !!+
+infix 4 |+|, |+, +|, ||+, +||, !+, !!+
 
 -- sub
 
@@ -157,6 +169,10 @@ subSqueeze, (||-) :: Num a => Signal a -> Signal a -> Signal a
 subSqueeze = opSqueeze (-)
 (||-) = subSqueeze
 
+subSqueezeOut, (-||) :: Num a => Signal a -> Signal a -> Signal a
+subSqueezeOut = opSqueezeOut (-)
+(-||) = subSqueezeOut
+
 subTrig, (!-) :: Num a => Signal a -> Signal a -> Signal a
 subTrig = opTrig (-)
 (!-) = subTrig
@@ -165,7 +181,7 @@ subTrigZero, (!!-) :: Num a => Signal a -> Signal a -> Signal a
 subTrigZero = opTrigZero (-)
 (!!-) = subTrigZero
 
-infix 4 |-|, |-, -|, ||-, !-, !!-
+infix 4 |-|, |-, -|, ||-, -||, !-, !!-
 
 -- mul
 
@@ -185,6 +201,10 @@ mulSqueeze, (||*) :: Num a => Signal a -> Signal a -> Signal a
 mulSqueeze = opSqueeze (*)
 (||*) = mulSqueeze
 
+mulSqueezeOut, (*||) :: Num a => Signal a -> Signal a -> Signal a
+mulSqueezeOut = opSqueezeOut (*)
+(*||) = mulSqueezeOut
+
 mulTrig, (!*) :: Num a => Signal a -> Signal a -> Signal a
 mulTrig = opTrig (*)
 (!*) = mulTrig
@@ -193,7 +213,7 @@ mulTrigZero, (!!*) :: Num a => Signal a -> Signal a -> Signal a
 mulTrigZero = opTrigZero (*)
 (!!*) = mulTrigZero
 
-infix 4 |*|, |*, *|, ||*, !*, !!*
+infix 4 |*|, |*, *|, ||*, *||, !*, !!*
 
 -- div
 
@@ -213,6 +233,10 @@ divSqueeze, (||/) :: Fractional a => Signal a -> Signal a -> Signal a
 divSqueeze = opSqueeze (/)
 (||/) = divSqueeze
 
+divSqueezeOut, (/||) :: Fractional a => Signal a -> Signal a -> Signal a
+divSqueezeOut = opSqueezeOut (/)
+(/||) = divSqueezeOut
+
 divTrig, (!/) :: Fractional a => Signal a -> Signal a -> Signal a
 divTrig = opTrig (/)
 (!/) = divTrig
@@ -221,7 +245,7 @@ divTrigZero, (!!/) :: Fractional a => Signal a -> Signal a -> Signal a
 divTrigZero = opTrigZero (/)
 (!!/) = divTrigZero
 
-infix 4 |/|, |/, /|, ||/, !/, !!/
+infix 4 |/|, |/, /|, ||/, /||, !/, !!/
 
 -- mod
 
@@ -241,6 +265,10 @@ modSqueeze, (||%) :: Integral a => Signal a -> Signal a -> Signal a
 modSqueeze = opSqueeze (mod)
 (||%) = modSqueeze
 
+modSqueezeOut, (%||) :: Integral a => Signal a -> Signal a -> Signal a
+modSqueezeOut = opSqueezeOut (mod)
+(%||) = modSqueezeOut
+
 modTrig, (!%) :: Integral a => Signal a -> Signal a -> Signal a
 modTrig = opTrig (mod)
 (!%) = modTrig
@@ -249,7 +277,7 @@ modTrigZero, (!!%) :: Integral a => Signal a -> Signal a -> Signal a
 modTrigZero = opTrigZero (mod)
 (!!%) = modTrigZero
 
-infix 4 |%|, |%, %|, ||%, !%, !!%
+infix 4 |%|, |%, %|, ||%, %||, !%, !!%
 
 -- pow
 
@@ -269,6 +297,10 @@ powSqueeze, (||^) :: Integral a => Signal a -> Signal a -> Signal a
 powSqueeze = opSqueeze (^)
 (||^) = powSqueeze
 
+powSqueezeOut, (^||) :: Integral a => Signal a -> Signal a -> Signal a
+powSqueezeOut = opSqueezeOut (^)
+(^||) = powSqueezeOut
+
 powTrig, (!^) :: Integral a => Signal a -> Signal a -> Signal a
 powTrig = opTrig (^)
 (!^) = powTrig
@@ -277,7 +309,7 @@ powTrigZero, (!!^) :: Integral a => Signal a -> Signal a -> Signal a
 powTrigZero = opTrigZero (^)
 (!!^) = powTrigZero
 
-infix 4 |^|, |^, ^|, ||^, !^, !!^
+infix 4 |^|, |^, ^|, ||^, ^||, !^, !!^
 
 -- band
 
@@ -297,6 +329,10 @@ bandSqueeze, (||.&.) :: Bits a => Signal a -> Signal a -> Signal a
 bandSqueeze = opSqueeze (.&.)
 (||.&.) = bandSqueeze
 
+bandSqueezeOut, (.&.||) :: Bits a => Signal a -> Signal a -> Signal a
+bandSqueezeOut = opSqueezeOut (.&.)
+(.&.||) = bandSqueezeOut
+
 bandTrig, (!.&.) :: Bits a => Signal a -> Signal a -> Signal a
 bandTrig = opTrig (.&.)
 (!.&.) = bandTrig
@@ -305,7 +341,7 @@ bandTrigZero, (!!.&.) :: Bits a => Signal a -> Signal a -> Signal a
 bandTrigZero = opTrigZero (.&.)
 (!!.&.) = bandTrigZero
 
-infix 4 |.&.|, |.&., .&.|, ||.&., !.&., !!.&.
+infix 4 |.&.|, |.&., .&.|, ||.&., .&.||, !.&., !!.&.
 
 -- bor
 
@@ -325,6 +361,10 @@ borSqueeze, (||.|.) :: Bits a => Signal a -> Signal a -> Signal a
 borSqueeze = opSqueeze (.|.)
 (||.|.) = borSqueeze
 
+borSqueezeOut, (.|.||) :: Bits a => Signal a -> Signal a -> Signal a
+borSqueezeOut = opSqueezeOut (.|.)
+(.|.||) = borSqueezeOut
+
 borTrig, (!.|.) :: Bits a => Signal a -> Signal a -> Signal a
 borTrig = opTrig (.|.)
 (!.|.) = borTrig
@@ -333,7 +373,7 @@ borTrigZero, (!!.|.) :: Bits a => Signal a -> Signal a -> Signal a
 borTrigZero = opTrigZero (.|.)
 (!!.|.) = borTrigZero
 
-infix 4 |.|.|, |.|., .|.|, ||.|., !.|., !!.|.
+infix 4 |.|.|, |.|., .|.|, ||.|., .|.||, !.|., !!.|.
 
 -- bxor
 
@@ -353,6 +393,10 @@ bxorSqueeze, (||.^.) :: Bits a => Signal a -> Signal a -> Signal a
 bxorSqueeze = opSqueeze (xor)
 (||.^.) = bxorSqueeze
 
+bxorSqueezeOut, (.^.||) :: Bits a => Signal a -> Signal a -> Signal a
+bxorSqueezeOut = opSqueezeOut (xor)
+(.^.||) = bxorSqueezeOut
+
 bxorTrig, (!.^.) :: Bits a => Signal a -> Signal a -> Signal a
 bxorTrig = opTrig (xor)
 (!.^.) = bxorTrig
@@ -361,7 +405,7 @@ bxorTrigZero, (!!.^.) :: Bits a => Signal a -> Signal a -> Signal a
 bxorTrigZero = opTrigZero (xor)
 (!!.^.) = bxorTrigZero
 
-infix 4 |.^.|, |.^., .^.|, ||.^., !.^., !!.^.
+infix 4 |.^.|, |.^., .^.|, ||.^., .^.||, !.^., !!.^.
 
 -- bshiftl
 
@@ -381,6 +425,10 @@ bshiftlSqueeze, (||.<<.) :: Bits a => Signal a -> Signal Int -> Signal a
 bshiftlSqueeze = opSqueeze (shiftL)
 (||.<<.) = bshiftlSqueeze
 
+bshiftlSqueezeOut, (.<<.||) :: Bits a => Signal a -> Signal Int -> Signal a
+bshiftlSqueezeOut = opSqueezeOut (shiftL)
+(.<<.||) = bshiftlSqueezeOut
+
 bshiftlTrig, (!.<<.) :: Bits a => Signal a -> Signal Int -> Signal a
 bshiftlTrig = opTrig (shiftL)
 (!.<<.) = bshiftlTrig
@@ -389,7 +437,7 @@ bshiftlTrigZero, (!!.<<.) :: Bits a => Signal a -> Signal Int -> Signal a
 bshiftlTrigZero = opTrigZero (shiftL)
 (!!.<<.) = bshiftlTrigZero
 
-infix 4 |.<<.|, |.<<., .<<.|, ||.<<., !.<<., !!.<<.
+infix 4 |.<<.|, |.<<., .<<.|, ||.<<., .<<.||, !.<<., !!.<<.
 
 -- bshiftr
 
@@ -409,6 +457,10 @@ bshiftrSqueeze, (||.>>.) :: Bits a => Signal a -> Signal Int -> Signal a
 bshiftrSqueeze = opSqueeze (shiftR)
 (||.>>.) = bshiftrSqueeze
 
+bshiftrSqueezeOut, (.>>.||) :: Bits a => Signal a -> Signal Int -> Signal a
+bshiftrSqueezeOut = opSqueezeOut (shiftR)
+(.>>.||) = bshiftrSqueezeOut
+
 bshiftrTrig, (!.>>.) :: Bits a => Signal a -> Signal Int -> Signal a
 bshiftrTrig = opTrig (shiftR)
 (!.>>.) = bshiftrTrig
@@ -417,7 +469,7 @@ bshiftrTrigZero, (!!.>>.) :: Bits a => Signal a -> Signal Int -> Signal a
 bshiftrTrigZero = opTrigZero (shiftR)
 (!!.>>.) = bshiftrTrigZero
 
-infix 4 |.>>.|, |.>>., .>>.|, ||.>>., !.>>., !!.>>.
+infix 4 |.>>.|, |.>>., .>>.|, ||.>>., .>>.||, !.>>., !!.>>.
 
 -- lt
 
@@ -437,6 +489,10 @@ ltSqueeze, (||<) :: Ord a => Signal a -> Signal a -> Signal Bool
 ltSqueeze = opSqueeze (<)
 (||<) = ltSqueeze
 
+ltSqueezeOut, (<||) :: Ord a => Signal a -> Signal a -> Signal Bool
+ltSqueezeOut = opSqueezeOut (<)
+(<||) = ltSqueezeOut
+
 ltTrig, (!<) :: Ord a => Signal a -> Signal a -> Signal Bool
 ltTrig = opTrig (<)
 (!<) = ltTrig
@@ -445,7 +501,7 @@ ltTrigZero, (!!<) :: Ord a => Signal a -> Signal a -> Signal Bool
 ltTrigZero = opTrigZero (<)
 (!!<) = ltTrigZero
 
-infix 4 |<|, |<, <|, ||<, !<, !!<
+infix 4 |<|, |<, <|, ||<, <||, !<, !!<
 
 -- gt
 
@@ -465,6 +521,10 @@ gtSqueeze, (||>) :: Ord a => Signal a -> Signal a -> Signal Bool
 gtSqueeze = opSqueeze (>)
 (||>) = gtSqueeze
 
+gtSqueezeOut, (>||) :: Ord a => Signal a -> Signal a -> Signal Bool
+gtSqueezeOut = opSqueezeOut (>)
+(>||) = gtSqueezeOut
+
 gtTrig, (!>) :: Ord a => Signal a -> Signal a -> Signal Bool
 gtTrig = opTrig (>)
 (!>) = gtTrig
@@ -473,7 +533,7 @@ gtTrigZero, (!!>) :: Ord a => Signal a -> Signal a -> Signal Bool
 gtTrigZero = opTrigZero (>)
 (!!>) = gtTrigZero
 
-infix 4 |>|, |>, >|, ||>, !>, !!>
+infix 4 |>|, |>, >|, ||>, >||, !>, !!>
 
 -- lte
 
@@ -493,6 +553,10 @@ lteSqueeze, (||<=) :: Ord a => Signal a -> Signal a -> Signal Bool
 lteSqueeze = opSqueeze (<=)
 (||<=) = lteSqueeze
 
+lteSqueezeOut, (<=||) :: Ord a => Signal a -> Signal a -> Signal Bool
+lteSqueezeOut = opSqueezeOut (<=)
+(<=||) = lteSqueezeOut
+
 lteTrig, (!<=) :: Ord a => Signal a -> Signal a -> Signal Bool
 lteTrig = opTrig (<=)
 (!<=) = lteTrig
@@ -501,7 +565,7 @@ lteTrigZero, (!!<=) :: Ord a => Signal a -> Signal a -> Signal Bool
 lteTrigZero = opTrigZero (<=)
 (!!<=) = lteTrigZero
 
-infix 4 |<=|, |<=, <=|, ||<=, !<=, !!<=
+infix 4 |<=|, |<=, <=|, ||<=, <=||, !<=, !!<=
 
 -- gte
 
@@ -521,6 +585,10 @@ gteSqueeze, (||>=) :: Ord a => Signal a -> Signal a -> Signal Bool
 gteSqueeze = opSqueeze (>=)
 (||>=) = gteSqueeze
 
+gteSqueezeOut, (>=||) :: Ord a => Signal a -> Signal a -> Signal Bool
+gteSqueezeOut = opSqueezeOut (>=)
+(>=||) = gteSqueezeOut
+
 gteTrig, (!>=) :: Ord a => Signal a -> Signal a -> Signal Bool
 gteTrig = opTrig (>=)
 (!>=) = gteTrig
@@ -529,7 +597,7 @@ gteTrigZero, (!!>=) :: Ord a => Signal a -> Signal a -> Signal Bool
 gteTrigZero = opTrigZero (>=)
 (!!>=) = gteTrigZero
 
-infix 4 |>=|, |>=, >=|, ||>=, !>=, !!>=
+infix 4 |>=|, |>=, >=|, ||>=, >=||, !>=, !!>=
 
 -- eq
 
@@ -549,6 +617,10 @@ eqSqueeze, (||==) :: Eq a => Signal a -> Signal a -> Signal Bool
 eqSqueeze = opSqueeze (==)
 (||==) = eqSqueeze
 
+eqSqueezeOut, (==||) :: Eq a => Signal a -> Signal a -> Signal Bool
+eqSqueezeOut = opSqueezeOut (==)
+(==||) = eqSqueezeOut
+
 eqTrig, (!==) :: Eq a => Signal a -> Signal a -> Signal Bool
 eqTrig = opTrig (==)
 (!==) = eqTrig
@@ -557,7 +629,7 @@ eqTrigZero, (!!==) :: Eq a => Signal a -> Signal a -> Signal Bool
 eqTrigZero = opTrigZero (==)
 (!!==) = eqTrigZero
 
-infix 4 |==|, |==, ==|, ||==, !==, !!==
+infix 4 |==|, |==, ==|, ||==, ==||, !==, !!==
 
 -- ne
 
@@ -577,6 +649,10 @@ neSqueeze, (||/=) :: Eq a => Signal a -> Signal a -> Signal Bool
 neSqueeze = opSqueeze (/=)
 (||/=) = neSqueeze
 
+neSqueezeOut, (/=||) :: Eq a => Signal a -> Signal a -> Signal Bool
+neSqueezeOut = opSqueezeOut (/=)
+(/=||) = neSqueezeOut
+
 neTrig, (!/=) :: Eq a => Signal a -> Signal a -> Signal Bool
 neTrig = opTrig (/=)
 (!/=) = neTrig
@@ -585,7 +661,7 @@ neTrigZero, (!!/=) :: Eq a => Signal a -> Signal a -> Signal Bool
 neTrigZero = opTrigZero (/=)
 (!!/=) = neTrigZero
 
-infix 4 |/=|, |/=, /=|, ||/=, !/=, !!/=
+infix 4 |/=|, |/=, /=|, ||/=, /=||, !/=, !!/=
 
 -- and
 
@@ -605,6 +681,10 @@ andSqueeze, (||&&) :: Signal Bool -> Signal Bool -> Signal Bool
 andSqueeze = opSqueeze (&&)
 (||&&) = andSqueeze
 
+andSqueezeOut, (&&||) :: Signal Bool -> Signal Bool -> Signal Bool
+andSqueezeOut = opSqueezeOut (&&)
+(&&||) = andSqueezeOut
+
 andTrig, (!&&) :: Signal Bool -> Signal Bool -> Signal Bool
 andTrig = opTrig (&&)
 (!&&) = andTrig
@@ -613,7 +693,7 @@ andTrigZero, (!!&&) :: Signal Bool -> Signal Bool -> Signal Bool
 andTrigZero = opTrigZero (&&)
 (!!&&) = andTrigZero
 
-infix 4 |&&|, |&&, &&|, ||&&, !&&, !!&&
+infix 4 |&&|, |&&, &&|, ||&&, &&||, !&&, !!&&
 
 -- or
 
@@ -633,6 +713,10 @@ orSqueeze, (||.||.) :: Signal Bool -> Signal Bool -> Signal Bool
 orSqueeze = opSqueeze (||)
 (||.||.) = orSqueeze
 
+orSqueezeOut, (.||.||) :: Signal Bool -> Signal Bool -> Signal Bool
+orSqueezeOut = opSqueezeOut (||)
+(.||.||) = orSqueezeOut
+
 orTrig, (!.||.) :: Signal Bool -> Signal Bool -> Signal Bool
 orTrig = opTrig (||)
 (!.||.) = orTrig
@@ -641,6 +725,6 @@ orTrigZero, (!!.||.) :: Signal Bool -> Signal Bool -> Signal Bool
 orTrigZero = opTrigZero (||)
 (!!.||.) = orTrigZero
 
-infix 4 |.||.|, |.||., .||.|, ||.||., !.||., !!.||.
+infix 4 |.||.|, |.||., .||.|, ||.||., .||.||, !.||., !!.||.
 
 
