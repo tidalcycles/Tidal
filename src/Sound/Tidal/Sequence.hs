@@ -3,7 +3,6 @@
 
 module Sound.Tidal.Sequence where
 
-import Sound.Tidal.Span
 import Sound.Tidal.Value
 import Sound.Tidal.Pattern
 
@@ -66,11 +65,13 @@ instance Pattern Sequence where
   slowcat = seqSlowcat
   fastcat = seqFastcat
   _fast   = _seqFast
-  -- _early  = _seqEarly
   silence = Gap 1
   atom    = pure
   stack   = seqStack
   rev     = seqRev
+  run     = seqRun
+  _run     = _seqRun
+  timeCat = seqTimeCat
   _patternify f x pat = mapSeq (applyfToSeq f x) pat
 
 -- -- | Takes sequence of functions and a sequence which have been aligned and applies the functions at the corresponding time points
@@ -462,11 +463,13 @@ _every n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
 fromList:: [a] -> Sequence a
 fromList x=  unwrap $ Sequence $ reduce $  map (Atom 1) x
 
-fastFromList ::[a] -> Sequence a
-fastFromList x = unwrap $ Sequence $ reduce $ map (Atom (realToFrac $ (1%length x))) x
 
-listToPat ::[a] -> Sequence a
-listToPat = fastFromList
+-- TODO - are Pattern definitions of these good enough??
+-- fastFromList ::[a] -> Sequence a
+-- fastFromList x = unwrap $ Sequence $ reduce $ map (Atom (realToFrac $ (1%length x))) x
+
+-- listToPat ::[a] -> Sequence a
+-- listToPat = fastFromList
 
 seqFastcat ::  [Sequence a]  -> Sequence a
 seqFastcat x = _fast (sum $ map seqSpan x) $ Sequence (reduce x)
@@ -476,11 +479,11 @@ fromMaybes = fastcat . map f
   where f Nothing = Gap 1
         f (Just x) = Atom 1 x
 
-run :: (Enum a, Num a) => Sequence a -> Sequence a
-run x = unwrap $ (>>= _run) x
+seqRun :: (Enum a, Num a) => Sequence a -> Sequence a
+seqRun x = unwrap $ (>>= _seqRun) x
 
-_run :: (Enum a, Num a) => a -> Sequence a
-_run n = unwrap $  fastFromList [0 .. n-1]
+_seqRun :: (Enum a, Num a) => a -> Sequence a
+_seqRun n = unwrap $  fastFromList [0 .. n-1]
 
 seqSlowcat :: [Sequence a] -> Sequence a
 seqSlowcat [] = Gap 0
@@ -492,14 +495,10 @@ scan :: (Enum a, Num a) => Sequence a -> Sequence a
 scan x = unwrap $  (>>= _scan) x
 
 _scan :: (Enum a, Num a) => a -> Sequence a
-_scan n = unwrap $ slowcat $ map _run [1 .. n]
+_scan n = unwrap $ slowcat $ map _seqRun [1 .. n]
 
-timeCat :: [(Rational, Sequence a)] -> Sequence a
-timeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x
-
--- | Alias for @timeCat@
-timecat :: [(Rational, Sequence a)] -> Sequence a
-timecat = timeCat
+seqTimeCat :: [(Rational, Sequence a)] -> Sequence a
+seqTimeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x
 
 rotL :: Rational -> Sequence a -> Sequence a
 rotL t (Sequence x) = splitUp t x

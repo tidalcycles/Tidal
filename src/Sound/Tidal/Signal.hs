@@ -166,12 +166,14 @@ trigZeroJoin = _trigTimeJoin cyclePos
 
 instance Pattern Signal where
   slowcat = sigSlowcat
-  _fast   = _sigFast
-  _early  = _sigEarly
   silence = sigSilence
   atom    = sigAtom
   stack   = sigStack
+  _fast    = _sigFast
   rev     = sigRev
+  run     = sigRun
+  _run    = _sigRun
+  timeCat = sigTimeCat
   _patternify f x pat = innerJoin $ (`f` pat) <$> x
 
 -- ************************************************************ --
@@ -362,8 +364,23 @@ sigSlowcat pats = splitQueries $ Signal queryCycle
 _sigFast :: Time -> Signal a -> Signal a
 _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
 
-_sigEarly :: Time -> Signal a -> Signal a
-_sigEarly t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
+_early :: Time -> Signal a -> Signal a
+_early t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
+
+early :: Signal Time -> Signal x -> Signal x
+early = _patternify _early
+
+(<~) :: Signal Time -> Signal x -> Signal x
+(<~) = early
+
+_late :: Time -> Signal x -> Signal x
+_late t = _early (0-t)
+
+late :: Signal Time -> Signal x -> Signal x
+late = _patternify _late
+
+(~>) :: Signal Time -> Signal x -> Signal x
+(~>) = late
 
 sigStack :: [Signal a] -> Signal a
 sigStack pats = Signal $ \s -> concatMap (\pat -> query pat s) pats
@@ -382,7 +399,24 @@ sigRev pat = splitQueries $ Signal f
           where cycle = sam $ begin $ sArc state
                 next_cycle = nextSam cycle
                 reflect (Arc b e) = Arc (cycle + (next_cycle - e)) (cycle + (next_cycle - b))
-  
+
+
+-- | A pattern of whole numbers from 0 to the given number, in a single cycle.
+sigRun :: (Enum a, Num a) => Signal a -> Signal a
+sigRun = (>>= _run)
+
+_sigRun :: (Enum a, Num a) => a -> Signal a
+_sigRun n = fastFromList [0 .. n-1]
+
+
+-- | Similar to @fastCat@, but each pattern is given a relative duration
+sigTimeCat :: [(Time, Signal a)] -> Signal a
+sigTimeCat tps = stack $ map (\(s,e,p) -> _compressArc (Arc (s/total) (e/total)) p) $ arrange 0 tps
+    where total = sum $ map fst tps
+          arrange :: Time -> [(Time, Signal a)] -> [(Time, Time, Signal a)]
+          arrange _ [] = []
+          arrange t ((t',p):tps') = (t,t+t',p) : arrange (t+t') tps'
+
 -- ************************************************************ --
 -- Higher order transformations
 
