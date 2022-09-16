@@ -208,4 +208,68 @@ mulTrigZero = opTrigZero (*)
 
 infix 4 |*|, |*, *|, ||*, *||, !*, !!*
 
+-- mod
+
+modMix, (|%|) :: Integral a => Signal a -> Signal a -> Signal a
+modMix = opMix mod
+(|%|) = modMix
+
+modIn, (|%) :: Integral a => Signal a -> Signal a -> Signal a
+modIn = opIn mod
+(|%) = modIn
+
+modOut, (%|) :: Integral a => Signal a -> Signal a -> Signal a
+modOut = opOut mod
+(%|) = modOut
+
+modSqueeze, (||%) :: Integral a => Signal a -> Signal a -> Signal a
+modSqueeze = opSqueeze mod
+(||%) = modSqueeze
+
+modSqueezeOut, (%||) :: Integral a => Signal a -> Signal a -> Signal a
+modSqueezeOut = opSqueezeOut mod
+(%||) = modSqueezeOut
+
+modTrig, (!%) :: Integral a => Signal a -> Signal a -> Signal a
+modTrig = opTrig mod
+(!%) = modTrig
+
+modTrigZero, (!!%) :: Integral a => Signal a -> Signal a -> Signal a
+modTrigZero = opTrigZero mod
+(!!%) = modTrig
+
+infix 4 |%|, |%, %|, ||%, %||, !%, !!%
+
+-- pow
+
+powMix, (|^|) :: Integral a => Signal a -> Signal a -> Signal a
+powMix = opMix (^)
+(|^|) = powMix
+
+powIn, (|^) :: Integral a => Signal a -> Signal a -> Signal a
+powIn = opIn (^)
+(|^) = powIn
+
+powOut, (^|) :: Integral a => Signal a -> Signal a -> Signal a
+powOut = opOut (^)
+(^|) = powOut
+
+powSqueeze, (||^) :: Integral a => Signal a -> Signal a -> Signal a
+powSqueeze = opSqueeze (^)
+(||^) = powSqueeze
+
+powSqueezeOut, (^||) :: Integral a => Signal a -> Signal a -> Signal a
+powSqueezeOut = opSqueezeOut (^)
+(^||) = powSqueezeOut
+
+powTrig, (!^) :: Integral a => Signal a -> Signal a -> Signal a
+powTrig = opTrig (^)
+(!^) = powTrig
+
+powTrigZero, (!!^) :: Integral a => Signal a -> Signal a -> Signal a
+powTrigZero = opTrigZero (^)
+(!!^) = powTrig
+
+infix 4 |^|, |^, ^|, ||^, ^||, !^, !!^
+
 -- ************************************************************ --
