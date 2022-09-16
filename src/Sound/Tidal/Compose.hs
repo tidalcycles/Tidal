@@ -81,6 +81,8 @@ setTrigZero, (!!=) :: Unionable a => Signal a -> Signal a -> Signal a
 setTrigZero = opTrigZero (flip union)
 (!!=) = setTrigZero
 
+infix 4 |=|, |=, =|, ||=, !=, !!=
+
 -- keep
 
 keepMix, (|.|) :: Unionable a => Signal a -> Signal a -> Signal a
@@ -106,6 +108,8 @@ keepTrig = opTrig (union)
 keepTrigZero, (!!.) :: Unionable a => Signal a -> Signal a -> Signal a
 keepTrigZero = opTrigZero (union)
 (!!.) = keepTrigZero
+
+infix 4 |.|, |., .|, ||., !., !!.
 
 -- add
 
@@ -133,6 +137,8 @@ addTrigZero, (!!+) :: Num a => Signal a -> Signal a -> Signal a
 addTrigZero = opTrigZero (+)
 (!!+) = addTrigZero
 
+infix 4 |+|, |+, +|, ||+, !+, !!+
+
 -- sub
 
 subMix, (|-|) :: Num a => Signal a -> Signal a -> Signal a
@@ -158,6 +164,8 @@ subTrig = opTrig (-)
 subTrigZero, (!!-) :: Num a => Signal a -> Signal a -> Signal a
 subTrigZero = opTrigZero (-)
 (!!-) = subTrigZero
+
+infix 4 |-|, |-, -|, ||-, !-, !!-
 
 -- mul
 
@@ -185,6 +193,8 @@ mulTrigZero, (!!*) :: Num a => Signal a -> Signal a -> Signal a
 mulTrigZero = opTrigZero (*)
 (!!*) = mulTrigZero
 
+infix 4 |*|, |*, *|, ||*, !*, !!*
+
 -- div
 
 divMix, (|/|) :: Fractional a => Signal a -> Signal a -> Signal a
@@ -210,6 +220,8 @@ divTrig = opTrig (/)
 divTrigZero, (!!/) :: Fractional a => Signal a -> Signal a -> Signal a
 divTrigZero = opTrigZero (/)
 (!!/) = divTrigZero
+
+infix 4 |/|, |/, /|, ||/, !/, !!/
 
 -- mod
 
@@ -237,6 +249,8 @@ modTrigZero, (!!%) :: Integral a => Signal a -> Signal a -> Signal a
 modTrigZero = opTrigZero (mod)
 (!!%) = modTrigZero
 
+infix 4 |%|, |%, %|, ||%, !%, !!%
+
 -- pow
 
 powMix, (|^|) :: Integral a => Signal a -> Signal a -> Signal a
@@ -262,6 +276,8 @@ powTrig = opTrig (^)
 powTrigZero, (!!^) :: Integral a => Signal a -> Signal a -> Signal a
 powTrigZero = opTrigZero (^)
 (!!^) = powTrigZero
+
+infix 4 |^|, |^, ^|, ||^, !^, !!^
 
 -- band
 
@@ -289,6 +305,8 @@ bandTrigZero, (!!.&.) :: Bits a => Signal a -> Signal a -> Signal a
 bandTrigZero = opTrigZero (.&.)
 (!!.&.) = bandTrigZero
 
+infix 4 |.&.|, |.&., .&.|, ||.&., !.&., !!.&.
+
 -- bor
 
 borMix, (|.|.|) :: Bits a => Signal a -> Signal a -> Signal a
@@ -314,6 +332,8 @@ borTrig = opTrig (.|.)
 borTrigZero, (!!.|.) :: Bits a => Signal a -> Signal a -> Signal a
 borTrigZero = opTrigZero (.|.)
 (!!.|.) = borTrigZero
+
+infix 4 |.|.|, |.|., .|.|, ||.|., !.|., !!.|.
 
 -- bxor
 
@@ -341,6 +361,8 @@ bxorTrigZero, (!!.^.) :: Bits a => Signal a -> Signal a -> Signal a
 bxorTrigZero = opTrigZero (xor)
 (!!.^.) = bxorTrigZero
 
+infix 4 |.^.|, |.^., .^.|, ||.^., !.^., !!.^.
+
 -- bshiftl
 
 bshiftlMix, (|.<<.|) :: Bits a => Signal a -> Signal Int -> Signal a
@@ -366,6 +388,8 @@ bshiftlTrig = opTrig (shiftL)
 bshiftlTrigZero, (!!.<<.) :: Bits a => Signal a -> Signal Int -> Signal a
 bshiftlTrigZero = opTrigZero (shiftL)
 (!!.<<.) = bshiftlTrigZero
+
+infix 4 |.<<.|, |.<<., .<<.|, ||.<<., !.<<., !!.<<.
 
 -- bshiftr
 
@@ -393,6 +417,8 @@ bshiftrTrigZero, (!!.>>.) :: Bits a => Signal a -> Signal Int -> Signal a
 bshiftrTrigZero = opTrigZero (shiftR)
 (!!.>>.) = bshiftrTrigZero
 
+infix 4 |.>>.|, |.>>., .>>.|, ||.>>., !.>>., !!.>>.
+
 -- lt
 
 ltMix, (|<|) :: Ord a => Signal a -> Signal a -> Signal Bool
@@ -418,6 +444,8 @@ ltTrig = opTrig (<)
 ltTrigZero, (!!<) :: Ord a => Signal a -> Signal a -> Signal Bool
 ltTrigZero = opTrigZero (<)
 (!!<) = ltTrigZero
+
+infix 4 |<|, |<, <|, ||<, !<, !!<
 
 -- gt
 
@@ -445,6 +473,8 @@ gtTrigZero, (!!>) :: Ord a => Signal a -> Signal a -> Signal Bool
 gtTrigZero = opTrigZero (>)
 (!!>) = gtTrigZero
 
+infix 4 |>|, |>, >|, ||>, !>, !!>
+
 -- lte
 
 lteMix, (|<=|) :: Ord a => Signal a -> Signal a -> Signal Bool
@@ -470,6 +500,8 @@ lteTrig = opTrig (<=)
 lteTrigZero, (!!<=) :: Ord a => Signal a -> Signal a -> Signal Bool
 lteTrigZero = opTrigZero (<=)
 (!!<=) = lteTrigZero
+
+infix 4 |<=|, |<=, <=|, ||<=, !<=, !!<=
 
 -- gte
 
@@ -497,6 +529,8 @@ gteTrigZero, (!!>=) :: Ord a => Signal a -> Signal a -> Signal Bool
 gteTrigZero = opTrigZero (>=)
 (!!>=) = gteTrigZero
 
+infix 4 |>=|, |>=, >=|, ||>=, !>=, !!>=
+
 -- eq
 
 eqMix, (|==|) :: Eq a => Signal a -> Signal a -> Signal Bool
@@ -522,6 +556,8 @@ eqTrig = opTrig (==)
 eqTrigZero, (!!==) :: Eq a => Signal a -> Signal a -> Signal Bool
 eqTrigZero = opTrigZero (==)
 (!!==) = eqTrigZero
+
+infix 4 |==|, |==, ==|, ||==, !==, !!==
 
 -- ne
 
@@ -549,6 +585,8 @@ neTrigZero, (!!/=) :: Eq a => Signal a -> Signal a -> Signal Bool
 neTrigZero = opTrigZero (/=)
 (!!/=) = neTrigZero
 
+infix 4 |/=|, |/=, /=|, ||/=, !/=, !!/=
+
 -- and
 
 andMix, (|&&|) :: Signal Bool -> Signal Bool -> Signal Bool
@@ -575,6 +613,8 @@ andTrigZero, (!!&&) :: Signal Bool -> Signal Bool -> Signal Bool
 andTrigZero = opTrigZero (&&)
 (!!&&) = andTrigZero
 
+infix 4 |&&|, |&&, &&|, ||&&, !&&, !!&&
+
 -- or
 
 orMix, (|.||.|) :: Signal Bool -> Signal Bool -> Signal Bool
@@ -600,5 +640,7 @@ orTrig = opTrig (||)
 orTrigZero, (!!.||.) :: Signal Bool -> Signal Bool -> Signal Bool
 orTrigZero = opTrigZero (||)
 (!!.||.) = orTrigZero
+
+infix 4 |.||.|, |.||., .||.|, ||.||., !.||., !!.||.
 
 

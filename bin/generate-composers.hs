@@ -1,4 +1,5 @@
 import System.IO
+import Data.List
 
 whats :: [(String, [(String, String, String)])]
 whats = [("Unionable a => Signal a -> Signal a -> Signal a",
@@ -70,12 +71,12 @@ hows = [("Mix",      (\x -> "|" ++ x ++ "|")),
        ]
 
 fwhat (sig, ops) = concatMap fop ops
-  where fop (name, tidalop, haskellop) = "-- " ++ name ++ "\n\n" ++ concatMap fhow hows
+  where fop (name, tidalop, haskellop) = "-- " ++ name ++ "\n\n" ++ concatMap fhow hows ++ "infix 4 " ++ (intercalate ", " $ map fixity hows) ++ "\n\n"
           where fhow (howname, howfix) = (name ++ howname ++ ", " ++ "(" ++ howfix tidalop ++ ")" ++ " :: " ++ sig ++ "\n"
                                           ++ name ++ howname ++ " = op" ++ howname ++ " (" ++ haskellop ++ ")\n"
                                           ++ "(" ++ howfix tidalop ++ ") = " ++ name ++ howname ++ "\n\n"
                                          )
-  
+                fixity (_, howfix) = howfix tidalop
 
 header :: IO ()
 header = do x <- openFile "composers-header.hs" ReadMode
