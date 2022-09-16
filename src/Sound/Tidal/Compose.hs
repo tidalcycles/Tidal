@@ -55,34 +55,41 @@ opTrigZero f a b = trigZeroJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
 
 -- ************************************************************ --
 
+-- Aliases
+
+(#) :: Unionable b => Signal b -> Signal b -> Signal b
+(#) = (|=)
+
+-- ************************************************************ --
+
 -- set
 
 setMix, (|=|) :: Unionable a => Signal a -> Signal a -> Signal a
-setMix = opMix (flip union)
+setMix pata patb = opMix (flip union) pata patb
 (|=|) = setMix
 
 setIn, (|=) :: Unionable a => Signal a -> Signal a -> Signal a
-setIn = opIn (flip union)
+setIn pata patb = opIn (flip union) pata patb
 (|=) = setIn
 
 setOut, (=|) :: Unionable a => Signal a -> Signal a -> Signal a
-setOut = opOut (flip union)
+setOut pata patb = opOut (flip union) pata patb
 (=|) = setOut
 
 setSqueeze, (||=) :: Unionable a => Signal a -> Signal a -> Signal a
-setSqueeze = opSqueeze (flip union)
+setSqueeze pata patb = opSqueeze (flip union) pata patb
 (||=) = setSqueeze
 
 setSqueezeOut, (=||) :: Unionable a => Signal a -> Signal a -> Signal a
-setSqueezeOut = opSqueezeOut (flip union)
+setSqueezeOut pata patb = opSqueezeOut (flip union) pata patb
 (=||) = setSqueezeOut
 
 setTrig, (!=) :: Unionable a => Signal a -> Signal a -> Signal a
-setTrig = opTrig (flip union)
+setTrig pata patb = opTrig (flip union) pata patb
 (!=) = setTrig
 
 setTrigZero, (!!=) :: Unionable a => Signal a -> Signal a -> Signal a
-setTrigZero = opTrigZero (flip union)
+setTrigZero pata patb = opTrigZero (flip union) pata patb
 (!!=) = setTrigZero
 
 infix 4 |=|, |=, =|, ||=, =||, !=, !!=
@@ -90,63 +97,95 @@ infix 4 |=|, |=, =|, ||=, =||, !=, !!=
 -- keep
 
 keepMix, (|.|) :: Unionable a => Signal a -> Signal a -> Signal a
-keepMix = opMix (union)
+keepMix pata patb = opMix (union) pata patb
 (|.|) = keepMix
 
 keepIn, (|.) :: Unionable a => Signal a -> Signal a -> Signal a
-keepIn = opIn (union)
+keepIn pata patb = opIn (union) pata patb
 (|.) = keepIn
 
 keepOut, (.|) :: Unionable a => Signal a -> Signal a -> Signal a
-keepOut = opOut (union)
+keepOut pata patb = opOut (union) pata patb
 (.|) = keepOut
 
 keepSqueeze, (||.) :: Unionable a => Signal a -> Signal a -> Signal a
-keepSqueeze = opSqueeze (union)
+keepSqueeze pata patb = opSqueeze (union) pata patb
 (||.) = keepSqueeze
 
 keepSqueezeOut, (.||) :: Unionable a => Signal a -> Signal a -> Signal a
-keepSqueezeOut = opSqueezeOut (union)
+keepSqueezeOut pata patb = opSqueezeOut (union) pata patb
 (.||) = keepSqueezeOut
 
 keepTrig, (!.) :: Unionable a => Signal a -> Signal a -> Signal a
-keepTrig = opTrig (union)
+keepTrig pata patb = opTrig (union) pata patb
 (!.) = keepTrig
 
 keepTrigZero, (!!.) :: Unionable a => Signal a -> Signal a -> Signal a
-keepTrigZero = opTrigZero (union)
+keepTrigZero pata patb = opTrigZero (union) pata patb
 (!!.) = keepTrigZero
 
 infix 4 |.|, |., .|, ||., .||, !., !!.
 
+-- keepif
+
+keepifMix, (|?|) :: Unionable a => Signal a -> Signal Bool -> Signal a
+keepifMix pata patb = filterJusts $ opMix (\a b -> if b then Just a else Nothing) pata patb
+(|?|) = keepifMix
+
+keepifIn, (|?) :: Unionable a => Signal a -> Signal Bool -> Signal a
+keepifIn pata patb = filterJusts $ opIn (\a b -> if b then Just a else Nothing) pata patb
+(|?) = keepifIn
+
+keepifOut, (?|) :: Unionable a => Signal a -> Signal Bool -> Signal a
+keepifOut pata patb = filterJusts $ opOut (\a b -> if b then Just a else Nothing) pata patb
+(?|) = keepifOut
+
+keepifSqueeze, (||?) :: Unionable a => Signal a -> Signal Bool -> Signal a
+keepifSqueeze pata patb = filterJusts $ opSqueeze (\a b -> if b then Just a else Nothing) pata patb
+(||?) = keepifSqueeze
+
+keepifSqueezeOut, (?||) :: Unionable a => Signal a -> Signal Bool -> Signal a
+keepifSqueezeOut pata patb = filterJusts $ opSqueezeOut (\a b -> if b then Just a else Nothing) pata patb
+(?||) = keepifSqueezeOut
+
+keepifTrig, (!?) :: Unionable a => Signal a -> Signal Bool -> Signal a
+keepifTrig pata patb = filterJusts $ opTrig (\a b -> if b then Just a else Nothing) pata patb
+(!?) = keepifTrig
+
+keepifTrigZero, (!!?) :: Unionable a => Signal a -> Signal Bool -> Signal a
+keepifTrigZero pata patb = filterJusts $ opTrigZero (\a b -> if b then Just a else Nothing) pata patb
+(!!?) = keepifTrigZero
+
+infix 4 |?|, |?, ?|, ||?, ?||, !?, !!?
+
 -- add
 
 addMix, (|+|) :: Num a => Signal a -> Signal a -> Signal a
-addMix = opMix (+)
+addMix pata patb = opMix (+) pata patb
 (|+|) = addMix
 
 addIn, (|+) :: Num a => Signal a -> Signal a -> Signal a
-addIn = opIn (+)
+addIn pata patb = opIn (+) pata patb
 (|+) = addIn
 
 addOut, (+|) :: Num a => Signal a -> Signal a -> Signal a
-addOut = opOut (+)
+addOut pata patb = opOut (+) pata patb
 (+|) = addOut
 
 addSqueeze, (||+) :: Num a => Signal a -> Signal a -> Signal a
-addSqueeze = opSqueeze (+)
+addSqueeze pata patb = opSqueeze (+) pata patb
 (||+) = addSqueeze
 
 addSqueezeOut, (+||) :: Num a => Signal a -> Signal a -> Signal a
-addSqueezeOut = opSqueezeOut (+)
+addSqueezeOut pata patb = opSqueezeOut (+) pata patb
 (+||) = addSqueezeOut
 
 addTrig, (!+) :: Num a => Signal a -> Signal a -> Signal a
-addTrig = opTrig (+)
+addTrig pata patb = opTrig (+) pata patb
 (!+) = addTrig
 
 addTrigZero, (!!+) :: Num a => Signal a -> Signal a -> Signal a
-addTrigZero = opTrigZero (+)
+addTrigZero pata patb = opTrigZero (+) pata patb
 (!!+) = addTrigZero
 
 infix 4 |+|, |+, +|, ||+, +||, !+, !!+
@@ -154,31 +193,31 @@ infix 4 |+|, |+, +|, ||+, +||, !+, !!+
 -- sub
 
 subMix, (|-|) :: Num a => Signal a -> Signal a -> Signal a
-subMix = opMix (-)
+subMix pata patb = opMix (-) pata patb
 (|-|) = subMix
 
 subIn, (|-) :: Num a => Signal a -> Signal a -> Signal a
-subIn = opIn (-)
+subIn pata patb = opIn (-) pata patb
 (|-) = subIn
 
 subOut, (-|) :: Num a => Signal a -> Signal a -> Signal a
-subOut = opOut (-)
+subOut pata patb = opOut (-) pata patb
 (-|) = subOut
 
 subSqueeze, (||-) :: Num a => Signal a -> Signal a -> Signal a
-subSqueeze = opSqueeze (-)
+subSqueeze pata patb = opSqueeze (-) pata patb
 (||-) = subSqueeze
 
 subSqueezeOut, (-||) :: Num a => Signal a -> Signal a -> Signal a
-subSqueezeOut = opSqueezeOut (-)
+subSqueezeOut pata patb = opSqueezeOut (-) pata patb
 (-||) = subSqueezeOut
 
 subTrig, (!-) :: Num a => Signal a -> Signal a -> Signal a
-subTrig = opTrig (-)
+subTrig pata patb = opTrig (-) pata patb
 (!-) = subTrig
 
 subTrigZero, (!!-) :: Num a => Signal a -> Signal a -> Signal a
-subTrigZero = opTrigZero (-)
+subTrigZero pata patb = opTrigZero (-) pata patb
 (!!-) = subTrigZero
 
 infix 4 |-|, |-, -|, ||-, -||, !-, !!-
@@ -186,31 +225,31 @@ infix 4 |-|, |-, -|, ||-, -||, !-, !!-
 -- mul
 
 mulMix, (|*|) :: Num a => Signal a -> Signal a -> Signal a
-mulMix = opMix (*)
+mulMix pata patb = opMix (*) pata patb
 (|*|) = mulMix
 
 mulIn, (|*) :: Num a => Signal a -> Signal a -> Signal a
-mulIn = opIn (*)
+mulIn pata patb = opIn (*) pata patb
 (|*) = mulIn
 
 mulOut, (*|) :: Num a => Signal a -> Signal a -> Signal a
-mulOut = opOut (*)
+mulOut pata patb = opOut (*) pata patb
 (*|) = mulOut
 
 mulSqueeze, (||*) :: Num a => Signal a -> Signal a -> Signal a
-mulSqueeze = opSqueeze (*)
+mulSqueeze pata patb = opSqueeze (*) pata patb
 (||*) = mulSqueeze
 
 mulSqueezeOut, (*||) :: Num a => Signal a -> Signal a -> Signal a
-mulSqueezeOut = opSqueezeOut (*)
+mulSqueezeOut pata patb = opSqueezeOut (*) pata patb
 (*||) = mulSqueezeOut
 
 mulTrig, (!*) :: Num a => Signal a -> Signal a -> Signal a
-mulTrig = opTrig (*)
+mulTrig pata patb = opTrig (*) pata patb
 (!*) = mulTrig
 
 mulTrigZero, (!!*) :: Num a => Signal a -> Signal a -> Signal a
-mulTrigZero = opTrigZero (*)
+mulTrigZero pata patb = opTrigZero (*) pata patb
 (!!*) = mulTrigZero
 
 infix 4 |*|, |*, *|, ||*, *||, !*, !!*
@@ -218,31 +257,31 @@ infix 4 |*|, |*, *|, ||*, *||, !*, !!*
 -- div
 
 divMix, (|/|) :: Fractional a => Signal a -> Signal a -> Signal a
-divMix = opMix (/)
+divMix pata patb = opMix (/) pata patb
 (|/|) = divMix
 
 divIn, (|/) :: Fractional a => Signal a -> Signal a -> Signal a
-divIn = opIn (/)
+divIn pata patb = opIn (/) pata patb
 (|/) = divIn
 
 divOut, (/|) :: Fractional a => Signal a -> Signal a -> Signal a
-divOut = opOut (/)
+divOut pata patb = opOut (/) pata patb
 (/|) = divOut
 
 divSqueeze, (||/) :: Fractional a => Signal a -> Signal a -> Signal a
-divSqueeze = opSqueeze (/)
+divSqueeze pata patb = opSqueeze (/) pata patb
 (||/) = divSqueeze
 
 divSqueezeOut, (/||) :: Fractional a => Signal a -> Signal a -> Signal a
-divSqueezeOut = opSqueezeOut (/)
+divSqueezeOut pata patb = opSqueezeOut (/) pata patb
 (/||) = divSqueezeOut
 
 divTrig, (!/) :: Fractional a => Signal a -> Signal a -> Signal a
-divTrig = opTrig (/)
+divTrig pata patb = opTrig (/) pata patb
 (!/) = divTrig
 
 divTrigZero, (!!/) :: Fractional a => Signal a -> Signal a -> Signal a
-divTrigZero = opTrigZero (/)
+divTrigZero pata patb = opTrigZero (/) pata patb
 (!!/) = divTrigZero
 
 infix 4 |/|, |/, /|, ||/, /||, !/, !!/
@@ -250,31 +289,31 @@ infix 4 |/|, |/, /|, ||/, /||, !/, !!/
 -- mod
 
 modMix, (|%|) :: Integral a => Signal a -> Signal a -> Signal a
-modMix = opMix (mod)
+modMix pata patb = opMix (mod) pata patb
 (|%|) = modMix
 
 modIn, (|%) :: Integral a => Signal a -> Signal a -> Signal a
-modIn = opIn (mod)
+modIn pata patb = opIn (mod) pata patb
 (|%) = modIn
 
 modOut, (%|) :: Integral a => Signal a -> Signal a -> Signal a
-modOut = opOut (mod)
+modOut pata patb = opOut (mod) pata patb
 (%|) = modOut
 
 modSqueeze, (||%) :: Integral a => Signal a -> Signal a -> Signal a
-modSqueeze = opSqueeze (mod)
+modSqueeze pata patb = opSqueeze (mod) pata patb
 (||%) = modSqueeze
 
 modSqueezeOut, (%||) :: Integral a => Signal a -> Signal a -> Signal a
-modSqueezeOut = opSqueezeOut (mod)
+modSqueezeOut pata patb = opSqueezeOut (mod) pata patb
 (%||) = modSqueezeOut
 
 modTrig, (!%) :: Integral a => Signal a -> Signal a -> Signal a
-modTrig = opTrig (mod)
+modTrig pata patb = opTrig (mod) pata patb
 (!%) = modTrig
 
 modTrigZero, (!!%) :: Integral a => Signal a -> Signal a -> Signal a
-modTrigZero = opTrigZero (mod)
+modTrigZero pata patb = opTrigZero (mod) pata patb
 (!!%) = modTrigZero
 
 infix 4 |%|, |%, %|, ||%, %||, !%, !!%
@@ -282,63 +321,127 @@ infix 4 |%|, |%, %|, ||%, %||, !%, !!%
 -- pow
 
 powMix, (|^|) :: Integral a => Signal a -> Signal a -> Signal a
-powMix = opMix (^)
+powMix pata patb = opMix (^) pata patb
 (|^|) = powMix
 
 powIn, (|^) :: Integral a => Signal a -> Signal a -> Signal a
-powIn = opIn (^)
+powIn pata patb = opIn (^) pata patb
 (|^) = powIn
 
 powOut, (^|) :: Integral a => Signal a -> Signal a -> Signal a
-powOut = opOut (^)
+powOut pata patb = opOut (^) pata patb
 (^|) = powOut
 
 powSqueeze, (||^) :: Integral a => Signal a -> Signal a -> Signal a
-powSqueeze = opSqueeze (^)
+powSqueeze pata patb = opSqueeze (^) pata patb
 (||^) = powSqueeze
 
 powSqueezeOut, (^||) :: Integral a => Signal a -> Signal a -> Signal a
-powSqueezeOut = opSqueezeOut (^)
+powSqueezeOut pata patb = opSqueezeOut (^) pata patb
 (^||) = powSqueezeOut
 
 powTrig, (!^) :: Integral a => Signal a -> Signal a -> Signal a
-powTrig = opTrig (^)
+powTrig pata patb = opTrig (^) pata patb
 (!^) = powTrig
 
 powTrigZero, (!!^) :: Integral a => Signal a -> Signal a -> Signal a
-powTrigZero = opTrigZero (^)
+powTrigZero pata patb = opTrigZero (^) pata patb
 (!!^) = powTrigZero
 
 infix 4 |^|, |^, ^|, ||^, ^||, !^, !!^
 
+-- powf
+
+powfMix, (|**|) :: Floating a => Signal a -> Signal a -> Signal a
+powfMix pata patb = opMix (**) pata patb
+(|**|) = powfMix
+
+powfIn, (|**) :: Floating a => Signal a -> Signal a -> Signal a
+powfIn pata patb = opIn (**) pata patb
+(|**) = powfIn
+
+powfOut, (**|) :: Floating a => Signal a -> Signal a -> Signal a
+powfOut pata patb = opOut (**) pata patb
+(**|) = powfOut
+
+powfSqueeze, (||**) :: Floating a => Signal a -> Signal a -> Signal a
+powfSqueeze pata patb = opSqueeze (**) pata patb
+(||**) = powfSqueeze
+
+powfSqueezeOut, (**||) :: Floating a => Signal a -> Signal a -> Signal a
+powfSqueezeOut pata patb = opSqueezeOut (**) pata patb
+(**||) = powfSqueezeOut
+
+powfTrig, (!**) :: Floating a => Signal a -> Signal a -> Signal a
+powfTrig pata patb = opTrig (**) pata patb
+(!**) = powfTrig
+
+powfTrigZero, (!!**) :: Floating a => Signal a -> Signal a -> Signal a
+powfTrigZero pata patb = opTrigZero (**) pata patb
+(!!**) = powfTrigZero
+
+infix 4 |**|, |**, **|, ||**, **||, !**, !!**
+
+-- concat
+
+concatMix, (|++|) :: Signal String -> Signal String -> Signal String
+concatMix pata patb = opMix (++) pata patb
+(|++|) = concatMix
+
+concatIn, (|++) :: Signal String -> Signal String -> Signal String
+concatIn pata patb = opIn (++) pata patb
+(|++) = concatIn
+
+concatOut, (++|) :: Signal String -> Signal String -> Signal String
+concatOut pata patb = opOut (++) pata patb
+(++|) = concatOut
+
+concatSqueeze, (||++) :: Signal String -> Signal String -> Signal String
+concatSqueeze pata patb = opSqueeze (++) pata patb
+(||++) = concatSqueeze
+
+concatSqueezeOut, (++||) :: Signal String -> Signal String -> Signal String
+concatSqueezeOut pata patb = opSqueezeOut (++) pata patb
+(++||) = concatSqueezeOut
+
+concatTrig, (!++) :: Signal String -> Signal String -> Signal String
+concatTrig pata patb = opTrig (++) pata patb
+(!++) = concatTrig
+
+concatTrigZero, (!!++) :: Signal String -> Signal String -> Signal String
+concatTrigZero pata patb = opTrigZero (++) pata patb
+(!!++) = concatTrigZero
+
+infix 4 |++|, |++, ++|, ||++, ++||, !++, !!++
+
 -- band
 
 bandMix, (|.&.|) :: Bits a => Signal a -> Signal a -> Signal a
-bandMix = opMix (.&.)
+bandMix pata patb = opMix (.&.) pata patb
 (|.&.|) = bandMix
 
 bandIn, (|.&.) :: Bits a => Signal a -> Signal a -> Signal a
-bandIn = opIn (.&.)
+bandIn pata patb = opIn (.&.) pata patb
 (|.&.) = bandIn
 
 bandOut, (.&.|) :: Bits a => Signal a -> Signal a -> Signal a
-bandOut = opOut (.&.)
+bandOut pata patb = opOut (.&.) pata patb
 (.&.|) = bandOut
 
 bandSqueeze, (||.&.) :: Bits a => Signal a -> Signal a -> Signal a
-bandSqueeze = opSqueeze (.&.)
+bandSqueeze pata patb = opSqueeze (.&.) pata patb
 (||.&.) = bandSqueeze
 
 bandSqueezeOut, (.&.||) :: Bits a => Signal a -> Signal a -> Signal a
-bandSqueezeOut = opSqueezeOut (.&.)
+bandSqueezeOut pata patb = opSqueezeOut (.&.) pata patb
 (.&.||) = bandSqueezeOut
 
 bandTrig, (!.&.) :: Bits a => Signal a -> Signal a -> Signal a
-bandTrig = opTrig (.&.)
+bandTrig pata patb = opTrig (.&.) pata patb
 (!.&.) = bandTrig
 
 bandTrigZero, (!!.&.) :: Bits a => Signal a -> Signal a -> Signal a
-bandTrigZero = opTrigZero (.&.)
+bandTrigZero pata patb = opTrigZero (.&.) pata patb
 (!!.&.) = bandTrigZero
 
 infix 4 |.&.|, |.&., .&.|, ||.&., .&.||, !.&., !!.&.
@@ -346,31 +449,31 @@ infix 4 |.&.|, |.&., .&.|, ||.&., .&.||, !.&., !!.&.
 -- bor
 
 borMix, (|.|.|) :: Bits a => Signal a -> Signal a -> Signal a
-borMix = opMix (.|.)
+borMix pata patb = opMix (.|.) pata patb
 (|.|.|) = borMix
 
 borIn, (|.|.) :: Bits a => Signal a -> Signal a -> Signal a
-borIn = opIn (.|.)
+borIn pata patb = opIn (.|.) pata patb
 (|.|.) = borIn
 
 borOut, (.|.|) :: Bits a => Signal a -> Signal a -> Signal a
-borOut = opOut (.|.)
+borOut pata patb = opOut (.|.) pata patb
 (.|.|) = borOut
 
 borSqueeze, (||.|.) :: Bits a => Signal a -> Signal a -> Signal a
-borSqueeze = opSqueeze (.|.)
+borSqueeze pata patb = opSqueeze (.|.) pata patb
 (||.|.) = borSqueeze
 
 borSqueezeOut, (.|.||) :: Bits a => Signal a -> Signal a -> Signal a
-borSqueezeOut = opSqueezeOut (.|.)
+borSqueezeOut pata patb = opSqueezeOut (.|.) pata patb
 (.|.||) = borSqueezeOut
 
 borTrig, (!.|.) :: Bits a => Signal a -> Signal a -> Signal a
-borTrig = opTrig (.|.)
+borTrig pata patb = opTrig (.|.) pata patb
 (!.|.) = borTrig
 
 borTrigZero, (!!.|.) :: Bits a => Signal a -> Signal a -> Signal a
-borTrigZero = opTrigZero (.|.)
+borTrigZero pata patb = opTrigZero (.|.) pata patb
 (!!.|.) = borTrigZero
 
 infix 4 |.|.|, |.|., .|.|, ||.|., .|.||, !.|., !!.|.
@@ -378,31 +481,31 @@ infix 4 |.|.|, |.|., .|.|, ||.|., .|.||, !.|., !!.|.
 -- bxor
 
 bxorMix, (|.^.|) :: Bits a => Signal a -> Signal a -> Signal a
-bxorMix = opMix (xor)
+bxorMix pata patb = opMix (xor) pata patb
 (|.^.|) = bxorMix
 
 bxorIn, (|.^.) :: Bits a => Signal a -> Signal a -> Signal a
-bxorIn = opIn (xor)
+bxorIn pata patb = opIn (xor) pata patb
 (|.^.) = bxorIn
 
 bxorOut, (.^.|) :: Bits a => Signal a -> Signal a -> Signal a
-bxorOut = opOut (xor)
+bxorOut pata patb = opOut (xor) pata patb
 (.^.|) = bxorOut
 
 bxorSqueeze, (||.^.) :: Bits a => Signal a -> Signal a -> Signal a
-bxorSqueeze = opSqueeze (xor)
+bxorSqueeze pata patb = opSqueeze (xor) pata patb
 (||.^.) = bxorSqueeze
 
 bxorSqueezeOut, (.^.||) :: Bits a => Signal a -> Signal a -> Signal a
-bxorSqueezeOut = opSqueezeOut (xor)
+bxorSqueezeOut pata patb = opSqueezeOut (xor) pata patb
 (.^.||) = bxorSqueezeOut
 
 bxorTrig, (!.^.) :: Bits a => Signal a -> Signal a -> Signal a
-bxorTrig = opTrig (xor)
+bxorTrig pata patb = opTrig (xor) pata patb
 (!.^.) = bxorTrig
 
 bxorTrigZero, (!!.^.) :: Bits a => Signal a -> Signal a -> Signal a
-bxorTrigZero = opTrigZero (xor)
+bxorTrigZero pata patb = opTrigZero (xor) pata patb
 (!!.^.) = bxorTrigZero
 
 infix 4 |.^.|, |.^., .^.|, ||.^., .^.||, !.^., !!.^.
@@ -410,31 +513,31 @@ infix 4 |.^.|, |.^., .^.|, ||.^., .^.||, !.^., !!.^.
 -- bshiftl
 
 bshiftlMix, (|.<<.|) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftlMix = opMix (shiftL)
+bshiftlMix pata patb = opMix (shiftL) pata patb
 (|.<<.|) = bshiftlMix
 
 bshiftlIn, (|.<<.) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftlIn = opIn (shiftL)
+bshiftlIn pata patb = opIn (shiftL) pata patb
 (|.<<.) = bshiftlIn
 
 bshiftlOut, (.<<.|) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftlOut = opOut (shiftL)
+bshiftlOut pata patb = opOut (shiftL) pata patb
 (.<<.|) = bshiftlOut
 
 bshiftlSqueeze, (||.<<.) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftlSqueeze = opSqueeze (shiftL)
+bshiftlSqueeze pata patb = opSqueeze (shiftL) pata patb
 (||.<<.) = bshiftlSqueeze
 
 bshiftlSqueezeOut, (.<<.||) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftlSqueezeOut = opSqueezeOut (shiftL)
+bshiftlSqueezeOut pata patb = opSqueezeOut (shiftL) pata patb
 (.<<.||) = bshiftlSqueezeOut
 
 bshiftlTrig, (!.<<.) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftlTrig = opTrig (shiftL)
+bshiftlTrig pata patb = opTrig (shiftL) pata patb
 (!.<<.) = bshiftlTrig
 
 bshiftlTrigZero, (!!.<<.) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftlTrigZero = opTrigZero (shiftL)
+bshiftlTrigZero pata patb = opTrigZero (shiftL) pata patb
 (!!.<<.) = bshiftlTrigZero
 
 infix 4 |.<<.|, |.<<., .<<.|, ||.<<., .<<.||, !.<<., !!.<<.
@@ -442,31 +545,31 @@ infix 4 |.<<.|, |.<<., .<<.|, ||.<<., .<<.||, !.<<., !!.<<.
 -- bshiftr
 
 bshiftrMix, (|.>>.|) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftrMix = opMix (shiftR)
+bshiftrMix pata patb = opMix (shiftR) pata patb
 (|.>>.|) = bshiftrMix
 
 bshiftrIn, (|.>>.) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftrIn = opIn (shiftR)
+bshiftrIn pata patb = opIn (shiftR) pata patb
 (|.>>.) = bshiftrIn
 
 bshiftrOut, (.>>.|) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftrOut = opOut (shiftR)
+bshiftrOut pata patb = opOut (shiftR) pata patb
 (.>>.|) = bshiftrOut
 
 bshiftrSqueeze, (||.>>.) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftrSqueeze = opSqueeze (shiftR)
+bshiftrSqueeze pata patb = opSqueeze (shiftR) pata patb
 (||.>>.) = bshiftrSqueeze
 
 bshiftrSqueezeOut, (.>>.||) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftrSqueezeOut = opSqueezeOut (shiftR)
+bshiftrSqueezeOut pata patb = opSqueezeOut (shiftR) pata patb
 (.>>.||) = bshiftrSqueezeOut
 
 bshiftrTrig, (!.>>.) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftrTrig = opTrig (shiftR)
+bshiftrTrig pata patb = opTrig (shiftR) pata patb
 (!.>>.) = bshiftrTrig
 
 bshiftrTrigZero, (!!.>>.) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftrTrigZero = opTrigZero (shiftR)
+bshiftrTrigZero pata patb = opTrigZero (shiftR) pata patb
 (!!.>>.) = bshiftrTrigZero
 
 infix 4 |.>>.|, |.>>., .>>.|, ||.>>., .>>.||, !.>>., !!.>>.
@@ -474,31 +577,31 @@ infix 4 |.>>.|, |.>>., .>>.|, ||.>>., .>>.||, !.>>., !!.>>.
 -- lt
 
 ltMix, (|<|) :: Ord a => Signal a -> Signal a -> Signal Bool
-ltMix = opMix (<)
+ltMix pata patb = opMix (<) pata patb
 (|<|) = ltMix
 
 ltIn, (|<) :: Ord a => Signal a -> Signal a -> Signal Bool
-ltIn = opIn (<)
+ltIn pata patb = opIn (<) pata patb
 (|<) = ltIn
 
 ltOut, (<|) :: Ord a => Signal a -> Signal a -> Signal Bool
-ltOut = opOut (<)
+ltOut pata patb = opOut (<) pata patb
 (<|) = ltOut
 
 ltSqueeze, (||<) :: Ord a => Signal a -> Signal a -> Signal Bool
-ltSqueeze = opSqueeze (<)
+ltSqueeze pata patb = opSqueeze (<) pata patb
 (||<) = ltSqueeze
 
 ltSqueezeOut, (<||) :: Ord a => Signal a -> Signal a -> Signal Bool
-ltSqueezeOut = opSqueezeOut (<)
+ltSqueezeOut pata patb = opSqueezeOut (<) pata patb
 (<||) = ltSqueezeOut
 
 ltTrig, (!<) :: Ord a => Signal a -> Signal a -> Signal Bool
-ltTrig = opTrig (<)
+ltTrig pata patb = opTrig (<) pata patb
 (!<) = ltTrig
 
 ltTrigZero, (!!<) :: Ord a => Signal a -> Signal a -> Signal Bool
-ltTrigZero = opTrigZero (<)
+ltTrigZero pata patb = opTrigZero (<) pata patb
 (!!<) = ltTrigZero
 
 infix 4 |<|, |<, <|, ||<, <||, !<, !!<
@@ -506,31 +609,31 @@ infix 4 |<|, |<, <|, ||<, <||, !<, !!<
 -- gt
 
 gtMix, (|>|) :: Ord a => Signal a -> Signal a -> Signal Bool
-gtMix = opMix (>)
+gtMix pata patb = opMix (>) pata patb
 (|>|) = gtMix
 
 gtIn, (|>) :: Ord a => Signal a -> Signal a -> Signal Bool
-gtIn = opIn (>)
+gtIn pata patb = opIn (>) pata patb
 (|>) = gtIn
 
 gtOut, (>|) :: Ord a => Signal a -> Signal a -> Signal Bool
-gtOut = opOut (>)
+gtOut pata patb = opOut (>) pata patb
 (>|) = gtOut
 
 gtSqueeze, (||>) :: Ord a => Signal a -> Signal a -> Signal Bool
-gtSqueeze = opSqueeze (>)
+gtSqueeze pata patb = opSqueeze (>) pata patb
 (||>) = gtSqueeze
 
 gtSqueezeOut, (>||) :: Ord a => Signal a -> Signal a -> Signal Bool
-gtSqueezeOut = opSqueezeOut (>)
+gtSqueezeOut pata patb = opSqueezeOut (>) pata patb
 (>||) = gtSqueezeOut
 
 gtTrig, (!>) :: Ord a => Signal a -> Signal a -> Signal Bool
-gtTrig = opTrig (>)
+gtTrig pata patb = opTrig (>) pata patb
 (!>) = gtTrig
 
 gtTrigZero, (!!>) :: Ord a => Signal a -> Signal a -> Signal Bool
-gtTrigZero = opTrigZero (>)
+gtTrigZero pata patb = opTrigZero (>) pata patb
 (!!>) = gtTrigZero
 
 infix 4 |>|, |>, >|, ||>, >||, !>, !!>
@@ -538,31 +641,31 @@ infix 4 |>|, |>, >|, ||>, >||, !>, !!>
 -- lte
 
 lteMix, (|<=|) :: Ord a => Signal a -> Signal a -> Signal Bool
-lteMix = opMix (<=)
+lteMix pata patb = opMix (<=) pata patb
 (|<=|) = lteMix
 
 lteIn, (|<=) :: Ord a => Signal a -> Signal a -> Signal Bool
-lteIn = opIn (<=)
+lteIn pata patb = opIn (<=) pata patb
 (|<=) = lteIn
 
 lteOut, (<=|) :: Ord a => Signal a -> Signal a -> Signal Bool
-lteOut = opOut (<=)
+lteOut pata patb = opOut (<=) pata patb
 (<=|) = lteOut
 
 lteSqueeze, (||<=) :: Ord a => Signal a -> Signal a -> Signal Bool
-lteSqueeze = opSqueeze (<=)
+lteSqueeze pata patb = opSqueeze (<=) pata patb
 (||<=) = lteSqueeze
 
 lteSqueezeOut, (<=||) :: Ord a => Signal a -> Signal a -> Signal Bool
-lteSqueezeOut = opSqueezeOut (<=)
+lteSqueezeOut pata patb = opSqueezeOut (<=) pata patb
 (<=||) = lteSqueezeOut
 
 lteTrig, (!<=) :: Ord a => Signal a -> Signal a -> Signal Bool
-lteTrig = opTrig (<=)
+lteTrig pata patb = opTrig (<=) pata patb
 (!<=) = lteTrig
 
 lteTrigZero, (!!<=) :: Ord a => Signal a -> Signal a -> Signal Bool
-lteTrigZero = opTrigZero (<=)
+lteTrigZero pata patb = opTrigZero (<=) pata patb
 (!!<=) = lteTrigZero
 
 infix 4 |<=|, |<=, <=|, ||<=, <=||, !<=, !!<=
@@ -570,31 +673,31 @@ infix 4 |<=|, |<=, <=|, ||<=, <=||, !<=, !!<=
 -- gte
 
 gteMix, (|>=|) :: Ord a => Signal a -> Signal a -> Signal Bool
-gteMix = opMix (>=)
+gteMix pata patb = opMix (>=) pata patb
 (|>=|) = gteMix
 
 gteIn, (|>=) :: Ord a => Signal a -> Signal a -> Signal Bool
-gteIn = opIn (>=)
+gteIn pata patb = opIn (>=) pata patb
 (|>=) = gteIn
 
 gteOut, (>=|) :: Ord a => Signal a -> Signal a -> Signal Bool
-gteOut = opOut (>=)
+gteOut pata patb = opOut (>=) pata patb
 (>=|) = gteOut
 
 gteSqueeze, (||>=) :: Ord a => Signal a -> Signal a -> Signal Bool
-gteSqueeze = opSqueeze (>=)
+gteSqueeze pata patb = opSqueeze (>=) pata patb
 (||>=) = gteSqueeze
 
 gteSqueezeOut, (>=||) :: Ord a => Signal a -> Signal a -> Signal Bool
-gteSqueezeOut = opSqueezeOut (>=)
+gteSqueezeOut pata patb = opSqueezeOut (>=) pata patb
 (>=||) = gteSqueezeOut
 
 gteTrig, (!>=) :: Ord a => Signal a -> Signal a -> Signal Bool
-gteTrig = opTrig (>=)
+gteTrig pata patb = opTrig (>=) pata patb
 (!>=) = gteTrig
 
 gteTrigZero, (!!>=) :: Ord a => Signal a -> Signal a -> Signal Bool
-gteTrigZero = opTrigZero (>=)
+gteTrigZero pata patb = opTrigZero (>=) pata patb
 (!!>=) = gteTrigZero
 
 infix 4 |>=|, |>=, >=|, ||>=, >=||, !>=, !!>=
@@ -602,31 +705,31 @@ infix 4 |>=|, |>=, >=|, ||>=, >=||, !>=, !!>=
 -- eq
 
 eqMix, (|==|) :: Eq a => Signal a -> Signal a -> Signal Bool
-eqMix = opMix (==)
+eqMix pata patb = opMix (==) pata patb
 (|==|) = eqMix
 
 eqIn, (|==) :: Eq a => Signal a -> Signal a -> Signal Bool
-eqIn = opIn (==)
+eqIn pata patb = opIn (==) pata patb
 (|==) = eqIn
 
 eqOut, (==|) :: Eq a => Signal a -> Signal a -> Signal Bool
-eqOut = opOut (==)
+eqOut pata patb = opOut (==) pata patb
 (==|) = eqOut
 
 eqSqueeze, (||==) :: Eq a => Signal a -> Signal a -> Signal Bool
-eqSqueeze = opSqueeze (==)
+eqSqueeze pata patb = opSqueeze (==) pata patb
 (||==) = eqSqueeze
 
 eqSqueezeOut, (==||) :: Eq a => Signal a -> Signal a -> Signal Bool
-eqSqueezeOut = opSqueezeOut (==)
+eqSqueezeOut pata patb = opSqueezeOut (==) pata patb
 (==||) = eqSqueezeOut
 
 eqTrig, (!==) :: Eq a => Signal a -> Signal a -> Signal Bool
-eqTrig = opTrig (==)
+eqTrig pata patb = opTrig (==) pata patb
 (!==) = eqTrig
 
 eqTrigZero, (!!==) :: Eq a => Signal a -> Signal a -> Signal Bool
-eqTrigZero = opTrigZero (==)
+eqTrigZero pata patb = opTrigZero (==) pata patb
 (!!==) = eqTrigZero
 
 infix 4 |==|, |==, ==|, ||==, ==||, !==, !!==
@@ -634,31 +737,31 @@ infix 4 |==|, |==, ==|, ||==, ==||, !==, !!==
 -- ne
 
 neMix, (|/=|) :: Eq a => Signal a -> Signal a -> Signal Bool
-neMix = opMix (/=)
+neMix pata patb = opMix (/=) pata patb
 (|/=|) = neMix
 
 neIn, (|/=) :: Eq a => Signal a -> Signal a -> Signal Bool
-neIn = opIn (/=)
+neIn pata patb = opIn (/=) pata patb
 (|/=) = neIn
 
 neOut, (/=|) :: Eq a => Signal a -> Signal a -> Signal Bool
-neOut = opOut (/=)
+neOut pata patb = opOut (/=) pata patb
 (/=|) = neOut
 
 neSqueeze, (||/=) :: Eq a => Signal a -> Signal a -> Signal Bool
-neSqueeze = opSqueeze (/=)
+neSqueeze pata patb = opSqueeze (/=) pata patb
 (||/=) = neSqueeze
 
 neSqueezeOut, (/=||) :: Eq a => Signal a -> Signal a -> Signal Bool
-neSqueezeOut = opSqueezeOut (/=)
+neSqueezeOut pata patb = opSqueezeOut (/=) pata patb
 (/=||) = neSqueezeOut
 
 neTrig, (!/=) :: Eq a => Signal a -> Signal a -> Signal Bool
-neTrig = opTrig (/=)
+neTrig pata patb = opTrig (/=) pata patb
 (!/=) = neTrig
 
 neTrigZero, (!!/=) :: Eq a => Signal a -> Signal a -> Signal Bool
-neTrigZero = opTrigZero (/=)
+neTrigZero pata patb = opTrigZero (/=) pata patb
 (!!/=) = neTrigZero
 
 infix 4 |/=|, |/=, /=|, ||/=, /=||, !/=, !!/=
@@ -666,31 +769,31 @@ infix 4 |/=|, |/=, /=|, ||/=, /=||, !/=, !!/=
 -- and
 
 andMix, (|&&|) :: Signal Bool -> Signal Bool -> Signal Bool
-andMix = opMix (&&)
+andMix pata patb = opMix (&&) pata patb
 (|&&|) = andMix
 
 andIn, (|&&) :: Signal Bool -> Signal Bool -> Signal Bool
-andIn = opIn (&&)
+andIn pata patb = opIn (&&) pata patb
 (|&&) = andIn
 
 andOut, (&&|) :: Signal Bool -> Signal Bool -> Signal Bool
-andOut = opOut (&&)
+andOut pata patb = opOut (&&) pata patb
 (&&|) = andOut
 
 andSqueeze, (||&&) :: Signal Bool -> Signal Bool -> Signal Bool
-andSqueeze = opSqueeze (&&)
+andSqueeze pata patb = opSqueeze (&&) pata patb
 (||&&) = andSqueeze
 
 andSqueezeOut, (&&||) :: Signal Bool -> Signal Bool -> Signal Bool
-andSqueezeOut = opSqueezeOut (&&)
+andSqueezeOut pata patb = opSqueezeOut (&&) pata patb
 (&&||) = andSqueezeOut
 
 andTrig, (!&&) :: Signal Bool -> Signal Bool -> Signal Bool
-andTrig = opTrig (&&)
+andTrig pata patb = opTrig (&&) pata patb
 (!&&) = andTrig
 
 andTrigZero, (!!&&) :: Signal Bool -> Signal Bool -> Signal Bool
-andTrigZero = opTrigZero (&&)
+andTrigZero pata patb = opTrigZero (&&) pata patb
 (!!&&) = andTrigZero
 
 infix 4 |&&|, |&&, &&|, ||&&, &&||, !&&, !!&&
@@ -698,31 +801,31 @@ infix 4 |&&|, |&&, &&|, ||&&, &&||, !&&, !!&&
 -- or
 
 orMix, (|.||.|) :: Signal Bool -> Signal Bool -> Signal Bool
-orMix = opMix (||)
+orMix pata patb = opMix (||) pata patb
 (|.||.|) = orMix
 
 orIn, (|.||.) :: Signal Bool -> Signal Bool -> Signal Bool
-orIn = opIn (||)
+orIn pata patb = opIn (||) pata patb
 (|.||.) = orIn
 
 orOut, (.||.|) :: Signal Bool -> Signal Bool -> Signal Bool
-orOut = opOut (||)
+orOut pata patb = opOut (||) pata patb
 (.||.|) = orOut
 
 orSqueeze, (||.||.) :: Signal Bool -> Signal Bool -> Signal Bool
-orSqueeze = opSqueeze (||)
+orSqueeze pata patb = opSqueeze (||) pata patb
 (||.||.) = orSqueeze
 
 orSqueezeOut, (.||.||) :: Signal Bool -> Signal Bool -> Signal Bool
-orSqueezeOut = opSqueezeOut (||)
+orSqueezeOut pata patb = opSqueezeOut (||) pata patb
 (.||.||) = orSqueezeOut
 
 orTrig, (!.||.) :: Signal Bool -> Signal Bool -> Signal Bool
-orTrig = opTrig (||)
+orTrig pata patb = opTrig (||) pata patb
 (!.||.) = orTrig
 
 orTrigZero, (!!.||.) :: Signal Bool -> Signal Bool -> Signal Bool
-orTrigZero = opTrigZero (||)
+orTrigZero pata patb = opTrigZero (||) pata patb
 (!!.||.) = orTrigZero
 
 infix 4 |.||.|, |.||., .||.|, ||.||., .||.||, !.||., !!.||.
