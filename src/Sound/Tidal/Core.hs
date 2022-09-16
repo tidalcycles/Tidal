@@ -44,38 +44,6 @@ fastSqueeze = tParamSqueeze _fast
 slowSqueeze :: Pattern Time -> Pattern a -> Pattern a
 slowSqueeze = tParamSqueeze _slow
 
--- | An alias for @slow@
-sparsity :: Pattern Time -> Pattern a -> Pattern a
-sparsity = slow
-
--- | @rev p@ returns @p@ with the event positions in each cycle
--- reversed (or mirrored).
-rev :: Pattern a -> Pattern a
-rev p =
-  splitQueries $ p {
-    query = \st -> map makeWholeAbsolute $
-      mapParts (mirrorArc (midCycle $ arc st)) $
-      map makeWholeRelative
-      (query p st
-        {sArc = mirrorArc (midCycle $ sArc st) (sArc st)
-        })
-    }
-  where makeWholeRelative :: Event a -> Event a
-        makeWholeRelative e@Event {whole = Nothing} = e
-        makeWholeRelative (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
-          Event c (Just $ Arc (s'-s) (e-e')) p' v
-        makeWholeAbsolute :: Event a -> Event a
-        makeWholeAbsolute e@Event {whole = Nothing} = e
-        makeWholeAbsolute (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
-          Event c (Just $ Arc (s'-e) (e'+s)) p' v
-        midCycle :: Arc -> Time
-        midCycle (Arc s _) = sam s + 0.5
-        mapParts :: (Arc -> Arc) -> [Event a] -> [Event a]
-        mapParts f es = (\(Event c w p' v) -> Event c w (f p') v) <$> es
-        -- | Returns the `mirror image' of a 'Arc' around the given point in time
-        mirrorArc :: Time -> Arc -> Arc
-        mirrorArc mid' (Arc s e) = Arc (mid' - (e-mid')) (mid'+(mid'-s))
-
 {- | Plays a portion of a pattern, specified by a time arc (start and end time).
 The new resulting pattern is played over the time period of the original pattern:
 
@@ -96,17 +64,6 @@ zoomArc :: Arc -> Pattern a -> Pattern a
 zoomArc (Arc s e) p = splitQueries $
   withResultArc (mapCycle ((/d) . subtract s)) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
-
--- | @fastGap@ is similar to 'fast' but maintains its cyclic
--- alignment. For example, @fastGap 2 p@ would squash the events in
--- pattern @p@ into the first half of each cycle (and the second
--- halves would be empty). The factor should be at least 1
-fastGap :: Pattern Time -> Pattern a -> Pattern a
-fastGap = tParam _fastGap
-
--- | An alias for @fastGap@
-densityGap :: Pattern Time -> Pattern a -> Pattern a
-densityGap = fastGap
 
 compress :: (Time,Time) -> Pattern a -> Pattern a
 compress (s,e) = compressArc (Arc s e)
