@@ -1,5 +1,10 @@
 # TidalCycles log of changes
 
+## 1.9.1
+
+A quick release to set specific tidal-link version 1.0 in tidal.cabal. Stack
+seems to want this.
+
 ## 1.9.0
 
 ## What's Changed
