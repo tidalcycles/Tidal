@@ -193,7 +193,7 @@ discreteOnly :: Signal a -> Signal a
 discreteOnly = filterEvents $ isJust . whole
 
 -- ************************************************************ --
--- Time utilities
+-- Time/event manipulations
 
 queryArc :: Signal a -> Arc -> [Event a]
 queryArc sig arc = query sig (State arc Map.empty)
@@ -222,17 +222,6 @@ withQueryArc arcf = withQuery (\state -> state {sArc = arcf $ sArc state})
 withQueryTime :: (Time -> Time) -> Signal a -> Signal a
 withQueryTime timef = withQueryArc (withArcTime timef)
 
-_fastGap :: Time -> Signal a -> Signal a
-_fastGap factor pat = splitQueries $ withEventArc (scale $ 1/factor) $ withQueryArc (scale factor) pat
-  where scale factor' arc = Arc b e
-          where cycle = sam $ begin arc
-                b = cycle + (min 1 $ (begin arc - cycle) * factor)
-                e = cycle + (min 1 $ (end   arc - cycle) * factor)
-
-_compressArc :: Arc -> Signal a -> Signal a
-_compressArc (Arc b e) pat | (b > e || b > 1 || e > 1 || b < 0 || e < 0) = silence
-                           | otherwise = _late b $ _fastGap (1/(e-b)) pat
-
 -- ************************************************************ --
 -- Fundamental signals
 
@@ -252,7 +241,7 @@ sigAtom v = Signal $ \state -> map
   where wholeCycle :: Time -> Arc
         wholeCycle t = Arc (sam t) (nextSam t)
 
--- | A continuous value
+-- | Hold a continuous value
 steady :: a -> Signal a
 steady v = waveform (const v)
 
@@ -362,6 +351,27 @@ sigSlowcat pats = splitQueries $ Signal queryCycle
 _sigFast :: Time -> Signal a -> Signal a
 _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
 
+_fastGap :: Time -> Signal a -> Signal a
+_fastGap factor pat = splitQueries $ withEventArc (scale $ 1/factor) $ withQueryArc (scale factor) pat
+  where scale factor' arc = Arc b e
+          where cycle = sam $ begin arc
+                b = cycle + (min 1 $ (begin arc - cycle) * factor)
+                e = cycle + (min 1 $ (end   arc - cycle) * factor)
+
+-- | Like @fast@, but only plays one cycle of the original pattern
+-- once per cycle, leaving a gap
+fastGap :: Signal Time -> Signal a -> Signal a
+fastGap = _patternify _fastGap
+
+
+_compressArc :: Arc -> Signal a -> Signal a
+_compressArc (Arc b e) pat | (b > e || b > 1 || e > 1 || b < 0 || e < 0) = silence
+                           | otherwise = _late b $ _fastGap (1/(e-b)) pat
+
+-- | Like @fastGap@, but takes a start and end time to compress the cycle into.
+compress :: Signal Time -> Signal Time -> Signal a -> Signal a
+compress patStart patDur pat = innerJoin $ (\s d -> _compressArc (Arc s (s+d)) pat) <$> patStart <*> patDur
+
 _early :: Time -> Signal a -> Signal a
 _early t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
 
@@ -401,9 +411,6 @@ _zoomArc (Arc s e) p = splitQueries $
   withEventArc (mapCycle ((/d) . subtract s)) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 
-compress :: Signal Time -> Signal Time -> Signal a -> Signal a
-compress patStart patDur pat = innerJoin $ (\s d -> _compressArc (Arc s (s+d)) pat) <$> patStart <*> patDur
-
 -- compressTo :: (Time,Time) -> Pattern a -> Pattern a
 -- compressTo (s,e)      = compressArcTo (Arc s e)
 
@@ -438,7 +445,8 @@ sigRev pat = splitQueries $ Signal f
                 reflect (Arc b e) = Arc (cycle + (next_cycle - e)) (cycle + (next_cycle - b))
 
 
--- | A pattern of whole numbers from 0 to the given number, in a single cycle.
+-- | A pattern of whole numbers from 0 up to (and not including) the
+-- given number, in a single cycle.
 _sigRun :: (Enum a, Num a) => a -> Signal a
 _sigRun n = fastFromList [0 .. n-1]
 
