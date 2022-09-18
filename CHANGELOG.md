@@ -1,5 +1,72 @@
 # TidalCycles log of changes
 
+## 1.9.2
+
+Same with 1.9.1, but now with new tidal-link version 1.0.1
+
+## 1.9.1
+
+A quick release to set specific tidal-link version 1.0 in tidal.cabal. Stack
+seems to want this.
+
+## 1.9.0
+
+## What's Changed
+
+### General enhancements
+* Rename linux binary name by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/911
+* Fix echo by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/910
+* If first argument of euclid is negative, apply euclidInv by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/916
+* Add squeeze operators (`||+`, `*||`, etc) by @yaxu in https://github.com/tidalcycles/Tidal/pull/919
+* Make chunk reverse direction with negative number by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/918
+* overhaul of the chord parser by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/931
+
+### New ableton link support
+* Use ableton link for scheduling by @Zalastax in https://github.com/tidalcycles/Tidal/pull/898
+* tidal-link: add link source files to extra-source-files, fixes #924 by @yaxu in https://github.com/tidalcycles/Tidal/pull/925
+* Use target latency in all send modes by @Zalastax in https://github.com/tidalcycles/Tidal/pull/927
+* Rename cCyclesPerBeat -> cBeatsPerCycle by @Zalastax in https://github.com/tidalcycles/Tidal/pull/939
+
+### Emacs plugin updates
+* formatting fixes in tidal.el by @zzkt in https://github.com/tidalcycles/Tidal/pull/932
+* a window-excursion for tidal.el by @zzkt in https://github.com/tidalcycles/Tidal/pull/933
+* autoloads for tidal.el by @zzkt in https://github.com/tidalcycles/Tidal/pull/934
+* avoid race in loading bootscript during restart by @zzkt in https://github.com/tidalcycles/Tidal/pull/937
+
+### Tidal-parse (estuary) updates
+* Various updates to tidal-parse by @dktr0 in https://github.com/tidalcycles/Tidal/pull/913 and  https://github.com/tidalcycles/Tidal/pull/941
+
+### Maintenance
+* Increase upper bounds of text dependency by @yaxu in https://github.com/tidalcycles/Tidal/pull/948
+* Use system-cxx-std-lib by @Zalastax in https://github.com/tidalcycles/Tidal/pull/944
+* Use c++ extra library for MacOS by @giuseppelillo in https://github.com/tidalcycles/Tidal/pull/946
+
+## New Contributors
+* @Zalastax made their first contribution in https://github.com/tidalcycles/Tidal/pull/898
+* @zzkt made their first contribution in https://github.com/tidalcycles/Tidal/pull/932
+* @giuseppelillo made their first contribution in https://github.com/tidalcycles/Tidal/pull/946
+
+**Full Changelog**: https://github.com/tidalcycles/Tidal/compare/v1.8.0...v1.9.0
+
+## 1.8.1
+
+* Removed executable from tidal.cabal file (while latest ghc on windows fails to build it)
+
+## 1.8.0 - Sanquhar
+
+* move tidal-listener code by @polymorphicengine in #885
+* Fix a typo incurred (I assume) by a filename change. by @JeffreyBenjaminBrown in #886
+* Hide contexts from Events per default by @polymorphicengine in #887
+* Allow sending/receiving of broadcasted OSC control messages by @yaxu in #894
+* tidal-listener: Add minimal install notes by @gamar3is in #895
+* Add rolled function with variants by @thgrund in #820
+* Valuable instance for Note by @yaxu in #899
+* Add parsers for ints and floats that don't consume trailing whitespace by @polymorphicengine in #900
+* Introduce echo and echoWith, deprecate stut and stutWith by @ndr-brt in #904
+* tidal-listener: Optional WITH_GHC environment variable by @mindofmatthew in #903
+
+Commit list: https://github.com/tidalcycles/Tidal/compare/1.7.10...v1.8.0
+
 ## 1.7.10 - Tama b
 
 * Derive RealFrac for Note by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/876

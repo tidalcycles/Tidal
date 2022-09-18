@@ -1,7 +1,7 @@
 cabal-version:       2.0
 
 name:                tidal
-version:             1.9.0
+version:             1.9.2
 synopsis:            Pattern language for improvised music
 description:         Tidal is a domain specific language for live coding patterns.
 homepage:            http://tidalcycles.org/
@@ -68,21 +68,8 @@ library
     , random < 1.3
     , exceptions < 0.11
     , mtl >= 2.2
-    , tidal-link
+    , tidal-link == 1.0.1
 
-executable tidal
-  hs-source-dirs: main
-  main-is: Main.hs
-  build-depends: base >=4.8 && < 5
-               , tidal
-               , hint < 0.10
-               , exceptions < 0.11
-               , async < 2.3
-  default-language:    Haskell2010
-  if impl(ghc >= 9.4.0)
-    -- https://github.com/haskell-hint/hint/issues/150 + https://github.com/haskell-hint/hint/issues/151 + https://github.com/tidalcycles/Tidal/pull/898
-    buildable: False
-    
 test-suite tests
   type: exitcode-stdio-1.0
   main-is: Test.hs

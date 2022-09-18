@@ -3,7 +3,6 @@ module Sound.Tidal.StreamTypes where
 import qualified Data.Map.Strict as Map
 import Sound.Tidal.Pattern
 import Sound.Tidal.Show ()
-import qualified Sound.Tidal.Link as Link
 
 data PlayState = PlayState {pattern :: ControlPattern,
                             mute :: Bool,
