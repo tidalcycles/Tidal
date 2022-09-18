@@ -1,12 +1,10 @@
-{-# LANGUAGE BangPatterns #-}
-
 module Sound.Tidal.Random where
 
 import Data.Bits (xor, shiftR, rotateL)
 import Data.Word (Word32)
 
-import Sound.Tidal.Pattern
 import Sound.Tidal.Core
+import Sound.Tidal.Pattern
 
 -- | Randomisation via murmur3 hash
 -- simplified code from murmur3 package
