@@ -70,10 +70,17 @@ instance Pattern Sequence where
   stack   = seqStack
   rev     = seqRev
   run     = seqRun
-  _run     = _seqRun
-  scan     = seqScan
-  _scan     = _seqScan
+  _run    = _seqRun
+  scan    = seqScan
+  _scan   = _seqScan
   timeCat = seqTimeCat
+  _ply    = _seqPly
+  every   = seqEvery
+  _every  = _seqEvery
+  iter   = seqIter
+  iter'  = seqIter'
+  _iter   = _seqIter
+  _iter'  = _seqIter'
   _patternify f x pat = mapSeq (applyfToSeq f x) pat
 
 -- -- | Takes sequence of functions and a sequence which have been aligned and applies the functions at the corresponding time points
@@ -269,14 +276,14 @@ cat [] = Gap 0
 cat [b] = b
 cat bs = Sequence bs
 
-ply :: Sequence Rational -> Sequence a -> Sequence a
-ply sr s =  mapSeq (applyfToSeq _ply sr) s
+-- ply :: Sequence Rational -> Sequence a -> Sequence a
+-- ply sr s =  mapSeq (applyfToSeq _ply sr) s
 
-_ply :: Rational -> Sequence a -> Sequence a
-_ply n (Atom d v) = Sequence $ reduce $  ((replicate (floor n) $ Atom (d / toRational n) v) ++ [Atom (d - ((floor n)%1) *d /n ) v])
-_ply _ (Gap x) = Gap x
-_ply n (Sequence x) = unwrap $ Sequence (map (_ply n) x)
-_ply n (Stack x) =  Stack (map (_ply n) x)
+_seqPly :: Rational -> Sequence a -> Sequence a
+_seqPly n (Atom d v) = Sequence $ reduce $  ((replicate (floor n) $ Atom (d / toRational n) v) ++ [Atom (d - ((floor n)%1) *d /n ) v])
+_seqPly _ (Gap x) = Gap x
+_seqPly n (Sequence x) = unwrap $ Sequence (map (_ply n) x)
+_seqPly n (Stack x) =  Stack (map (_ply n) x)
 
 seqSpan :: Sequence a -> Rational
 seqSpan (Atom s _) = s
@@ -447,11 +454,11 @@ seqStackS s strat =
 --   in unwrap $ Sequence y
 
 -- | Apply a function to a sequence every "n" iterations
-every :: Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
-every (Atom x s) f sb = _every s f sb 
-every (Gap _) _ sb = sb 
-every (Sequence x) f sb = Sequence $ reduce $  map (\t -> every t f sb) x 
-every (Stack x) f sb = Stack $ map (\t -> every t f sb) x
+seqEvery :: Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
+seqEvery (Atom x s) f sb = _every s f sb 
+seqEvery (Gap _) _ sb = sb 
+seqEvery (Sequence x) f sb = Sequence $ reduce $  map (\t -> every t f sb) x 
+seqEvery (Stack x) f sb = Stack $ map (\t -> every t f sb) x
 
 -- | Like every, but the strategy for stacking is given
 everyS::Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Strategy -> Sequence b
@@ -459,27 +466,25 @@ everyS si f sb strat = let (a,b) = forTwoS si sb strat
                       in unwrap $ every (Sequence a) f (Sequence b)
 
 -- | Helper function for every
-_every :: Int -> (Sequence a -> Sequence a) -> Sequence a -> Sequence a
-_every n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
-
-fromList:: [a] -> Sequence a
-fromList x=  unwrap $ Sequence $ reduce $  map (Atom 1) x
-
+_seqEvery :: Int -> (Sequence a -> Sequence a) -> Sequence a -> Sequence a
+_seqEvery n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
 
 -- TODO - are Pattern definitions of these good enough??
+-- fromList:: [a] -> Sequence a
+-- fromList x=  unwrap $ Sequence $ reduce $  map (Atom 1) x
 -- fastFromList ::[a] -> Sequence a
 -- fastFromList x = unwrap $ Sequence $ reduce $ map (Atom (realToFrac $ (1%length x))) x
+-- seqListToPat ::[a] -> Sequence a
+-- seqListToPat = fastFromList
 
--- listToPat ::[a] -> Sequence a
--- listToPat = fastFromList
+-- seqFromMaybes :: [Maybe a] -> Sequence a
+-- seqFromMaybes = fastcat . map f
+--   where f Nothing = Gap 1
+--         f (Just x) = Atom 1 x
 
 seqFastcat ::  [Sequence a]  -> Sequence a
 seqFastcat x = _fast (sum $ map seqSpan x) $ Sequence (reduce x)
 
-fromMaybes :: [Maybe a] -> Sequence a
-fromMaybes = fastcat . map f
-  where f Nothing = Gap 1
-        f (Just x) = Atom 1 x
 
 seqRun :: (Enum a, Num a) => Sequence a -> Sequence a
 seqRun x = unwrap $ (>>= _seqRun) x
@@ -532,8 +537,8 @@ splitUp t x =
 -- (~>) sr s = mapSeq (applyfToSeq rotR sr) s
 
 -- | Iterates a sequence to fit into a given number of cycles of the sequence while applying rotL
-iter :: Sequence Int -> Sequence a ->  Sequence a
-iter sr s =
+seqIter :: Sequence Int -> Sequence a ->  Sequence a
+seqIter sr s =
   let (a,b) = forTwo sr s
   in unwrap $  iterer (Sequence a) (Sequence b)
 
@@ -549,14 +554,14 @@ iterer (Gap x) _ = Gap x
 iterer (Sequence x) sr = Sequence $ map (`iterer` sr) x
 iterer (Stack x) sr = stack $ map (`iterer` sr) x
 
-_iter :: Int -> Sequence a -> Sequence a
-_iter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n-1)]
+_seqIter :: Int -> Sequence a -> Sequence a
+_seqIter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n-1)]
 
 
 -- | @iter'@ is the same as @iter@, but decrements the starting
 -- subdivision instead of incrementing it.
-iter' :: Sequence Int -> Sequence c ->Sequence c
-iter' sr s=
+seqIter' :: Sequence Int -> Sequence c ->Sequence c
+seqIter' sr s=
   let (a,b) = forTwo sr s
   in unwrap $  iterer' (Sequence a) (Sequence b)
 
@@ -572,7 +577,7 @@ iterer' (Gap x) _ = Gap x
 iterer' (Sequence x) sr = Sequence $ map (`iterer'` sr) x
 iterer' (Stack x) sr = stack $ map (`iterer'` sr) x
 
-_iter' :: Int -> Sequence a -> Sequence a
-_iter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
+_seqIter' :: Int -> Sequence a -> Sequence a
+_seqIter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
 
 -- patternify :: (a -> b ->  c) -> (f a -> b -> f c)
