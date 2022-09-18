@@ -23,9 +23,7 @@ class (Functor f, Applicative f, Monad f) => Pattern f where
   euclid :: f Int -> f Int -> f String -> f String
   _euclid :: Int -> Int -> f a-> f a
   timeCat :: [(Rational, f a)] -> f a
-  run :: (Enum a, Num a) => f a -> f a
   _run :: (Enum a, Num a) => a -> f a
-  scan :: (Enum a, Num a) => f a -> f a
   _scan :: (Enum a, Num a) => a -> f a
   every :: f Int -> (f b -> f b) -> f b -> f b
   _every :: Int -> (f a -> f a) -> f a -> f a
@@ -84,6 +82,12 @@ fromMaybes :: Pattern t => [Maybe a] -> t a
 fromMaybes = fastcat . map f
   where f Nothing = silence
         f (Just x) = pure x
+
+run :: (Pattern t, Enum a, Num a) => t a -> t a
+run = (>>= _run)
+
+scan :: (Pattern t, Enum a, Num a) => t a -> t a
+scan = (>>= _run)
 
 -- ************************************************************ --
 

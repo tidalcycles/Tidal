@@ -49,6 +49,22 @@ instance Show a => Show (Signal a) where
 -- | A control signal
 type ControlSignal = Signal ValueMap
 
+
+-- ************************************************************ --
+-- Pattern instance
+
+instance Pattern Signal where
+  slowcat = sigSlowcat
+  silence = sigSilence
+  atom    = sigAtom
+  stack   = sigStack
+  _fast   = _sigFast
+  rev     = sigRev
+  _run    = _sigRun
+  _scan   = _sigScan
+  timeCat = sigTimeCat
+  _patternify f x pat = innerJoin $ (`f` pat) <$> x
+
 -- ************************************************************ --
 
 instance Applicative Signal where
@@ -157,24 +173,6 @@ trigJoin = _trigTimeJoin id
 
 trigZeroJoin :: Signal (Signal a) -> Signal a
 trigZeroJoin = _trigTimeJoin cyclePos
-
-
--- ************************************************************ --
--- Pattern instance
-
-instance Pattern Signal where
-  slowcat = sigSlowcat
-  silence = sigSilence
-  atom    = sigAtom
-  stack   = sigStack
-  _fast    = _sigFast
-  rev     = sigRev
-  run     = sigRun
-  _run    = _sigRun
-  scan     = sigScan
-  _scan    = _sigScan
-  timeCat = sigTimeCat
-  _patternify f x pat = innerJoin $ (`f` pat) <$> x
 
 -- ************************************************************ --
 -- General hacks and utilities
@@ -441,17 +439,11 @@ sigRev pat = splitQueries $ Signal f
 
 
 -- | A pattern of whole numbers from 0 to the given number, in a single cycle.
-sigRun :: (Enum a, Num a) => Signal a -> Signal a
-sigRun = (>>= _run)
-
 _sigRun :: (Enum a, Num a) => a -> Signal a
 _sigRun n = fastFromList [0 .. n-1]
 
 
 -- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
-sigScan :: (Enum a, Num a) => Signal a -> Signal a
-sigScan = (>>= _scan)
-
 _sigScan :: (Enum a, Num a) => a -> Signal a
 _sigScan n = slowcat $ map _run [1 .. n]
 

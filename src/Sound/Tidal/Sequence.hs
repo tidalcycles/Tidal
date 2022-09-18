@@ -69,9 +69,7 @@ instance Pattern Sequence where
   atom    = pure
   stack   = seqStack
   rev     = seqRev
-  run     = seqRun
   _run    = _seqRun
-  scan    = seqScan
   _scan   = _seqScan
   timeCat = seqTimeCat
   _ply    = _seqPly
@@ -486,9 +484,6 @@ seqFastcat ::  [Sequence a]  -> Sequence a
 seqFastcat x = _fast (sum $ map seqSpan x) $ Sequence (reduce x)
 
 
-seqRun :: (Enum a, Num a) => Sequence a -> Sequence a
-seqRun x = unwrap $ (>>= _seqRun) x
-
 _seqRun :: (Enum a, Num a) => a -> Sequence a
 _seqRun n = unwrap $  fastFromList [0 .. n-1]
 
@@ -498,9 +493,6 @@ seqSlowcat [b] = b
 seqSlowcat bs = Sequence bs
 
 -- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
-seqScan :: (Enum a, Num a) => Sequence a -> Sequence a
-seqScan x = unwrap $  (>>= _scan) x
-
 _seqScan :: (Enum a, Num a) => a -> Sequence a
 _seqScan n = unwrap $ slowcat $ map _seqRun [1 .. n]
 
