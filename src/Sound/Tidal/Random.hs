@@ -251,6 +251,22 @@ gauss = head <$> gausss
 rayley :: Floating a => Pattern a
 rayley = boxmullerMagnitude . head <$> rands
 
+levys :: Floating a => Pattern [a]
+levys = fmap (**(-2)) . fmap2 boxmuller <$> rands
+
+-- | A rayley distributed random signal.
+levy :: Floating a => Pattern a
+levy = head <$> levys
+
+cauchys :: Floating a => Pattern [a]
+cauchys = (tan . (*pi) . (+(-1/2))) <$$> rands
+
+cauchy :: Floating a => Pattern a
+cauchy = head <$> cauchys
+
+invLaw :: Floating a => Pattern a
+invLaw = (+(-1)) . (1/) <$> rand
+
 {- | A poisson distributed random signal.
 
 Takes one parameter 'lambda' which is the expected value.
