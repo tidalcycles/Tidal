@@ -1,5 +1,7 @@
 module Sound.Tidal.Random where
 
+import Prelude hiding ((<*), (*>))
+
 import Data.Bits (xor, shiftR, rotateL)
 import Data.Word (Word32)
 
@@ -42,17 +44,13 @@ intSeedToRand = (/ 2^(32::Int)) . realToFrac
 timeToRand :: (RealFrac a, Fractional b) => a -> b
 timeToRand = intSeedToRand . murmur3 0 . timeToIntSeed
 
-timeToRands :: (RealFrac a, Fractional b) => a -> Int -> [b]
-timeToRands t n = intSeedToRand <$> accumulate [] n murmur3 (timeToIntSeed t)
-  where
-    accumulate acc     0 _ _ = acc
-    accumulate []      m f x = accumulate [f 0 x]       (m-1) f x
-    accumulate (a:acc) m f x = accumulate (f a x:a:acc) (m-1) f x
-
-timeToRands' :: (RealFrac a, Fractional b) => a -> [b]
-timeToRands' t = intSeedToRand <$> next 0 (timeToIntSeed t)
+timeToRands :: (RealFrac a, Fractional b) => a -> [b]
+timeToRands t = intSeedToRand <$> next 0 (timeToIntSeed t)
   where next :: Word32 -> Word32 -> [Word32]
         next seed s = let r = murmur3 seed s in (r : next r s)
+
+_time :: Pattern Time
+_time = sig fromRational
 
 {- | Boxmuller algorightm. Maps uniform distribution to Gauss distribution.
 
@@ -185,20 +183,24 @@ jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 @
 -}
 rand :: Fractional a => Pattern a
-rand = Pattern evts
-  where evts (State a@(Arc s e) _) = [Event (Context []) Nothing a val]
-          where val = realToFrac (timeToRand ((e + s) / 2) :: Double)
+rand = rand' <$> _time
+
+rand' :: (RealFrac a, Fractional b) => a -> b
+rand' = timeToRand
 
 -- | Boolean rand - a continuous stream of true/false values, with a 50/50 chance.
 brand :: Pattern Bool
-brand = _brandBy 0.5
+brand = brand' <$> _time
+
+brand' :: RealFrac a => a -> Bool
+brand' = brandBy' (0.5 :: Double)
 
 -- | Boolean rand with probability as input, e.g. brandBy 0.25 is 25% chance of being true.
 brandBy :: Pattern Double -> Pattern Bool
-brandBy probpat = innerJoin $ _brandBy <$> probpat
+brandBy probpat = brandBy' <$> probpat *> _time
 
-_brandBy :: Double -> Pattern Bool
-_brandBy prob = fmap (< prob) rand
+brandBy' :: (Fractional a, Ord a, RealFrac b) => a -> b -> Bool
+brandBy' prob = (< prob) . rand'
 
 {- | Just like `rand` but for whole numbers, `irand n` generates a pattern of (pseudo-) random whole numbers between `0` to `n-1` inclusive. Notably used to pick a random
 samples from a folder:
@@ -208,72 +210,88 @@ d1 $ segment 4 $ n (irand 5) # sound "drum"
 @
 -}
 irand :: Num a => Pattern Int -> Pattern a
-irand = (>>= _irand)
+irand i = irand' <$> i *> _time
 
-_irand :: Num a => Int -> Pattern a
-_irand i = fromIntegral . (floor :: Double -> Int) . (* fromIntegral i) <$> rand
-
+irand' :: (RealFrac a, Num b) => Int -> a -> b
+irand' i = fromIntegral . (floor :: Double -> Int) . (* fromIntegral i) . rand'
 
 
 -- | Infinite list of uniform [0, 1) random variables
 rands :: Floating a => Pattern [a]
-rands = Pattern evts
-  where evts (State a@(Arc s e) _) = [Event (Context []) Nothing a rnds]
-          where rnds = timeToRands' $ (e + s) / 2
+rands = rands' <$> _time
 
+rands' :: (RealFrac a, Fractional b) => a -> [b]
+rands' = timeToRands
 
 -- | Infinite list of correlated uniform [0, 1) random signals (shifted by 1)
 randsC :: Floating a => Pattern [a]
-randsC = Pattern evts
-  where evts (State a@(Arc s e) _) = [Event (Context []) Nothing a rnds]
-          where rnds = fmap (rnd . fromIntegral) ([1 .. ] :: [Int])
-                rnd k = realToFrac (timeToRand ((e + s)/2 + k / 2) :: Double)
+randsC = randsC' <$> _time
 
+randsC' :: (RealFrac a, Fractional b) => a -> [b]
+randsC' t = rand' . (+t) . fromIntegral <$> [0 :: Int ..]
 
 -- | Infinite list of Normal (0, 1) random variables (uncorrelated)
 gausss :: Floating a => Pattern [a]
-gausss = Pattern evts
-  where evts (State a@(Arc s e) _) = [Event (Context []) Nothing a values]
-          where values = fmap2 boxmuller rnds
-                rnds = timeToRands' $ (e + s) / 2
+gausss = gausss' <$> _time
 
+gausss' :: (RealFrac a, Floating b, Fractional b) => a -> [b]
+gausss' = fmap2 boxmuller . rands'
 
 -- | Infinite list of correlated normal (0, 1) random signals (shifted by 1)
 gaussC :: Floating a => Pattern [a]
-gaussC = fmap2 boxmuller <$> randsC
+gaussC = gaussC' <$> _time
 
+gaussC' :: (RealFrac a, Floating b) => a -> [b]
+gaussC' = fmap2 boxmuller . randsC'
 
 -- | A normal (Gauss) distributed random signal.
 gauss :: Floating a => Pattern a
-gauss = head <$> gausss
+gauss = gauss' <$> _time
+
+gauss' :: (RealFrac a, Floating b) => a -> b
+gauss' = head . gausss'
 
 -- | A rayley distributed random signal.
 rayley :: Floating a => Pattern a
-rayley = boxmullerMagnitude . head <$> rands
+rayley = rayley' <$> _time
+
+rayley' :: (RealFrac a, Floating b) => a -> b
+rayley' = boxmullerMagnitude . rand'
 
 levys :: Floating a => Pattern [a]
 levys = fmap (**(-2)) . fmap2 boxmuller <$> rands
 
+levys' :: (RealFrac a, Floating b) => a -> [b]
+levys' = fmap (**(-2)) . fmap2 boxmuller . rands'
+
 -- | A rayley distributed random signal.
 levy :: Floating a => Pattern a
-levy = head <$> levys
+levy = levy' <$> _time
 
-cauchys :: Floating a => Pattern [a]
-cauchys = (tan . (*pi) . (+(-1/2))) <$$> rands
+levy' :: (RealFrac a, Floating b) => a -> b
+levy' = head . levys'
 
 cauchy :: Floating a => Pattern a
-cauchy = head <$> cauchys
+cauchy = cauchy' <$> _time
+
+cauchy' :: (RealFrac a, Floating b) => a -> b
+cauchy' = tan . (*pi) . (+(-1/2)) . rand'
 
 invLaw :: Floating a => Pattern a
-invLaw = (+(-1)) . (1/) <$> rand
+invLaw = invLaw' <$> _time
+
+invLaw' :: (RealFrac a, Fractional b) => a -> b
+invLaw' = (+(-1)) . (1/) . rand'
 
 {- | A poisson distributed random signal.
 
 Takes one parameter 'lambda' which is the expected value.
 -}
 poisson :: (Floating a, Ord a, Num b) => Pattern a -> Pattern b
-poisson lambda = fromIntegral <$> (knuthPoisson <$> rands <*> lambda)
+poisson lambda = poisson' <$> lambda <*> _time
 
+poisson' :: (Floating a, Ord a, RealFrac b, Num c) => a -> b -> c
+poisson' lambda t = fromIntegral $ knuthPoisson (rands' t) lambda
 
 {- | Binomial distributed random signal.
 
@@ -281,8 +299,10 @@ Takes two parameters, the number of trials `n`
 and the probability of success `p`
 -}
 binomial :: (Floating a, Ord a, Num b) => Pattern Int -> Pattern a -> Pattern b
-binomial n p = fromIntegral <$> (doBernoulli <$> rands <*> n <*> p)
+binomial n p = binomial' <$> n <*> p <*> _time
 
+binomial' :: (Floating a, Ord a, RealFrac b, Num c) => Int -> a -> b -> c
+binomial' n p t = fromIntegral $ doBernoulli (rands' t) n p
 
 {- | Negative-binomial (Pascal) distributed signal.
 
@@ -290,20 +310,27 @@ Takes two parameters, the number of allowed failures `r`
 and the probability of success `p`
 -}
 pascal :: (Floating a, Ord a, Num b) => Pattern Int -> Pattern a -> Pattern b
-pascal r p = fromIntegral <$> (bernoulliUntil <$> rands <*> r <*> p)
+pascal r p = pascal' <$> r <*> p <*> _time
+
+pascal' :: (Floating a, Ord a, RealFrac b, Num c) => Int -> a -> b -> c
+pascal' r p t = fromIntegral $ bernoulliUntil (rands' t) r p
 
 {- | Geometric distributed signal.
 
 Takes one parameter, which is the decay rate of the pmf
 -}
 geometric :: (Floating a, Ord a, Num b) => Pattern a -> Pattern b
-geometric = pascal 1 . (1-)
+geometric p = geometric' <$> p <*> _time
+
+geometric' :: (Floating a, Ord a, RealFrac b, Num c) => a -> b -> c
+geometric' = pascal' 1 . (1-)
 
 -- | Numbers distributed according to benfords law.
-benford :: Pattern Int
-benford = fromIntegral <$> (withDistribution benfordsLaw <$> us)
-  where us = rands :: Pattern [Double]
+benford :: Fractional a => Pattern a
+benford = benford' <$> _time
 
+benford' :: (RealFrac a, Fractional b) => a -> b
+benford' t = fromIntegral $ withDistribution (benfordsLaw :: [Double]) (rands' t)
 
 
 -- CORRELATED RANDOM SIGNALS --
@@ -332,8 +359,8 @@ perlin = perlinWith (sig fromRational)
 
 perlinsWith :: Fractional a => Pattern Double -> Pattern [a]
 perlinsWith p = realToFrac <$$> vals
-  where pas = timeToRands' . fI . floor <$> p
-        pbs = timeToRands' . fI . (+1) . floor <$> p
+  where pas = timeToRands . fI . floor <$> p
+        pbs = timeToRands . fI . (+1) . floor <$> p
         fI :: Int -> Double
         fI = fromIntegral
         phase = p - (fI . floor <$> p)

@@ -29,7 +29,7 @@ import Data.Ratio
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Core
-import Sound.Tidal.Random (_irand)
+import Sound.Tidal.Random (irand)
 import Sound.Tidal.UI
 import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Utils
@@ -280,7 +280,7 @@ _slice n i p =
       # P.end (pure $ fromIntegral (i+1) / fromIntegral n)
 
 randslice :: Pattern Int -> ControlPattern -> ControlPattern
-randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> _irand n
+randslice n p = slice n (irand n) p
 
 _splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
 _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure "c")

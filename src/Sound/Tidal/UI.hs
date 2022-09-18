@@ -1204,7 +1204,7 @@ scramble :: Pattern Int -> Pattern a -> Pattern a
 scramble = tParam _scramble
 
 _scramble :: Int -> Pattern a -> Pattern a
-_scramble n = _rearrangeWith (_segment (fromIntegral n) $ _irand n) n
+_scramble n = _rearrangeWith (_segment (fromIntegral n) $ irand (return n)) n
 
 randrun :: Int -> Pattern Int
 randrun 0 = silence
@@ -1212,7 +1212,7 @@ randrun n' =
   splitQueries $ Pattern (\(State a@(Arc s _) _) -> events a $ sam s)
   where events a seed = mapMaybe toEv $ zip arcs shuffled
           where shuffled = map snd $ sortOn fst $ zip rs [0 .. (n'-1)]
-                rs = timeToRands seed n' :: [Double]
+                rs = take n' $ timeToRands seed :: [Double]
                 arcs = zipWith Arc fractions (tail fractions)
                 fractions = map (+ (sam $ start a)) [0, 1 / fromIntegral n' .. 1]
                 toEv (a',v) = do a'' <- subArc a a'
