@@ -4,7 +4,6 @@
 -- Shared under the terms of the GNU Public License v. 3.0
 
 module Sound.Tidal.Signal (module Sound.Tidal.Signal,
-                           module Sound.Tidal.Arc,
                            module Sound.Tidal.Value,
                            module Sound.Tidal.Event,
                            module Sound.Tidal.Pattern
@@ -17,7 +16,6 @@ import Data.Maybe (catMaybes, isJust, mapMaybe, fromJust)
 import qualified Data.Map.Strict as Map
 import Control.Applicative (liftA2)
 
-import Sound.Tidal.Arc
 import Sound.Tidal.Value
 import Sound.Tidal.Event
 import Sound.Tidal.Pattern

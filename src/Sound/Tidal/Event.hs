@@ -1,11 +1,17 @@
 {-# LANGUAGE DeriveFunctor #-}
 
-module Sound.Tidal.Event where
+module Sound.Tidal.Event
+  (module Sound.Tidal.Time,
+   module Sound.Tidal.Arc,
+   module Sound.Tidal.Event
+  )
+where
 
 import Data.Maybe (fromJust)
 import Data.Monoid
 
 import Sound.Tidal.Arc
+import Sound.Tidal.Time
 
 -- ************************************************************ --
 -- Event
