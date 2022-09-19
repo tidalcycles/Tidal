@@ -588,3 +588,5 @@ iterer' (Stack x) sr = stack $ map (`iterer'` sr) x
 
 _iter' :: Int -> Sequence a -> Sequence a
 _iter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
+
+patternify :: (a -> b ->  c) -> (f a -> b -> f c)

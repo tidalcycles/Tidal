@@ -266,8 +266,7 @@ cat [] = Gap 0
 cat [b] = b
 cat bs = Sequence bs
 
-ply :: Sequence Rational -> Sequence a -> Sequence a
-ply sr s =  mapSeq (applyfToSeq _ply sr) s
+
 
 _ply :: Rational -> Sequence a -> Sequence a
 _ply n (Atom d v) = Sequence $ reduce $  ((replicate (floor n) $ Atom (d / toRational n) v) ++ [Atom (d - ((floor n)%1) *d /n ) v])

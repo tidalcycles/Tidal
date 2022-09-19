@@ -21,7 +21,7 @@ class Functor f => Pattern f where
   _patternify :: (a -> f b -> f c) -> (f a -> f b -> f c)
   rev :: f a -> f a
   -- ply :: f Rational -> f a -> f a
-  -- _ply :: Rational ->f a-> f a
+  -- _ply :: Rational ->f a-> f a  -- Hasn't been defined in Signal
   -- euclid :: f Int -> f Int -> f String -> f String
   -- _euclid :: Int -> Int -> f a-> f a
   -- timeCat :: [(Rational, f a)] -> f a
@@ -91,6 +91,7 @@ toBipolar pat = fmap (\v -> (v*2)-1) pat
 -- | Converts from a range from -1 to 1, to a range from 0 to 1
 fromBipolar :: (Pattern p, Fractional x) => p x -> p x
 fromBipolar pat = fmap (\v -> (v+1)/2) pat
+
 
 -- ************************************************************ --
 
