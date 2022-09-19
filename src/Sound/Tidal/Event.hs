@@ -1,11 +1,17 @@
 {-# LANGUAGE DeriveFunctor #-}
 
-module Sound.Tidal.Event where
+module Sound.Tidal.Event
+  (module Sound.Tidal.Time,
+   module Sound.Tidal.Arc,
+   module Sound.Tidal.Event
+  )
+where
 
 import Data.Maybe (fromJust)
 import Data.Monoid
 
-import Sound.Tidal.Span
+import Sound.Tidal.Arc
+import Sound.Tidal.Time
 
 -- ************************************************************ --
 -- Event
@@ -21,11 +27,11 @@ instance Semigroup Metadata where
 instance Monoid Metadata where
   mempty = Metadata []
 
--- | An event - a value, its 'whole' timespan, and the timespan that
+-- | An event - a value, its 'whole' timearc, and the timearc that
 -- its active (called a 'part' in tidal v1)
 data Event a = Event {metadata :: Metadata,
-                      whole :: Maybe Span,
-                      active :: Span,
+                      whole :: Maybe Arc,
+                      active :: Arc,
                       value :: a
                      }
   deriving (Show, Functor)
@@ -37,11 +43,11 @@ isAnalog _ = False
 isDigital :: Event a -> Bool
 isDigital = not . isAnalog
 
--- | Returns true only if an event starts within given timespan
-onsetIn :: Span -> Event a -> Bool
+-- | Returns true only if an event starts within given timearc
+onsetIn :: Arc -> Event a -> Bool
 onsetIn a e = isIn a (wholeBegin e)
 
-wholeOrActive :: Event a -> Span
+wholeOrActive :: Event a -> Arc
 wholeOrActive (Event {whole = Just a}) = a
 wholeOrActive e = active e
 
@@ -61,8 +67,8 @@ eventActiveBegin = begin . active
 eventActiveEnd :: Event a -> Time
 eventActiveEnd = end . active
 
--- | Get the timespan of an event's 'active'
-eventActive :: Event a -> Span
+-- | Get the timearc of an event's 'active'
+eventActive :: Event a -> Arc
 eventActive = active
 
 eventValue :: Event a -> a
@@ -72,7 +78,7 @@ eventHasOnset :: Event a -> Bool
 eventHasOnset e | isAnalog e = False
                 | otherwise = begin (fromJust $ whole e) == begin (active e)
 
-withSpan :: (Span -> Span) -> Event a -> Event a
-withSpan f e = e {active = f $ active e,
-                  whole  = f <$> whole e
-                 }
+withArc :: (Arc -> Arc) -> Event a -> Event a
+withArc f e = e {active = f $ active e,
+                 whole  = f <$> whole e
+                }
