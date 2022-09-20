@@ -3,6 +3,7 @@
 
 module Sound.Tidal.Sequence where
 
+import Sound.Tidal.Time
 import Sound.Tidal.Value
 import Sound.Tidal.Pattern
 
@@ -23,8 +24,8 @@ data Strategy = JustifyLeft
               | Squeeze
               deriving Show
 
-data Sequence a = Atom Rational a
-                | Gap Rational
+data Sequence a = Atom Time a
+                | Gap Time
                 | Sequence [Sequence a]
                 | Stack [Sequence a]
               deriving Show
@@ -192,7 +193,7 @@ reAlign _ _ = error "reAlign not defined"
 
 
 -- | Function to partition an event in a sequence
-getPartition::Sequence a-> Rational -> (Sequence a, Sequence a)
+getPartition::Sequence a-> Time -> (Sequence a, Sequence a)
 getPartition (Atom x s) t = (Atom t s, Atom (x-t) s)
 getPartition (Gap x) t = (Gap t, Gap (x - t))
 getPartition (Sequence y) t =
@@ -209,7 +210,7 @@ getPartition (Stack s) t = let a = map (`getPartition` t) s in (Stack (map fst a
 -- | Takes two sequences of possibly different types, and applies the given strategy to it
 forTwoS :: Sequence a1 -> Sequence a2 -> Strategy -> ([Sequence a1], [Sequence a2])
 forTwoS a b RepeatLCM =
-   let p = lcmRational (seqSpan a) (seqSpan b)
+   let p = lcmTime (seqSpan a) (seqSpan b)
    in if p ==0 then ([Gap 0],[Gap 0]) else (unwrapper $ replicate (fromIntegral  $ numerator $ p/seqSpan a) a, unwrapper $ replicate (fromIntegral $ numerator $ p/seqSpan b) b)
 
 forTwoS a b JustifyLeft =
@@ -274,26 +275,21 @@ cat [] = Gap 0
 cat [b] = b
 cat bs = Sequence bs
 
--- ply :: Sequence Rational -> Sequence a -> Sequence a
+-- ply :: Sequence Time -> Sequence a -> Sequence a
 -- ply sr s =  mapSeq (applyfToSeq _ply sr) s
 
-_seqPly :: Rational -> Sequence a -> Sequence a
-_seqPly n (Atom d v) = Sequence $ reduce $  ((replicate (floor n) $ Atom (d / toRational n) v) ++ [Atom (d - ((floor n)%1) *d /n ) v])
+_seqPly :: Time -> Sequence a -> Sequence a
+_seqPly n (Atom d v) = Sequence $ reduce $  ((replicate (floor n) $ Atom (d / toTime n) v) ++ [Atom (d - ((floor n)%1) *d /n ) v])
 _seqPly _ (Gap x) = Gap x
 _seqPly n (Sequence x) = unwrap $ Sequence (map (_ply n) x)
 _seqPly n (Stack x) =  Stack (map (_ply n) x)
 
-seqSpan :: Sequence a -> Rational
+seqSpan :: Sequence a -> Time
 seqSpan (Atom s _) = s
 seqSpan (Gap s) = s
 seqSpan (Sequence bs) = sum $ map seqSpan bs
 seqSpan (Stack []) = 0
 seqSpan (Stack x) = seqSpan $ head x
-
-lcmRational :: Rational->Rational-> Rational
-lcmRational a b = lcm (f a) (f b) % d
-  where d = lcm (denominator a) (denominator b)
-        f x = numerator x * (d `div` denominator x)
 
 -- | stratApply takes a list of sequences, a strategy, and then aligns all those sequences according to these strategies
 stratApply::Strategy -> [Sequence a] ->Sequence a
@@ -315,7 +311,7 @@ stratApply Centre bs =
   in Stack b
 
 stratApply RepeatLCM bs@(x:xs) =
-  let a = foldr (lcmRational . seqSpan) (seqSpan x) xs
+  let a = foldr (lcmTime . seqSpan) (seqSpan x) xs
       b = map (\r ->  unwrap $ Sequence $  replicate (fromIntegral $ numerator $ a/seqSpan r) x) bs
   in Stack b
 
@@ -345,7 +341,7 @@ stratApply TruncateMax bs =
   in Stack b
 
 -- Return a segment of a sequence
-cutShort::Sequence a->Rational->Sequence a
+cutShort::Sequence a->Time->Sequence a
 cutShort (Atom x s) r = if x>r then Atom r s else Atom x s
 cutShort (Gap x) r = if x > r then Gap r else Gap x
 cutShort (Sequence x) r =
@@ -357,7 +353,7 @@ cutShort (Sequence x) r =
 cutShort (Stack x) r = Stack $ map (`cutShort` r) x
 
 -- | Expand a sequence to a particular length, while not modifying the length of that sequence
-expand'::Sequence a -> Rational -> Sequence a
+expand'::Sequence a -> Time -> Sequence a
 expand' (Atom x s) r = expand (Atom x s) $ r/seqSpan (Atom x s)
 expand' (Gap x) r = expand (Gap x) $ r/seqSpan (Gap x)
 expand' (Sequence [x]) r = Sequence [expand x (r/seqSpan x)]
@@ -367,7 +363,7 @@ expand' (Sequence x) r =
 expand' (Stack x) r = Stack $ map (`expand'` r) x
 
 -- | Expand a sequence to a particular length
-expand::Sequence a-> Rational -> Sequence a
+expand::Sequence a-> Time -> Sequence a
 expand (Atom x s) r = Atom (x*r) s
 expand (Gap x) r = Gap (x*r)
 expand (Sequence x) r = Sequence $ map (`expand` r) x
@@ -393,25 +389,25 @@ applyfToSeq f (Stack x) = Stack $ map (applyfToSeq f) x
 
 -- | Speed up the sequence
 -- TODO - Now provided by Pattern class via patternify
--- fast :: Sequence Rational -> Sequence a -> Sequence a
+-- fast :: Sequence Time -> Sequence a -> Sequence a
 -- fast sr s = mapSeq (applyfToSeq _fast sr) s
 
-_seqFast :: Rational -> Sequence a -> Sequence a
+_seqFast :: Time -> Sequence a -> Sequence a
 _seqFast n (Atom x s) = Atom (x/n) s
 _seqFast n (Gap x) = Gap (x/n)
 _seqFast n (Sequence s) = Sequence $ map (_fast n) s
 _seqFast n (Stack x) = Stack $ map(_fast n) x
 
 -- | Speed up the sequence with a given fixed strategy
-fastS :: Sequence Rational -> Sequence a -> Strategy -> Sequence a
+fastS :: Sequence Time -> Sequence a -> Strategy -> Sequence a
 fastS sr= mapSeqS (applyfToSeq _fast sr)
 
 -- | Slow down the sequence
--- slow :: Sequence Rational->Sequence a->Sequence a
+-- slow :: Sequence Time->Sequence a->Sequence a
 -- slow sr s = mapSeq (applyfToSeq _slow sr) s
 
 -- | Slow down the sequence with a given strategy
-slowS :: Sequence Rational -> Sequence a -> Strategy -> Sequence a
+slowS :: Sequence Time -> Sequence a -> Strategy -> Sequence a
 slowS sr = mapSeqS (applyfToSeq _slow sr)
 
 -- | Repeat the sequence a desired number of times without changing duration
@@ -501,20 +497,20 @@ seqSlowcat bs = Sequence bs
 _seqScan :: (Enum a, Num a) => a -> Sequence a
 _seqScan n = unwrap $ slowcat $ map _seqRun [1 .. n]
 
-seqTimeCat :: [(Rational, Sequence a)] -> Sequence a
+seqTimeCat :: [(Time, Sequence a)] -> Sequence a
 seqTimeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x
 
-rotL :: Rational -> Sequence a -> Sequence a
+rotL :: Time -> Sequence a -> Sequence a
 rotL t (Sequence x) = splitUp t x
 rotL t (Stack x) = Stack $ map (t `rotL`) x
 rotL _ x = x
 
-rotR :: Rational -> Sequence a -> Sequence a
+rotR :: Time -> Sequence a -> Sequence a
 rotR t (Sequence x) = splitUp (seqSpan (Sequence x) - t) x
 rotR t (Stack x) = Stack $ map (t `rotR`) x
 rotR _ x = x
 
-splitUp :: Rational -> [Sequence a] -> Sequence a
+splitUp :: Time -> [Sequence a] -> Sequence a
 splitUp t x =
   let a = takeWhile (\m -> sum (map seqSpan m) <=t ) (inits x)
       pTill =if null a then [] else  last a
@@ -526,11 +522,11 @@ splitUp t x =
   in Sequence $ q++p
 
 -- -- | Shifts a sequence back in time by the given amount, expressed in cycles
--- (<~) :: Sequence Rational -> Sequence a -> Sequence a
+-- (<~) :: Sequence Time -> Sequence a -> Sequence a
 -- (<~) sr s= mapSeq (applyfToSeq rotL sr) s
 
 -- -- | Shifts a pattern forward in time by the given amount, expressed in cycles
--- (~>) :: Sequence Rational -> Sequence a -> Sequence a
+-- (~>) :: Sequence Time -> Sequence a -> Sequence a
 -- (~>) sr s = mapSeq (applyfToSeq rotR sr) s
 
 -- | Iterates a sequence to fit into a given number of cycles of the sequence while applying rotL
