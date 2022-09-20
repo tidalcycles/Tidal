@@ -3,6 +3,10 @@
 -- (c) Alex McLean 2022 and contributors
 -- Shared under the terms of the GNU Public License v. 3.0
 
+-- Base representation and instances for Signals, including
+-- implementation of Pattern class, plus core definitions of waveforms
+-- etc.
+
 module Sound.Tidal.Signal.Base where
 
 import Data.Ratio
