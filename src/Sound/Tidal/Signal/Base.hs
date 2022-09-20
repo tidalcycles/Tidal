@@ -62,6 +62,8 @@ instance Pattern Signal where
   _run    = _sigRun
   _scan   = _sigScan
   timeCat = sigTimeCat
+  when    = sigWhen
+  _ply    = _sigPly
   _patternify f x pat = innerJoin $ (`f` pat) <$> x
 
 -- ************************************************************ --
@@ -462,11 +464,8 @@ sigTimeCat tps = stack $ map (\(s,e,p) -> _compressArc (Arc (s/total) (e/total))
           arrange _ [] = []
           arrange t ((t',p):tps') = (t,t+t',p) : arrange (t+t') tps'
 
--- ************************************************************ --
--- Higher order transformations
+sigWhen :: Signal Bool -> (Signal b -> Signal b) -> Signal b -> Signal b
+sigWhen boolpat f pat = innerJoin $ (\b -> if b then f pat else pat) <$> boolpat
 
---every :: Int -> (Signal a -> Signal a) -> Signal a -> Signal a
---every n f pat = splitQueries $ Signal 
-
---- ************************************************************ --
-
+_sigPly :: Time -> Signal a -> Signal a
+_sigPly t pat = squeezeJoin $ (_fast t . pure) <$> pat
