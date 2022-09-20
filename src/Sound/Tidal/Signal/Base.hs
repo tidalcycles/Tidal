@@ -3,12 +3,7 @@
 -- (c) Alex McLean 2022 and contributors
 -- Shared under the terms of the GNU Public License v. 3.0
 
-module Sound.Tidal.Signal (module Sound.Tidal.Signal,
-                           module Sound.Tidal.Value,
-                           module Sound.Tidal.Event,
-                           module Sound.Tidal.Pattern
-                          )
-where
+module Sound.Tidal.Signal.Base where
 
 import Data.Ratio
 import Data.Fixed (mod')
