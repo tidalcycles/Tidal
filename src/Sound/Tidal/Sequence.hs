@@ -73,10 +73,10 @@ instance Pattern Sequence where
   _scan   = _seqScan
   timeCat = seqTimeCat
   _ply    = _seqPly
-  every   = seqEvery
-  _every  = _seqEvery
-  iter   = seqIter
-  iter'  = seqIter'
+  -- every   = seqEvery
+  when    = seqWhen
+  iter    = seqIter
+  iter'   = seqIter'
   _iter   = _seqIter
   _iter'  = _seqIter'
   _patternify f x pat = mapSeq (applyfToSeq f x) pat
@@ -451,21 +451,27 @@ seqStackS s strat =
 --       y = map (\t -> if t then s else Gap (seqSpan s)) x
 --   in unwrap $ Sequence y
 
--- | Apply a function to a sequence every "n" iterations
-seqEvery :: Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
-seqEvery (Atom x s) f sb = _every s f sb 
-seqEvery (Gap _) _ sb = sb 
-seqEvery (Sequence x) f sb = Sequence $ reduce $  map (\t -> every t f sb) x 
-seqEvery (Stack x) f sb = Stack $ map (\t -> every t f sb) x
+seqWhen :: Sequence Bool -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
+seqWhen boolpat f pat = mapSeq (fmap (\b -> if b then f else id) boolpat) pat
 
--- | Like every, but the strategy for stacking is given
-everyS::Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Strategy -> Sequence b
-everyS si f sb strat = let (a,b) = forTwoS si sb strat
-                      in unwrap $ every (Sequence a) f (Sequence b)
+whenS :: Sequence Bool -> (Sequence b -> Sequence b) -> Sequence b -> Strategy -> Sequence b
+whenS boolpat f pat strat = mapSeqS (fmap (\b -> if b then f else id) boolpat) pat strat
 
--- | Helper function for every
-_seqEvery :: Int -> (Sequence a -> Sequence a) -> Sequence a -> Sequence a
-_seqEvery n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
+-- -- | Apply a function to a sequence every "n" iterations
+-- seqEvery :: Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
+-- seqEvery (Atom x s) f sb = _seqEvery s f sb 
+-- seqEvery (Gap _) _ sb = sb 
+-- seqEvery (Sequence x) f sb = Sequence $ reduce $  map (\t -> every t f sb) x 
+-- seqEvery (Stack x) f sb = Stack $ map (\t -> every t f sb) x
+
+-- -- | Like every, but the strategy for stacking is given
+-- everyS::Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Strategy -> Sequence b
+-- everyS si f sb strat = let (a,b) = forTwoS si sb strat
+--                       in unwrap $ every (Sequence a) f (Sequence b)
+
+-- -- | Helper function for every
+-- _seqEvery :: Int -> (Sequence a -> Sequence a) -> Sequence a -> Sequence a
+-- _seqEvery n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
 
 -- TODO - are Pattern definitions of these good enough??
 -- fromList:: [a] -> Sequence a
@@ -482,7 +488,6 @@ _seqEvery n f s = unwrap $ Sequence $ replicate (n-1) s ++ [f s]
 
 seqFastcat ::  [Sequence a]  -> Sequence a
 seqFastcat x = _fast (sum $ map seqSpan x) $ Sequence (reduce x)
-
 
 _seqRun :: (Enum a, Num a) => a -> Sequence a
 _seqRun n = unwrap $  fastFromList [0 .. n-1]

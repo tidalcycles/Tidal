@@ -25,8 +25,8 @@ class (Functor f, Applicative f, Monad f) => Pattern f where
   timeCat :: [(Rational, f a)] -> f a
   _run :: (Enum a, Num a) => a -> f a
   _scan :: (Enum a, Num a) => a -> f a
-  every :: f Int -> (f b -> f b) -> f b -> f b
-  _every :: Int -> (f a -> f a) -> f a -> f a
+  -- every :: f Int -> (f b -> f b) -> f b -> f b
+  when :: f Bool -> (f b -> f b) -> f b -> f b
   -- listToPat :: [a] -> f a
   iter :: f Int -> f a -> f a
   iter' :: f Int -> f a -> f a
@@ -88,6 +88,21 @@ run = (>>= _run)
 
 scan :: (Pattern t, Enum a, Num a) => t a -> t a
 scan = (>>= _run)
+
+_firstOf :: Pattern t => Int -> (t a -> t a) -> t a -> t a
+_firstOf n f pat | n <= 0 = silence
+                 | otherwise = when (fromList
+                                     (True : (replicate (n - 1) False))
+                                    ) f pat
+
+_lastOf :: Pattern t => Int -> (t a -> t a) -> t a -> t a
+_lastOf n f pat | n <= 0 = silence
+                | otherwise = when (fromList
+                                    ((replicate (n - 1) False) ++ [True])
+                                   ) f pat
+
+_every :: Pattern t => Int -> (t a -> t a) -> t a -> t a
+_every = _lastOf
 
 -- ************************************************************ --
 
