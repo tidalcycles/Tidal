@@ -18,6 +18,7 @@ class (Functor f, Applicative f, Monad f) => Pattern f where
   atom :: a -> f a
   stack :: [f a] -> f a
   _patternify :: (a -> f b -> f c) -> (f a -> f b -> f c)
+  _patternify2 :: (a -> b -> f c -> f d) -> (f a -> f b -> f c -> f d)
   rev :: f a -> f a
   _ply :: Rational -> f a-> f a
   euclid :: f Int -> f Int -> f String -> f String
@@ -32,6 +33,9 @@ class (Functor f, Applicative f, Monad f) => Pattern f where
   iter' :: f Int -> f a -> f a
   _iter :: Int -> f a -> f a
   _iter' :: Int -> f a -> f a
+
+overlay :: Pattern p => p x -> p x -> p x
+overlay a b = stack [a, b]
 
 _slow :: Pattern p => Rational -> p x -> p x
 _slow t = _fast (1/t)
@@ -103,6 +107,19 @@ _lastOf n f pat | n <= 0 = silence
 
 _every :: Pattern t => Int -> (t a -> t a) -> t a -> t a
 _every = _lastOf
+
+{- | `range` will take a pattern which goes from 0 to 1 (like `sine`), and range it to a different range - between the first and second arguments. In the below example, `range 1 1.5` shifts the range of `sine1` from 0 - 1 to 1 - 1.5.
+
+@
+d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
+  |+ speed (slow 4 $ range 1 1.5 sine1)
+@
+-}
+range :: (Pattern t, Num a) => t a -> t a -> t a -> t a
+range = _patternify2 _range
+
+_range :: (Functor f, Num b) => b -> b -> f b -> f b
+_range from to p = (+ from) . (* (to-from)) <$> p
 
 -- ************************************************************ --
 

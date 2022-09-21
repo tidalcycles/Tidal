@@ -1,9 +1,14 @@
 module Sound.Tidal.Signal.Random where
 
 import Data.Bits (testBit, Bits, xor, shiftL, shiftR)
+import Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
+
+import Prelude hiding ((<*), (*>))
 
 import Sound.Tidal.Signal.Base
+import Sound.Tidal.Pattern
 import Sound.Tidal.Event
+import Sound.Tidal.Utils
 
 -- ************************************************************ --
 -- Internal functions
@@ -152,4 +157,184 @@ perlin2With x y = (/2) . (+1) $ interp2 <$> xfrac <*> yfrac <*> dota <*> dotb <*
 
 perlin2 :: Signal Double -> Signal Double
 perlin2 = perlin2With (waveform fromRational)
+
+
+{- | Randomly picks an element from the given list
+
+@
+sound "superpiano(3,8)" # note (choose ["a", "e", "g", "c"])
+@
+
+plays a melody randomly choosing one of the four notes \"a\", \"e\", \"g\", \"c\".
+-}
+choose :: [a] -> Signal a
+choose = chooseBy rand
+
+chooseBy :: Signal Double -> [a] -> Signal a
+chooseBy _ [] = silence
+chooseBy f xs = (xs !!!) . floor <$> range 0 (fromIntegral $ length xs) f
+
+{- | Like @choose@, but works on an a list of tuples of values and weights
+
+@
+sound "superpiano(3,8)" # note (wchoose [("a",1), ("e",0.5), ("g",2), ("c",1)])
+@
+
+In the above example, the "a" and "c" notes are twice as likely to
+play as the "e" note, and half as likely to play as the "g" note.
+
+-}
+wchoose :: [(a, Double)] -> Signal a
+wchoose = wchooseBy rand
+
+wchooseBy :: Signal Double -> [(a,Double)] -> Signal a
+wchooseBy pat pairs = match <$> pat
+  where
+    match r = values !! head (findIndices (> (r*total)) cweights)
+    cweights = scanl1 (+) (map snd pairs)
+    values = map fst pairs
+    total = sum $ map snd pairs
+
+-- ************************************************************ --
+-- Signal degraders
+
+{- |
+Similar to `degrade` `degradeBy` allows you to control the percentage of events that
+are removed. For example, to remove events 90% of the time:
+
+@
+d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
+   # accelerate "-6"
+   # speed "2"
+@
+
+-}
+degradeBy :: Signal Double -> Signal a -> Signal a
+degradeBy = _patternify _degradeBy
+
+_degradeBy :: Double -> Signal a -> Signal a
+_degradeBy = _degradeByUsing rand
+
+-- Useful for manipulating random stream, e.g. to change 'seed'
+_degradeByUsing :: Signal Double -> Double -> Signal a -> Signal a
+_degradeByUsing prand x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* prand
+
+unDegradeBy :: Signal Double -> Signal a -> Signal a
+unDegradeBy = _patternify _unDegradeBy
+
+_unDegradeBy :: Double -> Signal a -> Signal a
+_unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <* rand
+
+degradeOverBy :: Int -> Signal Double -> Signal a -> Signal a
+degradeOverBy i tx p = innerJoin $ (\x -> fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* _fastRepeatCycles i rand) <$> slow (fromIntegral i) tx
+
+{- | Use @sometimesBy@ to apply a given function "sometimes". For example, the
+following code results in `density 2` being applied about 25% of the time:
+
+@
+d1 $ sometimesBy 0.25 (density 2) $ sound "bd*8"
+@
+
+There are some aliases as well:
+
+@
+sometimes = sometimesBy 0.5
+often = sometimesBy 0.75
+rarely = sometimesBy 0.25
+almostNever = sometimesBy 0.1
+almostAlways = sometimesBy 0.9
+@
+-}
+
+{- | `degrade` randomly removes events from a pattern 50% of the time:
+
+@
+d1 $ slow 2 $ degrade $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
+   # accelerate "-6"
+   # speed "2"
+@
+
+The shorthand syntax for `degrade` is a question mark: `?`. Using `?`
+will allow you to randomly remove events from a portion of a pattern:
+
+@
+d1 $ slow 2 $ sound "bd ~ sn bd ~ bd? [sn bd?] ~"
+@
+
+You can also use `?` to randomly remove events from entire sub-patterns:
+
+@
+d1 $ slow 2 $ sound "[[[feel:5*8,feel*3] feel:3*8]?, feel*4]"
+@
+-}
+degrade :: Signal a -> Signal a
+degrade = _degradeBy 0.5
+
+-- ************************************************************ --
+-- Sometimes and friends
+
+sometimesBy :: Signal Double -> (Signal a -> Signal a) -> Signal a -> Signal a
+sometimesBy x f pat = overlay (degradeBy x pat) (f $ unDegradeBy x pat)
+
+sometimesBy' :: Signal Double -> (Signal a -> Signal a) -> Signal a -> Signal a
+sometimesBy' x f pat = overlay (degradeBy x pat) (unDegradeBy x $ f pat)
+
+-- | @sometimes@ is an alias for sometimesBy 0.5.
+sometimes :: (Signal a -> Signal a) -> Signal a -> Signal a
+sometimes = sometimesBy 0.5
+
+sometimes' :: (Signal a -> Signal a) -> Signal a -> Signal a
+sometimes' = sometimesBy' 0.5
+
+-- | @often@ is an alias for sometimesBy 0.75.
+often :: (Signal a -> Signal a) -> Signal a -> Signal a
+often = sometimesBy 0.75
+
+often' :: (Signal a -> Signal a) -> Signal a -> Signal a
+often' = sometimesBy' 0.75
+
+-- | @rarely@ is an alias for sometimesBy 0.25.
+rarely :: (Signal a -> Signal a) -> Signal a -> Signal a
+rarely = sometimesBy 0.25
+
+rarely' :: (Signal a -> Signal a) -> Signal a -> Signal a
+rarely' = sometimesBy' 0.25
+
+-- | @almostNever@ is an alias for sometimesBy 0.1
+almostNever :: (Signal a -> Signal a) -> Signal a -> Signal a
+almostNever = sometimesBy 0.1
+
+almostNever' :: (Signal a -> Signal a) -> Signal a -> Signal a
+almostNever' = sometimesBy 0.1
+
+-- | @almostAlways@ is an alias for sometimesBy 0.9
+almostAlways :: (Signal a -> Signal a) -> Signal a -> Signal a
+almostAlways = sometimesBy 0.9
+
+almostAlways' :: (Signal a -> Signal a) -> Signal a -> Signal a
+almostAlways' = sometimesBy' 0.9
+
+never :: (Signal a -> Signal a) -> Signal a -> Signal a
+never = flip const
+
+always :: (Signal a -> Signal a) -> Signal a -> Signal a
+always = id
+
+{- | @someCyclesBy@ is a cycle-by-cycle version of @sometimesBy@. It has a
+`someCycles = someCyclesBy 0.5` alias -}
+someCyclesBy :: Signal Double -> (Signal a -> Signal a) -> Signal a -> Signal a
+someCyclesBy pd f pat = innerJoin $ (\d -> _someCyclesBy d f pat) <$> pd
+
+_someCyclesBy :: Double -> (Signal a -> Signal a) -> Signal a -> Signal a
+_someCyclesBy x = whenT test
+  where test c = _timeToRand (fromIntegral c :: Double) < x
+
+somecyclesBy :: Signal Double -> (Signal a -> Signal a) -> Signal a -> Signal a
+somecyclesBy = someCyclesBy
+
+someCycles :: (Signal a -> Signal a) -> Signal a -> Signal a
+someCycles = someCyclesBy 0.5
+
+somecycles :: (Signal a -> Signal a) -> Signal a -> Signal a
+somecycles = someCycles
 

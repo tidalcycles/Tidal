@@ -64,7 +64,8 @@ instance Pattern Signal where
   timeCat = sigTimeCat
   when    = sigWhen
   _ply    = _sigPly
-  _patternify f x pat = innerJoin $ (`f` pat) <$> x
+  _patternify f a pat = innerJoin $ (`f` pat) <$> a
+  _patternify2 f a b pat = innerJoin $ (\x y -> f x y pat) <$> a <* b
 
 -- ************************************************************ --
 
@@ -574,6 +575,29 @@ sigTimeCat tps = stack $ map (\(s,e,p) -> _compressArc (Arc (s/total) (e/total))
 
 sigWhen :: Signal Bool -> (Signal b -> Signal b) -> Signal b -> Signal b
 sigWhen boolpat f pat = innerJoin $ (\b -> if b then f pat else pat) <$> boolpat
+
+
+{-|
+Only `when` the given test function returns `True` the given pattern
+transformation is applied. The test function will be called with the
+current cycle as a number.
+
+@
+d1 $ whenT ((elem '4').show)
+  (striate 4)
+  $ sound "hh hc"
+@
+
+The above will only apply `striate 4` to the pattern if the current
+cycle number contains the number 4. So the fourth cycle will be
+striated and the fourteenth and so on. Expect lots of striates after
+cycle number 399.
+-}
+whenT :: (Int -> Bool) -> (Signal a -> Signal a) ->  Signal a -> Signal a
+whenT test f p = splitQueries $ p {query = apply}
+  where apply st | test (floor $ begin $ sArc st) = query (f p) st
+                 | otherwise = query p st
+
 
 _sigPly :: Time -> Signal a -> Signal a
 _sigPly t pat = squeezeJoin $ (_fast t . pure) <$> pat
