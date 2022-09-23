@@ -15,6 +15,7 @@ import Data.Bits
 import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Signal.Base
+import Sound.Tidal.Types
 import Sound.Tidal.Value
 
 -- ************************************************************ --

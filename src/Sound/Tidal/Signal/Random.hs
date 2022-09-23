@@ -5,6 +5,7 @@ import Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, inte
 
 import Prelude hiding ((<*), (*>))
 
+import Sound.Tidal.Types
 import Sound.Tidal.Signal.Base
 import Sound.Tidal.Pattern
 import Sound.Tidal.Event
