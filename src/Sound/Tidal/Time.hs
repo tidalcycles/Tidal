@@ -1,8 +1,7 @@
 module Sound.Tidal.Time where
 
+import Sound.Tidal.Types
 import Data.Ratio
-
-type Time = Rational
 
 -- | The start of the cycle that a given time value is in
 sam :: Time -> Time

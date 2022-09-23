@@ -8,10 +8,7 @@ where
 -- Shared under the terms of the GNU Public License v. 3.0
 
 import Sound.Tidal.Time
-
--- | Time arc (also known as timespan)
-data Arc = Arc {begin :: Time, end :: Time}
-  deriving (Show)
+import Sound.Tidal.Types
 
 -- | Similar to 'fmap' but time is relative to the cycle (i.e. the
 -- sam of the start of the arc)

@@ -14,26 +14,7 @@ import           GHC.Generics
 import           Data.Typeable (Typeable)
 import           Data.Data (Data) -- toConstr
 
--- | Note is Double, but with a different parser
-newtype Note = Note { unNote :: Double }
-  deriving (Typeable, Data, Generic, Eq, Ord, Enum, Num, Fractional, Floating, Real, RealFrac)
-
-instance Show Note where
-  show n = (show . unNote $ n) ++ "n (" ++ pitchClass ++ octave ++ ")"
-    where
-      pitchClass = pcs !! mod noteInt 12
-      octave = show $ div noteInt 12 + 5
-      noteInt = round . unNote $ n
-      pcs = ["c", "cs", "d", "ds", "e", "f", "fs", "g", "gs", "a", "as", "b"]
-
-data Value = S String
-           | F Double
-           | I Int
-           | R Rational
-           | N Note
-       deriving (Show)
-
-type ValueMap = (Map.Map String Value)
+import Sound.Tidal.Types
 
 -- | Apply one of three functions to a Value, depending on its type
 applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value -> Value

@@ -6,6 +6,8 @@ module Sound.Tidal.Sequence where
 import Sound.Tidal.Time
 import Sound.Tidal.Value
 import Sound.Tidal.Pattern
+import Sound.Tidal.Types
+import Sound.Tidal.Signal.Base
 
 import Data.List (inits)
 import Prelude hiding (span)
@@ -80,6 +82,7 @@ instance Pattern Sequence where
   iter'   = seqIter'
   _iter   = _seqIter
   _iter'  = _seqIter'
+  toSignal = _seqToSignal
   _patternify f x pat = mapSeq (applyfToSeq f x) pat
 
 -- -- | Takes sequence of functions and a sequence which have been aligned and applies the functions at the corresponding time points
@@ -279,7 +282,7 @@ cat bs = Sequence bs
 -- ply sr s =  mapSeq (applyfToSeq _ply sr) s
 
 _seqPly :: Time -> Sequence a -> Sequence a
-_seqPly n (Atom d v) = Sequence $ reduce $  ((replicate (floor n) $ Atom (d / toTime n) v) ++ [Atom (d - ((floor n)%1) *d /n ) v])
+_seqPly n (Atom d v) = Sequence $ reduce $  ((replicate (floor n) $ Atom (d / toRational n) v) ++ [Atom (d - ((floor n)%1) *d /n ) v])
 _seqPly _ (Gap x) = Gap x
 _seqPly n (Sequence x) = unwrap $ Sequence (map (_ply n) x)
 _seqPly n (Stack x) =  Stack (map (_ply n) x)
@@ -573,4 +576,8 @@ iterer' (Stack x) sr = stack $ map (`iterer'` sr) x
 _seqIter' :: Int -> Sequence a -> Sequence a
 _seqIter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
 
--- patternify :: (a -> b ->  c) -> (f a -> b -> f c)
+_seqToSignal :: Sequence a -> Signal a
+_seqToSignal (Atom t v) = _fast t $ atom v
+_seqToSignal (Gap _) = silence
+_seqToSignal (Sequence seqs) = timeCat $ map (\seq -> (seqSpan seq, toSignal seq)) seqs
+_seqToSignal (Stack seqs) = stack $ map toSignal seqs

@@ -17,18 +17,10 @@ import Control.Applicative (liftA2)
 
 import Sound.Tidal.Value
 import Sound.Tidal.Event
+import Sound.Tidal.Types
 import Sound.Tidal.Pattern
 
 import Prelude hiding ((<*), (*>))
-
--- ************************************************************ --
--- State
-
--- | A timearc and some named control values, used to query a signal
--- with
-data State = State {sArc :: Arc,
-                    sControls :: ValueMap
-                   }
 
 -- ************************************************************ --
 -- Signal
@@ -39,15 +31,15 @@ data State = State {sArc :: Arc,
 -- signal is a function from a timearc (possibly with some other
 -- state) to events taking place in that timearc.
 
-data Signal a = Signal {query :: State -> [Event a]}
-  deriving (Functor)
+-- moved to Types module..
+-- data Signal a = Signal {query :: State -> [Event a]}
+--   deriving (Functor)
 
 instance Show a => Show (Signal a) where
   show pat = show $ queryArc pat (Arc 0 1)
 
 -- | A control signal
 type ControlSignal = Signal ValueMap
-
 
 -- ************************************************************ --
 -- Pattern instance
@@ -66,6 +58,7 @@ instance Pattern Signal where
   _ply    = _sigPly
   _patternify f a pat = innerJoin $ (`f` pat) <$> a
   _patternify2 f a b pat = innerJoin $ (\x y -> f x y pat) <$> a <* b
+  toSignal = id
 
 -- ************************************************************ --
 

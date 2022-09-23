@@ -7,9 +7,10 @@ import Data.Ratio
 
 import qualified Data.Map.Strict as Map
 
-import Sound.Tidal.Value (ValueMap, Value(S,F))
+import Sound.Tidal.Types
 
 class (Functor f, Applicative f, Monad f) => Pattern f where
+  toSignal :: f a -> Signal a
   slowcat :: [f a] -> f a
   fastcat :: [f a] -> f a
   fastcat pats = _fast (toRational $ length pats) $ slowcat pats

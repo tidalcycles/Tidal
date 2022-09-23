@@ -12,29 +12,13 @@ import Data.Monoid
 
 import Sound.Tidal.Arc
 import Sound.Tidal.Time
+import Sound.Tidal.Types
 
 -- ************************************************************ --
 -- Event
 
 -- | Event metadata, currently just a list of source code position
--- ranges that an event is tagged with
-data Metadata = Metadata {metaSrcPos :: [((Int, Int), (Int, Int))]}
-  deriving (Show)
-
-instance Semigroup Metadata where
-  (<>) a b = Metadata (metaSrcPos a ++ metaSrcPos b)
-
-instance Monoid Metadata where
-  mempty = Metadata []
-
--- | An event - a value, its 'whole' timearc, and the timearc that
--- its active (called a 'part' in tidal v1)
-data Event a = Event {metadata :: Metadata,
-                      whole :: Maybe Arc,
-                      active :: Arc,
-                      value :: a
-                     }
-  deriving (Show, Functor)
+-- ranges that an event is tagged with (see Types)
 
 isAnalog :: Event a -> Bool
 isAnalog (Event {whole = Nothing}) = True
