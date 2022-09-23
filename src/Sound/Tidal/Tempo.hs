@@ -20,7 +20,6 @@ import System.IO (hPutStrLn, stderr)
 import Data.Int(Int64)
 
 import Sound.Tidal.StreamTypes
-import Sound.Tidal.Core (silence)
 
 {-
     Tempo.hs - Tidal's scheduler
@@ -284,10 +283,10 @@ clocked config stateMV mapMV actionsMV ac abletonLink
             let
               appendPat flag = if flag then (pat:) else id
               updatePS (Just playState) = playState {history = (appendPat historyFlag) (history playState)}
-              updatePS Nothing = PlayState {pattern = silence,
+              updatePS Nothing = PlayState {pattern = P.silence,
                                             mute = False,
                                             solo = False,
-                                            history = (appendPat historyFlag) (silence:[])
+                                            history = (appendPat historyFlag) (P.silence:[])
                                           }
               transition' pat' = do now <- Link.clock abletonLink
                                     ss <- Link.createAndCaptureAppSessionState abletonLink

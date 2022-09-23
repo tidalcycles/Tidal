@@ -22,10 +22,10 @@
 module Sound.Tidal.Simple where
 
 import Sound.Tidal.Control (chop, hurry)
-import Sound.Tidal.Core ((#), (|*), (<~), silence, rev)
+import Sound.Tidal.Core ((#), (|*), (<~))
 import Sound.Tidal.Params (crush, gain, pan, speed, s)
 import Sound.Tidal.ParseBP (parseBP_E)
-import Sound.Tidal.Pattern (ControlPattern)
+import Sound.Tidal.Pattern (ControlPattern, silence, rev)
 import GHC.Exts ( IsString(..) )
 
 instance {-# OVERLAPPING #-} IsString ControlPattern where

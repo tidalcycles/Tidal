@@ -199,7 +199,7 @@ squeezeJoin :: Pattern (Pattern a) -> Pattern a
 squeezeJoin pp = pp {query = q}
   where q st = concatMap
           (\e@(Event c w p v) ->
-             mapMaybe (munge c w p) $ query (compressArc (cycleArc $ wholeOrPart e) v) st {arc = p}
+             mapMaybe (munge c w p) $ query (focusArc (wholeOrPart e) v) st {arc = p}
           )
           (query pp st)
         munge oContext oWhole oPart (Event iContext iWhole iPart v) =
@@ -342,10 +342,13 @@ instance Floating ValueMap
         atanh _ = noOv "atanh"
 
 ------------------------------------------------------------------------
--- * Internal functions
+-- * Internal/fundamental functions
 
 empty :: Pattern a
 empty = Pattern {query = const []}
+
+silence :: Pattern a
+silence = empty
 
 queryArc :: Pattern a -> Arc -> [Event a]
 queryArc p a = query p $ State a Map.empty
@@ -427,6 +430,35 @@ compressArc (Arc s e) p | s > e = empty
 compressArcTo :: Arc -> Pattern a -> Pattern a
 compressArcTo (Arc s e) = compressArc (Arc (cyclePos s) (e - sam s))
 
+focusArc :: Arc -> Pattern a -> Pattern a
+focusArc (Arc s e) p = s `rotR` (_fast (1/(e-s)) p)
+
+
+-- | Speed up a pattern by the given time pattern
+fast :: Pattern Time -> Pattern a -> Pattern a
+fast = tParam _fast
+
+-- | Slow down a pattern by the factors in the given time pattern, 'squeezing'
+-- the pattern to fit the slot given in the time pattern
+fastSqueeze :: Pattern Time -> Pattern a -> Pattern a
+fastSqueeze = tParamSqueeze _fast
+
+-- | An alias for @fast@
+density :: Pattern Time -> Pattern a -> Pattern a
+density = fast
+
+_fast :: Time -> Pattern a -> Pattern a
+_fast rate pat | rate == 0 = silence
+               | rate < 0 = rev $ _fast (negate rate) pat
+               | otherwise = withResultTime (/ rate) $ withQueryTime (* rate) pat
+
+-- | Slow down a pattern by the given time pattern
+slow :: Pattern Time -> Pattern a -> Pattern a
+slow = tParam _slow
+_slow :: Time -> Pattern a -> Pattern a
+_slow 0 _ = silence
+_slow r p = _fast (1/r) p
+
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = empty
 _fastGap r p = splitQueries $
@@ -448,6 +480,33 @@ rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 rotR :: Time -> Pattern a -> Pattern a
 rotR t = rotL (negate t)
 
+-- | @rev p@ returns @p@ with the event positions in each cycle
+-- reversed (or mirrored).
+rev :: Pattern a -> Pattern a
+rev p =
+  splitQueries $ p {
+    query = \st -> map makeWholeAbsolute $
+      mapParts (mirrorArc (midCycle $ arc st)) $
+      map makeWholeRelative
+      (query p st
+        {arc = mirrorArc (midCycle $ arc st) (arc st)
+        })
+    }
+  where makeWholeRelative :: Event a -> Event a
+        makeWholeRelative e@Event {whole = Nothing} = e
+        makeWholeRelative (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
+          Event c (Just $ Arc (s'-s) (e-e')) p' v
+        makeWholeAbsolute :: Event a -> Event a
+        makeWholeAbsolute e@Event {whole = Nothing} = e
+        makeWholeAbsolute (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
+          Event c (Just $ Arc (s'-e) (e'+s)) p' v
+        midCycle :: Arc -> Time
+        midCycle (Arc s _) = sam s + 0.5
+        mapParts :: (Arc -> Arc) -> [Event a] -> [Event a]
+        mapParts f es = (\(Event c w p' v) -> Event c w (f p') v) <$> es
+        -- | Returns the `mirror image' of a 'Arc' around the given point in time
+        mirrorArc :: Time -> Arc -> Arc
+        mirrorArc mid' (Arc s e) = Arc (mid' - (e-mid')) (mid'+(mid'-s))
 
 -- | Mark values in the first pattern which match with at least one
 -- value in the second pattern.
