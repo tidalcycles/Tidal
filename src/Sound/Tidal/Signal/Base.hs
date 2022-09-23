@@ -130,13 +130,13 @@ bind :: Signal a -> (a -> Signal b) -> Signal b
 bind = bindWhole (liftA2 sect)
 
 innerBind :: Signal a -> (a -> Signal b) -> Signal b
-innerBind = bindWhole const
+innerBind = bindWhole (flip const)
 
 innerJoin :: Signal (Signal a) -> Signal a
 innerJoin s = innerBind s id
 
 outerBind :: Signal a -> (a -> Signal b) -> Signal b
-outerBind = bindWhole (flip const)
+outerBind = bindWhole (const)
 
 outerJoin :: Signal (Signal a) -> Signal a
 outerJoin s = outerBind s id
@@ -153,7 +153,7 @@ squeezeJoin :: Signal (Signal a) -> Signal a
 squeezeJoin pp = pp {query = q}
   where q st = concatMap
           (\e@(Event m w p v) ->
-             mapMaybe (munge m w p) $ query (_compressArc (cycleArc $ wholeOrActive e) v) st {sArc = p}
+             mapMaybe (munge m w p) $ query (_focusArc (wholeOrActive e) v) st {sArc = p}
           )
           (query pp st)
         munge oMetadata oWhole oPart (Event iMetadata iWhole iPart v) =
@@ -443,6 +443,10 @@ envEqR = waveform $ \t -> sqrt (cos (pi/2 * max 0 (min (fromRational (1-t)) 1)))
 envEqR2 :: (Fractional a, Ord a, Floating a) => Signal a
 envEqR2 = toBipolar envEqR
 
+
+time :: Signal Time
+time = waveform id
+
 -- ************************************************************ --
 -- Signal manipulations
 
@@ -478,9 +482,16 @@ _compressArc :: Arc -> Signal a -> Signal a
 _compressArc (Arc b e) pat | (b > e || b > 1 || e > 1 || b < 0 || e < 0) = silence
                            | otherwise = _late b $ _fastGap (1/(e-b)) pat
 
--- | Like @fastGap@, but takes a start and end time to compress the cycle into.
+-- | Like @fastGap@, but takes the start and duration of the arc to compress the cycle into.
 compress :: Signal Time -> Signal Time -> Signal a -> Signal a
 compress patStart patDur pat = innerJoin $ (\s d -> _compressArc (Arc s (s+d)) pat) <$> patStart <*> patDur
+
+_focusArc :: Arc -> Signal a -> Signal a
+_focusArc (Arc b e) pat = _late b $ _fast (1/(e-b)) pat
+
+-- | Like @compress@, but doesn't leave a gap and can 'focus' on any arc (not just within a cycle)
+focus :: Signal Time -> Signal Time -> Signal a -> Signal a
+focus patStart patDur pat = innerJoin $ (\s d -> _focusArc (Arc s (s+d)) pat) <$> patStart <*> patDur
 
 _early :: Time -> Signal a -> Signal a
 _early t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
@@ -600,5 +611,13 @@ whenT test f p = splitQueries $ p {query = apply}
 
 
 _sigPly :: Time -> Signal a -> Signal a
-_sigPly t pat = squeezeJoin $ (_fast t . pure) <$> pat
+_sigPly t pat = squeezeJoin $ (_fast t . atom) <$> pat
 
+-- | @segment n p@: 'samples' the signal @p@ at a rate of @n@
+-- events per cycle. Useful for turning a continuous pattern into a
+-- discrete one.
+segment :: Signal Time -> Signal a -> Signal a
+segment = _patternify _segment
+
+_segment :: Time -> Signal a -> Signal a
+_segment n p = _fast n (atom id) <* p
