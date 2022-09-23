@@ -38,12 +38,13 @@ import qualified Sound.OSC.FD as O
 import qualified Network.Socket          as N
 
 import           Sound.Tidal.Config
-import           Sound.Tidal.Core (stack, silence, (#))
+-- import           Sound.Tidal.Core (stack, silence, (#))
 import           Sound.Tidal.ID
 import qualified Sound.Tidal.Link as Link
 import           Sound.Tidal.Params (pS)
 import           Sound.Tidal.Pattern
 import qualified Sound.Tidal.Tempo as T
+import           Sound.Tidal.Types
 import           Sound.Tidal.Utils ((!!!))
 -- import qualified Sound.OSC.Datum as O
 import           Data.List (sortOn)
@@ -281,14 +282,14 @@ startMulti :: [Target] -> Config -> IO ()
 startMulti _ _ = hPutStrLn stderr $ "startMulti has been removed, please check the latest documentation on tidalcycles.org"
 
 toDatum :: Value -> O.Datum
-toDatum (VF x) = O.float x
-toDatum (VN x) = O.float x
-toDatum (VI x) = O.int32 x
-toDatum (VS x) = O.string x
-toDatum (VR x) = O.float $ ((fromRational x) :: Double)
-toDatum (VB True) = O.int32 (1 :: Int)
-toDatum (VB False) = O.int32 (0 :: Int)
-toDatum (VX xs) = O.Blob $ O.blob_pack xs
+toDatum (F x) = O.float x
+toDatum (N x) = O.float x
+toDatum (I x) = O.int32 x
+toDatum (S x) = O.string x
+toDatum (R x) = O.float $ ((fromRational x) :: Double)
+--toDatum (VB True) = O.int32 (1 :: Int)
+--toDatum (VB False) = O.int32 (0 :: Int)
+--toDatum (VX xs) = O.Blob $ O.blob_pack xs
 toDatum _ = error "toDatum: unhandled value"
 
 toData :: OSC -> Event ValueMap -> Maybe [O.Datum]

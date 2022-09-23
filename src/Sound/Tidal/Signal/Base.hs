@@ -35,8 +35,8 @@ import Prelude hiding ((<*), (*>))
 -- data Signal a = Signal {query :: State -> [Event a]}
 --   deriving (Functor)
 
-instance Show a => Show (Signal a) where
-  show pat = show $ queryArc pat (Arc 0 1)
+-- instance Show a => Show (Signal a) where
+--  show pat = show $ queryArc pat (Arc 0 1)
 
 -- | A control signal
 type ControlSignal = Signal ValueMap

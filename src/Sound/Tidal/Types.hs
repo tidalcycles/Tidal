@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Sound.Tidal.Types where
 
 import           GHC.Generics
@@ -5,6 +7,11 @@ import           GHC.Generics
 import qualified Data.Map.Strict as Map
 import           Data.Typeable (Typeable)
 import           Data.Data (Data) -- toConstr
+
+import qualified Data.Map.Strict as Map
+import Data.List (intercalate, sortOn)
+import Data.Ratio (numerator, denominator)
+import Data.Maybe (fromMaybe, isJust)
 
 -- | Note is Double, but with a different parser
 newtype Note = Note { unNote :: Double }
@@ -23,9 +30,10 @@ data Value = S String
            | I Int
            | R Rational
            | N Note
-       deriving (Show)
 
 type ValueMap = (Map.Map String Value)
+
+type ControlSignal = Signal ValueMap
 
 type Time = Rational
 
@@ -34,12 +42,12 @@ type Time = Rational
 data State = State {sArc :: Arc,
                     sControls :: ValueMap
                    }
+
 -- | Time arc (also known as timespan)
 data Arc = Arc {begin :: Time, end :: Time}
-  deriving (Show)
+  deriving (Ord, Eq)
 
 data Metadata = Metadata {metaSrcPos :: [((Int, Int), (Int, Int))]}
-  deriving (Show)
 
 instance Semigroup Metadata where
   (<>) a b = Metadata (metaSrcPos a ++ metaSrcPos b)
@@ -54,7 +62,8 @@ data Event a = Event {metadata :: Metadata,
                       active :: Arc,
                       value :: a
                      }
-  deriving (Show, Functor)
+  deriving (Functor)
 
 data Signal a = Signal {query :: State -> [Event a]}
   deriving (Functor)
+

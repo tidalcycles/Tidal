@@ -1,7 +1,7 @@
 module Sound.Tidal.StreamTypes where
 
 import qualified Data.Map.Strict as Map
-import Sound.Tidal.Pattern
+import Sound.Tidal.Types
 import Sound.Tidal.Show ()
 
 data PlayState = PlayState {pattern :: ControlPattern,

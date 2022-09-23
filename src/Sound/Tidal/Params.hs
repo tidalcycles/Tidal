@@ -25,7 +25,7 @@ module Sound.Tidal.Params where
 import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Pattern
-import Sound.Tidal.Core ((#))
+-- import Sound.Tidal.Core ((#))
 import Sound.Tidal.Utils
 import Data.Maybe (fromMaybe)
 import Data.Word (Word8)
