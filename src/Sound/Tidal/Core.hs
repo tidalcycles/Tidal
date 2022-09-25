@@ -29,10 +29,6 @@ import           Sound.Tidal.Pattern
 
 -- ** Elemental patterns
 
--- | An empty pattern
-silence :: Pattern a
-silence = empty
-
 -- | Takes a function from time to values, and turns it into a 'Pattern'.
 sig :: (Time -> a) -> Pattern a
 sig f = Pattern q
@@ -347,31 +343,6 @@ stack = foldr overlay silence
 (~>) :: Pattern Time -> Pattern a -> Pattern a
 (~>) = tParam rotR
 
--- | Speed up a pattern by the given time pattern
-fast :: Pattern Time -> Pattern a -> Pattern a
-fast = tParam _fast
-
--- | Slow down a pattern by the factors in the given time pattern, 'squeezing'
--- the pattern to fit the slot given in the time pattern
-fastSqueeze :: Pattern Time -> Pattern a -> Pattern a
-fastSqueeze = tParamSqueeze _fast
-
--- | An alias for @fast@
-density :: Pattern Time -> Pattern a -> Pattern a
-density = fast
-
-_fast :: Time -> Pattern a -> Pattern a
-_fast rate pat | rate == 0 = silence
-               | rate < 0 = rev $ _fast (negate rate) pat
-               | otherwise = withResultTime (/ rate) $ withQueryTime (* rate) pat
-
--- | Slow down a pattern by the given time pattern
-slow :: Pattern Time -> Pattern a -> Pattern a
-slow = tParam _slow
-_slow :: Time -> Pattern a -> Pattern a
-_slow 0 _ = silence
-_slow r p = _fast (1/r) p
-
 -- | Slow down a pattern by the factors in the given time pattern, 'squeezing'
 -- the pattern to fit the slot given in the time pattern
 slowSqueeze :: Pattern Time -> Pattern a -> Pattern a
@@ -380,34 +351,6 @@ slowSqueeze = tParamSqueeze _slow
 -- | An alias for @slow@
 sparsity :: Pattern Time -> Pattern a -> Pattern a
 sparsity = slow
-
--- | @rev p@ returns @p@ with the event positions in each cycle
--- reversed (or mirrored).
-rev :: Pattern a -> Pattern a
-rev p =
-  splitQueries $ p {
-    query = \st -> map makeWholeAbsolute $
-      mapParts (mirrorArc (midCycle $ arc st)) $
-      map makeWholeRelative
-      (query p st
-        {arc = mirrorArc (midCycle $ arc st) (arc st)
-        })
-    }
-  where makeWholeRelative :: Event a -> Event a
-        makeWholeRelative e@Event {whole = Nothing} = e
-        makeWholeRelative (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
-          Event c (Just $ Arc (s'-s) (e-e')) p' v
-        makeWholeAbsolute :: Event a -> Event a
-        makeWholeAbsolute e@Event {whole = Nothing} = e
-        makeWholeAbsolute (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
-          Event c (Just $ Arc (s'-e) (e'+s)) p' v
-        midCycle :: Arc -> Time
-        midCycle (Arc s _) = sam s + 0.5
-        mapParts :: (Arc -> Arc) -> [Event a] -> [Event a]
-        mapParts f es = (\(Event c w p' v) -> Event c w (f p') v) <$> es
-        -- | Returns the `mirror image' of a 'Arc' around the given point in time
-        mirrorArc :: Time -> Arc -> Arc
-        mirrorArc mid' (Arc s e) = Arc (mid' - (e-mid')) (mid'+(mid'-s))
 
 {- | Plays a portion of a pattern, specified by a time arc (start and end time).
 The new resulting pattern is played over the time period of the original pattern:

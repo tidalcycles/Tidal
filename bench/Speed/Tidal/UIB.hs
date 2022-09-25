@@ -4,8 +4,7 @@ module Tidal.UIB where
 
 import Criterion.Main
 import Tidal.Inputs
-import Sound.Tidal.Core
-import Sound.Tidal.UI 
+import Sound.Tidal.Context
 
 fixB :: [Benchmark]
 fixB = 

@@ -38,7 +38,7 @@ import qualified Sound.OSC.FD as O
 import qualified Network.Socket          as N
 
 import           Sound.Tidal.Config
-import           Sound.Tidal.Core (stack, silence, (#))
+import           Sound.Tidal.Core (stack, (#))
 import           Sound.Tidal.ID
 import qualified Sound.Tidal.Link as Link
 import           Sound.Tidal.Params (pS)
