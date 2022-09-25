@@ -2,8 +2,7 @@ module Tidal.UIB where
 
 import Weigh 
 import Tidal.Inputs 
-import Sound.Tidal.UI
-import Sound.Tidal.Core
+import Sound.Tidal.Context
 
 fixB :: Weigh () 
 fixB = 
