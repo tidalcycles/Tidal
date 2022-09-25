@@ -35,9 +35,9 @@ maybeSect a b = check $ sect a b
 -- | Splits a timearc at cycle boundaries
 splitArcs :: Arc -> [Arc]
 splitArcs (Arc b e) | e <= b = []
-                      | sam b == sam e = [Arc b e]
-                      | otherwise
-  = (Arc b (nextSam b)):(splitArcs (Arc (nextSam b) e))
+                    | sam b == sam e = [Arc b e]
+                    | otherwise
+  = Arc b (nextSam b) : splitArcs (Arc (nextSam b) e)
 
 -- | Shifts a timearc to one of equal duration that starts within cycle zero.
 -- (Note that the output timearc probably does not start *at* Time 0 --

@@ -15,23 +15,6 @@ import Data.Ratio
 
 -- import Sound.Tidal.Bjorklund
 
-data Strategy = JustifyLeft
-              | JustifyRight
-              | JustifyBoth
-              | Expand
-              | TruncateMax
-              | TruncateMin
-              | RepeatLCM
-              | Centre
-              | Squeeze
-              deriving Show
-
-data Sequence a = Atom Time a
-                | Gap Time
-                | Sequence [Sequence a]
-                | Stack [Sequence a]
-              deriving Show
-
 instance Functor Sequence where
   fmap f (Atom x y) = Atom x (f y)
   fmap _ (Gap x) = Gap x
@@ -218,15 +201,15 @@ forTwoS a b RepeatLCM =
 
 forTwoS a b JustifyLeft =
   let p = max (seqSpan a) (seqSpan b)
-  in (reduce $ (a : [Gap (p - seqSpan a)]), reduce $ (b :[Gap (p - seqSpan b )]))
+  in (reduce (a : [Gap (p - seqSpan a)]), reduce (b :[Gap (p - seqSpan b )]))
 
 forTwoS a b JustifyRight =
   let p = max (seqSpan a) (seqSpan b)
-  in (reduce $ (Gap (p - seqSpan a) : [a]), reduce $  (Gap (p - seqSpan b) : [b]))
+  in (reduce (Gap (p - seqSpan a) : [a]), reduce (Gap (p - seqSpan b) : [b]))
 
 forTwoS a b Centre =
   let p = max (seqSpan a) (seqSpan b)
-  in if p == 0 then ([Gap 0],[Gap 0]) else (reduce $ ([Gap ((p - seqSpan a)/2)] ++ [a] ++ [Gap ((p - seqSpan a)/2)]), reduce $ ([Gap ((p - seqSpan b)/2)] ++ [b] ++ [Gap ((p - seqSpan b)/2)]))
+  in if p == 0 then ([Gap 0],[Gap 0]) else (reduce ([Gap ((p - seqSpan a)/2)] ++ [a] ++ [Gap ((p - seqSpan a)/2)]), reduce ([Gap ((p - seqSpan b)/2)] ++ [b] ++ [Gap ((p - seqSpan b)/2)]))
 
 forTwoS a b Expand =
   let p = max (seqSpan a) (seqSpan b)
@@ -260,7 +243,7 @@ unwrap (Stack x) = Stack $ map unwrap x
 unwrap s = s
 
 -- | Unwrapping a sequence referes to removing the redundancies that are present in the code
-unwrapper:: [Sequence a] -> [Sequence a]
+unwrapper :: [Sequence a] -> [Sequence a]
 unwrapper [] = []
 unwrapper [Sequence x] = unwrapper x
 unwrapper (Sequence x :xs) = unwrapper x ++ unwrapper xs

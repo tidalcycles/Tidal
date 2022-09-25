@@ -1,8 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-} 
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 -- (c) Alex McLean 2022
 -- Shared under the terms of the GNU Public License v. 3.0
 
