@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor, OverloadedStrings, FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings, FlexibleInstances, BangPatterns #-}
 
 -- (c) Alex McLean 2022 and contributors
 -- Shared under the terms of the GNU Public License v. 3.0
@@ -31,16 +31,6 @@ import Prelude hiding ((<*), (*>))
 -- signal is a function from a timearc (possibly with some other
 -- state) to events taking place in that timearc.
 
--- moved to Types module..
--- data Signal a = Signal {query :: State -> [Event a]}
---   deriving (Functor)
-
--- instance Show a => Show (Signal a) where
---  show pat = show $ queryArc pat (Arc 0 1)
-
--- | A control signal
-type ControlSignal = Signal ValueMap
-
 -- ************************************************************ --
 -- Pattern instance
 
@@ -70,7 +60,7 @@ instance Applicative Signal where
 -- function to merge the 'whole' timearcs
 app :: Signal (a -> b) -> Signal a -> Signal b
 app patf patv = Signal f
-    where f s = concatMap (\ef -> catMaybes $ map (combine ef) $ query patv s) $ query patf s
+    where f s = concatMap (\ef -> mapMaybe (combine ef) $ query patv s) $ query patf s
           combine ef ev = do new_active <- maybeSect (active ef) (active ev)
                              return $ Event {metadata = metadata ef <> metadata ev,
                                              whole = liftA2 sect (whole ef) (whole ev),
@@ -82,7 +72,7 @@ app patf patv = Signal f
 -- pattern of functions (unrelated to the <* in Prelude)
 (<*) :: Signal (a -> b) -> Signal a -> Signal b
 (<*) patf patv = Signal f
-  where f s = concatMap (\ef -> catMaybes $ map (combine ef) $ query patv (s {sArc = wholeOrActive ef})
+  where f s = concatMap (\ef -> mapMaybe (combine ef) $ query patv (s {sArc = wholeOrActive ef})
                         ) $ query patf s
         combine ef ev = do new_active <- maybeSect (active ef) (active ev)
                            return $ Event {metadata = metadata ef <> metadata ev,
@@ -95,7 +85,7 @@ app patf patv = Signal f
 -- pattern of functions (unrelated to the <* in Prelude)
 (*>) :: Signal (a -> b) -> Signal a -> Signal b
 (*>) patf patv = Signal f
-  where f s = concatMap (\ev -> catMaybes $ map (combine ev) $ query patf (s {sArc = wholeOrActive ev})
+  where f s = concatMap (\ev -> mapMaybe (combine ev) $ query patf (s {sArc = wholeOrActive ev})
                         ) $ query patv s
         combine ev ef = do new_active <- maybeSect (active ef) (active ev)
                            return $ Event {metadata = metadata ef <> metadata ev,
@@ -156,7 +146,6 @@ squeezeJoin pp = pp {query = q}
 
 squeezeBind :: Signal a -> (a -> Signal b) -> Signal b
 squeezeBind pat f = squeezeJoin $ fmap f pat
-
 
 -- Flatterns patterns of patterns, by retriggering/resetting inner patterns at onsets of outer pattern haps
 
@@ -480,7 +469,7 @@ compress :: Signal Time -> Signal Time -> Signal a -> Signal a
 compress patStart patDur pat = innerJoin $ (\s d -> _compressArc (Arc s (s+d)) pat) <$> patStart <*> patDur
 
 _focusArc :: Arc -> Signal a -> Signal a
-_focusArc (Arc b e) pat = _late b $ _fast (1/(e-b)) pat
+_focusArc (Arc b e) pat = _late (cyclePos b) $ _fast (1/(e-b)) pat
 
 -- | Like @compress@, but doesn't leave a gap and can 'focus' on any arc (not just within a cycle)
 focus :: Signal Time -> Signal Time -> Signal a -> Signal a
