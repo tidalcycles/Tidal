@@ -431,7 +431,7 @@ compressArcTo :: Arc -> Pattern a -> Pattern a
 compressArcTo (Arc s e) = compressArc (Arc (cyclePos s) (e - sam s))
 
 focusArc :: Arc -> Pattern a -> Pattern a
-focusArc (Arc s e) p = s `rotR` (_fast (1/(e-s)) p)
+focusArc (Arc s e) p = (cyclePos s) `rotR` (_fast (1/(e-s)) p)
 
 
 -- | Speed up a pattern by the given time pattern
