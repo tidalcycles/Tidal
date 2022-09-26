@@ -258,13 +258,13 @@ instance Num ValueMap where
   negate      = (applyFIRS negate negate negate id <$>)
   (+)         = Map.unionWith (fNum2 (+) (+))
   (*)         = Map.unionWith (fNum2 (*) (*))
-  fromInteger i = Map.singleton "n" $ I (fromInteger i)
+  fromInteger i = Map.singleton "n" $ VI (fromInteger i)
   signum      = (applyFIRS signum signum signum id <$>)
   abs         = (applyFIRS abs abs abs id <$>)
 
 instance Fractional ValueMap where
   recip        = fmap (applyFIRS recip id recip id)
-  fromRational r = Map.singleton "speed" $ F (fromRational r)
+  fromRational r = Map.singleton "speed" $ VF (fromRational r)
 
 -- ************************************************************ --
 -- General hacks and utilities

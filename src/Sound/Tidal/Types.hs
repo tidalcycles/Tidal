@@ -14,6 +14,7 @@ import           Data.Data (Data) -- toConstr
 import Data.List (intercalate, sortOn)
 import Data.Ratio (numerator, denominator)
 import Data.Maybe (fromMaybe, isJust)
+import Data.Word (Word8)
 
 -- | In Tidal, time is rational
 type Time = Rational
@@ -32,11 +33,15 @@ instance Show Note where
       pcs = ["c", "cs", "d", "ds", "e", "f", "fs", "g", "gs", "a", "as", "b"]
 
 -- | An event value
-data Value = S String
-           | F Double
-           | I Int
-           | R Rational
-           | N Note
+data Value = VS String
+           | VF Double
+           | VI Int
+           | VR Rational
+           | VN Note
+           | VB Bool
+           | VX { xvalue :: [Word8]  } -- Used for OSC 'blobs'
+           | VList {lvalue :: [Value]}
+           | VState {statevalue :: ValueMap -> (ValueMap, Value)}
 
 -- | Maps of values, used for representing synth control/trigger
 -- messages, and state

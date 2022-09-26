@@ -124,14 +124,5 @@ _range from to p = (+ from) . (* (to-from)) <$> p
 
 -- ************************************************************ --
 
-sound :: (Pattern a) => a String -> a ValueMap
-sound pat = (Map.singleton "sound" . S) <$> pat
-
-
-note :: (Pattern a) => a Double -> a ValueMap
-note pat = (Map.singleton "note" . F) <$> pat
-
--- ************************************************************ --
-
 
 

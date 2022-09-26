@@ -25,8 +25,8 @@ import           Prelude hiding ((<*), (*>))
 import           Data.Fixed (mod')
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (fromMaybe)
-import           Sound.Tidal.Signal
-import           Sound.Tidal.Compose
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Compose
 
 
 
