@@ -34,6 +34,8 @@ class (Functor f, Applicative f, Monad f) => Pattern f where
   iter' :: f Int -> f a -> f a
   _iter :: Int -> f a -> f a
   _iter' :: Int -> f a -> f a
+  collect :: Eq a => f a -> f [a]
+  uncollect :: f [a] -> f a
 
 overlay :: Pattern p => p x -> p x -> p x
 overlay a b = stack [a, b]

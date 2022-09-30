@@ -838,7 +838,6 @@ valueToPattern v = pure v
 
 --- functions relating to chords/patterns of lists
 
-
 sameDur :: Event a -> Event a -> Bool
 sameDur e1 e2 = (whole e1 == whole e2) && (part e1 == part e2)
 
