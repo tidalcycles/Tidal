@@ -1,9 +1,9 @@
 {-# LANGUAGE DeriveFunctor #-}
 
-module Sound.Tidal.Event
+module Sound.Tidal.Signal.Event
   (module Sound.Tidal.Time,
    module Sound.Tidal.Arc,
-   module Sound.Tidal.Event
+   module Sound.Tidal.Signal.Event
   )
 where
 

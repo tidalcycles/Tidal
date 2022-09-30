@@ -48,7 +48,7 @@ import           Sound.Tidal.Signal.Compose ((#))
 import qualified Sound.Tidal.Tempo as T
 import           Sound.Tidal.Types
 import           Sound.Tidal.Value
-import           Sound.Tidal.Event
+import           Sound.Tidal.Signal.Event
 import           Sound.Tidal.Utils ((!!!))
 -- import qualified Sound.OSC.Datum as O
 import           Data.List (sortOn)

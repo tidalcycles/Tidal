@@ -17,7 +17,7 @@ import           Data.List (delete, findIndex, (\\))
 import Control.Applicative (liftA2)
 
 import Sound.Tidal.Value
-import Sound.Tidal.Event
+import Sound.Tidal.Signal.Event
 import Sound.Tidal.Types
 import Sound.Tidal.Pattern
 

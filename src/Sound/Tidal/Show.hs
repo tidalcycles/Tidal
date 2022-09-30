@@ -25,7 +25,7 @@ module Sound.Tidal.Show where
 import Sound.Tidal.Types
 
 import Sound.Tidal.Signal.Base (queryArc)
-import Sound.Tidal.Event (eventHasOnset)
+import Sound.Tidal.Signal.Event (eventHasOnset)
 
 import Data.List (intercalate, sortOn)
 import Data.Ratio (numerator, denominator)
