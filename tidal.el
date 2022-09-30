@@ -228,7 +228,7 @@
        ,(format "Send %s $ silence as a single line." name)
        (interactive)
        (tidal-send-string ":{")
-       (tidal-send-string " mapM_ ($ silence) [,name]")
+       (tidal-send-string (concat " mapM_ ($ silence) [" ,name "]"))
        (tidal-send-string ":}"))))
 
 (defun tidal-create-runner (name)
