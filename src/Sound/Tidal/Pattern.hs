@@ -20,10 +20,11 @@ class (Functor f, Applicative f, Monad f) => Pattern f where
   stack :: [f a] -> f a
   _patternify :: (a -> f b -> f c) -> (f a -> f b -> f c)
   _patternify2 :: (a -> b -> f c -> f d) -> (f a -> f b -> f c -> f d)
+  _patternify3 :: (a -> b -> c -> f d -> f e) -> (f a -> f b -> f c -> f d -> f e)
   rev :: f a -> f a
   _ply :: Rational -> f a-> f a
-  euclid :: f Int -> f Int -> f String -> f String
-  _euclid :: Int -> Int -> f a-> f a
+  euclid :: f Int -> f Int -> f a -> f a
+  _euclid :: Int -> Int -> f a -> f a
   timeCat :: [(Rational, f a)] -> f a
   _run :: (Enum a, Num a) => a -> f a
   _scan :: (Enum a, Num a) => a -> f a

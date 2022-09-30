@@ -11,15 +11,17 @@ module Sound.Tidal.Signal.Base where
 
 import Data.Ratio
 import Data.Fixed (mod')
-import Data.Maybe (catMaybes, isJust, mapMaybe, fromJust)
+import Data.Maybe (catMaybes, isJust, mapMaybe, fromJust, fromMaybe)
 import qualified Data.Map.Strict as Map
-import           Data.List (delete, findIndex, (\\))
+import Data.List (delete, findIndex, (\\))
 import Control.Applicative (liftA2)
+import Data.Bool (bool)
 
 import Sound.Tidal.Value
 import Sound.Tidal.Signal.Event
 import Sound.Tidal.Types
 import Sound.Tidal.Pattern
+import Sound.Tidal.Bjorklund (bjorklund)
 
 import Prelude hiding ((<*), (*>))
 
@@ -49,8 +51,11 @@ instance Pattern Signal where
   _ply    = _sigPly
   collect = sigCollect
   uncollect = sigUncollect
-  _patternify f a pat = innerJoin $ (`f` pat) <$> a
-  _patternify2 f a b pat = innerJoin $ (\x y -> f x y pat) <$> a <* b
+  euclid  = sigEuclid
+  _euclid = _sigEuclid
+  _patternify f a pat      = innerJoin $ (`f` pat) <$> a
+  _patternify2 f a b pat   = innerJoin $ (\x y -> f x y pat) <$> a <* b
+  _patternify3 f a b c pat = innerJoin $ (\x y z -> f x y z pat) <$> a <* b <* c
   toSignal = id
 
 -- ************************************************************ --
@@ -73,7 +78,7 @@ app patf patv = Signal f
 
 -- | Alternative definition of <*>, which takes the wholes from the
 -- pattern of functions (unrelated to the <* in Prelude)
-(<*) :: Signal (a -> b) -> Signal a -> Signal b
+(<*), appLeft :: Signal (a -> b) -> Signal a -> Signal b
 (<*) patf patv = Signal f
   where f s = concatMap (\ef -> mapMaybe (combine ef) $ query patv (s {sArc = wholeOrActive ef})
                         ) $ query patf s
@@ -83,7 +88,8 @@ app patf patv = Signal f
                                            active = new_active,
                                            value = value ef $ value ev
                                           }
-        
+appLeft = (<*)
+
 -- | Alternative definition of <*>, which takes the wholes from the
 -- pattern of functions (unrelated to the <* in Prelude)
 (*>) :: Signal (a -> b) -> Signal a -> Signal b
@@ -96,6 +102,7 @@ app patf patv = Signal f
                                            active = new_active,
                                            value = value ef $ value ev
                                           }
+appRight = (*>)
 
 infixl 4 <*, *>
 
@@ -114,6 +121,9 @@ instance Monad Signal where
 
 bind :: Signal a -> (a -> Signal b) -> Signal b
 bind = bindWhole (liftA2 sect)
+
+mixJoin :: Signal (Signal a) -> Signal a
+mixJoin s = bind s id
 
 innerBind :: Signal a -> (a -> Signal b) -> Signal b
 innerBind = bindWhole (flip const)
@@ -268,6 +278,16 @@ instance Num ValueMap where
 instance Fractional ValueMap where
   recip        = fmap (applyFIRS recip id recip id)
   fromRational r = Map.singleton "speed" $ VF (fromRational r)
+
+-- ************************************************************ --
+-- Metadata utils
+
+setMetadata :: Metadata -> Signal a -> Signal a
+setMetadata c pat = withEvents (map (\e -> e {metadata = c})) pat
+
+withMetadata :: (Metadata -> Metadata) -> Signal a -> Signal a
+withMetadata f pat = withEvents (map (\e -> e {metadata = f $ metadata e})) pat
+
 
 -- ************************************************************ --
 -- General hacks and utilities
@@ -659,3 +679,181 @@ _uncollectEvents = concatMap _uncollectEvent
 -- | merges all values in a list into one pattern by stacking the values
 sigUncollect :: Signal [a] -> Signal a
 sigUncollect = withEvents _uncollectEvents
+
+-- ************************************************************ --
+-- Euclidean / diaspora algorithm
+
+{- | You can use the @e@ function to apply a Euclidean algorithm over a
+complex pattern, although the structure of that pattern will be lost:
+
+@
+d1 $ e 3 8 $ sound "bd*2 [sn cp]"
+@
+
+In the above, three sounds are picked from the pattern on the right according
+to the structure given by the `e 3 8`. It ends up picking two `bd` sounds, a
+`cp` and missing the `sn` entirely.
+
+A negative first argument provides the inverse of the euclidean pattern.
+
+These types of sequences use "Bjorklund's algorithm", which wasn't made for
+music but for an application in nuclear physics, which is exciting. More
+exciting still is that it is very similar in structure to the one of the first
+known algorithms written in Euclid's book of elements in 300 BC. You can read
+more about this in the paper
+[The Euclidean Algorithm Generates Traditional Musical Rhythms](http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf)
+by Toussaint. Some examples from this paper are included below,
+including rotation in some cases.
+
+@
+- (2,5) : A thirteenth century Persian rhythm called Khafif-e-ramal.
+- (3,4) : The archetypal pattern of the Cumbia from Colombia, as well as a Calypso rhythm from Trinidad.
+- (3,5,2) : Another thirteenth century Persian rhythm by the name of Khafif-e-ramal, as well as a Rumanian folk-dance rhythm.
+- (3,7) : A Ruchenitza rhythm used in a Bulgarian folk-dance.
+- (3,8) : The Cuban tresillo pattern.
+- (4,7) : Another Ruchenitza Bulgarian folk-dance rhythm.
+- (4,9) : The Aksak rhythm of Turkey.
+- (4,11) : The metric pattern used by Frank Zappa in his piece titled Outside Now.
+- (5,6) : Yields the York-Samai pattern, a popular Arab rhythm.
+- (5,7) : The Nawakhat pattern, another popular Arab rhythm.
+- (5,8) : The Cuban cinquillo pattern.
+- (5,9) : A popular Arab rhythm called Agsag-Samai.
+- (5,11) : The metric pattern used by Moussorgsky in Pictures at an Exhibition.
+- (5,12) : The Venda clapping pattern of a South African children’s song.
+- (5,16) : The Bossa-Nova rhythm necklace of Brazil.
+- (7,8) : A typical rhythm played on the Bendir (frame drum).
+- (7,12) : A common West African bell pattern.
+- (7,16,14) : A Samba rhythm necklace from Brazil.
+- (9,16) : A rhythm necklace used in the Central African Republic.
+- (11,24,14) : A rhythm necklace of the Aka Pygmies of Central Africa.
+- (13,24,5) : Another rhythm necklace of the Aka Pygmies of the upper Sangha.
+@
+-}
+sigEuclid :: Signal Int -> Signal Int -> Signal a -> Signal a
+sigEuclid = _patternify2 _euclid
+
+_sigEuclid :: Int -> Int -> Signal a -> Signal a
+_sigEuclid n k a | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
+                 | otherwise = fastcat $ fmap (bool a silence) $ bjorklund (-n,k)
+
+{- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
+euclidFull :: Signal Int -> Signal Int -> Signal a -> Signal a -> Signal a
+euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
+
+_euclidBool :: Int -> Int -> Signal Bool
+_euclidBool n k = fastFromList $ bjorklund (n,k)
+
+_euclid' :: Int -> Int -> Signal a -> Signal a
+_euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
+
+euclidOff :: Signal Int -> Signal Int -> Signal Int -> Signal a -> Signal a
+euclidOff = _patternify3 _euclidOff
+
+eoff :: Signal Int -> Signal Int -> Signal Int -> Signal a -> Signal a
+eoff = euclidOff
+
+_euclidOff :: Int -> Int -> Int -> Signal a -> Signal a
+_euclidOff _ 0 _ _ = silence
+_euclidOff n k s p = (_early $ fromIntegral s%fromIntegral k) (_euclid n k p)
+
+euclidOffBool :: Signal Int -> Signal Int -> Signal Int -> Signal Bool -> Signal Bool
+euclidOffBool = _patternify3 _euclidOffBool
+
+_euclidOffBool :: Int -> Int -> Int -> Signal Bool -> Signal Bool
+_euclidOffBool _ 0 _ _ = silence
+_euclidOffBool n k s p = ((fromIntegral s % fromIntegral k) `_early`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
+
+distrib :: [Signal Int] -> Signal a -> Signal a
+distrib ps p = do p' <- sequence ps
+                  _distrib p' p
+
+_distrib :: [Int] -> Signal a -> Signal a
+_distrib xs p = boolsToPat (foldr distrib' (replicate (last xs) True) (reverse $ layers xs)) p
+  where
+    distrib' :: [Bool] -> [Bool] -> [Bool]
+    distrib' [] _ = []
+    distrib' (_:a) [] = False : distrib' a []
+    distrib' (True:a) (x:b) = x : distrib' a b
+    distrib' (False:a) b = False : distrib' a b
+    layers = map bjorklund . (zip<*>tail)
+    boolsToPat a b' = flip const <$> filterValues (== True) (fastFromList a) <*> b'
+
+{- | `euclidInv` fills in the blanks left by `e`
+ -
+ @e 3 8 "x"@ -> @"x ~ ~ x ~ ~ x ~"@
+
+ @euclidInv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
+-}
+euclidInv :: Signal Int -> Signal Int -> Signal a -> Signal a
+euclidInv = _patternify2 _euclidInv
+
+_euclidInv :: Int -> Int -> Signal a -> Signal a
+_euclidInv n k a = _euclid (-n) k a
+
+-- ************************************************************ --
+-- Functions for getting control input as signals
+
+valueToSignal :: Value -> Signal Value
+valueToSignal (VSignal pat) = pat
+valueToSignal v = pure v
+
+_getP_ :: (Value -> Maybe a) -> Signal Value -> Signal a
+_getP_ f pat = filterJusts $ f <$> pat
+
+_getP :: a -> (Value -> Maybe a) -> Signal Value -> Signal a
+_getP d f pat = fromMaybe d . f <$> pat
+
+_cX :: a -> (Value -> Maybe a) -> String -> Signal a
+_cX d f s = Signal $ \(State a m) -> queryArc (maybe (pure d) (_getP d f . valueToSignal) $ Map.lookup s m) a
+
+_cX_ :: (Value -> Maybe a) -> String -> Signal a
+_cX_ f s = Signal $ \(State a m) -> queryArc (maybe silence (_getP_ f . valueToSignal) $ Map.lookup s m) a
+
+cF :: Double -> String -> Signal Double
+cF d = _cX d getF
+cF_ :: String -> Signal Double
+cF_ = _cX_ getF
+cF0 :: String -> Signal Double
+cF0 = _cX 0 getF
+
+cN :: Note -> String -> Signal Note
+cN d = _cX d getN
+cN_ :: String -> Signal Note
+cN_ = _cX_ getN
+cN0 :: String -> Signal Note
+cN0 = _cX (Note 0) getN
+
+cI :: Int -> String -> Signal Int
+cI d = _cX d getI
+cI_ :: String -> Signal Int
+cI_ = _cX_ getI
+cI0 :: String -> Signal Int
+cI0 = _cX 0 getI
+
+cB :: Bool -> String -> Signal Bool
+cB d = _cX d getB
+cB_ :: String -> Signal Bool
+cB_ = _cX_ getB
+cB0 :: String -> Signal Bool
+cB0 = _cX False getB
+
+cR :: Rational -> String -> Signal Rational
+cR d = _cX d getR
+cR_ :: String -> Signal Rational
+cR_ = _cX_ getR
+cR0 :: String -> Signal Rational
+cR0 = _cX 0 getR
+
+cT :: Time -> String -> Signal Time
+cT = cR
+cT0 :: String -> Signal Time
+cT0 = cR0
+cT_ :: String -> Signal Time
+cT_ = cR_
+
+cS :: String -> String -> Signal String
+cS d = _cX d getS
+cS_ :: String -> Signal String
+cS_ = _cX_ getS
+cS0 :: String -> Signal String
+cS0 = _cX "" getS
