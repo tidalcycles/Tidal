@@ -158,7 +158,7 @@ showFrac n d = fromMaybe plain $ do n' <- up n
         down _ = Nothing
 
 stepcount :: Signal a -> Int
-stepcount pat = fromIntegral $ eventSteps $ concatMap ((\ev -> [begin ev, end ev]) . active) (filter eventHasOnset $ queryArc pat (Arc 0 1))
+stepcount pat = fromIntegral $ eventSteps $ concatMap ((\ev -> [aBegin ev, aEnd ev]) . active) (filter eventHasOnset $ queryArc pat (Arc 0 1))
   where eventSteps xs = foldr (lcm . denominator) 1 xs
 
 data Render = Render Int Int String

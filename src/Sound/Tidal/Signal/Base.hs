@@ -161,7 +161,7 @@ _trigTimeJoin timeF patOfPats = Signal $ \state -> concatMap (queryInner state) 
                           active = sect (active innerEvent) (active outerEvent),
                           value = value innerEvent
                          }
-                ) $ query (_late (timeF $ (begin $ wholeOrActive outerEvent)) (value outerEvent)) state
+                ) $ query (_late (timeF $ (aBegin $ wholeOrActive outerEvent)) (value outerEvent)) state
 
 trigJoin :: Signal (Signal a) -> Signal a
 trigJoin = _trigTimeJoin id
@@ -332,7 +332,7 @@ sigSilence = Signal (\_ -> [])
 sigAtom :: a -> Signal a
 sigAtom v = Signal $ \state -> map
                                (\arc -> Event {metadata = mempty,
-                                                whole = Just $ wholeCycle $ begin arc,
+                                                whole = Just $ wholeCycle $ aBegin arc,
                                                 active = arc,
                                                 value = v
                                                }
@@ -448,8 +448,8 @@ splitQueries pat = Signal $ \state -> (concatMap (\arc -> query pat (state {sArc
 sigSlowcat :: [Signal a] -> Signal a
 sigSlowcat pats = splitQueries $ Signal queryCycle
   where queryCycle state = query (_late (offset $ sArc state) (pat $ sArc state)) state
-        pat arc = pats !! (mod (floor $ begin $ arc) n)
-        offset arc = (sam $ begin arc) - (sam $ begin arc / (toRational n))
+        pat arc = pats !! (mod (floor $ aBegin $ arc) n)
+        offset arc = (sam $ aBegin arc) - (sam $ aBegin arc / (toRational n))
         n = length pats
 
 _sigFast :: Time -> Signal a -> Signal a
@@ -458,9 +458,9 @@ _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
 _fastGap :: Time -> Signal a -> Signal a
 _fastGap factor pat = splitQueries $ withEventArc (scale $ 1/factor) $ withQueryArc (scale factor) pat
   where scale factor' arc = Arc b e
-          where cycle = sam $ begin arc
-                b = cycle + (min 1 $ (begin arc - cycle) * factor)
-                e = cycle + (min 1 $ (end   arc - cycle) * factor)
+          where cycle = sam $ aBegin arc
+                b = cycle + (min 1 $ (aBegin arc - cycle) * factor)
+                e = cycle + (min 1 $ (aEnd   arc - cycle) * factor)
 
 -- | Like @fast@, but only plays one cycle of the original pattern
 -- once per cycle, leaving a gap
@@ -551,7 +551,7 @@ squashTo b e = _late b . squash (e-b)
 sigRev :: Signal a -> Signal a
 sigRev pat = splitQueries $ Signal f
   where f state = withArc reflect <$> (query pat $ state {sArc = reflect $ sArc state})
-          where cycle = sam $ begin $ sArc state
+          where cycle = sam $ aBegin $ sArc state
                 next_cycle = nextSam cycle
                 reflect (Arc b e) = Arc (cycle + (next_cycle - e)) (cycle + (next_cycle - b))
 
@@ -596,7 +596,7 @@ cycle number 399.
 -}
 whenT :: (Int -> Bool) -> (Signal a -> Signal a) ->  Signal a -> Signal a
 whenT test f p = splitQueries $ p {query = apply}
-  where apply st | test (floor $ begin $ sArc st) = query (f p) st
+  where apply st | test (floor $ aBegin $ sArc st) = query (f p) st
                  | otherwise = query p st
 
 

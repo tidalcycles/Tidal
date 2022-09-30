@@ -39,19 +39,19 @@ wholeOrActive e = active e
 
 -- | Get the onset of an event's 'whole'
 wholeBegin :: Event a -> Time
-wholeBegin = begin . wholeOrActive
+wholeBegin = aBegin . wholeOrActive
 
 -- | Get the offset of an event's 'whole'
 wholeEnd :: Event a -> Time
-wholeEnd = end . wholeOrActive
+wholeEnd = aEnd . wholeOrActive
 
 -- | Get the onset of an event's 'whole'
 eventActiveBegin :: Event a -> Time
-eventActiveBegin = begin . active
+eventActiveBegin = aBegin . active
 
 -- | Get the offset of an event's 'active'
 eventActiveEnd :: Event a -> Time
-eventActiveEnd = end . active
+eventActiveEnd = aEnd . active
 
 -- | Get the timearc of an event's 'active'
 eventActive :: Event a -> Arc
@@ -62,7 +62,7 @@ eventValue = value
 
 eventHasOnset :: Event a -> Bool
 eventHasOnset e | isAnalog e = False
-                | otherwise = begin (fromJust $ whole e) == begin (active e)
+                | otherwise = aBegin (fromJust $ whole e) == aBegin (active e)
 
 withArc :: (Arc -> Arc) -> Event a -> Event a
 withArc f e = e {active = f $ active e,

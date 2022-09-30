@@ -145,7 +145,7 @@ data State = State {sArc :: Arc,
                    }
 
 -- | Time arc (also known as timespan)
-data Arc = Arc {begin :: Time, end :: Time}
+data Arc = Arc {aBegin :: Time, aEnd :: Time}
   deriving (Ord, Eq)
 
 -- | Metadata - currently just used for sourcecode positions that

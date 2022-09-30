@@ -422,11 +422,11 @@ processCps ops = mapM processEvent
     processEvent ::  Event ValueMap  -> IO ProcessedEvent
     processEvent e = do
       let wope = wholeOrActive e
-          partStartCycle = begin $ active e
+          partStartCycle = aBegin $ active e
           partStartBeat = (T.cyclesToBeat ops) (realToFrac partStartCycle)
-          onCycle = begin wope
+          onCycle = aBegin wope
           onBeat = (T.cyclesToBeat ops) (realToFrac onCycle)
-          offCycle = end wope
+          offCycle = aEnd wope
           offBeat = (T.cyclesToBeat ops) (realToFrac offCycle)
       on <- (T.timeAtBeat ops) onBeat
       onPart <- (T.timeAtBeat ops) partStartBeat
@@ -516,7 +516,7 @@ doTick stream st ops sMap =
         sMap' = Map.insert "_cps" (VF $ coerce cps) sMap
         extraLatency = tickNudge st
         -- First the state is used to query the pattern
-        es = sortOn (begin . active) $ query patstack (State {sArc = tickArc st,
+        es = sortOn (aBegin . active) $ query patstack (State {sArc = tickArc st,
                                                             sControls = sMap'
                                                            }
                                                     )

@@ -24,7 +24,6 @@ import System.IO (hPutStrLn, stderr)
 import Data.Int(Int64)
 
 import Sound.Tidal.StreamTypes
-import Sound.Tidal.Core (silence)
 
 {-
     Tempo.hs - Tidal's scheduler
@@ -167,7 +166,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
           actions <- swapMVar actionsMV [] 
           st' <- processActions st actions
           let logicalEnd = logicalTime (start st') $ ticks st' + 1
-              nextArcStartCycle = P.end $ nowArc st'
+              nextArcStartCycle = P.aEnd $ nowArc st'
           ss <- Link.createAndCaptureAppSessionState abletonLink
           arcStartTime <- cyclesToTime config ss nextArcStartCycle
           Link.destroySessionState ss
@@ -179,7 +178,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
           do
             streamState <- takeMVar stateMV
             let logicalEnd   = logicalTime (start st) $ ticks st + 1
-                startCycle = P.end $ nowArc st
+                startCycle = P.aEnd $ nowArc st
             sessionState <- Link.createAndCaptureAppSessionState abletonLink
             endCycle <- timeToCycles' config sessionState logicalEnd
             let st' = st {nowArc = P.Arc startCycle endCycle,
