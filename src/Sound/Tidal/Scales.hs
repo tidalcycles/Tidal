@@ -20,7 +20,8 @@ module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale) where
 
 import Prelude hiding ((<*), (*>))
 import Data.Maybe
-import Sound.Tidal.Pattern
+import Sound.Tidal.Types
+import Sound.Tidal.Signal.Base ((<*))
 import Sound.Tidal.Utils
 
 -- five notes scales
@@ -201,10 +202,10 @@ saba = [0, 1.5, 3, 4, 6, 8, 10]
 chromatic :: Fractional a => [a]
 chromatic = [0,1,2,3,4,5,6,7,8,9,10,11]
 
-scale :: Fractional a => Pattern String -> Pattern Int -> Pattern a
+scale :: Fractional a => Signal String -> Signal Int -> Signal a
 scale = getScale scaleTable
 
-getScale :: Fractional a => [(String, [a])] -> Pattern String -> Pattern Int -> Pattern a
+getScale :: Fractional a => [(String, [a])] -> Signal String -> Signal Int -> Signal a
 getScale table sp p = (\n scaleName
               -> noteInScale (fromMaybe [0] $ lookup scaleName table) n) <$> p <* sp
   where octave s x = x `div` length s

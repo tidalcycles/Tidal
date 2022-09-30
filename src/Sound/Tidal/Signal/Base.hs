@@ -304,8 +304,14 @@ filterValues f = filterEvents (f . value)
 filterJusts :: Signal (Maybe a) -> Signal a
 filterJusts = fmap fromJust . filterValues isJust
 
+filterTime :: (Time -> Bool) -> Signal a -> Signal a
+filterTime test p = p {query = filter (test . aBegin . wholeOrActive) . query p}
+
 discreteOnly :: Signal a -> Signal a
 discreteOnly = filterEvents $ isJust . whole
+
+playFor :: Time -> Time -> Signal a -> Signal a
+playFor s e pat = Signal $ \st -> maybe [] (\a -> query pat (st {sArc = a})) $ maybeSect (Arc s e) (sArc st)
 
 -- ************************************************************ --
 -- Time/event manipulations
@@ -337,7 +343,7 @@ withQueryArc arcf = withQuery (\state -> state {sArc = arcf $ sArc state})
 withQueryTime :: (Time -> Time) -> Signal a -> Signal a
 withQueryTime timef = withQueryArc (withArcTime timef)
 
--- | @withEvent f p@ returns a new @Pattern@ with f applied to the resulting list of events for each query
+-- | @withEvent f p@ returns a new @Signal@ with f applied to the resulting list of events for each query
 -- function @f@.
 withEvents :: ([Event a] -> [Event b]) -> Signal a -> Signal b
 withEvents f p = p {query = f . query p}
@@ -368,7 +374,7 @@ steady v = waveform (const v)
 -- ************************************************************ --
 -- Waveforms
 
--- | A continuous pattern as a function from time to values. Takes the
+-- | A continuous signal as a function from time to values. Takes the
 -- midpoint of the given query as the time value.
 waveform :: (Time -> a) -> Signal a
 waveform timeF = Signal $ \(State (Arc b e) _) -> 
@@ -464,7 +470,7 @@ splitQueries :: Signal a -> Signal a
 splitQueries pat = Signal $ \state -> (concatMap (\arc -> query pat (state {sArc = arc}))
                                         $ splitArcs $ sArc state)
 
--- | Concatenate a list of patterns, interleaving cycles.
+-- | Concatenate a list of signals, interleaving cycles.
 sigSlowcat :: [Signal a] -> Signal a
 sigSlowcat pats = splitQueries $ Signal queryCycle
   where queryCycle state = query (_late (offset $ sArc state) (pat $ sArc state)) state
@@ -482,7 +488,7 @@ _fastGap factor pat = splitQueries $ withEventArc (scale $ 1/factor) $ withQuery
                 b = cycle + (min 1 $ (aBegin arc - cycle) * factor)
                 e = cycle + (min 1 $ (aEnd   arc - cycle) * factor)
 
--- | Like @fast@, but only plays one cycle of the original pattern
+-- | Like @fast@, but only plays one cycle of the original signal
 -- once per cycle, leaving a gap
 fastGap :: Signal Time -> Signal a -> Signal a
 fastGap = _patternify _fastGap
@@ -521,14 +527,14 @@ late = _patternify _late
 (~>) :: Signal Time -> Signal x -> Signal x
 (~>) = late
 
-{- | Plays a portion of a pattern, specified by start and duration
-The new resulting pattern is played over the time period of the original pattern:
+{- | Plays a portion of a signal, specified by start and duration
+The new resulting signal is played over the time period of the original signal:
 
 @
 d1 $ zoom 0.25 0.75 $ sound "bd*2 hh*3 [sn bd]*2 drum"
 @
 
-In the pattern above, `zoom` is used with an arc from 25% to 75%. It is equivalent to this pattern:
+In the signal above, `zoom` is used with an arc from 25% to 75%. It is equivalent to this signal:
 
 @
 d1 $ sound "hh*3 [sn bd]*2"
@@ -576,7 +582,7 @@ sigRev pat = splitQueries $ Signal f
                 reflect (Arc b e) = Arc (cycle + (next_cycle - e)) (cycle + (next_cycle - b))
 
 
--- | A pattern of whole numbers from 0 up to (and not including) the
+-- | A signal of whole numbers from 0 up to (and not including) the
 -- given number, in a single cycle.
 _sigRun :: (Enum a, Num a) => a -> Signal a
 _sigRun n = fastFromList [0 .. n-1]
@@ -586,7 +592,7 @@ _sigRun n = fastFromList [0 .. n-1]
 _sigScan :: (Enum a, Num a) => a -> Signal a
 _sigScan n = slowcat $ map _run [1 .. n]
 
--- | Similar to @fastCat@, but each pattern is given a relative duration
+-- | Similar to @fastCat@, but each signal is given a relative duration
 sigTimeCat :: [(Time, Signal a)] -> Signal a
 sigTimeCat tps = stack $ map (\(s,e,p) -> _compressArc (Arc (s/total) (e/total)) p) $ arrange 0 tps
     where total = sum $ map fst tps
@@ -599,7 +605,7 @@ sigWhen boolpat f pat = innerJoin $ (\b -> if b then f pat else pat) <$> boolpat
 
 
 {-|
-Only `when` the given test function returns `True` the given pattern
+Only `when` the given test function returns `True` the given signal
 transformation is applied. The test function will be called with the
 current cycle as a number.
 
@@ -609,7 +615,7 @@ d1 $ whenT ((elem '4').show)
   $ sound "hh hc"
 @
 
-The above will only apply `striate 4` to the pattern if the current
+The above will only apply `striate 4` to the signal if the current
 cycle number contains the number 4. So the fourth cycle will be
 striated and the fourteenth and so on. Expect lots of striates after
 cycle number 399.
@@ -624,7 +630,7 @@ _sigPly :: Time -> Signal a -> Signal a
 _sigPly t pat = squeezeJoin $ (_fast t . atom) <$> pat
 
 -- | @segment n p@: 'samples' the signal @p@ at a rate of @n@
--- events per cycle. Useful for turning a continuous pattern into a
+-- events per cycle. Useful for turning a continuous signal into a
 -- discrete one.
 segment :: Signal Time -> Signal a -> Signal a
 segment = _patternify _segment
