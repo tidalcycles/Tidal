@@ -5,7 +5,11 @@
 module Sound.Tidal.Tempo where
 
 import Control.Concurrent.MVar
+
 import qualified Sound.Tidal.Pattern as P
+import qualified Sound.Tidal.Signal.Base as P
+import qualified Sound.Tidal.Types as P
+
 import qualified Sound.OSC.FD as O
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
 import Control.Monad (when)
@@ -43,14 +47,14 @@ import Sound.Tidal.Core (silence)
 instance Show O.UDP where
   show _ = "-unshowable-"
 
-type TransitionMapper = P.Time -> [P.ControlPattern] -> P.ControlPattern
+type TransitionMapper = P.Time -> [P.ControlSignal] -> P.ControlSignal
 
 data TempoAction =
   ResetCycles
-  | SingleTick P.ControlPattern
+  | SingleTick P.ControlSignal
   | SetNudge Double
-  | StreamReplace ID P.ControlPattern
-  | Transition Bool TransitionMapper ID P.ControlPattern
+  | StreamReplace ID P.ControlSignal
+  | Transition Bool TransitionMapper ID P.ControlSignal
 
 data State = State {ticks    :: Int64,
                     start    :: Link.Micros,
@@ -63,8 +67,8 @@ data State = State {ticks    :: Int64,
 data ActionHandler =
   ActionHandler {
     onTick :: TickState -> LinkOperations -> P.ValueMap -> IO P.ValueMap,
-    onSingleTick :: LinkOperations -> P.ValueMap -> P.ControlPattern -> IO P.ValueMap,
-    updatePattern :: ID -> P.ControlPattern -> IO ()
+    onSingleTick :: LinkOperations -> P.ValueMap -> P.ControlSignal -> IO P.ValueMap,
+    updatePattern :: ID -> P.ControlSignal -> IO ()
   }
 
 data LinkOperations =
@@ -163,7 +167,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
           actions <- swapMVar actionsMV [] 
           st' <- processActions st actions
           let logicalEnd = logicalTime (start st') $ ticks st' + 1
-              nextArcStartCycle = P.stop $ nowArc st'
+              nextArcStartCycle = P.end $ nowArc st'
           ss <- Link.createAndCaptureAppSessionState abletonLink
           arcStartTime <- cyclesToTime config ss nextArcStartCycle
           Link.destroySessionState ss
@@ -175,7 +179,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
           do
             streamState <- takeMVar stateMV
             let logicalEnd   = logicalTime (start st) $ ticks st + 1
-                startCycle = P.stop $ nowArc st
+                startCycle = P.end $ nowArc st
             sessionState <- Link.createAndCaptureAppSessionState abletonLink
             endCycle <- timeToCycles' config sessionState logicalEnd
             let st' = st {nowArc = P.Arc startCycle endCycle,
@@ -284,10 +288,10 @@ clocked config stateMV mapMV actionsMV ac abletonLink
             let
               appendPat flag = if flag then (pat:) else id
               updatePS (Just playState) = playState {history = (appendPat historyFlag) (history playState)}
-              updatePS Nothing = PlayState {pattern = silence,
+              updatePS Nothing = PlayState {pattern = P.silence,
                                             mute = False,
                                             solo = False,
-                                            history = (appendPat historyFlag) (silence:[])
+                                            history = (appendPat historyFlag) (P.silence:[])
                                           }
               transition' pat' = do now <- Link.clock abletonLink
                                     ss <- Link.createAndCaptureAppSessionState abletonLink

@@ -13,6 +13,7 @@ import Data.Ratio
 import Data.Fixed (mod')
 import Data.Maybe (catMaybes, isJust, mapMaybe, fromJust)
 import qualified Data.Map.Strict as Map
+import           Data.List (delete, findIndex, (\\))
 import Control.Applicative (liftA2)
 
 import Sound.Tidal.Value
@@ -46,6 +47,8 @@ instance Pattern Signal where
   timeCat = sigTimeCat
   when    = sigWhen
   _ply    = _sigPly
+  collect = sigCollect
+  uncollect = sigUncollect
   _patternify f a pat = innerJoin $ (`f` pat) <$> a
   _patternify2 f a b pat = innerJoin $ (\x y -> f x y pat) <$> a <* b
   toSignal = id
@@ -313,6 +316,11 @@ withQueryArc arcf = withQuery (\state -> state {sArc = arcf $ sArc state})
 
 withQueryTime :: (Time -> Time) -> Signal a -> Signal a
 withQueryTime timef = withQueryArc (withArcTime timef)
+
+-- | @withEvent f p@ returns a new @Pattern@ with f applied to the resulting list of events for each query
+-- function @f@.
+withEvents :: ([Event a] -> [Event b]) -> Signal a -> Signal b
+withEvents f p = p {query = f . query p}
 
 -- ************************************************************ --
 -- Fundamental signals
@@ -603,3 +611,51 @@ segment = _patternify _segment
 
 _segment :: Time -> Signal a -> Signal a
 _segment n p = _fast n (atom id) <* p
+
+--- functions relating to chords/patterns of lists
+
+_sameDur :: Event a -> Event a -> Bool
+_sameDur e1 e2 = (whole e1 == whole e2) && (active e1 == active e2)
+
+_groupEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [[Event a]]
+_groupEventsBy _ [] = []
+_groupEventsBy f (e:es) = eqs:(_groupEventsBy f (es \\ eqs))
+  where eqs = e:[x | x <- es, f e x]
+
+-- assumes that all events in the list have same whole/active
+_collectEvent :: [Event a] -> Maybe (Event [a])
+_collectEvent [] = Nothing
+_collectEvent l@(e:_) = Just $ e {metadata = con, value = vs}
+  where con = unionC $ map metadata l
+        vs = map value l
+        unionC [] = Metadata []
+        unionC ((Metadata is):cs) = Metadata (is ++ iss)
+          where Metadata iss = unionC cs
+
+_collectEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [Event [a]]
+_collectEventsBy f es = remNo $ map _collectEvent (_groupEventsBy f es)
+  where
+    remNo [] = []
+    remNo (Nothing:cs) = remNo cs
+    remNo ((Just c):cs) = c : (remNo cs)
+
+-- | collects all events satisfying the same constraint into a list
+_collectBy :: Eq a => (Event a -> Event a -> Bool) -> Signal a -> Signal [a]
+_collectBy f = withEvents (_collectEventsBy f)
+
+-- | collects all events occuring at the exact same time into a list
+sigCollect :: Eq a => Signal a -> Signal [a]
+sigCollect = _collectBy _sameDur
+
+_uncollectEvent :: Event [a] -> [Event a]
+_uncollectEvent e = [e {value = (value e)!!i, metadata = resolveMetadata i (metadata e)} | i <-[0..length (value e) - 1]]
+  where resolveMetadata i (Metadata xs) = case length xs <= i of
+                                            True -> Metadata []
+                                            False -> Metadata [xs!!i]
+
+_uncollectEvents :: [Event [a]] -> [Event a]
+_uncollectEvents = concatMap _uncollectEvent
+
+-- | merges all values in a list into one pattern by stacking the values
+sigUncollect :: Signal [a] -> Signal a
+sigUncollect = withEvents _uncollectEvents
