@@ -485,8 +485,8 @@ _fastGap :: Time -> Signal a -> Signal a
 _fastGap factor pat = splitQueries $ withEventArc (scale $ 1/factor) $ withQueryArc (scale factor) pat
   where scale factor' arc = Arc b e
           where cycle = sam $ aBegin arc
-                b = cycle + (min 1 $ (aBegin arc - cycle) * factor)
-                e = cycle + (min 1 $ (aEnd   arc - cycle) * factor)
+                b = cycle + (min 1 $ (aBegin arc - cycle) * factor')
+                e = cycle + (min 1 $ (aEnd   arc - cycle) * factor')
 
 -- | Like @fast@, but only plays one cycle of the original signal
 -- once per cycle, leaving a gap
