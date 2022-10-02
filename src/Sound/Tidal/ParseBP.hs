@@ -153,8 +153,8 @@ tShow a = "can't happen? " ++ show a
 
 toPat :: (Parseable a, Enumerable a) => TPat a -> Signal a
 toPat = \case
-   TPat_Atom (Just loc) x -> setMetadata (Metadata [loc]) $ pure x
-   TPat_Atom Nothing x -> pure x
+   TPat_Atom (Just loc) x -> setMetadata (Metadata [loc]) $ atom x
+   TPat_Atom Nothing x -> atom x
    TPat_Fast t x -> fast (toPat t) $ toPat x
    TPat_Slow t x -> slow (toPat t) $ toPat x
    TPat_DegradeBy seed amt x -> _degradeByUsing (_early (0.0001 * fromIntegral seed) rand) amt $ toPat x
@@ -169,8 +169,8 @@ toPat = \case
            pats = map resolve_tpat ps
            steprate :: Signal Rational
            steprate = (maybe base_first toPat mSteprate)
-           base_first | null pats = pure 0
-                      | otherwise = pure $ fst $ head pats
+           base_first | null pats = atom 0
+                      | otherwise = atom $ fst $ head pats
    TPat_Seq xs -> snd $ resolve_seq xs
    TPat_Var s -> getControl s
    TPat_Chord f iP nP mP -> chordToPatSeq f (toPat iP) (toPat nP) (map toPat mP)
