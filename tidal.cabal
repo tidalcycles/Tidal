@@ -93,10 +93,11 @@ test-suite tests
                  -- Sound.Tidal.ScalesTest
                  -- Sound.Tidal.ChordsTest
                  -- Sound.Tidal.StreamTest
-                 Sound.Tidal.TypesTest
                  -- Sound.Tidal.UITest
                  -- Sound.Tidal.UtilsTest
                  -- Sound.Tidal.ExceptionsTest
+                 Sound.Tidal.EventTest
+                 Sound.Tidal.TypesTest
                  TestUtils
   build-depends:
                 base ==4.*
