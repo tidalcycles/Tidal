@@ -434,7 +434,7 @@ seqStackS s strat =
 --       y = map (\t -> if t then s else Gap (seqSpan s)) x
 --   in unwrap $ Sequence y
 
-_patternify f x pat = mapSeq (applyfToSeq f x) pat
+-- _patternify f x pat = mapSeq (applyfToSeq f x) pat
 
 seqWhen :: Sequence Bool -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
 seqWhen boolpat f pat = mapSeq (fmap (\b -> if b then f else id) boolpat) pat

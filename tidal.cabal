@@ -40,8 +40,8 @@ library
                        Sound.Tidal.ParseBP
                        Sound.Tidal.Pattern
                        Sound.Tidal.Scales
-                       Sound.Tidal.Safe.Context
-                       Sound.Tidal.Safe.Boot
+                       -- Sound.Tidal.Safe.Context
+                       -- Sound.Tidal.Safe.Boot
                        Sound.Tidal.Sequence
                        Sound.Tidal.Show
                        Sound.Tidal.Signal.Base
