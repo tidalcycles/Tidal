@@ -1,7 +1,7 @@
 cabal-version:       2.0
 
 name:                tidal
-version:             1.9.1
+version:             2.0.0
 synopsis:            Pattern language for improvised music
 description:         Tidal is a domain specific language for live coding patterns.
 homepage:            http://tidalcycles.org/
@@ -27,12 +27,14 @@ library
 
   autogen-modules:     Paths_tidal
 
-  Exposed-modules:     Sound.Tidal.Bjorklund
+  Exposed-modules:
+                       Sound.Tidal.Arc
+                       Sound.Tidal.Bjorklund
                        Sound.Tidal.Chords
                        Sound.Tidal.Config
-                       Sound.Tidal.Control
+                       -- Sound.Tidal.Control
                        Sound.Tidal.Context
-                       Sound.Tidal.Core
+                       -- Sound.Tidal.Core
                        Sound.Tidal.ID
                        Sound.Tidal.Params
                        Sound.Tidal.ParseBP
@@ -40,15 +42,22 @@ library
                        Sound.Tidal.Scales
                        Sound.Tidal.Safe.Context
                        Sound.Tidal.Safe.Boot
+                       Sound.Tidal.Sequence
                        Sound.Tidal.Show
-                       Sound.Tidal.Simple
+                       Sound.Tidal.Signal.Base
+                       Sound.Tidal.Signal.Compose
+                       Sound.Tidal.Signal.Event
+                       Sound.Tidal.Signal.Random
+                       -- Sound.Tidal.Simple
                        Sound.Tidal.Stream
                        Sound.Tidal.StreamTypes
                        Sound.Tidal.Tempo
                        Sound.Tidal.Time
-                       Sound.Tidal.Transition
-                       Sound.Tidal.UI
+                       Sound.Tidal.Types
+                       -- Sound.Tidal.Transition
+                       -- Sound.Tidal.UI
                        Sound.Tidal.Utils
+                       Sound.Tidal.Value
                        Sound.Tidal.Version
                        Paths_tidal
   Build-depends:
