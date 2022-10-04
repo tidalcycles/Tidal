@@ -28,6 +28,7 @@ import Sound.Tidal.Params as C
 import Sound.Tidal.ParseBP as C
 import Sound.Tidal.Pattern as C
 import Sound.Tidal.Scales as C
+import Sound.Tidal.Sequence as C
 import Sound.Tidal.Signal.Base as C
 import Sound.Tidal.Signal.Compose as C
 import Sound.Tidal.Signal.Random as C

@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, DeriveFunctor, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards, DeriveFunctor, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving, TypeSynonymInstances, FlexibleInstances #-}
 
 -- (c) Alex McLean and contributors 2022
 -- Shared under the terms of the GNU Public License v3.0
