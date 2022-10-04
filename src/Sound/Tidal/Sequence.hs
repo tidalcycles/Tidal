@@ -67,6 +67,7 @@ instance Pattern Sequence where
   _iter'  = _seqIter'
   toSignal = _seqToSignal
   _patternify f x pat = mapSeq (applyfToSeq f x) pat
+--  _patternify2 f a b seq = mapSeq ( ) 
 
 -- -- | Takes sequence of functions and a sequence which have been aligned and applies the functions at the corresponding time points
 funcMap :: [Sequence (a->b)] -> [Sequence a] -> [Sequence b]
@@ -433,6 +434,8 @@ seqStackS s strat =
 --       y = map (\t -> if t then s else Gap (seqSpan s)) x
 --   in unwrap $ Sequence y
 
+_patternify f x pat = mapSeq (applyfToSeq f x) pat
+
 seqWhen :: Sequence Bool -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
 seqWhen boolpat f pat = mapSeq (fmap (\b -> if b then f else id) boolpat) pat
 
@@ -561,6 +564,14 @@ _seqIter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p)
 
 _seqToSignal :: Sequence a -> Signal a
 _seqToSignal (Atom t v) = _fast t $ atom v
-_seqToSignal (Gap _) = silence
-_seqToSignal (Sequence seqs) = timeCat $ map (\seq -> (seqSpan seq, toSignal seq)) seqs
-_seqToSignal (Stack seqs) = stack $ map toSignal seqs
+_seqToSignal (Gap t) = _slow t $ silence
+_seqToSignal (Sequence seqs) = let t = seqSpan (Sequence seqs) in
+  slow (fromRational $ toRational t) $ timeCat $ map (\b-> (seqSpan b, _seqSignalHelp b)) seqs
+_seqToSignal (Stack seqs) = let t = seqSpan (Sequence seqs) in 
+  slow (fromRational $ toRational t) $ stack $ map _seqToSignal seqs
+
+_seqSignalHelp:: Sequence a -> Signal a
+_seqSignalHelp (Atom _ a) = pure a
+_seqSignalHelp (Gap _) = silence
+_seqSignalHelp (Sequence bs) = timeCat $ map (\b -> (seqSpan b, _seqSignalHelp b)) bs
+_seqSignalHelp (Stack bs) = stack $ map _seqToSignal bs
