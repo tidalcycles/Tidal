@@ -11,7 +11,7 @@ import Sound.Tidal.Context
 main = do
   tidal <- startTidal (superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oPort = 57120}) (defaultConfig {cFrameTimespan = 1/20})
   let p = streamReplace tidal
-      d1 = p 1 . (|< orbit 0)
+      d1 = p 1 . (|= orbit 0)
 
   -- This will execute patterns-that-crash-tidal one after another,
   -- interspersed with a simple pattern.
@@ -25,22 +25,23 @@ main = do
         putStrLn $ "---------------- playing simple pattern"
         d1 $ simple ; wait 2
 
-  go [ "cr"
+  go [ s "cr"
 
        -- https://github.com/tidalcycles/Tidal/issues/606#issue-563234396
-     , gain (unwrap $ fmap (["1", "0."]!!) $ "{0 0@7 0 1@7}%16") # s "harmor" # midichan 11
+     , gain (innerJoin $ fmap (["1", "0."]!!) $ "{0 0@7 0 1@7}%16") # s "harmor" # midichan 11
 
        -- https://github.com/tidalcycles/Tidal/issues/606#issuecomment-598776256
-     , superimpose (hurry "<0.5 2?") $ sound "bd"
+     , superimpose (fast "<0.5 2?") $ sound "bd"
 
        -- https://github.com/tidalcycles/Tidal/issues/477#issue-411754641
+     {-
      , let mkpat name pattern = (name,pattern)
            mkfx name fx = (name,fx)
            structure = cat [
              "kicks@8 [kicks,snares]@7 kicks:backrush"
              ,    "[kicks@3 [kicks@3 kicks(3,8,1):r]]@4 [kicks]@4 [kicks]@7 kicks:r"
              ]
-           pats = [ mkpat "kicks" $ sometimes ghost $ s "bd(<4 5 3 6>,16,<0 1 0 3>)" ]
+           pats = [ mkpat "kicks" $ sometimes (ghost) $ s "bd(<4 5 3 6>,16,<0 1 0 3>)" ]
            fx = [ mkfx "r" (# speed "-1") ]
-       in ur 16 structure pats fx
+       in ur 16 structure pats fx -}
      ]

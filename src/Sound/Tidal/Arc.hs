@@ -32,6 +32,10 @@ maybeSect a b = check $ sect a b
         check (Arc a b) | b <= a = Nothing
                         | otherwise = Just (Arc a b)
 
+-- | convex hull union
+hull :: Arc -> Arc -> Arc
+hull (Arc s e) (Arc s' e') = Arc (min s s') (max e e')
+
 -- | Splits a timearc at cycle boundaries
 splitArcs :: Arc -> [Arc]
 splitArcs (Arc b e) | e <= b = []

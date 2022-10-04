@@ -31,6 +31,7 @@ import Sound.Tidal.Scales as C
 import Sound.Tidal.Sequence as C
 import Sound.Tidal.Signal.Base as C
 import Sound.Tidal.Signal.Compose as C
+import Sound.Tidal.Signal.Event as C
 import Sound.Tidal.Signal.Random as C
 import Sound.Tidal.Show as C
 -- import Sound.Tidal.Simple as C

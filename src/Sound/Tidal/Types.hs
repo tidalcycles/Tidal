@@ -15,6 +15,7 @@ import Data.List (intercalate, sortOn)
 import Data.Ratio (numerator, denominator)
 import Data.Maybe (fromMaybe, isJust)
 import Data.Word (Word8)
+import Control.DeepSeq (NFData)
 
 -- | In Tidal, time is rational
 type Time = Rational
@@ -32,6 +33,8 @@ instance Show Note where
       noteInt = round . unNote $ n
       pcs = ["c", "cs", "d", "ds", "e", "f", "fs", "g", "gs", "a", "as", "b"]
 
+instance NFData Note
+
 -- | An event value
 data Value = VS String
            | VF Double
@@ -43,6 +46,9 @@ data Value = VS String
            | VX { xvalue :: [Word8]  } -- Used for OSC 'blobs'
            | VList {lvalue :: [Value]}
            | VState {statevalue :: ValueMap -> (ValueMap, Value)}
+           deriving (Typeable, Generic)
+
+instance NFData Value
 
 -- Class of types able to be turned into a Value
 class Valuable a where
@@ -144,14 +150,21 @@ data State = State {sArc :: Arc,
                     sControls :: ValueMap
                    }
 
--- | Time arc (also known as timespan)
-data Arc = Arc {aBegin :: Time, aEnd :: Time}
-  deriving (Ord, Eq)
+-- | An arc of time, with a start time (or onset) and a stop time (or
+-- offset). Also known as a 'timespan'.
+data ArcF a = Arc
+  { aBegin :: a
+  , aEnd :: a
+  } deriving (Eq, Ord, Functor, Show, Generic)
+
+type Arc = ArcF Time
 
 -- | Metadata - currently just used for sourcecode positions that
 -- caused the event they're stored against
 data Metadata = Metadata {metaSrcPos :: [((Int, Int), (Int, Int))]}
-  deriving (Eq)
+  deriving (Eq, Typeable, Generic, Ord)
+
+instance NFData Metadata
 
 instance Semigroup Metadata where
   (<>) a b = Metadata (metaSrcPos a ++ metaSrcPos b)
@@ -166,11 +179,13 @@ data Event a = Event {metadata :: Metadata,
                       active :: Arc,
                       value :: a
                      }
-  deriving (Functor, Eq)
+  deriving (Functor, Eq, Ord)
 
 -- | A signal - a function from time to events. Known as a Pattern in tidal v1.
 data Signal a = Signal {query :: State -> [Event a]}
-  deriving (Functor)
+  deriving (Functor, Generic)
+
+instance NFData a => NFData (Signal a)
 
 -- | A discrete sequence
 data Sequence a = Atom Time a

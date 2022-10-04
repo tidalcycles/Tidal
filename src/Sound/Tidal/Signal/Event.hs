@@ -7,7 +7,7 @@ module Sound.Tidal.Signal.Event
   )
 where
 
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, isJust)
 import Data.Monoid
 
 import Sound.Tidal.Arc
@@ -15,6 +15,7 @@ import Sound.Tidal.Time
 import Sound.Tidal.Types
 
 import qualified Data.Map.Strict as Map
+import qualified  Data.List as List
 
 -- ************************************************************ --
 -- Event
@@ -80,3 +81,23 @@ resolveState sMap (e:es) = (sMap'', (e {value = v'}):es')
         (sMap'', es') = resolveState sMap' es
         notVState (VState _) = False
         notVState _ = True
+
+-- | Returns 'True' if the two given events are adjacent parts of the same whole
+isAdjacent :: Eq a => Event a -> Event a -> Bool
+isAdjacent e e' = (whole e == whole e')
+                  && (value e == value e')
+                  && ((aEnd (active e) == aBegin (active e'))
+                      ||
+                      (aEnd (active e') == aBegin (active e))
+                     )
+
+-- | Returns a list of events, with any adjacent parts of the same whole combined
+defragParts :: Eq a => [Event a] -> [Event a]
+defragParts [] = []
+defragParts [e] = [e]
+defragParts (e:es) | isJust i = defraged : defragParts (List.delete e' es)
+                   | otherwise = e : defragParts es
+  where i = List.findIndex (isAdjacent e) es
+        e' = es !! fromJust i
+        defraged = Event (metadata e) (whole e) u (value e)
+        u = hull (active e) (active e')

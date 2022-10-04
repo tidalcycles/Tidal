@@ -84,17 +84,19 @@ test-suite tests
   hs-source-dirs:
       test
   ghc-options: -Wall
-  other-modules: Sound.Tidal.ControlTest
-                 Sound.Tidal.CoreTest
-                 Sound.Tidal.ParamsTest
-                 Sound.Tidal.ParseTest
-                 Sound.Tidal.PatternTest
-                 Sound.Tidal.ScalesTest
-                 Sound.Tidal.ChordsTest
-                 Sound.Tidal.StreamTest
-                 Sound.Tidal.UITest
-                 Sound.Tidal.UtilsTest
-                 Sound.Tidal.ExceptionsTest
+  other-modules:
+                 -- Sound.Tidal.ControlTest
+                 -- Sound.Tidal.CoreTest
+                 -- Sound.Tidal.ParamsTest
+                 -- Sound.Tidal.ParseTest
+                 -- Sound.Tidal.PatternTest
+                 -- Sound.Tidal.ScalesTest
+                 -- Sound.Tidal.ChordsTest
+                 -- Sound.Tidal.StreamTest
+                 Sound.Tidal.TypesTest
+                 -- Sound.Tidal.UITest
+                 -- Sound.Tidal.UtilsTest
+                 -- Sound.Tidal.ExceptionsTest
                  TestUtils
   build-depends:
                 base ==4.*

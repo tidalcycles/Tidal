@@ -41,6 +41,9 @@ class (Functor f, Applicative f, Monad f) => Pattern f where
 overlay :: Pattern p => p x -> p x -> p x
 overlay a b = stack [a, b]
 
+superimpose :: Pattern p => (p x -> p x) -> p x -> p x
+superimpose f pat = overlay pat (f pat)
+
 _slow :: Pattern p => Rational -> p x -> p x
 _slow t = _fast (1/t)
 

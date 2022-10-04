@@ -35,26 +35,26 @@ instance TolerantEq (Event ValueMap) where
   (Event _ w p x) ~== (Event _ w' p' x') = w == w' && p == p' && x ~== x'
 
 -- | Compare the events of two patterns using the given arc
-compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
+compareP :: (Ord a, Show a) => Arc -> Signal a -> Signal a -> Property
 compareP a p p' =
-  (sort $ queryArc (stripContext p) a)
+  (sort $ queryArc (stripMetadata p) a)
   `shouldBe`
-  (sort $ queryArc (stripContext p') a)
+  (sort $ queryArc (stripMetadata p') a)
 
 -- | Like @compareP@, but tries to 'defragment' the events
-comparePD :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
+comparePD :: (Ord a, Show a) => Arc -> Signal a -> Signal a -> Property
 comparePD a p p' =
-  (sort $ defragParts $ queryArc (stripContext p) a)
+  (sort $ defragParts $ queryArc (stripMetadata p) a)
   `shouldBe`
-  (sort $ defragParts $ queryArc (stripContext p') a)
+  (sort $ defragParts $ queryArc (stripMetadata p') a)
 
 -- | Like @compareP@, but for control patterns, with some tolerance for floating point error
-compareTol :: Arc -> ControlPattern -> ControlPattern -> Bool
-compareTol a p p' = (sort $ queryArc (stripContext p) a) ~== (sort $ queryArc (stripContext p') a)
+compareTol :: Arc -> ControlSignal -> ControlSignal -> Bool
+compareTol a p p' = (sort $ queryArc (stripMetadata p) a) ~== (sort $ queryArc (stripMetadata p') a)
 
 -- | Utility to create a pattern from a String
-ps :: String -> Pattern String
+ps :: String -> Signal String
 ps = parseBP_E
 
-stripContext :: Pattern a -> Pattern a
-stripContext = setContext $ Context []
+stripMetadata :: Signal a -> Signal a
+stripMetadata = setMetadata $ Metadata []
