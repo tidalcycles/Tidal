@@ -631,11 +631,6 @@ eventHasOnset :: Event a -> Bool
 eventHasOnset e | isAnalog e = False
                 | otherwise = start (fromJust $ whole e) == start (part e)
 
--- TODO - Is this used anywhere? Just tests, it seems
--- TODO - support 'context' field
-toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
-toEvent (((ws, we), (ps, pe)), v) = Event (Context []) (Just $ Arc ws we) (Arc ps pe) v
-
  -- Resolves higher order VState values to plain values, by passing through (and changing) state
 resolveState :: ValueMap -> [Event ValueMap] -> (ValueMap, [Event ValueMap])
 resolveState sMap [] = (sMap, [])

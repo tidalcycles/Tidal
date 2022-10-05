@@ -97,6 +97,7 @@ test-suite tests
                  -- Sound.Tidal.UtilsTest
                  -- Sound.Tidal.ExceptionsTest
                  Sound.Tidal.EventTest
+                 Sound.Tidal.SignalBaseTest
                  Sound.Tidal.TypesTest
                  TestUtils
   build-depends:

@@ -58,3 +58,6 @@ ps = parseBP_E
 
 stripMetadata :: Signal a -> Signal a
 stripMetadata = setMetadata $ Metadata []
+
+toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
+toEvent (((ws, we), (ps, pe)), v) = Event (Metadata []) (Just $ Arc ws we) (Arc ps pe) v

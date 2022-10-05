@@ -9,40 +9,40 @@ import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Types
 
-class (Functor f, Applicative f, Monad f) => Pattern f where
-  toSignal :: f a -> Signal a
-  slowcat :: [f a] -> f a
-  fastcat :: [f a] -> f a
+class (Functor p, Applicative p, Monad p) => Pattern p where
+  toSignal :: p a -> Signal a
+  slowcat :: [p a] -> p a
+  fastcat :: [p a] -> p a
   fastcat pats = _fast (toRational $ length pats) $ slowcat pats
-  _fast :: Rational -> f a -> f a
-  silence :: f a
-  atom :: a -> f a
-  stack :: [f a] -> f a
-  _patternify :: (a -> f b -> f c) -> (f a -> f b -> f c)
-  _patternify2 :: (a -> b -> f c -> f d) -> (f a -> f b -> f c -> f d)
-  _patternify3 :: (a -> b -> c -> f d -> f e) -> (f a -> f b -> f c -> f d -> f e)
-  rev :: f a -> f a
-  _ply :: Rational -> f a-> f a
-  euclid :: f Int -> f Int -> f a -> f a
-  _euclid :: Int -> Int -> f a -> f a
-  timeCat :: [(Rational, f a)] -> f a
-  _run :: (Enum a, Num a) => a -> f a
-  _scan :: (Enum a, Num a) => a -> f a
-  -- every :: f Int -> (f b -> f b) -> f b -> f b
-  when :: f Bool -> (f b -> f b) -> f b -> f b
-  -- listToPat :: [a] -> f a
-  iter :: f Int -> f a -> f a
-  iter' :: f Int -> f a -> f a
-  _iter :: Int -> f a -> f a
-  _iter' :: Int -> f a -> f a
-  collect :: Eq a => f a -> f [a]
-  uncollect :: f [a] -> f a
+  _fast :: Rational -> p a -> p a
+  silence :: p a
+  atom :: a -> p a
+  stack :: [p a] -> p a
+  _patternify :: (a -> p b -> p c) -> (p a -> p b -> p c)
+  _patternify2 :: (a -> b -> p c -> p d) -> (p a -> p b -> p c -> p d)
+  _patternify3 :: (a -> b -> c -> p d -> p e) -> (p a -> p b -> p c -> p d -> p e)
+  rev :: p a -> p a
+  _ply :: Rational -> p a-> p a
+  euclid :: p Int -> p Int -> p a -> p a
+  _euclid :: Int -> Int -> p a -> p a
+  timeCat :: [(Rational, p a)] -> p a
+  _run :: (Enum a, Num a) => a -> p a
+  _scan :: (Enum a, Num a) => a -> p a
+  -- every :: p Int -> (p b -> p b) -> p b -> p b
+  when :: p Bool -> (p b -> p b) -> p b -> p b
+  -- listToPat :: [a] -> p a
+  iter :: p Int -> p a -> p a
+  iter' :: p Int -> p a -> p a
+  _iter :: Int -> p a -> p a
+  _iter' :: Int -> p a -> p a
+  collect :: Eq a => p a -> p [a]
+  uncollect :: p [a] -> p a
 
 overlay :: Pattern p => p x -> p x -> p x
 overlay a b = stack [a, b]
 
 superimpose :: Pattern p => (p x -> p x) -> p x -> p x
-superimpose f pat = overlay pat (f pat)
+superimpose p pat = overlay pat (p pat)
 
 _slow :: Pattern p => Rational -> p x -> p x
 _slow t = _fast (1/t)
@@ -60,6 +60,10 @@ fast = _patternify _fast
 -- | An alias for @fast@
 density :: Pattern p => p Rational -> p x -> p x
 density = fast
+
+-- | An alias for @fastCat@
+fastCat :: Pattern p => [p a] -> p a
+fastCat = fastcat
 
 fastAppend :: Pattern p => p x -> p x -> p x
 fastAppend a b = fastcat [a,b]
