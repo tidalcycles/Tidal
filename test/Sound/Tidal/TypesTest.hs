@@ -74,11 +74,6 @@ run =
 -}
 
 {-
-    describe "mapCycle" $ do
-      it "Apply a function to the Arc values minus the start value rounded down (sam'), adding both results to sam' to obtain the new Arc value" $ do
-        let res = mapCycle (*2) (Arc 3.3 5)
-        property $ ((Arc 3.6 7.0) :: Arc) === res
-
     describe "toTime" $ do
       it "Convert a number of type Real to a Time value of type Rational, Int test" $ do
         let res = toTime (3 :: Int)

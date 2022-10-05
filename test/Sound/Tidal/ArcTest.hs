@@ -38,3 +38,8 @@ run =
      it "if start time is less than end time and start time does not round down to same value as end time" $ do
        let res = splitArcs (Arc 2.1 3.3)
        property $ [(Arc 2.1 3.0), (Arc 3.0 3.3)] === res
+
+    describe "mapCycle" $ do
+      it "Apply a function to the Arc values minus the start value rounded down (sam'), adding both results to sam' to obtain the new Arc value" $ do
+        let res = mapCycle (*2) (Arc 3.3 5)
+        property $ ((Arc 3.6 7.0) :: Arc) === res
