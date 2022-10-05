@@ -11,7 +11,7 @@ import           Data.Ratio
 
 import           Sound.Tidal.Types
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Pattern (atom, fastCat, slow, _slow)
+import           Sound.Tidal.Pattern (atom, fastCat, slow, _slow, fast)
 
 import qualified Data.Map.Strict     as Map
 
@@ -199,4 +199,10 @@ run =
       it "can retrieve values from state" $
        (query (atom 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (VF 0.5)))
        `shouldBe` [(Event (Metadata []) (Just $ Arc (0 % 1) (1 % 1)) (Arc (0 % 1) (1 % 1)) 3.5)]
+
+    describe "withEventArc" $ do 
+     it "apply given function to the Arcs" $ do
+      let p = withEventArc (+5) (stripMetadata $ fast "1 2" "3 4" :: Signal Int) 
+      let res = queryArc p (Arc 0 1)
+      property $ res === fmap toEvent [(((5, 11%2), (5, 11%2)), 3), (((11%2, 23%4), (11%2, 23%4)), 3), (((23%4, 6), (23%4, 6)), 4)]
 

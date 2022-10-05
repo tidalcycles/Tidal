@@ -44,9 +44,9 @@ compareP a p p' =
 -- | Like @compareP@, but tries to 'defragment' the events
 comparePD :: (Ord a, Show a) => Arc -> Signal a -> Signal a -> Property
 comparePD a p p' =
-  (sort $ defragParts $ queryArc (stripMetadata p) a)
+  (sort $ defragActives $ queryArc (stripMetadata p) a)
   `shouldBe`
-  (sort $ defragParts $ queryArc (stripMetadata p') a)
+  (sort $ defragActives $ queryArc (stripMetadata p') a)
 
 -- | Like @compareP@, but for control patterns, with some tolerance for floating point error
 compareTol :: Arc -> ControlSignal -> ControlSignal -> Bool

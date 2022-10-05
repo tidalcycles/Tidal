@@ -16,6 +16,7 @@ import Data.Ratio (numerator, denominator)
 import Data.Maybe (fromMaybe, isJust)
 import Data.Word (Word8)
 import Control.DeepSeq (NFData)
+import Control.Applicative (liftA2)
 
 -- | In Tidal, time is rational
 type Time = Rational
@@ -150,14 +151,31 @@ data State = State {sArc :: Arc,
                     sControls :: ValueMap
                    }
 
--- | An arc of time, with a start time (or onset) and a stop time (or
--- offset). Also known as a 'timespan'.
+-- | Arc - an arc of time, with a start time (or onset) and a stop
+-- time (or offset). Also known as a 'timespan'.
+
 data ArcF a = Arc
   { aBegin :: a
   , aEnd :: a
   } deriving (Eq, Ord, Functor, Show, Generic)
 
 type Arc = ArcF Time
+
+instance Applicative ArcF where
+  pure t = Arc t t
+  (<*>) (Arc sf ef) (Arc sx ex) = Arc (sf sx) (ef ex)
+
+instance Num a => Num (ArcF a) where
+  negate      = fmap negate
+  (+)         = liftA2 (+)
+  (*)         = liftA2 (*)
+  fromInteger = pure . fromInteger
+  abs         = fmap abs
+  signum      = fmap signum
+
+instance (Fractional a) => Fractional (ArcF a) where
+  recip        = fmap recip
+  fromRational = pure . fromRational
 
 -- | Metadata - currently just used for sourcecode positions that
 -- caused the event they're stored against

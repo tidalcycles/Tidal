@@ -18,6 +18,7 @@ import Sound.Tidal.EventTest
 import Sound.Tidal.SignalBaseTest
 import Sound.Tidal.TimeTest
 import Sound.Tidal.TypesTest
+import Sound.Tidal.ValueTest
 
 main :: IO ()
 main = microspec $ do
@@ -35,6 +36,6 @@ main = microspec $ do
   Sound.Tidal.ArcTest.run
   Sound.Tidal.EventTest.run
   Sound.Tidal.SignalBaseTest.run
-  Sound.Tidal.TypesTest.run
   Sound.Tidal.TimeTest.run
-
+  Sound.Tidal.TypesTest.run
+  Sound.Tidal.ValueTest.run

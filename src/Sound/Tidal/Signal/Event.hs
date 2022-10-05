@@ -92,11 +92,11 @@ isAdjacent e e' = (whole e == whole e')
                      )
 
 -- | Returns a list of events, with any adjacent parts of the same whole combined
-defragParts :: Eq a => [Event a] -> [Event a]
-defragParts [] = []
-defragParts [e] = [e]
-defragParts (e:es) | isJust i = defraged : defragParts (List.delete e' es)
-                   | otherwise = e : defragParts es
+defragActives :: Eq a => [Event a] -> [Event a]
+defragActives [] = []
+defragActives [e] = [e]
+defragActives (e:es) | isJust i = defraged : defragActives (List.delete e' es)
+                     | otherwise = e : defragActives es
   where i = List.findIndex (isAdjacent e) es
         e' = es !! fromJust i
         defraged = Event (metadata e) (whole e) u (value e)

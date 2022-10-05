@@ -71,9 +71,6 @@ run =
         let res = arcCyclesZW (Arc 2.1 3.3)
         property $ [(Arc 2.1 3.0), (Arc 3.0 3.3)] === res
 
--}
-
-{-
     describe "toTime" $ do
       it "Convert a number of type Real to a Time value of type Rational, Int test" $ do
         let res = toTime (3 :: Int)
@@ -81,137 +78,10 @@ run =
       it "Convert a number of type Double to a Time value of type Rational" $ do
         let res = toTime (3.2 :: Double)
         property $ (3602879701896397 % 1125899906842624 :: Time) === res
+-}
 
-    describe "cyclePos" $ do
-      it "Subtract a Time value from its value rounded down (the start of the cycle)" $ do
-        let res = cyclePos 2.6
-        property $ (0.6 :: Time) === res
-      it "If no difference between a given Time and the start of the cycle" $ do
-        let res = cyclePos 2
-        property $ (0.0 :: Time) === res
+{-
 
-    describe "isIn" $ do
-      it "Check given Time is inside a given Arc value, Time is greater than start and less than end Arc values" $ do
-        let res = isIn (Arc 2.0 2.8) 2.5
-        property $ True === res
-      it "Given Time is equal to the Arc start value" $ do
-        let res = isIn (Arc 2.0 2.8) 2.0
-        property $ True === res
-      it "Given Time is less than the Arc start value" $ do
-        let res = isIn (Arc 2.0 2.8) 1.4
-        property $ False === res
-      it "Given Time is greater than the Arc end value" $ do
-        let res = isIn (Arc 2.0 2.8) 3.2
-        property $ False === res
-
-    describe "onsetIn" $ do
-      it "If the beginning of an Event is within a given Arc, same rules as 'isIn'" $ do 
-         let res = onsetIn (Arc 2.0 2.8) (Event (Metadata []) (Just $ Arc 2.2 2.7) (Arc 3.3 3.8) (5 :: Int))
-         property $ True === res 
-      it "Beginning of Event is equal to beggining of given Arc" $ do 
-         let res = onsetIn (Arc 2.0 2.8) (Event (Metadata []) (Just $ Arc 2.0 2.7) (Arc 3.3 3.8) (5 :: Int))
-         property $ True === res 
-      it "Beginning of an Event is less than the start of the Arc" $ do 
-         let res = onsetIn (Arc 2.0 2.8) (Event (Metadata []) (Just $ Arc 1.2 1.7) (Arc 3.3 3.8) (5 :: Int))
-         property $ False === res
-      it "Start of Event is greater than the start of the given Arc" $ do 
-         let res = onsetIn (Arc 2.0 2.8) (Event (Metadata []) (Just $ Arc 3.1 3.5) (Arc 4.0 4.6) (5 :: Int))
-         property $ False === res
-
-    describe "subArc" $ do
-      it "Checks if an Arc is within another, returns Just (max $ (fst a1) (fst a2), min $ (snd a1) (snd a2)) if so, otherwise Nothing" $ do       
-        let res = subArc (Arc 2.1 2.4) (Arc 2.4 2.8)
-        property $ Nothing === res
-      it "if max (fst arc1) (fst arc2) <= min (snd arc1) (snd arc2) return Just (max (fst arc1) (fst arc2), min...)" $ do
-        let res = subArc (Arc 2 2.8) (Arc 2.4 2.9)
-        property $ Just (Arc 2.4 2.8) === res
-
-    describe "timeToCycleArc" $ do
-      it "given a Time value return the Arc in which it resides" $ do
-        let res = timeToCycleArc 2.2 
-        property $ (Arc 2.0 3.0) === res
-
-    describe "cyclesInArc" $ do 
-      it "Return a list of cycles in a given arc, if start is greater than end return empty list" $ do 
-        let res = cyclesInArc (Arc 2.4 2.2)
-        property $ ([] :: [Int]) === res
-      it "If start value of Arc is equal to end value return list with start value rounded down" $ do
-        let res = cyclesInArc (Arc 2.4 2.4)
-        property $ ([2] :: [Int]) === res
-      it "if start of Arc is less than end return list of start rounded down to end rounded up minus one" $ do
-        let res = cyclesInArc (Arc 2.2 4.5)
-        property $ ([2,3,4] :: [Int]) === res  
-
-    describe "cycleArcsInArc" $ do
-      it "generates a list of Arcs based on the cycles found within a given a Arc" $ do
-       let res = cycleArcsInArc (Arc 2.2 4.5) 
-       property $ [(Arc 2.0 3.0), (Arc 3.0 4.0), (Arc 4.0 5.0)] === res
-
-    describe "isAdjacent" $ do
-      it "if the given Events are adjacent actives of the same whole" $ do 
-        let res = isAdjacent (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) 5) (Event (Metadata []) (Just $ Arc 1 2) (Arc 4 3) (5 :: Int))
-        property $ True === res 
-      it "if first Arc of of first Event is not equal to first Arc of second Event" $ do
-        let res = isAdjacent (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) 5) (Event (Metadata []) (Just $ Arc 7 8) (Arc 4 3) (5 :: Int))
-        property $ False === res  
-      it "if the value of the first Event does not equal the value of the second Event" $ do 
-        let res = isAdjacent (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) 5) (Event (Metadata []) (Just $ Arc 1 2) (Arc 4 3) (6 :: Int))
-        property $ False === res 
-      it "second value of second Arc of first Event not equal to first value of second Arc in second Event..." $ do
-        let res = isAdjacent (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) 5) (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
-        property $ False === res 
-
-    describe "defragActives" $ do 
-      it "if empty list with no events return empty list" $ do 
-        let res = defragActives ([] :: [Event Int]) 
-        property $ [] === res
-      it "if list consists of only one Event return it as is" $ do 
-        let res = defragActives [(Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))]
-        property $ [Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)] === res 
-      it "if list contains adjacent Events return list with Actives combined" $ do 
-        let res = defragActives [(Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int)), (Event (Metadata []) (Just $ Arc 1 2) (Arc 4 3) (5 :: Int))]
-        property $ [(Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) 5)] === res
-      it "if list contains more than one Event none of which are adjacent, return List as is" $ do 
-        let res = defragActives [(Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) 5), (Event (Metadata []) (Just $ Arc 7 8) (Arc 4 3) (5 :: Int))]
-        property $ [Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) 5, Event (Metadata []) (Just $ Arc 7 8) (Arc 4 3) (5 :: Int)] === res
-
-    describe "sect" $ do 
-      it "take two Arcs and return - Arc (max of two starts) (min of two ends)" $ do
-        let res = sect (Arc 2.2 3) (Arc 2 2.9)
-        property $ Arc 2.2 2.9 == res
-
-    describe "hull" $ do 
-      it "take two Arcs anre return - Arc (min of two starts) (max of two ends)" $ do
-        let res = hull (Arc 2.2 3) (Arc 2 2.9) 
-        property $ Arc 2 3 == res
-
-    describe "withResultArc" $ do 
-     it "apply given function to the Arcs" $ do
-      let p = withResultArc (+5) (stripMetadata $ fast "1 2" "3 4" :: Signal Int) 
-      let res = queryArc p (Arc 0 1)
-      property $ res === fmap toEvent [(((5, 11%2), (5, 11%2)), 3), (((11%2, 23%4), (11%2, 23%4)), 3), (((23%4, 6), (23%4, 6)), 4)]
-
-    describe "applyFIS" $ do 
-      it "apply Float function when value of type VF" $ do 
-        let res = applyFIS (+1) (+1) (++ "1") (VF 1)
-        property $ (VF 2.0) === res
-      it "apply Int function when value of type VI" $ do 
-        let res = applyFIS (+1) (+1) (++ "1") (VI 1)
-        property $ (VI 2) === res
-      it "apply String function when value of type VS" $ do
-        let res = applyFIS (+1) (+1) (++ "1") (VS "1")
-        property $ (VS "11") === res 
-
-    describe "fNum2" $ do
-      it "apply Int function for two Int values" $ do 
-        let res = fNum2 (+) (+) (VI 2) (VI 3)
-        property $ (VI 5) === res 
-      it "apply float function when given two float values" $ do 
-        let res = fNum2 (+) (+) (VF 2) (VF 3)
-        property $ (VF 5.0) === res 
-      it "apply float function when one float and one int value given" $ do
-        let res = fNum2 (+) (+) (VF 2) (VI 3) 
-        property $ (VF 5.0) === res 
 
     describe "getI" $ do 
       it "get Just value when Int value is supplied" $ do

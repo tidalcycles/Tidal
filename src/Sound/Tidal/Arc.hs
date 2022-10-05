@@ -10,6 +10,10 @@ where
 import Sound.Tidal.Time
 import Sound.Tidal.Types
 
+-- | Returns the whole cycle arc that the given arc is in
+timeToCycleArc :: Time -> Arc
+timeToCycleArc t = Arc (sam t) (nextSam t)
+
 -- | Similar to 'fmap' but time is relative to the cycle (i.e. the
 -- sam of the start of the arc)
 mapCycle :: (Time -> Time) -> Arc -> Arc
