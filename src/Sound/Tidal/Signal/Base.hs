@@ -358,10 +358,10 @@ sigSilence = Signal (\_ -> [])
 sigAtom :: a -> Signal a
 sigAtom v = Signal $ \state -> map
                                (\arc -> Event {metadata = mempty,
-                                                whole = Just $ wholeCycle $ aBegin arc,
-                                                active = arc,
-                                                value = v
-                                               }
+                                               whole = Just $ wholeCycle $ aBegin arc,
+                                               active = arc,
+                                               value = v
+                                              }
                                )
                                (splitArcs $ sArc state)
   where wholeCycle :: Time -> Arc

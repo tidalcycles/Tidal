@@ -36,12 +36,15 @@ maybeSect a b = check $ sect a b
 hull :: Arc -> Arc -> Arc
 hull (Arc s e) (Arc s' e') = Arc (min s s') (max e e')
 
--- | Splits a timearc at cycle boundaries
+-- | Splits a timespan at cycle boundaries
 splitArcs :: Arc -> [Arc]
-splitArcs (Arc b e) | e <= b = []
-                    | sam b == sam e = [Arc b e]
-                    | otherwise
-  = Arc b (nextSam b) : splitArcs (Arc (nextSam b) e)
+splitArcs (Arc b e) | b == e = [Arc b e] -- support zero-width arcs
+                    | otherwise = splitArcs' (Arc b e) -- otherwise, recurse
+  where splitArcs' (Arc b e) | e <= b = []
+                             | sam b == sam e = [Arc b e]
+                             | otherwise
+          = (Arc b (nextSam b)):(splitArcs' (Arc (nextSam b) e))
+
 
 -- | Shifts a timearc to one of equal duration that starts within cycle zero.
 -- (Note that the output timearc probably does not start *at* Time 0 --
