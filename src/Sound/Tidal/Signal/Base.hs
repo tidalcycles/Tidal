@@ -337,8 +337,17 @@ withArcTime timef (Arc b e) = Arc (timef b) (timef e)
 withQuery :: (State -> State) -> Signal a -> Signal a
 withQuery statef sig = Signal $ \state -> query sig $ statef state
 
+withQueryMaybe :: (State -> Maybe State) -> Signal a -> Signal a
+withQueryMaybe statef sig = Signal $ \state -> fromMaybe [] $ do state' <- statef state
+                                                                 return $ query sig state'
+
 withQueryArc :: (Arc -> Arc) -> Signal a -> Signal a
 withQueryArc arcf = withQuery (\state -> state {sArc = arcf $ sArc state})
+
+withQueryArcMaybe :: (Arc -> Maybe Arc) -> Signal a -> Signal a
+withQueryArcMaybe arcf = withQueryMaybe (\state -> do a <- arcf $ sArc state
+                                                      return $ state {sArc = a}
+                                        )
 
 withQueryTime :: (Time -> Time) -> Signal a -> Signal a
 withQueryTime timef = withQueryArc (withArcTime timef)
@@ -482,8 +491,12 @@ _sigFast :: Time -> Signal a -> Signal a
 _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
 
 _fastGap :: Time -> Signal a -> Signal a
-_fastGap factor pat = splitQueries $ withEventArc (scale $ 1/factor) $ withQueryArc (scale factor) pat
-  where scale factor' arc = Arc b e
+_fastGap factor pat = splitQueries $ withEventArc scaleEvent $ withQueryArcMaybe scaleQuery pat
+  where scaleEvent = scale (1/factor)
+        -- A bit fiddly, to drop zero-width queries of the start of the next cycle
+        scaleQuery a@(Arc b e) = if (sam (aBegin a') > sam b) then Nothing else Just a'
+          where a' = scale factor a
+        scale factor' arc = Arc b e
           where cycle = sam $ aBegin arc
                 b = cycle + (min 1 $ (aBegin arc - cycle) * factor')
                 e = cycle + (min 1 $ (aEnd   arc - cycle) * factor')
