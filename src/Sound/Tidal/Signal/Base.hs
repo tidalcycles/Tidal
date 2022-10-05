@@ -61,7 +61,7 @@ instance Pattern Signal where
 -- ************************************************************ --
 
 instance Applicative Signal where
-  pure = steady
+  pure = atom -- TODO - would this be better as 'steady'?
   (<*>) = app
 
 -- | Apply a pattern of values to a pattern of functions, given a
