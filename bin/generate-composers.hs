@@ -83,7 +83,7 @@ hows = [("Mix",      (\x -> "|" ++ x ++ "|")),
         ("Squeeze",  ("||" ++) ),
         ("SqueezeOut",  (++ "||") ),
         ("Trig",     ("!" ++)  ),
-        ("TrigZero", ("!!" ++) )
+        ("Trigzero", ("!!" ++) )
        ]
 
 fwhat (sig, ops) = concatMap fop ops

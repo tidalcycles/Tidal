@@ -14,9 +14,8 @@ import Data.Bits
 
 import qualified Data.Map.Strict as Map
 
-import Sound.Tidal.Signal.Base
 import Sound.Tidal.Types
-import Sound.Tidal.Value
+import Sound.Tidal.Signal.Base
 
 -- ************************************************************ --
 -- Hack to allow 'union' to be used on any value
@@ -52,8 +51,8 @@ opSqueezeOut f pata patb = squeezeJoin $ fmap (\a -> fmap (\b -> f b a)  pata) p
 opTrig :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opTrig f a b = trigJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
   
-opTrigZero :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
-opTrigZero f a b = trigZeroJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
+opTrigzero :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
+opTrigzero f a b = trigzeroJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
 
 -- ************************************************************ --
 
@@ -61,6 +60,30 @@ opTrigZero f a b = trigZeroJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
 
 (#) :: Unionable b => Signal b -> Signal b -> Signal b
 (#) = (|=)
+
+struct :: Unionable a => Signal Bool -> Signal a -> Signal a
+struct = flip keepifOut
+
+structAll :: Unionable a => Signal a -> Signal a -> Signal a
+structAll = flip keepOut
+
+mask :: Unionable a => Signal Bool -> Signal a -> Signal a
+mask = flip keepifIn
+
+maskAll :: Unionable a => Signal a -> Signal a -> Signal a
+maskAll = flip keepIn
+
+reset :: Unionable a => Signal Bool -> Signal a -> Signal a
+reset = flip keepifTrig
+
+resetAll :: Unionable a => Signal a -> Signal a -> Signal a
+resetAll = flip keepTrig
+
+restart :: Unionable a => Signal Bool -> Signal a -> Signal a
+restart = flip keepifTrigzero
+
+restartAll :: Unionable a => Signal a -> Signal a -> Signal a
+restartAll = flip keepTrigzero
 
 -- ************************************************************ --
 
@@ -90,9 +113,9 @@ setTrig, (!=) :: Unionable a => Signal a -> Signal a -> Signal a
 setTrig pata patb = opTrig (flip union) pata patb
 (!=) = setTrig
 
-setTrigZero, (!!=) :: Unionable a => Signal a -> Signal a -> Signal a
-setTrigZero pata patb = opTrigZero (flip union) pata patb
-(!!=) = setTrigZero
+setTrigzero, (!!=) :: Unionable a => Signal a -> Signal a -> Signal a
+setTrigzero pata patb = opTrigzero (flip union) pata patb
+(!!=) = setTrigzero
 
 infix 4 |=|, |=, =|, ||=, =||, !=, !!=
 
@@ -122,9 +145,9 @@ keepTrig, (!.) :: Unionable a => Signal a -> Signal a -> Signal a
 keepTrig pata patb = opTrig (union) pata patb
 (!.) = keepTrig
 
-keepTrigZero, (!!.) :: Unionable a => Signal a -> Signal a -> Signal a
-keepTrigZero pata patb = opTrigZero (union) pata patb
-(!!.) = keepTrigZero
+keepTrigzero, (!!.) :: Unionable a => Signal a -> Signal a -> Signal a
+keepTrigzero pata patb = opTrigzero (union) pata patb
+(!!.) = keepTrigzero
 
 infix 4 |.|, |., .|, ||., .||, !., !!.
 
@@ -154,9 +177,9 @@ keepifTrig, (!?) :: Unionable a => Signal a -> Signal Bool -> Signal a
 keepifTrig pata patb = filterJusts $ opTrig (\a b -> if b then Just a else Nothing) pata patb
 (!?) = keepifTrig
 
-keepifTrigZero, (!!?) :: Unionable a => Signal a -> Signal Bool -> Signal a
-keepifTrigZero pata patb = filterJusts $ opTrigZero (\a b -> if b then Just a else Nothing) pata patb
-(!!?) = keepifTrigZero
+keepifTrigzero, (!!?) :: Unionable a => Signal a -> Signal Bool -> Signal a
+keepifTrigzero pata patb = filterJusts $ opTrigzero (\a b -> if b then Just a else Nothing) pata patb
+(!!?) = keepifTrigzero
 
 infix 4 |?|, |?, ?|, ||?, ?||, !?, !!?
 
@@ -186,9 +209,9 @@ addTrig, (!+) :: Num a => Signal a -> Signal a -> Signal a
 addTrig pata patb = opTrig (+) pata patb
 (!+) = addTrig
 
-addTrigZero, (!!+) :: Num a => Signal a -> Signal a -> Signal a
-addTrigZero pata patb = opTrigZero (+) pata patb
-(!!+) = addTrigZero
+addTrigzero, (!!+) :: Num a => Signal a -> Signal a -> Signal a
+addTrigzero pata patb = opTrigzero (+) pata patb
+(!!+) = addTrigzero
 
 infix 4 |+|, |+, +|, ||+, +||, !+, !!+
 
@@ -218,9 +241,9 @@ subTrig, (!-) :: Num a => Signal a -> Signal a -> Signal a
 subTrig pata patb = opTrig (-) pata patb
 (!-) = subTrig
 
-subTrigZero, (!!-) :: Num a => Signal a -> Signal a -> Signal a
-subTrigZero pata patb = opTrigZero (-) pata patb
-(!!-) = subTrigZero
+subTrigzero, (!!-) :: Num a => Signal a -> Signal a -> Signal a
+subTrigzero pata patb = opTrigzero (-) pata patb
+(!!-) = subTrigzero
 
 infix 4 |-|, |-, -|, ||-, -||, !-, !!-
 
@@ -250,9 +273,9 @@ mulTrig, (!*) :: Num a => Signal a -> Signal a -> Signal a
 mulTrig pata patb = opTrig (*) pata patb
 (!*) = mulTrig
 
-mulTrigZero, (!!*) :: Num a => Signal a -> Signal a -> Signal a
-mulTrigZero pata patb = opTrigZero (*) pata patb
-(!!*) = mulTrigZero
+mulTrigzero, (!!*) :: Num a => Signal a -> Signal a -> Signal a
+mulTrigzero pata patb = opTrigzero (*) pata patb
+(!!*) = mulTrigzero
 
 infix 4 |*|, |*, *|, ||*, *||, !*, !!*
 
@@ -282,9 +305,9 @@ divTrig, (!/) :: Fractional a => Signal a -> Signal a -> Signal a
 divTrig pata patb = opTrig (/) pata patb
 (!/) = divTrig
 
-divTrigZero, (!!/) :: Fractional a => Signal a -> Signal a -> Signal a
-divTrigZero pata patb = opTrigZero (/) pata patb
-(!!/) = divTrigZero
+divTrigzero, (!!/) :: Fractional a => Signal a -> Signal a -> Signal a
+divTrigzero pata patb = opTrigzero (/) pata patb
+(!!/) = divTrigzero
 
 infix 4 |/|, |/, /|, ||/, /||, !/, !!/
 
@@ -314,9 +337,9 @@ modTrig, (!%) :: Integral a => Signal a -> Signal a -> Signal a
 modTrig pata patb = opTrig (mod) pata patb
 (!%) = modTrig
 
-modTrigZero, (!!%) :: Integral a => Signal a -> Signal a -> Signal a
-modTrigZero pata patb = opTrigZero (mod) pata patb
-(!!%) = modTrigZero
+modTrigzero, (!!%) :: Integral a => Signal a -> Signal a -> Signal a
+modTrigzero pata patb = opTrigzero (mod) pata patb
+(!!%) = modTrigzero
 
 infix 4 |%|, |%, %|, ||%, %||, !%, !!%
 
@@ -346,9 +369,9 @@ powTrig, (!^) :: Integral a => Signal a -> Signal a -> Signal a
 powTrig pata patb = opTrig (^) pata patb
 (!^) = powTrig
 
-powTrigZero, (!!^) :: Integral a => Signal a -> Signal a -> Signal a
-powTrigZero pata patb = opTrigZero (^) pata patb
-(!!^) = powTrigZero
+powTrigzero, (!!^) :: Integral a => Signal a -> Signal a -> Signal a
+powTrigzero pata patb = opTrigzero (^) pata patb
+(!!^) = powTrigzero
 
 infix 4 |^|, |^, ^|, ||^, ^||, !^, !!^
 
@@ -378,9 +401,9 @@ powfTrig, (!**) :: Floating a => Signal a -> Signal a -> Signal a
 powfTrig pata patb = opTrig (**) pata patb
 (!**) = powfTrig
 
-powfTrigZero, (!!**) :: Floating a => Signal a -> Signal a -> Signal a
-powfTrigZero pata patb = opTrigZero (**) pata patb
-(!!**) = powfTrigZero
+powfTrigzero, (!!**) :: Floating a => Signal a -> Signal a -> Signal a
+powfTrigzero pata patb = opTrigzero (**) pata patb
+(!!**) = powfTrigzero
 
 infix 4 |**|, |**, **|, ||**, **||, !**, !!**
 
@@ -410,9 +433,9 @@ concatTrig, (!++) :: Signal String -> Signal String -> Signal String
 concatTrig pata patb = opTrig (++) pata patb
 (!++) = concatTrig
 
-concatTrigZero, (!!++) :: Signal String -> Signal String -> Signal String
-concatTrigZero pata patb = opTrigZero (++) pata patb
-(!!++) = concatTrigZero
+concatTrigzero, (!!++) :: Signal String -> Signal String -> Signal String
+concatTrigzero pata patb = opTrigzero (++) pata patb
+(!!++) = concatTrigzero
 
 infix 4 |++|, |++, ++|, ||++, ++||, !++, !!++
 
@@ -442,9 +465,9 @@ bandTrig, (!.&.) :: Bits a => Signal a -> Signal a -> Signal a
 bandTrig pata patb = opTrig (.&.) pata patb
 (!.&.) = bandTrig
 
-bandTrigZero, (!!.&.) :: Bits a => Signal a -> Signal a -> Signal a
-bandTrigZero pata patb = opTrigZero (.&.) pata patb
-(!!.&.) = bandTrigZero
+bandTrigzero, (!!.&.) :: Bits a => Signal a -> Signal a -> Signal a
+bandTrigzero pata patb = opTrigzero (.&.) pata patb
+(!!.&.) = bandTrigzero
 
 infix 4 |.&.|, |.&., .&.|, ||.&., .&.||, !.&., !!.&.
 
@@ -474,9 +497,9 @@ borTrig, (!.|.) :: Bits a => Signal a -> Signal a -> Signal a
 borTrig pata patb = opTrig (.|.) pata patb
 (!.|.) = borTrig
 
-borTrigZero, (!!.|.) :: Bits a => Signal a -> Signal a -> Signal a
-borTrigZero pata patb = opTrigZero (.|.) pata patb
-(!!.|.) = borTrigZero
+borTrigzero, (!!.|.) :: Bits a => Signal a -> Signal a -> Signal a
+borTrigzero pata patb = opTrigzero (.|.) pata patb
+(!!.|.) = borTrigzero
 
 infix 4 |.|.|, |.|., .|.|, ||.|., .|.||, !.|., !!.|.
 
@@ -506,9 +529,9 @@ bxorTrig, (!.^.) :: Bits a => Signal a -> Signal a -> Signal a
 bxorTrig pata patb = opTrig (xor) pata patb
 (!.^.) = bxorTrig
 
-bxorTrigZero, (!!.^.) :: Bits a => Signal a -> Signal a -> Signal a
-bxorTrigZero pata patb = opTrigZero (xor) pata patb
-(!!.^.) = bxorTrigZero
+bxorTrigzero, (!!.^.) :: Bits a => Signal a -> Signal a -> Signal a
+bxorTrigzero pata patb = opTrigzero (xor) pata patb
+(!!.^.) = bxorTrigzero
 
 infix 4 |.^.|, |.^., .^.|, ||.^., .^.||, !.^., !!.^.
 
@@ -538,9 +561,9 @@ bshiftlTrig, (!.<<.) :: Bits a => Signal a -> Signal Int -> Signal a
 bshiftlTrig pata patb = opTrig (shiftL) pata patb
 (!.<<.) = bshiftlTrig
 
-bshiftlTrigZero, (!!.<<.) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftlTrigZero pata patb = opTrigZero (shiftL) pata patb
-(!!.<<.) = bshiftlTrigZero
+bshiftlTrigzero, (!!.<<.) :: Bits a => Signal a -> Signal Int -> Signal a
+bshiftlTrigzero pata patb = opTrigzero (shiftL) pata patb
+(!!.<<.) = bshiftlTrigzero
 
 infix 4 |.<<.|, |.<<., .<<.|, ||.<<., .<<.||, !.<<., !!.<<.
 
@@ -570,9 +593,9 @@ bshiftrTrig, (!.>>.) :: Bits a => Signal a -> Signal Int -> Signal a
 bshiftrTrig pata patb = opTrig (shiftR) pata patb
 (!.>>.) = bshiftrTrig
 
-bshiftrTrigZero, (!!.>>.) :: Bits a => Signal a -> Signal Int -> Signal a
-bshiftrTrigZero pata patb = opTrigZero (shiftR) pata patb
-(!!.>>.) = bshiftrTrigZero
+bshiftrTrigzero, (!!.>>.) :: Bits a => Signal a -> Signal Int -> Signal a
+bshiftrTrigzero pata patb = opTrigzero (shiftR) pata patb
+(!!.>>.) = bshiftrTrigzero
 
 infix 4 |.>>.|, |.>>., .>>.|, ||.>>., .>>.||, !.>>., !!.>>.
 
@@ -602,9 +625,9 @@ ltTrig, (!<) :: Ord a => Signal a -> Signal a -> Signal Bool
 ltTrig pata patb = opTrig (<) pata patb
 (!<) = ltTrig
 
-ltTrigZero, (!!<) :: Ord a => Signal a -> Signal a -> Signal Bool
-ltTrigZero pata patb = opTrigZero (<) pata patb
-(!!<) = ltTrigZero
+ltTrigzero, (!!<) :: Ord a => Signal a -> Signal a -> Signal Bool
+ltTrigzero pata patb = opTrigzero (<) pata patb
+(!!<) = ltTrigzero
 
 infix 4 |<|, |<, <|, ||<, <||, !<, !!<
 
@@ -634,9 +657,9 @@ gtTrig, (!>) :: Ord a => Signal a -> Signal a -> Signal Bool
 gtTrig pata patb = opTrig (>) pata patb
 (!>) = gtTrig
 
-gtTrigZero, (!!>) :: Ord a => Signal a -> Signal a -> Signal Bool
-gtTrigZero pata patb = opTrigZero (>) pata patb
-(!!>) = gtTrigZero
+gtTrigzero, (!!>) :: Ord a => Signal a -> Signal a -> Signal Bool
+gtTrigzero pata patb = opTrigzero (>) pata patb
+(!!>) = gtTrigzero
 
 infix 4 |>|, |>, >|, ||>, >||, !>, !!>
 
@@ -666,9 +689,9 @@ lteTrig, (!<=) :: Ord a => Signal a -> Signal a -> Signal Bool
 lteTrig pata patb = opTrig (<=) pata patb
 (!<=) = lteTrig
 
-lteTrigZero, (!!<=) :: Ord a => Signal a -> Signal a -> Signal Bool
-lteTrigZero pata patb = opTrigZero (<=) pata patb
-(!!<=) = lteTrigZero
+lteTrigzero, (!!<=) :: Ord a => Signal a -> Signal a -> Signal Bool
+lteTrigzero pata patb = opTrigzero (<=) pata patb
+(!!<=) = lteTrigzero
 
 infix 4 |<=|, |<=, <=|, ||<=, <=||, !<=, !!<=
 
@@ -698,9 +721,9 @@ gteTrig, (!>=) :: Ord a => Signal a -> Signal a -> Signal Bool
 gteTrig pata patb = opTrig (>=) pata patb
 (!>=) = gteTrig
 
-gteTrigZero, (!!>=) :: Ord a => Signal a -> Signal a -> Signal Bool
-gteTrigZero pata patb = opTrigZero (>=) pata patb
-(!!>=) = gteTrigZero
+gteTrigzero, (!!>=) :: Ord a => Signal a -> Signal a -> Signal Bool
+gteTrigzero pata patb = opTrigzero (>=) pata patb
+(!!>=) = gteTrigzero
 
 infix 4 |>=|, |>=, >=|, ||>=, >=||, !>=, !!>=
 
@@ -730,9 +753,9 @@ eqTrig, (!==) :: Eq a => Signal a -> Signal a -> Signal Bool
 eqTrig pata patb = opTrig (==) pata patb
 (!==) = eqTrig
 
-eqTrigZero, (!!==) :: Eq a => Signal a -> Signal a -> Signal Bool
-eqTrigZero pata patb = opTrigZero (==) pata patb
-(!!==) = eqTrigZero
+eqTrigzero, (!!==) :: Eq a => Signal a -> Signal a -> Signal Bool
+eqTrigzero pata patb = opTrigzero (==) pata patb
+(!!==) = eqTrigzero
 
 infix 4 |==|, |==, ==|, ||==, ==||, !==, !!==
 
@@ -762,9 +785,9 @@ neTrig, (!/=) :: Eq a => Signal a -> Signal a -> Signal Bool
 neTrig pata patb = opTrig (/=) pata patb
 (!/=) = neTrig
 
-neTrigZero, (!!/=) :: Eq a => Signal a -> Signal a -> Signal Bool
-neTrigZero pata patb = opTrigZero (/=) pata patb
-(!!/=) = neTrigZero
+neTrigzero, (!!/=) :: Eq a => Signal a -> Signal a -> Signal Bool
+neTrigzero pata patb = opTrigzero (/=) pata patb
+(!!/=) = neTrigzero
 
 infix 4 |/=|, |/=, /=|, ||/=, /=||, !/=, !!/=
 
@@ -794,9 +817,9 @@ andTrig, (!&&) :: Signal Bool -> Signal Bool -> Signal Bool
 andTrig pata patb = opTrig (&&) pata patb
 (!&&) = andTrig
 
-andTrigZero, (!!&&) :: Signal Bool -> Signal Bool -> Signal Bool
-andTrigZero pata patb = opTrigZero (&&) pata patb
-(!!&&) = andTrigZero
+andTrigzero, (!!&&) :: Signal Bool -> Signal Bool -> Signal Bool
+andTrigzero pata patb = opTrigzero (&&) pata patb
+(!!&&) = andTrigzero
 
 infix 4 |&&|, |&&, &&|, ||&&, &&||, !&&, !!&&
 
@@ -826,9 +849,9 @@ orTrig, (!.||.) :: Signal Bool -> Signal Bool -> Signal Bool
 orTrig pata patb = opTrig (||) pata patb
 (!.||.) = orTrig
 
-orTrigZero, (!!.||.) :: Signal Bool -> Signal Bool -> Signal Bool
-orTrigZero pata patb = opTrigZero (||) pata patb
-(!!.||.) = orTrigZero
+orTrigzero, (!!.||.) :: Signal Bool -> Signal Bool -> Signal Bool
+orTrigzero pata patb = opTrigzero (||) pata patb
+(!!.||.) = orTrigzero
 
 infix 4 |.||.|, |.||., .||.|, ||.||., .||.||, !.||., !!.||.
 
