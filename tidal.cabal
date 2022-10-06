@@ -99,7 +99,9 @@ test-suite tests
                  Sound.Tidal.ArcTest
                  Sound.Tidal.ChordsTest
                  Sound.Tidal.EventTest
+                 Sound.Tidal.ExceptionsTest
                  Sound.Tidal.ParamsTest
+                 Sound.Tidal.ParseBPTest
                  Sound.Tidal.SignalBaseTest
                  Sound.Tidal.StreamTest
                  Sound.Tidal.TimeTest

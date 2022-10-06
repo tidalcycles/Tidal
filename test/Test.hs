@@ -16,7 +16,9 @@ import Test.Microspec
 import Sound.Tidal.ArcTest
 import Sound.Tidal.ChordsTest
 import Sound.Tidal.EventTest
+import Sound.Tidal.ExceptionsTest
 import Sound.Tidal.ParamsTest
+import Sound.Tidal.ParseBPTest
 import Sound.Tidal.SignalBaseTest
 import Sound.Tidal.StreamTest
 import Sound.Tidal.TimeTest
@@ -39,7 +41,9 @@ main = microspec $ do
   Sound.Tidal.ArcTest.run
   Sound.Tidal.ChordsTest.run
   Sound.Tidal.EventTest.run
+  Sound.Tidal.ExceptionsTest.run
   Sound.Tidal.ParamsTest.run
+  Sound.Tidal.ParseBPTest.run
   Sound.Tidal.SignalBaseTest.run
   Sound.Tidal.StreamTest.run
   Sound.Tidal.TimeTest.run
