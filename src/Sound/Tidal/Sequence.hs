@@ -257,11 +257,6 @@ seqRev (Sequence bs) = Sequence $ reverse $ map rev bs
 seqRev (Stack bs) = Stack $ map rev bs
 seqRev b = b
 
-cat :: [Sequence a] -> Sequence a
-cat [] = Gap 0
-cat [b] = b
-cat bs = Sequence bs
-
 -- ply :: Sequence Time -> Sequence a -> Sequence a
 -- ply sr s =  mapSeq (applyfToSeq _ply sr) s
 
