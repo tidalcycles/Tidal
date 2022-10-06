@@ -176,8 +176,8 @@ _trigTimeJoin timeF patOfPats = Signal $ \state -> concatMap (queryInner state) 
 trigJoin :: Signal (Signal a) -> Signal a
 trigJoin = _trigTimeJoin id
 
-trigZeroJoin :: Signal (Signal a) -> Signal a
-trigZeroJoin = _trigTimeJoin cyclePos
+trigzeroJoin :: Signal (Signal a) -> Signal a
+trigzeroJoin = _trigTimeJoin cyclePos
 
 -- ************************************************************ --
 -- Signals as numbers

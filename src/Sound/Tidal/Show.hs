@@ -29,7 +29,7 @@ import Sound.Tidal.Signal.Event (eventHasOnset)
 
 import Data.List (intercalate, sortOn)
 import Data.Ratio (numerator, denominator)
-import Data.Maybe (fromMaybe, isJust)
+import Data.Maybe (fromMaybe)
 
 import qualified Data.Map.Strict as Map
 
