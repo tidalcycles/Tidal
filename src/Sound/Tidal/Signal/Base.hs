@@ -352,10 +352,15 @@ withQueryArcMaybe arcf = withQueryMaybe (\state -> do a <- arcf $ sArc state
 withQueryTime :: (Time -> Time) -> Signal a -> Signal a
 withQueryTime timef = withQueryArc (withArcTime timef)
 
--- | @withEvent f p@ returns a new @Signal@ with f applied to the resulting list of events for each query
+-- | @withEvents f p@ returns a new @Signal@ with f applied to the resulting list of events for each query
 -- function @f@.
 withEvents :: ([Event a] -> [Event b]) -> Signal a -> Signal b
 withEvents f p = p {query = f . query p}
+
+-- | @withEvent f p@ returns a new @Signal@ with f applied to each event queried
+-- function @f@.
+withEvent :: (Event a -> Event b) -> Signal a -> Signal b
+withEvent f = withEvents (map f)
 
 -- ************************************************************ --
 -- Fundamental signals
@@ -489,15 +494,26 @@ _sigFast :: Time -> Signal a -> Signal a
 _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
 
 _fastGap :: Time -> Signal a -> Signal a
-_fastGap factor pat = splitQueries $ withEventArc scaleEvent $ withQueryArcMaybe scaleQuery pat
-  where scaleEvent = scale (1/factor)
-        -- A bit fiddly, to drop zero-width queries of the start of the next cycle
-        scaleQuery a@(Arc b e) = if (sam (aBegin a') > sam b) then Nothing else Just a'
-          where a' = scale factor a
-        scale factor' arc = Arc b e
-          where cycle = sam $ aBegin arc
-                b = cycle + (min 1 $ (aBegin arc - cycle) * factor')
-                e = cycle + (min 1 $ (aEnd   arc - cycle) * factor')
+_fastGap factor pat = splitQueries $ withEvent ef $ withQueryArcMaybe qf pat
+  -- A bit fiddly, to drop zero-width queries at the start of the next cycle
+  where qf (Arc b e) | bpos < 1 = Just $ Arc (cycle + bpos) (cycle + epos)
+                     | otherwise = Nothing
+          where cycle = sam b
+                bpos = min 1 $ (b - cycle) * factor
+                epos = min 1 $ (e - cycle) * factor
+        -- Also fiddly, to maintain the right 'whole' relative to the part
+        ef ev = ev {whole = w', active = a'}
+          where a = active ev
+                b = aBegin a
+                e = aEnd a
+                a' = Arc (cycle + bpos) (cycle + epos)
+                  where cycle = sam b
+                        bpos = min 1 $ (b - cycle) / factor
+                        epos = min 1 $ (e - cycle) / factor
+                w' = do w <- whole ev
+                        let b' = aBegin a' - ((b - (aBegin w)) / factor)
+                            e' = aEnd a' + (((aEnd w) - e) / factor)
+                        return $ Arc b' e'
 
 -- | Like @fast@, but only plays one cycle of the original signal
 -- once per cycle, leaving a gap

@@ -11,7 +11,7 @@ import           Data.Ratio
 
 import           Sound.Tidal.Types
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Pattern (atom, fastCat, slow, _slow, fast)
+import           Sound.Tidal.Pattern (atom, fastCat, slow, _slow, fast, timeCat)
 import           Sound.Tidal.Signal.Compose (struct)
 
 import qualified Data.Map.Strict     as Map
@@ -44,6 +44,14 @@ run =
           [(Event (Metadata []) (Just $ Arc (1 % 1) (5 % 4)) (Arc (1 % 1) (5 % 4)) ("a" :: String)),
            (Event (Metadata []) (Just $ Arc (5 % 4) (3 % 2)) (Arc (5 % 4) (3 % 2)) "b")
           ]
+      it "copes with breaking up events across cycles" $ do
+        (queryArc (stripMetadata $ _fastGap 2 $ slow 2 "a") (Arc 0 2))
+          `shouldBe`
+          [(Event (Metadata []) (Just $ Arc 0 1) (Arc 0 0.5) ("a" :: String)),
+           (Event (Metadata []) (Just $ Arc 0.5 1.5) (Arc 1 1.5) "a")
+          ]
+
+        
       it "does not return events outside of the query" $ do
         (queryArc(_fastGap 2 $ fastCat [atom "a", atom ("b" :: String)]) (Arc 0.5 0.9))
           `shouldBe` []
@@ -248,3 +256,9 @@ run =
         let res = queryArc (stripMetadata $ _compressArc (Arc 0.2 0.8) p) (Arc 0 1)
         let expected = fmap toEvent [(((1%5, 1%2), (1%5, 1%2)), 3%1), (((1%2, 13%20), (1%2, 13%20)), 3%1), (((13%20, 4%5), (13%20, 4%5)), 4%1)]
         property $ expected === res
+
+    describe "timecat" $ do
+      it "works across cycle boundaries" $ do
+        queryArc (timeCat [(1, (slow 2 "a") :: Signal String)]) (Arc 0 2)
+        `shouldBe`
+        queryArc (slow 2 "a" :: Signal String) (Arc 0 2)

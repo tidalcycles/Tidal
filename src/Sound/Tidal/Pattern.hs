@@ -61,10 +61,13 @@ fast = _patternify _fast
 density :: Pattern p => p Rational -> p x -> p x
 density = fast
 
--- | Aliases for @fastcat@
-fastCat, cat :: Pattern p => [p a] -> p a
+-- | Alias for @fastcat@
+fastCat :: Pattern p => [p a] -> p a
 fastCat = fastcat
-cat = fastcat
+
+-- | Alias for @slowcat@
+cat :: Pattern p => [p a] -> p a
+cat = slowcat
 
 fastAppend :: Pattern p => p x -> p x -> p x
 fastAppend a b = fastcat [a,b]
