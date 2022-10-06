@@ -41,3 +41,31 @@ run =
       it "apply float function when one float and one int value given" $ do
         let res = fNum2 (+) (+) (VF 2) (VI 3) 
         property $ (VF 5.0) === res 
+
+
+    describe "getI" $ do 
+      it "get Just value when Int value is supplied" $ do
+        let res = getI (VI 3)
+        property $ (Just 3) === res
+      it "get floored value when float value is supplied" $ do
+        let res = getI (VF 3.5)
+        property $ (Just 3) === res
+      it "get if String value is supplied" $ do
+        let res = getI (VS "3")
+        property $ Nothing === res
+
+    describe "getF" $ do 
+     it "get Just value when Float value is supplied" $ do
+       let res = getF (VF 3)
+       property $ (Just 3.0) === res
+     it "get converted value if Int value is supplied" $ do
+       let res = getF (VI 3)
+       property $ (Just 3.0) === res
+
+    describe "getS" $ do 
+     it "get Just value when String value is supplied" $ do
+       let res = getS (VS "Tidal")
+       property $ (Just "Tidal") === res
+     it "get Nothing if Int value is not supplied" $ do
+       let res = getS (VI 3) 
+       property $ Nothing === res
