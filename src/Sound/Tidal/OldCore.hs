@@ -49,15 +49,6 @@ slowSqueeze = tParamSqueeze _slow
 
 -- | Functions which work on other functions (higher order functions)
 
--- | @every n f p@ applies the function @f@ to @p@, but only affects
--- every @n@ cycles.
-every :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-every tp f p = innerJoin $ (\t -> _every t f p) <$> tp
-
-_every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_every 0 _ p = p
-_every n f p = when ((== 0) . (`mod` n)) f p
-
 -- | @every n o f'@ is like @every n f@ with an offset of @o@ cycles
 every' :: Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 every' np op f p = do { n <- np; o <- op; _every' n o f p }
@@ -97,63 +88,3 @@ whenT test f p = splitQueries $ p {query = apply}
   where apply st | test (start $ arc st) = query (f p) st
                  | otherwise = query p st
 
-_getP_ :: (Value -> Maybe a) -> Pattern Value -> Pattern a
-_getP_ f pat = filterJust $ f <$> pat
-
-_getP :: a -> (Value -> Maybe a) -> Pattern Value -> Pattern a
-_getP d f pat = fromMaybe d . f <$> pat
-
-_cX :: a -> (Value -> Maybe a) -> String -> Pattern a
-_cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f . valueToPattern) $ Map.lookup s m) a
-
-_cX_ :: (Value -> Maybe a) -> String -> Pattern a
-_cX_ f s = Pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f . valueToPattern) $ Map.lookup s m) a
-
-cF :: Double -> String -> Pattern Double
-cF d = _cX d getF
-cF_ :: String -> Pattern Double
-cF_ = _cX_ getF
-cF0 :: String -> Pattern Double
-cF0 = _cX 0 getF
-
-cN :: Note -> String -> Pattern Note
-cN d = _cX d getN
-cN_ :: String -> Pattern Note
-cN_ = _cX_ getN
-cN0 :: String -> Pattern Note
-cN0 = _cX (Note 0) getN
-
-cI :: Int -> String -> Pattern Int
-cI d = _cX d getI
-cI_ :: String -> Pattern Int
-cI_ = _cX_ getI
-cI0 :: String -> Pattern Int
-cI0 = _cX 0 getI
-
-cB :: Bool -> String -> Pattern Bool
-cB d = _cX d getB
-cB_ :: String -> Pattern Bool
-cB_ = _cX_ getB
-cB0 :: String -> Pattern Bool
-cB0 = _cX False getB
-
-cR :: Rational -> String -> Pattern Rational
-cR d = _cX d getR
-cR_ :: String -> Pattern Rational
-cR_ = _cX_ getR
-cR0 :: String -> Pattern Rational
-cR0 = _cX 0 getR
-
-cT :: Time -> String -> Pattern Time
-cT = cR
-cT0 :: String -> Pattern Time
-cT0 = cR0
-cT_ :: String -> Pattern Time
-cT_ = cR_
-
-cS :: String -> String -> Pattern String
-cS d = _cX d getS
-cS_ :: String -> Pattern String
-cS_ = _cX_ getS
-cS0 :: String -> Pattern String
-cS0 = _cX "" getS

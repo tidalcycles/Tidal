@@ -10,6 +10,7 @@ import Sound.Tidal.Signal.Base
 import Sound.Tidal.Pattern
 import Sound.Tidal.Signal.Event
 import Sound.Tidal.Utils
+import Sound.Tidal.Signal.Waveform
 
 -- ************************************************************ --
 -- Internal functions

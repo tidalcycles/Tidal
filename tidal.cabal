@@ -48,6 +48,7 @@ library
                        Sound.Tidal.Signal.Compose
                        Sound.Tidal.Signal.Event
                        Sound.Tidal.Signal.Random
+                       Sound.Tidal.Signal.Waveform
                        -- Sound.Tidal.Simple
                        Sound.Tidal.Stream
                        Sound.Tidal.StreamTypes
