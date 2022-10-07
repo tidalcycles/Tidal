@@ -67,7 +67,7 @@ instance Pattern Sequence where
   _iter'  = _seqIter'
   toSignal = _seqToSignal
   _patternify f x pat = mapSeq (applyfToSeq f x) pat
---  _patternify2 f a b seq = mapSeq ( ) 
+--  _patternify_p_p f a b seq = mapSeq ( ) 
 
 -- -- | Takes sequence of functions and a sequence which have been aligned and applies the functions at the corresponding time points
 funcMap :: [Sequence (a->b)] -> [Sequence a] -> [Sequence b]
@@ -438,6 +438,7 @@ whenS :: Sequence Bool -> (Sequence b -> Sequence b) -> Sequence b -> Strategy -
 whenS boolpat f pat strat = mapSeqS (fmap (\b -> if b then f else id) boolpat) pat strat
 
 -- -- | Apply a function to a sequence every "n" iterations
+-- now implemented in 'pattern'
 -- seqEvery :: Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
 -- seqEvery (Atom x s) f sb = _seqEvery s f sb 
 -- seqEvery (Gap _) _ sb = sb 

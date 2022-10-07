@@ -18,9 +18,14 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   silence :: p a
   atom :: a -> p a
   stack :: [p a] -> p a
+  -- patternify the first parameter
   _patternify :: (a -> p b -> p c) -> (p a -> p b -> p c)
-  _patternify2 :: (a -> b -> p c -> p d) -> (p a -> p b -> p c -> p d)
-  _patternify3 :: (a -> b -> c -> p d -> p e) -> (p a -> p b -> p c -> p d -> p e)
+  -- patternify the first two parameters
+  _patternify_p_p :: (a -> b -> p c -> p d) -> (p a -> p b -> p c -> p d)
+  -- patternify the first but not the second parameters
+  _patternify_p_n :: (a -> b -> p c -> p d) -> (p a -> b -> p c -> p d)
+  -- patternify the first three parameters
+  _patternify_p_p_p :: (a -> b -> c -> p d -> p e) -> (p a -> p b -> p c -> p d -> p e)
   rev :: p a -> p a
   _ply :: Rational -> p a-> p a
   euclid :: p Int -> p Int -> p a -> p a
@@ -114,14 +119,23 @@ _firstOf n f pat | n <= 0 = silence
                                      (True : (replicate (n - 1) False))
                                     ) f pat
 
+firstOf :: Pattern t => t Int -> (t a -> t a) -> t a -> t a
+firstOf = _patternify_p_n _firstOf
+
 _lastOf :: Pattern t => Int -> (t a -> t a) -> t a -> t a
 _lastOf n f pat | n <= 0 = silence
                 | otherwise = when (fromList
                                     ((replicate (n - 1) False) ++ [True])
                                    ) f pat
 
+lastOf :: Pattern t => t Int -> (t a -> t a) -> t a -> t a
+lastOf = _patternify_p_n _lastOf
+
 _every :: Pattern t => Int -> (t a -> t a) -> t a -> t a
 _every = _lastOf
+
+every :: Pattern t => t Int -> (t a -> t a) -> t a -> t a
+every = lastOf
 
 {- | `range` will take a pattern which goes from 0 to 1 (like `sine`), and range it to a different range - between the first and second arguments. In the below example, `range 1 1.5` shifts the range of `sine1` from 0 - 1 to 1 - 1.5.
 
@@ -131,7 +145,7 @@ d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
 @
 -}
 range :: (Pattern t, Num a) => t a -> t a -> t a -> t a
-range = _patternify2 _range
+range = _patternify_p_p _range
 
 _range :: (Functor f, Num b) => b -> b -> f b -> f b
 _range from to p = (+ from) . (* (to-from)) <$> p

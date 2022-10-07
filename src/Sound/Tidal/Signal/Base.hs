@@ -53,9 +53,10 @@ instance Pattern Signal where
   uncollect = sigUncollect
   euclid  = sigEuclid
   _euclid = _sigEuclid
-  _patternify f a pat      = innerJoin $ (`f` pat) <$> a
-  _patternify2 f a b pat   = innerJoin $ (\x y -> f x y pat) <$> a <* b
-  _patternify3 f a b c pat = innerJoin $ (\x y z -> f x y z pat) <$> a <* b <* c
+  _patternify f apat pat      = innerJoin $ (`f` pat) <$> apat
+  _patternify_p_p f apat bpat pat   = innerJoin $ (\a b -> f a b pat) <$> apat <* bpat
+  _patternify_p_n f apat b pat   = innerJoin $ (\a -> f a b pat) <$> apat
+  _patternify_p_p_p f apat bpat cpat pat = innerJoin $ (\a b c -> f a b c pat) <$> apat <* bpat <* cpat
   toSignal = id
 
 -- ************************************************************ --
@@ -763,7 +764,7 @@ including rotation in some cases.
 @
 -}
 sigEuclid :: Signal Int -> Signal Int -> Signal a -> Signal a
-sigEuclid = _patternify2 _euclid
+sigEuclid = _patternify_p_p _euclid
 
 _sigEuclid :: Int -> Int -> Signal a -> Signal a
 _sigEuclid n k a | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
@@ -780,7 +781,7 @@ _euclid' :: Int -> Int -> Signal a -> Signal a
 _euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
 euclidOff :: Signal Int -> Signal Int -> Signal Int -> Signal a -> Signal a
-euclidOff = _patternify3 _euclidOff
+euclidOff = _patternify_p_p_p _euclidOff
 
 eoff :: Signal Int -> Signal Int -> Signal Int -> Signal a -> Signal a
 eoff = euclidOff
@@ -790,7 +791,7 @@ _euclidOff _ 0 _ _ = silence
 _euclidOff n k s p = (_early $ fromIntegral s%fromIntegral k) (_euclid n k p)
 
 euclidOffBool :: Signal Int -> Signal Int -> Signal Int -> Signal Bool -> Signal Bool
-euclidOffBool = _patternify3 _euclidOffBool
+euclidOffBool = _patternify_p_p_p _euclidOffBool
 
 _euclidOffBool :: Int -> Int -> Int -> Signal Bool -> Signal Bool
 _euclidOffBool _ 0 _ _ = silence
@@ -818,7 +819,7 @@ _distrib xs p = boolsToPat (foldr distrib' (replicate (last xs) True) (reverse $
  @euclidInv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
 -}
 euclidInv :: Signal Int -> Signal Int -> Signal a -> Signal a
-euclidInv = _patternify2 _euclidInv
+euclidInv = _patternify_p_p _euclidInv
 
 _euclidInv :: Int -> Int -> Signal a -> Signal a
 _euclidInv n k a = _euclid (-n) k a
