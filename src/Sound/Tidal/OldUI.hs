@@ -1940,18 +1940,6 @@ deconstruct n p = intercalate " " $ map showStep $ toList p
             arcs = zip (take n breaks) (drop 1 breaks)
             n' = fromIntegral n
 
-{- @bite@ n ipat pat |
-  slices a pattern `pat` into `n` pieces, then uses the `ipat` pattern of integers to index into those slices.
-  So `bite 4 "0 2*2" (run 8)` is the same as `"[0 1] [4 5]*2"`.
--}
-bite :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-bite npat ipat pat = innerJoin $ (\n -> _bite n ipat pat) <$> npat
-
-_bite :: Int -> Pattern Int -> Pattern a -> Pattern a
-_bite n ipat pat = squeezeJoin $ zoompat <$> ipat
-  where zoompat i = zoom (i'/(fromIntegral n), (i'+1)/(fromIntegral n)) pat
-           where i' = fromIntegral $ i `mod` n
-
 {- @squeeze@ ipat pats | uses a pattern of integers to index into a list of patterns.
 -}
 squeeze :: Pattern Int -> [Pattern a] -> Pattern a

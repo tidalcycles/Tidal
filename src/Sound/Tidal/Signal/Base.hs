@@ -289,7 +289,6 @@ setMetadata c pat = withEvents (map (\e -> e {metadata = c})) pat
 withMetadata :: (Metadata -> Metadata) -> Signal a -> Signal a
 withMetadata f pat = withEvents (map (\e -> e {metadata = f $ metadata e})) pat
 
-
 -- ************************************************************ --
 -- General hacks and utilities
 
@@ -315,7 +314,7 @@ playFor :: Time -> Time -> Signal a -> Signal a
 playFor s e pat = Signal $ \st -> maybe [] (\a -> query pat (st {sArc = a})) $ maybeSect (Arc s e) (sArc st)
 
 -- ************************************************************ --
--- Time/event manipulations
+-- Basic time/event manipulations
 
 queryArc :: Signal a -> Arc -> [Event a]
 queryArc sig arc = query sig (State arc Map.empty)
@@ -380,9 +379,14 @@ sigAtom v = Signal $ \state -> map
                                )
                                (splitArcs $ sArc state)
 
+-- See also - `steady` in Sound.Tidal.Signal.Waveform
+
 -- ************************************************************ --
 -- Signal manipulations
 
+-- | Split queries at sample boundaries. An internal function that
+-- makes other functions easier to define, as events that cross cycle
+-- boundaries don't need to be considered then.
 splitQueries :: Signal a -> Signal a
 splitQueries pat = Signal $ \state -> (concatMap (\arc -> query pat (state {sArc = arc}))
                                         $ splitArcs $ sArc state)
@@ -421,10 +425,9 @@ _fastGap factor pat = splitQueries $ withEvent ef $ withQueryArcMaybe qf pat
                         return $ Arc b' e'
 
 -- | Like @fast@, but only plays one cycle of the original signal
--- once per cycle, leaving a gap
+-- once per cycle, leaving a gap at the end
 fastGap :: Signal Time -> Signal a -> Signal a
 fastGap = _patternify _fastGap
-
 
 _compressArc :: Arc -> Signal a -> Signal a
 _compressArc (Arc b e) pat | (b > e || b > 1 || e > 1 || b < 0 || e < 0) = silence
@@ -444,18 +447,22 @@ focus patStart patDur pat = innerJoin $ (\s d -> _focusArc (Arc s (s+d)) pat) <$
 _early :: Time -> Signal a -> Signal a
 _early t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
 
+-- | Shifts a signal backwards in time, i.e. so that events happen earlier
 early :: Signal Time -> Signal x -> Signal x
 early = _patternify _early
 
+-- | Infix operator for @early@
 (<~) :: Signal Time -> Signal x -> Signal x
 (<~) = early
 
 _late :: Time -> Signal x -> Signal x
 _late t = _early (0-t)
 
+-- | Shifts a signal forwards in time, i.e. so that events happen later
 late :: Signal Time -> Signal x -> Signal x
 late = _patternify _late
 
+-- | Infix operator for @late@
 (~>) :: Signal Time -> Signal x -> Signal x
 (~>) = late
 
@@ -505,6 +512,18 @@ squash into pat = splitQueries $ withEventArc ef $ withQueryArc qf pat
 
 squashTo :: Time -> Time -> Signal a -> Signal a
 squashTo b e = _late b . squash (e-b)
+
+{- @bite@ n ipat pat |
+  slices a signal `pat` into `n` pieces, then uses the `ipat` signal of integers to index into those slices.
+  So `bite 4 "0 2*2" (run 8)` is the same as `"[0 1] [4 5]*2"`.
+-}
+bite :: Signal Int -> Signal Int -> Signal a -> Signal a
+bite npat ipat pat = innerJoin $ (\n -> _bite n ipat pat) <$> npat
+
+_bite :: Int -> Signal Int -> Signal a -> Signal a
+_bite n ipat pat = squeezeJoin $ zoompat <$> ipat
+  where zoompat i = _zoomArc (Arc (i'/(fromIntegral n)) ((i'+1)/(fromIntegral n))) pat
+           where i' = fromIntegral $ i `mod` n
 
 sigRev :: Signal a -> Signal a
 sigRev pat = splitQueries $ Signal f
