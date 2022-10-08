@@ -108,6 +108,7 @@ test-suite tests
                  Sound.Tidal.TimeTest
                  Sound.Tidal.TypesTest
                  Sound.Tidal.ValueTest
+                 Sound.Tidal.WaveformTest
                  TestUtils
   build-depends:
                 base ==4.*
