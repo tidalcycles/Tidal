@@ -155,6 +155,11 @@ iter = _patternify _iter
 iterBack :: Pattern p => p Int -> p a -> p a
 iterBack = _patternify _iterBack
 
+-- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
+-- the pattern alternates between forwards and backwards.
+palindrome :: Pattern p => p a -> p a
+palindrome p = slowAppend p (rev p)
+
 -- ************************************************************ --
 
 

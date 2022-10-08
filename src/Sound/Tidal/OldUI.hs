@@ -44,11 +44,6 @@ import           Sound.Tidal.Utils
 -- * UI
 
 
--- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
--- the pattern alternates between forwards and backwards.
-palindrome :: Pattern a -> Pattern a
-palindrome p = slowAppend p (rev p)
-
 -- | Composing patterns
 
 {- | The function @seqP@ allows you to define when
