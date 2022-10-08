@@ -61,10 +61,8 @@ instance Pattern Sequence where
   _ply    = _seqPly
   -- every   = seqEvery
   when    = seqWhen
-  iter    = seqIter
-  iter'   = seqIter'
   _iter   = _seqIter
-  _iter'  = _seqIter'
+  _iterBack = _seqIterBack
   toSignal = _seqToSignal
   _patternify f x pat = mapSeq (applyfToSeq f x) pat
 --  _patternify_p_p f a b seq = mapSeq ( ) 
@@ -514,11 +512,13 @@ splitUp t x =
 -- (~>) :: Sequence Time -> Sequence a -> Sequence a
 -- (~>) sr s = mapSeq (applyfToSeq rotR sr) s
 
+{- TODO - version in Pattern (using patternify) is ok?
 -- | Iterates a sequence to fit into a given number of cycles of the sequence while applying rotL
 seqIter :: Sequence Int -> Sequence a ->  Sequence a
 seqIter sr s =
   let (a,b) = forTwo sr s
   in unwrap $  iterer (Sequence a) (Sequence b)
+-}
 
 -- | iter with a particular strategy
 iterS :: Sequence Int -> Sequence a -> Strategy -> Sequence a
@@ -536,12 +536,14 @@ _seqIter :: Int -> Sequence a -> Sequence a
 _seqIter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n-1)]
 
 
+{- TODO - version in Pattern (using patternify) is ok?
 -- | @iter'@ is the same as @iter@, but decrements the starting
 -- subdivision instead of incrementing it.
-seqIter' :: Sequence Int -> Sequence c ->Sequence c
-seqIter' sr s=
+seqIterBack :: Sequence Int -> Sequence c ->Sequence c
+seqIterBack sr s=
   let (a,b) = forTwo sr s
   in unwrap $  iterer' (Sequence a) (Sequence b)
+-}
 
 -- | iter', but with a particular strategy
 iterS' :: Sequence Int -> Sequence c -> Strategy -> Sequence c
@@ -555,8 +557,8 @@ iterer' (Gap x) _ = Gap x
 iterer' (Sequence x) sr = Sequence $ map (`iterer'` sr) x
 iterer' (Stack x) sr = stack $ map (`iterer'` sr) x
 
-_seqIter' :: Int -> Sequence a -> Sequence a
-_seqIter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
+_seqIterBack :: Int -> Sequence a -> Sequence a
+_seqIterBack n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
 
 _seqToSignal :: Sequence a -> Signal a
 _seqToSignal (Atom t v) = _fast t $ atom v

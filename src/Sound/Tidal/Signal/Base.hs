@@ -49,6 +49,8 @@ instance Pattern Signal where
   timeCat = sigTimeCat
   when    = sigWhen
   _ply    = _sigPly
+  _iter    = _seqIter
+  _iterBack = _seqIterBack
   collect = sigCollect
   uncollect = sigUncollect
   euclid  = sigEuclid
@@ -650,6 +652,36 @@ d1 $ sound (brak "bd sd")
 brak :: Signal a -> Signal a
 brak = whenT ((== 1) . (`mod` 2)) (((1%4) `_late`) . (\x -> fastcat [x, silence]))
 
+
+{- | Divides a pattern into a given number of subdivisions, plays the subdivisions
+in order, but increments the starting subdivision each cycle. The pattern
+wraps to the first subdivision after the last subdivision is played.
+
+Example:
+
+@
+d1 $ iter 4 $ sound "bd hh sn cp"
+@
+
+This will produce the following over four cycles:
+
+@
+bd hh sn cp
+hh sn cp bd
+sn cp bd hh
+cp bd hh sn
+@
+
+There is also `iterBack`, which shifts the pattern in the opposite direction.
+
+-}
+_seqIter :: Int -> Signal a -> Signal a
+_seqIter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `_early` p) [0 .. (n-1)]
+
+-- | @iterBack@ is the same as @iter@, but decrements the starting
+-- subdivision instead of incrementing it.
+_seqIterBack :: Int -> Signal a -> Signal a
+_seqIterBack n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `_late` p) [0 .. (n-1)]
 
 -- ************************************************************ --
 -- Euclidean / diaspora algorithm

@@ -36,10 +36,8 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   -- every :: p Int -> (p b -> p b) -> p b -> p b
   when :: p Bool -> (p b -> p b) -> p b -> p b
   -- listToPat :: [a] -> p a
-  iter :: p Int -> p a -> p a
-  iter' :: p Int -> p a -> p a
   _iter :: Int -> p a -> p a
-  _iter' :: Int -> p a -> p a
+  _iterBack :: Int -> p a -> p a
   collect :: Eq a => p a -> p [a]
   uncollect :: p [a] -> p a
 
@@ -150,6 +148,12 @@ range = _patternify_p_p _range
 
 _range :: (Functor f, Num b) => b -> b -> f b -> f b
 _range from to p = (+ from) . (* (to-from)) <$> p
+
+iter :: Pattern p => p Int -> p a -> p a
+iter = _patternify _iter
+
+iterBack :: Pattern p => p Int -> p a -> p a
+iterBack = _patternify _iterBack
 
 -- ************************************************************ --
 
