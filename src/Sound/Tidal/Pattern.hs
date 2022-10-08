@@ -50,7 +50,8 @@ superimpose :: Pattern p => (p x -> p x) -> p x -> p x
 superimpose p pat = overlay pat (p pat)
 
 _slow :: Pattern p => Rational -> p x -> p x
-_slow t = _fast (1/t)
+_slow 0 _ = silence
+_slow t pat = _fast (1/t) pat
 
 slow :: Pattern p => p Rational -> p x -> p x
 slow = _patternify _slow

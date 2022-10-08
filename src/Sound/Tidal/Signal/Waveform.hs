@@ -67,7 +67,7 @@ cosine2 = _late 0.25 sine2
 
 -- | Square wave
 square :: Fractional a => Signal a
-square = fastAppend (steady 1) (steady 0)
+square = fastAppend (steady 0) (steady 1)
 
 square2 :: Fractional a => Signal a
 square2 = fastAppend (steady (-1)) (steady 1)

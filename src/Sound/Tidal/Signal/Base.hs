@@ -400,6 +400,7 @@ sigSlowcat pats = splitQueries $ Signal queryCycle
         n = length pats
 
 _sigFast :: Time -> Signal a -> Signal a
+_sigFast 0 pat = silence
 _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
 
 _fastGap :: Time -> Signal a -> Signal a
@@ -636,6 +637,19 @@ _uncollectEvents = concatMap _uncollectEvent
 -- | merges all values in a list into one pattern by stacking the values
 sigUncollect :: Signal [a] -> Signal a
 sigUncollect = withEvents _uncollectEvents
+
+{- | Make a pattern sound a bit like a breakbeat, by playing it twice as
+   fast and shifted by a quarter of a cycle, every other cycle.
+
+Example:
+
+@
+d1 $ sound (brak "bd sd")
+@
+-}
+brak :: Signal a -> Signal a
+brak = whenT ((== 1) . (`mod` 2)) (((1%4) `_late`) . (\x -> fastcat [x, silence]))
+
 
 -- ************************************************************ --
 -- Euclidean / diaspora algorithm
