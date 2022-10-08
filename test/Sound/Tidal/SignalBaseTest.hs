@@ -11,8 +11,9 @@ import           Data.Ratio
 
 import           Sound.Tidal.Types
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Pattern (atom, fastCat, slow, _slow, fast, timeCat)
+import           Sound.Tidal.Pattern (atom, fastCat, slow, _slow, fast, timeCat, every)
 import           Sound.Tidal.Signal.Compose (struct)
+import           Sound.Tidal.Signal.Waveform (tri)
 
 import qualified Data.Map.Strict     as Map
 
@@ -262,3 +263,10 @@ run =
         queryArc (timeCat [(1, (slow 2 "a") :: Signal String)]) (Arc 0 2)
         `shouldBe`
         queryArc (slow 2 "a" :: Signal String) (Arc 0 2)
+  
+    describe "every" $
+      it "`every n id` doesn't change the signal's structure" $ do
+        comparePD
+          (Arc 0 4)
+          (every 2 id "x/2" :: Signal String)
+          "x/2"

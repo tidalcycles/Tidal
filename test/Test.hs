@@ -24,6 +24,7 @@ import Sound.Tidal.StreamTest
 import Sound.Tidal.TimeTest
 import Sound.Tidal.TypesTest
 import Sound.Tidal.ValueTest
+import Sound.Tidal.WaveformTest
 
 main :: IO ()
 main = microspec $ do
@@ -49,3 +50,4 @@ main = microspec $ do
   Sound.Tidal.TimeTest.run
   Sound.Tidal.TypesTest.run
   Sound.Tidal.ValueTest.run
+  Sound.Tidal.WaveformTest.run
