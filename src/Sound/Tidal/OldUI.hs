@@ -192,17 +192,6 @@ ifp test f1 f2 p = splitQueries $ p {query = q}
   where q a | test (floor $ start $ arc a) = query (f1 p) a
             | otherwise = query (f2 p) a
 
--- | @wedge t p p'@ combines patterns @p@ and @p'@ by squashing the
--- @p@ into the portion of each cycle given by @t@, and @p'@ into the
--- remainer of each cycle.
-wedge :: Pattern Time -> Pattern a -> Pattern a -> Pattern a
-wedge pt pa pb = innerJoin $ (\t -> _wedge t pa pb) <$> pt
-
-_wedge :: Time -> Pattern a -> Pattern a -> Pattern a
-_wedge 0 _ p' = p'
-_wedge 1 p _ = p
-_wedge t p p' = overlay (_fastGap (1/t) p) (t `rotR` _fastGap (1/(1-t)) p')
-
 
 {- | @whenmod@ has a similar form and behavior to `every`, but requires an
 additional number. Applies the function to the pattern, when the
@@ -223,56 +212,6 @@ _whenmod :: Time -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _whenmod a b = whenT (\t -> ((t `mod'` a) >= b ))
 
 
-{- |
-@
-superimpose f p = stack [p, f p]
-@
-
-`superimpose` plays a modified version of a pattern at the same time as the original pattern,
-resulting in two patterns being played at the same time.
-
-@
-d1 $ superimpose (density 2) $ sound "bd sn [cp ht] hh"
-d1 $ superimpose ((# speed "2") . (0.125 <~)) $ sound "bd sn cp hh"
-@
-
--}
-superimpose :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-superimpose f p = stack [p, f p]
-
-{- | @trunc@ truncates a pattern so that only a fraction of the pattern is played.
-The following example plays only the first quarter of the pattern:
-
-@
-d1 $ trunc 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
-@
--}
-trunc :: Pattern Time -> Pattern a -> Pattern a
-trunc = tParam _trunc
-
-_trunc :: Time -> Pattern a -> Pattern a
-_trunc t = compress (0, t) . zoomArc (Arc 0 t)
-
-{- | @linger@ is similar to `trunc` but the truncated part of the pattern loops until the end of the cycle.
-
-@
-d1 $ linger 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
-@
-
-If you give it a negative number, it will linger on the last part of
-the pattern, instead of the start of it. E.g. to linger on the last
-quarter:
-
-@
-d1 $ linger (-0.25) $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
-@
--}
-linger :: Pattern Time -> Pattern a -> Pattern a
-linger = tParam _linger
-
-_linger :: Time -> Pattern a -> Pattern a
-_linger n p | n < 0 = _fast (1/n) $ zoomArc (Arc (1 + n) 1) p
-            | otherwise = _fast (1/n) $ zoomArc (Arc 0 n) p
 
 {- |
 Use `within` to apply a function to only a part of a pattern. For example, to
@@ -336,113 +275,6 @@ within' a@(s, e) f p =
 
 revArc :: (Time, Time) -> Pattern a -> Pattern a
 revArc a = within a rev
-
-{- | You can use the @e@ function to apply a Euclidean algorithm over a
-complex pattern, although the structure of that pattern will be lost:
-
-@
-d1 $ e 3 8 $ sound "bd*2 [sn cp]"
-@
-
-In the above, three sounds are picked from the pattern on the right according
-to the structure given by the `e 3 8`. It ends up picking two `bd` sounds, a
-`cp` and missing the `sn` entirely.
-
-A negative first argument provides the inverse of the euclidean pattern.
-
-These types of sequences use "Bjorklund's algorithm", which wasn't made for
-music but for an application in nuclear physics, which is exciting. More
-exciting still is that it is very similar in structure to the one of the first
-known algorithms written in Euclid's book of elements in 300 BC. You can read
-more about this in the paper
-[The Euclidean Algorithm Generates Traditional Musical Rhythms](http://cgm.cs.mcgill.ca/~godfried/publications/banff.pdf)
-by Toussaint. Some examples from this paper are included below,
-including rotation in some cases.
-
-@
-- (2,5) : A thirteenth century Persian rhythm called Khafif-e-ramal.
-- (3,4) : The archetypal pattern of the Cumbia from Colombia, as well as a Calypso rhythm from Trinidad.
-- (3,5,2) : Another thirteenth century Persian rhythm by the name of Khafif-e-ramal, as well as a Rumanian folk-dance rhythm.
-- (3,7) : A Ruchenitza rhythm used in a Bulgarian folk-dance.
-- (3,8) : The Cuban tresillo pattern.
-- (4,7) : Another Ruchenitza Bulgarian folk-dance rhythm.
-- (4,9) : The Aksak rhythm of Turkey.
-- (4,11) : The metric pattern used by Frank Zappa in his piece titled Outside Now.
-- (5,6) : Yields the York-Samai pattern, a popular Arab rhythm.
-- (5,7) : The Nawakhat pattern, another popular Arab rhythm.
-- (5,8) : The Cuban cinquillo pattern.
-- (5,9) : A popular Arab rhythm called Agsag-Samai.
-- (5,11) : The metric pattern used by Moussorgsky in Pictures at an Exhibition.
-- (5,12) : The Venda clapping pattern of a South African children’s song.
-- (5,16) : The Bossa-Nova rhythm necklace of Brazil.
-- (7,8) : A typical rhythm played on the Bendir (frame drum).
-- (7,12) : A common West African bell pattern.
-- (7,16,14) : A Samba rhythm necklace from Brazil.
-- (9,16) : A rhythm necklace used in the Central African Republic.
-- (11,24,14) : A rhythm necklace of the Aka Pygmies of Central Africa.
-- (13,24,5) : Another rhythm necklace of the Aka Pygmies of the upper Sangha.
-@
--}
-euclid :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-euclid = tParam2 _euclid
-
-_euclid :: Int -> Int -> Pattern a -> Pattern a
-_euclid n k a | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
-              | otherwise = fastcat $ fmap (bool a silence) $ bjorklund (-n,k)
-
-{- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
-euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
-euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
-
-_euclidBool :: Int -> Int -> Pattern Bool
-_euclidBool n k = fastFromList $ bjorklund (n,k)
-
-_euclid' :: Int -> Int -> Pattern a -> Pattern a
-_euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
-
-euclidOff :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-euclidOff = tParam3 _euclidOff
-
-eoff :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-eoff = euclidOff
-
-_euclidOff :: Int -> Int -> Int -> Pattern a -> Pattern a
-_euclidOff _ 0 _ _ = silence
-_euclidOff n k s p = (rotL $ fromIntegral s%fromIntegral k) (_euclid n k p)
-
-euclidOffBool :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern Bool -> Pattern Bool
-euclidOffBool = tParam3 _euclidOffBool
-
-_euclidOffBool :: Int -> Int -> Int -> Pattern Bool -> Pattern Bool
-_euclidOffBool _ 0 _ _ = silence
-_euclidOffBool n k s p = ((fromIntegral s % fromIntegral k) `rotL`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
-
-distrib :: [Pattern Int] -> Pattern a -> Pattern a
-distrib ps p = do p' <- sequence ps
-                  _distrib p' p
-
-_distrib :: [Int] -> Pattern a -> Pattern a
-_distrib xs p = boolsToPat (foldr distrib' (replicate (last xs) True) (reverse $ layers xs)) p
-  where
-    distrib' :: [Bool] -> [Bool] -> [Bool]
-    distrib' [] _ = []
-    distrib' (_:a) [] = False : distrib' a []
-    distrib' (True:a) (x:b) = x : distrib' a b
-    distrib' (False:a) b = False : distrib' a b
-    layers = map bjorklund . (zip<*>tail)
-    boolsToPat a b' = flip const <$> filterValues (== True) (fastFromList a) <*> b'
-
-{- | `euclidInv` fills in the blanks left by `e`
- -
- @e 3 8 "x"@ -> @"x ~ ~ x ~ ~ x ~"@
-
- @euclidInv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
--}
-euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-euclidInv = tParam2 _euclidInv
-
-_euclidInv :: Int -> Int -> Pattern a -> Pattern a
-_euclidInv n k a = _euclid (-n) k a
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
@@ -551,52 +383,9 @@ pequal :: Ord a => Time -> Pattern a -> Pattern a -> Bool
 pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -}
 
--- | @rot n p@ rotates the values in a pattern @p@ by @n@ beats to the left.
--- Example: @d1 $ every 4 (rot 2) $ slow 2 $ sound "bd hh hh hh"@
-rot :: Ord a => Pattern Int -> Pattern a -> Pattern a
-rot = tParam _rot
-
--- Calculates a whole cycle, rotates it, then constrains events to the original query arc
-_rot :: Ord a => Int -> Pattern a -> Pattern a
-_rot i pat = splitQueries $ pat {query = \st -> f st (query pat (st {arc = wholeCycle (arc st)}))}
-  where -- TODO maybe events with the same arc (part+whole) should be
-        -- grouped together in the rotation?
-        f st es = constrainEvents (arc st) $ shiftValues $ sort $ defragParts es
-        shiftValues es | i >= 0 =
-                         zipWith (\e s -> e {value = s}) es
-                         (drop i $ cycle $ map value es)
-                       | otherwise =
-                         zipWith (\e s -> e{value = s}) es
-                         (drop (length es - abs i) $ cycle $ map value es)
-        wholeCycle (Arc s _) = Arc (sam s) (nextSam s)
-        constrainEvents :: Arc -> [Event a] -> [Event a]
-        constrainEvents a es = mapMaybe (constrainEvent a) es
-        constrainEvent :: Arc -> Event a -> Maybe (Event a)
-        constrainEvent a e =
-          do
-            p' <- subArc (part e) a
-            return e {part = p'}
-
--- | @segment n p@: 'samples' the pattern @p@ at a rate of @n@
--- events per cycle. Useful for turning a continuous pattern into a
--- discrete one.
-segment :: Pattern Time -> Pattern a -> Pattern a
-segment = tParam _segment
-
-_segment :: Time -> Pattern a -> Pattern a
-_segment n p = _fast n (pure id) <* p
-
 -- | @discretise@: the old (deprecated) name for 'segment'
 discretise :: Pattern Time -> Pattern a -> Pattern a
 discretise = segment
-
--- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
--- randomises the order in which they are played.
-randcat :: [Pattern a] -> Pattern a
-randcat ps = spread' rotL (_segment 1 $ (% 1) . fromIntegral <$> (_irand (length ps) :: Pattern Int)) (slowcat ps)
-
-wrandcat :: [(Pattern a, Double)] -> Pattern a
-wrandcat ps = unwrap $ wchooseBy (segment 1 rand) ps
 
 -- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
@@ -860,24 +649,6 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
                      | i <- [0..n-1]]
         p' = density cyc p
         from' = density cyc from
-
-{-|
-  Treats the given pattern @p@ as having @n@ chunks, and applies the function @f@ to one of those sections per cycle.
-  Running:
-   - from left to right if chunk number is positive
-   - from right to left if chunk number is negative
-
-  @
-  d1 $ chunk 4 (fast 4) $ sound "cp sn arpy [mt lt]"
-  @
--}
-chunk :: Pattern Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-chunk npat f p = innerJoin $ (\n -> _chunk n f p) <$> npat
-
-_chunk :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-_chunk n f p | n >= 0 = cat [withinArc (Arc (i % fromIntegral n) ((i+1) % fromIntegral n)) f p | i <- [0 .. fromIntegral n - 1]]
-             | otherwise = do i <- _slow (toRational (-n)) $ rev $ run (fromIntegral (-n))
-                              withinArc (Arc (i % fromIntegral (-n)) ((i+1) % fromIntegral (-n))) f p
 
 -- | DEPRECATED, use 'chunk' with negative numbers instead
 chunk' :: Integral a1 => Pattern a1 -> (Pattern a2 -> Pattern a2) -> Pattern a2 -> Pattern a2

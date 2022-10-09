@@ -1,9 +1,10 @@
 module Sound.Tidal.Signal.Random where
 
+import Prelude hiding ((<*), (*>))
+
 import Data.Bits (testBit, Bits, xor, shiftL, shiftR)
 import Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
-
-import Prelude hiding ((<*), (*>))
+import Data.Ratio
 
 import Sound.Tidal.Types
 import Sound.Tidal.Signal.Base
@@ -340,3 +341,11 @@ someCycles = someCyclesBy 0.5
 somecycles :: (Signal a -> Signal a) -> Signal a -> Signal a
 somecycles = someCycles
 
+-- | @randcat ps@: does a @slowcat@ on the list of signals @ps@ but
+-- randomises the order in which they are played.
+randcat :: [Signal a] -> Signal a
+randcat ps = early (_segment 1 $ (% 1) . fromIntegral <$> (_irand (length ps) :: Signal Int)) (slowcat ps)
+
+-- | A weighted @randcat@
+wrandcat :: [(Signal a, Double)] -> Signal a
+wrandcat ps = innerJoin $ wchooseBy (segment 1 rand) ps

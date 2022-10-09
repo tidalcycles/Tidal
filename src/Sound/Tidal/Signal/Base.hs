@@ -13,7 +13,7 @@ import Data.Ratio
 import Data.Fixed (mod')
 import Data.Maybe (catMaybes, isJust, mapMaybe, fromJust, fromMaybe)
 import qualified Data.Map.Strict as Map
-import Data.List (delete, findIndex, (\\))
+import Data.List (delete, findIndex, (\\), sort)
 import Control.Applicative (liftA2)
 import Data.Bool (bool)
 
@@ -682,6 +682,86 @@ _sigIter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `_early` p
 -- subdivision instead of incrementing it.
 _sigIterBack :: Int -> Signal a -> Signal a
 _sigIterBack n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `_late` p) [0 .. (n-1)]
+
+{- | @trunc@ truncates a signal so that only a fraction of the signal is played.
+The following example plays only the first quarter of the signal:
+
+@
+d1 $ trunc 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
+@
+-}
+trunc :: Signal Time -> Signal a -> Signal a
+trunc = _patternify _trunc
+
+_trunc :: Time -> Signal a -> Signal a
+_trunc t = _compressArc (Arc 0 t) . _zoomArc (Arc 0 t)
+
+-- | @rot n p@ rotates the values in a signal @p@ by @n@ beats to the left.
+-- Example: @d1 $ every 4 (rot 2) $ slow 2 $ sound "bd hh hh hh"@
+rot :: Ord a => Signal Int -> Signal a -> Signal a
+rot = _patternify _rot
+
+-- Calculates a whole cycle, rotates it, then constrains events to the original query arc
+_rot :: Ord a => Int -> Signal a -> Signal a
+_rot i pat = splitQueries $ pat {query = \st -> f st (query pat (st {sArc = wholeCycle (sArc st)}))}
+  where -- TODO maybe events with the same arc (active+whole) should be
+        -- grouped together in the rotation?
+        f st es = constrainEvents (sArc st) $ shiftValues $ sort $ defragActives es
+        shiftValues es | i >= 0 =
+                         zipWith (\e s -> e {value = s}) es
+                         (drop i $ cycle $ map value es)
+                       | otherwise =
+                         zipWith (\e s -> e{value = s}) es
+                         (drop (length es - abs i) $ cycle $ map value es)
+        wholeCycle (Arc s _) = Arc (sam s) (nextSam s)
+        constrainEvents :: Arc -> [Event a] -> [Event a]
+        constrainEvents a es = mapMaybe (constrainEvent a) es
+        constrainEvent :: Arc -> Event a -> Maybe (Event a)
+        constrainEvent a e =
+          do
+            p' <- maybeSect (active e) a
+            return e {active = p'}
+
+
+{- | @linger@ is similar to `trunc` but the truncated part of the signal loops until the end of the cycle.
+
+@
+d1 $ linger 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
+@
+
+If you give it a negative number, it will linger on the last part of
+the signal, instead of the start of it. E.g. to linger on the last
+quarter:
+
+@
+d1 $ linger (-0.25) $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
+@
+-}
+linger :: Signal Time -> Signal a -> Signal a
+linger = _patternify _linger
+
+_linger :: Time -> Signal a -> Signal a
+_linger n p | n < 0 = _fast (1/n) $ _zoomArc (Arc (1 + n) 1) p
+            | otherwise = _fast (1/n) $ _zoomArc (Arc 0 n) p
+
+
+{-|
+  Treats the given signal @p@ as having @n@ chunks, and applies the function @f@ to one of those sections per cycle.
+  Running:
+   - from left to right if chunk number is positive
+   - from right to left if chunk number is negative
+
+  @
+  d1 $ chunk 4 (fast 4) $ sound "cp sn arpy [mt lt]"
+  @
+-}
+chunk :: Signal Int -> (Signal b -> Signal b) -> Signal b -> Signal b
+chunk npat f p = innerJoin $ (\n -> _chunk n f p) <$> npat
+
+_chunk :: Int -> (Signal b -> Signal b) -> Signal b -> Signal b
+_chunk n f p | n == 0 = p
+             | n >= 0 = when (_iterBack n $ fastcat (map pure $ True:replicate (n-1) False)) f p
+             | otherwise = when (_iter n $ fastcat (map pure $ True:replicate (abs n-1) False)) f p
 
 -- ************************************************************ --
 -- Euclidean / diaspora algorithm
