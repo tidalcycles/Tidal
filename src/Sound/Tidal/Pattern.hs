@@ -65,6 +65,18 @@ fast = _patternify _fast
 density :: Pattern p => p Rational -> p x -> p x
 density = fast
 
+_inside :: Pattern p => Time -> (p a -> p b) -> p a -> p b
+_inside n f p = _fast n $ f (_slow n p)
+
+inside :: Pattern p => p Time -> (p a -> p b) -> p a -> p b
+inside = _patternify_p_n _inside
+
+_outside :: Pattern p => Time -> (p a1 -> p a) -> p a1 -> p a
+_outside n = _inside (1/n)
+
+outside :: Pattern p => p Time -> (p a1 -> p a) -> p a1 -> p a
+outside = _patternify_p_n _outside
+
 -- | Alias for @fastcat@
 fastCat :: Pattern p => [p a] -> p a
 fastCat = fastcat

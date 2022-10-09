@@ -270,3 +270,13 @@ run =
           (Arc 0 4)
           (every 2 id "x/2" :: Signal String)
           "x/2"
+
+    describe "loopFirst" $ do
+      it "plays the first cycle" $ do
+        compareP (Arc 0 1)
+          (loopFirst $ early 3 $ slow 8 $ "0 .. 7" :: Signal Int)
+          ("3")
+      it "plays the first cycle" $ do
+        compareP (Arc 0 1)
+          (fast 4 $ loopFirst $ "<0 1 2 3>" :: Signal Int)
+          ("0 0 0 0")

@@ -16,6 +16,7 @@ import qualified Data.Map.Strict as Map
 import Data.List (delete, findIndex, (\\), sort)
 import Control.Applicative (liftA2)
 import Data.Bool (bool)
+import Control.Monad (join)
 
 import Sound.Tidal.Value
 import Sound.Tidal.Signal.Event
@@ -55,9 +56,9 @@ instance Pattern Signal where
   uncollect = sigUncollect
   euclid  = sigEuclid
   _euclid = _sigEuclid
-  _patternify f apat pat      = innerJoin $ (`f` pat) <$> apat
-  _patternify_p_p f apat bpat pat   = innerJoin $ (\a b -> f a b pat) <$> apat <* bpat
-  _patternify_p_n f apat b pat   = innerJoin $ (\a -> f a b pat) <$> apat
+  _patternify f apat pat                 = innerJoin $ (`f` pat) <$> apat
+  _patternify_p_p f apat bpat pat        = innerJoin $ (\a b -> f a b pat) <$> apat <* bpat
+  _patternify_p_n f apat b pat           = innerJoin $ (\a -> f a b pat) <$> apat
   _patternify_p_p_p f apat bpat cpat pat = innerJoin $ (\a b c -> f a b c pat) <$> apat <* bpat <* cpat
   toSignal = id
 
@@ -168,19 +169,19 @@ squeezeBind pat f = squeezeJoin $ fmap f pat
 _trigTimeJoin :: (Time -> Time) -> Signal (Signal a) -> Signal a
 _trigTimeJoin timeF patOfPats = Signal $ \state -> concatMap (queryInner state) $ query (discreteOnly patOfPats) state
   where queryInner state outerEvent
-          = map (\innerEvent ->
-                   Event {metadata = metadata innerEvent <> metadata outerEvent,
-                          whole = sect <$> whole innerEvent <*> whole outerEvent,
-                          active = sect (active innerEvent) (active outerEvent),
-                          value = value innerEvent
-                         }
+          = mapMaybe (\innerEvent -> do a <- maybeSect (active innerEvent) (active outerEvent)
+                                        return $ Event {metadata = metadata innerEvent <> metadata outerEvent,
+                                                        whole = sect <$> whole innerEvent <*> whole outerEvent,
+                                                        active = a,
+                                                        value = value innerEvent
+                                                       }
                 ) $ query (_late (timeF $ (aBegin $ wholeOrActive outerEvent)) (value outerEvent)) state
 
 trigJoin :: Signal (Signal a) -> Signal a
-trigJoin = _trigTimeJoin id
+trigJoin = _trigTimeJoin cyclePos
 
 trigzeroJoin :: Signal (Signal a) -> Signal a
-trigzeroJoin = _trigTimeJoin cyclePos
+trigzeroJoin = _trigTimeJoin id
 
 -- ************************************************************ --
 -- Signals as numbers
@@ -762,6 +763,9 @@ _chunk :: Int -> (Signal b -> Signal b) -> Signal b -> Signal b
 _chunk n f p | n == 0 = p
              | n >= 0 = when (_iterBack n $ fastcat (map pure $ True:replicate (n-1) False)) f p
              | otherwise = when (_iter n $ fastcat (map pure $ True:replicate (abs n-1) False)) f p
+
+loopFirst :: Signal Int -> Signal Int
+loopFirst pat = trigzeroJoin $ pure pat
 
 -- ************************************************************ --
 -- Euclidean / diaspora algorithm

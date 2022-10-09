@@ -650,26 +650,6 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
         p' = density cyc p
         from' = density cyc from
 
--- | DEPRECATED, use 'chunk' with negative numbers instead
-chunk' :: Integral a1 => Pattern a1 -> (Pattern a2 -> Pattern a2) -> Pattern a2 -> Pattern a2
-chunk' npat f p = innerJoin $ (\n -> _chunk' n f p) <$> npat
-
--- | DEPRECATED, use '_chunk' with negative numbers instead
-_chunk' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-_chunk' n f p = _chunk (-n) f p
-
-_inside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
-_inside n f p = _fast n $ f (_slow n p)
-
-inside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
-inside np f p = innerJoin $ (\n -> _inside n f p) <$> np
-
-_outside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
-_outside n = _inside (1/n)
-
-outside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
-outside np f p = innerJoin $ (\n -> _outside n f p) <$> np
-
 loopFirst :: Pattern a -> Pattern a
 loopFirst p = splitQueries $ p {query = f}
   where f st = map
