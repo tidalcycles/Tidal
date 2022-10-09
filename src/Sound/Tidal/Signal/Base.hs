@@ -49,8 +49,8 @@ instance Pattern Signal where
   timeCat = sigTimeCat
   when    = sigWhen
   _ply    = _sigPly
-  _iter    = _seqIter
-  _iterBack = _seqIterBack
+  _iter    = _sigIter
+  _iterBack = _sigIterBack
   collect = sigCollect
   uncollect = sigUncollect
   euclid  = sigEuclid
@@ -675,13 +675,13 @@ cp bd hh sn
 There is also `iterBack`, which shifts the pattern in the opposite direction.
 
 -}
-_seqIter :: Int -> Signal a -> Signal a
-_seqIter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `_early` p) [0 .. (n-1)]
+_sigIter :: Int -> Signal a -> Signal a
+_sigIter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `_early` p) [0 .. (n-1)]
 
 -- | @iterBack@ is the same as @iter@, but decrements the starting
 -- subdivision instead of incrementing it.
-_seqIterBack :: Int -> Signal a -> Signal a
-_seqIterBack n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `_late` p) [0 .. (n-1)]
+_sigIterBack :: Int -> Signal a -> Signal a
+_sigIterBack n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `_late` p) [0 .. (n-1)]
 
 -- ************************************************************ --
 -- Euclidean / diaspora algorithm

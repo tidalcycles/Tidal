@@ -552,7 +552,7 @@ iterS' sr s st =
   in unwrap $  iterer' (Sequence a) (Sequence b)
 
 iterer' :: Sequence Int -> Sequence a -> Sequence a
-iterer' (Atom _ s) sr = _iter' s sr
+iterer' (Atom _ s) sr = _iterBack s sr
 iterer' (Gap x) _ = Gap x
 iterer' (Sequence x) sr = Sequence $ map (`iterer'` sr) x
 iterer' (Stack x) sr = stack $ map (`iterer'` sr) x
