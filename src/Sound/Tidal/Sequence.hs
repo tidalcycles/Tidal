@@ -61,11 +61,13 @@ instance Pattern Sequence where
   _ply    = _seqPly
   -- every   = seqEvery
   when    = seqWhen
+  --iter    = seqIter
+  --iter'   = seqIter'
   _iter   = _seqIter
-  _iterBack = _seqIterBack
+  _iterBack  = _seqIter'
   toSignal = _seqToSignal
-  _patternify f x pat = mapSeq (applyfToSeq f x) pat
---  _patternify_p_p f a b seq = mapSeq ( ) 
+  _patternify f x pat = mapSeq (fmap f x) pat
+  _patternify_p_p f a b seq = mapSeq ((fmap f a) <*> b ) seq 
 
 -- -- | Takes sequence of functions and a sequence which have been aligned and applies the functions at the corresponding time points
 funcMap :: [Sequence (a->b)] -> [Sequence a] -> [Sequence b]
@@ -256,7 +258,7 @@ seqRev (Stack bs) = Stack $ map rev bs
 seqRev b = b
 
 -- ply :: Sequence Time -> Sequence a -> Sequence a
--- ply sr s =  mapSeq (applyfToSeq _ply sr) s
+-- ply sr s =  mapSeq (fmap _ply sr) s
 
 _seqPly :: Time -> Sequence a -> Sequence a
 _seqPly n (Atom d v) = Sequence $ reduce $  ((replicate (floor n) $ Atom (d / toRational n) v) ++ [Atom (d - ((floor n)%1) *d /n ) v])
@@ -349,7 +351,6 @@ expand (Gap x) r = Gap (x*r)
 expand (Sequence x) r = Sequence $ map (`expand` r) x
 expand (Stack x) r = Stack $ map (`expand` r) x
 
-
 -- | Reduce a list of sequences by removing redundancies
 reduce::[Sequence a] -> [Sequence a]
 reduce (Atom 0 _:xs) = reduce xs
@@ -359,18 +360,10 @@ reduce (Stack x:xs) = Stack (reduce x):reduce xs
 reduce (x:xs) = x:reduce xs
 reduce [] = []
 
--- | Applies a function to within a sequence
--- TODO: Is this fmap?
-applyfToSeq :: (t -> a) -> Sequence t -> Sequence a
-applyfToSeq f (Atom x s) = Atom x (f s)
-applyfToSeq _ (Gap x) = Gap x
-applyfToSeq f (Sequence x) = Sequence $ map (applyfToSeq f) x
-applyfToSeq f (Stack x) = Stack $ map (applyfToSeq f) x
-
 -- | Speed up the sequence
 -- TODO - Now provided by Pattern class via patternify
 -- fast :: Sequence Time -> Sequence a -> Sequence a
--- fast sr s = mapSeq (applyfToSeq _fast sr) s
+-- fast sr s = mapSeq (fmap _fast sr) s
 
 _seqFast :: Time -> Sequence a -> Sequence a
 _seqFast n (Atom x s) = Atom (x/n) s
@@ -380,15 +373,15 @@ _seqFast n (Stack x) = Stack $ map(_fast n) x
 
 -- | Speed up the sequence with a given fixed strategy
 fastS :: Sequence Time -> Sequence a -> Strategy -> Sequence a
-fastS sr= mapSeqS (applyfToSeq _fast sr)
+fastS sr= mapSeqS (fmap _fast sr)
 
 -- | Slow down the sequence
 -- slow :: Sequence Time->Sequence a->Sequence a
--- slow sr s = mapSeq (applyfToSeq _slow sr) s
+-- slow sr s = mapSeq (fmap _slow sr) s
 
 -- | Slow down the sequence with a given strategy
 slowS :: Sequence Time -> Sequence a -> Strategy -> Sequence a
-slowS sr = mapSeqS (applyfToSeq _slow sr)
+slowS sr = mapSeqS (fmap _slow sr)
 
 -- | Repeat the sequence a desired number of times without changing duration
 rep::Int -> Sequence a-> Sequence a
@@ -427,7 +420,7 @@ seqStackS s strat =
 --       y = map (\t -> if t then s else Gap (seqSpan s)) x
 --   in unwrap $ Sequence y
 
--- _patternify f x pat = mapSeq (applyfToSeq f x) pat
+-- _patternify f x pat = mapSeq (fmap f x) pat
 
 seqWhen :: Sequence Bool -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
 seqWhen boolpat f pat = mapSeq (fmap (\b -> if b then f else id) boolpat) pat
@@ -506,19 +499,17 @@ splitUp t x =
 
 -- -- | Shifts a sequence back in time by the given amount, expressed in cycles
 -- (<~) :: Sequence Time -> Sequence a -> Sequence a
--- (<~) sr s= mapSeq (applyfToSeq rotL sr) s
+-- (<~) sr s= mapSeq (fmap rotL sr) s
 
 -- -- | Shifts a pattern forward in time by the given amount, expressed in cycles
 -- (~>) :: Sequence Time -> Sequence a -> Sequence a
--- (~>) sr s = mapSeq (applyfToSeq rotR sr) s
+-- (~>) sr s = mapSeq (fmap rotR sr) s
 
-{- TODO - version in Pattern (using patternify) is ok?
 -- | Iterates a sequence to fit into a given number of cycles of the sequence while applying rotL
 seqIter :: Sequence Int -> Sequence a ->  Sequence a
 seqIter sr s =
   let (a,b) = forTwo sr s
   in unwrap $  iterer (Sequence a) (Sequence b)
--}
 
 -- | iter with a particular strategy
 iterS :: Sequence Int -> Sequence a -> Strategy -> Sequence a
@@ -535,15 +526,12 @@ iterer (Stack x) sr = stack $ map (`iterer` sr) x
 _seqIter :: Int -> Sequence a -> Sequence a
 _seqIter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n-1)]
 
-
-{- TODO - version in Pattern (using patternify) is ok?
 -- | @iter'@ is the same as @iter@, but decrements the starting
 -- subdivision instead of incrementing it.
-seqIterBack :: Sequence Int -> Sequence c ->Sequence c
-seqIterBack sr s=
+seqIter' :: Sequence Int -> Sequence c ->Sequence c
+seqIter' sr s=
   let (a,b) = forTwo sr s
   in unwrap $  iterer' (Sequence a) (Sequence b)
--}
 
 -- | iter', but with a particular strategy
 iterS' :: Sequence Int -> Sequence c -> Strategy -> Sequence c
@@ -552,13 +540,14 @@ iterS' sr s st =
   in unwrap $  iterer' (Sequence a) (Sequence b)
 
 iterer' :: Sequence Int -> Sequence a -> Sequence a
-iterer' (Atom _ s) sr = _iterBack s sr
+iterer' (Atom _ s) sr = _seqIter'
+ s sr
 iterer' (Gap x) _ = Gap x
 iterer' (Sequence x) sr = Sequence $ map (`iterer'` sr) x
 iterer' (Stack x) sr = stack $ map (`iterer'` sr) x
 
-_seqIterBack :: Int -> Sequence a -> Sequence a
-_seqIterBack n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
+_seqIter' :: Int -> Sequence a -> Sequence a
+_seqIter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
 
 _seqToSignal :: Sequence a -> Signal a
 _seqToSignal (Atom t v) = _fast t $ atom v
