@@ -92,11 +92,9 @@ test-suite tests
                  -- Sound.Tidal.ParamsTest
                  -- Sound.Tidal.ParseTest
                  -- Sound.Tidal.PatternTest
-                 -- Sound.Tidal.ScalesTest
                  -- Sound.Tidal.ChordsTest
                  -- Sound.Tidal.StreamTest
                  -- Sound.Tidal.UITest
-                 -- Sound.Tidal.UtilsTest
                  -- Sound.Tidal.ExceptionsTest
                  Sound.Tidal.ArcTest
                  Sound.Tidal.ChordsTest
@@ -104,10 +102,12 @@ test-suite tests
                  Sound.Tidal.ExceptionsTest
                  Sound.Tidal.ParamsTest
                  Sound.Tidal.ParseBPTest
+                 Sound.Tidal.ScalesTest
                  Sound.Tidal.SignalBaseTest
                  Sound.Tidal.StreamTest
                  Sound.Tidal.TimeTest
                  Sound.Tidal.TypesTest
+                 Sound.Tidal.UtilsTest
                  Sound.Tidal.ValueTest
                  Sound.Tidal.WaveformTest
                  TestUtils
