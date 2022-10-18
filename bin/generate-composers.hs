@@ -87,7 +87,7 @@ hows = [("Mix",      (\x -> "|" ++ x ++ "|")),
        ]
 
 fwhat (sig, ops) = concatMap fop ops
-  where fop (name, tidalop, haskellop, munge) = "-- " ++ name ++ "\n\n" ++ concatMap fhow hows ++ "infix 4 " ++ (intercalate ", " $ map fixity hows) ++ "\n\n"
+  where fop (name, tidalop, haskellop, munge) = "-- " ++ name ++ "\n\n" ++ concatMap fhow hows ++ "infixl 4 " ++ (intercalate ", " $ map fixity hows) ++ "\n\n"
           where fhow (howname, howfix) = (name ++ howname ++ ", " ++ "(" ++ howfix tidalop ++ ")" ++ " :: " ++ sig ++ "\n"
                                           ++ name ++ howname ++ " pata patb = " ++ munge ++ "op" ++ howname ++ " (" ++ haskellop ++ ") pata patb\n"
                                           ++ "(" ++ howfix tidalop ++ ") = " ++ name ++ howname ++ "\n\n"
