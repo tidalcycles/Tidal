@@ -301,6 +301,9 @@ instance Show (a -> b) where
 filterEvents :: (Event a -> Bool) -> Signal a -> Signal a
 filterEvents f pat = Signal $ \state -> filter f $ query pat state
 
+filterOnsets :: Signal a -> Signal a
+filterOnsets = filterEvents eventHasOnset
+
 filterValues :: (a -> Bool) -> Signal a -> Signal a
 filterValues f = filterEvents (f . value)
 
