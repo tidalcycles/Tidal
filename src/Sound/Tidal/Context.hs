@@ -35,6 +35,7 @@ import Sound.Tidal.Signal.ComposeExtra as C
 import Sound.Tidal.Signal.Control as C
 import Sound.Tidal.Signal.Event as C
 import Sound.Tidal.Signal.Random as C
+import Sound.Tidal.Signal.Waveform as C
 import Sound.Tidal.Show as C
 -- import Sound.Tidal.Simple as C
 import Sound.Tidal.Stream as C
