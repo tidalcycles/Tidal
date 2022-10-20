@@ -29,12 +29,17 @@ isIn (Arc s e) t = t >= s && t < e
 sect :: Arc -> Arc -> Arc
 sect (Arc b e) (Arc b' e') = Arc (max b b') (min e e')
 
--- | Intersection of two timearcs, returns Nothing if they don't intersect
+-- | Intersection of two arcs, returns Nothing if they don't intersect
+-- The definition is a bit fiddly as results might be zero-width, but
+-- not at the end of an non-zero-width arc - e.g. (0,1) and (1,2) do
+-- not intersect, but (1,1) (1,1) does.
 maybeSect :: Arc -> Arc -> Maybe Arc
-maybeSect a b = check $ sect a b
-  where check :: Arc -> Maybe Arc
-        check (Arc a b) | b <= a = Nothing
-                        | otherwise = Just (Arc a b)
+maybeSect a@(Arc s e) b@(Arc s' e')
+  | and [s'' == e'', s'' == e, s < e] = Nothing
+  | and [s'' == e'', s'' == e', s' < e'] = Nothing
+  | s'' <= e'' = Just (Arc s'' e'')
+  | otherwise = Nothing
+  where (Arc s'' e'') = sect a b
 
 -- | convex hull union
 hull :: Arc -> Arc -> Arc
