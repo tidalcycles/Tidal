@@ -146,7 +146,9 @@ outerJoin s = outerBind s id
 bindWhole :: (Maybe Arc -> Maybe Arc -> Maybe Arc) -> Signal a -> (a -> Signal b) -> Signal b
 bindWhole chooseWhole pv f = Signal $ \state -> concatMap (match state) $ query pv state
   where match state event = map (withWhole event) $ query (f $ value event) (state {sArc = active event})
-        withWhole event event' = event' {whole = chooseWhole (whole event) (whole event')}
+        withWhole event event' = event' {whole = chooseWhole (whole event) (whole event'),
+                                         metadata = metadata event <> metadata event'
+                                        }
 
 -- | Like @join@, but cycles of the inner patterns are compressed to fit the
 -- timearc of the outer whole (or the original query if it's a continuous pattern?)
