@@ -771,8 +771,8 @@ chunk npat f p = innerJoin $ (\n -> _chunk n f p) <$> npat
 
 _chunk :: Int -> (Signal b -> Signal b) -> Signal b -> Signal b
 _chunk n f p | n == 0 = p
-             | n >= 0 = when (_iterBack n $ fastcat (map pure $ True:replicate (n-1) False)) f p
-             | otherwise = when (_iter n $ fastcat (map pure $ True:replicate (abs n-1) False)) f p
+             | n > 0 = when (_iterBack n $ fastcat (map pure $ True:replicate (n-1) False)) f p
+             | otherwise = when (_iter (abs n) $ fastcat (map pure $ replicate (abs n-1) False ++ [True])) f p
 
 loopFirst :: Signal Int -> Signal Int
 loopFirst pat = trigzeroJoin $ pure pat

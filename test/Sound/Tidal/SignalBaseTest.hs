@@ -742,6 +742,21 @@ run =
           (bite "8 4" "0 2*2" (Sound.Tidal.Pattern.run 8))
           ("[0] [4 5]*2" :: Signal Int)
 
+
+    describe "chunk" $ do
+      it "can chunk a rev pattern" $ do
+        compareP (Arc 0 4)
+          (chunk 2 (rev) $  ("a b c d" :: Signal String))
+          (slow 2 $ "d c c d a b b a" :: Signal String)
+      it "can chunk a fast pattern" $ do
+        compareP (Arc 0 4)
+          (chunk 2 (fast 2) $ "a b" :: Signal String)
+          (slow 2 $ "a b b _ a _ a b" :: Signal String)
+      it "should chunk backward with a negative number" $ do
+        compareP (Arc 0 4)
+          (chunk (-2) (rev) $ ("a b c d" :: Signal String))
+          (slow 2 $ "a b b a d c c d" :: Signal String)
+
 {-
 
     describe "arpeggiate" $ do
@@ -757,20 +772,6 @@ run =
         compareP (Arc 0 4)
           (arpeggiate $ "[0,0]*2")
           ("0 0 0 0" :: Signal Int)
-
-    describe "chunk" $ do
-      it "can chunk a rev pattern" $ do
-        compareP (Arc 0 4)
-          (chunk 2 (rev) $  ("a b c d" :: Signal String))
-          (slow 2 $ "d c c d a b b a" :: Signal String)
-      it "can chunk a fast pattern" $ do
-        compareP (Arc 0 4)
-          (chunk 2 (fast 2) $ "a b" :: Signal String)
-          (slow 2 $ "a b b _ a _ a b" :: Signal String)
-      it "should chunk backward with a negative number" $ do
-        compareP (Arc 0 4)
-          (chunk (-2) (rev) $ ("a b c d" :: Signal String))
-          (slow 2 $ "a b b a d c c d" :: Signal String)
 
     describe "binary" $ do
       it "converts a number to a pattern of boolean" $ do
