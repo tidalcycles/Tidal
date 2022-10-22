@@ -104,6 +104,5 @@ envEqR = waveform $ \t -> sqrt (cos (pi/2 * max 0 (min (fromRational (1-t)) 1)))
 envEqR2 :: (Fractional a, Ord a, Floating a) => Signal a
 envEqR2 = toBipolar envEqR
 
-
-time :: Signal Time
-time = waveform id
+time :: Fractional a => Signal a
+time = waveform fromRational

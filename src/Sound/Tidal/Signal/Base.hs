@@ -13,7 +13,7 @@ import Data.Ratio
 import Data.Fixed (mod')
 import Data.Maybe (catMaybes, isJust, mapMaybe, fromJust, fromMaybe)
 import qualified Data.Map.Strict as Map
-import Data.List (delete, findIndex, (\\), sort)
+import Data.List (delete, findIndex, (\\), sort, groupBy)
 import Control.Applicative (liftA2)
 import Data.Bool (bool)
 import Control.Monad (join)
@@ -23,6 +23,7 @@ import Sound.Tidal.Signal.Event
 import Sound.Tidal.Types
 import Sound.Tidal.Pattern
 import Sound.Tidal.Bjorklund (bjorklund)
+import Sound.Tidal.Utils (enumerate)
 
 import Prelude hiding ((<*), (*>))
 
@@ -61,6 +62,7 @@ instance Pattern Signal where
   _patternify_p_n f apat b pat           = innerJoin $ (\a -> f a b pat) <$> apat
   _patternify_p_p_p f apat bpat cpat pat = innerJoin $ (\a b c -> f a b c pat) <$> apat <* bpat <* cpat
   toSignal = id
+  _pressBy = _sigPressBy
 
 -- ************************************************************ --
 
@@ -440,6 +442,9 @@ _compressArc :: Arc -> Signal a -> Signal a
 _compressArc (Arc b e) pat | (b > e || b > 1 || e > 1 || b < 0 || e < 0) = silence
                            | otherwise = _late b $ _fastGap (1/(e-b)) pat
 
+_compressArcTo :: Arc -> Signal a -> Signal a
+_compressArcTo (Arc b e) = _compressArc (Arc (cyclePos b) (e - sam b))
+
 -- | Like @fastGap@, but takes the start and duration of the arc to compress the cycle into.
 compress :: Signal Time -> Signal Time -> Signal a -> Signal a
 compress patStart patDur pat = innerJoin $ (\s d -> _compressArc (Arc s (s+d)) pat) <$> patStart <*> patDur
@@ -493,9 +498,6 @@ _zoomArc :: Arc -> Signal a -> Signal a
 _zoomArc (Arc s e) p = splitQueries $
   withEventArc (mapCycle ((/d) . subtract s)) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
-
--- compressTo :: (Time,Time) -> Pattern a -> Pattern a
--- compressTo (s,e)      = compressArcTo (Arc s e)
 
 repeatCycles :: Signal Int -> Signal a -> Signal a
 repeatCycles = _patternify _repeatCycles
@@ -644,6 +646,9 @@ _uncollectEvents = concatMap _uncollectEvent
 sigUncollect :: Signal [a] -> Signal a
 sigUncollect = withEvents _uncollectEvents
 
+_sigPressBy :: Time -> Signal a -> Signal a
+_sigPressBy r pat = squeezeJoin $ (_compressArcTo (Arc r 1) . atom) <$> pat
+
 {- | Make a pattern sound a bit like a breakbeat, by playing it twice as
    fast and shifted by a quarter of a cycle, every other cycle.
 
@@ -769,6 +774,64 @@ _chunk n f p | n == 0 = p
 
 loopFirst :: Signal Int -> Signal Int
 loopFirst pat = trigzeroJoin $ pure pat
+
+{- | `rolled` plays each note of a chord quickly in order, as opposed to simultaneously; to give a chord a harp-like effect.
+This will played from the lowest note to the highest note of the chord
+@
+rolled $ n "c'maj'4" # s "superpiano"
+@
+
+
+And you can use `rolledBy` or `rolledBy'` to specify the length of the roll. The value in the passed pattern
+is the divisor of the cycle length. A negative value will play the arpeggio in reverse order.
+
+@
+rolledBy "<1 -0.5 0.25 -0.125>" $ note "c'maj9" # s "superpiano"
+@
+-}
+
+rolledWith :: Ratio Integer -> Signal a -> Signal a
+rolledWith t = withEvents aux
+         where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ ((isRev t) es))
+               isRev b = (\x -> if x > 0 then id else reverse ) b
+               steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
+               timeguard _ _ ev 0 = return ev
+               timeguard n xs ev _ = (shiftIt n (length xs) ev)
+               shiftIt n d (Event c (Just (Arc s e)) a' v) = do
+                         a'' <- maybeSect (Arc newS e) a'
+                         return (Event c (Just $ Arc newS e) a'' v)
+                      where newS = s + (dur * fromIntegral n)
+                            dur = ((e - s)) / ((1/ (abs t))*fromIntegral d)
+               shiftIt _ _ ev =  return ev
+
+rolledBy :: Signal (Ratio Integer) -> Signal a -> Signal a
+rolledBy pt = _patternify rolledWith (_segment 1 $ pt)
+
+rolled :: Signal a -> Signal a
+rolled = rolledBy (1/4)
+
+{-
+  snowball |
+  snowball takes a function that can combine patterns (like '+'),
+  a function that transforms a pattern (like 'slow'),
+  a depth, and a starting pattern,
+  it will then transform the pattern and combine it with the last transformation until the depth is reached
+  this is like putting an effect (like a filter) in the feedback of a delay line
+  each echo is more effected
+  d1 $ note (scale "hexDorian" $ snowball (+) (slow 2 . rev) 8 "0 ~ . -1 . 5 3 4 . ~ -2") # s "gtr"
+-}
+snowball :: Int -> (Signal a -> Signal a -> Signal a) -> (Signal a -> Signal a) -> Signal a -> Signal a
+snowball depth combinationFunction f signal = cat $ take depth $ scanl combinationFunction signal $ drop 1 $ iterate f signal
+
+{- @soak@ |
+    applies a function to a signal and cats the resulting signal,
+    then continues applying the function until the depth is reached
+    this can be used to create a signal that wanders away from
+    the original signal by continually adding random numbers
+    d1 $ note (scale "hexDorian" mutateBy (+ (range -1 1 $ irand 2)) 8 $ "0 1 . 2 3 4") # s "gtr"
+-}
+soak ::  Int -> (Signal a -> Signal a) -> Signal a -> Signal a
+soak depth f signal = cat $ take depth $ iterate f signal
 
 -- ************************************************************ --
 -- Euclidean / diaspora algorithm

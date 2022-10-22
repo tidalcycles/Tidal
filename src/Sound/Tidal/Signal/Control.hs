@@ -24,7 +24,7 @@ module Sound.Tidal.Signal.Control where
 import           Prelude hiding ((<*), (*>))
 
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe, isJust, fromJust)
+import Data.Maybe (fromMaybe, isJust, fromJust, mapMaybe)
 import Data.Ratio
 
 import Sound.Tidal.Arc
@@ -455,4 +455,74 @@ reset k pat = pat {query = q}
 
 splat :: Signal Int -> ControlSignal -> ControlSignal -> ControlSignal
 splat slices epat pat = chop slices pat # bite 1 (const 0 <$> pat) epat
+
+
+-- | @contrast p f f' p'@ splits controlpattern @p'@ in two, applying
+-- the function @f@ to one and @f'@ to the other. This depends on
+-- whether events in it contains values matching with those in @p@.
+-- For example in @contrast (# crush 3) (# vowel "a") (n "1") $ n "0 1" # s "bd sn" # speed 3@,
+-- the first event will have the vowel effect applied and the second
+-- will have the crush applied.
+contrast :: (ControlSignal -> ControlSignal) -> (ControlSignal -> ControlSignal)
+            -> ControlSignal -> ControlSignal -> ControlSignal
+contrast = contrastBy (==)
+
+contrastBy :: (a -> Value -> Bool)
+              -> (ControlSignal -> Signal b)
+              -> (ControlSignal -> Signal b)
+              -> Signal (Map.Map String a)
+              -> Signal (Map.Map String Value)
+              -> Signal b
+contrastBy comp f f' p p' = overlay (f matched) (f' unmatched)
+  where matches = matchManyToOne (flip $ Map.isSubmapOfBy comp) p p'
+        matched :: ControlSignal
+        matched = filterJusts $ (\(t, a) -> if t then Just a else Nothing) <$> matches
+        unmatched :: ControlSignal
+        unmatched = filterJusts $ (\(t, a) -> if not t then Just a else Nothing) <$> matches
+        
+        -- | Mark values in the first pattern which match with at least one
+        -- value in the second pattern.
+        matchManyToOne :: (b -> a -> Bool) -> Signal a -> Signal b -> Signal (Bool, b)
+        matchManyToOne f' pa pb = pa {query = q}
+          where q st = map match $ query pb st
+                  where
+                    match ex@(Event xContext xWhole xActive x) =
+                      Event (mconcat $ xContext:map metadata as') xWhole xActive (any (f' x . value) as', x)
+                      where as' = as $ aBegin $ wholeOrActive ex
+                    as s = query pa $ fQuery s
+                    fQuery s = st {sArc = Arc s s}
+
+contrastRange
+  :: (ControlSignal -> Signal a)
+     -> (ControlSignal -> Signal a)
+     -> Signal (Map.Map String (Value, Value))
+     -> ControlSignal
+     -> Signal a
+contrastRange = contrastBy f
+      where f (VI s, VI e) (VI v) = v >= s && v <= e
+            f (VF s, VF e) (VF v) = v >= s && v <= e
+            f (VN s, VN e) (VN v) = v >= s && v <= e
+            f (VS s, VS e) (VS v) = v == s && v == e
+            f _ _ = False
+
+-- | Like @contrast@, but one function is given, and applied to events with matching controls.
+fix :: (ControlSignal -> ControlSignal) -> ControlSignal -> ControlSignal -> ControlSignal
+fix f = contrast f id
+
+-- | Like @contrast@, but one function is given, and applied to events
+-- with controls which don't match.
+unfix :: (ControlSignal -> ControlSignal) -> ControlSignal -> ControlSignal -> ControlSignal
+unfix = contrast id
+
+fixRange :: (ControlSignal -> Signal ValueMap)
+            -> Signal (Map.Map String (Value, Value))
+            -> ControlSignal
+            -> ControlSignal
+fixRange f = contrastRange f id
+
+unfixRange :: (ControlSignal -> Signal ValueMap)
+              -> Signal (Map.Map String (Value, Value))
+              -> ControlSignal
+              -> ControlSignal
+unfixRange = contrastRange id
 

@@ -10,9 +10,13 @@ import Prelude hiding ((<*), (*>))
 import Sound.Tidal.Signal.Base
 import Sound.Tidal.Signal.Control
 import Sound.Tidal.Signal.Compose
+import Sound.Tidal.Signal.Random (irand)
+import Sound.Tidal.Signal.Waveform (sine)
 import Sound.Tidal.Types
 import Sound.Tidal.Pattern
 import Sound.Tidal.Params
+
+import qualified Data.Map.Strict as Map
 
 run :: Microspec ()
 run =
@@ -55,3 +59,44 @@ run =
       it "can chop a chop" $
         property $ compareTol (Arc 0 1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")
 
+
+
+    describe "fix" $ do
+      it "can apply functions conditionally" $ do
+        compareP (Arc 0 1)
+          (fix (|+ n 1) (s "sn") (s "bd sn cp" # n 1))
+          (s "bd sn cp" # n "1 2 1")
+      it "works with complex matches" $ do
+        compareP (Arc 0 1)
+          (fix (|+ n 2) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2"))
+          (s "bd sn*4 cp" # n "1 [1 4] 2")
+      it "leaves unmatched controls in place" $ do
+        compareP (Arc 0 1)
+          (fix (|+ n 2) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2" # speed (sine + 1)))
+          (s "bd sn*4 cp" # n "1 [1 4] 2" # speed (sine + 1))
+      it "ignores silence" $ do
+        compareP (Arc 0 1)
+          (fix (|+ n 2) (silence) $ s "bd sn*4 cp" # n "1 2" # speed (sine + 1))
+          (s "bd sn*4 cp" # n "1 2" # speed (sine + 1))
+      it "treats polyphony as 'or'" $ do
+        compareP (Arc 0 1)
+          (fix (# crush 2) (n "[1,2]") $ s "bd sn" # n "1 2")
+          (s "bd sn" # n "1 2" # crush 2)
+
+    describe "unfix" $ do
+      it "does the opposite of fix" $ do
+        compareP (Arc 0 1)
+          (unfix (|+ n 2) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2" # speed (sine + 1)))
+          (s "bd sn*4 cp" # n "3 [3 2] 4" # speed (sine + 1))
+
+    describe "contrast" $ do
+      it "does both fix and unfix" $ do
+        compareP (Arc 0 1)
+          (contrast (|+ n 2) (|+ n 10) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2" # speed (sine + 1)))
+          (s "bd sn*4 cp" # n "11 [11 4] 12" # speed (sine + 1))
+
+    describe "contrastRange" $ do
+      it "matches using a pattern of ranges" $ do
+        compareP (Arc 0 1)
+          (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VN 0, VN 3)) $ s "bd" =| n "1 4")
+          (s "bd" =| n "1 4" =| crush "3 0")

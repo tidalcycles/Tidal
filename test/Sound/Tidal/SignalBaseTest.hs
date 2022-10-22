@@ -12,8 +12,11 @@ import           Data.List (sort)
 
 import           Sound.Tidal.Types
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Pattern (atom, fastCat, slow, _slow, fast, timeCat, every, append, rev, cat, silence, stack, range)
-import           Sound.Tidal.Signal.Compose (struct, (|=|))
+import           Sound.Tidal.Pattern (atom, fastCat, slow, _slow, fast, timeCat, every, append, rev, cat, silence, stack, range, ply, press, pressBy, euclid, run)
+import           Sound.Tidal.Params (n)
+import           Sound.Tidal.ParseBP (parseBP_E)
+import           Sound.Tidal.Signal.Compose (struct, (|=|), (|+))
+import           Sound.Tidal.Signal.Random (irand)
 import           Sound.Tidal.Signal.Waveform (tri, saw)
 
 import qualified Data.Map.Strict     as Map
@@ -586,8 +589,43 @@ run =
             (queryArc (range 10 10 saw) (Arc 0.5 0.5)) `shouldBe`
               [Event (Metadata []) Nothing (Arc 0.5 0.5) (10 :: Float)]
 
+    describe "rot" $ do
+      it "rotates values in a pattern irrespective of structure" $
+        property $ comparePD (Arc 0 2)
+          (rot 1 "a ~ b c" :: Signal String)
+          ( "b ~ c a" :: Signal String)
+      it "works with negative values" $
+        property $ comparePD (Arc 0 2)
+          (rot (-1) "a ~ b c" :: Signal String)
+          ( "c ~ a b" :: Signal String)
+      it "works with complex patterns" $
+        property $ comparePD (Arc 0 2)
+          (rot (1) "a ~ [b [c ~ d]] [e <f g>]" :: Signal String)
+          ( "b ~ [c [d ~ e]] [<f g> a]" :: Signal String)
 
-{-
+    describe "ply" $ do
+      it "can ply chords" $ do
+        compareP (Arc 0 1)
+          (ply 3 "[0,1] [3,4,5] 6")
+          ("[0,1]*3 [3,4,5]*3 6*3" :: Signal Int)
+      it "can pattern the ply factor" $ do
+        compareP (Arc 0 1)
+          (ply "3 4 5" "[0,1] [3,4,5] 6")
+          ("[0,1]*3 [3,4,5]*4 6*5" :: Signal Int)
+
+    describe "press" $ do
+      it "can syncopate a pattern" $ do
+        compareP (Arc 0 1)
+          (press "a b [c d] e")
+          ("[~ a] [~ b] [[~ c] [~ d]] [~ e]" :: Signal String)
+    describe "pressBy" $ do
+      it "can syncopate a pattern by a given amount" $ do
+        compareP (Arc 0 1)
+          (pressBy (1/3) "a b [~ c]")
+          ("[~ a@2] [~ b@2] [~ [~ c@2]]" :: Signal String)
+
+
+
     describe "rolledBy" $ do
       it "shifts each start of events in a list correctly" $ do
         let
@@ -624,108 +662,6 @@ run =
           expectedResult = n "[0,1,2,3]"
           in
             compareP overTimeSpan testMe expectedResult
--}
-{-
-
-    describe "rot" $ do
-      it "rotates values in a pattern irrespective of structure" $
-        property $ comparePD (Arc 0 2)
-          (rot 1 "a ~ b c" :: Signal String)
-          ( "b ~ c a" :: Signal String)
-      it "works with negative values" $
-        property $ comparePD (Arc 0 2)
-          (rot (-1) "a ~ b c" :: Signal String)
-          ( "c ~ a b" :: Signal String)
-      it "works with complex patterns" $
-        property $ comparePD (Arc 0 2)
-          (rot (1) "a ~ [b [c ~ d]] [e <f g>]" :: Signal String)
-          ( "b ~ [c [d ~ e]] [<f g> a]" :: Signal String)
-
-    describe "ply" $ do
-      it "can ply chords" $ do
-        compareP (Arc 0 1)
-          (ply 3 "[0,1] [3,4,5] 6")
-          ("[0,1]*3 [3,4,5]*3 6*3" :: Signal Int)
-      it "can pattern the ply factor" $ do
-        compareP (Arc 0 1)
-          (ply "3 4 5" "[0,1] [3,4,5] 6")
-          ("[0,1]*3 [3,4,5]*4 6*5" :: Signal Int)
-    describe "press" $ do
-      it "can syncopate a pattern" $ do
-        compareP (Arc 0 1)
-          (press "a b [c d] e")
-          ("[~ a] [~ b] [[~ c] [~ d]] [~ e]" :: Signal String)
-    describe "pressBy" $ do
-      it "can syncopate a pattern by a given amount" $ do
-        compareP (Arc 0 1)
-          (pressBy (1/3) "a b [~ c]")
-          ("[~ a@2] [~ b@2] [~ [~ c@2]]" :: Signal String)
-    describe "fix" $ do
-      it "can apply functions conditionally" $ do
-        compareP (Arc 0 1)
-          (fix (|+ n 1) (s "sn") (s "bd sn cp" # n 1))
-          (s "bd sn cp" # n "1 2 1")
-      it "works with complex matches" $ do
-        compareP (Arc 0 1)
-          (fix (|+ n 2) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2"))
-          (s "bd sn*4 cp" # n "1 [1 4] 2")
-      it "leaves unmatched controls in place" $ do
-        compareP (Arc 0 1)
-          (fix (|+ n 2) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2" # speed (sine + 1)))
-          (s "bd sn*4 cp" # n "1 [1 4] 2" # speed (sine + 1))
-      it "ignores silence" $ do
-        compareP (Arc 0 1)
-          (fix (|+ n 2) (silence) $ s "bd sn*4 cp" # n "1 2" # speed (sine + 1))
-          (s "bd sn*4 cp" # n "1 2" # speed (sine + 1))
-      it "treats polyphony as 'or'" $ do
-        compareP (Arc 0 1)
-          (fix (# crush 2) (n "[1,2]") $ s "bd sn" # n "1 2")
-          (s "bd sn" # n "1 2" # crush 2)
-
-    describe "unfix" $ do
-      it "does the opposite of fix" $ do
-        compareP (Arc 0 1)
-          (unfix (|+ n 2) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2" # speed (sine + 1)))
-          (s "bd sn*4 cp" # n "3 [3 2] 4" # speed (sine + 1))
-
-    describe "contrast" $ do
-      it "does both fix and unfix" $ do
-        compareP (Arc 0 1)
-          (contrast (|+ n 2) (|+ n 10) (s "sn" # n 2) (s "bd sn*4 cp" # n "1 2" # speed (sine + 1)))
-          (s "bd sn*4 cp" # n "11 [11 4] 12" # speed (sine + 1))
-
-    describe "contrastRange" $ do
-      it "matches using a pattern of ranges" $ do
-        compareP (Arc 0 1)
-          (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VN 0, VN 3)) $ s "bd" >| n "1 4")
-          (s "bd" >| n "1 4" >| crush "3 0")
-
-    describe "euclidFull" $ do
-      it "can match against silence" $ do
-        compareP (Arc 0 1)
-          (euclidFull 3 8 "bd" silence)
-          ("bd(3,8)" :: Signal String)
-
-    describe "snowball" $ do
-      let testSignal = ("1 2 3 4"::Signal Int)
-      it "acummulates a transform version of a pattern and appends the result - addition" $ do
-        compareP (Arc 0 1)
-          (snowball 3 (+) (slow 2) (testSignal))
-          (cat [testSignal,(testSignal+(slow 2 testSignal)),((testSignal+(slow 2 testSignal))+slow 2 (testSignal+(slow 2 testSignal)))])
-
-    describe "soak" $ do
-      it "applies a transform and then appends the result -- addition" $ do
-        compareP (Arc 0 3)
-          (soak 3 (+ 1) "4 ~ 0 1")
-          (cat ["4 ~ 0 1"::Signal Int,"5 ~ 1 2"::Signal Int,"6 ~ 2 3"::Signal Int])
-      it "applies a transform and then appends the result -- slow" $ do
-        compareP (Arc 0 7)
-          (soak 3 (slow 2) "4 ~ 0 1")
-          (cat ["4 ~ 0 1"::Signal Int, slow 2 "4 ~ 0 1"::Signal Int, slow 4 "4 ~  0 1"::Signal Int])
-      it "applies a transform and then appends the result -- addition patterns" $ do
-        compareP (Arc 0 3)
-          (soak 3 (+ "1 2 3") "1 1")
-          (cat ["1 1"::Signal Int,"2 [3 3] 4"::Signal Int,"3 [5 5] 7"::Signal Int])
 
     describe "euclid" $ do
       it "matches examples in Toussaint's paper" $ do
@@ -769,36 +705,44 @@ run =
           (euclid (-3) 8 ("bd" :: Signal String))
           ("bd(-3,8)" :: Signal String)
 
+    describe "euclidFull" $ do
+      it "can match against silence" $ do
+        compareP (Arc 0 1)
+          (euclidFull 3 8 "bd" silence)
+          ("bd(3,8)" :: Signal String)
 
-    describe "wedge" $ do
-      it "should not freeze tidal amount is 1" $ do
+    describe "snowball" $ do
+      let testSignal = ("1 2 3 4"::Signal Int)
+      it "acummulates a transform version of a pattern and appends the result - addition" $ do
         compareP (Arc 0 1)
-          (wedge (1) (s "ho ho:2 ho:3 hc") (rev $ s "ho ho:2 ho:3 hc"))
-          (s "ho ho:2 ho:3 hc")
-      it "should not freeze tidal amount is 0" $ do
-        compareP (Arc 0 1)
-          (wedge (0) (s "ho ho:2 ho:3 hc") (rev $ s "ho ho:2 ho:3 hc"))
-          (rev $ s "ho ho:2 ho:3 hc")
+          (snowball 3 (+) (slow 2) (testSignal))
+          (cat [testSignal,(testSignal+(slow 2 testSignal)),((testSignal+(slow 2 testSignal))+slow 2 (testSignal+(slow 2 testSignal)))])
+
+    describe "soak" $ do
+      it "applies a transform and then appends the result -- addition" $ do
+        compareP (Arc 0 3)
+          (soak 3 (+ 1) "4 ~ 0 1")
+          (cat ["4 ~ 0 1"::Signal Int,"5 ~ 1 2"::Signal Int,"6 ~ 2 3"::Signal Int])
+      it "applies a transform and then appends the result -- slow" $ do
+        compareP (Arc 0 7)
+          (soak 3 (slow 2) "4 ~ 0 1")
+          (cat ["4 ~ 0 1"::Signal Int, slow 2 "4 ~ 0 1"::Signal Int, slow 4 "4 ~  0 1"::Signal Int])
+      it "applies a transform and then appends the result -- addition patterns" $ do
+        compareP (Arc 0 3)
+          (soak 3 (+ "1 2 3") "1 1")
+          (cat ["1 1"::Signal Int,"2 [3 3] 4"::Signal Int,"3 [5 5] 7"::Signal Int])
 
     describe "bite" $ do
       it "can slice a pattern into bits" $ do
         compareP (Arc 0 4)
-          (bite 4 "0 2*2" (Sound.Tidal.Core.run 8))
+          (bite 4 "0 2*2" (Sound.Tidal.Pattern.run 8))
           ("[0 1] [4 5]*2" :: Signal Int)
       it "can slice a pattern into patternable bits number" $ do
         compareP (Arc 0 4)
-          (bite "8 4" "0 2*2" (Sound.Tidal.Core.run 8))
+          (bite "8 4" "0 2*2" (Sound.Tidal.Pattern.run 8))
           ("[0] [4 5]*2" :: Signal Int)
 
-    describe "chooseBy" $ do
-      it "chooses from elements based on closest scaled double value" $ do
-        compareP (Arc 0 4)
-          (("0"::Signal Int) |+ chooseBy ((/ 4)$(sig fromRational)) [0,1,2,3])
-          ("<0 1 2 3>"::Signal Int)
-      it "never gets an index out of bounds" $ do
-        compareP (Arc 0 4)
-          ("0" |+ chooseBy (sig fromRational) [0,1,2,3])
-          ("2"::Signal Int)
+{-
 
     describe "arpeggiate" $ do
       it "can arpeggiate" $ do

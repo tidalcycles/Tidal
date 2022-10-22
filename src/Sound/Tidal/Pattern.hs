@@ -40,6 +40,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   _iterBack :: Int -> p a -> p a
   collect :: Eq a => p a -> p [a]
   uncollect :: p [a] -> p a
+  _pressBy :: Time -> p a -> p a
 
 overlay :: Pattern p => p x -> p x -> p x
 overlay a b = stack [a, b]
@@ -171,6 +172,19 @@ iterBack = _patternify _iterBack
 -- the pattern alternates between forwards and backwards.
 palindrome :: Pattern p => p a -> p a
 palindrome p = slowAppend p (rev p)
+
+-- | Repeats each event @n@ times within its arc
+ply :: Pattern p => p Rational -> p a -> p a
+ply = _patternify _ply
+
+
+-- | Syncopates a rhythm, shifting each event halfway into its arc (aka timespan), e.g. @"a b [c d] e"@ becomes the equivalent of @"[~ a] [~ b] [[~ c] [~ d]] [~ e]"@
+press :: Pattern p => p a -> p a
+press = _pressBy 0.5
+
+-- | Like @press@, but allows you to specify the amount in which each event is shifted. @pressBy 0.5@ is the same as @press@, while @pressBy (1/3)@ shifts each event by a third of its arc.
+pressBy :: Pattern p => p Time -> p a -> p a
+pressBy = _patternify _pressBy
 
 -- ************************************************************ --
 

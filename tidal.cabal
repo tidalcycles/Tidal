@@ -104,7 +104,9 @@ test-suite tests
                  Sound.Tidal.ParseBPTest
                  Sound.Tidal.ScalesTest
                  Sound.Tidal.SignalBaseTest
+                 Sound.Tidal.SignalComposeTest
                  Sound.Tidal.SignalControlTest
+                 Sound.Tidal.SignalRandomTest
                  Sound.Tidal.StreamTest
                  Sound.Tidal.TimeTest
                  Sound.Tidal.TypesTest
