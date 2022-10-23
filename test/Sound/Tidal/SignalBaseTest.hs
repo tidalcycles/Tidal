@@ -12,12 +12,12 @@ import           Data.List (sort)
 
 import           Sound.Tidal.Types
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Pattern (atom, fastCat, slow, _slow, fast, timeCat, every, append, rev, cat, silence, stack, range, ply, press, pressBy, euclid, run)
-import           Sound.Tidal.Params (n)
+import           Sound.Tidal.Pattern (atom, fastCat, slow, _slow, fast, timeCat, every, append, rev, cat, silence, stack, range, ply, press, pressBy, euclid, run, superimpose)
+import           Sound.Tidal.Params (s, n)
 import           Sound.Tidal.ParseBP (parseBP_E)
 import           Sound.Tidal.Signal.Compose (struct, (|=|), (|+))
 import           Sound.Tidal.Signal.Random (irand)
-import           Sound.Tidal.Signal.Waveform (tri, saw)
+import           Sound.Tidal.Signal.Waveform (tri, saw, sine)
 
 import qualified Data.Map.Strict     as Map
 
@@ -778,7 +778,26 @@ run =
         compareP (Arc 0 1)
           (ascii "a b")
           ("f t t f f f f t f t t f f f t f" :: Signal Bool)
-        
+
+    describe "off" $ do
+      it "superimposes and shifts pattern" $ do
+        compareP (Arc 0 1)
+          (off "-e" id $ s "0")
+          (superimpose ("e" <~) $ s "0")
+
+          
+    describe "necklace" $ do
+      it "can specify rhythm by IOI" $ do
+        compareP (Arc 0 1)
+          (necklace 12 [4,2])
+          ("t f f f t f t f f f t f")
+
+    describe "quantise" $ do
+      it "can quantise notes" $ do
+        compareP (Arc 0 1)
+          (segment 2 $ quantise 1 $ sine :: Signal Note)
+          ("1 0" :: Signal Note)
+
 {-
 
     describe "arpeggiate" $ do
@@ -795,12 +814,6 @@ run =
           (arpeggiate $ "[0,0]*2")
           ("0 0 0 0" :: Signal Int)
 
-
-    describe "off" $ do
-      it "superimposes and shifts pattern" $ do
-        compareP (Arc 0 1)
-          (off "-e" id $ s "0")
-          (superimpose ("e" <~) $ s "0")
 
     describe "loopCycles" $ do
       it "plays the first n cycles" $ do
@@ -819,16 +832,4 @@ run =
         compareP (Arc 0 1)
           ((1 <~) $ timeLoop "<2 1>" $ sound "b")
           (sound "b")
-
-    describe "necklace" $ do
-      it "can specify rhythm by IOI" $ do
-        compareP (Arc 0 1)
-          (necklace 12 [4,2])
-          ("t f f f t f t f f f t f")
-
-    describe "quantise" $ do
-      it "can quantise notes" $ do
-        compareP (Arc 0 1)
-          (segment 2 $ quantise 1 $ sine :: Signal Note)
-          ("1 0" :: Signal Note)
 -}

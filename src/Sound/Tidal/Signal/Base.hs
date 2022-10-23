@@ -518,6 +518,12 @@ _fastRepeatCycles n p = fastcat $ replicate n p
 sigStack :: [Signal a] -> Signal a
 sigStack pats = Signal $ \s -> concatMap (\pat -> query pat s) pats
 
+off :: Signal Time -> (Signal a -> Signal a) -> Signal a -> Signal a
+off tp f p = innerJoin $ (\tv -> _off tv f p) <$> tp
+
+_off :: Time -> (Signal a -> Signal a) -> Signal a -> Signal a
+_off t f p = superimpose (f . (t `_late`)) p
+
 squash :: Time -> Signal a -> Signal a
 squash into pat = splitQueries $ withEventArc ef $ withQueryArc qf pat
   where qf (Arc s e) = Arc (sam s + (min 1 $ (s - sam s) / into)) (sam s + (min 1 $ (e - sam s) / into))
@@ -837,6 +843,24 @@ snowball depth combinationFunction f signal = cat $ take depth $ scanl combinati
 soak ::  Int -> (Signal a -> Signal a) -> Signal a -> Signal a
 soak depth f signal = cat $ take depth $ iterate f signal
 
+-- | limit values in a Pattern (or other Functor) to n equally spaced
+-- divisions of 1.
+-- TODO move to Pattern ?
+quantise :: (Functor f, RealFrac b) => b -> f b -> f b
+quantise n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . round . (*n))
+
+-- quantise but with floor
+qfloor :: (Functor f, RealFrac b) => b -> f b -> f b
+qfloor n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . floor . (*n))
+
+qceiling :: (Functor f, RealFrac b) => b -> f b -> f b
+qceiling n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . ceiling . (*n))
+
+qround :: (Functor f, RealFrac b) => b -> f b -> f b
+qround = quantise
+
+-- ************************************************************ --
+-- Binary signals
 
 __binary :: Data.Bits.Bits b => Int -> b -> [Bool]
 __binary n num = map (testBit num) $ reverse [0 .. n-1]
@@ -855,6 +879,21 @@ binary = binaryN 8
 
 ascii :: Signal String -> Signal Bool
 ascii p = squeezeJoin $ (fastFromList . concatMap (__binary 8 . ord)) <$> p
+
+-- | For specifying a boolean pattern according to a list of offsets
+-- (aka inter-onset intervals).  For example `necklace 12 [4,2]` is
+-- the same as "t f f f t f t f f f t f". That is, 12 steps per cycle,
+-- with true values alternating between every 4 and every 2 steps.
+necklace :: Rational -> [Int] -> Signal Bool
+necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ fastFromList $ list xs
+  where list :: [Int] -> [Bool]
+        list [] = []
+        list (x:xs') = (True:(replicate (x-1) False)) ++ list xs'
+
+-- | Inverts all the values in a boolean pattern (or other functor)
+-- TODO move to Pattern ?
+inv :: Functor f => f Bool -> f Bool
+inv = (not <$>)
 
 -- ************************************************************ --
 -- Euclidean / diaspora algorithm
