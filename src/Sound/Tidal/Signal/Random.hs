@@ -173,6 +173,11 @@ plays a melody randomly choosing one of the four notes \"a\", \"e\", \"g\", \"c\
 choose :: [a] -> Signal a
 choose = chooseBy rand
 
+{- | `cycleChoose` is like `choose` but only picks a new item from the list
+once each cycle -}
+cycleChoose :: [a] -> Signal a
+cycleChoose = segment 1 . choose
+
 chooseBy :: Signal Double -> [a] -> Signal a
 chooseBy _ [] = silence
 chooseBy f xs = (xs !!!) . floor <$> range 0 (fromIntegral $ length xs) f

@@ -32,7 +32,7 @@ import Sound.Tidal.Types
 import Sound.Tidal.Pattern
 import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Signal.Base
-import Sound.Tidal.Signal.Compose ((#), (|=|), (|*), (*|))
+import Sound.Tidal.Signal.Compose ((#), (|=|), (|*), (*|), (|/))
 import Sound.Tidal.Signal.Event
 import Sound.Tidal.Signal.Random
 import Sound.Tidal.Signal.Waveform (sine)
@@ -526,3 +526,29 @@ unfixRange :: (ControlSignal -> Signal ValueMap)
               -> ControlSignal
 unfixRange = contrastRange id
 
+squeezeJoinUp :: Signal (ControlSignal) -> ControlSignal
+squeezeJoinUp pp = pp {query = q}
+  where q st = concatMap (f st) (query (discreteOnly pp) st)
+        f st (Event meta (Just w) p v) =
+          mapMaybe (munge meta w p) $ query (_compressArc (cycleArc w) (v |* P.speed (pure $ fromRational $ 1/(aEnd w - aBegin w)))) st {sArc = p}
+        -- already ignoring analog events, but for completeness..
+        f _ _ = []
+        munge oMeta oWhole oActive (Event iMeta (Just iWhole) iActive v) =
+          do w' <- maybeSect oWhole iWhole
+             p' <- maybeSect oActive iActive
+             return (Event (iMeta <> oMeta) (Just w') p' v)
+        munge _ _ _ _ = Nothing
+
+_chew :: Int -> Signal Int -> ControlSignal  -> ControlSignal
+_chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)
+  where zoompat i = _zoomArc (Arc (i'/(fromIntegral n)) ((i'+1)/(fromIntegral n))) pat
+           where i' = fromIntegral $ i `mod` n
+
+-- TODO maybe _chew could signal the first parameter directly..
+chew :: Signal Int -> Signal Int -> ControlSignal  -> ControlSignal
+chew npat ipat pat = innerJoin $ (\n -> _chew n ipat pat) <$> npat
+
+grain :: Signal Double -> Signal Double -> ControlSignal
+grain s w = P.begin b # P.end e
+  where b = s
+        e = s + w

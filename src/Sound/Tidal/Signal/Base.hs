@@ -782,8 +782,13 @@ _chunk n f p | n == 0 = p
              | n > 0 = when (_iterBack n $ fastcat (map pure $ True:replicate (n-1) False)) f p
              | otherwise = when (_iter (abs n) $ fastcat (map pure $ replicate (abs n-1) False ++ [True])) f p
 
-loopFirst :: Signal Int -> Signal Int
+-- | Repeats the first cycle forever
+loopFirst :: Signal a -> Signal a
 loopFirst pat = trigzeroJoin $ pure pat
+
+-- | Repeats the first given number of cycles forever. Previously known as `timeLoop`.
+loopCycles :: Signal Time -> Signal a -> Signal a
+loopCycles n = outside n loopFirst
 
 {- | `rolled` plays each note of a chord quickly in order, as opposed to simultaneously; to give a chord a harp-like effect.
 This will played from the lowest note to the highest note of the chord

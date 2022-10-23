@@ -168,6 +168,19 @@ instance Show Render where
                              | otherwise = "That pattern is too complex to draw."
 
 
+-- deconstruct :: Int -> Pattern String -> String
+-- deconstruct n p = intercalate " " $ map showStep $ toList p
+--   where
+--     showStep :: [String] -> String
+--     showStep [] = "~"
+--     showStep [x] = x
+--     showStep xs = "[" ++ (intercalate ", " xs) ++ "]"
+--     toList :: Pattern a -> [[a]]
+--     toList pat = map (\(s,e) -> map value $ queryArc (_segment n' pat) (Arc s e)) arcs
+--       where breaks = [0, (1/n') ..]
+--             arcs = zip (take n breaks) (drop 1 breaks)
+--             n' = fromIntegral n
+
 -- drawLine :: Signal Char -> Render
 -- drawLine = drawLineSz 78
 
