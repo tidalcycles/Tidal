@@ -100,3 +100,9 @@ run =
         compareP (Arc 0 1)
           (contrastRange (# crush 3) (# crush 0) (pure $ Map.singleton "n" $ (VN 0, VN 3)) $ s "bd" =| n "1 4")
           (s "bd" =| n "1 4" =| crush "3 0")
+
+    describe "chew" $ do
+      it "chews up patterns, with relative playback speeds" $
+        compareP (Arc 0 1)
+          (stripMetadata $ chew 4 "0 [1 ~] [2 3] ~" (s "a b c d"))
+          (stripMetadata $ s "a [b ~] [c d] ~" # speed "1 2 2 2")

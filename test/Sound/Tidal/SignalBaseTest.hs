@@ -798,6 +798,23 @@ run =
           (segment 2 $ quantise 1 $ sine :: Signal Note)
           ("1 0" :: Signal Note)
 
+
+    describe "loopFirst" $ do
+      it "plays the first n cycles" $ do
+        compareP (Arc 0 1)
+          (loopFirst $ early 3 $ slow 8 $ "0 .. 7" :: Signal Int)
+          ("3")
+
+    describe "loopCycles" $ do
+      it "can loop time" $ do
+        compareP (Arc 0 1)
+          ((3 <~) $ (loopCycles 3 $ s "<a b c d>"))
+          (s "a")
+      it "can pattern time" $ do
+        compareP (Arc 0 1)
+          (fast 4 $ loopCycles "<2 2 1 1>" $ s "<a b c d>")
+          (s "a b a a")
+
 {-
 
     describe "arpeggiate" $ do
@@ -814,22 +831,4 @@ run =
           (arpeggiate $ "[0,0]*2")
           ("0 0 0 0" :: Signal Int)
 
-
-    describe "loopCycles" $ do
-      it "plays the first n cycles" $ do
-        compareP (Arc 0 1)
-          (loopFirst $ rotL 3 $ slow 8 $ "0 .. 7" :: Signal Int)
-          ("3")
-
-    describe "timeLoop" $ do
-      it "can loop time" $ do
-        compareP (Arc 0 1)
-          ((3 <~) $ (timeLoop 3 $ sound "<a b c d>"))
-          (sound "a")
-
-    describe "timeLoop" $ do
-      it "can pattern time" $ do
-        compareP (Arc 0 1)
-          ((1 <~) $ timeLoop "<2 1>" $ sound "b")
-          (sound "b")
 -}
