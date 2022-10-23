@@ -773,6 +773,12 @@ run =
           (binaryN "<4 8>" "8")
           (cat ["t f f f", "f f f f t f f f"] :: Signal Bool)
 
+    describe "ascii" $ do
+      it "converts characters to a pattern of bools" $ do
+        compareP (Arc 0 1)
+          (ascii "a b")
+          ("f t t f f f f t f t t f f f t f" :: Signal Bool)
+        
 {-
 
     describe "arpeggiate" $ do
