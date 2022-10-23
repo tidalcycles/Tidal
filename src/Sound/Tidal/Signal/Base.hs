@@ -16,6 +16,8 @@ import qualified Data.Map.Strict as Map
 import Data.List (delete, findIndex, (\\), sort, groupBy)
 import Control.Applicative (liftA2)
 import Data.Bool (bool)
+import Data.Char (digitToInt, isDigit, ord)
+import Data.Bits (testBit, Bits, xor, shiftL, shiftR)
 import Control.Monad (join)
 
 import Sound.Tidal.Value
@@ -834,6 +836,25 @@ snowball depth combinationFunction f signal = cat $ take depth $ scanl combinati
 -}
 soak ::  Int -> (Signal a -> Signal a) -> Signal a -> Signal a
 soak depth f signal = cat $ take depth $ iterate f signal
+
+
+__binary :: Data.Bits.Bits b => Int -> b -> [Bool]
+__binary n num = map (testBit num) $ reverse [0 .. n-1]
+
+_binary :: Data.Bits.Bits b => Int -> b -> Signal Bool
+_binary n num = fastFromList $ __binary n num
+
+_binaryN :: Int -> Signal Int -> Signal Bool
+_binaryN n p = squeezeJoin $ _binary n <$> p
+
+binaryN :: Signal Int -> Signal Int -> Signal Bool
+binaryN n p = _patternify _binaryN n p
+
+binary :: Signal Int -> Signal Bool
+binary = binaryN 8
+
+ascii :: Signal String -> Signal Bool
+ascii p = squeezeJoin $ (fastFromList . concatMap (__binary 8 . ord)) <$> p
 
 -- ************************************************************ --
 -- Euclidean / diaspora algorithm

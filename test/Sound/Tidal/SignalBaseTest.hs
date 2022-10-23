@@ -757,6 +757,22 @@ run =
           (chunk (-2) (rev) $ ("a b c d" :: Signal String))
           (slow 2 $ "a b b a d c c d" :: Signal String)
 
+    describe "binary" $ do
+      it "converts a number to a pattern of boolean" $ do
+        compareP (Arc 0 1)
+          (binary "128")
+          ("t f f f f f f f" :: Signal Bool)
+
+    describe "binaryN" $ do
+      it "converts a number to a pattern of boolean of specified length" $ do
+        compareP (Arc 0 1)
+          (binaryN 4 "8")
+          ("t f f f" :: Signal Bool)
+      it "converts a number to a pattern of boolean of specified patternable length" $ do
+        compareP (Arc 0 2)
+          (binaryN "<4 8>" "8")
+          (cat ["t f f f", "f f f f t f f f"] :: Signal Bool)
+
 {-
 
     describe "arpeggiate" $ do
@@ -773,21 +789,6 @@ run =
           (arpeggiate $ "[0,0]*2")
           ("0 0 0 0" :: Signal Int)
 
-    describe "binary" $ do
-      it "converts a number to a pattern of boolean" $ do
-        compareP (Arc 0 1)
-          (binary "128")
-          ("t f f f f f f f" :: Signal Bool)
-
-    describe "binaryN" $ do
-      it "converts a number to a pattern of boolean of specified length" $ do
-        compareP (Arc 0 1)
-          (binaryN 4 "8")
-          ("t f f f" :: Signal Bool)
-      it "converts a number to a pattern of boolean of specified patternable length" $ do
-        compareP (Arc 0 2)
-          (binaryN "<4 8>" "8")
-          (cat ["t f f f", "f f f f t f f f"] :: Signal Bool)
 
     describe "off" $ do
       it "superimposes and shifts pattern" $ do
