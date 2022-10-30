@@ -149,6 +149,11 @@ _every = _lastOf
 every :: Pattern t => t Int -> (t a -> t a) -> t a -> t a
 every = lastOf
 
+-- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
+-- each cycle in @ns@.
+foldEvery :: Pattern t => [Int] -> (t a -> t a) -> t a -> t a
+foldEvery ns f p = foldr (`_every` f) p ns
+
 {- | `range` will take a pattern which goes from 0 to 1 (like `sine`), and range it to a different range - between the first and second arguments. In the below example, `range 1 1.5` shifts the range of `sine1` from 0 - 1 to 1 - 1.5.
 
 @
