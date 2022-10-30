@@ -413,7 +413,7 @@ run =
           (Arc 0 1)
           (stack [a, b])
           (stack [b, a])
-      it "follows assiociative laws" $
+      it "follows associative laws" $
         comparePD
           (Arc 0 1)
           (stack [a, stack [b, c]])

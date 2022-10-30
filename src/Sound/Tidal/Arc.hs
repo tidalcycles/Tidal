@@ -47,12 +47,12 @@ hull (Arc s e) (Arc s' e') = Arc (min s s') (max e e')
 
 -- | Splits a timespan at cycle boundaries
 splitArcs :: Arc -> [Arc]
-splitArcs (Arc b e) | b == e = [Arc b e] -- support zero-width arcs
-                    | otherwise = splitArcs' (Arc b e) -- otherwise, recurse
-  where splitArcs' (Arc b e) | e <= b = []
-                             | sam b == sam e = [Arc b e]
-                             | otherwise
-          = (Arc b (nextSam b)):(splitArcs' (Arc (nextSam b) e))
+splitArcs (Arc s e) | s == e = [Arc s e] -- support zero-width arcs
+                    | otherwise = splitArcs' (Arc s e) -- otherwise, recurse
+  where splitArcs' (Arc s' e') | e' <= s' = []
+                               | sam s' == sam e' = [Arc s' e']
+                               | otherwise
+          = (Arc s' (nextSam s')):(splitArcs' (Arc (nextSam s') e'))
 
 
 -- | Shifts a timearc to one of equal duration that starts within cycle zero.

@@ -5,7 +5,7 @@ import Data.Ratio
 
 -- | The start of the cycle that a given time value is in
 sam :: Time -> Time
-sam s = toRational $ floor s
+sam s = (toRational :: Int -> Time) $ floor s
 
 -- | The start of the next cycle
 nextSam :: Time -> Time

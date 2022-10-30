@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings, FlexibleInstances, BangPatterns #-}
 
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 -- (c) Alex McLean 2022 and contributors
 -- Shared under the terms of the GNU Public License v. 3.0
 
@@ -10,15 +12,13 @@
 module Sound.Tidal.Signal.Base where
 
 import Data.Ratio
-import Data.Fixed (mod')
-import Data.Maybe (catMaybes, isJust, mapMaybe, fromJust, fromMaybe)
+import Data.Maybe (isJust, mapMaybe, fromJust, fromMaybe)
 import qualified Data.Map.Strict as Map
-import Data.List (delete, findIndex, (\\), sort, groupBy)
+import Data.List ((\\), sort, groupBy)
 import Control.Applicative (liftA2)
 import Data.Bool (bool)
-import Data.Char (digitToInt, isDigit, ord)
-import Data.Bits (testBit, Bits, xor, shiftL, shiftR)
-import Control.Monad (join)
+import Data.Char (ord)
+import Data.Bits (testBit, Bits)
 
 import Sound.Tidal.Value
 import Sound.Tidal.Signal.Event
@@ -100,7 +100,7 @@ appLeft = (<*)
 
 -- | Alternative definition of <*>, which takes the wholes from the
 -- pattern of functions (unrelated to the <* in Prelude)
-(*>) :: Signal (a -> b) -> Signal a -> Signal b
+(*>), appRight :: Signal (a -> b) -> Signal a -> Signal b
 (*>) patf patv = Signal f
   where f s = concatMap (\ev -> mapMaybe (combine ev) $ query patf (s {sArc = wholeOrActive ev})
                         ) $ query patv s
@@ -110,6 +110,7 @@ appLeft = (<*)
                                            active = new_active,
                                            value = value ef $ value ev
                                           }
+
 appRight = (*>)
 
 infixl 4 <*, *>
@@ -412,26 +413,26 @@ sigSlowcat pats = splitQueries $ Signal queryCycle
         n = length pats
 
 _sigFast :: Time -> Signal a -> Signal a
-_sigFast 0 pat = silence
+_sigFast 0 _ = silence
 _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
 
 _fastGap :: Time -> Signal a -> Signal a
 _fastGap factor pat = splitQueries $ withEvent ef $ withQueryArcMaybe qf pat
   -- A bit fiddly, to drop zero-width queries at the start of the next cycle
-  where qf (Arc b e) | bpos < 1 = Just $ Arc (cycle + bpos) (cycle + epos)
+  where qf (Arc b e) | bpos < 1 = Just $ Arc (cyc + bpos) (cyc + epos)
                      | otherwise = Nothing
-          where cycle = sam b
-                bpos = min 1 $ (b - cycle) * factor
-                epos = min 1 $ (e - cycle) * factor
+          where cyc = sam b
+                bpos = min 1 $ (b - cyc) * factor
+                epos = min 1 $ (e - cyc) * factor
         -- Also fiddly, to maintain the right 'whole' relative to the part
         ef ev = ev {whole = w', active = a'}
           where a = active ev
                 b = aBegin a
                 e = aEnd a
-                a' = Arc (cycle + bpos) (cycle + epos)
-                  where cycle = sam b
-                        bpos = min 1 $ (b - cycle) / factor
-                        epos = min 1 $ (e - cycle) / factor
+                a' = Arc (cyc + bpos) (cyc + epos)
+                  where cyc = sam b
+                        bpos = min 1 $ (b - cyc) / factor
+                        epos = min 1 $ (e - cyc) / factor
                 w' = do w <- whole ev
                         let b' = aBegin a' - ((b - (aBegin w)) / factor)
                             e' = aEnd a' + (((aEnd w) - e) / factor)
@@ -547,9 +548,9 @@ _bite n ipat pat = squeezeJoin $ zoompat <$> ipat
 sigRev :: Signal a -> Signal a
 sigRev pat = splitQueries $ Signal f
   where f state = withArc reflect <$> (query pat $ state {sArc = reflect $ sArc state})
-          where cycle = sam $ aBegin $ sArc state
-                next_cycle = nextSam cycle
-                reflect (Arc b e) = Arc (cycle + (next_cycle - e)) (cycle + (next_cycle - b))
+          where cyc = sam $ aBegin $ sArc state
+                next_cyc = nextSam cyc
+                reflect (Arc b e) = Arc (cyc + (next_cyc - e)) (cyc + (next_cyc - b))
 
 
 -- | A signal of whole numbers from 0 up to (and not including) the

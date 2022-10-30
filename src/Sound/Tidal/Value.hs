@@ -3,23 +3,18 @@
 
 module Sound.Tidal.Value where 
 
-import Data.Ratio
-import qualified Data.Map.Strict as Map
-import           GHC.Generics
-import           Data.Typeable (Typeable)
-import           Data.Data (Data) -- toConstr
-import           Data.Word (Word8)
+import Data.Word (Word8)
 import Sound.Tidal.Types
 
 -- | Apply one of three functions to a Value, depending on its type
-applyFIS :: (Double -> Double) -> (Int -> Int) -> (String -> String) -> Value -> Value
+applyFIRS :: (Double -> Double) -> (Int -> Int) -> (Rational -> Rational) -> (String -> String) -> Value -> Value
 applyFIRS f _ _ _ (VF f') = VF (f f')
 applyFIRS f _ _ _ (VN (Note f')) = VN (Note $ f f')
 applyFIRS _ f _ _ (VI i) = VI (f i)
 applyFIRS _ _ f _ (VR i) = VR (f i)
 applyFIRS _ _ _ f (VS s) = VS (f s)
 -- applyFIS f f' f'' (VState x) = VState $ \cmap -> (applyFIS f f' f'') <$> (x cmap)
-applyFIS _ _ _ v = v
+applyFIRS _ _ _ _ v = v
 
 -- | Apply one of two functions to a pair of Values, depending on
 -- their types (int or float; strings and rationals are ignored)

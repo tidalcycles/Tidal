@@ -11,9 +11,6 @@ import qualified Data.Map.Strict as Map
 import           Data.Typeable (Typeable)
 import           Data.Data (Data) -- toConstr
 
-import Data.List (intercalate, sortOn)
-import Data.Ratio (numerator, denominator)
-import Data.Maybe (fromMaybe, isJust)
 import Data.Word (Word8)
 import Control.DeepSeq (NFData)
 import Control.Applicative (liftA2)

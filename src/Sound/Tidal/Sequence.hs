@@ -1,13 +1,15 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 -- (c) Aravind Mohandas, Alex McLean and contributors 2022
 -- Shared under the terms of the GNU Public License v3.0
 
 module Sound.Tidal.Sequence where
 
 import Sound.Tidal.Time
-import Sound.Tidal.Value
+-- import Sound.Tidal.Value
 import Sound.Tidal.Pattern
 import Sound.Tidal.Types
-import Sound.Tidal.Signal.Base
+import Sound.Tidal.Signal.Base ()
 
 import Data.List (inits)
 import Prelude hiding (span)
@@ -24,15 +26,15 @@ instance Functor Sequence where
 instance Applicative Sequence where
   pure x = Atom 1 x
   (Atom x f) <*> something =
-    let (p,q) = forTwo (Atom x f) something
+    let (p,q) = align (Atom x f) something
         c = reAlign p q
         d = unwrap $ Sequence $ map (fmap f) c
     in d
   Gap x <*> something =
-    let (p,_) = forTwo (Gap x) something
+    let (p,_) = align (Gap x) something
     in unwrap $ Sequence  p
   Sequence f <*> something =
-    let (p,q) = forTwo (Sequence f) something
+    let (p,q) = align (Sequence f) something
         c = unwrapper $ reAlign p q
         d = unwrap $ Sequence  $ funcMap p c
     in d
@@ -67,7 +69,7 @@ instance Pattern Sequence where
   _iterBack  = _seqIter'
   toSignal = _seqToSignal
   _patternify f x pat = mapSeq (fmap f x) pat
-  _patternify_p_p f a b seq = mapSeq ((fmap f a) <*> b ) seq 
+  _patternify_p_p f a b s = mapSeq ((fmap f a) <*> b ) s
 
 -- -- | Takes sequence of functions and a sequence which have been aligned and applies the functions at the corresponding time points
 funcMap :: [Sequence (a->b)] -> [Sequence a] -> [Sequence b]
@@ -97,15 +99,15 @@ map' f (Stack y) = Stack (map (map' f) y)
 -- | Function to map a seqeuence of a functions on another sequence
 mapSeq::Sequence (Sequence a-> Sequence b) -> Sequence a -> Sequence b
 mapSeq (Atom x f) something =
-  let (p,q) = forTwo (Atom x f) something
+  let (p,q) = align (Atom x f) something
       c = reAlign p q
       d = unwrap $ Sequence $ map (map' f) c
   in d
 mapSeq (Gap x) something =
-  let (p,_) = forTwo (Gap x) something
+  let (p,_) = align (Gap x) something
   in unwrap $ Sequence  p
 mapSeq (Sequence f) something =
-    let (p,q) = forTwo (Sequence f) something
+    let (p,q) = align (Sequence f) something
         c = unwrapper $ reAlign p q
         d = unwrap $ Sequence  $ funcSeq p c
     in d
@@ -116,15 +118,15 @@ mapSeq (Stack f) something =
 -- | mapSeq but with a particular strategy
 mapSeqS::Sequence (Sequence a-> Sequence b) -> Sequence a -> Strategy-> Sequence b
 mapSeqS (Atom x f) something s =
-  let (p,q) = forTwoS (Atom x f) something s
+  let (p,q) = alignS (Atom x f) something s
       c = reduce $ reAlign p q
       d = unwrap $ Sequence $ map (map' f) c
   in d
 mapSeqS (Gap x) something s =
-  let (p,_) = forTwoS (Gap x) something s
+  let (p,_) = alignS (Gap x) something s
   in unwrap $ Sequence p
 mapSeqS (Sequence f) something s =
-    let (p,q) = forTwoS (Sequence f) something s
+    let (p,q) = alignS (Sequence f) something s
         c = reduce $ unwrapper $ reAlign p q
         d = unwrap $ Sequence  $ funcSeq p c
     in d
@@ -132,8 +134,9 @@ mapSeqS (Stack f) something s =
     let d = map (\x -> mapSeqS x something s) f
     in Stack d
 
--- | Takes sequence of functions on sequences and a sequence which have been aligned and applies the functions at 
--- the corresponding time points
+-- | Takes sequence of functions on sequences and a sequence which
+-- have been aligned and applies the functions at the corresponding
+-- time points
 funcSeq :: [Sequence (Sequence a1 -> Sequence a2)]-> [Sequence a1] -> [Sequence a2]
 funcSeq [] _ = []
 funcSeq ((Atom x f):xs) y =
@@ -151,8 +154,9 @@ funcSeq (Gap x:xs) y=
 funcSeq (Sequence x:xs) y = funcSeq (unwrapper x ++ xs) y
 funcSeq _ _ = error "funcSeq cannot be called on Stack"
 
--- | Takes two sequences, which have been obtained using stratApply, or forTwo, and then splits the second sequence with respect
--- to the break points of the first
+-- | Takes two sequences, which have been obtained using stratApply,
+-- or align, and then splits the second sequence with respect to the
+-- break points of the first
 reAlign:: [Sequence a] -> [Sequence b] -> [Sequence b]
 reAlign [] _ = []
 reAlign ((Gap x):xs) y =
@@ -195,55 +199,56 @@ getPartition (Sequence y) t =
 getPartition (Stack s) t = let a = map (`getPartition` t) s in (Stack (map fst a),Stack (map snd a))
 
 -- | Takes two sequences of possibly different types, and applies the given strategy to it
-forTwoS :: Sequence a1 -> Sequence a2 -> Strategy -> ([Sequence a1], [Sequence a2])
-forTwoS a b RepeatLCM =
+alignS :: Sequence a1 -> Sequence a2 -> Strategy -> ([Sequence a1], [Sequence a2])
+alignS a b RepeatLCM =
    let p = lcmTime (seqSpan a) (seqSpan b)
    in if p ==0 then ([Gap 0],[Gap 0]) else (unwrapper $ replicate (fromIntegral  $ numerator $ p/seqSpan a) a, unwrapper $ replicate (fromIntegral $ numerator $ p/seqSpan b) b)
 
-forTwoS a b JustifyLeft =
+alignS a b JustifyLeft =
   let p = max (seqSpan a) (seqSpan b)
   in (reduce (a : [Gap (p - seqSpan a)]), reduce (b :[Gap (p - seqSpan b )]))
 
-forTwoS a b JustifyRight =
+alignS a b JustifyRight =
   let p = max (seqSpan a) (seqSpan b)
   in (reduce (Gap (p - seqSpan a) : [a]), reduce (Gap (p - seqSpan b) : [b]))
 
-forTwoS a b Centre =
+alignS a b Centre =
   let p = max (seqSpan a) (seqSpan b)
   in if p == 0 then ([Gap 0],[Gap 0]) else (reduce ([Gap ((p - seqSpan a)/2)] ++ [a] ++ [Gap ((p - seqSpan a)/2)]), reduce ([Gap ((p - seqSpan b)/2)] ++ [b] ++ [Gap ((p - seqSpan b)/2)]))
 
-forTwoS a b Expand =
+alignS a b Expand =
   let p = max (seqSpan a) (seqSpan b)
   in if p==0 then ([Gap 0], [Gap 0]) else (reduce [expand a $ p/seqSpan a], reduce [expand b $ p/seqSpan b] )
 
-forTwoS a b Squeeze =
+alignS a b Squeeze =
   let p = min (seqSpan a) (seqSpan b)
   in if p == 0 then ([Gap 0], [Gap 0]) else (reduce [expand a $ p/seqSpan a], reduce [expand b $ p/seqSpan b] )
 
-forTwoS a b JustifyBoth =
+alignS a b JustifyBoth =
   let p = max (seqSpan a) (seqSpan b)
   in (reduce [expand' a p], reduce [expand' b p])
 
-forTwoS a b TruncateMin =
+alignS a b TruncateMin =
   let p = min (seqSpan a) (seqSpan b)
   in (reduce [cutShort a p], reduce [cutShort b p])
 
-forTwoS a b TruncateMax =
+alignS a b TruncateMax =
   let p = max (seqSpan a) (seqSpan b)
       x = if seqSpan a == 0 then [Gap p] else reduce [unwrap $ Sequence $ replicate (floor $ p/seqSpan a) a ++ let Sequence q = cutShort a (realToFrac (p - floor (p/seqSpan a)%1 * seqSpan a)) in q]
       y = if seqSpan b == 0 then [Gap p] else reduce [unwrap $ Sequence $ replicate (floor $ p/seqSpan b) b ++ let Sequence q = cutShort b (realToFrac (p - floor (p/seqSpan b)%1 * seqSpan b)) in q]
   in (x, y)
 
 -- | Given two sequences of different types, this function uses the Expand method to align those two sequences
-forTwo :: Sequence a1 -> Sequence a2 -> ([Sequence a1], [Sequence a2])
-forTwo a b = forTwoS a b Expand
+align :: Sequence a1 -> Sequence a2 -> ([Sequence a1], [Sequence a2])
+align a b = alignS a b Expand
 
-unwrap::Sequence a -> Sequence a
+unwrap :: Sequence a -> Sequence a
 unwrap (Sequence x) = Sequence $ unwrapper x
 unwrap (Stack x) = Stack $ map unwrap x
 unwrap s = s
 
--- | Unwrapping a sequence referes to removing the redundancies that are present in the code
+-- | Unwrapping a sequence referes to removing the redundancies that
+-- are present in the code
 unwrapper :: [Sequence a] -> [Sequence a]
 unwrapper [] = []
 unwrapper [Sequence x] = unwrapper x
@@ -323,7 +328,7 @@ stratApply TruncateMax bs =
   in Stack b
 
 -- Return a segment of a sequence
-cutShort::Sequence a->Time->Sequence a
+cutShort :: Sequence a -> Time -> Sequence a
 cutShort (Atom x s) r = if x>r then Atom r s else Atom x s
 cutShort (Gap x) r = if x > r then Gap r else Gap x
 cutShort (Sequence x) r =
@@ -438,7 +443,7 @@ whenS boolpat f pat strat = mapSeqS (fmap (\b -> if b then f else id) boolpat) p
 
 -- -- | Like every, but the strategy for stacking is given
 -- everyS::Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Strategy -> Sequence b
--- everyS si f sb strat = let (a,b) = forTwoS si sb strat
+-- everyS si f sb strat = let (a,b) = alignS si sb strat
 --                       in unwrap $ every (Sequence a) f (Sequence b)
 
 -- -- | Helper function for every
@@ -508,13 +513,13 @@ splitUp t x =
 -- | Iterates a sequence to fit into a given number of cycles of the sequence while applying rotL
 seqIter :: Sequence Int -> Sequence a ->  Sequence a
 seqIter sr s =
-  let (a,b) = forTwo sr s
+  let (a,b) = align sr s
   in unwrap $  iterer (Sequence a) (Sequence b)
 
 -- | iter with a particular strategy
 iterS :: Sequence Int -> Sequence a -> Strategy -> Sequence a
 iterS sr s st =
-  let (a,b) = forTwoS sr s st
+  let (a,b) = alignS sr s st
   in unwrap $  iterer (Sequence a) (Sequence b)
 
 iterer :: Sequence Int -> Sequence a -> Sequence a
@@ -530,13 +535,13 @@ _seqIter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) 
 -- subdivision instead of incrementing it.
 seqIter' :: Sequence Int -> Sequence c ->Sequence c
 seqIter' sr s=
-  let (a,b) = forTwo sr s
+  let (a,b) = align sr s
   in unwrap $  iterer' (Sequence a) (Sequence b)
 
 -- | iter', but with a particular strategy
 iterS' :: Sequence Int -> Sequence c -> Strategy -> Sequence c
 iterS' sr s st =
-  let (a,b) = forTwoS sr s st
+  let (a,b) = alignS sr s st
   in unwrap $  iterer' (Sequence a) (Sequence b)
 
 iterer' :: Sequence Int -> Sequence a -> Sequence a

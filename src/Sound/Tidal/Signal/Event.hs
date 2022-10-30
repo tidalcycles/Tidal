@@ -8,7 +8,6 @@ module Sound.Tidal.Signal.Event
 where
 
 import Data.Maybe (fromJust, isJust)
-import Data.Monoid
 
 import Sound.Tidal.Arc
 import Sound.Tidal.Time

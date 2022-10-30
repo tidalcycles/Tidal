@@ -3,10 +3,6 @@
 
 module Sound.Tidal.Pattern where
 
-import Data.Ratio
-
-import qualified Data.Map.Strict as Map
-
 import Sound.Tidal.Types
 
 class (Functor p, Applicative p, Monad p) => Pattern p where
