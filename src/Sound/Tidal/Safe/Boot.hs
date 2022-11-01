@@ -19,6 +19,7 @@
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# language NoMonomorphismRestriction #-}
 
 module Sound.Tidal.Safe.Boot where
@@ -52,7 +53,7 @@ jump i = transition True (Sound.Tidal.Transition.jump) i
 jumpIn i t = transition True (Sound.Tidal.Transition.jumpIn t) i
 jumpIn' i t = transition True (Sound.Tidal.Transition.jumpIn' t) i
 jumpMod i t = transition True (Sound.Tidal.Transition.jumpMod t) i
-mortal i lifespan release = transition True (Sound.Tidal.Transition.mortal lifespan release) i
+mortal i lifespan releaseTime = transition True (Sound.Tidal.Transition.mortal lifespan releaseTime) i
 interpolate i = transition True (Sound.Tidal.Transition.interpolate) i
 interpolateIn i t = transition True (Sound.Tidal.Transition.interpolateIn t) i
 clutch i = transition True (Sound.Tidal.Transition.clutch) i
