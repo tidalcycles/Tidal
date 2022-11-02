@@ -71,8 +71,10 @@ instance Pattern Sequence where
   _patternify f x pat = mapSeq (fmap f x) pat
   _patternify_p_p f a b s = mapSeq ((fmap f a) <*> b ) s
 
--- -- | Takes sequence of functions and a sequence which have been aligned and applies the functions at the corresponding time points
-funcMap :: [Sequence (a->b)] -> [Sequence a] -> [Sequence b]
+-- | Takes sequence of functions and a list of sequences which have
+-- | been aligned and applies the functions at the corresponding
+-- | time points
+funcMap :: [Sequence (a -> b)] -> [Sequence a] -> [Sequence b]
 funcMap [] _ = []
 funcMap ((Atom x f):xs) y =
   let t = seqSpan (Atom x f)
@@ -96,8 +98,8 @@ map' f (Gap x) = f (Gap x)
 map' f (Sequence x) = Sequence $ map (map' f) x
 map' f (Stack y) = Stack (map (map' f) y)
 
--- | Function to map a seqeuence of a functions on another sequence
-mapSeq::Sequence (Sequence a-> Sequence b) -> Sequence a -> Sequence b
+-- | Maps a sequence of functions on another sequence
+mapSeq :: Sequence (Sequence a -> Sequence b) -> Sequence a -> Sequence b
 mapSeq (Atom x f) something =
   let (p,q) = align (Atom x f) something
       c = reAlign p q
@@ -202,7 +204,7 @@ getPartition (Stack s) t = let a = map (`getPartition` t) s in (Stack (map fst a
 alignS :: Sequence a1 -> Sequence a2 -> Strategy -> ([Sequence a1], [Sequence a2])
 alignS a b RepeatLCM =
    let p = lcmTime (seqSpan a) (seqSpan b)
-   in if p ==0 then ([Gap 0],[Gap 0]) else (unwrapper $ replicate (fromIntegral  $ numerator $ p/seqSpan a) a, unwrapper $ replicate (fromIntegral $ numerator $ p/seqSpan b) b)
+   in if p == 0 then ([Gap 0],[Gap 0]) else (unwrapper $ replicate (fromIntegral  $ numerator $ p/seqSpan a) a, unwrapper $ replicate (fromIntegral $ numerator $ p/seqSpan b) b)
 
 alignS a b JustifyLeft =
   let p = max (seqSpan a) (seqSpan b)
@@ -356,19 +358,17 @@ expand (Gap x) r = Gap (x*r)
 expand (Sequence x) r = Sequence $ map (`expand` r) x
 expand (Stack x) r = Stack $ map (`expand` r) x
 
--- | Reduce a list of sequences by removing redundancies
-reduce::[Sequence a] -> [Sequence a]
+-- | Reduces a list of sequences by joining contiguous gaps and
+-- removing zero-length atoms
+reduce :: [Sequence a] -> [Sequence a]
 reduce (Atom 0 _:xs) = reduce xs
-reduce (Gap x1:Gap x2:xs) =reduce $ Gap (x1+x2):xs
+reduce (Gap x1:Gap x2:xs) = reduce $ Gap (x1+x2):xs
+-- TODO I don't understand this.. how can `reduce x` typecheck, when 'x' isn't a list?
 reduce (Sequence x:xs) = Sequence (reduce x):reduce xs
+-- TODO this means `reduce [Stack [Gap 1, Gap 2]]` returns `[Stack [Gap (3 % 1)]]` which seems wrong
 reduce (Stack x:xs) = Stack (reduce x):reduce xs
 reduce (x:xs) = x:reduce xs
 reduce [] = []
-
--- | Speed up the sequence
--- TODO - Now provided by Pattern class via patternify
--- fast :: Sequence Time -> Sequence a -> Sequence a
--- fast sr s = mapSeq (fmap _fast sr) s
 
 _seqFast :: Time -> Sequence a -> Sequence a
 _seqFast n (Atom x s) = Atom (x/n) s
@@ -378,25 +378,21 @@ _seqFast n (Stack x) = Stack $ map(_fast n) x
 
 -- | Speed up the sequence with a given fixed strategy
 fastS :: Sequence Time -> Sequence a -> Strategy -> Sequence a
-fastS sr= mapSeqS (fmap _fast sr)
-
--- | Slow down the sequence
--- slow :: Sequence Time->Sequence a->Sequence a
--- slow sr s = mapSeq (fmap _slow sr) s
+fastS sr = mapSeqS (fmap _fast sr)
 
 -- | Slow down the sequence with a given strategy
 slowS :: Sequence Time -> Sequence a -> Strategy -> Sequence a
 slowS sr = mapSeqS (fmap _slow sr)
 
 -- | Repeat the sequence a desired number of times without changing duration
-rep::Int -> Sequence a-> Sequence a
+rep :: Int -> Sequence a-> Sequence a
 rep n (Atom x s) = Atom (realToFrac n * x) s
-rep n (Gap x) = Gap (realToFrac  n*x)
-rep n (Sequence s) = Sequence $ reduce $  concat $ replicate n s
+rep n (Gap x) = Gap (realToFrac  n * x)
+rep n (Sequence s) = Sequence $ reduce $ concat $ replicate n s
 rep n (Stack s) = Stack $ map (rep n) s
 
 -- | Repeat sequence desired number of times, and squeeze it into the duration of the original sequence
-repSqueeze::Int -> Sequence a-> Sequence a
+repSqueeze :: Int -> Sequence a-> Sequence a
 repSqueeze n s = _fast (realToFrac n) $ rep n s
 
 -- | Takes a list of sequences, and if aligned returns a stack. Otherwise applies default method and returns
@@ -502,14 +498,6 @@ splitUp t x =
         in (pTill ++ [m], n : drop (l+1) x)
   in Sequence $ q++p
 
--- -- | Shifts a sequence back in time by the given amount, expressed in cycles
--- (<~) :: Sequence Time -> Sequence a -> Sequence a
--- (<~) sr s= mapSeq (fmap rotL sr) s
-
--- -- | Shifts a pattern forward in time by the given amount, expressed in cycles
--- (~>) :: Sequence Time -> Sequence a -> Sequence a
--- (~>) sr s = mapSeq (fmap rotR sr) s
-
 -- | Iterates a sequence to fit into a given number of cycles of the sequence while applying rotL
 seqIter :: Sequence Int -> Sequence a ->  Sequence a
 seqIter sr s =
@@ -542,7 +530,7 @@ seqIter' sr s=
 iterS' :: Sequence Int -> Sequence c -> Strategy -> Sequence c
 iterS' sr s st =
   let (a,b) = alignS sr s st
-  in unwrap $  iterer' (Sequence a) (Sequence b)
+  in unwrap $ iterer' (Sequence a) (Sequence b)
 
 iterer' :: Sequence Int -> Sequence a -> Sequence a
 iterer' (Atom _ s) sr = _seqIter'
