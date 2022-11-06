@@ -24,3 +24,7 @@ out/
 \#*\#
 .\#*
 
+# Allow flake.lock for reproducible builds
+!flake.lock
+# Ignore nix generated `result` symlink
+result
