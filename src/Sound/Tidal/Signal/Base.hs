@@ -416,6 +416,25 @@ _sigFast :: Time -> Signal a -> Signal a
 _sigFast 0 _ = silence
 _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
 
+fastA :: Align (Signal Time) (Signal a) -> Signal a
+fastA (Align Squeeze patt patv) = squeezeJoin $ (\t -> _fast t patv) <$> patt
+fastA (Align CycleIn patt patv) = innerJoin $ (\t -> _fast t patv) <$> patt
+fastA (Align CycleOut patt patv) = outerJoin $ (\t -> _fast t patv) <$> patt
+fastA (Align CycleMix patt patv) = mixJoin $ (\t -> _fast t patv) <$> patt
+fastA (Align Trig patt patv) = trigJoin $ (\t -> _fast t patv) <$> patt
+fastA (Align TrigZero patt patv) = trigzeroJoin $ (\t -> _fast t patv) <$> patt
+fastA (Align _ patt patv) = fast patt patv
+
+(<#), (|#), (#|), (|#|), (!#), (!!#) :: a -> b -> Align a b
+(<#) = Align Squeeze
+(|#) = Align CycleIn
+(#|) = Align CycleOut
+(|#|) = Align CycleMix
+(!#) = Align Trig
+(!!#) = Align TrigZero
+
+infixl 4 <#, |#, #|, |#|, !#, !!#
+  
 _fastGap :: Time -> Signal a -> Signal a
 _fastGap factor pat = splitQueries $ withEvent ef $ withQueryArcMaybe qf pat
   -- A bit fiddly, to drop zero-width queries at the start of the next cycle

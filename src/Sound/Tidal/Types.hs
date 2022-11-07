@@ -209,7 +209,7 @@ data Sequence a = Atom Time a
                 | Stack [Sequence a]
               deriving Show
 
--- | Strategies for aligning two sequences
+-- | Strategies for aligning two sequences or patterns
 data Strategy = JustifyLeft
               | JustifyRight
               | JustifyBoth
@@ -219,4 +219,17 @@ data Strategy = JustifyLeft
               | RepeatLCM
               | Centre
               | Squeeze
+              | SqueezeOut
+              | CycleIn
+              | CycleOut
+              | CycleMix
+              | Trig
+              | TrigZero
               deriving Show
+
+data Align a b = Align Strategy a b
+  deriving Show
+
+data Patternable a = SequencePat (Sequence a)
+                   | SignalPat (Signal a)
+

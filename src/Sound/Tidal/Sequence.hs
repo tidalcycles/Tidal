@@ -89,6 +89,7 @@ funcMap (Gap x:xs) y=
       q = Gap (sum $ map seqSpan pTill)
   in q : funcMap xs (drop (length pTill) y)
 funcMap (Sequence x:xs) y = funcMap (unwrapper x ++ xs) y
+-- Why not - because it's ambiguous whether it's done via list or ziplist?
 funcMap _ _ = error "funcMap cannot be called on stack"
 
 -- | Mapping a function on entire sequence instead of just the values it takes
