@@ -416,14 +416,20 @@ _sigFast :: Time -> Signal a -> Signal a
 _sigFast 0 _ = silence
 _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
 
+applyA :: (a -> Signal b -> Signal b) -> Align (Signal a) (Signal b) -> Signal b
+applyA f (Align Squeeze patt patv) = squeezeJoin $ (\t -> f t patv) <$> patt
+applyA f (Align CycleIn patt patv) = innerJoin $ (\t -> f t patv) <$> patt
+applyA f (Align CycleOut patt patv) = outerJoin $ (\t -> f t patv) <$> patt
+applyA f (Align CycleMix patt patv) = mixJoin $ (\t -> f t patv) <$> patt
+applyA f (Align Trig patt patv) = trigJoin $ (\t -> f t patv) <$> patt
+applyA f (Align TrigZero patt patv) = trigzeroJoin $ (\t -> f t patv) <$> patt
+applyA f _ = error "not implemented"
+
 fastA :: Align (Signal Time) (Signal a) -> Signal a
-fastA (Align Squeeze patt patv) = squeezeJoin $ (\t -> _fast t patv) <$> patt
-fastA (Align CycleIn patt patv) = innerJoin $ (\t -> _fast t patv) <$> patt
-fastA (Align CycleOut patt patv) = outerJoin $ (\t -> _fast t patv) <$> patt
-fastA (Align CycleMix patt patv) = mixJoin $ (\t -> _fast t patv) <$> patt
-fastA (Align Trig patt patv) = trigJoin $ (\t -> _fast t patv) <$> patt
-fastA (Align TrigZero patt patv) = trigzeroJoin $ (\t -> _fast t patv) <$> patt
-fastA (Align _ patt patv) = fast patt patv
+fastA = applyA _fast
+
+addA :: Num a => Align (Signal a) (Signal a) -> Signal a
+addA = applyA (\n -> fmap (+ n))
 
 (<#), (|#), (#|), (|#|), (!#), (!!#) :: a -> b -> Align a b
 (<#) = Align Squeeze
