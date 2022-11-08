@@ -800,7 +800,7 @@ _distrib xs p = boolsToPat (foldr distrib' (replicate (last xs) True) (reverse $
     distrib' (True:a) (x:b) = x : distrib' a b
     distrib' (False:a) b = False : distrib' a b
     layers = map bjorklund . (zip<*>tail)
-    boolsToPat a b' = flip const <$> filterValues (== True) (fastFromList a) <*> b'
+    boolsToPat a b' = flip const <$> filterValues (== True) (fastFromList a) <* b'
 
 {- | `euclidInv` fills in the blanks left by `e`
  -
