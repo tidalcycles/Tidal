@@ -39,7 +39,7 @@ library
       winmm
       ws2_32
     cxx-options:
-      -DLINK_PLATFORM_WINDOWS=1 -Wno-multichar -Wno-subobject-linkage
+      -DLINK_PLATFORM_WINDOWS=1 -Wno-multichar
   elif os(darwin)
     cxx-options:
       -DLINK_PLATFORM_MACOSX=1 -std=c++14 -Wno-multichar -Wno-subobject-linkage

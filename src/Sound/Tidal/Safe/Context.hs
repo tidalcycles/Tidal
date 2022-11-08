@@ -21,6 +21,8 @@
 
 {-# language GeneralizedNewtypeDeriving #-}
 {-# language NoMonomorphismRestriction #-}
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module Sound.Tidal.Safe.Context
   ( Op () -- do not export constructor,
