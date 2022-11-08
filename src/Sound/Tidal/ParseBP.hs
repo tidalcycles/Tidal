@@ -522,20 +522,20 @@ pIntegralWithoutChord = pPart $ wrapPos $ fmap (TPat_Atom Nothing) parseIntNote
 parseChord :: (Enum a, Num a) => MyParser [a]
 parseChord = do char '\''
                 name <- many1 $ letter <|> digit
-                let chord = fromMaybe [0] $ lookup name chordTable
+                let foundChord = fromMaybe [0] $ lookup name chordTable
                 do char '\''
                    notFollowedBy space <?> "chord range or 'i' or 'o'"
-                   let n = length chord
+                   let n = length foundChord
                    i <- option n (fromIntegral <$> integer)
                    j <- length <$> many (char 'i')
                    o <- length <$> many (char 'o')
-                   let chord' = take i $ drop j $ concatMap (\x -> map (+ x) chord) [0,12..]
+                   let chord' = take i $ drop j $ concatMap (\x -> map (+ x) foundChord) [0,12..]
                    -- open voiced chords
                    let chordo' = if o > 0 && n > 2 then
                                      [ (chord' !! 0 - 12), (chord' !! 2 - 12), (chord' !! 1) ] ++ reverse (take (length chord' - 3) (reverse chord'))
                                  else chord'
                    return chordo'
-                  <|> return chord
+                  <|> return foundChord
 
 parseNote :: Num a => MyParser a
 parseNote = do n <- notenum

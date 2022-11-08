@@ -203,10 +203,8 @@ accelerateCount name = pStateF "accelerate" name (maybe 0 (+1))
 accelerateCountTo :: String -> Signal Double -> Signal ValueMap
 accelerateCountTo name ipat = innerJoin $ (\i -> pStateF "accelerate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-acceleratebus :: Signal Int -> Signal Double -> ControlSignal
-acceleratebus busid pat = (pF "accelerate" pat) # (pI "^accelerate" busid)
-acceleraterecv :: Signal Int -> ControlSignal
-acceleraterecv busid = pI "^accelerate" busid
+acceleratebus :: Pattern Int -> Pattern Double -> ControlPattern
+acceleratebus _ _ = error $ "Control parameter 'accelerate' can't be sent to a bus."
 
 -- | like @gain@, but linear.
 amp :: Signal Double -> ControlSignal
@@ -286,10 +284,8 @@ beginCount name = pStateF "begin" name (maybe 0 (+1))
 beginCountTo :: String -> Signal Double -> Signal ValueMap
 beginCountTo name ipat = innerJoin $ (\i -> pStateF "begin" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-beginbus :: Signal Int -> Signal Double -> ControlSignal
-beginbus busid pat = (pF "begin" pat) # (pI "^begin" busid)
-beginrecv :: Signal Int -> ControlSignal
-beginrecv busid = pI "^begin" busid
+beginbus :: Pattern Int -> Pattern Double -> ControlPattern
+beginbus _ _ = error $ "Control parameter 'begin' can't be sent to a bus."
 
 -- | Spectral binshift
 binshift :: Signal Double -> ControlSignal
