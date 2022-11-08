@@ -203,7 +203,7 @@ accelerateCount name = pStateF "accelerate" name (maybe 0 (+1))
 accelerateCountTo :: String -> Signal Double -> Signal ValueMap
 accelerateCountTo name ipat = innerJoin $ (\i -> pStateF "accelerate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-acceleratebus :: Pattern Int -> Pattern Double -> ControlPattern
+acceleratebus :: Signal Int -> Signal Double -> ControlSignal
 acceleratebus _ _ = error $ "Control parameter 'accelerate' can't be sent to a bus."
 
 -- | like @gain@, but linear.
@@ -284,7 +284,7 @@ beginCount name = pStateF "begin" name (maybe 0 (+1))
 beginCountTo :: String -> Signal Double -> Signal ValueMap
 beginCountTo name ipat = innerJoin $ (\i -> pStateF "begin" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-beginbus :: Pattern Int -> Pattern Double -> ControlPattern
+beginbus :: Signal Int -> Signal Double -> ControlSignal
 beginbus _ _ = error $ "Control parameter 'begin' can't be sent to a bus."
 
 -- | Spectral binshift
@@ -1841,7 +1841,7 @@ ophatdecaybus busid pat = (pF "ophatdecay" pat) # (pI "^ophatdecay" busid)
 ophatdecayrecv :: Signal Int -> ControlSignal
 ophatdecayrecv busid = pI "^ophatdecay" busid
 
--- | a pattern of numbers. An `orbit` is a global parameter context for patterns. Signals with the same orbit will share hardware output bus offset and global effects, e.g. reverb and delay. The maximum number of orbits is specified in the superdirt startup, numbers higher than maximum will wrap around.
+-- | a pattern of numbers. An `orbit` is a global parameter context for patterns. Patterns with the same orbit will share hardware output bus offset and global effects, e.g. reverb and delay. The maximum number of orbits is specified in the superdirt startup, numbers higher than maximum will wrap around.
 orbit :: Signal Int -> ControlSignal
 orbit = pI "orbit"
 orbitTake :: String -> [Double] -> ControlSignal
