@@ -13,7 +13,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   slowcat :: [p a] -> p a
   fastcat :: [p a] -> p a
   fastcat pats = _fast (toRational $ length pats) $ slowcat pats
-  _fast :: Rational -> p a -> p a
+  _fast :: Time -> p a -> p a
   silence :: p a
   atom :: a -> p a
   stack :: [p a] -> p a
@@ -27,10 +27,10 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   _patternify_p_p_p :: (a -> b -> c -> p d -> p e) -> (p a -> p b -> p c -> p d -> p e)
   _appAlign :: (a -> p b -> p c) -> Align (p a) (p b) -> p c
   rev :: p a -> p a
-  _ply :: Rational -> p a-> p a
+  _ply :: Time -> p a-> p a
   euclid :: p Int -> p Int -> p a -> p a
   _euclid :: Int -> Int -> p a -> p a
-  timeCat :: [(Rational, p a)] -> p a
+  timeCat :: [(Time, p a)] -> p a
   _run :: (Enum a, Num a) => a -> p a
   _scan :: (Enum a, Num a) => a -> p a
   -- every :: p Int -> (p b -> p b) -> p b -> p b
@@ -55,9 +55,6 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
 (!!#) = Align TrigZero
 
 infixl 4 <#, #>, |#, #|, |#|, !#, !!#
-
-fastA :: Pattern p => Align (p Time) (p a) -> p a
-fastA = _appAlign _fast
 
 _opA :: Pattern p => (a -> b -> c) -> Align (p a) (p b) -> p c
 _opA op = _appAlign (\n -> fmap (op n))
@@ -92,22 +89,28 @@ overlay a b = stack [a, b]
 superimpose :: Pattern p => (p x -> p x) -> p x -> p x
 superimpose p pat = overlay pat (p pat)
 
-_slow :: Pattern p => Rational -> p x -> p x
+_slow :: Pattern p => Time -> p x -> p x
 _slow 0 _ = silence
 _slow t pat = _fast (1/t) pat
 
-slow :: Pattern p => p Rational -> p x -> p x
+slow :: Pattern p => p Time -> p x -> p x
 slow = _patternify _slow
 
+slowA :: Pattern p => Align (p Time) (p x) -> p x
+slowA = _appAlign _slow
+
 -- | An alias for @slow@
-sparsity :: Pattern p => p Rational -> p x -> p x
+sparsity :: Pattern p => p Time -> p x -> p x
 sparsity = slow
 
-fast :: Pattern p => p Rational -> p x -> p x
+fast :: Pattern p => p Time -> p x -> p x
 fast = _patternify _fast
 
+fastA :: Pattern p => Align (p Time) (p x) -> p x
+fastA = _appAlign _fast
+
 -- | An alias for @fast@
-density :: Pattern p => p Rational -> p x -> p x
+density :: Pattern p => p Time -> p x -> p x
 density = fast
 
 _inside :: Pattern p => Time -> (p a -> p b) -> p a -> p b
@@ -214,8 +217,14 @@ _range from to p = (+ from) . (* (to-from)) <$> p
 iter :: Pattern p => p Int -> p a -> p a
 iter = _patternify _iter
 
+iterA :: Pattern p => Align (p Int) (p a) -> p a
+iterA = _appAlign _iter
+
 iterBack :: Pattern p => p Int -> p a -> p a
 iterBack = _patternify _iterBack
+
+iterBackA :: Pattern p => Align (p Int) (p a) -> p a
+iterBackA = _appAlign _iterBack
 
 -- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
 -- the pattern alternates between forwards and backwards.
@@ -223,9 +232,11 @@ palindrome :: Pattern p => p a -> p a
 palindrome p = slowAppend p (rev p)
 
 -- | Repeats each event @n@ times within its arc
-ply :: Pattern p => p Rational -> p a -> p a
+ply :: Pattern p => p Time -> p a -> p a
 ply = _patternify _ply
 
+plyA :: Pattern p => Align (p Time) (p a) -> p a
+plyA = _appAlign _ply
 
 -- | Syncopates a rhythm, shifting each event halfway into its arc (aka timespan), e.g. @"a b [c d] e"@ becomes the equivalent of @"[~ a] [~ b] [[~ c] [~ d]] [~ e]"@
 press :: Pattern p => p a -> p a

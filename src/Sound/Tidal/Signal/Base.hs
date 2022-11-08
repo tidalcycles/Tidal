@@ -456,6 +456,9 @@ _fastGap factor pat = splitQueries $ withEvent ef $ withQueryArcMaybe qf pat
 fastGap :: Signal Time -> Signal a -> Signal a
 fastGap = _patternify _fastGap
 
+fastGapA :: Align (Signal Time) (Signal a) -> Signal a
+fastGapA = _appAlign _fastGap
+
 _compressArc :: Arc -> Signal a -> Signal a
 _compressArc (Arc b e) pat | (b > e || b > 1 || e > 1 || b < 0 || e < 0) = silence
                            | otherwise = _late b $ _fastGap (1/(e-b)) pat
@@ -481,6 +484,9 @@ _early t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
 early :: Signal Time -> Signal x -> Signal x
 early = _patternify _early
 
+earlyA :: Align (Signal Time) (Signal a) -> Signal a
+earlyA = _appAlign _early
+
 -- | Infix operator for @early@
 (<~) :: Signal Time -> Signal x -> Signal x
 (<~) = early
@@ -491,6 +497,9 @@ _late t = _early (0-t)
 -- | Shifts a signal forwards in time, i.e. so that events happen later
 late :: Signal Time -> Signal x -> Signal x
 late = _patternify _late
+
+lateA :: Align (Signal Time) (Signal a) -> Signal a
+lateA = _appAlign _late
 
 -- | Infix operator for @late@
 (~>) :: Signal Time -> Signal x -> Signal x
@@ -520,9 +529,13 @@ _zoomArc (Arc s e) p = splitQueries $
 repeatCycles :: Signal Int -> Signal a -> Signal a
 repeatCycles = _patternify _repeatCycles
 
+repeatCyclesA :: Align (Signal Int) (Signal a) -> Signal a
+repeatCyclesA = _appAlign _repeatCycles
+
 _repeatCycles :: Int -> Signal a -> Signal a
 _repeatCycles n p = slowcat $ replicate n p
 
+-- TODO - no slowRepeatcycles?
 fastRepeatCycles :: Signal Int -> Signal a -> Signal a
 fastRepeatCycles = _patternify _repeatCycles
 
@@ -621,6 +634,9 @@ segment = _patternify _segment
 
 _segment :: Time -> Signal a -> Signal a
 _segment n p = _fast n (atom id) <* p
+
+segmentA :: Align (Signal Time) (Signal a) -> Signal a
+segmentA = _appAlign _segment
 
 --- functions relating to chords/patterns of lists
 
@@ -726,6 +742,9 @@ d1 $ trunc 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
 trunc :: Signal Time -> Signal a -> Signal a
 trunc = _patternify _trunc
 
+truncA :: Align (Signal Time) (Signal a) -> Signal a
+truncA = _appAlign _trunc
+
 _trunc :: Time -> Signal a -> Signal a
 _trunc t = _compressArc (Arc 0 t) . _zoomArc (Arc 0 t)
 
@@ -733,6 +752,9 @@ _trunc t = _compressArc (Arc 0 t) . _zoomArc (Arc 0 t)
 -- Example: @d1 $ every 4 (rot 2) $ slow 2 $ sound "bd hh hh hh"@
 rot :: Ord a => Signal Int -> Signal a -> Signal a
 rot = _patternify _rot
+
+rotA :: Ord a => Align (Signal Int) (Signal a) -> Signal a
+rotA = _appAlign _rot
 
 -- Calculates a whole cycle, rotates it, then constrains events to the original query arc
 _rot :: Ord a => Int -> Signal a -> Signal a
@@ -772,6 +794,9 @@ d1 $ linger (-0.25) $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
 -}
 linger :: Signal Time -> Signal a -> Signal a
 linger = _patternify _linger
+
+lingerA :: Align (Signal Time) (Signal a) -> Signal a
+lingerA = _appAlign _linger
 
 _linger :: Time -> Signal a -> Signal a
 _linger n p | n < 0 = _fast (1/n) $ _zoomArc (Arc (1 + n) 1) p
