@@ -65,6 +65,19 @@ instance Pattern Signal where
   _patternify_p_p_p f apat bpat cpat pat = innerJoin $ (\a b c -> f a b c pat) <$> apat <* bpat <* cpat
   toSignal = id
   _pressBy = _sigPressBy
+  _appAlign  = _sigAppAlign
+
+_sigAppAlign :: (a -> Signal b -> Signal c) -> Align (Signal a) (Signal b) -> Signal c
+_sigAppAlign f (Align Squeeze patt patv) = squeezeJoin $ (\t -> f t patv) <$> patt
+-- TODO - this one is wierd.. can it be simplified by defining squeezeOutJoin ?
+_sigAppAlign f (Align SqueezeOut patt patv) =
+  squeezeJoin $ (\v -> (_patternify f) patt (pure v)) <$> patv
+_sigAppAlign f (Align CycleIn patt patv) = innerJoin $ (\t -> f t patv) <$> patt
+_sigAppAlign f (Align CycleOut patt patv) = outerJoin $ (\t -> f t patv) <$> patt
+_sigAppAlign f (Align CycleMix patt patv) = mixJoin $ (\t -> f t patv) <$> patt
+_sigAppAlign f (Align Trig patt patv) = trigJoin $ (\t -> f t patv) <$> patt
+_sigAppAlign f (Align TrigZero patt patv) = trigzeroJoin $ (\t -> f t patv) <$> patt
+_sigAppAlign f _ = error "not implemented"
 
 -- ************************************************************ --
 
@@ -415,31 +428,6 @@ sigSlowcat pats = splitQueries $ Signal queryCycle
 _sigFast :: Time -> Signal a -> Signal a
 _sigFast 0 _ = silence
 _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
-
-applyA :: (a -> Signal b -> Signal b) -> Align (Signal a) (Signal b) -> Signal b
-applyA f (Align Squeeze patt patv) = squeezeJoin $ (\t -> f t patv) <$> patt
-applyA f (Align CycleIn patt patv) = innerJoin $ (\t -> f t patv) <$> patt
-applyA f (Align CycleOut patt patv) = outerJoin $ (\t -> f t patv) <$> patt
-applyA f (Align CycleMix patt patv) = mixJoin $ (\t -> f t patv) <$> patt
-applyA f (Align Trig patt patv) = trigJoin $ (\t -> f t patv) <$> patt
-applyA f (Align TrigZero patt patv) = trigzeroJoin $ (\t -> f t patv) <$> patt
-applyA f _ = error "not implemented"
-
-fastA :: Align (Signal Time) (Signal a) -> Signal a
-fastA = applyA _fast
-
-addA :: Num a => Align (Signal a) (Signal a) -> Signal a
-addA = applyA (\n -> fmap (+ n))
-
-(<#), (|#), (#|), (|#|), (!#), (!!#) :: a -> b -> Align a b
-(<#) = Align Squeeze
-(|#) = Align CycleIn
-(#|) = Align CycleOut
-(|#|) = Align CycleMix
-(!#) = Align Trig
-(!!#) = Align TrigZero
-
-infixl 4 <#, |#, #|, |#|, !#, !!#
   
 _fastGap :: Time -> Signal a -> Signal a
 _fastGap factor pat = splitQueries $ withEvent ef $ withQueryArcMaybe qf pat

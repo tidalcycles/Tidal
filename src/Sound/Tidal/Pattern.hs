@@ -5,6 +5,9 @@ module Sound.Tidal.Pattern where
 
 import Sound.Tidal.Types
 
+-- ************************************************************ --
+-- Pattern class
+
 class (Functor p, Applicative p, Monad p) => Pattern p where
   toSignal :: p a -> Signal a
   slowcat :: [p a] -> p a
@@ -22,6 +25,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   _patternify_p_n :: (a -> b -> p c -> p d) -> (p a -> b -> p c -> p d)
   -- patternify the first three parameters
   _patternify_p_p_p :: (a -> b -> c -> p d -> p e) -> (p a -> p b -> p c -> p d -> p e)
+  _appAlign :: (a -> p b -> p c) -> Align (p a) (p b) -> p c
   rev :: p a -> p a
   _ply :: Rational -> p a-> p a
   euclid :: p Int -> p Int -> p a -> p a
@@ -37,6 +41,50 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   collect :: Eq a => p a -> p [a]
   uncollect :: p [a] -> p a
   _pressBy :: Time -> p a -> p a
+
+-- ************************************************************ --
+-- Alignment
+
+(<#), (#>), (|#), (#|), (|#|), (!#), (!!#) :: a -> b -> Align a b
+(<#) = Align Squeeze
+(#>) = Align SqueezeOut
+(|#) = Align CycleIn
+(#|) = Align CycleOut
+(|#|) = Align CycleMix
+(!#) = Align Trig
+(!!#) = Align TrigZero
+
+infixl 4 <#, #>, |#, #|, |#|, !#, !!#
+
+fastA :: Pattern p => Align (p Time) (p a) -> p a
+fastA = _appAlign _fast
+
+_opA :: Pattern p => (a -> b -> c) -> Align (p a) (p b) -> p c
+_opA op = _appAlign (\n -> fmap (op n))
+
+addA :: Num a => Pattern p => Align (p a) (p a) -> p a
+addA = _opA (+)
+
+subA :: Num a => Pattern p => Align (p a) (p a) -> p a
+subA = _opA (-)
+
+mulA :: Num a => Pattern p => Align (p a) (p a) -> p a
+mulA = _opA (*)
+
+divA :: Fractional a => Pattern p => Align (p a) (p a) -> p a
+divA = _opA (/)
+
+modA :: Integral a => Pattern p => Align (p a) (p a) -> p a
+modA = _opA mod
+
+powA :: Integral a => Pattern p => Align (p a) (p a) -> p a
+powA = _opA (^)
+
+powfA :: Floating a => Pattern p => Align (p a) (p a) -> p a
+powfA = _opA (**)
+
+-- ************************************************************ --
+-- Other functions common to Signals and Sequences
 
 overlay :: Pattern p => p x -> p x -> p x
 overlay a b = stack [a, b]
