@@ -77,7 +77,7 @@ _sigAppAlign f (Align CycleOut patt patv) = outerJoin $ (\t -> f t patv) <$> pat
 _sigAppAlign f (Align CycleMix patt patv) = mixJoin $ (\t -> f t patv) <$> patt
 _sigAppAlign f (Align Trig patt patv) = trigJoin $ (\t -> f t patv) <$> patt
 _sigAppAlign f (Align TrigZero patt patv) = trigzeroJoin $ (\t -> f t patv) <$> patt
-_sigAppAlign f _ = error "not implemented"
+_sigAppAlign f (Align a _ _) = error $ "Alignment " ++ show a ++ " not implemented for signals"
 
 -- ************************************************************ --
 
