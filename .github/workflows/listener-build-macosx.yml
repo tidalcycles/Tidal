@@ -101,7 +101,7 @@ jobs:
       - name: move executables
         run: |
           cp -r dist-newstyle/build/x86_64-osx/ghc-${{ matrix.ghc }}/tidal-listener-0.1.0.0/x/tidal-listener/build/tidal-listener/tidal-listener tidal-listener/binary/tidal-listener
-          cp -r dist-newstyle/build/x86_64-osx/ghc-${{ matrix.ghc }}/tidal-*/x/tidal/build/tidal/tidal tidal-listener/binary/tidal
+          # cp -r dist-newstyle/build/x86_64-osx/ghc-${{ matrix.ghc }}/tidal-*/x/tidal/build/tidal/tidal tidal-listener/binary/tidal
 
       - name: zip files
         run: |
