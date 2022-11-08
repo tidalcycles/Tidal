@@ -117,7 +117,7 @@ jobs:
     - name: zip files
       run: |
         cd tidal-listener/
-        # mv binary tidal
+        mv binary tidal
         tar cvfj linux.tar tidal/*
 
     - uses: actions/upload-artifact@v2
