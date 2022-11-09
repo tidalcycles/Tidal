@@ -27,7 +27,7 @@ runJob job = do putStrLn $ "Parsing: " ++ job
 
 libs = [
     "Sound.Tidal.Context"
-  , "Sound.Tidal.Simple"
+--  , "Sound.Tidal.Simple"
   , "Control.Applicative"
   , "Data.Bifunctor"
   , "Data.Bits"
@@ -58,20 +58,20 @@ exts = [OverloadedStrings, NoImplicitPrelude]
 ghcArgs:: [String]
 ghcArgs = ["-clear-package-db", "-package-db", "haskell-libs/package.conf.d", "-package-db", "haskell-libs/package.db", "-v"]
 
-hintControlPattern  :: String -> IO (Either InterpreterError ControlPattern)
-hintControlPattern s = do
+hintControlSignal  :: String -> IO (Either InterpreterError ControlSignal)
+hintControlSignal s = do
   env <- lookupEnv "WITH_GHC"
   case env of
     Just "FALSE" -> do
         Hint.unsafeRunInterpreterWithArgsLibdir ghcArgs "haskell-libs" $ do
               Hint.set [languageExtensions := exts]
               Hint.setImports libs
-              Hint.interpret s (Hint.as :: ControlPattern)
+              Hint.interpret s (Hint.as :: ControlSignal)
     _ -> do
         Hint.runInterpreter $ do
           Hint.set [languageExtensions := exts]
           Hint.setImports libs
-          Hint.interpret s (Hint.as :: ControlPattern)
+          Hint.interpret s (Hint.as :: ControlSignal)
 
 hintLoop :: MonadInterpreter m => MVar String -> MVar Response -> m b
 hintLoop mIn mOut = do s <- liftIO (readMVar mIn)
@@ -83,7 +83,7 @@ hintLoop mIn mOut = do s <- liftIO (readMVar mIn)
                                                            hPutStrLn stderr $ "error: " ++ concatMap show errors
                                                            takeMVar mIn
                                                            return ()
-                   interp (Right t) s = do p <- Hint.interpret s (Hint.as :: ControlPattern)
+                   interp (Right t) s = do p <- Hint.interpret s (Hint.as :: ControlSignal)
                                            liftIO $ putMVar mOut $ HintOK p
                                            liftIO $ takeMVar mIn
                                            return ()

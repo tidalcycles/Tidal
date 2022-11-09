@@ -21,7 +21,7 @@ library
                        Sound.Tidal.Hint
   build-depends:       base,
                        data-default,
-                       tidal >=1.7.1,
+                       tidal >=2.0.0,
                        hosc,
                        hint,
                        network
