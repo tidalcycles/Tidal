@@ -10,7 +10,7 @@ import           Data.List (intercalate,isPrefixOf)
 import           Sound.Tidal.Utils
 import           System.Environment(lookupEnv)
 
-data Response = HintOK {parsed :: ControlPattern}
+data Response = HintOK {parsed :: ControlSignal}
               | HintError {errorMessage :: String}
 
 instance Show Response where
@@ -19,7 +19,7 @@ instance Show Response where
 
 runJob :: String -> IO (Response)
 runJob job = do putStrLn $ "Parsing: " ++ job
-                result <- hintControlPattern job
+                result <- hintControlSignal job
                 let response = case result of
                       Left err -> HintError (show err)
                       Right p -> HintOK p
