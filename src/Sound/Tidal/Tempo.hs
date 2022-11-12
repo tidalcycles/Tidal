@@ -53,7 +53,6 @@ data TempoAction =
 
 data State = State {ticks    :: Int64,
                     start    :: Link.Micros,
-                    nowEnd   :: Link.Micros,
                     nowArc   :: P.Arc,
                     nudged   :: Double
                    }
@@ -88,6 +87,7 @@ timeToCycles' config ss time = do
   beat <- Link.beatAtTime ss time (cQuantum config)
   return $! (toRational beat) / (toRational (cBeatsPerCycle config))
 
+-- At what time does the cycle occur according to Link?
 cyclesToTime :: Config -> Link.SessionState -> P.Time -> IO Link.Micros
 cyclesToTime config ss cyc = do
   let beat = (fromRational cyc) * (cBeatsPerCycle config)
@@ -116,11 +116,10 @@ clocked config stateMV mapMV actionsMV ac abletonLink
             now <- Link.clock abletonLink
             let startAt = now + processAhead
             Link.requestBeatAtTime sessionState 0 startAt quantum
-            Link.commitAppSessionState abletonLink sessionState
+            Link.commitAndDestroyAppSessionState abletonLink sessionState
             putMVar actionsMV []
             let st = State {ticks = 0,
                        start = now,
-                       nowEnd = logicalTime now 1,
                        nowArc = P.Arc 0 0,
                        nudged = 0
                       }
@@ -177,9 +176,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
                 startCycle = P.stop $ nowArc st
             sessionState <- Link.createAndCaptureAppSessionState abletonLink
             endCycle <- timeToCycles' config sessionState logicalEnd
-            let st' = st {nowArc = P.Arc startCycle endCycle,
-                          nowEnd = logicalEnd
-                        }
+            let st' = st {nowArc = P.Arc startCycle endCycle}
             nowOsc <- O.time
             nowLink <- Link.clock abletonLink
             let ops = LinkOperations {
@@ -217,14 +214,17 @@ clocked config stateMV mapMV actionsMV ac abletonLink
             (st', streamState') <- handleActions st otherActions streamState
             sessionState <- Link.createAndCaptureAppSessionState abletonLink
 
-            let logicalEnd   = logicalTime (start st') $ ticks st' + 1
-                st'' = st' {
-                          nowArc = P.Arc 0 0,
-                          nowEnd = logicalEnd + frameTimespan
-                        }
             now <- Link.clock abletonLink
-            Link.requestBeatAtTime sessionState 0 now quantum
+            let startAt = now + processAhead
+            Link.requestBeatAtTime sessionState 0 startAt quantum
             Link.commitAndDestroyAppSessionState abletonLink sessionState
+                  
+            let st'' = st' {
+                  ticks = 0,
+                  start = now,
+                  nowArc = P.Arc 0 0
+                  }
+
             return (st'', streamState')
         handleActions st (SingleTick pat : otherActions) streamState =
           do
