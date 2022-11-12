@@ -1728,11 +1728,15 @@ step' ss cs = fastcat $ map f cs
               | otherwise = silence
 
 
+-- ghost'' is kept for backwards compatibility
 ghost'' :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-ghost'' a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) p
+ghost'' = ghostWith
+
+ghostWith :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+ghostWith a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) p
 
 ghost' :: Time -> Pattern ValueMap -> Pattern ValueMap
-ghost' a p = ghost'' a ((|*| P.gain (pure 0.7)) . (|> P.end (pure 0.2)) . (|*| P.speed (pure 1.25))) p
+ghost' a p = ghostWith a ((|*| P.gain (pure 0.7)) . (|> P.end (pure 0.2)) . (|*| P.speed (pure 1.25))) p
 
 ghost :: Pattern ValueMap -> Pattern ValueMap
 ghost = ghost' 0.125
