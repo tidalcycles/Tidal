@@ -45,7 +45,7 @@ instance Show O.UDP where
 type TransitionMapper = P.Time -> [P.ControlPattern] -> P.ControlPattern
 
 data TempoAction =
-  ResetCycles
+  SetCycle P.Time
   | SingleTick P.ControlPattern
   | SetNudge Double
   | StreamReplace ID P.ControlPattern
@@ -76,8 +76,8 @@ data LinkOperations =
     cyclesToBeat :: CDouble -> CDouble
   }
 
-resetCycles :: MVar [TempoAction] -> IO ()
-resetCycles actionsMV = modifyMVar_ actionsMV (\actions -> return $ ResetCycles : actions)
+setCycle :: P.Time -> MVar [TempoAction] -> IO ()
+setCycle cyc actionsMV = modifyMVar_ actionsMV (\actions -> return $ SetCycle cyc : actions)
 
 setNudge :: MVar [TempoAction] -> Double -> IO ()
 setNudge actionsMV nudge = modifyMVar_ actionsMV (\actions -> return $ SetNudge nudge : actions)
@@ -209,20 +209,22 @@ clocked config stateMV mapMV actionsMV ac abletonLink
           return $! st'
         handleActions :: State -> [TempoAction] -> P.ValueMap -> IO (State, P.ValueMap)
         handleActions st [] streamState = return (st, streamState)
-        handleActions st (ResetCycles : otherActions) streamState =
+        handleActions st (SetCycle cyc : otherActions) streamState =
           do
             (st', streamState') <- handleActions st otherActions streamState
             sessionState <- Link.createAndCaptureAppSessionState abletonLink
 
             now <- Link.clock abletonLink
             let startAt = now + processAhead
-            Link.requestBeatAtTime sessionState 0 startAt quantum
+                beat = (fromRational cyc) * (cBeatsPerCycle config)
+            Link.requestBeatAtTime sessionState beat startAt quantum
             Link.commitAndDestroyAppSessionState abletonLink sessionState
+
                   
             let st'' = st' {
                   ticks = 0,
                   start = now,
-                  nowArc = P.Arc 0 0
+                  nowArc = P.Arc cyc cyc
                   }
 
             return (st'', streamState')

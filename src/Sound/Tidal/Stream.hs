@@ -565,7 +565,10 @@ streamNudgeAll :: Stream -> Double -> IO ()
 streamNudgeAll s nudge = T.setNudge (sActionsMV s) nudge
 
 streamResetCycles :: Stream -> IO ()
-streamResetCycles s =T.resetCycles (sActionsMV s)
+streamResetCycles s = streamSetCycle s 0
+
+streamSetCycle :: Stream -> Time -> IO ()
+streamSetCycle s cyc = T.setCycle cyc (sActionsMV s)
 
 hasSolo :: Map.Map k PlayState -> Bool
 hasSolo = (>= 1) . length . filter solo . Map.elems
