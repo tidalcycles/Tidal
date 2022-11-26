@@ -412,29 +412,28 @@ sec p = (realToFrac <$> cF 1 "_cps") *| p
 msec :: Fractional a => Pattern a -> Pattern a
 msec p = (realToFrac . (/1000) <$> cF 1 "_cps") *| p
 
-triggerWith :: Show a => (Time -> Time) -> a -> Pattern b -> Pattern b
-triggerWith f k pat = pat {query = q}
+triggerWith :: (Time -> Time) -> Pattern a -> Pattern a
+triggerWith f pat = pat {query = q}
   where q st = query (rotR (offset st) pat) st
-        offset st = fromMaybe 0 $ do v <- Map.lookup ctrl (controls st)
-                                     return (f $ fromMaybe 0 $ getR v)
-        ctrl = "_t_" ++ show k
+        offset st = fromMaybe 0 $ f <$> (Map.lookup ctrl (controls st) >>= getR)
+        ctrl = "_t_pattern"
 
-trigger :: Show a => a -> Pattern b -> Pattern b
+trigger :: Pattern a -> Pattern a
 trigger = triggerWith id
 
-ctrigger :: Show a => a -> Pattern b -> Pattern b
+ctrigger :: Pattern a -> Pattern a
 ctrigger = triggerWith $ (fromIntegral :: Int -> Rational) . ceiling
 
-qtrigger :: Show a => a -> Pattern b -> Pattern b
+qtrigger :: Pattern a -> Pattern a
 qtrigger = ctrigger
 
-rtrigger :: Show a => a -> Pattern b -> Pattern b
+rtrigger :: Pattern a -> Pattern a
 rtrigger = triggerWith $ (fromIntegral :: Int -> Rational) . round
 
-ftrigger :: Show a => a -> Pattern b -> Pattern b
+ftrigger :: Pattern a -> Pattern a
 ftrigger = triggerWith $ (fromIntegral :: Int -> Rational) . floor
 
-qt :: Show a => a -> Pattern b -> Pattern b
+qt :: Pattern a -> Pattern a
 qt = qtrigger
 
 reset :: Show a => a -> Pattern b -> Pattern b
