@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-
@@ -562,6 +563,30 @@ tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 tParamSqueeze f tv p = squeezeJoin $ (`f` p) <$> tv
+
+-- | `meta` resembles `Applicative`: whereas
+-- `<*>`  has type `f (  a ->   b) -> f a -> f b`,
+-- `meta` has type `f (f a -> f b) -> f a -> f b`.
+--
+-- Here's a minimal example. It plays the pattern "ho*8"
+-- at normal speed for the first half,
+-- and at double speed for the second half.
+-- `let slang = [ (0, id)
+--              , (1, fast 2) ]
+--    in p 1 $ meta (replace slang "0 1") "ho*8"`
+meta :: forall a b.
+        Pattern (Pattern a -> Pattern b) -> Pattern a -> Pattern b
+meta pf pa = Pattern { query = q } where
+  q :: State -> [Event b]
+  q s = let
+    changes :: [ Event (Pattern a -> Pattern b) ]
+    changes = query pf s
+    ap :: Event (Pattern a -> Pattern b) -> [Event b]
+    ap c = query (value c pa)
+           $ State { arc = part c,
+                     controls = controls s }
+    in concatMap ap changes
+
 
 -- ** Context
 

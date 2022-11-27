@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings, ScopedTypeVariables #-}
 
 module Sound.Tidal.UI where
 
@@ -29,7 +29,7 @@ import           Data.Bits (testBit, Bits, xor, shiftL, shiftR)
 import           Data.Ratio ((%), Ratio)
 import           Data.Fixed (mod')
 import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
-import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
+import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe, catMaybes)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
 import           Data.Bool (bool)
@@ -1375,6 +1375,29 @@ ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <
         transform' str (Arc s e) p = s `rotR` inside (pure $ 1/(e-s)) (matchF str) p
         matchF str = fromMaybe id $ lookup str fs
         timedValues = withEvent (\(Event c (Just a) a' v) -> Event c (Just a) a' (a,v)) . filterDigital
+
+-- | `replace` uses a lookup table to transform a
+-- `Pattern a` into a `Pattern b`.
+-- Anything not found in the lookup table is discarded.
+-- `replace` is, useful to create the first argument to `meta`
+-- (that is, the `Pattern (Pattern a -> Pattern b)`.
+replace :: forall a b. Ord a =>
+           [(a,b)] -> Pattern a -> Pattern b
+replace pairs pat = let
+  -- Since `Pattern` is a `Functor`,
+  -- there might be an easier way,
+  -- but the `Maybe` makes a simple `fmap` unworkable.
+  f :: a -> Maybe b
+  f a = Map.lookup a $ Map.fromList pairs
+  rep :: Event a -> Maybe (Event b)
+  rep ea = let mb :: Maybe b
+               mb = f $ value ea
+    in case mb of
+         Nothing -> Nothing
+         Just b -> Just $ ea { value   = b }
+  q :: State -> [Event b]
+  q s = catMaybes $ map rep $ query pat s
+  in Pattern {query = q}
 
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
 inhabit ps p = squeezeJoin $ (\s -> fromMaybe silence $ lookup s ps) <$> p
