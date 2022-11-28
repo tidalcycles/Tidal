@@ -105,22 +105,29 @@ cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e-s))
 -- | Returns the numbers of the cycles that the input @Arc@ overlaps
 -- (excluding the input @Arc@'s endpoint, unless it has duration 0 --
 -- see "Edge cases" below).
--- The "cycle number" of an @Arc@ is equal to its start value.
--- Thus, for instance, @cyclesInArc (Arc 0 1.5) == [0,1]@.
+-- (The "cycle number" of an @Arc@ is equal to its start value.
+-- Thus, for instance, @cyclesInArc (Arc 0 1.5) == [0,1]@.)
+--
 -- Edge cases:
 -- >  cyclesInArc $ Arc 0 1.0001 == [0,1]
 -- >  cyclesInArc $ Arc 0 1      == [0] -- the endpoint is excluded
 -- >  cyclesInArc $ Arc 1 1      == [1] -- unless the Arc has duration 0
+--
+-- PITFALL: Don't be fooled by the name. The output cycles
+-- are not necessarily completely contained in the input @Arc@,
+-- but they definitely overlap it,
+-- and they include every cycle that overlaps it.
 cyclesInArc :: Integral a => Arc -> [a]
 cyclesInArc (Arc s e)
   | s > e = []
   | s == e = [floor s]
   | otherwise = [floor s .. ceiling e-1]
 
--- | The whole cycles that overlap the input Arc,
--- (excluding its endpoint, unless it has duration 0,
--- similarly to `cyclesInArc` --
--- see that function's description for details).
+-- | This provides exactly the same information as @cyclesInArc@,
+-- except that this represents its output as @Arc@s,
+-- whereas @cyclesInArc@ represents the same information as integral indices.
+-- (The @Arc@ from 0 to 1 corresponds to the index 0,
+-- the one from 1 to 2 has index 1, etc.)
 cycleArcsInArc :: Arc -> [Arc]
 cycleArcsInArc = map (timeToCycleArc . (toTime :: Int -> Time)) . cyclesInArc
 
