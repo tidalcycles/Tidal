@@ -684,7 +684,7 @@ parseModOpen :: MyParser Modifier
 parseModOpen = char 'o' >> return Open
 
 parseModRange :: MyParser Modifier
-parseModRange = parseIntNote >>= \i -> return $ Range $ fromIntegral i
+parseModRange = parseIntNote >>= \i -> return $ Range $ fromIntegral (i :: Integer)
 
 parseModifiers :: MyParser [Modifier]
 parseModifiers = (many1 parseModOpen) <|> parseModDrop <|> (fmap pure parseModRange) <|> try parseModInvNum <|> (many1 parseModInv)  <?> "modifier"
