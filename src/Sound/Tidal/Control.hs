@@ -421,11 +421,14 @@ triggerWith f pat = pat {query = q}
 trigger :: Pattern a -> Pattern a
 trigger = triggerWith id
 
-ctrigger :: Pattern a -> Pattern a
-ctrigger = triggerWith $ (fromIntegral :: Int -> Rational) . ceiling
-
 qtrigger :: Pattern a -> Pattern a
 qtrigger = ctrigger
+
+qt :: Pattern a -> Pattern a
+qt = qtrigger
+
+ctrigger :: Pattern a -> Pattern a
+ctrigger = triggerWith $ (fromIntegral :: Int -> Rational) . ceiling
 
 rtrigger :: Pattern a -> Pattern a
 rtrigger = triggerWith $ (fromIntegral :: Int -> Rational) . round
@@ -433,16 +436,12 @@ rtrigger = triggerWith $ (fromIntegral :: Int -> Rational) . round
 ftrigger :: Pattern a -> Pattern a
 ftrigger = triggerWith $ (fromIntegral :: Int -> Rational) . floor
 
-qt :: Pattern a -> Pattern a
-qt = qtrigger
+mtrigger :: Int -> Pattern a -> Pattern a
+mtrigger n = triggerWith $ fromIntegral . nextMod
+  where nextMod t = n * ceiling (t / (fromIntegral n))
 
-reset :: Show a => a -> Pattern b -> Pattern b
-reset k pat = pat {query = q}
-  where q st = query (rotR (offset st) $ when (<=0) (const silence) pat) st
-        f = (fromIntegral :: Int -> Rational) . floor
-        offset st = fromMaybe 0 $ do p <- Map.lookup ctrl (controls st)
-                                     return (f $ fromMaybe 0 $ getR p)
-        ctrl = "_t_" ++ show k
+mt :: Pattern a -> Pattern a
+mt = mtrigger
 
 splat :: Pattern Int -> ControlPattern -> ControlPattern -> ControlPattern
 splat slices epat pat = chop slices pat # bite 1 (const 0 <$> pat) epat

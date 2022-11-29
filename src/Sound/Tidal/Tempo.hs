@@ -270,10 +270,8 @@ clocked config stateMV mapMV actionsMV ac abletonLink
                 sessionState <- Link.createAndCaptureAppSessionState abletonLink
                 cyc <- timeToCycles' config sessionState now
                 Link.destroySessionState sessionState
-                -- put pattern id and change time in control input
-                let streamState'' = Map.insert ("_t_all") (P.VR $! cyc) $ Map.insert ("_t_" ++ fromID k) (P.VR $! cyc) streamState'
                 (updatePattern ac) k cyc pat
-                return (st', streamState'')
+                return (st', streamState')
               )
               (\(e :: E.SomeException) -> do
                 hPutStrLn stderr $ "Error in pattern: " ++ show e
