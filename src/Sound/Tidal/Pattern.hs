@@ -642,8 +642,33 @@ data Context = Context {contextPosition :: [((Int, Int), (Int, Int))]}
   deriving (Eq, Ord, Generic)
 instance NFData Context
 
--- | An event is a value that's active during a timespan. If a whole
--- is present, the part should be equal to or fit inside it.
+-- | An @Event@ describes a @value@ that happens over a window of time.
+-- It does *not* necessarily describe the entire life of the @value@ --
+-- the @value@ might begin before the @Event@, or end after it, or both.
+--
+-- The window of time that the @Event@ describes is its @part@.
+-- The full lifespan of the @value@ that the @Event@ describes is its @whole@.
+-- The @part@ can be thought of as the @Event@'s duration,
+-- and the @whole@ as the duration of something that the @Event@
+-- is a window onto.
+--
+-- Sometimes the @part@ and the @whole@ are equal.
+-- The @part@ is always contained in the @whole@.
+--
+-- Sometimes the @whole is absent (that is, @Nothing@).
+-- Sometimes the @whole@ is present yet unnecessary.
+-- In fact, so far the only conditions we have identified[1]
+-- in which @whole@ can make a difference is in an @Event ValueMap@,
+-- because that type describes messages bound for SuperCollider.
+-- For instance, if the @whole@ begins before the @part@,
+-- and the @value@ is a sample, then the @Event@ will not trigger the sample.
+-- Similarly, for purposes of @cut@ and @legato@,
+-- it is necessary to know when the sample ends.
+--
+-- In other types, such as in an @Event (Pattern a -> Pattern a)@,
+-- the @whole@ is unlikedly to ever make a difference.
+--
+-- [1] https://club.tidalcycles.org/t/what-are-the-part-and-the-whole-in-an-event/4414/8
 data EventF a b = Event
   { context :: Context
   , whole :: Maybe a
