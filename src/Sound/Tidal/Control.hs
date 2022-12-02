@@ -412,36 +412,68 @@ sec p = (realToFrac <$> cF 1 "_cps") *| p
 msec :: Fractional a => Pattern a -> Pattern a
 msec p = (realToFrac . (/1000) <$> cF 1 "_cps") *| p
 
-triggerWith :: (Time -> Time) -> Pattern a -> Pattern a
-triggerWith f pat = pat {query = q}
-  where q st = query (rotR (offset st) pat) st
-        offset st = fromMaybe 0 $ f <$> (Map.lookup ctrl (controls st) >>= getR)
-        ctrl = "_t_pattern"
-
+-- | Align the start of a pattern with the time a pattern is evaluated,
+-- rather than the global start time. Because of this, the pattern will
+-- probably not be aligned to the pattern grid.
 trigger :: Pattern a -> Pattern a
 trigger = triggerWith id
 
+-- | (Alias @__qt__@) Quantise trigger. Aligns the start of the pattern
+-- with the next cycle boundary. For example, this pattern will fade in
+-- starting with the next cycle after the pattern is evaluated:
+-- 
+-- @
+-- d1 $ qtrigger $ s "hh(5, 8)" # amp envL
+-- @
+-- 
+-- Note that the pattern will start playing immediately. The /start/ of the
+-- pattern aligns with the next cycle boundary, but events will play before
+-- if the pattern has events at negative timestamps (which most loops do).
+-- These events can be filtered out, for example:
+-- 
+-- @
+-- d1 $ qtrigger $ filterWhen (>= 0) $ s "hh(5, 8)"
+-- @
 qtrigger :: Pattern a -> Pattern a
 qtrigger = ctrigger
 
 qt :: Pattern a -> Pattern a
 qt = qtrigger
 
+-- | Ceiling trigger. Aligns the start of a pattern to the next cycle
+-- boundary, just like 'qtrigger'.
 ctrigger :: Pattern a -> Pattern a
 ctrigger = triggerWith $ (fromIntegral :: Int -> Rational) . ceiling
 
+-- | Rounded trigger. Aligns the start of a pattern to the nearest cycle
+-- boundary, either next or previous.
 rtrigger :: Pattern a -> Pattern a
 rtrigger = triggerWith $ (fromIntegral :: Int -> Rational) . round
 
+-- | Floor trigger. Aligns the start of a pattern to the previous cycle
+-- boundary.
 ftrigger :: Pattern a -> Pattern a
 ftrigger = triggerWith $ (fromIntegral :: Int -> Rational) . floor
 
+-- | (Alias @__mt__@) Mod trigger. Aligns the start of a pattern to the
+-- next cycle boundary where the cycle is evenly divisible by a given
+-- number. 'qtrigger' is equivalent to @mtrigger 1@.
 mtrigger :: Int -> Pattern a -> Pattern a
 mtrigger n = triggerWith $ fromIntegral . nextMod
   where nextMod t = n * ceiling (t / (fromIntegral n))
 
-mt :: Pattern a -> Pattern a
+mt :: Int -> Pattern a -> Pattern a
 mt = mtrigger
+
+-- | This aligns the start of a pattern to some value relative to the
+-- time the pattern is evaluated. The provided function maps the evaluation
+-- time (on the global cycle clock) to a new time, and then @triggerWith@
+-- aligns the pattern's start to the time that's returned.
+triggerWith :: (Time -> Time) -> Pattern a -> Pattern a
+triggerWith f pat = pat {query = q}
+  where q st = query (rotR (offset st) pat) st
+        offset st = fromMaybe 0 $ f <$> (Map.lookup ctrl (controls st) >>= getR)
+        ctrl = "_t_pattern"
 
 splat :: Pattern Int -> ControlPattern -> ControlPattern -> ControlPattern
 splat slices epat pat = chop slices pat # bite 1 (const 0 <$> pat) epat
