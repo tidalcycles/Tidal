@@ -399,6 +399,9 @@ toOSC _ pe (OSCContext oscpath)
         ident = fromMaybe "unknown" $ Map.lookup "_id_" (value $ peEvent pe) >>= getS
         ts = (peOnWholeOrPartOsc pe) + nudge -- + latency
 
+patternTimeID :: String
+patternTimeID = "_t_pattern"
+
 -- Used for Tempo callback
 updatePattern :: Stream -> ID -> Time -> ControlPattern -> IO ()
 updatePattern stream k !t pat = do
@@ -408,7 +411,7 @@ updatePattern stream k !t pat = do
   putMVar (sPMapMV stream) $ Map.insert (fromID k) playState pMap
   where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
         updatePS Nothing = PlayState pat' False False [pat']
-        patControls = Map.singleton "_t_pattern" (VR t)
+        patControls = Map.singleton patternTimeID (VR t)
         pat' = withQueryControls (Map.union patControls)
                  $ pat # pS "_id_" (pure $ fromID k)
 

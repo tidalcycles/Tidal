@@ -29,6 +29,7 @@ import Data.Ratio
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Core
+import Sound.Tidal.Stream (patternTimeID)
 import Sound.Tidal.UI
 import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Utils
@@ -472,8 +473,8 @@ mt = mtrigger
 triggerWith :: (Time -> Time) -> Pattern a -> Pattern a
 triggerWith f pat = pat {query = q}
   where q st = query (rotR (offset st) pat) st
-        offset st = fromMaybe 0 $ f <$> (Map.lookup ctrl (controls st) >>= getR)
-        ctrl = "_t_pattern"
+        offset st = fromMaybe 0 $ f
+                      <$> (Map.lookup patternTimeID (controls st) >>= getR)
 
 splat :: Pattern Int -> ControlPattern -> ControlPattern -> ControlPattern
 splat slices epat pat = chop slices pat # bite 1 (const 0 <$> pat) epat
