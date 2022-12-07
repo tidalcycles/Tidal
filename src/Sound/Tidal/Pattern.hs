@@ -406,6 +406,10 @@ withQueryArc f pat = pat {query = query pat . (\(State a m) -> State (f a) m)}
 withQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
 withQueryTime f pat = withQueryArc (\(Arc s e) -> Arc (f s) (f e)) pat
 
+-- | Apply a function to the control values of the query
+withQueryControls :: (ValueMap -> ValueMap) -> Pattern a -> Pattern a
+withQueryControls f pat = pat { query = query pat . (\(State a m) -> State a (f m))}
+
 -- | @withEvent f p@ returns a new @Pattern@ with each event mapped over
 -- function @f@.
 withEvent :: (Event a -> Event b) -> Pattern a -> Pattern b

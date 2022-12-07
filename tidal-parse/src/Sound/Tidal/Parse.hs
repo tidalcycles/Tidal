@@ -295,6 +295,7 @@ genericTransformations =
     $(fromTidal "loopFirst") <|>
     $(fromTidal "degrade") <|>
     $(fromTidal "arpeggiate") <|>
+    $(fromTidal "trigger") <|>
     constParser <*!> parser <|>
     -- more complex possibilities that would involve overlapped Parse instances if they were instances
     pTime_p_p <*!> parser <|>
@@ -310,12 +311,6 @@ genericTransformations =
     (parser :: H ([Pattern Time] -> Pattern a -> Pattern a)) <*!> parser <|>
     (parser :: H ([Pattern Double] -> Pattern a -> Pattern a)) <*!> parser <|>
     (parser :: H ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)) <*!> parser <|>
-    int_p_p <*!> parser <|>
-    integer_p_p <*!> parser <|>
-    double_p_p <*!> parser <|>
-    time_p_p <*!> parser <|>
-    string_p_p <*!> parser <|>
-    bool_p_p <*!> parser <|>
     lp_p_p <*!> parser <|>
     a_patternB <|>
     pA_pB
@@ -641,28 +636,6 @@ instance Parse ((Time,Time) -> Pattern a -> Pattern a) where
 
 pString_pInt_pString :: H (Pattern String -> Pattern Int -> Pattern String)
 pString_pInt_pString = $(fromTidal "samples")
-
-showable_p_p :: (Show a, Parse a) => H (a -> Pattern b -> Pattern b)
-showable_p_p = $(fromTidal "trigger")
--- *** pathway leading to spread(etc) should be incorporated here also???
-
-int_p_p :: H (Int -> Pattern a -> Pattern a)
-int_p_p = showable_p_p
-
-integer_p_p :: H (Integer -> Pattern a -> Pattern a)
-integer_p_p = showable_p_p
-
-time_p_p :: H (Time -> Pattern a -> Pattern a)
-time_p_p = showable_p_p
-
-double_p_p :: H (Double -> Pattern a -> Pattern a)
-double_p_p = showable_p_p
-
-string_p_p :: H (String -> Pattern a -> Pattern a)
-string_p_p = showable_p_p
-
-bool_p_p :: H (Bool -> Pattern a -> Pattern a)
-bool_p_p = showable_p_p
 
 pTime_p_p :: H (Pattern Time -> Pattern a -> Pattern a)
 pTime_p_p =

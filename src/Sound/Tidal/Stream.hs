@@ -332,11 +332,10 @@ getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
                             defaultValue _ = Nothing
 
 playStack :: PlayMap -> ControlPattern
-playStack pMap = stack $ map pattern active
-  where active = filter (\pState -> if hasSolo pMap
-                                    then solo pState
-                                    else not (mute pState)
-                        ) $ Map.elems pMap
+playStack pMap = stack . (map pattern) . (filter active) . Map.elems $ pMap
+  where active pState = if hasSolo pMap
+                        then solo pState
+                        else not (mute pState)
 
 toOSC :: [Int] -> ProcessedEvent -> OSC -> [(Double, Bool, O.Message)]
 toOSC busses pe osc@(OSC _ _)
@@ -400,16 +399,21 @@ toOSC _ pe (OSCContext oscpath)
         ident = fromMaybe "unknown" $ Map.lookup "_id_" (value $ peEvent pe) >>= getS
         ts = (peOnWholeOrPartOsc pe) + nudge -- + latency
 
+patternTimeID :: String
+patternTimeID = "_t_pattern"
+
 -- Used for Tempo callback
-updatePattern :: Stream -> ID -> ControlPattern -> IO ()
-updatePattern stream k pat = do
+updatePattern :: Stream -> ID -> Time -> ControlPattern -> IO ()
+updatePattern stream k !t pat = do
   let x = queryArc pat (Arc 0 0)
   pMap <- seq x $ takeMVar (sPMapMV stream)
   let playState = updatePS $ Map.lookup (fromID k) pMap
   putMVar (sPMapMV stream) $ Map.insert (fromID k) playState pMap
   where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
         updatePS Nothing = PlayState pat' False False [pat']
-        pat' = pat # pS "_id_" (pure $ fromID k)
+        patControls = Map.singleton patternTimeID (VR t)
+        pat' = withQueryControls (Map.union patControls)
+                 $ pat # pS "_id_" (pure $ fromID k)
 
 processCps :: T.LinkOperations -> [Event ValueMap] -> IO [ProcessedEvent]
 processCps ops = mapM processEvent
