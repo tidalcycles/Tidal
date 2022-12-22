@@ -34,7 +34,8 @@ import Foreign
 import Foreign.C.Types
 import           System.IO (hPutStrLn, stderr)
 
-import qualified Sound.OSC.FD as O
+import qualified Sound.Osc.Fd as O
+import qualified Sound.Osc.Time.Timeout as O
 import qualified Network.Socket          as N
 
 import           Sound.Tidal.Config
@@ -45,7 +46,6 @@ import           Sound.Tidal.Params (pS)
 import           Sound.Tidal.Pattern
 import qualified Sound.Tidal.Tempo as T
 import           Sound.Tidal.Utils ((!!!))
--- import qualified Sound.OSC.Datum as O
 import           Data.List (sortOn)
 import           System.Random (getStdRandom, randomR)
 import           Sound.Tidal.Show ()
@@ -59,7 +59,7 @@ data Stream = Stream {sConfig :: Config,
                       sStateMV :: MVar ValueMap,
                       -- sOutput :: MVar ControlPattern,
                       sLink :: Link.AbletonLink,
-                      sListen :: Maybe O.UDP,
+                      sListen :: Maybe O.Udp,
                       sPMapMV :: MVar PlayMap,
                       sActionsMV :: MVar [T.TempoAction],
                       sGlobalFMV :: MVar (ControlPattern -> ControlPattern),
@@ -67,7 +67,7 @@ data Stream = Stream {sConfig :: Config,
                      }
 
 data Cx = Cx {cxTarget :: Target,
-              cxUDP :: O.UDP,
+              cxUDP :: O.Udp,
               cxOSCs :: [OSC],
               cxAddr :: N.AddrInfo,
               cxBusAddr :: Maybe N.AddrInfo
@@ -256,13 +256,13 @@ sendHandshakes stream = mapM_ sendHandshake $ filter (oHandshake . cxTarget) (sC
                            else
                              hPutStrLn stderr "Can't handshake with SuperCollider without control port."
 
-sendO :: Bool -> (Maybe O.UDP) -> Cx -> O.Message -> IO ()
+sendO :: Bool -> (Maybe O.Udp) -> Cx -> O.Message -> IO ()
 sendO isBusMsg (Just listen) cx msg = O.sendTo listen (O.Packet_Message msg) (N.addrAddress addr)
   where addr | isBusMsg && isJust (cxBusAddr cx) = fromJust $ cxBusAddr cx
              | otherwise = cxAddr cx
 sendO _ Nothing cx msg = O.sendMessage (cxUDP cx) msg
 
-sendBndl :: Bool -> (Maybe O.UDP) -> Cx -> O.Bundle -> IO ()
+sendBndl :: Bool -> (Maybe O.Udp) -> Cx -> O.Bundle -> IO ()
 sendBndl isBusMsg (Just listen) cx bndl = O.sendTo listen (O.Packet_Bundle bndl) (N.addrAddress addr)
   where addr | isBusMsg && isJust (cxBusAddr cx) = fromJust $ cxBusAddr cx
              | otherwise = cxAddr cx
@@ -546,7 +546,7 @@ setPreviousPatternOrSilence stream =
 -- Send events early using timestamp in the OSC bundle - used by Superdirt
 -- Send events early by adding timestamp to the OSC message - used by Dirt
 -- Send events live by delaying the thread
-send :: Maybe O.UDP -> Cx -> Double -> Double -> (Double, Bool, O.Message) -> IO ()
+send :: Maybe O.Udp -> Cx -> Double -> Double -> (Double, Bool, O.Message) -> IO ()
 send listen cx latency extraLatency (time, isBusMsg, m)
   | oSchedule target == Pre BundleStamp = sendBndl isBusMsg listen cx $ O.Bundle timeWithLatency [m]
   | oSchedule target == Pre MessageStamp = sendO isBusMsg listen cx $ addtime m
@@ -555,7 +555,7 @@ send listen cx latency extraLatency (time, isBusMsg, m)
                                     sendO isBusMsg listen cx m
                    return ()
     where addtime (O.Message mpath params) = O.Message mpath ((O.int32 sec):((O.int32 usec):params))
-          ut = O.ntpr_to_ut timeWithLatency
+          ut = O.ntpr_to_posix timeWithLatency
           sec :: Int
           sec = floor ut
           usec :: Int
@@ -659,7 +659,7 @@ streamSetB = streamSet
 streamSetR :: Stream -> String -> Pattern Rational -> IO ()
 streamSetR = streamSet
 
-openListener :: Config -> IO (Maybe O.UDP)
+openListener :: Config -> IO (Maybe O.Udp)
 openListener c
   | cCtrlListen c = catchAny run (\_ -> do verbose c "That port isn't available, perhaps another Tidal instance is already listening on that port?"
                                            return Nothing
@@ -693,16 +693,16 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
                                                         return ()
           where 
             bufferIndices [] = []
-            bufferIndices (x:xs') | x == (O.ASCII_String $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
+            bufferIndices (x:xs') | x == (O.AsciiString $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
                                   | otherwise = bufferIndices xs'
         -- External controller commands
         act (O.Message "/ctrl" (O.Int32 k:v:[]))
           = act (O.Message "/ctrl" [O.string $ show k,v])
-        act (O.Message "/ctrl" (O.ASCII_String k:v@(O.Float _):[]))
+        act (O.Message "/ctrl" (O.AsciiString k:v@(O.Float _):[]))
           = add (O.ascii_to_string k) (VF (fromJust $ O.datum_floating v))
-        act (O.Message "/ctrl" (O.ASCII_String k:O.ASCII_String v:[]))
+        act (O.Message "/ctrl" (O.AsciiString k:O.AsciiString v:[]))
           = add (O.ascii_to_string k) (VS (O.ascii_to_string v))
-        act (O.Message "/ctrl" (O.ASCII_String k:O.Int32 v:[]))
+        act (O.Message "/ctrl" (O.AsciiString k:O.Int32 v:[]))
           = add (O.ascii_to_string k) (VI (fromIntegral v))
         -- Stream playback commands
         act (O.Message "/mute" (k:[]))
@@ -729,7 +729,7 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
                      putMVar (sStateMV stream) $ Map.insert k v sMap
                      return ()
         withID :: O.Datum -> (ID -> IO ()) -> IO ()
-        withID (O.ASCII_String k) func = func $ (ID . O.ascii_to_string) k
+        withID (O.AsciiString k) func = func $ (ID . O.ascii_to_string) k
         withID (O.Int32 k) func = func $ (ID . show) k
         withID _ _ = return ()
 ctrlResponder _ _ _ = return ()
