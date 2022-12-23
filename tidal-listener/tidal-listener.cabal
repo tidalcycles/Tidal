@@ -21,8 +21,8 @@ library
                        Sound.Tidal.Hint
   build-depends:       base,
                        data-default,
-                       tidal >=1.7.1,
-                       hosc,
+                       tidal ==1.9.3,
+                       hosc >= 0.20 && < 0.21,
                        hint,
                        network
   default-language:    Haskell2010

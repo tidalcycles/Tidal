@@ -8,7 +8,7 @@ import Sound.Tidal.ID
 import qualified Sound.Tidal.Context as T
 import Sound.Tidal.Hint
 import Sound.Tidal.Listener.Config
-import Sound.OSC.FD as O
+import Sound.Osc.Fd as O
 import Control.Concurrent
 import Control.Concurrent.MVar
 import qualified Network.Socket as N
@@ -21,7 +21,7 @@ https://github.com/tidalcycles/tidal-listener/wiki
 
 data State = State {sIn :: MVar String,
                     sOut :: MVar Response,
-                    sLocal :: UDP,
+                    sLocal :: Udp,
                     sRemote :: N.SockAddr,
                     sStream :: T.Stream
                    }
@@ -80,7 +80,7 @@ startHint = do mIn <- newEmptyMVar
 getcps st = streamGetcps (sStream st)
 
 act :: State -> Maybe O.Message -> IO State
-act st (Just (Message "/code" [ASCII_String a_ident, ASCII_String a_code])) =
+act st (Just (Message "/code" [AsciiString a_ident, AsciiString a_code])) =
   do let ident = ID $ ascii_to_string a_ident
          code = ascii_to_string a_code
      putMVar (sIn st) code
