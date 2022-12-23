@@ -90,7 +90,7 @@ test-suite tests
   build-depends:
                 base ==4.*
               , microspec >= 0.2.0.1
-              , hosc >= 0.17 && < 0.20
+              , hosc >= 0.20 && < 0.21
               , containers
               , parsec
               , tidal
