@@ -6,7 +6,7 @@ module Sound.Tidal.Tempo where
 
 import Control.Concurrent.MVar
 import qualified Sound.Tidal.Pattern as P
-import qualified Sound.OSC.FD as O
+import qualified Sound.Osc.Fd as O
 import Control.Concurrent (forkIO, ThreadId, threadDelay)
 import Control.Monad (when)
 import qualified Data.Map.Strict as Map
@@ -39,7 +39,7 @@ import Sound.Tidal.StreamTypes
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-instance Show O.UDP where
+instance Show O.Udp where
   show _ = "-unshowable-"
 
 type TransitionMapper = P.Time -> [P.ControlPattern] -> P.ControlPattern

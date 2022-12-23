@@ -55,7 +55,7 @@ library
       base >=4.8 && <5
     , containers < 0.7
     , colour < 2.4
-    , hosc >= 0.17 && < 0.20
+    , hosc >= 0.20 && < 0.21
     , text < 2.1
     , parsec >= 3.1.12 && < 3.2
     , network < 3.2
@@ -90,7 +90,7 @@ test-suite tests
   build-depends:
                 base ==4.*
               , microspec >= 0.2.0.1
-              , hosc >= 0.17 && < 0.20
+              , hosc >= 0.20 && < 0.21
               , containers
               , parsec
               , tidal
