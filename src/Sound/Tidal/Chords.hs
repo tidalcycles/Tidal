@@ -95,7 +95,7 @@ minor11 :: Num a => [a]
 minor11 = [0,3,7,10,14,17]
 minor13 :: Num a => [a]
 minor13 = [0,3,7,10,14,17,21]
-minorMajor7 :: Numa => [a]
+minorMajor7 :: Num a => [a]
 minorMajor7 = [0,3,7,11]
 -- other chords
 one :: Num a => [a]
