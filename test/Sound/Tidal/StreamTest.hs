@@ -5,7 +5,7 @@ module Sound.Tidal.StreamTest where
 import Test.Microspec
 import Sound.Tidal.Stream
 import Sound.Tidal.Pattern
-import qualified Sound.OSC.FD as O
+import qualified Sound.Osc.Fd as O
 import qualified Data.Map.Strict as M
 
 run :: Microspec ()
