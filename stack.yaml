@@ -1,4 +1,4 @@
-resolver: lts-16.31
+resolver: lts-20.5
 
 packages:
   - '.'
@@ -6,8 +6,7 @@ packages:
   - 'tidal-link'
 
 extra-deps:
-  - hosc-0.18.1
-  - microspec-0.2.1.3
+  - hosc-0.20
   - haskellish-0.3.2.1
 
-allow-newer: true
+
