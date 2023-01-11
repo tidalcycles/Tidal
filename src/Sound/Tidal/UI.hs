@@ -57,7 +57,7 @@ import           Sound.Tidal.Utils
 ------------------------------------------------------------------------
 -- * UI
 
--- ** Randomization
+-- ** Randomisation
 
 
 {-|
@@ -537,7 +537,7 @@ We can slow it down by different amounts, such as by a half:
 d1 $ slow 2 $ sound "ho ho:2 ho:3 hc"
 @
 
-Or by four thirds (i.e. speeding it up by a third; @Z%3@ means four over
+Or by four thirds (i.e. speeding it up by a third; @4%3@ means four over
 three):
 
 @
