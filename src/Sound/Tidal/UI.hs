@@ -110,10 +110,9 @@ sound "sn sn ~ sn" # gain rand
 
 makes the snares randomly loud and quiet.
 
-Numbers coming from this pattern are \'seeded\' by time. So if you reset
-time (via @cps (-1)@, then @cps 1.1@ or whatever cps you want to
-restart with) the random pattern will emit the exact same _random_
-numbers again.
+Numbers coming from this pattern are \'seeded\' by time. So if you reset time
+(using 'resetCycles', 'setCycle', or 'cps') the random pattern will emit the
+exact same _random_ numbers again.
 
 In cases where you need two different random patterns, you can shift
 one of them around to change the time from which the _random_ pattern
