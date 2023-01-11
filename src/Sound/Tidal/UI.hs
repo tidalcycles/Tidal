@@ -1529,7 +1529,7 @@ The @ur@ function is designed for longer form composition, by allowing you to
 create ’patterns of patterns’ in a repeating loop. It takes four parameters:
 how long the loop will take, a pattern giving the structure of the composition,
 a lookup table for named patterns to feed into that structure, and a second
-lookup table for named transformations/effects.
+lookup table for named transformations\/effects.
 
 The /ur-/ prefix [comes from German](https://en.wiktionary.org/wiki/ur-#German) and
 means /proto-/ or /original/. For a mnemonic device, think of this function as
