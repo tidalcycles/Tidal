@@ -1109,11 +1109,15 @@ step' ss cs = fastcat $ map f cs
               | otherwise = silence
 
 
+-- ghost'' is kept for backwards compatibility
 ghost'' :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-ghost'' a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) p
+ghost'' = ghostWith
+
+ghostWith :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+ghostWith a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) p
 
 ghost' :: Time -> Pattern ValueMap -> Pattern ValueMap
-ghost' a p = ghost'' a ((|*| P.gain (pure 0.7)) . (|> P.end (pure 0.2)) . (|*| P.speed (pure 1.25))) p
+ghost' a p = ghostWith a ((|*| P.gain (pure 0.7)) . (|> P.end (pure 0.2)) . (|*| P.speed (pure 1.25))) p
 
 ghost :: Pattern ValueMap -> Pattern ValueMap
 ghost = ghost' 0.125
@@ -1293,7 +1297,7 @@ swap things p = filterJust $ (`lookup` things) <$> p
   it will then transform the pattern and combine it with the last transformation until the depth is reached
   this is like putting an effect (like a filter) in the feedback of a delay line
   each echo is more effected
-  d1 $ note (scale "hexDorian" $ snowball (+) (slow 2 . rev) 8 "0 ~ . -1 . 5 3 4 . ~ -2") # s "gtr"
+  d1 $ note (scale "hexDorian" $ snowball 8 (+) (slow 2 . rev) "0 ~ . -1 . 5 3 4 . ~ -2") # s "gtr"
 -}
 snowball :: Int -> (Pattern a -> Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 snowball depth combinationFunction f pattern = cat $ take depth $ scanl combinationFunction pattern $ drop 1 $ iterate f pattern

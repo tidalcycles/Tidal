@@ -77,13 +77,27 @@ pS name = fmap (Map.singleton name . VS)
 pX :: String -> Signal [Word8] -> ControlSignal
 pX name = fmap (Map.singleton name . VX)
 
-pStateF :: String -> String -> (Maybe Double -> Double) -> ControlSignal
+pStateF ::
+  String ->  -- ^ A parameter, e.g. `note`; a
+  -- `String` recognizable by a `ValueMap`.
+  String -> -- ^ Identifies the cycling state pattern.
+  -- Can be anything the user wants.
+  (Maybe Double -> Double) ->
+  ControlSignal
 pStateF name sName update = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
         statef sMap = (Map.insert sName v sMap, v) 
           where v = VF $ update $ (Map.lookup sName sMap) >>= getF
 
-pStateList :: String -> String -> [Value] -> ControlSignal
+-- | `pStateList` is made with cyclic lists in mind,
+-- but it can even "cycle" through infinite lists.
+pStateList ::
+  String ->  -- ^ A parameter, e.g. `note`; a
+  -- `String` recognizable by a `ValueMap`.
+  String ->  -- ^ Identifies the cycling state pattern.
+  -- Can be anything the user wants.
+  [Value] ->  -- ^ The list to cycle through.
+  ControlSignal
 pStateList name sName xs = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
         statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped) 
@@ -92,9 +106,13 @@ pStateList name sName xs = pure $ Map.singleton name $ VState statef
                 looped | null xs' = xs
                        | otherwise = xs'
 
+-- | A wrapper for `pStateList` that accepts a `[Double]`
+-- rather than a `[Value]`.
 pStateListF :: String -> String -> [Double] -> ControlSignal
 pStateListF name sName = pStateList name sName . map VF
 
+-- | A wrapper for `pStateList` that accepts a `[String]`
+-- rather than a `[Value]`.
 pStateListS :: String -> String -> [String] -> ControlSignal
 pStateListS name sName = pStateList name sName . map VS
 

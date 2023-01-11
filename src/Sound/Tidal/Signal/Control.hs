@@ -30,6 +30,7 @@ import Data.Ratio
 import Sound.Tidal.Arc
 import Sound.Tidal.Types
 import Sound.Tidal.Pattern
+import Sound.Tidal.Stream (patternTimeID)
 import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Signal.Base
 import Sound.Tidal.Signal.Compose ((#), (|=|), (|*), (*|), (|/))
@@ -418,40 +419,68 @@ sec p = (realToFrac <$> cF 1 "_cps") *| p
 msec :: Fractional a => Signal a -> Signal a
 msec p = (realToFrac . (/1000) <$> cF 1 "_cps") *| p
 
-triggerWith :: Show a => (Time -> Time) -> a -> Signal b -> Signal b
-triggerWith f k pat = pat {query = q}
-  where q st = query (_late (offset st) pat) st
-        offset st = fromMaybe 0 $ do v <- Map.lookup ctrl (sControls st)
-                                     return (f $ fromMaybe 0 $ getR v)
-        ctrl = "_t_" ++ show k
-
-trigger :: Show a => a -> Signal b -> Signal b
+-- | Align the start of a pattern with the time a pattern is evaluated,
+-- rather than the global start time. Because of this, the pattern will
+-- probably not be aligned to the cycle grid.
+trigger :: Signal a -> Signal a
 trigger = triggerWith id
 
-ctrigger :: Show a => a -> Signal b -> Signal b
-ctrigger = triggerWith $ (fromIntegral :: Int -> Rational) . ceiling
-
-qtrigger :: Show a => a -> Signal b -> Signal b
+-- | (Alias @__qt__@) Quantise trigger. Aligns the start of the pattern
+-- with the next cycle boundary. For example, this pattern will fade in
+-- starting with the next cycle after the pattern is evaluated:
+-- 
+-- @
+-- d1 $ qtrigger $ s "hh(5, 8)" # amp envL
+-- @
+-- 
+-- Note that the pattern will start playing immediately. The /start/ of the
+-- pattern aligns with the next cycle boundary, but events will play before
+-- if the pattern has events at negative timestamps (which most loops do).
+-- These events can be filtered out, for example:
+-- 
+-- @
+-- d1 $ qtrigger $ filterWhen (>= 0) $ s "hh(5, 8)"
+-- @
+qtrigger :: Signal a -> Signal a
 qtrigger = ctrigger
 
-rtrigger :: Show a => a -> Signal b -> Signal b
-rtrigger = triggerWith $ (fromIntegral :: Int -> Rational) . round
-
-ftrigger :: Show a => a -> Signal b -> Signal b
-ftrigger = triggerWith $ (fromIntegral :: Int -> Rational) . floor
-
-qt :: Show a => a -> Signal b -> Signal b
+qt :: Signal a -> Signal a
 qt = qtrigger
 
-{- todo - do we still want this? name has been taken by something else..
-reset :: Show a => a -> Signal b -> Signal b
-reset k pat = pat {query = q}
-  where q st = query (_late (offset st) $ whenT (<=0) (const silence) pat) st
-        f = (fromIntegral :: Int -> Rational) . floor
-        offset st = fromMaybe 0 $ do p <- Map.lookup ctrl (sControls st)
-                                     return (f $ fromMaybe 0 $ getR p)
-        ctrl = "_t_" ++ show k
--}
+-- | Ceiling trigger. Aligns the start of a pattern to the next cycle
+-- boundary, just like 'qtrigger'.
+ctrigger :: Signal a -> Signal a
+ctrigger = triggerWith $ (fromIntegral :: Int -> Rational) . ceiling
+
+-- | Rounded trigger. Aligns the start of a pattern to the nearest cycle
+-- boundary, either next or previous.
+rtrigger :: Signal a -> Signal a
+rtrigger = triggerWith $ (fromIntegral :: Int -> Rational) . round
+
+-- | Floor trigger. Aligns the start of a pattern to the previous cycle
+-- boundary.
+ftrigger :: Signal a -> Signal a
+ftrigger = triggerWith $ (fromIntegral :: Int -> Rational) . floor
+
+-- | (Alias @__mt__@) Mod trigger. Aligns the start of a pattern to the
+-- next cycle boundary where the cycle is evenly divisible by a given
+-- number. 'qtrigger' is equivalent to @mtrigger 1@.
+mtrigger :: Int -> Signal a -> Signal a
+mtrigger n = triggerWith $ fromIntegral . nextMod
+  where nextMod t = n * ceiling (t / (fromIntegral n))
+
+mt :: Int -> Signal a -> Signal a
+mt = mtrigger
+
+-- | This aligns the start of a pattern to some value relative to the
+-- time the pattern is evaluated. The provided function maps the evaluation
+-- time (on the global cycle clock) to a new time, and then @triggerWith@
+-- aligns the pattern's start to the time that's returned.
+triggerWith :: (Time -> Time) -> Signal a -> Signal a
+triggerWith f pat = pat {query = q}
+  where q st = query (rotR (offset st) pat) st
+        offset st = fromMaybe 0 $ f
+                      <$> (Map.lookup patternTimeID (controls st) >>= getR)
 
 splat :: Signal Int -> ControlSignal -> ControlSignal -> ControlSignal
 splat slices epat pat = chop slices pat # bite 1 (const 0 <$> pat) epat
