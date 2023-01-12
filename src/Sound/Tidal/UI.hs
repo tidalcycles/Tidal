@@ -794,7 +794,7 @@ d1 $ euclid 3 8 $ sound "bd*2 [sn cp]"
 @
 
 In the above, three sounds are picked from the pattern on the right according
-to the structure given by the @e 3 8@. It ends up picking two @bd@ sounds, a
+to the structure given by the @euclid 3 8@. It ends up picking two @bd@ sounds, a
 @cp@ and missing the @sn@ entirely.
 
 A negative first argument provides the inverse of the euclidean pattern.
@@ -1418,15 +1418,15 @@ into the pattern @"0 4 7 12"@.
 
 This function assumes your scale fits within an
 octave; if that's not true, use 'toScale''.
+
+@toScale = toScale' 12@
 -}
 toScale :: Num a => [a] -> Pattern Int -> Pattern a
 toScale = toScale' 12
 
 {- | As 'toScale', though allowing scales of arbitrary size.
 
-An example:
-
-@toScale' 24 [0,4,7,10,14,17] (run 8)@ turns into @"0 4 7 10 14 17 24 28"@.
+An example: @toScale' 24 [0,4,7,10,14,17] (run 8)@ turns into @"0 4 7 10 14 17 24 28"@.
 -}
 toScale' :: Num a => Int -> [a] -> Pattern Int -> Pattern a
 toScale' _ [] = const silence
@@ -1484,7 +1484,7 @@ _scramble :: Int -> Pattern a -> Pattern a
 _scramble n = _rearrangeWith (_segment (fromIntegral n) $ _irand n) n
 
 {-|
-@randrun n@ enerates a pattern of random integers less than @n@.
+@randrun n@ generates a pattern of random integers less than @n@.
 
 The following plays random notes in an octave:
 
