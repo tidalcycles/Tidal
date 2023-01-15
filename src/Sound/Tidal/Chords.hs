@@ -95,6 +95,8 @@ minor11 :: Num a => [a]
 minor11 = [0,3,7,10,14,17]
 minor13 :: Num a => [a]
 minor13 = [0,3,7,10,14,17,21]
+minorMajor7 :: Num a => [a]
+minorMajor7 = [0,3,7,11]
 -- other chords
 one :: Num a => [a]
 one = [0]
@@ -233,6 +235,9 @@ chordTable = [("major", major),
               ("minor13", minor13),
               ("min13", minor13),
               ("m13", minor13),
+              ("minorMajor7", minorMajor7),
+              ("minMaj7", minorMajor7),
+              ("mmaj7", minorMajor7),
               ("one", one),
               ("1", one),
               ("five", five),

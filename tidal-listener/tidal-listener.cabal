@@ -22,7 +22,7 @@ library
   build-depends:       base,
                        data-default,
                        tidal >=2.0.0,
-                       hosc,
+                       hosc >= 0.20 && < 0.21,
                        hint,
                        network
   default-language:    Haskell2010

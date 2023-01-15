@@ -69,6 +69,29 @@ instance Applicative Pattern where
   pure v = Pattern $ \(State a _) ->
     map (\a' -> Event (Context []) (Just a') (sect a a') v) $ cycleArcsInArc a
 
+  -- | In each of `a <*> b`, `a <* b` and `a *> b`
+  -- (using the definitions from this module, not the Prelude),
+  -- the time structure of the result
+  -- depends on the structures of both `a` and `b`.
+  -- They all result in `Event`s with identical `part`s and `value`s.
+  -- However, their `whole`s are different.
+  --
+  -- For instance, `listToPat [(+1), (+2)] <*> "0 10 100"`
+  -- gives the following 4-`Event` cycle:
+  -- > (0>⅓)|1
+  -- > (⅓>½)|11
+  -- > (½>⅔)|12
+  -- > (⅔>1)|102
+  -- If we use `<*` instead, we get this:
+  -- > (0>⅓)-½|1
+  -- > 0-(⅓>½)|11
+  -- > (½>⅔)-1|12
+  -- > ½-(⅔>1)|102
+  -- And if we use `*>`, we get this:
+  -- >   (0>⅓)|1
+  -- > (⅓>½)-⅔|11
+  -- > ⅓-(½>⅔)|12
+  -- >   (⅔>1)|102
   (<*>) = applyPatToPatBoth
 
 -- | Like <*>, but the 'wholes' come from the left
@@ -374,6 +397,10 @@ withQueryArc f pat = pat {query = query pat . (\(State a m) -> State (f a) m)}
 -- | Apply a function to the time (both start and end) of the query
 withQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
 withQueryTime f pat = withQueryArc (\(Arc s e) -> Arc (f s) (f e)) pat
+
+-- | Apply a function to the control values of the query
+withQueryControls :: (ValueMap -> ValueMap) -> Pattern a -> Pattern a
+withQueryControls f pat = pat { query = query pat . (\(State a m) -> State a (f m))}
 
 -- | @withEvent f p@ returns a new @Pattern@ with each event mapped over
 -- function @f@.
