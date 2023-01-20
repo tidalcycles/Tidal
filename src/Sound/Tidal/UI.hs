@@ -27,7 +27,7 @@
     Many functions in this module taking 'Pattern' values as arguments have a
     corresponding function with an underscore prepended to its name (e.g.
     'degradeBy' and '_degradeBy'). These functions accept plain values, not
-    'Pattern's, and are generall intended for those developing or extending Tidal.
+    'Pattern's, and are generally intended for those developing or extending Tidal.
 
 -}
 
