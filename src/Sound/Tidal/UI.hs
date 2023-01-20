@@ -26,10 +26,8 @@
 
     Many functions in this module taking 'Pattern' values as arguments have a
     corresponding function with an underscore prepended to its name (e.g.
-    'degradeBy' and '_degradeBy'). These functions take plain old data types,
-    not 'Pattern's, and are mainly useful if you're getting errors about
-    ambiguous types. In some cases, they may be more efficient than their
-    equivalents that take 'Pattern' values.
+    'degradeBy' and '_degradeBy'). These functions accept plain values, not
+    'Pattern's, and are generall intended for those developing or extending Tidal.
 
 -}
 
