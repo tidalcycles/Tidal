@@ -43,10 +43,10 @@ jobs:
     continue-on-error: ${{ matrix.versions.experimental }}
     name: cabal ${{ matrix.versions.cabal }} - ghc ${{ matrix.versions.ghc }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: cache ~/.cabal/packages, ~/.cabal/store and dist-newstyle
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cabal/packages
@@ -72,13 +72,13 @@ jobs:
     runs-on: ubuntu-latest
     name: stack resolver
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set nightly resolver version
         run: echo "LTS_RESOLVER=$(stack ls snapshots --lts remote | tail -3 | head -1 | awk '{print $3}')" >> $GITHUB_ENV
 
       - name: cache ~/.stack
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.stack
