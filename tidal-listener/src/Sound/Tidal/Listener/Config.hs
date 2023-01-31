@@ -1,22 +1,33 @@
 
 module Sound.Tidal.Listener.Config where
 
-import Data.Default
 import Data.List (intercalate)
 import Language.Haskell.Interpreter
+import Sound.Tidal.Stream (Target(..), Stream)
+import qualified Sound.Tidal.Context as T
 
-data ListenerConfig = ListenerConfig {
-    listenPort :: Int  -- ^ UDP port for tidal-listener
-  , remotePort :: Int  -- ^ UDP port for tidal
-  , doDeltaMini:: Bool -- ^ Apply @deltaMini@ to patterns
-  } deriving (Eq, Show)
+data Config = Config {listenPort :: Int
+                     ,replyPort :: Int
+                     ,dirtPort :: Int
+                     ,noGHC :: Bool
+                     } deriving (Eq,Show)
 
-instance Default ListenerConfig where
-  def = ListenerConfig {
-    listenPort  = 6011
-  , remotePort  = 6012
-  , doDeltaMini = True
-  }
+editorTarget :: Int -> Target
+editorTarget rPort = Target {oName = "editor"
+                            ,oAddress = "127.0.0.1"
+                            ,oPort = rPort
+                            ,oBusPort = Nothing
+                            ,oLatency = 0.1
+                            ,oWindow = Nothing
+                            ,oSchedule = T.Live
+                            ,oHandshake = False
+                            }
+
+startListenerStream :: Int -> Int -> IO Stream
+startListenerStream rPort dPort = T.startStream T.defaultConfig
+                                        [(T.superdirtTarget {oPort = dPort, oLatency = 0.1},[T.superdirtShape])
+                                        ,(editorTarget rPort,[T.OSCContext "/code/highlight"])
+                                        ]
 
 libsU :: [String]
 libsU = [

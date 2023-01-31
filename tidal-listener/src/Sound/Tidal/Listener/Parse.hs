@@ -3,11 +3,11 @@ module Sound.Tidal.Listener.Parse where
 isSeperator :: String -> Bool
 isSeperator ('\n':xs) = case mungeWhite xs of
                                   ('\n':_) -> True
-                                  x -> False
-                      where mungeWhite (' ':xs) = mungeWhite xs
-                            mungeWhite ('\t':xs) = mungeWhite xs
+                                  _ -> False
+                      where mungeWhite (' ':ys) = mungeWhite ys
+                            mungeWhite ('\t':ys) = mungeWhite ys
                             mungeWhite x = x
-isSeperator x = False
+isSeperator _ = False
 
 oneBlock :: String -> (String,String)
 oneBlock s = case isSeperator rest of

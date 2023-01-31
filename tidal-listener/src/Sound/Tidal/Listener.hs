@@ -1,23 +1,14 @@
 {-# LANGUAGE RecordWildCards #-}
 module Sound.Tidal.Listener where
 
-import Data.Default (def)
-
-import Sound.Tidal.Stream (Target(..), streamGetcps)
-import Sound.Tidal.ID
+import Sound.Tidal.Stream (streamGetcps)
 import qualified Sound.Tidal.Context as T
 import Sound.Tidal.Hint
 import Sound.Tidal.Listener.Config
 import Sound.Osc.Fd as O
 import Control.Concurrent
-import Control.Concurrent.MVar
 import qualified Network.Socket as N
-import qualified Sound.Tidal.Tempo as Tempo
-import System.Environment(lookupEnv)
 
-{-
-https://github.com/tidalcycles/tidal-listener/wiki
--}
 
 data State = State {sIn :: MVar InterpreterMessage,
                     sOut :: MVar InterpreterResponse,
@@ -29,43 +20,26 @@ data State = State {sIn :: MVar InterpreterMessage,
 
 -- | Start Haskell interpreter, with input and output mutable variables to
 -- communicate with it
-listen :: IO ()
-listen = listenWithConfig def
-
--- | Configurable variant of @listen@
-listenWithConfig :: ListenerConfig -> IO ()
-listenWithConfig ListenerConfig{..} = do
-            env <- lookupEnv "WITH_GHC"
-            let mode = if env /= (Just "FALSE") then "with-ghc-mode" else "without-ghc-mode"
-            -- listen
-            (remote_addr:_) <- N.getAddrInfo Nothing (Just "127.0.0.1") Nothing
-            local <- udpServer "127.0.0.1" listenPort
-            putStrLn $ "Starting Tidal Listener in " ++ mode
+listenWithConfig :: Config -> IO ()
+listenWithConfig Config{..} = do
+            putStrLn $ "Starting Tidal Listener " ++ if noGHC then "without installed GHC" else "with installed GHC"
             putStrLn $ "Listening for OSC commands on port " ++ show listenPort
-            putStrLn $ "Sending replies to port " ++ show remotePort
-            let remoteTarget = Target {oName = "editor",
-                                       oAddress = "127.0.0.1",
-                                       oPort = remotePort,
-                                       oBusPort = Nothing,
-                                       oLatency = 0.1,
-                                       oWindow = Nothing,
-                                       oSchedule = T.Live,
-                                       oHandshake = False}
-            stream <- T.startStream T.defaultConfig [(T.superdirtTarget {oLatency = 0.1},
-                                                      [T.superdirtShape]
-                                                     ),
-                                                     (remoteTarget,
-                                                      [T.OSCContext "/code/highlight"]
-                                                     )
-                                                    ]
+            putStrLn $ "Sending replies to port " ++ show replyPort
+
+            --start the stream
+            stream <- startListenerStream replyPort dirtPort
+
             mIn <- newEmptyMVar
             mOut <- newEmptyMVar
 
             putStrLn "Starting tidal interpreter.. "
-            forkIO $ startHintJob True stream mIn mOut
+            _ <- forkIO $ startHintJob True stream mIn mOut
+
+            (remote_addr:_) <- N.getAddrInfo Nothing (Just "127.0.0.1") Nothing
+            local <- udpServer "127.0.0.1" listenPort
 
             let (N.SockAddrInet _ a) = N.addrAddress remote_addr
-                remote  = N.SockAddrInet (fromIntegral remotePort) a
+                remote  = N.SockAddrInet (fromIntegral replyPort) a
                 st      = State mIn mOut local remote stream
             loop st
               where
@@ -88,6 +62,7 @@ act st (Just (Message "/eval" [AsciiString statement])) =
        RStat (Just x) -> O.sendTo (sLocal st) (O.p_message "/eval/value" [string x]) (sRemote st)
        RStat Nothing -> O.sendTo (sLocal st) (O.p_message "/eval/ok" []) (sRemote st)
        RError e -> O.sendTo (sLocal st) (O.p_message "/eval/error" [string e]) (sRemote st)
+       _ -> return ()
      return st
 
 -- ask the interpreter for the type of an expression
@@ -97,6 +72,7 @@ act st (Just (Message "/type" [AsciiString expression])) =
       case r of
         RType t -> O.sendTo (sLocal st) (O.p_message "/type/ok" [string t]) (sRemote st)
         RError e -> O.sendTo (sLocal st) (O.p_message "/type/error" [string e]) (sRemote st)
+        _ -> return ()
       return st
 
 act st (Just (Message "/load" [AsciiString path])) =
@@ -106,6 +82,7 @@ act st (Just (Message "/load" [AsciiString path])) =
         RStat (Just x) -> O.sendTo (sLocal st) (O.p_message "/load/value" [string x]) (sRemote st) --cannot happen
         RStat Nothing -> O.sendTo (sLocal st) (O.p_message "/load/ok" []) (sRemote st)
         RError e -> O.sendTo (sLocal st) (O.p_message "/load/error" [string e]) (sRemote st)
+        _ -> return ()
       return st
 
 -- test if the listener is responsive

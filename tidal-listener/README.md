@@ -7,6 +7,24 @@ Move to the repository directory and run `cabal install`.
 
 On Linux systems, the `tidal-listener` binary will be found inside `~/.cabal/bin/`.
 
+There are some command line options to set the listening, reply and dirt port as well as to specify the mode of the listener. There is a mode that assumes that GHC and Tidal are installed on the system, the other mode makes no such assumption but requires a specific folder of additional files. Unfortunately, this mode is currently broken and in progress of being fixed, see
+https://github.com/haskell-hint/hint/issues/156
+
+```
+Usage: tidal-listener [-l|--listenport INT] [-r|--replyport INT]
+                      [-d|--dirtport INT] [--no-ghc]
+
+  An OSC interpreter for TidalCycles
+
+Available options:
+  -l,--listenport INT      Specify the listening port (default: 6011)
+  -r,--replyport INT       Specify the reply port (default: 6012)
+  -d,--dirtport INT        Specify the dirt port (default: 5720)
+  --no-ghc                 If this flag is active, the interpreter will assume
+                           that GHC not installed on the system
+  -h,--help                Show this help text
+```
+
 ## Protocol
 
 This is a work-in-progress and the below is not yet implemented.
