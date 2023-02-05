@@ -260,8 +260,14 @@ trigZeroJoin = _trigJoin True
 reset :: Pattern Bool -> Pattern a -> Pattern a
 reset bp pat = trigJoin $ (\v -> if v then pat else silence) <$> bp
 
+resetTo :: Pattern Rational -> Pattern a -> Pattern a
+resetTo bp pat = trigJoin $ (\v -> rotL v pat) <$> bp
+
 restart :: Pattern Bool -> Pattern a -> Pattern a
 restart bp pat = trigZeroJoin $ (\v -> if v then pat else silence) <$> bp
+
+restartTo :: Pattern Rational -> Pattern a -> Pattern a
+restartTo bp pat = trigZeroJoin $ (\v -> rotL v pat) <$> bp
 
 -- | * Patterns as numbers
 
