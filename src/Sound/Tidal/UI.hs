@@ -28,7 +28,7 @@ import           Data.Bits (testBit, Bits, xor, shiftL, shiftR)
 
 import           Data.Ratio ((%), Ratio)
 import           Data.Fixed (mod')
-import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
+import           Data.List (sort, sortBy, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
@@ -1486,6 +1486,124 @@ rolledBy pt = tParam rolledWith (segment 1 $ pt)
 
 rolled :: Pattern a -> Pattern a
 rolled = rolledBy (1/4)
+
+{-
+Helper function for inv, drop and open.
+-}
+compareNoteEv (Event c1 t1 a1 v1) (Event c2 t2 a2 v2)
+  | Map.lookup "note" v1 == Map.lookup "note" v2 = EQ
+  | Map.lookup "note" v1 <= Map.lookup "note" v2 = LT
+  | otherwise = GT
+
+{-
+
+The inv function for creating inversions is inspired by the chord inversion.  There are two features that comes with this inv function that you can not achieve otherwise:
+
+- You can create patterns for inversion independently from the underlying chords
+- You can use negative values two create lower versions of the inversions to create a chord movement without changing the underlying chords.
+
+The neutral value is 0 and will not change the chord at all:
+
+@
+inv "0" $ prog sheet "[1,3,5,7]"
+@
+
+Every value above 0 will add 12 to the lowest note value n times:
+
+@
+inv "1" $ note "[0,1,2,3]" -- note [1,2,3,12]
+@
+
+Every value below 0 will subtract 12 to the highest note value n times.
+
+@
+inv "-1" $ note "[0,1,2,3]" -- note [-9,0,1,2]
+@
+
+There is no limit by the inversion itertion notes:
+
+@
+inv "5" $ note "[0,1,2,3]" -- note [13,14,15,24]
+@
+
+If it will be applied on single notes then it's like doing an octave offset of the note:
+
+@
+inv "[-1,1]" $ note "[0]" -- note [-12,12]
+@
+
+And of course the mini notation is usable as well:
+@
+inv "<-2 -1 0 1 2>" $ note "[0,1,2,3]"
+@
+-}
+
+invWith :: Int -> Pattern ValueMap -> Pattern ValueMap
+invWith y = withEvents aux
+    where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) es)
+          steppityIn x = mapMaybe (\(n, ev) -> return ev) 
+            $ enumerate $ sortBy (compareNoteEv) (inv (replicate (abs y) ((applyFunc y negate) (Note 12) )) ((applyFunc y reverse) (sortBy (compareNoteEv) x )))
+          applyFunc y f= if y < 0 then f else id
+          inv _ []          = []
+          inv [] x          = x
+          inv (y:ys) ((Event c t a v):xs) = inv ys ((applyFunc y reverse) (sortBy compareNoteEv (Event c t a (Map.insert "note" (add y v) v ):xs)))
+          add y x = VN $ (fromMaybe (Note 0) $ getN' $ Map.findWithDefault (VN 0) "note" x) + y
+
+inv :: Pattern Int -> Pattern ValueMap -> Pattern ValueMap 
+inv pt = tParam invWith (segment 1 $ pt)
+
+{-
+The open voice chord function is basically a drop 2+4 voicing and is equivalent to the use of drop "2p4". This is simnply a shortcut that is applicable with a boolean pattern and the same mechanism that is used with the 'o' chords identifier:
+@
+open "<t f>" $ note "[1,3,5,7]"
+@
+-}
+
+openWith :: Bool -> Pattern ValueMap -> Pattern ValueMap
+openWith y = withEvents aux
+    where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) es)
+          steppityIn x = mapMaybe (\(n, ev) -> return ev) 
+            $ enumerate (sortBy (compareNoteEv) $ if (y) then (open x) else x)
+          open (xs:[]) = [xs]
+          open (xs:ys:[]) = [xs,ys]
+          open ((Event c1 t1 a1 v1):ys:(Event c2 t2 a2 v2):x) 
+            = (Event c1 t1 a1 (sub v1)) : (Event c2 t2 a2 (sub v2)) : ys : x 
+          sub m = Map.insert "note" (VN $ (fromMaybe (Note 0) $ getN' $ Map.findWithDefault (VN 0) "note" m) - 12) m
+
+open :: Pattern Bool -> Pattern ValueMap -> Pattern ValueMap 
+open pt = tParam openWith (segment 1 $ pt)
+
+{-
+The drop function is used to create drop voice chords. It lowers at least one specific note by an octave related to it's position in the chord. The neutral element is 0, but every value that is not expected will be ignored as well.
+
+Available values:
+- 2 : the second highest note will be lowered by 12 semitones
+- 2p3 : the second and third highest note will be lowered by 12 semitone
+- 2p4 : the second and fourth highest note will be lowered by 12 semitone
+- 3 : the third highest note will be lowered by 12 semitone
+- 4 : the fourth highest note will be lowered by 12 semitone
+
+@
+drop "<2 3 4 2p4 2p3>" $ note "[1,3,5,8]"
+@
+-}
+
+dropWith :: String -> Pattern ValueMap -> Pattern ValueMap
+dropWith y = withEvents aux
+    where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) es)
+          steppityIn x = mapMaybe (\(n, ev) -> return ev)  $ enumerate (drop y (reverse x))
+          drop "0" (xs) = reverse $ xs
+          drop "2" (xs:(Event c t a v):x) = reverse $ xs:x ++ [(Event c t a (sub v))]
+          drop "3" (xs:ys:(Event c t a v):x) = reverse $ xs:ys:x ++ [(Event c t a (sub v))]
+          drop "2p3" (xs:(Event c1 t1 a1 v1):(Event c2 t2 a2 v2):x) = reverse $ xs:x ++ (Event c1 t1 a1 (sub v1)):(Event c2 t2 a2 (sub v2)):[]
+          drop "4" (ws:xs:ys:(Event c t a v):x) = reverse $ ws:xs:ys:x ++ [(Event c t a (sub v))]
+          drop "2p4" (ws:(Event c1 t1 a1 v1):ys:(Event c2 t2 a2 v2):x) = reverse $ ws:ys:x ++ (Event c1 t1 a1 (sub v1)):(Event c2 t2 a2 (sub v2)):[]
+          drop _ x = reverse x 
+          sub m = Map.insert "note" (VN $ (fromMaybe (Note 0) $ getN' $ Map.findWithDefault (VN 0) "note" m) - 12) m
+
+drop :: Pattern String -> Pattern ValueMap -> Pattern ValueMap
+drop pt = tParam dropWith (segment 1 $ pt)
+
 
 {- TODO !
 
