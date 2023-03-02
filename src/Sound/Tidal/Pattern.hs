@@ -453,6 +453,10 @@ extractB = _extract getB
 extractR :: String -> ControlPattern -> Pattern Rational
 extractR = _extract getR
 
+-- | Extract a pattern of note values by from a control pattern, given the name of the control
+extractN :: String -> ControlPattern -> Pattern Note 
+extractN = _extract getN
+
 compressArc :: Arc -> Pattern a -> Pattern a
 compressArc (Arc s e) p | s > e = empty
                         | s > 1 || e > 1 = empty
@@ -896,6 +900,7 @@ getF (VI x) = Just $ fromIntegral x
 getF _  = Nothing
 
 getN :: Value -> Maybe Note
+getN (VN n) = Just n
 getN (VF f) = Just $ Note f
 getN (VR x) = Just $ Note $ fromRational x
 getN (VI x) = Just $ Note $ fromIntegral x
