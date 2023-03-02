@@ -28,7 +28,7 @@ import           Data.Bits (testBit, Bits, xor, shiftL, shiftR)
 
 import           Data.Ratio ((%), Ratio)
 import           Data.Fixed (mod')
-import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
+import           Data.List (sort, sortBy, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
 import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
@@ -1487,142 +1487,260 @@ rolledBy pt = tParam rolledWith (segment 1 $ pt)
 rolled :: Pattern a -> Pattern a
 rolled = rolledBy (1/4)
 
+{-
+Helper function for inv, drop and open.
+-}
+compareNoteEv (Event c1 t1 a1 v1) (Event c2 t2 a2 v2)
+  | Map.lookup "note" v1 == Map.lookup "note" v2 = EQ
+  | Map.lookup "note" v1 <= Map.lookup "note" v2 = LT
+  | otherwise = GT
+
+{-
+
+The inv function for creating inversions is inspired by the chord inversion.  There are two features that comes with this inv function that you can not achieve otherwise:
+
+- You can create patterns for inversion independently from the underlying chords
+- You can use negative values two create lower versions of the inversions to create a chord movement without changing the underlying chords.
+
+The neutral value is 0 and will not change the chord at all:
+
+@
+inv "0" $ prog sheet "[1,3,5,7]"
+@
+
+Every value above 0 will add 12 to the lowest note value n times:
+
+@
+inv "1" $ note "[0,1,2,3]" -- note [1,2,3,12]
+@
+
+Every value below 0 will subtract 12 to the highest note value n times.
+
+@
+inv "-1" $ note "[0,1,2,3]" -- note [-9,0,1,2]
+@
+
+There is no limit by the inversion itertion notes:
+
+@
+inv "5" $ note "[0,1,2,3]" -- note [13,14,15,24]
+@
+
+If it will be applied on single notes then it's like doing an octave offset of the note:
+
+@
+inv "[-1,1]" $ note "[0]" -- note [-12,12]
+@
+
+And of course the mini notation is usable as well:
+@
+inv "<-2 -1 0 1 2>" $ note "[0,1,2,3]"
+@
+-}
+
+invWith :: Int -> Pattern ValueMap -> Pattern ValueMap
+invWith y = withEvents aux
+    where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) es)
+          steppityIn x = mapMaybe (\(n, ev) -> return ev) 
+            $ enumerate $ sortBy (compareNoteEv) (inv (replicate (abs y) ((applyFunc y negate) (Note 12) )) ((applyFunc y reverse) (sortBy (compareNoteEv) x )))
+          applyFunc y f= if y < 0 then f else id
+          inv _ []          = []
+          inv [] x          = x
+          inv (y:ys) ((Event c t a v):xs) = inv ys ((applyFunc y reverse) (sortBy compareNoteEv (Event c t a (Map.insert "note" (add y v) v ):xs)))
+          add y x = VN $ (fromMaybe (Note 0) $ getN' $ Map.findWithDefault (VN 0) "note" x) + y
+
+inv :: Pattern Int -> Pattern ValueMap -> Pattern ValueMap 
+inv pt = tParam invWith (segment 1 $ pt)
+
+{-
+The open voice chord function is basically a drop 2+4 voicing and is equivalent to the use of drop "2p4". This is simnply a shortcut that is applicable with a boolean pattern and the same mechanism that is used with the 'o' chords identifier:
+@
+open "<t f>" $ note "[1,3,5,7]"
+@
+-}
+
+openWith :: Bool -> Pattern ValueMap -> Pattern ValueMap
+openWith y = withEvents aux
+    where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) es)
+          steppityIn x = mapMaybe (\(n, ev) -> return ev) 
+            $ enumerate (sortBy (compareNoteEv) $ if (y) then (open x) else x)
+          open (xs:[]) = [xs]
+          open (xs:ys:[]) = [xs,ys]
+          open ((Event c1 t1 a1 v1):ys:(Event c2 t2 a2 v2):x) 
+            = (Event c1 t1 a1 (sub v1)) : (Event c2 t2 a2 (sub v2)) : ys : x 
+          sub m = Map.insert "note" (VN $ (fromMaybe (Note 0) $ getN' $ Map.findWithDefault (VN 0) "note" m) - 12) m
+
+open :: Pattern Bool -> Pattern ValueMap -> Pattern ValueMap 
+open pt = tParam openWith (segment 1 $ pt)
+
+{-
+The drop function is used to create drop voice chords. It lowers at least one specific note by an octave related to it's position in the chord. The neutral element is 0, but every value that is not expected will be ignored as well.
+
+Available values:
+- 2 : the second highest note will be lowered by 12 semitones
+- 2p3 : the second and third highest note will be lowered by 12 semitone
+- 2p4 : the second and fourth highest note will be lowered by 12 semitone
+- 3 : the third highest note will be lowered by 12 semitone
+- 4 : the fourth highest note will be lowered by 12 semitone
+
+@
+drop "<2 3 4 2p4 2p3>" $ note "[1,3,5,8]"
+@
+-}
+
+dropWith :: String -> Pattern ValueMap -> Pattern ValueMap
+dropWith y = withEvents aux
+    where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) es)
+          steppityIn x = mapMaybe (\(n, ev) -> return ev)  $ enumerate (drop y (reverse x))
+          drop "0" (xs) = reverse $ xs
+          drop "2" (xs:(Event c t a v):x) = reverse $ xs:x ++ [(Event c t a (sub v))]
+          drop "3" (xs:ys:(Event c t a v):x) = reverse $ xs:ys:x ++ [(Event c t a (sub v))]
+          drop "2p3" (xs:(Event c1 t1 a1 v1):(Event c2 t2 a2 v2):x) = reverse $ xs:x ++ (Event c1 t1 a1 (sub v1)):(Event c2 t2 a2 (sub v2)):[]
+          drop "4" (ws:xs:ys:(Event c t a v):x) = reverse $ ws:xs:ys:x ++ [(Event c t a (sub v))]
+          drop "2p4" (ws:(Event c1 t1 a1 v1):ys:(Event c2 t2 a2 v2):x) = reverse $ ws:ys:x ++ (Event c1 t1 a1 (sub v1)):(Event c2 t2 a2 (sub v2)):[]
+          drop _ x = reverse x 
+          sub m = Map.insert "note" (VN $ (fromMaybe (Note 0) $ getN' $ Map.findWithDefault (VN 0) "note" m) - 12) m
+
+drop :: Pattern String -> Pattern ValueMap -> Pattern ValueMap
+drop pt = tParam dropWith (segment 1 $ pt)
+
+
 {- TODO !
 
--- | @fill@ 'fills in' gaps in one pattern with events from another. For example @fill "bd" "cp ~ cp"@ would result in the equivalent of `"~ bd ~"`. This only finds gaps in a resulting pattern, in other words @"[bd ~, sn]"@ doesn't contain any gaps (because @sn@ covers it all), and @"bd ~ ~ sn"@ only contains a single gap that bridges two steps.
-fill :: Pattern a -> Pattern a -> Pattern a
-fill p' p = struct (splitQueries $ p {query = q}) p'
-  where
-    q st = removeTolerance (s,e) $ invert (s-tolerance, e+tolerance) $ query p (st {arc = (s-tolerance, e+tolerance)})
-      where (s,e) = arc st
-    invert (s,e) es = map arcToEvent $ foldr remove [(s,e)] (map part es)
-    remove (s,e) xs = concatMap (remove' (s, e)) xs
-    remove' (s,e) (s',e') | s > s' && e < e' = [(s',s),(e,e')] -- inside
-                          | s > s' && s < e' = [(s',s)] -- cut off right
-                          | e > s' && e < e' = [(e,e')] -- cut off left
-                          | s <= s' && e >= e' = [] -- swallow
-                          | otherwise = [(s',e')] -- miss
-    arcToEvent a = ((a,a),"x")
-    removeTolerance (s,e) es = concatMap (expand) $ map (withPart f) es
-      where f a = concatMap (remove' (e,e+tolerance)) $ remove' (s-tolerance,s) a
-            expand ((a,xs),c) = map (\x -> ((a,x),c)) xs
-    tolerance = 0.01
--}
+	-- | @fill@ 'fills in' gaps in one pattern with events from another. For example @fill "bd" "cp ~ cp"@ would result in the equivalent of `"~ bd ~"`. This only finds gaps in a resulting pattern, in other words @"[bd ~, sn]"@ doesn't contain any gaps (because @sn@ covers it all), and @"bd ~ ~ sn"@ only contains a single gap that bridges two steps.
+		fill :: Pattern a -> Pattern a -> Pattern a
+		fill p' p = struct (splitQueries $ p {query = q}) p'
+		where
+		q st = removeTolerance (s,e) $ invert (s-tolerance, e+tolerance) $ query p (st {arc = (s-tolerance, e+tolerance)})
+		where (s,e) = arc st
+		invert (s,e) es = map arcToEvent $ foldr remove [(s,e)] (map part es)
+		remove (s,e) xs = concatMap (remove' (s, e)) xs
+		remove' (s,e) (s',e') | s > s' && e < e' = [(s',s),(e,e')] -- inside
+		| s > s' && s < e' = [(s',s)] -- cut off right
+		| e > s' && e < e' = [(e,e')] -- cut off left
+		| s <= s' && e >= e' = [] -- swallow
+		| otherwise = [(s',e')] -- miss
+		arcToEvent a = ((a,a),"x")
+		removeTolerance (s,e) es = concatMap (expand) $ map (withPart f) es
+		where f a = concatMap (remove' (e,e+tolerance)) $ remove' (s-tolerance,s) a
+		expand ((a,xs),c) = map (\x -> ((a,x),c)) xs
+		tolerance = 0.01
+		-}
 
--- Repeats each event @n@ times within its arc
-ply :: Pattern Rational -> Pattern a -> Pattern a
-ply = tParam _ply
+		-- Repeats each event @n@ times within its arc
+		ply :: Pattern Rational -> Pattern a -> Pattern a
+		ply = tParam _ply
 
-_ply :: Rational -> Pattern a -> Pattern a
-_ply n pat = squeezeJoin $ (_fast n . pure) <$> pat
+		_ply :: Rational -> Pattern a -> Pattern a
+		_ply n pat = squeezeJoin $ (_fast n . pure) <$> pat
 
--- Like ply, but applies a function each time. The applications are compounded.
-plyWith :: (Ord t, Num t) => Pattern t -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-plyWith np f p = innerJoin $ (\n -> _plyWith n f p) <$> np
+		-- Like ply, but applies a function each time. The applications are compounded.
+		plyWith :: (Ord t, Num t) => Pattern t -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+		plyWith np f p = innerJoin $ (\n -> _plyWith n f p) <$> np
 
-_plyWith :: (Ord t, Num t) => t -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_plyWith numPat f p = arpeggiate $ compound numPat
-  where compound n | n <= 1 = p
-                   | otherwise = overlay p (f $ compound $ n-1)
+		_plyWith :: (Ord t, Num t) => t -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+		_plyWith numPat f p = arpeggiate $ compound numPat
+	where compound n | n <= 1 = p
+| otherwise = overlay p (f $ compound $ n-1)
 
--- | Syncopates a rhythm, shifting each event halfway into its arc (aka timespan), e.g. @"a b [c d] e"@ becomes the equivalent of @"[~ a] [~ b] [[~ c] [~ d]] [~ e]"@
-press :: Pattern a -> Pattern a
-press = _pressBy 0.5
+	-- | Syncopates a rhythm, shifting each event halfway into its arc (aka timespan), e.g. @"a b [c d] e"@ becomes the equivalent of @"[~ a] [~ b] [[~ c] [~ d]] [~ e]"@
+	press :: Pattern a -> Pattern a
+	press = _pressBy 0.5
 
--- | Like @press@, but allows you to specify the amount in which each event is shifted. @pressBy 0.5@ is the same as @press@, while @pressBy (1/3)@ shifts each event by a third of its arc.
-pressBy :: Pattern Time -> Pattern a -> Pattern a
-pressBy = tParam _pressBy
+	-- | Like @press@, but allows you to specify the amount in which each event is shifted. @pressBy 0.5@ is the same as @press@, while @pressBy (1/3)@ shifts each event by a third of its arc.
+	pressBy :: Pattern Time -> Pattern a -> Pattern a
+	pressBy = tParam _pressBy
 
-_pressBy :: Time -> Pattern a -> Pattern a
-_pressBy r pat = squeezeJoin $ (compressTo (r,1) . pure) <$> pat
+	_pressBy :: Time -> Pattern a -> Pattern a
+	_pressBy r pat = squeezeJoin $ (compressTo (r,1) . pure) <$> pat
 
--- | Uses the first (binary) pattern to switch between the following
--- two patterns. The resulting structure comes from the source patterns, not the
--- binary pattern. See also @stitch@.
-sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
+	-- | Uses the first (binary) pattern to switch between the following
+	-- two patterns. The resulting structure comes from the source patterns, not the
+	-- binary pattern. See also @stitch@.
+	sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 sew pb a b = overlay (mask pb a) (mask (inv pb) b)
 
--- | Uses the first (binary) pattern to switch between the following
--- two patterns. The resulting structure comes from the binary
--- pattern, not the source patterns. See also @sew@.
-stitch :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
+	-- | Uses the first (binary) pattern to switch between the following
+	-- two patterns. The resulting structure comes from the binary
+	-- pattern, not the source patterns. See also @sew@.
+	stitch :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 stitch pb a b = overlay (struct pb a)  (struct (inv pb) b)
 
--- | A binary pattern is used to conditionally apply a function to a
--- source pattern. The function is applied when a @True@ value is
--- active, and the pattern is let through unchanged when a @False@
--- value is active. No events are let through where no binary values
--- are active.
-while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-while b f pat = sew b (f pat) pat
+	-- | A binary pattern is used to conditionally apply a function to a
+	-- source pattern. The function is applied when a @True@ value is
+	-- active, and the pattern is let through unchanged when a @False@
+	-- value is active. No events are let through where no binary values
+	-- are active.
+	while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+	while b f pat = sew b (f pat) pat
 
-stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
-stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n-1)]
+	stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
+	stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n-1)]
 
 {- | The `jux` function creates strange stereo effects, by applying a
-function to a pattern, but only in the right-hand channel. For
-example, the following reverses the pattern on the righthand side:
+	function to a pattern, but only in the right-hand channel. For
+		example, the following reverses the pattern on the righthand side:
 
-@
-d1 $ slow 32 $ jux (rev) $ striateBy 32 (1/16) $ sound "bev"
-@
+		@
+		d1 $ slow 32 $ jux (rev) $ striateBy 32 (1/16) $ sound "bev"
+		@
 
-When passing pattern transforms to functions like [jux](#jux) and [every](#every),
-it's possible to chain multiple transforms together with `.`, for
-example this both reverses and halves the playback speed of the
-pattern in the righthand channel:
+		When passing pattern transforms to functions like [jux](#jux) and [every](#every),
+		     it's possible to chain multiple transforms together with `.`, for
+			     example this both reverses and halves the playback speed of the
+			     pattern in the righthand channel:
 
-@
-d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striateBy 32 (1/16) $ sound "bev"
-@
--}
-jux
-  :: (Pattern ValueMap -> Pattern ValueMap)
-     -> Pattern ValueMap -> Pattern ValueMap
-jux = juxBy 1
-juxcut
-  :: (Pattern ValueMap -> Pattern ValueMap)
-     -> Pattern ValueMap -> Pattern ValueMap
+			     @
+			     d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striateBy 32 (1/16) $ sound "bev"
+			     @
+			     -}
+	jux
+:: (Pattern ValueMap -> Pattern ValueMap)
+	-> Pattern ValueMap -> Pattern ValueMap
+	jux = juxBy 1
+	juxcut
+:: (Pattern ValueMap -> Pattern ValueMap)
+	-> Pattern ValueMap -> Pattern ValueMap
 juxcut f p = stack [p     # P.pan (pure 0) # P.cut (pure (-1)),
-                    f $ p # P.pan (pure 1) # P.cut (pure (-2))
-                   ]
+       f $ p # P.pan (pure 1) # P.cut (pure (-2))
+]
 
 juxcut' :: [t -> Pattern ValueMap] -> t -> Pattern ValueMap
 juxcut' fs p = stack $ map (\n -> ((fs !! n) p |+ P.cut (pure $ 1-n)) # P.pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
-  where l = length fs
+where l = length fs
 
 {- | In addition to `jux`, `jux'` allows using a list of pattern transform. resulting patterns from each transformation will be spread via pan from left to right.
 
-For example:
+	For example:
 
-@
-d1 $ jux' [iter 4, chop 16, id, rev, palindrome] $ sound "bd sn"
-@
+		@
+		d1 $ jux' [iter 4, chop 16, id, rev, palindrome] $ sound "bd sn"
+		@
 
-will put `iter 4` of the pattern to the far left and `palindrome` to the far right. In the center the original pattern will play and mid left mid right the chopped and the reversed version will appear.
+		will put `iter 4` of the pattern to the far left and `palindrome` to the far right. In the center the original pattern will play and mid left mid right the chopped and the reversed version will appear.
 
-One could also write:
+		One could also write:
 
-@
-d1 $ stack [
-    iter 4 $ sound "bd sn" # pan "0",
-    chop 16 $ sound "bd sn" # pan "0.25",
-    sound "bd sn" # pan "0.5",
-    rev $ sound "bd sn" # pan "0.75",
-    palindrome $ sound "bd sn" # pan "1",
-    ]
-@
+		@
+		d1 $ stack [
+		iter 4 $ sound "bd sn" # pan "0",
+		     chop 16 $ sound "bd sn" # pan "0.25",
+		     sound "bd sn" # pan "0.5",
+		     rev $ sound "bd sn" # pan "0.75",
+		     palindrome $ sound "bd sn" # pan "1",
+		]
+			@
 
--}
-jux' :: [t -> Pattern ValueMap] -> t -> Pattern ValueMap
-jux' fs p = stack $ map (\n -> (fs !! n) p |+ P.pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
-  where l = length fs
+			-}
+			jux' :: [t -> Pattern ValueMap] -> t -> Pattern ValueMap
+			jux' fs p = stack $ map (\n -> (fs !! n) p |+ P.pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
+			where l = length fs
 
--- | Multichannel variant of `jux`, _not sure what it does_
-jux4
-  :: (Pattern ValueMap -> Pattern ValueMap)
-     -> Pattern ValueMap -> Pattern ValueMap
-jux4 f p = stack [p # P.pan (pure (5/8)), f $ p # P.pan (pure (1/8))]
+			-- | Multichannel variant of `jux`, _not sure what it does_
+	jux4
+:: (Pattern ValueMap -> Pattern ValueMap)
+	-> Pattern ValueMap -> Pattern ValueMap
+	jux4 f p = stack [p # P.pan (pure (5/8)), f $ p # P.pan (pure (1/8))]
 
 {- |
 With `jux`, the original and effected versions of the pattern are
