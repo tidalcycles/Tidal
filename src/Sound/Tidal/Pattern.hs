@@ -235,6 +235,40 @@ squeezeJoin pp = pp {query = q}
              p' <- subArc oPart iPart
              return (Event (combineContexts [iContext, oContext]) w' p' v)
 
+
+_trigJoin :: Bool -> Pattern (Pattern a) -> Pattern a
+_trigJoin cycleZero pat_of_pats = Pattern q
+  where q st =
+          catMaybes $
+          concatMap
+          (\oe@(Event oc (Just jow) op ov) ->
+             map (\oe@(Event ic (iw) ip iv) ->
+                    do w <- subMaybeArc (Just jow) iw
+                       p <- subArc op ip
+                       return $ Event (combineContexts [ic, oc]) w p iv
+                 )
+               $ query (((if cycleZero then id else cyclePos) $ start jow) `rotR` ov) st
+          )
+          (query (filterDigital pat_of_pats) st)
+
+trigJoin :: Pattern (Pattern a) -> Pattern a
+trigJoin = _trigJoin False
+
+trigZeroJoin :: Pattern (Pattern a) -> Pattern a
+trigZeroJoin = _trigJoin True
+
+reset :: Pattern Bool -> Pattern a -> Pattern a
+reset bp pat = trigJoin $ (\v -> if v then pat else silence) <$> bp
+
+resetTo :: Pattern Rational -> Pattern a -> Pattern a
+resetTo bp pat = trigJoin $ (\v -> rotL v pat) <$> bp
+
+restart :: Pattern Bool -> Pattern a -> Pattern a
+restart bp pat = trigZeroJoin $ (\v -> if v then pat else silence) <$> bp
+
+restartTo :: Pattern Rational -> Pattern a -> Pattern a
+restartTo bp pat = trigZeroJoin $ (\v -> rotL v pat) <$> bp
+
 -- | * Patterns as numbers
 
 noOv :: String -> a
