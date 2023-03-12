@@ -10,14 +10,33 @@ udp <- udpServer "127.0.0.1" 6012
 
 r <- openUDP  "127.0.0.1" 6011
 
-sendMessage r $ Message "/code" [string "hello", string "sound \"bd sn\""]
+-- execute an arbitrary statement
+sendMessage r $ Message "/eval" [string "return 10"]
 m <- recvMessage udp
 m
 
-sendMessage r $ Message "/code" [string "hello", string "sound silence"]
+-- evaluate a definition
+sendMessage r $ Message "/eval" [string "let x = 10"]
+m <- recvMessage udp
+m
 
--- error..
-sendMessage r $ Message "/code" [string "hello", string "sund \"bd sn\""]
+-- evaluate a binding statement
+sendMessage r $ Message "/eval" [string "y <- return 1"]
+m <- recvMessage udp
+m
+
+-- evaluate a tidal statment
+sendMessage r $ Message "/eval" [string "d1 $ s \"bd\" # n x"]
+m <- recvMessage udp
+m
+
+-- error
+sendMessage r $ Message "/eval" [string "d1 $ suond \"bd\""]
+m <- recvMessage udp
+m
+
+-- ask the type of an expression
+sendMessage r $ Message "/type" [string "s \"bd\""]
 m <- recvMessage udp
 m
 
@@ -25,8 +44,7 @@ sendMessage r $ Message "/ping" []
 m <- recvMessage udp
 m
 
-     
--- receive cps values 
+-- receive cps values
 sendMessage r $ Message "/cps" []
 m <- recvMessage udp
 m
