@@ -6,7 +6,7 @@ import Test.Microspec
 
 import Sound.Tidal.Stream
 import Sound.Tidal.Types
-import qualified Sound.OSC.Fd as O
+import qualified Sound.Osc.Fd as O
 import qualified Data.Map.Strict as M
 
 run :: Microspec ()

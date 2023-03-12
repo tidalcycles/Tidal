@@ -378,6 +378,11 @@ withQueryArcMaybe arcf = withQueryMaybe (\state -> do a <- arcf $ sArc state
 withQueryTime :: (Time -> Time) -> Signal a -> Signal a
 withQueryTime timef = withQueryArc (withArcTime timef)
 
+-- | Apply a function to the control values of the query
+withQueryControls :: (ValueMap -> ValueMap) -> Signal a -> Signal a
+withQueryControls f pat = pat { query = query pat . (\(State a m) -> State a (f m))}
+
+
 -- | @withEvents f p@ returns a new @Signal@ with f applied to the resulting list of events for each query
 -- function @f@.
 withEvents :: ([Event a] -> [Event b]) -> Signal a -> Signal b

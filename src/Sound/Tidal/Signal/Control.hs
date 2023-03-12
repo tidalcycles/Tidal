@@ -478,9 +478,9 @@ mt = mtrigger
 -- aligns the pattern's start to the time that's returned.
 triggerWith :: (Time -> Time) -> Signal a -> Signal a
 triggerWith f pat = pat {query = q}
-  where q st = query (rotR (offset st) pat) st
+  where q st = query (_early (offset st) pat) st
         offset st = fromMaybe 0 $ f
-                      <$> (Map.lookup patternTimeID (controls st) >>= getR)
+                      <$> (Map.lookup patternTimeID (sControls st) >>= getR)
 
 splat :: Signal Int -> ControlSignal -> ControlSignal -> ControlSignal
 splat slices epat pat = chop slices pat # bite 1 (const 0 <$> pat) epat
