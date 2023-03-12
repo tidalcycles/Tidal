@@ -18,10 +18,10 @@ import Data.Ratio
 -- import Sound.Tidal.Bjorklund
 
 instance Functor Sequence where
-  fmap f (Atom x y) = Atom x (f y)
-  fmap _ (Gap x) = Gap x
-  fmap f (Sequence x) = Sequence $ map (fmap f) x
-  fmap f (Stack y) = Stack (map (fmap f) y)
+  fmap f (Atom t v) = Atom t (f v)
+  fmap _ (Gap t) = Gap t
+  fmap f (Sequence xs) = Sequence $ map (fmap f) xs
+  fmap f (Stack xs) = Stack $ map (fmap f) xs
 
 instance Applicative Sequence where
   pure x = Atom 1 x
