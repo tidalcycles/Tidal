@@ -6,27 +6,7 @@ import Sound.Tidal.Context
 import System.IO (hSetEncoding, stdout, utf8)
 hSetEncoding stdout utf8
 
-
-:{
-let
-    target =
-          Target {oName = "plotter",   -- A friendly name for the target (only used in error messages)
-                  oAddress = "127.0.0.1", -- The target's network address, normally "localhost"
-                  oPort = 57121,           -- The network port the target is listening on
-                  oLatency = 0.1,         -- Additional delay, to smooth out network jitter/get things in sync
-                  oSchedule = Pre MessageStamp,-- The scheduling method - see below
-                  oWindow = Nothing,      -- Not yet used
-                  oHandshake = False,     -- SuperDirt specific
-                  oBusPort = Nothing      -- Also SuperDirt specific
-                 }
-    oscplay_named_params = OSC "/play" Named {requiredArgs = []}
-    oscmap = [(target {oLatency = 0.1}, [oscplay_named_params]),
-              (superdirtTarget {oLatency = 0.1}, [superdirtShape])
-             ]
-:}
-
-
-tidal <- startStream (defaultConfig {cVerbose = True, cFrameTimespan = 1/20}) oscmap
+tidal <- startTidal (superdirtTarget {oLatency = 0.05, oAddress = "127.0.0.1", oPort = 57120}) (defaultConfig {cVerbose = True, cFrameTimespan = 1/20})
 
 :{
 let only = (hush >>)
@@ -85,13 +65,6 @@ let only = (hush >>)
     d14 = p 14
     d15 = p 15
     d16 = p 16
-    x = pF "query_col_x"
-    y = pF "query_col_y"
-    c = pS "c"
-    xy x_ y_ = (x x_) |>| (y y_)
-    yx y_ x_ = (y y_) |>| (x x_)
-    circle x_ y_ rad rate = xy (range (x_+2*rad) (x_) $ fast rate sine)
-                               (range (y_+2*rad) (y_) $ fast rate cosine)
 :}
 
 :{
