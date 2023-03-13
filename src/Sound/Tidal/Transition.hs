@@ -4,9 +4,8 @@ module Sound.Tidal.Transition where
 
 import Prelude hiding ((<*), (*>))
 
-import Control.Concurrent.MVar (readMVar, swapMVar, modifyMVar_)
+import Control.Concurrent.MVar (modifyMVar_)
 
-import qualified Sound.OSC.FD as O
 import qualified Data.Map.Strict as Map
 -- import Data.Maybe (fromJust)
 

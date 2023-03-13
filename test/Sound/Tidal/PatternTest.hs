@@ -207,6 +207,9 @@ run =
                       (Event (Context []) (Just $ Arc (2 % 3) (5 % 6)) (Arc (2 % 3) (5 % 6)) "d"),
                       (Event (Context []) (Just $ Arc (5 % 6) (1 % 1)) (Arc (5 % 6) (1 % 1)) "e")
                      ]
+      it "preserves cycle number of inner patterns" $ do
+        (map value $ queryArc (squeezeJoin (pure $ struct "1" $ (sig $ id))) (Arc 3 4))
+          `shouldBe` [3.5]
 
     describe ">>=" $ do
       it "can apply functions to patterns" $ do

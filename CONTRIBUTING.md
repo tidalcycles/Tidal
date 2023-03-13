@@ -20,6 +20,10 @@ compiler/interpreter. Some resources for learning Haskell can be found here:
 The main repository is maintained on github:
   https://github.com/tidalcycles/tidal
 
+**Please note that ongoing development work towards version 2.0 happens on the 'main'
+branch. At the time of writing, bugfixes for current releases should target
+the '1.9-dev' branch.**
+
 The SuperDirt repository is here:
   https://github.com/musikinformatik/SuperDirt
 

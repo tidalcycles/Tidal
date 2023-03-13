@@ -67,8 +67,36 @@ type ControlPattern = Pattern ValueMap
 instance Applicative Pattern where
   -- | Repeat the given value once per cycle, forever
   pure v = Pattern $ \(State a _) ->
-    map (\a' -> Event (Context []) (Just a') (sect a a') v) $ cycleArcsInArc a
+    map (\a' -> Event
+                (Context [])
+                (Just a')
+                (sect a a')
+                v)
+    $ cycleArcsInArc a
 
+  -- | In each of `a <*> b`, `a <* b` and `a *> b`
+  -- (using the definitions from this module, not the Prelude),
+  -- the time structure of the result
+  -- depends on the structures of both `a` and `b`.
+  -- They all result in `Event`s with identical `part`s and `value`s.
+  -- However, their `whole`s are different.
+  --
+  -- For instance, `listToPat [(+1), (+2)] <*> "0 10 100"`
+  -- gives the following 4-`Event` cycle:
+  -- > (0>⅓)|1
+  -- > (⅓>½)|11
+  -- > (½>⅔)|12
+  -- > (⅔>1)|102
+  -- If we use `<*` instead, we get this:
+  -- > (0>⅓)-½|1
+  -- > 0-(⅓>½)|11
+  -- > (½>⅔)-1|12
+  -- > ½-(⅔>1)|102
+  -- And if we use `*>`, we get this:
+  -- >   (0>⅓)|1
+  -- > (⅓>½)-⅔|11
+  -- > ⅓-(½>⅔)|12
+  -- >   (⅔>1)|102
   (<*>) = applyPatToPatBoth
 
 -- | Like <*>, but the 'wholes' come from the left
@@ -199,13 +227,47 @@ squeezeJoin :: Pattern (Pattern a) -> Pattern a
 squeezeJoin pp = pp {query = q}
   where q st = concatMap
           (\e@(Event c w p v) ->
-             mapMaybe (munge c w p) $ query (compressArc (cycleArc $ wholeOrPart e) v) st {arc = p}
+             mapMaybe (munge c w p) $ query (focusArc (wholeOrPart e) v) st {arc = p}
           )
           (query pp st)
         munge oContext oWhole oPart (Event iContext iWhole iPart v) =
           do w' <- subMaybeArc oWhole iWhole
              p' <- subArc oPart iPart
              return (Event (combineContexts [iContext, oContext]) w' p' v)
+
+
+_trigJoin :: Bool -> Pattern (Pattern a) -> Pattern a
+_trigJoin cycleZero pat_of_pats = Pattern q
+  where q st =
+          catMaybes $
+          concatMap
+          (\oe@(Event oc (Just jow) op ov) ->
+             map (\oe@(Event ic (iw) ip iv) ->
+                    do w <- subMaybeArc (Just jow) iw
+                       p <- subArc op ip
+                       return $ Event (combineContexts [ic, oc]) w p iv
+                 )
+               $ query (((if cycleZero then id else cyclePos) $ start jow) `rotR` ov) st
+          )
+          (query (filterDigital pat_of_pats) st)
+
+trigJoin :: Pattern (Pattern a) -> Pattern a
+trigJoin = _trigJoin False
+
+trigZeroJoin :: Pattern (Pattern a) -> Pattern a
+trigZeroJoin = _trigJoin True
+
+reset :: Pattern Bool -> Pattern a -> Pattern a
+reset bp pat = trigJoin $ (\v -> if v then pat else silence) <$> bp
+
+resetTo :: Pattern Rational -> Pattern a -> Pattern a
+resetTo bp pat = trigJoin $ (\v -> rotL v pat) <$> bp
+
+restart :: Pattern Bool -> Pattern a -> Pattern a
+restart bp pat = trigZeroJoin $ (\v -> if v then pat else silence) <$> bp
+
+restartTo :: Pattern Rational -> Pattern a -> Pattern a
+restartTo bp pat = trigZeroJoin $ (\v -> rotL v pat) <$> bp
 
 -- | * Patterns as numbers
 
@@ -342,10 +404,13 @@ instance Floating ValueMap
         atanh _ = noOv "atanh"
 
 ------------------------------------------------------------------------
--- * Internal functions
+-- * Internal/fundamental functions
 
 empty :: Pattern a
 empty = Pattern {query = const []}
+
+silence :: Pattern a
+silence = empty
 
 queryArc :: Pattern a -> Arc -> [Event a]
 queryArc p a = query p $ State a Map.empty
@@ -374,6 +439,10 @@ withQueryArc f pat = pat {query = query pat . (\(State a m) -> State (f a) m)}
 -- | Apply a function to the time (both start and end) of the query
 withQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
 withQueryTime f pat = withQueryArc (\(Arc s e) -> Arc (f s) (f e)) pat
+
+-- | Apply a function to the control values of the query
+withQueryControls :: (ValueMap -> ValueMap) -> Pattern a -> Pattern a
+withQueryControls f pat = pat { query = query pat . (\(State a m) -> State a (f m))}
 
 -- | @withEvent f p@ returns a new @Pattern@ with each event mapped over
 -- function @f@.
@@ -418,6 +487,10 @@ extractB = _extract getB
 extractR :: String -> ControlPattern -> Pattern Rational
 extractR = _extract getR
 
+-- | Extract a pattern of note values by from a control pattern, given the name of the control
+extractN :: String -> ControlPattern -> Pattern Note 
+extractN = _extract getN
+
 compressArc :: Arc -> Pattern a -> Pattern a
 compressArc (Arc s e) p | s > e = empty
                         | s > 1 || e > 1 = empty
@@ -426,6 +499,35 @@ compressArc (Arc s e) p | s > e = empty
 
 compressArcTo :: Arc -> Pattern a -> Pattern a
 compressArcTo (Arc s e) = compressArc (Arc (cyclePos s) (e - sam s))
+
+focusArc :: Arc -> Pattern a -> Pattern a
+focusArc (Arc s e) p = (cyclePos s) `rotR` (_fast (1/(e-s)) p)
+
+
+-- | Speed up a pattern by the given time pattern
+fast :: Pattern Time -> Pattern a -> Pattern a
+fast = tParam _fast
+
+-- | Slow down a pattern by the factors in the given time pattern, 'squeezing'
+-- the pattern to fit the slot given in the time pattern
+fastSqueeze :: Pattern Time -> Pattern a -> Pattern a
+fastSqueeze = tParamSqueeze _fast
+
+-- | An alias for @fast@
+density :: Pattern Time -> Pattern a -> Pattern a
+density = fast
+
+_fast :: Time -> Pattern a -> Pattern a
+_fast rate pat | rate == 0 = silence
+               | rate < 0 = rev $ _fast (negate rate) pat
+               | otherwise = withResultTime (/ rate) $ withQueryTime (* rate) pat
+
+-- | Slow down a pattern by the given time pattern
+slow :: Pattern Time -> Pattern a -> Pattern a
+slow = tParam _slow
+_slow :: Time -> Pattern a -> Pattern a
+_slow 0 _ = silence
+_slow r p = _fast (1/r) p
 
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = empty
@@ -448,6 +550,33 @@ rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 rotR :: Time -> Pattern a -> Pattern a
 rotR t = rotL (negate t)
 
+-- | @rev p@ returns @p@ with the event positions in each cycle
+-- reversed (or mirrored).
+rev :: Pattern a -> Pattern a
+rev p =
+  splitQueries $ p {
+    query = \st -> map makeWholeAbsolute $
+      mapParts (mirrorArc (midCycle $ arc st)) $
+      map makeWholeRelative
+      (query p st
+        {arc = mirrorArc (midCycle $ arc st) (arc st)
+        })
+    }
+  where makeWholeRelative :: Event a -> Event a
+        makeWholeRelative e@Event {whole = Nothing} = e
+        makeWholeRelative (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
+          Event c (Just $ Arc (s'-s) (e-e')) p' v
+        makeWholeAbsolute :: Event a -> Event a
+        makeWholeAbsolute e@Event {whole = Nothing} = e
+        makeWholeAbsolute (Event c (Just (Arc s e)) p'@(Arc s' e') v) =
+          Event c (Just $ Arc (s'-e) (e'+s)) p' v
+        midCycle :: Arc -> Time
+        midCycle (Arc s _) = sam s + 0.5
+        mapParts :: (Arc -> Arc) -> [Event a] -> [Event a]
+        mapParts f es = (\(Event c w p' v) -> Event c w (f p') v) <$> es
+        -- | Returns the `mirror image' of a 'Arc' around the given point in time
+        mirrorArc :: Time -> Arc -> Arc
+        mirrorArc mid' (Arc s e) = Arc (mid' - (e-mid')) (mid'+(mid'-s))
 
 -- | Mark values in the first pattern which match with at least one
 -- value in the second pattern.
@@ -805,6 +934,7 @@ getF (VI x) = Just $ fromIntegral x
 getF _  = Nothing
 
 getN :: Value -> Maybe Note
+getN (VN n) = Just n
 getN (VF f) = Just $ Note f
 getN (VR x) = Just $ Note $ fromRational x
 getN (VI x) = Just $ Note $ fromIntegral x

@@ -79,7 +79,7 @@ nobus = ["midinote",
          "note",
          "n",
          "octave",
-         "begin ",
+         "begin",
          "end",
          "sustain",
          "legato",
@@ -116,7 +116,8 @@ nobus = ["midinote",
          "uid",
          "val",
          "timescale",
-         "timescalewin"
+         "timescalewin",
+         "accelerate"
         ]
 
 genericParams :: [(String, String, String)]

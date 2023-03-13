@@ -73,24 +73,49 @@ pS name = fmap (Map.singleton name . VS)
 pX :: String -> Pattern [Word8] -> ControlPattern
 pX name = fmap (Map.singleton name . VX)
 
-pStateF :: String -> String -> (Maybe Double -> Double) -> ControlPattern
-pStateF name sName update = pure $ Map.singleton name $ VState statef
+pStateF ::
+  String -> -- ^ A parameter, e.g. `note`; a
+  -- `String` recognizable by a `ValueMap`.
+  String -> -- ^ Identifies the cycling state pattern.
+  -- Can be anything the user wants.
+  (Maybe Double -> Double) ->
+  ControlPattern
+pStateF name sName update =
+  pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
-        statef sMap = (Map.insert sName v sMap, v) 
-          where v = VF $ update $ (Map.lookup sName sMap) >>= getF
+        statef sMap = (Map.insert sName v sMap, v)
+          where v = VF $ update
+                    $ Map.lookup sName sMap >>= getF
 
-pStateList :: String -> String -> [Value] -> ControlPattern
-pStateList name sName xs = pure $ Map.singleton name $ VState statef
-  where statef :: ValueMap -> (ValueMap, Value)
-        statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped) 
-          where xs' = fromMaybe xs ((Map.lookup sName sMap) >>= getList)
-                -- do this instead of a cycle, so it can get updated with the a list
-                looped | null xs' = xs
-                       | otherwise = xs'
+-- | `pStateList` is made with cyclic lists in mind,
+-- but it can even "cycle" through infinite lists.
+pStateList ::
+  String -> -- ^ A parameter, e.g. `note`; a
+  -- `String` recognizable by a `ValueMap`.
+  String -> -- ^ Identifies the cycling state pattern.
+  -- Can be anything the user wants.
+  [Value] -> -- ^ The list to cycle through.
+  ControlPattern
+pStateList name sName xs =
+  pure $ Map.singleton name $ VState statef
+  where
+    statef :: ValueMap -> (ValueMap, Value)
+    statef sMap = ( Map.insert sName
+                    (VList $ tail looped) sMap
+                  , head looped)
+      where xs' = fromMaybe xs
+                  $ Map.lookup sName sMap >>= getList
+            -- do this instead of a cycle, so it can get updated with the a list
+            looped | null xs' = xs
+                   | otherwise = xs'
 
+-- | A wrapper for `pStateList` that accepts a `[Double]`
+-- rather than a `[Value]`.
 pStateListF :: String -> String -> [Double] -> ControlPattern
 pStateListF name sName = pStateList name sName . map VF
 
+-- | A wrapper for `pStateList` that accepts a `[String]`
+-- rather than a `[Value]`.
 pStateListS :: String -> String -> [String] -> ControlPattern
 pStateListS name sName = pStateList name sName . map VS
 
@@ -200,9 +225,7 @@ accelerateCountTo :: String -> Pattern Double -> Pattern ValueMap
 accelerateCountTo name ipat = innerJoin $ (\i -> pStateF "accelerate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 acceleratebus :: Pattern Int -> Pattern Double -> ControlPattern
-acceleratebus busid pat = (pF "accelerate" pat) # (pI "^accelerate" busid)
-acceleraterecv :: Pattern Int -> ControlPattern
-acceleraterecv busid = pI "^accelerate" busid
+acceleratebus _ _ = error $ "Control parameter 'accelerate' can't be sent to a bus."
 
 -- | like @gain@, but linear.
 amp :: Pattern Double -> ControlPattern
@@ -283,9 +306,7 @@ beginCountTo :: String -> Pattern Double -> Pattern ValueMap
 beginCountTo name ipat = innerJoin $ (\i -> pStateF "begin" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 beginbus :: Pattern Int -> Pattern Double -> ControlPattern
-beginbus busid pat = (pF "begin" pat) # (pI "^begin" busid)
-beginrecv :: Pattern Int -> ControlPattern
-beginrecv busid = pI "^begin" busid
+beginbus _ _ = error $ "Control parameter 'begin' can't be sent to a bus."
 
 -- | Spectral binshift
 binshift :: Pattern Double -> ControlPattern

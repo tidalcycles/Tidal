@@ -21,6 +21,8 @@
 
 {-# language GeneralizedNewtypeDeriving #-}
 {-# language NoMonomorphismRestriction #-}
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 module Sound.Tidal.Safe.Context
   ( Op () -- do not export constructor,
@@ -46,7 +48,7 @@ module Sound.Tidal.Safe.Context
   , streamSetB
   , transition
   , module C
-  , startTidal, superdirtTarget, Target(..)
+  , Target(..)
   )
 where
 
@@ -66,8 +68,7 @@ import Sound.Tidal.UI as C
 import Sound.Tidal.Version as C
 
 import qualified Sound.Tidal.Context as C
-import Sound.Tidal.Context
-  (Stream, Pattern, ControlPattern, Time)
+import Sound.Tidal.Context (Stream)
 import Control.Monad.Reader
 import Control.Monad.Catch
 
@@ -75,7 +76,7 @@ newtype Op r = Op ( ReaderT Stream IO r )
   deriving (Functor, Applicative, Monad, MonadCatch,MonadThrow)
 
 exec :: Stream -> Op r -> IO r
-exec s (Op m) = runReaderT m s
+exec stream (Op m) = runReaderT m stream
 
 op1 f         = Op $ do a <- ask; lift $ f a
 op2 f b       = Op $ do a <- ask; lift $ f a b 

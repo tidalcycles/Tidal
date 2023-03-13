@@ -34,22 +34,21 @@ import Foreign
 import Foreign.C.Types
 import           System.IO (hPutStrLn, stderr)
 
-import qualified Sound.OSC.FD as O
+import qualified Sound.Osc.Fd as O
+import qualified Sound.Osc.Time.Timeout as O
 import qualified Network.Socket          as N
 
 import           Sound.Tidal.Config
-import           Sound.Tidal.Core (stack, silence, (#))
+import           Sound.Tidal.Core (stack, (#))
 import           Sound.Tidal.ID
 import qualified Sound.Tidal.Link as Link
 import           Sound.Tidal.Params (pS)
 import           Sound.Tidal.Pattern
 import qualified Sound.Tidal.Tempo as T
 import           Sound.Tidal.Utils ((!!!))
--- import qualified Sound.OSC.Datum as O
 import           Data.List (sortOn)
 import           System.Random (getStdRandom, randomR)
 import           Sound.Tidal.Show ()
-import           Data.Word (Word8)
 
 import           Sound.Tidal.Version
 
@@ -60,7 +59,7 @@ data Stream = Stream {sConfig :: Config,
                       sStateMV :: MVar ValueMap,
                       -- sOutput :: MVar ControlPattern,
                       sLink :: Link.AbletonLink,
-                      sListen :: Maybe O.UDP,
+                      sListen :: Maybe O.Udp,
                       sPMapMV :: MVar PlayMap,
                       sActionsMV :: MVar [T.TempoAction],
                       sGlobalFMV :: MVar (ControlPattern -> ControlPattern),
@@ -68,7 +67,7 @@ data Stream = Stream {sConfig :: Config,
                      }
 
 data Cx = Cx {cxTarget :: Target,
-              cxUDP :: O.UDP,
+              cxUDP :: O.Udp,
               cxOSCs :: [OSC],
               cxAddr :: N.AddrInfo,
               cxBusAddr :: Maybe N.AddrInfo
@@ -206,7 +205,6 @@ startStream config oscmap
        pMapMV <- newMVar Map.empty
        bussesMV <- newMVar []
        globalFMV <- newMVar id
-       tempoMV <- newEmptyMVar
        actionsMV <- newEmptyMVar
 
        tidal_status_string >>= verbose config
@@ -223,7 +221,7 @@ startStream config oscmap
                                                           ) (oAddress target) (oPort target)
                                         return $ Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}                                        
                    ) oscmap
-       let bpm = (coerce defaultCps) * 60 * (cCyclesPerBeat config)
+       let bpm = (coerce defaultCps) * 60 * (cBeatsPerCycle config)
        abletonLink <- Link.create bpm
        let stream = Stream {sConfig = config,
                             sBusses = bussesMV,
@@ -258,13 +256,13 @@ sendHandshakes stream = mapM_ sendHandshake $ filter (oHandshake . cxTarget) (sC
                            else
                              hPutStrLn stderr "Can't handshake with SuperCollider without control port."
 
-sendO :: Bool -> (Maybe O.UDP) -> Cx -> O.Message -> IO ()
+sendO :: Bool -> (Maybe O.Udp) -> Cx -> O.Message -> IO ()
 sendO isBusMsg (Just listen) cx msg = O.sendTo listen (O.Packet_Message msg) (N.addrAddress addr)
   where addr | isBusMsg && isJust (cxBusAddr cx) = fromJust $ cxBusAddr cx
              | otherwise = cxAddr cx
 sendO _ Nothing cx msg = O.sendMessage (cxUDP cx) msg
 
-sendBndl :: Bool -> (Maybe O.UDP) -> Cx -> O.Bundle -> IO ()
+sendBndl :: Bool -> (Maybe O.Udp) -> Cx -> O.Bundle -> IO ()
 sendBndl isBusMsg (Just listen) cx bndl = O.sendTo listen (O.Packet_Bundle bndl) (N.addrAddress addr)
   where addr | isBusMsg && isJust (cxBusAddr cx) = fromJust $ cxBusAddr cx
              | otherwise = cxAddr cx
@@ -334,11 +332,10 @@ getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
                             defaultValue _ = Nothing
 
 playStack :: PlayMap -> ControlPattern
-playStack pMap = stack $ map pattern active
-  where active = filter (\pState -> if hasSolo pMap
-                                    then solo pState
-                                    else not (mute pState)
-                        ) $ Map.elems pMap
+playStack pMap = stack . (map pattern) . (filter active) . Map.elems $ pMap
+  where active pState = if hasSolo pMap
+                        then solo pState
+                        else not (mute pState)
 
 toOSC :: [Int] -> ProcessedEvent -> OSC -> [(Double, Bool, O.Message)]
 toOSC busses pe osc@(OSC _ _)
@@ -359,8 +356,6 @@ toOSC busses pe osc@(OSC _ _)
         -- Map.mapKeys tail is used to remove ^ from the keys.
         -- In case (value e) has the key "", we will get a crash here.
         playmap' = Map.union (Map.mapKeys tail $ Map.map (\(VI i) -> VS ('c':(show $ toBus i))) busmap) playmap
-        toChannelId (VI i) = VS ('c':(show $ toBus i))
-        toChannelId _      = error "All channels IDs should be VI"
         val = value . peEvent
         -- Only events that start within the current nowArc are included
         playmsg | peHasOnset pe = do
@@ -404,16 +399,21 @@ toOSC _ pe (OSCContext oscpath)
         ident = fromMaybe "unknown" $ Map.lookup "_id_" (value $ peEvent pe) >>= getS
         ts = (peOnWholeOrPartOsc pe) + nudge -- + latency
 
+patternTimeID :: String
+patternTimeID = "_t_pattern"
+
 -- Used for Tempo callback
-updatePattern :: Stream -> ID -> ControlPattern -> IO ()
-updatePattern stream k pat = do
+updatePattern :: Stream -> ID -> Time -> ControlPattern -> IO ()
+updatePattern stream k !t pat = do
   let x = queryArc pat (Arc 0 0)
   pMap <- seq x $ takeMVar (sPMapMV stream)
   let playState = updatePS $ Map.lookup (fromID k) pMap
   putMVar (sPMapMV stream) $ Map.insert (fromID k) playState pMap
   where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
         updatePS Nothing = PlayState pat' False False [pat']
-        pat' = pat # pS "_id_" (pure $ fromID k)
+        patControls = Map.singleton patternTimeID (VR t)
+        pat' = withQueryControls (Map.union patControls)
+                 $ pat # pS "_id_" (pure $ fromID k)
 
 processCps :: T.LinkOperations -> [Event ValueMap] -> IO [ProcessedEvent]
 processCps ops = mapM processEvent
@@ -469,8 +469,8 @@ onTick stream st ops s
 -- However, since the full arc is processed at once and since Link does not support
 -- scheduling, tempo change may affect scheduling of events that happen earlier
 -- in the normal stream (the one handled by onTick).
-onSingleTick :: Stream -> Link.Micros -> T.LinkOperations -> ValueMap -> ControlPattern -> IO ValueMap
-onSingleTick stream now ops s pat = do
+onSingleTick :: Stream -> T.LinkOperations -> ValueMap -> ControlPattern -> IO ValueMap
+onSingleTick stream ops s pat = do
   pMapMV <- newMVar $ Map.singleton "fake"
           (PlayState {pattern = pat,
                       mute = False,
@@ -478,8 +478,6 @@ onSingleTick stream now ops s pat = do
                       history = []
                       }
           )
-  bpm <- (T.getTempo ops)
-  let cps = realToFrac $ ((T.beatToCycles ops) bpm) / 60
 
   -- The nowArc is a full cycle
   let state = TickState {tickArc = (Arc 0 1), tickNudge = 0}
@@ -511,7 +509,6 @@ doTick stream st ops sMap =
       sGlobalF <- readMVar (sGlobalFMV stream)
       bpm <- (T.getTempo ops)
       let
-        config = sConfig stream
         cxs = sCxs stream
         patstack = sGlobalF $ playStack pMap
         cps = ((T.beatToCycles ops) bpm) / 60
@@ -549,7 +546,7 @@ setPreviousPatternOrSilence stream =
 -- Send events early using timestamp in the OSC bundle - used by Superdirt
 -- Send events early by adding timestamp to the OSC message - used by Dirt
 -- Send events live by delaying the thread
-send :: Maybe O.UDP -> Cx -> Double -> Double -> (Double, Bool, O.Message) -> IO ()
+send :: Maybe O.Udp -> Cx -> Double -> Double -> (Double, Bool, O.Message) -> IO ()
 send listen cx latency extraLatency (time, isBusMsg, m)
   | oSchedule target == Pre BundleStamp = sendBndl isBusMsg listen cx $ O.Bundle timeWithLatency [m]
   | oSchedule target == Pre MessageStamp = sendO isBusMsg listen cx $ addtime m
@@ -558,7 +555,7 @@ send listen cx latency extraLatency (time, isBusMsg, m)
                                     sendO isBusMsg listen cx m
                    return ()
     where addtime (O.Message mpath params) = O.Message mpath ((O.int32 sec):((O.int32 usec):params))
-          ut = O.ntpr_to_ut timeWithLatency
+          ut = O.ntpr_to_posix timeWithLatency
           sec :: Int
           sec = floor ut
           usec :: Int
@@ -572,7 +569,10 @@ streamNudgeAll :: Stream -> Double -> IO ()
 streamNudgeAll s nudge = T.setNudge (sActionsMV s) nudge
 
 streamResetCycles :: Stream -> IO ()
-streamResetCycles s =T.resetCycles (sActionsMV s)
+streamResetCycles s = streamSetCycle s 0
+
+streamSetCycle :: Stream -> Time -> IO ()
+streamSetCycle s cyc = T.setCycle cyc (sActionsMV s)
 
 hasSolo :: Map.Map k PlayState -> Bool
 hasSolo = (>= 1) . length . filter solo . Map.elems
@@ -659,7 +659,7 @@ streamSetB = streamSet
 streamSetR :: Stream -> String -> Pattern Rational -> IO ()
 streamSetR = streamSet
 
-openListener :: Config -> IO (Maybe O.UDP)
+openListener :: Config -> IO (Maybe O.Udp)
 openListener c
   | cCtrlListen c = catchAny run (\_ -> do verbose c "That port isn't available, perhaps another Tidal instance is already listening on that port?"
                                            return Nothing
@@ -693,16 +693,16 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
                                                         return ()
           where 
             bufferIndices [] = []
-            bufferIndices (x:xs') | x == (O.ASCII_String $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
+            bufferIndices (x:xs') | x == (O.AsciiString $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
                                   | otherwise = bufferIndices xs'
         -- External controller commands
         act (O.Message "/ctrl" (O.Int32 k:v:[]))
           = act (O.Message "/ctrl" [O.string $ show k,v])
-        act (O.Message "/ctrl" (O.ASCII_String k:v@(O.Float _):[]))
+        act (O.Message "/ctrl" (O.AsciiString k:v@(O.Float _):[]))
           = add (O.ascii_to_string k) (VF (fromJust $ O.datum_floating v))
-        act (O.Message "/ctrl" (O.ASCII_String k:O.ASCII_String v:[]))
+        act (O.Message "/ctrl" (O.AsciiString k:O.AsciiString v:[]))
           = add (O.ascii_to_string k) (VS (O.ascii_to_string v))
-        act (O.Message "/ctrl" (O.ASCII_String k:O.Int32 v:[]))
+        act (O.Message "/ctrl" (O.AsciiString k:O.Int32 v:[]))
           = add (O.ascii_to_string k) (VI (fromIntegral v))
         -- Stream playback commands
         act (O.Message "/mute" (k:[]))
@@ -729,7 +729,7 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
                      putMVar (sStateMV stream) $ Map.insert k v sMap
                      return ()
         withID :: O.Datum -> (ID -> IO ()) -> IO ()
-        withID (O.ASCII_String k) func = func $ (ID . O.ascii_to_string) k
+        withID (O.AsciiString k) func = func $ (ID . O.ascii_to_string) k
         withID (O.Int32 k) func = func $ (ID . show) k
         withID _ _ = return ()
 ctrlResponder _ _ _ = return ()
@@ -743,10 +743,9 @@ recvMessagesTimeout n sock = fmap (maybe [] O.packetMessages) $ O.recvPacketTime
 streamGetcps :: Stream -> IO Double
 streamGetcps s = do
   let config = sConfig s
-  now <- Link.clock (sLink s)
   ss <- Link.createAndCaptureAppSessionState (sLink s)
   bpm <- Link.getTempo ss
-  return $! coerce $ bpm / (cCyclesPerBeat config) / 60
+  return $! coerce $ bpm / (cBeatsPerCycle config) / 60
 
 streamGetnow :: Stream -> IO Double
 streamGetnow s = do
@@ -754,4 +753,4 @@ streamGetnow s = do
   ss <- Link.createAndCaptureAppSessionState (sLink s)
   now <- Link.clock (sLink s)
   beat <- Link.beatAtTime ss now (cQuantum config)
-  return $! coerce $ beat / (cCyclesPerBeat config)
+  return $! coerce $ beat / (cBeatsPerCycle config)

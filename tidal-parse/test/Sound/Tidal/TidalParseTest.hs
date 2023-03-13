@@ -30,11 +30,23 @@ run =
     it "parses a string containing only spaces as silence" $
       "    " `parsesTo` silence
 
+    it "parses a string containing only a one-line comment as silence" $
+      "-- commented out" `parsesTo` silence
+
+    it "parses a string containing only a multi-line comment as silence" $
+      "{- commented out \n this is another line}" `parsesTo` silence
+
     it "parses the identifier silence as silence" $
       "silence" `parsesTo` silence
 
     it "parses a very simple single 's' pattern" $
       "s \"bd cp\"" `parsesTo` s "bd cp"
+
+    it "parses a very simple single 's' pattern with a same line comment" $
+       "s \"bd cp\" -- comment " `parsesTo` s "bd cp"
+
+    it "parses a very simple single 's' pattern with a multi line comment" $
+       "s \"bd cp\" {- \n comment -}" `parsesTo` s "bd cp"
 
     it "parses a very simple single 'sound' pattern" $
       "sound \"bd cp\"" `parsesTo` sound "bd cp"

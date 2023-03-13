@@ -1,7 +1,114 @@
 # TidalCycles log of changes
 
-## 1.7.10 - Tama b
+## 1.9.4 - Stitch
 
+### What's Changed
+* fix #986 by @jwaldmann in https://github.com/tidalcycles/Tidal/pull/987
+* fix #988 by @jwaldmann in https://github.com/tidalcycles/Tidal/pull/989
+* Tidal listener update and rework by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/996
+* ci: update GitHub actions by @SpencerIsGiddy in https://github.com/tidalcycles/Tidal/pull/994
+* Fix markup errors in and add to Sound.Tidal.UI documentation. by @patrickt in https://github.com/tidalcycles/Tidal/pull/992
+* reset and restart by @yaxu in https://github.com/tidalcycles/Tidal/pull/997
+* Add extractN and extend getN by @thgrund in https://github.com/tidalcycles/Tidal/pull/999
+
+### New Contributors
+* @SpencerIsGiddy made their first contribution in https://github.com/tidalcycles/Tidal/pull/994
+* @patrickt made their first contribution in https://github.com/tidalcycles/Tidal/pull/992
+
+**Full Changelog**: https://github.com/tidalcycles/Tidal/compare/v1.9.3...v1.9.4
+
+### 1.9.3 - Kolam
+
+### What's Changed
+* fix for squeezejoin  by @yaxu in https://github.com/tidalcycles/Tidal/pull/950
+* tidal.el fix silencer by @zzkt in https://github.com/tidalcycles/Tidal/pull/955
+* add accelerate to nobus and fix typo for begin by @yaxu in https://github.com/tidalcycles/Tidal/pull/956
+* Fix warnings by @Zalastax in https://github.com/tidalcycles/Tidal/pull/962
+* Add a Nix Flake for building and developing Tidal by @mitchmindtree in https://github.com/tidalcycles/Tidal/pull/963
+* Make distrib only take structure from the euclid by @yaxu in https://github.com/tidalcycles/Tidal/pull/961
+* Fix build by @yaxu in https://github.com/tidalcycles/Tidal/pull/965
+* Fix resetCycles skipping and lateness by @Zalastax in https://github.com/tidalcycles/Tidal/pull/966
+* Add setCycle by @Zalastax in https://github.com/tidalcycles/Tidal/pull/969
+* CHANGELOG gardening by @mindofmatthew in https://github.com/tidalcycles/Tidal/pull/971
+* Comments for some state functions by @JeffreyBenjaminBrown in https://github.com/tidalcycles/Tidal/pull/973
+* Comments on time, and haddock fixes by @JeffreyBenjaminBrown in https://github.com/tidalcycles/Tidal/pull/974
+* Fix warning about type constraint by @mindofmatthew in https://github.com/tidalcycles/Tidal/pull/977
+* Fix squeeze join by @yaxu in https://github.com/tidalcycles/Tidal/pull/975
+* `trigger` and friends without pattern IDs by @mindofmatthew in https://github.com/tidalcycles/Tidal/pull/970
+* Rename ghost'' to ghostWith by @Zalastax in https://github.com/tidalcycles/Tidal/pull/967
+* Added minor major seventh chord by @jqueraltmo in https://github.com/tidalcycles/Tidal/pull/978
+* support for hosc-0.20 by @yaxu in https://github.com/tidalcycles/Tidal/pull/981
+
+### New Contributors
+* @mitchmindtree made their first contribution in https://github.com/tidalcycles/Tidal/pull/963
+* @jqueraltmo made their first contribution in https://github.com/tidalcycles/Tidal/pull/978
+
+**Full Changelog**: https://github.com/tidalcycles/Tidal/compare/v1.9.2...v1.9.3
+
+## 1.9.2 - Siteswap c
+Same with 1.9.1, but now with new tidal-link version 1.0.1
+
+## 1.9.1 - Siteswap b
+A quick release to set specific tidal-link version 1.0 in tidal.cabal. Stack
+seems to want this.
+
+## 1.9.0 - Siteswap
+
+### What's Changed
+
+#### General enhancements
+* Rename linux binary name by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/911
+* Fix echo by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/910
+* If first argument of euclid is negative, apply euclidInv by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/916
+* Add squeeze operators (`||+`, `*||`, etc) by @yaxu in https://github.com/tidalcycles/Tidal/pull/919
+* Make chunk reverse direction with negative number by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/918
+* overhaul of the chord parser by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/931
+
+#### New ableton link support
+* Use ableton link for scheduling by @Zalastax in https://github.com/tidalcycles/Tidal/pull/898
+* tidal-link: add link source files to extra-source-files, fixes #924 by @yaxu in https://github.com/tidalcycles/Tidal/pull/925
+* Use target latency in all send modes by @Zalastax in https://github.com/tidalcycles/Tidal/pull/927
+* Rename cCyclesPerBeat -> cBeatsPerCycle by @Zalastax in https://github.com/tidalcycles/Tidal/pull/939
+
+#### Emacs plugin updates
+* formatting fixes in tidal.el by @zzkt in https://github.com/tidalcycles/Tidal/pull/932
+* a window-excursion for tidal.el by @zzkt in https://github.com/tidalcycles/Tidal/pull/933
+* autoloads for tidal.el by @zzkt in https://github.com/tidalcycles/Tidal/pull/934
+* avoid race in loading bootscript during restart by @zzkt in https://github.com/tidalcycles/Tidal/pull/937
+
+#### Tidal-parse (estuary) updates
+* Various updates to tidal-parse by @dktr0 in https://github.com/tidalcycles/Tidal/pull/913 and  https://github.com/tidalcycles/Tidal/pull/941
+
+#### Maintenance
+* Increase upper bounds of text dependency by @yaxu in https://github.com/tidalcycles/Tidal/pull/948
+* Use system-cxx-std-lib by @Zalastax in https://github.com/tidalcycles/Tidal/pull/944
+* Use c++ extra library for MacOS by @giuseppelillo in https://github.com/tidalcycles/Tidal/pull/946
+
+### New Contributors
+* @Zalastax made their first contribution in https://github.com/tidalcycles/Tidal/pull/898
+* @zzkt made their first contribution in https://github.com/tidalcycles/Tidal/pull/932
+* @giuseppelillo made their first contribution in https://github.com/tidalcycles/Tidal/pull/946
+
+**Full Changelog**: https://github.com/tidalcycles/Tidal/compare/v1.8.0...v1.9.0
+
+## 1.8.1 - Sanquhar b
+* Removed executable from tidal.cabal file (while latest ghc on windows fails to build it)
+
+## 1.8.0 - Sanquhar
+* move tidal-listener code by @polymorphicengine in #885
+* Fix a typo incurred (I assume) by a filename change. by @JeffreyBenjaminBrown in #886
+* Hide contexts from Events per default by @polymorphicengine in #887
+* Allow sending/receiving of broadcasted OSC control messages by @yaxu in #894
+* tidal-listener: Add minimal install notes by @gamar3is in #895
+* Add rolled function with variants by @thgrund in #820
+* Valuable instance for Note by @yaxu in #899
+* Add parsers for ints and floats that don't consume trailing whitespace by @polymorphicengine in #900
+* Introduce echo and echoWith, deprecate stut and stutWith by @ndr-brt in #904
+* tidal-listener: Optional WITH_GHC environment variable by @mindofmatthew in #903
+
+Commit list: https://github.com/tidalcycles/Tidal/compare/1.7.10...v1.8.0
+
+## 1.7.10 - Tama b
 * Derive RealFrac for Note by @ndr-brt in https://github.com/tidalcycles/Tidal/pull/876
 * Add timescale and timewin control params by @yaxu in https://github.com/tidalcycles/Tidal/pull/878
 * deriving typeclass memberships for ID by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/879
@@ -45,152 +152,149 @@
 **Full Changelog**: https://github.com/tidalcycles/Tidal/compare/1.7.8...1.7.9
 
 ## 1.7.8 - Ayatakedai
-   * Add pattern id to patterns as _id_, and send it with /code/highlights
+* Add pattern id to patterns as _id_, and send it with /code/highlights
 
 ## 1.7.7 - Caramel wafer
-   * Support hosc 0.19 in test suite @yaxu
+* Support hosc 0.19 in test suite @yaxu
 
 ## 1.7.6 - Tunnocks
-   * Fix dot shorthand in int patterns so floating point numbers raise an error @ndr-brt
-   * Support factors in ratio shorthand for rational patterns @ndr-brt
-   * support hosc 0.19 @yaxu
+* Fix dot shorthand in int patterns so floating point numbers raise an error @ndr-brt
+* Support factors in ratio shorthand for rational patterns @ndr-brt
+* support hosc 0.19 @yaxu
 
 ## 1.7.5 - Dalbeattie
-   * Minor change to _splice so that it respects if the speed parameter was already declared @onthepeakofnormal
-   * Some tests for chords @cleary
-   * Remove direct semigroups dependency @yaxu
-   * Derive functor for pattern @yaxu
-   * Handle negative ratio shorthands for rationals @ndr_brt
-   * drawLine - draw non-events with periods @yaxu
-   * Parse chord without root note @yaxu
-   * Fix clock sharing between tidal processes @yaxu
+* Minor change to _splice so that it respects if the speed parameter was already declared @onthepeakofnormal
+* Some tests for chords @cleary
+* Remove direct semigroups dependency @yaxu
+* Derive functor for pattern @yaxu
+* Handle negative ratio shorthands for rationals @ndr_brt
+* drawLine - draw non-events with periods @yaxu
+* Parse chord without root note @yaxu
+* Fix clock sharing between tidal processes @yaxu
 
 ## 1.7.4 - Symonds Yat b
-   * Fixes for bipolar waveforms (sine2, etc) @mindofmatthew
-   * More playback controls for OSC API @mindofmatthew
-   * Disable bus variants for MIDI controls @mindofmatthew
+* Fixes for bipolar waveforms (sine2, etc) @mindofmatthew
+* More playback controls for OSC API @mindofmatthew
+* Disable bus variants for MIDI controls @mindofmatthew
 
 ## 1.7.3 - Symonds Yat
-   * Signed ratio shorthands now supported @ndr_brt
-   * OSC API - mute/unmute stream @mindofmatthew
-   * improve performance of playFor/seqP @yaxu
-   * Expand tests with autodiscovered laws @RSWilli
-   * Add `getState` to BootTidal @mindofmatthew
-   * add fadeTime / fadeInTime / fadeOutTime params for grain envelopes @yaxu
-   * Fix for nrpnn and nrpnv params @yaxu
-   * Disable busses for MIDI parameters @mindofmatthew
+* Signed ratio shorthands now supported @ndr_brt
+* OSC API - mute/unmute stream @mindofmatthew
+* improve performance of playFor/seqP @yaxu
+* Expand tests with autodiscovered laws @RSWilli
+* Add `getState` to BootTidal @mindofmatthew
+* add fadeTime / fadeInTime / fadeOutTime params for grain envelopes @yaxu
+* Fix for nrpnn and nrpnv params @yaxu
+* Disable busses for MIDI parameters @mindofmatthew
    
 ## 1.7.2 - IKLECTIK c
-   * tidal-parse additions and improved errors, haskellish dependency fix @dktr0
-   * spring cleaning and delinting, recreated Time.hs, renamed ControlMap toValueMAp @yaxu
-   * start of [major refactoring of chords](https://club.tidalcycles.org/t/rfc-working-on-making-chord-naming-chordlist-more-consistent/2717/56) @cleary
-   * fix `.` mininotation operator @zudov
-   * stateful event parameters, for counting @yaxu
-   * Move some stuff from BootTidal.hs to the tidal library, to reduce dependencies there @yaxu
+* tidal-parse additions and improved errors, haskellish dependency fix @dktr0
+* spring cleaning and delinting, recreated Time.hs, renamed ControlMap toValueMAp @yaxu
+* start of [major refactoring of chords](https://club.tidalcycles.org/t/rfc-working-on-making-chord-naming-chordlist-more-consistent/2717/56) @cleary
+* fix `.` mininotation operator @zudov
+* stateful event parameters, for counting @yaxu
+* Move some stuff from BootTidal.hs to the tidal library, to reduce dependencies there @yaxu
 
 ## 1.7.1 - IKLECTIK b
-        * Fix stack build @yaxu
-        * Add tidal_status command @yaxu
-	* Add cVerbose config setting (default on) @yaxu
-	* Fix for emacs plugin @jwaldmann
-	* Snowball bugfix @yaxu
-	* Migrate to github actions, tested against additional ghc versions @ndr_brt
-	* Fix mininotation bug - allow leading/trailing spaces @ndr_brt
-	* Make linger work with negative numbers (to linger on end of cycle rather than start) @yaxu
-	* Friendlier startup messages @yaxu
-	* Compatibility with ghc 9.0.1 @yaxu
+* Fix stack build @yaxu
+* Add tidal_status command @yaxu
+* Add cVerbose config setting (default on) @yaxu
+* Fix for emacs plugin @jwaldmann
+* Snowball bugfix @yaxu
+* Migrate to github actions, tested against additional ghc versions @ndr_brt
+* Fix mininotation bug - allow leading/trailing spaces @ndr_brt
+* Make linger work with negative numbers (to linger on end of cycle rather than start) @yaxu
+* Friendlier startup messages @yaxu
+* Compatibility with ghc 9.0.1 @yaxu
 
 ## 1.7 - IKLECTIK
-	* Added drum aliases from GM2 percussion spec to `drum` function @lvm
-	* `getcps` helper function now in BootTidal.hs @yaxu
-	* `getnow` helper function back in BootTidal.hs (returns current cycle) @bgold-cosmos
-	* Developments towards tidal api, @yaxu et al
-	* `coarse` parameter is now floating point @lwlsn
-	* `irand` parameter now patternable @ndr-brt
- 	* `note` now produces its own type to avoid conflicts between parsing note names and duration shorthands  @ndr-brt
-	* Numerous tidal-parse improvements and additions @dktr0 et al
-	* `grain` function for combining begin and end (in terms of begin and duration) @khoparzi
-	* Added missing pB and pR functions @thgrund
-	* Emacs plugin bugfixes @jwaldmann
-	* `binaryN` parameters now fully patternable @ndr-brt
-	* `press` and `pressBy` functions for syncopation @yaxu
-	* `bite`'s first parameter is now patternable @ndr-brt
-	* Most SuperDirt control/effect parameters can now be modified while a sound is playing, using 'bus' functions. @telefon + @yaxu
-	* Sound.Tidal.Params is now generated by a script in bin/generate-params.hs @yaxu
-	* `qtrigger` is now an alias for `ctrigger`, which now quantises to the _next_ cycle (via ceiling) @thgund / @yaxu
-	* There is now also `ftrigger` and `rtrigger` for floor (previous) and round (nearest) cycle
-	* `whenmod`'s first two parameters are now rationals, and patternable. @th-four / @yaxu
-        * `brand` and `brandBy` for continuous patterns of boolean values @yaxu
-        * Two-way protocol between Tidal and SuperDirt, initially to receive available busses @telefon / @yaxu
-        * bipolar waveforms - sine2, square2, tri2, saw2, cosine2 @yaxu
+* Added drum aliases from GM2 percussion spec to `drum` function @lvm
+* `getcps` helper function now in BootTidal.hs @yaxu
+* `getnow` helper function back in BootTidal.hs (returns current cycle) @bgold-cosmos
+* Developments towards tidal api, @yaxu et al
+* `coarse` parameter is now floating point @lwlsn
+* `irand` parameter now patternable @ndr-brt
+* `note` now produces its own type to avoid conflicts between parsing note names and duration shorthands  @ndr-brt
+* Numerous tidal-parse improvements and additions @dktr0 et al
+* `grain` function for combining begin and end (in terms of begin and duration) @khoparzi
+* Added missing pB and pR functions @thgrund
+* Emacs plugin bugfixes @jwaldmann
+* `binaryN` parameters now fully patternable @ndr-brt
+* `press` and `pressBy` functions for syncopation @yaxu
+* `bite`'s first parameter is now patternable @ndr-brt
+* Most SuperDirt control/effect parameters can now be modified while a sound is playing, using 'bus' functions. @telefon + @yaxu
+* Sound.Tidal.Params is now generated by a script in bin/generate-params.hs @yaxu
+* `qtrigger` is now an alias for `ctrigger`, which now quantises to the _next_ cycle (via ceiling) @thgund / @yaxu
+* There is now also `ftrigger` and `rtrigger` for floor (previous) and round (nearest) cycle
+* `whenmod`'s first two parameters are now rationals, and patternable. @th-four / @yaxu
+* `brand` and `brandBy` for continuous patterns of boolean values @yaxu
+* Two-way protocol between Tidal and SuperDirt, initially to receive available busses @telefon / @yaxu
+* bipolar waveforms - sine2, square2, tri2, saw2, cosine2 @yaxu
   
 
 ## 1.6.1 - We are not DJs
-	* Patternise first parameter of chunk @lwlsn
-	* Patternise fit parameter @bgold-cosmos
-	* Increase upper bounds of random @yaxu
-	* Switch travis to ubuntu bionic @yaxu
+* Patternise first parameter of chunk @lwlsn
+* Patternise fit parameter @bgold-cosmos
+* Increase upper bounds of random @yaxu
+* Switch travis to ubuntu bionic @yaxu
 
 ## 1.6.0 - Keep live coding live
-	* Rollback to previous pattern on parse error @jwaldmann
-	* Increased strictness to catch parse errors earlier @jwaldmann @yaxu
-	* Support for superdirt 'panic' @yaxu
-	* Increase hosc upper bounds to admin 0.18
-	* New function 'splat' @yaxu
-	* `quantise` now uses round, add qfloor, qceiling variants and qround alis @lwlsn
-	* Add ghc 8.8.3 to travis @jwaldmann
-	* Switch `substruct` to use binary pattern @yaxu
+* Rollback to previous pattern on parse error @jwaldmann
+* Increased strictness to catch parse errors earlier @jwaldmann @yaxu
+* Support for superdirt 'panic' @yaxu
+* Increase hosc upper bounds to admin 0.18
+* New function 'splat' @yaxu
+* `quantise` now uses round, add qfloor, qceiling variants and qround alis @lwlsn
+* Add ghc 8.8.3 to travis @jwaldmann
+* Switch `substruct` to use binary pattern @yaxu
 
 ## 1.5.2 - Rivelin
-        * Fix streamAll
+* Fix streamAll
 
 ## 1.5.1 - Blacka Moor
-	* Bugfix splice
+* Bugfix splice
 
 ## 1.5.0 - Active travel
-	* Export drawLineSz @mxmxyz
-	* tidal-parse additions (bite, splice, pickF, select, squeeze; fixed slice) @dktr0
-	* New, more efficient pseudorandom number generator @dktr0
-	* Pattern first someCyclesBy param @bgold-cosmos
-	* Refactored, more flexible OSC targetting @yaxu
-	* Simplify tidal-boot-script in tidal.el @jamagin
-	* Support state substitution in mininotation #530 @yaxu
-	* Pattern first parameter of splice #656 @yaxu
-	* Pattern first parameter of chew @yaxu
-	* add 'x' fraction alias for 1/6 @yaxu
-	* add dfb alias for delayfeedback param, dt for delaytime @yaxu
-	* add unmuteAll and only to BootTidal.hs @yaxu
+* Export drawLineSz @mxmxyz
+* tidal-parse additions (bite, splice, pickF, select, squeeze; fixed slice) @dktr0
+* New, more efficient pseudorandom number generator @dktr0
+* Pattern first someCyclesBy param @bgold-cosmos
+* Refactored, more flexible OSC targetting @yaxu
+* Simplify tidal-boot-script in tidal.el @jamagin
+* Support state substitution in mininotation #530 @yaxu
+* Pattern first parameter of splice #656 @yaxu
+* Pattern first parameter of chew @yaxu
+* add 'x' fraction alias for 1/6 @yaxu
+* add dfb alias for delayfeedback param, dt for delaytime @yaxu
+* add unmuteAll and only to BootTidal.hs @yaxu
 
 ## 1.4.9 - Housebound spirit
-	* Simplify 'show'ing of patterns @yaxu
-	* New `draw` function for drawing a pattern of single characters as a text-based diagram,
-	  with friends `drawLine` and `drawLineSz` for drawing multiple cycles @yaxu
-	* Fixes and expansions of ratio aliases - s should be a sixteenth @mxmxyz, w is now 1, f is now 0.2
-	* Simplify definition of `accumulate` using scanl @benjwadams
-	* The first parameter of `someCyclesBy` is now patternable @bgold-cosmos
+* Simplify 'show'ing of patterns @yaxu
+* New `draw` function for drawing a pattern of single characters as a text-based diagram, with friends `drawLine` and `drawLineSz` for drawing multiple cycles @yaxu
+* Fixes and expansions of ratio aliases - s should be a sixteenth @mxmxyz, w is now 1, f is now 0.2
+* Simplify definition of `accumulate` using scanl @benjwadams
+* The first parameter of `someCyclesBy` is now patternable @bgold-cosmos
 
 ## 1.4.8 - Limerick
-        * Add ratio shorthand to floating point patterns @yaxu
-        * Support fractional scales, add Arabic scales @quakehead
-        * Additions to tidal-parse including support from overgain, overshape adn rot @dktr0
-        * Move prompt-cont setting to end of BootTidal.hs (older versions of Haskell crash out at this point) @ndr-brt
-## 1.4.7 - Bleep
+* Add ratio shorthand to floating point patterns @yaxu
+* Support fractional scales, add Arabic scales @quakehead
+* Additions to tidal-parse including support from overgain, overshape adn rot @dktr0
+* Move prompt-cont setting to end of BootTidal.hs (older versions of Haskell crash out at this point) @ndr-brt
 
-	* Fix BootTidal.hs - make loadable in atom @bgold-cosmos
-	* More additions to tidal-parse @dktr0
+## 1.4.7 - Bleep
+* Fix BootTidal.hs - make loadable in atom @bgold-cosmos
+* More additions to tidal-parse @dktr0
 
 ## 1.4.6 - Megatron
-
-	* Experimental ratio shorthand ref #573 @yaxu
-	* Store mininotation source location(s) in events ref #245 @yaxu
-	* Add more things to tidal-parse @dktr0 @yaxu
-	* Separate out haskell parser from tidal-parse into new hackage module called 'haskellish' @dktr0
-	* Support patterning polyrhythmic % steps in mininotation @yaxu
-	* Fixes to emacs plugin (tidal.el) @xmacex
-	* New parameters for freq, overgain, overshape, and missing midi params including the new nrpn ones @yaxu
+* Experimental ratio shorthand ref #573 @yaxu
+* Store mininotation source location(s) in events ref #245 @yaxu
+* Add more things to tidal-parse @dktr0 @yaxu
+* Separate out haskell parser from tidal-parse into new hackage module called 'haskellish' @dktr0
+* Support patterning polyrhythmic % steps in mininotation @yaxu
+* Fixes to emacs plugin (tidal.el) @xmacex
+* New parameters for freq, overgain, overshape, and missing midi params including the new nrpn ones @yaxu
 
 ## 1.4.5 - Porter Brook
-
 * Mini notation - `@` (and its alias `_`) now accepts rational relative durations. E.g. `a b@0.5 c d` to make `b` have a half step (that would be the same as `a@2 b c@2 c@d`). This can also be patterned `a b@<0.5 2> c d` @yaxu #435
 * Experimental `reset` function - stick in a pattern so it acts as though the cycle number was reset to 0, from the next cycle @yaxu
 * Bugfix for setR in BootTidal.hs @yaxu
@@ -203,7 +307,6 @@
 * Many tidal-parse updates @dktr0
 
 ## 1.4.4 - Chee Dale
-
 * wrandcat (weighted randcat) @yaxu
 * MIDI Sysex support #558 @yaxu
 * Elements in an Open Sound Control path address can now be patterned #557
@@ -213,39 +316,31 @@
 * Add power pattern operators |**, **| and |**| @yaxu
 
 ## 1.4.3 - Stanage Edge
-
 * Fix for xfade / xfadein transition
 * New function plyWith
 
 ## 1.4.2 - Higger Tor
-
 * Fix for 'nudge'
 
 ## 1.4.1 - Carl Wark
-
 * improvements to handling of cps changes @yaxu #501
 * fix for parameter patterning in 'range' @yaxu #547
 
 ## 1.4.0 - Padley Gorge
-
 * fix representation to handle continuous and analog events properly @yaxu
 
 ## 1.3.0 - rolled back to 1.1.2
 
 ## 1.2.0 - Hunters Bar
-
 * Simplify <* and *>, removing any distinction between analogue and digital patterns
 
 ## 1.1.2 - Eccy Road
-
 * Usability fix for `binary` / `binaryN` (use squeezeJoin on input pattern)
 
 ## 1.1.1 - Chelsea Park
-
 * Usability fixes for `binary` / `binaryN` / `ascii` @yaxu
 
 ## 1.1.0 - Brincliffe Edge
-
 * `binary` and `ascii` functions for playing with bit patterns @yaxu
 * support chord inversions in chord parser @bgold-cosmos
 * skip ticks when system clock jumps @yaxu
@@ -264,7 +359,6 @@
 * minitidal refactor, support for parsing more of tidal, tests @dktr0
 
 ## 1.0.14 - IICON
-
 * 'chew' - like bite, but speeds playback rate up and down
 * variable probability for ? in mini notation
 * chooseBy takes modulo of index to avoid out of bounds errors
@@ -272,32 +366,29 @@
 * Fix dependencies for parsec/colour
 
 ## 1.0.13 - 🐝⌛️🦋 #2
-
 * Simplify espgrid support - @yaxu
 
 ## 1.0.12 - 🐝⌛️🦋
-
 * Fix ESPGrid support - @dktr0
 * Add 'snowball' function - @XiNNiW
 
 ## 1.0.11 - Cros Bríde
-
 2019-04-17  Alex McLean  <alex@slab.org>
-	* Add `bite` function for slicing patterns (rather than samples)
-	* Tweak tidal.el to attempt to infer location of default BootTidal.hs
-	* Skip time (forward or backward) if the reference clock jumps suddenly
-	* Fix `fit` - @bgold-cosmos
-	* Remove 'asap'
-	* Add cB for boolean control input
-	* `pickF` for choosing between functions with a pattern of integers
-	* `select` for choosing between list of patterns with a floating point pattern
-	* `squeeze` for choosing between list of patterns with a pattern of integers, where patterns are squeezed into the integer event duration
-	* `splice` for choosing between slices of a pattern, where the slices are squeezed into event duration
-	* Ord and Eq instances for value type @bgold-cosmos
-	* `trigger` - support for resetting envelopes on evaluation
-	* Support for rational event values
-	* Tweak how `*>` and `<*` deal with analog patterns
-	* Caribiner link bridge support
+* Add `bite` function for slicing patterns (rather than samples)
+* Tweak tidal.el to attempt to infer location of default BootTidal.hs
+* Skip time (forward or backward) if the reference clock jumps suddenly
+* Fix `fit` - @bgold-cosmos
+* Remove 'asap'
+* Add cB for boolean control input
+* `pickF` for choosing between functions with a pattern of integers
+* `select` for choosing between list of patterns with a floating point pattern
+* `squeeze` for choosing between list of patterns with a pattern of integers, where patterns are squeezed into the integer event duration
+* `splice` for choosing between slices of a pattern, where the slices are squeezed into event duration
+* Ord and Eq instances for value type @bgold-cosmos
+* `trigger` - support for resetting envelopes on evaluation
+* Support for rational event values
+* Tweak how `*>` and `<*` deal with analog patterns
+* Caribiner link bridge support
 
 ## 1.0.10 - This machine also kills fascists
 * Add exports to Sound.Tidal.Scales for `getScale` and `scaleTable`
@@ -311,10 +402,8 @@
 * `djf` control ready for new superdirt dj filter @yaxu
 * `getScale` for handrolling/adding scales to `scale` function	* Add `djf` control for upcoming superdirt dj filter @yaxu
 
-## 1.0.8 (trying to get back to doing these, 
-## see also https://tidalcycles.org/index.php/Changes_in_Tidal_1.0.x 
-## for earlier stuff)
-
+## 1.0.8 (trying to get back to doing these)
+**See also https://tidalcycles.org/index.php/Changes_in_Tidal_1.0.x for earlier stuff)**
 * Add 'to', 'toArg' and 'from' controls for new superdirt routing experiments - @telephon
 * Fixes for squeezeJoin (nee unwrap') - @bgold-cosmos
 * Simplify `cycleChoose`, it is now properly discrete (one event per cycle) - @yaxu
@@ -331,7 +420,6 @@
 * fix for `sometimesBy` - @yaxu
 
 ## 0.9.10 (and earlier missing versions from this log)
-
 * arpg, a function to arpeggiate
 * within', an alternate within with a different approach to time, following discussion here https://github.com/tidalcycles/Tidal/issues/313
 * sine et al are now generalised so can be used as double or rational patterns
@@ -348,7 +436,6 @@
 ## 0.9.7
 
 ### Enhancements
-
 * The `note` pattern parameter is no longer an alias for `midinote`,
   but an independent parameter for supercollider to handle (in a manner
   similar to `up`)
@@ -356,14 +443,12 @@
 ## 0.9.6
 
 ### Enhancements
-
 * Added `chord` for chord patterns and `scaleP` for scale patterns
 * The `n` pattern parameter is now floating point
 
 ## 0.9.5
 
 ### Enhancements
-
 * Added `hurry` which both speeds up the sound and the pattern by the given amount.
 * Added `stripe` which repeats a pattern a given number of times per
   cycle, with random but contiguous durations.
@@ -377,14 +462,12 @@
 ## 0.9.4
 
 ### Fixes
-
 * Swapped `-` for `..` in ranges as quick fix for issue with parsing negative numbers
 * Removed overloaded list thingie for now, unsure whether it's worth the dependency
 
 ## 0.9.3
 
 ### Enhancements
-
 * The sequence parser can now expand ranges, e.g. `"0-3 4-2"` is
   equivalent to `"[0 1 2 3] [4 3 2]"`
 * Sequences can now be described using list syntax, for example `sound ["bd", "sn"]` is equivalent to `sound "bd sn"`. They *aren't* lists though, so you can't for example do `sound (["bd", "sn"] ++ ["arpy", "cp"])` -- but can do `sound (append ["bd", "sn"]  ["arpy", "cp"])`
@@ -395,6 +478,5 @@
 * The start of automatic testing for a holy bug-free future
 
 ### Fixes
-
 * Fixed bug that was causing events to double up or get lost,
   e.g. where `rev` was combined with certain other functions.
