@@ -480,7 +480,7 @@ pIntegral = try $ do i <- pIntegralWithoutChord
             <|> pChord (TPat_Atom Nothing 0)
             <|> pIntegralWithoutChord
 
-fromNote :: Num a => Pattern String -> Pattern a
+fromNote :: Num a => Signal String -> Signal a
 fromNote pat = fromRight 0 . runParser parseNote 0 "" <$> pat
 
 pFraction :: RealFrac a => a -> MyParser Rational
@@ -524,7 +524,7 @@ pRational = wrapPos $ TPat_Atom Nothing <$> pRatio
 isInt :: RealFrac a => a -> Bool
 isInt x = x == fromInteger (round x)
 
--- parsing operators that take a single base pattern
+-- parsing operators that take a single base signal
 
 pMult :: TPat a -> MyParser (TPat a)
 pMult thing = do char '*'
@@ -576,7 +576,7 @@ pElongate a = do rs <- many1 $ do spaces
                                   return r
                  return $ TPat_Elongate (1 + sum rs) a
 
--- parsing operators that take a list of base patterns
+-- parsing operators that take a list of base signals
 
 pStack :: Parseable a => TPat a -> MyParser (TPat a)
 pStack p = do
