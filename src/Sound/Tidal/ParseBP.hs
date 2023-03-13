@@ -25,12 +25,10 @@ module Sound.Tidal.ParseBP where
 
 import           Control.Applicative ()
 import qualified Control.Exception as E
-import           Data.Bifunctor (first)
 import           Data.Colour
 import           Data.Colour.Names
 import           Data.Functor.Identity (Identity)
 import           Data.List (intercalate)
-import           Data.Maybe
 import           Data.Ratio
 import           Data.Typeable (Typeable)
 import           GHC.Exts ( IsString(..) )
@@ -73,7 +71,6 @@ data TPat a where
    TPat_Polyrhythm :: (Maybe (TPat Rational)) -> [TPat a] -> (TPat a)
    TPat_Seq :: [TPat a] -> (TPat a)
    TPat_Silence :: (TPat a)
-   TPat_Foot :: (TPat a)
    TPat_Elongate :: Rational -> (TPat a) -> (TPat a)
    TPat_Repeat :: Int -> (TPat a) -> (TPat a)
    TPat_EnumFromTo :: (TPat a) -> (TPat a) -> (TPat a)
@@ -91,7 +88,6 @@ instance Show a => Show (TPat a) where
   show (TPat_Polyrhythm mSteprate vs) = "TPat_Polyrhythm (" ++ show mSteprate ++ ") " ++ show vs
   show (TPat_Seq vs) = "TPat_Seq " ++ show vs
   show TPat_Silence = "TPat_Silence"
-  show TPat_Foot = "TPat_Foot"
   show (TPat_Elongate r v) = "TPat_Elongate (" ++ show r ++ ") (" ++ show v ++ ")"
   show (TPat_Repeat r v) = "TPat_Repeat (" ++ show r ++ ") (" ++ show v ++ ")"
   show (TPat_EnumFromTo a b) = "TPat_EnumFromTo (" ++ show a ++ ") (" ++ show b ++ ")"
@@ -109,7 +105,6 @@ instance Functor TPat where
   fmap f (TPat_Polyrhythm mSteprate vs) = TPat_Polyrhythm mSteprate (map (fmap f) vs)
   fmap f (TPat_Seq vs) = TPat_Seq (map (fmap f) vs)
   fmap _ TPat_Silence = TPat_Silence
-  fmap _ TPat_Foot = TPat_Foot
   fmap f (TPat_Elongate r v) = TPat_Elongate r (fmap f v)
   fmap f (TPat_Repeat r v) = TPat_Repeat r (fmap f v)
   fmap f (TPat_EnumFromTo a b) = TPat_EnumFromTo (fmap f a) (fmap f b)
@@ -160,7 +155,6 @@ toPat = \case
    TPat_Stack xs -> stack $ map toPat xs
    TPat_Silence -> silence
    TPat_EnumFromTo a b -> unwrap $ fromTo <$> toPat a <*> toPat b
-   TPat_Foot -> error "Can't happen, feet are pre-processed."
    TPat_Polyrhythm mSteprate ps -> stack $ map adjust_speed pats
      where adjust_speed (sz, pat) = fast ((/sz) <$> steprate) pat
            pats = map resolve_tpat ps
@@ -171,6 +165,7 @@ toPat = \case
    TPat_Seq xs -> snd $ resolve_seq xs
    TPat_Var s -> getControl s
    TPat_Chord f iP nP mP -> chordToPatSeq f (toPat iP) (toPat nP) (map toPat mP)
+   p@(TPat_Repeat _ _) -> toPat $ TPat_Seq [p] --this is a bit of a hack
    _ -> silence
 
 resolve_tpat :: (Enumerable a, Parseable a) => TPat a -> (Rational, Pattern a)
@@ -216,10 +211,8 @@ parseBP_E s = toE parsed
     toE (Right tp) = toPat tp
 
 parseTPat :: Parseable a => String -> Either ParseError (TPat a)
-parseTPat = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
-  where f' = do tPatParser
-             <|> do symbol "~" <?> "rest"
-                    return TPat_Silence
+parseTPat = runParser (pSeq Prelude.<* eof) (0 :: Int) ""
+
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
 cP s = innerJoin $ parseBP_E <$> _cX_ getS s
@@ -326,6 +319,8 @@ instance Enumerable ColourD where
 instance (Enumerable a, Parseable a) => IsString (Pattern a) where
   fromString = parseBP_E
 
+-- imported haskell parsers
+
 lexer :: P.GenTokenParser String u Data.Functor.Identity.Identity
 lexer   = P.makeTokenParser haskellDef
 
@@ -349,6 +344,47 @@ float = P.float lexer
 naturalOrFloat :: MyParser (Either Integer Double)
 naturalOrFloat = P.naturalOrFloat lexer
 
+-- basic parsers
+
+pSilence :: MyParser (TPat a)
+pSilence = char '~' >> return TPat_Silence
+
+pValueOrSilenceF :: MyParser (TPat a) -> MyParser (TPat a)
+pValueOrSilenceF f = f <|> pVar <|> pSilence
+
+pVar :: MyParser (TPat a)
+pVar = wrapPos $ do char '^'
+                    name <- many (letter <|> oneOf "0123456789:.-_") <?> "string"
+                    return $ TPat_Var name
+
+pBool :: MyParser (TPat Bool)
+pBool = wrapPos $ do oneOf "t1"
+                     return $ TPat_Atom Nothing True
+                  <|>
+                  do oneOf "f0"
+                     return $ TPat_Atom Nothing False
+
+pCharNum :: MyParser Char
+pCharNum = (letter <|> oneOf "0123456789") <?> "letter or number"
+
+pChar :: MyParser (TPat Char)
+pChar = wrapPos $ TPat_Atom Nothing <$> pCharNum
+
+pString :: MyParser String
+pString = do c <- pCharNum <?> "charnum"
+             cs <- many (letter <|> oneOf "0123456789:.-_") <?> "string"
+             return (c:cs)
+
+pVocable :: MyParser (TPat String)
+pVocable = wrapPos $ TPat_Atom Nothing <$> pString
+
+pColour :: MyParser (TPat ColourD)
+pColour = wrapPos $ do name <- many1 letter <?> "colour name"
+                       colour <- readColourName name <?> "known colour"
+                       return $ TPat_Atom Nothing colour
+
+-- number parsers
+
 data Sign      = Positive | Negative
 
 applySign          :: Num a => Sign -> a -> a
@@ -362,112 +398,21 @@ sign  =  do char '-'
                 return Positive
          <|> return Positive
 
+pInteger :: MyParser Double
+pInteger = read <$> many1 digit
+
+pFloat :: MyParser Double
+pFloat = do
+        i <- many1 digit
+        d <- option "0" (char '.' >> many1 digit)
+        e <- option "0" (char 'e' >> do
+                                    s <- option "" (char '-' >> return "-")
+                                    e' <- many1 digit
+                                    return $ s++e')
+        return $ read (i++"."++d++"e"++e)
+
 intOrFloat :: MyParser Double
 intOrFloat = try pFloat <|> pInteger
-
-pSequence :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
-pSequence f = do
-  spaces
-  s <- many $ do
-    a <- pPart f
-    spaces
-    do
-      try $ symbol ".."
-      b <- pPart f
-      return $ TPat_EnumFromTo a b
-      <|> pElongate a
-      <|> pRepeat a
-      <|> return a
-    <|> do
-      symbol "."
-      return TPat_Foot
-  pRand $ resolve_feet s
-  where resolve_feet ps | length ss > 1 = TPat_Seq $ map TPat_Seq ss
-                        | otherwise = TPat_Seq ps
-          where ss = splitFeet ps
-        splitFeet :: [TPat t] -> [[TPat t]]
-        splitFeet [] = []
-        splitFeet pats = foot : splitFeet pats'
-          where (foot, pats') = takeFoot pats
-                takeFoot [] = ([], [])
-                takeFoot (TPat_Foot:pats'') = ([], pats'')
-                takeFoot (pat:pats'') = first (pat:) $ takeFoot pats''
-
-pRepeat :: TPat a -> MyParser (TPat a)
-pRepeat a = do es <- many1 $ do char '!'
-                                n <- (subtract 1 . read <$> many1 digit) <|> return 1
-                                spaces
-                                return n
-               return $ TPat_Repeat (1 + sum es) a
-
-pElongate :: TPat a -> MyParser (TPat a)
-pElongate a = do rs <- many1 $ do oneOf "@_"
-                                  r <- (subtract 1 <$> pRatio) <|> return 1
-                                  spaces
-                                  return r
-                 return $ TPat_Elongate (1 + sum rs) a
-
-pSingle :: MyParser (TPat a) -> MyParser (TPat a)
-pSingle f = f >>= pRand >>= pMult
-
-pVar :: MyParser (TPat a)
-pVar = wrapPos $ do char '^'
-                    name <- many (letter <|> oneOf "0123456789:.-_") <?> "string"
-                    return $ TPat_Var name
-
-pPart :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
-pPart f = (pSingle f <|> pPolyIn f <|> pPolyOut f <|> pVar) >>= pE >>= pRand
-
-newSeed :: MyParser Int
-newSeed = do seed <- Text.Parsec.Prim.getState
-             Text.Parsec.Prim.modifyState (+1)
-             return seed
-
-pPolyIn :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
-pPolyIn f = do x <- brackets $ do s <- pSequence f <?> "sequence"
-                                  stackTail s <|> chooseTail s <|> return s
-               pMult x
-  where stackTail s = do symbol ","
-                         ss <- pSequence f `sepBy` symbol ","
-                         return $ TPat_Stack (s:ss)
-        chooseTail s = do symbol "|"
-                          ss <- pSequence f `sepBy` symbol "|"
-                          seed <- newSeed
-                          return $ TPat_CycleChoose seed (s:ss)
-
-pPolyOut :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
-pPolyOut f = do ss <- braces (pSequence f `sepBy` symbol ",")
-                base <- do char '%'
-                           r <- pSequence pRational <?> "rational number"
-                           return $ Just r
-                        <|> return Nothing
-                pMult $ TPat_Polyrhythm base ss
-             <|>
-             do ss <- angles (pSequence f `sepBy` symbol ",")
-                pMult $ TPat_Polyrhythm (Just $ TPat_Atom Nothing 1) ss
-
-pCharNum :: MyParser Char
-pCharNum = (letter <|> oneOf "0123456789") <?> "letter or number"
-
-pString :: MyParser String
-pString = do c <- pCharNum <?> "charnum"
-             cs <- many (letter <|> oneOf "0123456789:.-_") <?> "string"
-             return (c:cs)
-
-wrapPos :: MyParser (TPat a) -> MyParser (TPat a)
-wrapPos p = do b <- getPosition
-               tpat <- p
-               e <- getPosition
-               let addPos (TPat_Atom _ v') =
-                     TPat_Atom (Just ((sourceColumn b, sourceLine b), (sourceColumn e, sourceLine e))) v'
-                   addPos x = x -- shouldn't happen..
-               return $ addPos tpat
-
-pVocable :: MyParser (TPat String)
-pVocable = wrapPos $ TPat_Atom Nothing <$> pString
-
-pChar :: MyParser (TPat Char)
-pChar = wrapPos $ TPat_Atom Nothing <$> pCharNum
 
 pDouble :: MyParser (TPat Double)
 pDouble = try $ do d <- pDoubleWithoutChord
@@ -476,9 +421,9 @@ pDouble = try $ do d <- pDoubleWithoutChord
                 <|> pDoubleWithoutChord
 
 pDoubleWithoutChord :: MyParser (TPat Double)
-pDoubleWithoutChord = pPart $ wrapPos $ do s <- sign
-                                           f <- choice [fromRational <$> pRatio, parseNote] <?> "float"
-                                           return $ TPat_Atom Nothing (applySign s f)
+pDoubleWithoutChord = pTPatF $ wrapPos $ do s <- sign
+                                            f <- choice [fromRational <$> pRatio, parseNote] <?> "float"
+                                            return $ TPat_Atom Nothing (applySign s f)
 
 pNote :: MyParser (TPat Note)
 pNote = try $ do n <- pNoteWithoutChord
@@ -488,51 +433,10 @@ pNote = try $ do n <- pNoteWithoutChord
         <|> do TPat_Atom Nothing . fromRational <$> pRatio
 
 pNoteWithoutChord :: MyParser (TPat Note)
-pNoteWithoutChord = pPart $ wrapPos $ do s <- sign
-                                         f <- choice [intOrFloat, parseNote] <?> "float"
-                                         return $ TPat_Atom Nothing (Note $ applySign s f)
+pNoteWithoutChord = pTPatF $ wrapPos $ do s <- sign
+                                          f <- choice [intOrFloat, parseNote] <?> "float"
+                                          return $ TPat_Atom Nothing (Note $ applySign s f)
 
-
-pBool :: MyParser (TPat Bool)
-pBool = wrapPos $ do oneOf "t1"
-                     return $ TPat_Atom Nothing True
-                  <|>
-                  do oneOf "f0"
-                     return $ TPat_Atom Nothing False
-
-parseIntNote  :: Integral i => MyParser i
-parseIntNote = do s <- sign
-                  d <- choice [intOrFloat, parseNote]
-                  if isInt d
-                    then return $ applySign s $ round d
-                    else fail "not an integer"
-
-pIntegral :: (Integral a, Parseable a, Enumerable a) => MyParser (TPat a)
-pIntegral = try $ do i <- pIntegralWithoutChord
-                     pChord i <|> return i
-            <|> pChord (TPat_Atom Nothing 0)
-            <|> pIntegralWithoutChord
-
-pIntegralWithoutChord :: (Integral a, Parseable a, Enumerable a) => MyParser (TPat a)
-pIntegralWithoutChord = pPart $ wrapPos $ fmap (TPat_Atom Nothing) parseIntNote
-
-parseChord :: (Enum a, Num a) => MyParser [a]
-parseChord = do char '\''
-                name <- many1 $ letter <|> digit
-                let foundChord = fromMaybe [0] $ lookup name chordTable
-                do char '\''
-                   notFollowedBy space <?> "chord range or 'i' or 'o'"
-                   let n = length foundChord
-                   i <- option n (fromIntegral <$> integer)
-                   j <- length <$> many (char 'i')
-                   o <- length <$> many (char 'o')
-                   let chord' = take i $ drop j $ concatMap (\x -> map (+ x) foundChord) [0,12..]
-                   -- open voiced chords
-                   let chordo' = if o > 0 && n > 2 then
-                                     [ (chord' !! 0 - 12), (chord' !! 2 - 12), (chord' !! 1) ] ++ reverse (take (length chord' - 3) (reverse chord'))
-                                 else chord'
-                   return chordo'
-                  <|> return foundChord
 
 parseNote :: Num a => MyParser a
 parseNote = do n <- notenum
@@ -556,53 +460,48 @@ parseNote = do n <- notenum
                                char 'n' >> return 0
                               ]
 
+parseIntNote  :: Integral i => MyParser i
+parseIntNote = do s <- sign
+                  d <- choice [intOrFloat, parseNote]
+                  if isInt d
+                    then return $ applySign s $ round d
+                    else fail "not an integer"
+
+pIntegralWithoutChord :: (Integral a, Parseable a, Enumerable a) => MyParser (TPat a)
+pIntegralWithoutChord = pTPatF $ wrapPos $ fmap (TPat_Atom Nothing) parseIntNote
+
+pIntegral :: (Integral a, Parseable a, Enumerable a) => MyParser (TPat a)
+pIntegral = try $ do i <- pIntegralWithoutChord
+                     pChord i <|> return i
+            <|> pChord (TPat_Atom Nothing 0)
+            <|> pIntegralWithoutChord
+
 fromNote :: Num a => Pattern String -> Pattern a
 fromNote pat = fromRight 0 . runParser parseNote 0 "" <$> pat
 
-pColour :: MyParser (TPat ColourD)
-pColour = wrapPos $ do name <- many1 letter <?> "colour name"
-                       colour <- readColourName name <?> "known colour"
-                       return $ TPat_Atom Nothing colour
+pFraction :: RealFrac a => a -> MyParser Rational
+pFraction n = do
+  char '%'
+  d <- pInteger
+  if (isInt n)
+    then return ((round n) % (round d))
+    else fail "fractions need int numerator and denominator"
 
-pMult :: TPat a -> MyParser (TPat a)
-pMult thing = do char '*'
-                 spaces
-                 r <- pRational <|> pPolyIn pRational <|> pPolyOut pRational
-                 return $ TPat_Fast r thing
-              <|>
-              do char '/'
-                 spaces
-                 r <- pRational <|> pPolyIn pRational <|> pPolyOut pRational
-                 return $ TPat_Slow r thing
-              <|>
-              return thing
+pRatioSingleChar :: Fractional a => Char -> a -> MyParser a
+pRatioSingleChar c v = try $ do
+  char c
+  notFollowedBy (letter)
+  return v
 
-pRand :: TPat a -> MyParser (TPat a)
-pRand thing = do char '?'
-                 r <- float <|> return 0.5
-                 spaces
-                 seed <- newSeed
-                 return $ TPat_DegradeBy seed r thing
-              <|> return thing
-
-pE :: TPat a -> MyParser (TPat a)
-pE thing = do (n,k,s) <- parens pair
-              pure $ TPat_Euclid n k s thing
-            <|> return thing
-   where pair :: MyParser (TPat Int, TPat Int, TPat Int)
-         pair = do a <- pSequence pIntegral
-                   spaces
-                   symbol ","
-                   spaces
-                   b <- pSequence pIntegral
-                   c <- do symbol ","
-                           spaces
-                           pSequence pIntegral
-                        <|> return (TPat_Atom Nothing 0)
-                   return (a, b, c)
-
-pRational :: MyParser (TPat Rational)
-pRational = wrapPos $ TPat_Atom Nothing <$> pRatio
+pRatioChar :: Fractional a => MyParser a
+pRatioChar = pRatioSingleChar 'w' 1
+             <|> pRatioSingleChar 'h' 0.5
+             <|> pRatioSingleChar 'q' 0.25
+             <|> pRatioSingleChar 'e' 0.125
+             <|> pRatioSingleChar 's' 0.0625
+             <|> pRatioSingleChar 't' (1/3)
+             <|> pRatioSingleChar 'f' 0.2
+             <|> pRatioSingleChar 'x' (1/6)
 
 pRatio :: MyParser Rational
 pRatio = do
@@ -615,47 +514,173 @@ pRatio = do
        pRatioChar
   return $ applySign s r
 
-pInteger :: MyParser Double
-pInteger = read <$> many1 digit
-
-pFloat :: MyParser Double
-pFloat = do
-        i <- many1 digit
-        d <- option "0" (char '.' >> many1 digit)
-        e <- option "0" (char 'e' >> do
-                                    s <- option "" (char '-' >> return "-")
-                                    e' <- many1 digit
-                                    return $ s++e')
-        return $ read (i++"."++d++"e"++e)
-
-pFraction :: RealFrac a => a -> MyParser Rational
-pFraction n = do
-  char '%'
-  d <- pInteger
-  if (isInt n)
-    then return ((round n) % (round d))
-    else fail "fractions need int numerator and denominator"
-
-pRatioChar :: Fractional a => MyParser a
-pRatioChar = pRatioSingleChar 'w' 1
-             <|> pRatioSingleChar 'h' 0.5
-             <|> pRatioSingleChar 'q' 0.25
-             <|> pRatioSingleChar 'e' 0.125
-             <|> pRatioSingleChar 's' 0.0625
-             <|> pRatioSingleChar 't' (1/3)
-             <|> pRatioSingleChar 'f' 0.2
-             <|> pRatioSingleChar 'x' (1/6)
-
-pRatioSingleChar :: Fractional a => Char -> a -> MyParser a
-pRatioSingleChar c v = try $ do
-  char c
-  notFollowedBy (letter)
-  return v
+pRational :: MyParser (TPat Rational)
+pRational = wrapPos $ TPat_Atom Nothing <$> pRatio
 
 isInt :: RealFrac a => a -> Bool
 isInt x = x == fromInteger (round x)
 
----
+-- parsing operators that take a single base pattern
+
+pMult :: TPat a -> MyParser (TPat a)
+pMult thing = do char '*'
+                 -- spaces
+                 r <- (pTPat :: MyParser (TPat Rational))
+                 return $ TPat_Fast r thing
+              <|>
+              do char '/'
+                 -- spaces
+                 r <- (pTPat :: MyParser (TPat Rational))
+                 return $ TPat_Slow r thing
+
+
+pRand :: TPat a -> MyParser (TPat a)
+pRand thing = do char '?'
+                 r <- float <|> return 0.5
+                 -- spaces
+                 seed <- newSeed
+                 return $ TPat_DegradeBy seed r thing
+
+
+pEuclid :: TPat a -> MyParser (TPat a)
+pEuclid thing = do (n,k,s) <- parens pair
+                   pure $ TPat_Euclid n k s thing
+         where pair :: MyParser (TPat Int, TPat Int, TPat Int)
+               pair = do a <- (pSeq :: MyParser (TPat Int))
+                         spaces
+                         symbol ","
+                         spaces
+                         b <- (pSeq :: MyParser (TPat Int))
+                         c <- do symbol ","
+                                 spaces
+                                 (pSeq :: MyParser (TPat Int))
+                              <|> return (TPat_Atom Nothing 0)
+                         return (a, b, c)
+
+pRepeat :: TPat a -> MyParser (TPat a)
+pRepeat a = do es <- many1 $ do char '!'
+                                n <- (subtract 1 . read <$> many1 digit) <|> return 1
+                                -- spaces
+                                return n
+               return $ TPat_Repeat (1 + sum es) a
+
+pElongate :: TPat a -> MyParser (TPat a)
+pElongate a = do rs <- many1 $ do spaces
+                                  oneOf "@_"
+                                  r <- (subtract 1 <$> pRatio) <|> return 1
+                                  spaces
+                                  return r
+                 return $ TPat_Elongate (1 + sum rs) a
+
+-- parsing operators that take a list of base patterns
+
+pStack :: Parseable a => TPat a -> MyParser (TPat a)
+pStack p = do
+  symbol ","
+  ps <- pSeq `sepBy` symbol ","
+  return $ TPat_Stack (p:ps)
+
+pChoose :: Parseable a => TPat a -> MyParser (TPat a)
+pChoose p = do
+  symbol "|"
+  ps <- pSeq `sepBy` symbol "|"
+  seed <- newSeed
+  return $ TPat_CycleChoose seed (p:ps)
+
+pPolyIn :: Parseable a => MyParser (TPat a)
+pPolyIn = brackets $ do
+                p <- pSeq
+                option p (pChoose p <|> pStack p)
+
+pPoly :: Parseable a => MyParser (TPat a)
+pPoly = do
+   ss <- braces (pSeq `sepBy` symbol ",")
+   base <- do char '%'
+              r <- (pSeq :: MyParser (TPat Rational)) <?> "rational number"
+              return $ Just r
+           <|> return Nothing
+   return $ TPat_Polyrhythm base ss
+
+pCycle :: Parseable a => MyParser (TPat a)
+pCycle = do
+    ss <- angles (pSeq `sepBy` symbol ",")
+    return $ TPat_Polyrhythm (Just $ TPat_Atom Nothing 1) ss
+
+pPolyOut :: Parseable a => MyParser (TPat a)
+pPolyOut = pPoly <|> pCycle
+
+-- parsing sequences
+
+pTPatUnary :: TPat a -> MyParser (TPat a)
+pTPatUnary p = pMult p <|> pEuclid p <|> pRand p <|> pRepeat p <|> try (pElongate p)
+
+pTPatNary :: Parseable a => MyParser (TPat a)
+pTPatNary = pPolyIn <|> pPolyOut
+
+pTPatOnceF :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
+pTPatOnceF f = (pValueOrSilenceF f >>= (\p -> pTPatUnary p <|> return p)) <|> pTPatNary
+
+pTPatMany :: TPat a -> MyParser (TPat a)
+pTPatMany p = (do
+  q <- pTPatUnary p
+  pTPatMany q) <|> return p
+
+pTPatF :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
+pTPatF f = pTPatOnceF f >>= pTPatMany
+
+pTPat :: Parseable a => MyParser (TPat a)
+pTPat = pTPatF tPatParser
+
+pEnum :: Parseable a => MyParser (TPat a)
+pEnum = do
+  spaces
+  p <- pTPat
+  spaces
+  symbol ".."
+  spaces
+  q <- pTPat
+  spaces
+  return $ TPat_EnumFromTo p q
+
+pTPats :: Parseable a => MyParser [TPat a]
+pTPats = many1 $ (try pEnum) <|> between spaces spaces pTPat
+
+pWithoutFeet :: Parseable a => MyParser [TPat a]
+pWithoutFeet = do
+          ps <- pTPats
+          notFollowedBy (char '.')
+          return ps
+
+pWithFeet :: Parseable a => MyParser [TPat a]
+pWithFeet = do
+          pss <- ((try pTPats) <|> ( (many1 $ oneOf " \n\t") >> return [TPat_Silence])) `sepBy1` (char '.')
+          return $ map TPat_Seq pss
+
+pTPatList :: Parseable a => MyParser [TPat a]
+pTPatList = (try $ pWithoutFeet) <|> pWithFeet
+
+pSeq :: Parseable a => MyParser (TPat a)
+pSeq = fmap TPat_Seq $ pTPatList
+
+-- utility functions
+
+newSeed :: MyParser Int
+newSeed = do seed <- Text.Parsec.Prim.getState
+             Text.Parsec.Prim.modifyState (+1)
+             return seed
+
+
+wrapPos :: MyParser (TPat a) -> MyParser (TPat a)
+wrapPos p = do b <- getPosition
+               tpat <- p
+               e <- getPosition
+               let addPos (TPat_Atom _ v') =
+                     TPat_Atom (Just ((sourceColumn b, sourceLine b), (sourceColumn e, sourceLine e))) v'
+                   addPos x = x -- shouldn't happen..
+               return $ addPos tpat
+
+
+-- parsing chords
 
 instance Parseable [Modifier] where
   tPatParser = pModifiers
@@ -684,7 +709,7 @@ parseModOpen :: MyParser Modifier
 parseModOpen = char 'o' >> return Open
 
 parseModRange :: MyParser Modifier
-parseModRange = parseIntNote >>= \i -> return $ Range $ fromIntegral (i :: Integer)
+parseModRange = parseIntNote >>= \i -> return $ Range $ fromIntegral i
 
 parseModifiers :: MyParser [Modifier]
 parseModifiers = (many1 parseModOpen) <|> parseModDrop <|> (fmap pure parseModRange) <|> try parseModInvNum <|> (many1 parseModInv)  <?> "modifier"
@@ -695,6 +720,6 @@ pModifiers = wrapPos $ TPat_Atom Nothing <$> parseModifiers
 pChord :: (Enum a, Num a, Parseable a, Enumerable a) => TPat a -> MyParser (TPat a)
 pChord i = do
     char '\''
-    n <- pPart pVocable <?> "chordname"
-    ms <- option [] $ many1 $ (char '\'' >> pPart pModifiers)
+    n <- pTPat <?> "chordname"
+    ms <- option [] $ many1 $ (char '\'' >> pTPat)
     return $ TPat_Chord id i n ms
