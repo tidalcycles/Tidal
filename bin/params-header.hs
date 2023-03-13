@@ -24,16 +24,20 @@ module Sound.Tidal.Params where
 
 import qualified Data.Map.Strict as Map
 
+import Sound.Tidal.Types
+import Sound.Tidal.Value
 import Sound.Tidal.Pattern
-import Sound.Tidal.Core ((#))
+import Sound.Tidal.Signal.Base
+import Sound.Tidal.Signal.Compose ((#))
+-- import Sound.Tidal.Core ((#))
 import Sound.Tidal.Utils
 import Data.Maybe (fromMaybe)
 import Data.Word (Word8)
 import Data.Fixed (mod')
 
 -- | group multiple params into one
-grp :: [String -> ValueMap] -> Pattern String -> ControlPattern
-grp [] _ = empty
+grp :: [String -> ValueMap] -> Signal String -> ControlSignal
+grp [] _ = silence
 grp fs p = splitby <$> p
   where splitby name = Map.unions $ map (\(v, f) -> f v) $ zip (split name) fs
         split :: String -> [String]
@@ -52,34 +56,34 @@ mS name v = Map.singleton name (VS v)
 
 -- | Param makers
 
-pF :: String -> Pattern Double -> ControlPattern
+pF :: String -> Signal Double -> ControlSignal
 pF name = fmap (Map.singleton name . VF)
 
-pI :: String -> Pattern Int -> ControlPattern
+pI :: String -> Signal Int -> ControlSignal
 pI name = fmap (Map.singleton name . VI)
 
-pB :: String -> Pattern Bool -> ControlPattern
+pB :: String -> Signal Bool -> ControlSignal
 pB name = fmap (Map.singleton name . VB)
  
-pR :: String -> Pattern Rational -> ControlPattern
+pR :: String -> Signal Rational -> ControlSignal
 pR name = fmap (Map.singleton name . VR)
 
-pN :: String -> Pattern Note -> ControlPattern
+pN :: String -> Signal Note -> ControlSignal
 pN name = fmap (Map.singleton name . VN)
 
-pS :: String -> Pattern String -> ControlPattern
+pS :: String -> Signal String -> ControlSignal
 pS name = fmap (Map.singleton name . VS)
 
-pX :: String -> Pattern [Word8] -> ControlPattern
+pX :: String -> Signal [Word8] -> ControlSignal
 pX name = fmap (Map.singleton name . VX)
 
-pStateF :: String -> String -> (Maybe Double -> Double) -> ControlPattern
+pStateF :: String -> String -> (Maybe Double -> Double) -> ControlSignal
 pStateF name sName update = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
         statef sMap = (Map.insert sName v sMap, v) 
           where v = VF $ update $ (Map.lookup sName sMap) >>= getF
 
-pStateList :: String -> String -> [Value] -> ControlPattern
+pStateList :: String -> String -> [Value] -> ControlSignal
 pStateList name sName xs = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
         statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped) 
@@ -88,39 +92,39 @@ pStateList name sName xs = pure $ Map.singleton name $ VState statef
                 looped | null xs' = xs
                        | otherwise = xs'
 
-pStateListF :: String -> String -> [Double] -> ControlPattern
+pStateListF :: String -> String -> [Double] -> ControlSignal
 pStateListF name sName = pStateList name sName . map VF
 
-pStateListS :: String -> String -> [String] -> ControlPattern
+pStateListS :: String -> String -> [String] -> ControlSignal
 pStateListS name sName = pStateList name sName . map VS
 
 -- | Grouped params
 
-sound :: Pattern String -> ControlPattern
+sound :: Signal String -> ControlSignal
 sound = grp [mS "s", mF "n"]
 
-sTake :: String -> [String] -> ControlPattern
+sTake :: String -> [String] -> ControlSignal
 sTake name xs = pStateListS "s" name xs
 
-cc :: Pattern String -> ControlPattern
+cc :: Signal String -> ControlSignal
 cc = grp [mF "ccn", mF "ccv"]
 
-nrpn :: Pattern String -> ControlPattern
+nrpn :: Signal String -> ControlSignal
 nrpn = grp [mI "nrpn", mI "val"]
 
-nrpnn :: Pattern Int -> ControlPattern
+nrpnn :: Signal Int -> ControlSignal
 nrpnn = pI "nrpn"
 
-nrpnv :: Pattern Int -> ControlPattern
+nrpnv :: Signal Int -> ControlSignal
 nrpnv = pI "val"
 
-grain' :: Pattern String -> ControlPattern
+grain' :: Signal String -> ControlSignal
 grain' = grp [mF "begin", mF "end"]
 
-midinote :: Pattern Note -> ControlPattern
+midinote :: Signal Note -> ControlSignal
 midinote = note . (subtract 60 <$>)
 
-drum :: Pattern String -> ControlPattern
+drum :: Signal String -> ControlSignal
 drum = n . (subtract 60 . drumN <$>)
 
 drumN :: Num a => String -> a

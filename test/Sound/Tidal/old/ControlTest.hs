@@ -1,20 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Sound.Tidal.ControlTest where
+module Sound.Tidal.SignalControlTest where
 
 import TestUtils
 import Test.Microspec
 
 import Prelude hiding ((<*), (*>))
 
-import Sound.Tidal.Control
-import Sound.Tidal.Core
-import Sound.Tidal.Params
+import Sound.Tidal.Types
 import Sound.Tidal.Pattern
+import Sound.Tidal.Signal.Base
+import Sound.Tidal.Signal.Control
 
 run :: Microspec ()
 run =
-  describe "Sound.Tidal.Control" $ do
+  describe "Sound.Tidal.SignalControl" $ do
 
     describe "echo" $ do
       it "should echo the event by the specified time and multiply the gain factor" $ do

@@ -2,8 +2,8 @@ module Tidal.CoreB where
 
 import Criterion.Main 
 import Tidal.Inputs
-import Sound.Tidal.Pattern
-import Sound.Tidal.Core 
+import Sound.Tidal.Context
+
 
 _fastB :: [Benchmark]
 _fastB = 

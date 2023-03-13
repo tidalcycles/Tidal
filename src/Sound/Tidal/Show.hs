@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz, stepcount, showStateful) where
+module Sound.Tidal.Show where
 
 
 {-
@@ -22,37 +22,41 @@ module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz, stepcount, s
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import Sound.Tidal.Pattern
+import Sound.Tidal.Types
+
+import Sound.Tidal.Signal.Base (queryArc)
+import Sound.Tidal.Signal.Event (eventHasOnset)
 
 import Data.List (intercalate, sortOn)
 import Data.Ratio (numerator, denominator)
-import Data.Maybe (fromMaybe, isJust)
+import Data.Maybe (fromMaybe)
 
 import qualified Data.Map.Strict as Map
 
-instance (Show a) => Show (Pattern a) where
-  show = showPattern (Arc 0 1)
 
-showStateful :: ControlPattern -> String
-showStateful p = intercalate "\n" evStrings
-  where (_, evs) = resolveState (Map.empty) $ sortOn part $ queryArc (filterOnsets p) (Arc 0 1)
-        evs' = map showEvent evs
-        maxPartLength :: Int
-        maxPartLength = maximum $ map (length . fst) evs'
-        evString :: (String, String) -> String
-        evString ev = ((replicate (maxPartLength - (length (fst ev))) ' ')
-                       ++ fst ev
-                       ++ snd ev
-                      )
-        evStrings = map evString evs'
+instance (Show a) => Show (Signal a) where
+  show = showSignal (Arc 0 1)
 
-showPattern :: Show a => Arc -> Pattern a -> String
-showPattern a p = intercalate "\n" evStrings
-  where evs = map showEvent $ sortOn part $ queryArc p a
-        maxPartLength :: Int
-        maxPartLength = maximum $ map (length . fst) evs
+-- showStateful :: ControlSignal -> String
+-- showStateful p = intercalate "\n" evStrings
+--   where (_, evs) = resolveState (Map.empty) $ sortOn part $ queryArc (filterOnsets p) (Arc 0 1)
+--         evs' = map showEvent evs
+--         maxPartLength :: Int
+--         maxPartLength = maximum $ map (length . fst) evs'
+--         evString :: (String, String) -> String
+--         evString ev = ((replicate (maxPartLength - (length (fst ev))) ' ')
+--                        ++ fst ev
+--                        ++ snd ev
+--                       )
+--         evStrings = map evString evs'
+
+showSignal :: Show a => Arc -> Signal a -> String
+showSignal a p = intercalate "\n" evStrings
+  where evs = map showEvent $ sortOn active $ queryArc p a
+        maxActiveLength :: Int
+        maxActiveLength = maximum $ map (length . fst) evs
         evString :: (String, String) -> String
-        evString ev = replicate (maxPartLength - length (fst ev)) ' '
+        evString ev = replicate (maxActiveLength - length (fst ev)) ' '
                        ++ uncurry (++) ev
         evStrings = map evString evs
 
@@ -67,16 +71,16 @@ showEvent (Event _ (Just (Arc ws we)) a@(Arc ps pe) e) =
 showEvent (Event _ Nothing a e) =
   ("~" ++ show a ++ "~|", show e)
 
--- Show everything, including event context
-showAll :: Show a => Arc -> Pattern a -> String
-showAll a p = intercalate "\n" $ map showEventAll $ sortOn part $ queryArc p a
+-- Show everything, including event metadata
+showAll :: Show a => Arc -> Signal a -> String
+showAll a p = intercalate "\n" $ map showEventAll $ sortOn active $ queryArc p a
 
--- Show context of an event
+-- Show metadata of an event
 showEventAll :: Show a => Event a -> String
-showEventAll e = show (context e) ++ uncurry (++) (showEvent e)
+showEventAll e = show (metadata e) ++ uncurry (++) (showEvent e)
 
-instance Show Context where
-  show (Context cs) = show cs
+instance Show Metadata where
+  show (Metadata cs) = show cs
 
 instance Show Value where
   show (VS s)  = ('"':s) ++ "\""
@@ -86,7 +90,7 @@ instance Show Value where
   show (VR r)  = prettyRat r ++ "r"
   show (VB b)  = show b
   show (VX xs) = show xs
-  show (VPattern pat) = "(" ++ show pat ++ ")"
+--  show (VPattern pat) = "(" ++ show pat ++ ")"
   show (VState f) = show $ f Map.empty
   show (VList vs) = show $ map show vs
 
@@ -153,8 +157,8 @@ showFrac n d = fromMaybe plain $ do n' <- up n
         down 0 = Just "₀"
         down _ = Nothing
 
-stepcount :: Pattern a -> Int
-stepcount pat = fromIntegral $ eventSteps $ concatMap ((\ev -> [start ev, stop ev]) . part) (filter eventHasOnset $ queryArc pat (Arc 0 1))
+stepcount :: Signal a -> Int
+stepcount pat = fromIntegral $ eventSteps $ concatMap ((\ev -> [aBegin ev, aEnd ev]) . active) (filter eventHasOnset $ queryArc pat (Arc 0 1))
   where eventSteps xs = foldr (lcm . denominator) 1 xs
 
 data Render = Render Int Int String
@@ -164,78 +168,69 @@ instance Show Render where
                              | otherwise = "That pattern is too complex to draw."
 
 
-drawLine :: Pattern Char -> Render
-drawLine = drawLineSz 78
+-- deconstruct :: Int -> Pattern String -> String
+-- deconstruct n p = intercalate " " $ map showStep $ toList p
+--   where
+--     showStep :: [String] -> String
+--     showStep [] = "~"
+--     showStep [x] = x
+--     showStep xs = "[" ++ (intercalate ", " xs) ++ "]"
+--     toList :: Pattern a -> [[a]]
+--     toList pat = map (\(s,e) -> map value $ queryArc (_segment n' pat) (Arc s e)) arcs
+--       where breaks = [0, (1/n') ..]
+--             arcs = zip (take n breaks) (drop 1 breaks)
+--             n' = fromIntegral n
 
-drawLineSz :: Int -> Pattern Char -> Render
-drawLineSz sz pat = joinCycles sz $ drawCycles pat
-  where
-    drawCycles :: Pattern Char -> [Render]
-    drawCycles pat' = draw pat':drawCycles (rotL 1 pat')
-    joinCycles :: Int -> [Render] -> Render
-    joinCycles _ [] = Render 0 0 ""
-    joinCycles n ((Render cyc l s):cs) | l > n = Render 0 0 ""
-                                       | otherwise = Render (cyc+cyc') (l + l' + 1) $ intercalate "\n" $ map (uncurry (++)) lineZip
-      where
-        (Render cyc' l' s') = joinCycles (n-l-1) cs
-        linesN = max (length $ lines s) (length $ lines s')
-        lineZip = take linesN $
-          zip (lines s ++ repeat (replicate l ' '))
-              (lines s' ++ repeat (replicate l' ' '))
+-- drawLine :: Signal Char -> Render
+-- drawLine = drawLineSz 78
 
-      -- where maximum (map (length . head . (++ [""]) . lines) cs)
+-- drawLineSz :: Int -> Signal Char -> Render
+-- drawLineSz sz pat = joinCycles sz $ drawCycles pat
+--   where
+--     drawCycles :: Signal Char -> [Render]
+--     drawCycles pat' = draw pat':drawCycles (rotL 1 pat')
+--     joinCycles :: Int -> [Render] -> Render
+--     joinCycles _ [] = Render 0 0 ""
+--     joinCycles n ((Render cyc l s):cs) | l > n = Render 0 0 ""
+--                                        | otherwise = Render (cyc+cyc') (l + l' + 1) $ intercalate "\n" $ map (uncurry (++)) lineZip
+--       where
+--         (Render cyc' l' s') = joinCycles (n-l-1) cs
+--         linesN = max (length $ lines s) (length $ lines s')
+--         lineZip = take linesN $
+--           zip (lines s ++ repeat (replicate l ' '))
+--               (lines s' ++ repeat (replicate l' ' '))
+
+--       -- where maximum (map (length . head . (++ [""]) . lines) cs)
 
 
-draw :: Pattern Char -> Render
-draw pat = Render 1 s (intercalate "\n" $ map (('|' :) .drawLevel) ls)
-  where ls = levels pat
-        s = stepcount pat
-        rs = toRational s
-        drawLevel :: [Event Char] -> String
-        drawLevel [] = replicate s '.'
-        drawLevel (e:es) = map f $ take s $ zip (drawLevel es ++ repeat '.') (drawEvent e ++ repeat '.')
-        f ('.', x) = x
-        f (x, _) = x
-        drawEvent :: Event Char -> String
-        drawEvent ev = replicate (floor $ rs * evStart) '.'
-                       ++ (value ev:replicate (floor (rs * (evStop - evStart)) - 1) '-')
-          where evStart = start $ wholeOrPart ev
-                evStop = stop $ wholeOrPart ev
+-- draw :: Signal Char -> Render
+-- draw pat = Render 1 s (intercalate "\n" $ map (('|' :) .drawLevel) ls)
+--   where ls = levels pat
+--         s = stepcount pat
+--         rs = toRational s
+--         drawLevel :: [Event Char] -> String
+--         drawLevel [] = replicate s '.'
+--         drawLevel (e:es) = map f $ take s $ zip (drawLevel es ++ repeat '.') (drawEvent e ++ repeat '.')
+--         f ('.', x) = x
+--         f (x, _) = x
+--         drawEvent :: Event Char -> String
+--         drawEvent ev = replicate (floor $ rs * evStart) '.'
+--                        ++ (value ev:replicate (floor (rs * (evStop - evStart)) - 1) '-')
+--           where evStart = start $ wholeOrActive ev
+--                 evStop = stop $ wholeOrActive ev
 
-{-
-fitsWhole :: Event b -> [Event b] -> Bool
-fitsWhole event events =
-  not $ any (\event' -> isJust $ subArc (wholeOrPart event) (wholeOrPart event')) events
+-- fits :: Event b -> [Event b] -> Bool
+-- fits (Event _ _ part' _) events = not $ any (\Event{..} -> isJust $ subArc part' part) events
 
-addEventWhole :: Event b -> [[Event b]] -> [[Event b]]
-addEventWhole e [] = [[e]]
-addEventWhole e (level:ls)
-    | isAnalog e = level:ls
-    | fitsWhole e level = (e:level) : ls
-    | otherwise = level : addEventWhole e ls
+-- addEvent :: Event b -> [[Event b]] -> [[Event b]]
+-- addEvent e [] = [[e]]
+-- addEvent e (level:ls)
+--     | fits e level = (e:level) : ls
+--     | otherwise = level : addEvent e ls
 
-arrangeEventsWhole :: [Event b] -> [[Event b]]
-arrangeEventsWhole = foldr addEventWhole []
+-- arrangeEvents :: [Event b] -> [[Event b]]
+-- arrangeEvents = foldr addEvent []
 
-levelsWhole :: Eq a => Pattern a -> [[Event a]]
-levelsWhole pat = arrangeEventsWhole $ sortOn' ((\Arc{..} -> 0 - (stop - start)) . wholeOrPart) (defragParts $ queryArc pat (Arc 0 1))
-
-sortOn' :: Ord a => (b -> a) -> [b] -> [b]
-sortOn' f = map snd . sortOn fst . map (\x -> let y = f x in y `seq` (y, x))
--}
-
-fits :: Event b -> [Event b] -> Bool
-fits (Event _ _ part' _) events = not $ any (\Event{..} -> isJust $ subArc part' part) events
-
-addEvent :: Event b -> [[Event b]] -> [[Event b]]
-addEvent e [] = [[e]]
-addEvent e (level:ls)
-    | fits e level = (e:level) : ls
-    | otherwise = level : addEvent e ls
-
-arrangeEvents :: [Event b] -> [[Event b]]
-arrangeEvents = foldr addEvent []
-
-levels :: Eq a => Pattern a -> [[Event a]]
--- levels pat = arrangeEvents $ sortOn' ((\Arc{..} -> stop - start) . part) (defragParts $ queryArc pat (Arc 0 1))
-levels pat = arrangeEvents $ reverse $ defragParts $ queryArc pat (Arc 0 1)
+-- levels :: Eq a => Signal a -> [[Event a]]
+-- -- levels pat = arrangeEvents $ sortOn' ((\Arc{..} -> stop - start) . part) (defragActives $ queryArc pat (Arc 0 1))
+-- levels pat = arrangeEvents $ reverse $ defragActives $ queryArc pat (Arc 0 1)

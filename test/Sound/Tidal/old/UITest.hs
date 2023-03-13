@@ -396,12 +396,6 @@ run =
           (off "-e" id $ s "0")
           (superimpose ("e" <~) $ s "0")
 
-    describe "loopFirst" $ do
-      it "plays the first cycle" $ do
-        compareP (Arc 0 1)
-          (loopFirst $ rotL 3 $ slow 8 $ "0 .. 7" :: Pattern Int)
-          ("3")
-
     describe "loopCycles" $ do
       it "plays the first n cycles" $ do
         compareP (Arc 0 1)

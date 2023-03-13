@@ -8,11 +8,11 @@ import Data.Function
 import System.IO
 
 toType :: String -> String
-toType "s" = "Pattern String"
-toType "f" = "Pattern Double"
-toType "i" = "Pattern Int"
-toType "note" = "Pattern Note"
-toType "[word8]" = "Pattern [Word8]"
+toType "s" = "Signal String"
+toType "f" = "Signal Double"
+toType "i" = "Signal Int"
+toType "note" = "Signal Note"
+toType "[word8]" = "Signal [Word8]"
 
 toFunc :: String -> String
 toFunc "s" = "pS"
@@ -36,41 +36,41 @@ controls = intercalate "\n" $ map fs $ sortBy (compare `on` (\(_,x,_) -> x)) gen
   where fs x = control x ++ bus x
         control (t, name, desc) =
           concat ["-- | " ++ desc ++ "\n",
-                  name, " :: ", toType t, " -> ControlPattern\n",
+                  name, " :: ", toType t, " -> ControlSignal\n",
                   name, " = ", toFunc t, " \"", name, "\"\n",
-                  name, "Take :: String -> [Double] -> ControlPattern\n",
+                  name, "Take :: String -> [Double] -> ControlSignal\n",
                   name, "Take name xs = pStateListF \"",name,"\" name xs\n",
                   counters t name
                  ]
         counters "note" name = counters "f" name
         counters "i" name = counters "f" name
-        counters "f" name = concat [name, "Count :: String -> ControlPattern\n",
+        counters "f" name = concat [name, "Count :: String -> ControlSignal\n",
                                     name, "Count name = pStateF \"",name,"\" name (maybe 0 (+1))\n",
-                                    name, "CountTo :: String -> Pattern Double -> Pattern ValueMap\n",
+                                    name, "CountTo :: String -> Signal Double -> Signal ValueMap\n",
                                     name, "CountTo name ipat = innerJoin $ (\\i -> pStateF \"",name,"\" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat\n\n"
                                    ]
         counters _ _ = ""
         bus (t,name,desc) | elem name nobus = concat [
-                              name, "bus :: Pattern Int -> ", toType t, " -> ControlPattern\n",
+                              name, "bus :: Signal Int -> ", toType t, " -> ControlSignal\n",
                               name, "bus _ _ = error $ \"Control parameter '" ++ name ++ "' can't be sent to a bus.\"\n"
                               ]
                           | otherwise = 
-          concat [name, "bus :: Pattern Int -> ", toType t, " -> ControlPattern\n",
+          concat [name, "bus :: Signal Int -> ", toType t, " -> ControlSignal\n",
                   name, "bus busid pat = (", toFunc t, " \"", name, "\" pat) # (pI \"^", name, "\" busid)\n",
-                  name, "recv :: Pattern Int -> ControlPattern\n",
+                  name, "recv :: Signal Int -> ControlSignal\n",
                   name, "recv busid = pI \"^", name, "\" busid\n"
                  ]
 
 aliases = intercalate "\n" $ map fs $ sortBy (flip compare `on` (\(_,x,_) -> x)) aliasParams
   where fs (t, from, to) =
-          concat [from, " :: ", toType t, " -> ControlPattern\n",
+          concat [from, " :: ", toType t, " -> ControlSignal\n",
                   from, " = ", to, "\n",
                   if elem to nobus
                   then ""
                   else concat [
-                    from, "bus :: Pattern Int -> ", toType t, " -> ControlPattern\n",
+                    from, "bus :: Signal Int -> ", toType t, " -> ControlSignal\n",
                     from, "bus = ", to, "bus\n",
-                    from, "recv :: Pattern Int -> ControlPattern\n",
+                    from, "recv :: Signal Int -> ControlSignal\n",
                     from, "recv = ", to, "recv\n"
                     ]
                  ]

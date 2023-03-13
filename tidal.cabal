@@ -1,7 +1,7 @@
 cabal-version:       2.0
 
 name:                tidal
-version:             1.9.4
+version:             2.0.0-pre
 synopsis:            Pattern language for improvised music
 description:         Tidal is a domain specific language for live coding patterns.
 homepage:            http://tidalcycles.org/
@@ -27,28 +27,39 @@ library
 
   autogen-modules:     Paths_tidal
 
-  Exposed-modules:     Sound.Tidal.Bjorklund
+  Exposed-modules:
+                       Sound.Tidal.Arc
+                       Sound.Tidal.Bjorklund
                        Sound.Tidal.Chords
                        Sound.Tidal.Config
-                       Sound.Tidal.Control
+                       Sound.Tidal.Signal.Control
                        Sound.Tidal.Context
-                       Sound.Tidal.Core
+                       -- Sound.Tidal.Core
                        Sound.Tidal.ID
                        Sound.Tidal.Params
                        Sound.Tidal.ParseBP
                        Sound.Tidal.Pattern
                        Sound.Tidal.Scales
-                       Sound.Tidal.Safe.Context
-                       Sound.Tidal.Safe.Boot
+                       -- Sound.Tidal.Safe.Context
+                       -- Sound.Tidal.Safe.Boot
+                       Sound.Tidal.Sequence
                        Sound.Tidal.Show
-                       Sound.Tidal.Simple
+                       Sound.Tidal.Signal.Base
+                       Sound.Tidal.Signal.Compose
+                       Sound.Tidal.Signal.ComposeExtra
+                       Sound.Tidal.Signal.Event
+                       Sound.Tidal.Signal.Random
+                       Sound.Tidal.Signal.Waveform
+                       -- Sound.Tidal.Simple
                        Sound.Tidal.Stream
                        Sound.Tidal.StreamTypes
                        Sound.Tidal.Tempo
                        Sound.Tidal.Time
-                       Sound.Tidal.Transition
-                       Sound.Tidal.UI
+                       Sound.Tidal.Types
+                       -- Sound.Tidal.Transition
+                       -- Sound.Tidal.UI
                        Sound.Tidal.Utils
+                       Sound.Tidal.Value
                        Sound.Tidal.Version
                        Paths_tidal
   Build-depends:
@@ -75,17 +86,33 @@ test-suite tests
   hs-source-dirs:
       test
   ghc-options: -Wall
-  other-modules: Sound.Tidal.ControlTest
-                 Sound.Tidal.CoreTest
-                 Sound.Tidal.ParamsTest
-                 Sound.Tidal.ParseTest
-                 Sound.Tidal.PatternTest
-                 Sound.Tidal.ScalesTest
+  other-modules:
+                 -- Sound.Tidal.ControlTest
+                 -- Sound.Tidal.CoreTest
+                 -- Sound.Tidal.ParamsTest
+                 -- Sound.Tidal.ParseTest
+                 -- Sound.Tidal.PatternTest
+                 -- Sound.Tidal.ChordsTest
+                 -- Sound.Tidal.StreamTest
+                 -- Sound.Tidal.UITest
+                 -- Sound.Tidal.ExceptionsTest
+                 Sound.Tidal.ArcTest
                  Sound.Tidal.ChordsTest
-                 Sound.Tidal.StreamTest
-                 Sound.Tidal.UITest
-                 Sound.Tidal.UtilsTest
+                 Sound.Tidal.EventTest
                  Sound.Tidal.ExceptionsTest
+                 Sound.Tidal.ParamsTest
+                 Sound.Tidal.ParseBPTest
+                 Sound.Tidal.ScalesTest
+                 Sound.Tidal.SignalBaseTest
+                 Sound.Tidal.SignalComposeTest
+                 Sound.Tidal.SignalControlTest
+                 Sound.Tidal.SignalRandomTest
+                 Sound.Tidal.StreamTest
+                 Sound.Tidal.TimeTest
+                 Sound.Tidal.TypesTest
+                 Sound.Tidal.UtilsTest
+                 Sound.Tidal.ValueTest
+                 Sound.Tidal.WaveformTest
                  TestUtils
   build-depends:
                 base ==4.*

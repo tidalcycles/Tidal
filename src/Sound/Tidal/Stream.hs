@@ -39,12 +39,17 @@ import qualified Sound.Osc.Time.Timeout as O
 import qualified Network.Socket          as N
 
 import           Sound.Tidal.Config
-import           Sound.Tidal.Core (stack, (#))
+-- import           Sound.Tidal.Core (stack, silence, (#))
 import           Sound.Tidal.ID
 import qualified Sound.Tidal.Link as Link
 import           Sound.Tidal.Params (pS)
-import           Sound.Tidal.Pattern
+import           Sound.Tidal.Pattern (Pattern, stack, silence)
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Compose ((#))
 import qualified Sound.Tidal.Tempo as T
+import           Sound.Tidal.Types
+import           Sound.Tidal.Value
+import           Sound.Tidal.Signal.Event
 import           Sound.Tidal.Utils ((!!!))
 import           Data.List (sortOn)
 import           System.Random (getStdRandom, randomR)
@@ -57,12 +62,12 @@ import Sound.Tidal.StreamTypes as Sound.Tidal.Stream
 data Stream = Stream {sConfig :: Config,
                       sBusses :: MVar [Int],
                       sStateMV :: MVar ValueMap,
-                      -- sOutput :: MVar ControlPattern,
+                      -- sOutput :: MVar ControlSignal,
                       sLink :: Link.AbletonLink,
                       sListen :: Maybe O.Udp,
                       sPMapMV :: MVar PlayMap,
                       sActionsMV :: MVar [T.TempoAction],
-                      sGlobalFMV :: MVar (ControlPattern -> ControlPattern),
+                      sGlobalFMV :: MVar (ControlSignal -> ControlSignal),
                       sCxs :: [Cx]
                      }
 
@@ -290,7 +295,7 @@ toDatum (VB True) = O.int32 (1 :: Int)
 toDatum (VB False) = O.int32 (0 :: Int)
 toDatum (VX xs) = O.Blob $ O.blob_pack xs
 toDatum _ = error "toDatum: unhandled value"
-  
+
 toData :: OSC -> Event ValueMap -> Maybe [O.Datum]
 toData (OSC {args = ArgList as}) e = fmap (fmap (toDatum)) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
 toData (OSC {args = Named rqrd}) e
@@ -325,17 +330,18 @@ getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
                             simpleShow (VB b) = show b
                             simpleShow (VX xs) = show xs
                             simpleShow (VState _) = show "<stateful>"
-                            simpleShow (VPattern _) = show "<pattern>"
+                            simpleShow (VSignal _) = show "<signal>"
                             simpleShow (VList _) = show "<list>"
                             defaultValue :: String -> Maybe String
                             defaultValue ('=':dfltVal) = Just dfltVal
                             defaultValue _ = Nothing
 
-playStack :: PlayMap -> ControlPattern
-playStack pMap = stack . (map pattern) . (filter active) . Map.elems $ pMap
-  where active pState = if hasSolo pMap
-                        then solo pState
-                        else not (mute pState)
+playStack :: PlayMap -> ControlSignal
+playStack pMap = stack $ map pattern active
+  where active = filter (\pState -> if hasSolo pMap
+                                    then solo pState
+                                    else not (mute pState)
+                        ) $ Map.elems pMap
 
 toOSC :: [Int] -> ProcessedEvent -> OSC -> [(Double, Bool, O.Message)]
 toOSC busses pe osc@(OSC _ _)
@@ -387,7 +393,7 @@ toOSC busses pe osc@(OSC _ _)
             tsPart = (peOnPartOsc pe) + nudge -- + latency
         nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ playmap
 toOSC _ pe (OSCContext oscpath)
-  = map cToM $ contextPosition $ context $ peEvent pe
+  = map cToM $ metaSrcPos $ metadata $ peEvent pe
   where cToM :: ((Int,Int),(Int,Int)) -> (Double, Bool, O.Message)
         cToM ((x, y), (x',y')) = (ts,
                                   False, -- bus message ?
@@ -403,7 +409,7 @@ patternTimeID :: String
 patternTimeID = "_t_pattern"
 
 -- Used for Tempo callback
-updatePattern :: Stream -> ID -> Time -> ControlPattern -> IO ()
+updatePattern :: Stream -> ID -> Time -> ControlSignal -> IO ()
 updatePattern stream k !t pat = do
   let x = queryArc pat (Arc 0 0)
   pMap <- seq x $ takeMVar (sPMapMV stream)
@@ -420,12 +426,12 @@ processCps ops = mapM processEvent
   where
     processEvent ::  Event ValueMap  -> IO ProcessedEvent
     processEvent e = do
-      let wope = wholeOrPart e
-          partStartCycle = start $ part e
+      let wope = wholeOrActive e
+          partStartCycle = aBegin $ active e
           partStartBeat = (T.cyclesToBeat ops) (realToFrac partStartCycle)
-          onCycle = start wope
+          onCycle = aBegin wope
           onBeat = (T.cyclesToBeat ops) (realToFrac onCycle)
-          offCycle = stop wope
+          offCycle = aEnd wope
           offBeat = (T.cyclesToBeat ops) (realToFrac offCycle)
       on <- (T.timeAtBeat ops) onBeat
       onPart <- (T.timeAtBeat ops) partStartBeat
@@ -451,12 +457,12 @@ processCps ops = mapM processEvent
 
 
 -- streamFirst but with random cycle instead of always first cicle
-streamOnce :: Stream -> ControlPattern -> IO ()
+streamOnce :: Stream -> ControlSignal -> IO ()
 streamOnce st p = do i <- getStdRandom $ randomR (0, 8192)
-                     streamFirst st $ rotL (toRational (i :: Int)) p
+                     streamFirst st $ _early (toRational (i :: Int)) p
 
 -- here let's do modifyMVar_ on actions
-streamFirst :: Stream -> ControlPattern -> IO ()
+streamFirst :: Stream -> ControlSignal -> IO ()
 streamFirst stream pat = modifyMVar_ (sActionsMV stream) (\actions -> return $ (T.SingleTick pat) : actions)
 
 -- Used for Tempo callback
@@ -469,7 +475,7 @@ onTick stream st ops s
 -- However, since the full arc is processed at once and since Link does not support
 -- scheduling, tempo change may affect scheduling of events that happen earlier
 -- in the normal stream (the one handled by onTick).
-onSingleTick :: Stream -> T.LinkOperations -> ValueMap -> ControlPattern -> IO ValueMap
+onSingleTick :: Stream -> T.LinkOperations -> ValueMap -> ControlSignal -> IO ValueMap
 onSingleTick stream ops s pat = do
   pMapMV <- newMVar $ Map.singleton "fake"
           (PlayState {pattern = pat,
@@ -515,10 +521,10 @@ doTick stream st ops sMap =
         sMap' = Map.insert "_cps" (VF $ coerce cps) sMap
         extraLatency = tickNudge st
         -- First the state is used to query the pattern
-        es = sortOn (start . part) $ query patstack (State {arc = tickArc st,
-                                                        controls = sMap'
-                                                      }
-                                                )
+        es = sortOn (aBegin . active) $ query patstack (State {sArc = tickArc st,
+                                                            sControls = sMap'
+                                                           }
+                                                    )
          -- Then it's passed through the events
         (sMap'', es') = resolveState sMap' es
       tes <- processCps ops es'
@@ -589,7 +595,7 @@ streamList s = do pMap <- readMVar (sPMapMV s)
 
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 
-streamReplace :: Stream -> ID -> ControlPattern -> IO ()
+streamReplace :: Stream -> ID -> ControlSignal -> IO ()
 streamReplace s k !pat
   = modifyMVar_ (sActionsMV s) (\actions -> return $ (T.StreamReplace k pat) : actions)
 
@@ -631,32 +637,32 @@ streamUnsoloAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {solo = Fal
 streamSilence :: Stream -> ID -> IO ()
 streamSilence s k = withPatIds s [k] (\x -> x {pattern = silence, history = silence:history x})
 
-streamAll :: Stream -> (ControlPattern -> ControlPattern) -> IO ()
+streamAll :: Stream -> (ControlSignal -> ControlSignal) -> IO ()
 streamAll s f = do _ <- swapMVar (sGlobalFMV s) f
                    return ()
 
 streamGet :: Stream -> String -> IO (Maybe Value)
 streamGet s k = Map.lookup k <$> readMVar (sStateMV s)
 
-streamSet :: Valuable a => Stream -> String -> Pattern a -> IO ()
+streamSet :: Valuable a => Stream -> String -> Signal a -> IO ()
 streamSet s k pat = do sMap <- takeMVar $ sStateMV s
                        let pat' = toValue <$> pat
-                           sMap' = Map.insert k (VPattern pat') sMap
+                           sMap' = Map.insert k (VSignal pat') sMap
                        putMVar (sStateMV s) $ sMap'
 
-streamSetI :: Stream -> String -> Pattern Int -> IO ()
+streamSetI :: Stream -> String -> Signal Int -> IO ()
 streamSetI = streamSet
 
-streamSetF :: Stream -> String -> Pattern Double -> IO ()
+streamSetF :: Stream -> String -> Signal Double -> IO ()
 streamSetF = streamSet
 
-streamSetS :: Stream -> String -> Pattern String -> IO ()
+streamSetS :: Stream -> String -> Signal String -> IO ()
 streamSetS = streamSet
 
-streamSetB :: Stream -> String -> Pattern Bool -> IO ()
+streamSetB :: Stream -> String -> Signal Bool -> IO ()
 streamSetB = streamSet
 
-streamSetR :: Stream -> String -> Pattern Rational -> IO ()
+streamSetR :: Stream -> String -> Signal Rational -> IO ()
 streamSetR = streamSet
 
 openListener :: Config -> IO (Maybe O.Udp)

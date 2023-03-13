@@ -3,8 +3,9 @@
 module Sound.Tidal.StreamTest where
 
 import Test.Microspec
+
 import Sound.Tidal.Stream
-import Sound.Tidal.Pattern
+import Sound.Tidal.Types
 import qualified Sound.Osc.Fd as O
 import qualified Data.Map.Strict as M
 

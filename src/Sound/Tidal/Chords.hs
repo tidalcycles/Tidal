@@ -273,7 +273,7 @@ chordTable = [("major", major),
               ("m11s", minor11sharp)
              ]
 
-chordL :: Num a => Pattern String -> Pattern [a]
+chordL :: Pattern t => Num a => t String -> t [a]
 chordL p = (\name -> fromMaybe [] $ lookup name chordTable) <$> p
 
 chordList :: String
@@ -300,17 +300,17 @@ applyModifier (Drop i) ds = case length ds < i of
                           where (xs,ys) = splitAt s ds
                                 s = length ds - i
 
-applyModifierPat :: (Num a, Enum a) => Pattern [a] -> Pattern [Modifier] -> Pattern [a]
+applyModifierPat :: (Num a, Enum a, Pattern t) => t [a] -> t [Modifier] -> t [a]
 applyModifierPat pat modsP = do
                         ch <- pat
                         ms <- modsP
                         return $ foldl (flip applyModifier) ch ms
 
-applyModifierPatSeq :: (Num a, Enum a) => (a -> b) -> Pattern [a] -> [Pattern [Modifier]] -> Pattern [b]
+applyModifierPatSeq :: (Num a, Enum a, Pattern t) => (a -> b) -> t [a] -> [t [Modifier]] -> t [b]
 applyModifierPatSeq f pat [] = fmap (map f) pat
 applyModifierPatSeq f pat (mP:msP) = applyModifierPatSeq f (applyModifierPat pat mP) msP
 
-chordToPatSeq :: (Num a, Enum a) => (a -> b) -> Pattern a -> Pattern String -> [Pattern [Modifier]] -> Pattern b
+chordToPatSeq :: (Num a, Enum a, Pattern t) => (a -> b) -> t a -> t String -> [t [Modifier]] -> t b
 chordToPatSeq f noteP nameP modsP = uncollect $ do
                     n  <- noteP
                     name <- nameP
@@ -318,5 +318,5 @@ chordToPatSeq f noteP nameP modsP = uncollect $ do
                     applyModifierPatSeq f (return ch) modsP
 
 -- | turns a given pattern of some Num type, a pattern of chord names and a list of patterns of modifiers into a chord pattern
-chord :: (Num a, Enum a) =>  Pattern a -> Pattern String -> [Pattern [Modifier]] -> Pattern a
+chord :: (Num a, Enum a, Pattern t) =>  t a -> t String -> [t [Modifier]] -> t a
 chord = chordToPatSeq id

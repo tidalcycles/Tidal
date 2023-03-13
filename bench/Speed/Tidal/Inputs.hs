@@ -2,13 +2,9 @@
 
 module Tidal.Inputs where
 
-import Sound.Tidal.Pattern
-import Sound.Tidal.Core
-import Sound.Tidal.ParseBP()
-import Sound.Tidal.Params
-import Sound.Tidal.UI
+import Sound.Tidal.Context
 
-{- Pattern inputs -}
+{- Signal inputs -}
 xs3 :: [Time]
 xs3 = [1..10000]
 
@@ -24,48 +20,48 @@ xs6 = [1..10000000]
 xsA :: [Time]
 xsA = [500000..1500000]
 
-catPattSmall :: [Pattern Time]
+catPattSmall :: [Signal Time]
 catPattSmall = pure <$> xs3
 
-catPattMed :: [Pattern Time]
+catPattMed :: [Signal Time]
 catPattMed = pure <$> xs4
 
-catPattMedB :: [Pattern Time]
+catPattMedB :: [Signal Time]
 catPattMedB = pure <$> xs5
 
-catPattBig :: [Pattern Time]
+catPattBig :: [Signal Time]
 catPattBig = pure <$> xs6
 
-timeCatMed :: [(Time, Pattern Time)]
+timeCatMed :: [(Time, Signal Time)]
 timeCatMed = zip xs5 catPattMed
 
-timeCatBig :: [(Time, Pattern Time)]
+timeCatBig :: [(Time, Signal Time)]
 timeCatBig = zip xs6 catPattBig
 
-appendBig :: [Pattern Time]
+appendBig :: [Signal Time]
 appendBig = pure <$> xsA
 
-pattApp1 :: Pattern [Time]
+pattApp1 :: Signal [Time]
 pattApp1 = sequence catPattBig
 
-pattApp2 :: Pattern [Time]
+pattApp2 :: Signal [Time]
 pattApp2 = sequence appendBig
 
 {- Arc Inputs -}
 arcFunc :: Arc -> Arc
 arcFunc (Arc st en) = Arc (st * 2) (en * 4)
 
-wqaMed :: Pattern Time
+wqaMed :: Signal Time
 wqaMed = fromList xs5
 
-wqaBig :: Pattern Time
+wqaBig :: Signal Time
 wqaBig = fromList xs6
 
 {- fix inputs -}
-fixArg1 :: ControlPattern
+fixArg1 :: ControlSignal
 fixArg1 = pF "cc64" 1
 
-fixArg2 :: ControlPattern
+fixArg2 :: ControlSignal
 fixArg2 =
       fix ( # crush 4 ) (pF "cc65" 1)
     -- $ fix ( stut' 4 (0.125/4) ( + up "1" )) (pF "cc66" 1)
@@ -81,8 +77,8 @@ fixArg2 =
     #  pF "cc69" (cF 0 "69")
 
 {- Euclid inputs -}
-ecA1 :: [Pattern Int]
+ecA1 :: [Signal Int]
 ecA1 = [1, 100]
 
-ecA2 :: Pattern String
+ecA2 :: Signal String
 ecA2 = "x"

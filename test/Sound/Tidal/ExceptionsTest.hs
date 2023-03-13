@@ -8,14 +8,14 @@ import Control.DeepSeq
 import Data.Typeable ()
 import Prelude hiding ((<*), (*>))
 
-import Sound.Tidal.Pattern
+import Sound.Tidal.Types
 
 run :: Microspec ()
 run =
   describe "NFData, forcing and catching exceptions" $ do
     describe "instance NFData (Pattern a)" $ do
       it "rnf forces argument" $ do
-        evaluate (rnf (Pattern undefined :: Pattern ()))
+        evaluate (rnf (Signal undefined :: Signal ()))
           `shouldThrow` anyException
 
 

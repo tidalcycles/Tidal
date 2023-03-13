@@ -4,8 +4,6 @@ module Sound.Tidal.UtilsTest where
 
 import Test.Microspec
 
-import Prelude hiding ((<*), (*>))
-
 import Sound.Tidal.Utils
 
 run :: Microspec ()

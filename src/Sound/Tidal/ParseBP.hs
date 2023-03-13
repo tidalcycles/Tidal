@@ -37,10 +37,13 @@ import           Text.ParserCombinators.Parsec
 import           Text.ParserCombinators.Parsec.Language ( haskellDef )
 import qualified Text.ParserCombinators.Parsec.Token as P
 import qualified Text.Parsec.Prim
+
+import           Sound.Tidal.Types
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Random (rand, chooseBy, _degradeByUsing)
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.UI
-import           Sound.Tidal.Core
-import           Sound.Tidal.Chords
+import           Sound.Tidal.Value
+import           Sound.Tidal.Chords (Modifier(..), chordTable, chordToPatSeq)
 import           Sound.Tidal.Utils (fromRight)
 
 data TidalParseError = TidalParseError {parsecError :: ParseError,
@@ -137,42 +140,43 @@ tShow (TPat_Polyrhythm mSteprate vs) = "stack [" ++ intercalate ", " (map adjust
 tShow (TPat_Seq vs) = snd $ steps_seq vs
 
 tShow TPat_Silence = "silence"
-tShow (TPat_EnumFromTo a b) = "unwrap $ fromTo <$> (" ++ tShow a ++ ") <*> (" ++ tShow b ++ ")"
+tShow (TPat_EnumFromTo a b) = "mixJoin $ fromTo <$> (" ++ tShow a ++ ") <*> (" ++ tShow b ++ ")"
 tShow (TPat_Var s) = "getControl " ++ s
 tShow (TPat_Chord f n name mods) = "chord (" ++ (tShow $ fmap f n) ++ ") (" ++ tShow name ++ ")" ++ tShowList mods
 tShow a = "can't happen? " ++ show a
 
 
-toPat :: (Parseable a, Enumerable a) => TPat a -> Pattern a
+toPat :: (Parseable a, Enumerable a) => TPat a -> Signal a
 toPat = \case
-   TPat_Atom (Just loc) x -> setContext (Context [loc]) $ pure x
-   TPat_Atom Nothing x -> pure x
+   TPat_Atom (Just loc) x -> setMetadata (Metadata [loc]) $ atom x
+   TPat_Atom Nothing x -> atom x
    TPat_Fast t x -> fast (toPat t) $ toPat x
    TPat_Slow t x -> slow (toPat t) $ toPat x
-   TPat_DegradeBy seed amt x -> _degradeByUsing (rotL (0.0001 * fromIntegral seed) rand) amt $ toPat x
-   TPat_CycleChoose seed xs -> unwrap $ segment 1 $ chooseBy (rotL (0.0001 * fromIntegral seed) rand) $ map toPat xs
+   TPat_DegradeBy seed amt x -> _degradeByUsing (_early (0.0001 * fromIntegral seed) rand) amt $ toPat x
+   TPat_CycleChoose seed xs -> outerJoin $ segment 1 $ chooseBy (_early (0.0001 * fromIntegral seed) rand) $ map toPat xs
    TPat_Euclid n k s thing -> doEuclid (toPat n) (toPat k) (toPat s) (toPat thing)
    TPat_Stack xs -> stack $ map toPat xs
    TPat_Silence -> silence
-   TPat_EnumFromTo a b -> unwrap $ fromTo <$> toPat a <*> toPat b
+   TPat_EnumFromTo a b -> mixJoin $ (fromTo <$> toPat a) `appLeft` toPat b
+   -- TPat_EnumFromTo a b -> unwrap $ fromTo <$> toPat a <*> toPat b
    TPat_Polyrhythm mSteprate ps -> stack $ map adjust_speed pats
      where adjust_speed (sz, pat) = fast ((/sz) <$> steprate) pat
            pats = map resolve_tpat ps
-           steprate :: Pattern Rational
+           steprate :: Signal Rational
            steprate = (maybe base_first toPat mSteprate)
-           base_first | null pats = pure 0
-                      | otherwise = pure $ fst $ head pats
+           base_first | null pats = atom 0
+                      | otherwise = atom $ fst $ head pats
    TPat_Seq xs -> snd $ resolve_seq xs
    TPat_Var s -> getControl s
    TPat_Chord f iP nP mP -> chordToPatSeq f (toPat iP) (toPat nP) (map toPat mP)
    p@(TPat_Repeat _ _) -> toPat $ TPat_Seq [p] --this is a bit of a hack
    _ -> silence
 
-resolve_tpat :: (Enumerable a, Parseable a) => TPat a -> (Rational, Pattern a)
+resolve_tpat :: (Enumerable a, Parseable a) => TPat a -> (Rational, Signal a)
 resolve_tpat (TPat_Seq xs) = resolve_seq xs
 resolve_tpat a = (1, toPat a)
 
-resolve_seq :: (Enumerable a, Parseable a) => [TPat a] -> (Rational, Pattern a)
+resolve_seq :: (Enumerable a, Parseable a) => [TPat a] -> (Rational, Signal a)
 resolve_seq xs = (total_size, timeCat sized_pats)
   where sized_pats = map (toPat <$>) $ resolve_size xs
         total_size = sum $ map fst sized_pats
@@ -199,10 +203,10 @@ steps_size ((TPat_Elongate r p):ps) = (r, tShow p):steps_size ps
 steps_size ((TPat_Repeat n p):ps) = replicate n (1, tShow p) ++ steps_size ps
 steps_size (p:ps) = (1,tShow p):steps_size ps
 
-parseBP :: (Enumerable a, Parseable a) => String -> Either ParseError (Pattern a)
+parseBP :: (Enumerable a, Parseable a) => String -> Either ParseError (Signal a)
 parseBP s = toPat <$> parseTPat s
 
-parseBP_E :: (Enumerable a, Parseable a) => String -> Pattern a
+parseBP_E :: (Enumerable a, Parseable a) => String -> Signal a
 parseBP_E s = toE parsed
   where
     parsed = parseTPat s
@@ -214,18 +218,18 @@ parseTPat :: Parseable a => String -> Either ParseError (TPat a)
 parseTPat = runParser (pSeq Prelude.<* eof) (0 :: Int) ""
 
 
-cP :: (Enumerable a, Parseable a) => String -> Pattern a
+cP :: (Enumerable a, Parseable a) => String -> Signal a
 cP s = innerJoin $ parseBP_E <$> _cX_ getS s
 
 class Parseable a where
   tPatParser :: MyParser (TPat a)
-  doEuclid :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-  getControl :: String -> Pattern a
+  doEuclid :: Signal Int -> Signal Int -> Signal Int -> Signal a -> Signal a
+  getControl :: String -> Signal a
   getControl _ = silence
 
 class Enumerable a where
-  fromTo :: a -> a -> Pattern a
-  fromThenTo :: a -> a -> a -> Pattern a
+  fromTo :: a -> a -> Signal a
+  fromThenTo :: a -> a -> a -> Signal a
 
 instance Parseable Char where
   tPatParser = pChar
@@ -298,11 +302,11 @@ instance Enumerable Rational where
   fromTo = enumFromTo'
   fromThenTo = enumFromThenTo'
 
-enumFromTo' :: (Ord a, Enum a) => a -> a -> Pattern a
+enumFromTo' :: (Ord a, Enum a) => a -> a -> Signal a
 enumFromTo' a b | a > b = fastFromList $ reverse $ enumFromTo b a
                 | otherwise = fastFromList $ enumFromTo a b
 
-enumFromThenTo' :: (Ord a, Enum a, Num a) => a -> a -> a -> Pattern a
+enumFromThenTo' :: (Ord a, Enum a, Num a) => a -> a -> a -> Signal a
 enumFromThenTo' a b c | a > c = fastFromList $ reverse $ enumFromThenTo c (c + (a-b)) a
                       | otherwise = fastFromList $ enumFromThenTo a b c
 
@@ -316,7 +320,7 @@ instance Enumerable ColourD where
   fromTo a b = fastFromList [a,b]
   fromThenTo a b c = fastFromList [a,b,c]
 
-instance (Enumerable a, Parseable a) => IsString (Pattern a) where
+instance (Enumerable a, Parseable a) => IsString (Signal a) where
   fromString = parseBP_E
 
 -- imported haskell parsers
@@ -476,7 +480,7 @@ pIntegral = try $ do i <- pIntegralWithoutChord
             <|> pChord (TPat_Atom Nothing 0)
             <|> pIntegralWithoutChord
 
-fromNote :: Num a => Pattern String -> Pattern a
+fromNote :: Num a => Signal String -> Signal a
 fromNote pat = fromRight 0 . runParser parseNote 0 "" <$> pat
 
 pFraction :: RealFrac a => a -> MyParser Rational
@@ -520,7 +524,7 @@ pRational = wrapPos $ TPat_Atom Nothing <$> pRatio
 isInt :: RealFrac a => a -> Bool
 isInt x = x == fromInteger (round x)
 
--- parsing operators that take a single base pattern
+-- parsing operators that take a single base signal
 
 pMult :: TPat a -> MyParser (TPat a)
 pMult thing = do char '*'
@@ -572,7 +576,7 @@ pElongate a = do rs <- many1 $ do spaces
                                   return r
                  return $ TPat_Elongate (1 + sum rs) a
 
--- parsing operators that take a list of base patterns
+-- parsing operators that take a list of base signals
 
 pStack :: Parseable a => TPat a -> MyParser (TPat a)
 pStack p = do
@@ -709,7 +713,8 @@ parseModOpen :: MyParser Modifier
 parseModOpen = char 'o' >> return Open
 
 parseModRange :: MyParser Modifier
-parseModRange = parseIntNote >>= \i -> return $ Range $ fromIntegral i
+parseModRange = parseIntNote >>= \i -> return $ Range $ fromIntegral (i :: Int)
+
 
 parseModifiers :: MyParser [Modifier]
 parseModifiers = (many1 parseModOpen) <|> parseModDrop <|> (fmap pure parseModRange) <|> try parseModInvNum <|> (many1 parseModInv)  <?> "modifier"

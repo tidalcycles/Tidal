@@ -22,11 +22,13 @@ library
                        Sound.Tidal.Listener.Command
                        Sound.Tidal.Hint
   build-depends:       base,
+                       data-default,
+                       tidal >=2.0.0,
                        filepath,
                        exceptions,
                        deepseq,
                        optparse-applicative,
-                       tidal >= 1.9.3 && < 1.10,
+                       tidal >= 2.0 && < 2.1,
                        hosc >= 0.20 && < 0.21,
                        hint,
                        network
