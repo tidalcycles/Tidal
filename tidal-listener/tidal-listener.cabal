@@ -28,6 +28,7 @@ library
                        exceptions,
                        deepseq,
                        optparse-applicative,
+                       tidal >= 2.0 && < 2.1,
                        hosc >= 0.20 && < 0.21,
                        hint,
                        network

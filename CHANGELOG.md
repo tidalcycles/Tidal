@@ -1,5 +1,50 @@
 # TidalCycles log of changes
 
+## 1.9.4 - Stitch
+
+### What's Changed
+* fix #986 by @jwaldmann in https://github.com/tidalcycles/Tidal/pull/987
+* fix #988 by @jwaldmann in https://github.com/tidalcycles/Tidal/pull/989
+* Tidal listener update and rework by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/996
+* ci: update GitHub actions by @SpencerIsGiddy in https://github.com/tidalcycles/Tidal/pull/994
+* Fix markup errors in and add to Sound.Tidal.UI documentation. by @patrickt in https://github.com/tidalcycles/Tidal/pull/992
+* reset and restart by @yaxu in https://github.com/tidalcycles/Tidal/pull/997
+* Add extractN and extend getN by @thgrund in https://github.com/tidalcycles/Tidal/pull/999
+
+### New Contributors
+* @SpencerIsGiddy made their first contribution in https://github.com/tidalcycles/Tidal/pull/994
+* @patrickt made their first contribution in https://github.com/tidalcycles/Tidal/pull/992
+
+**Full Changelog**: https://github.com/tidalcycles/Tidal/compare/v1.9.3...v1.9.4
+
+### 1.9.3 - Kolam
+
+### What's Changed
+* fix for squeezejoin  by @yaxu in https://github.com/tidalcycles/Tidal/pull/950
+* tidal.el fix silencer by @zzkt in https://github.com/tidalcycles/Tidal/pull/955
+* add accelerate to nobus and fix typo for begin by @yaxu in https://github.com/tidalcycles/Tidal/pull/956
+* Fix warnings by @Zalastax in https://github.com/tidalcycles/Tidal/pull/962
+* Add a Nix Flake for building and developing Tidal by @mitchmindtree in https://github.com/tidalcycles/Tidal/pull/963
+* Make distrib only take structure from the euclid by @yaxu in https://github.com/tidalcycles/Tidal/pull/961
+* Fix build by @yaxu in https://github.com/tidalcycles/Tidal/pull/965
+* Fix resetCycles skipping and lateness by @Zalastax in https://github.com/tidalcycles/Tidal/pull/966
+* Add setCycle by @Zalastax in https://github.com/tidalcycles/Tidal/pull/969
+* CHANGELOG gardening by @mindofmatthew in https://github.com/tidalcycles/Tidal/pull/971
+* Comments for some state functions by @JeffreyBenjaminBrown in https://github.com/tidalcycles/Tidal/pull/973
+* Comments on time, and haddock fixes by @JeffreyBenjaminBrown in https://github.com/tidalcycles/Tidal/pull/974
+* Fix warning about type constraint by @mindofmatthew in https://github.com/tidalcycles/Tidal/pull/977
+* Fix squeeze join by @yaxu in https://github.com/tidalcycles/Tidal/pull/975
+* `trigger` and friends without pattern IDs by @mindofmatthew in https://github.com/tidalcycles/Tidal/pull/970
+* Rename ghost'' to ghostWith by @Zalastax in https://github.com/tidalcycles/Tidal/pull/967
+* Added minor major seventh chord by @jqueraltmo in https://github.com/tidalcycles/Tidal/pull/978
+* support for hosc-0.20 by @yaxu in https://github.com/tidalcycles/Tidal/pull/981
+
+### New Contributors
+* @mitchmindtree made their first contribution in https://github.com/tidalcycles/Tidal/pull/963
+* @jqueraltmo made their first contribution in https://github.com/tidalcycles/Tidal/pull/978
+
+**Full Changelog**: https://github.com/tidalcycles/Tidal/compare/v1.9.2...v1.9.3
+
 ## 1.9.2 - Siteswap c
 Same with 1.9.1, but now with new tidal-link version 1.0.1
 

@@ -21,6 +21,7 @@ import Paths_tidal
 -}
 
 tidal_version :: String
+
 tidal_version = "2.0.0-pre"
 
 tidal_status :: IO ()
