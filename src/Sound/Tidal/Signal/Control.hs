@@ -371,7 +371,7 @@ echo :: Signal Integer -> Signal Rational -> Signal Double -> ControlSignal -> C
 echo = _patternify_p_p_p _echo
 
 _echo :: Integer -> Rational -> Double -> ControlSignal -> ControlSignal
-_echo count time feedback p = _echoWith count time (|* P.gain (pure $ feedback)) p
+_echo count time feedback p = _echoWith count time (|* P.gain (pure feedback)) p
 
 {- |
     Allows to apply a function for each step and overlays the result delayed by the given time.
@@ -471,7 +471,7 @@ ftrigger = triggerWith $ (fromIntegral :: Int -> Rational) . floor
 -- number. 'qtrigger' is equivalent to @mtrigger 1@.
 mtrigger :: Int -> Signal a -> Signal a
 mtrigger n = triggerWith $ fromIntegral . nextMod
-  where nextMod t = n * ceiling (t / (fromIntegral n))
+  where nextMod t = n * ceiling (t / fromIntegral n)
 
 mt :: Int -> Signal a -> Signal a
 mt = mtrigger
@@ -483,8 +483,7 @@ mt = mtrigger
 triggerWith :: (Time -> Time) -> Signal a -> Signal a
 triggerWith f pat = pat {query = q}
   where q st = query (_early (offset st) pat) st
-        offset st = fromMaybe 0 $ f
-                      <$> (Map.lookup patternTimeID (sControls st) >>= getR)
+        offset st = maybe 0 f $ Map.lookup patternTimeID (sControls st) >>= getR
 
 splat :: Signal Int -> ControlSignal -> ControlSignal -> ControlSignal
 splat slices epat pat = chop slices pat # bite 1 (const 0 <$> pat) epat
@@ -559,7 +558,7 @@ unfixRange :: (ControlSignal -> Signal ValueMap)
               -> ControlSignal
 unfixRange = contrastRange id
 
-squeezeJoinUp :: Signal (ControlSignal) -> ControlSignal
+squeezeJoinUp :: Signal ControlSignal -> ControlSignal
 squeezeJoinUp pp = pp {query = q}
   where q st = concatMap (f st) (query (discreteOnly pp) st)
         f st (Event meta (Just w) p v) =
@@ -573,8 +572,8 @@ squeezeJoinUp pp = pp {query = q}
         munge _ _ _ _ = Nothing
 
 _chew :: Int -> Signal Int -> ControlSignal  -> ControlSignal
-_chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)
-  where zoompat i = _zoomArc (Arc (i'/(fromIntegral n)) ((i'+1)/(fromIntegral n))) pat
+_chew n ipat pat = squeezeJoinUp (zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)
+  where zoompat i = _zoomArc (Arc (i' / fromIntegral n) ((i'+1) / fromIntegral n)) pat
            where i' = fromIntegral $ i `mod` n
 
 -- TODO maybe _chew could signal the first parameter directly..

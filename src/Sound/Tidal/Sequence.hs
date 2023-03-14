@@ -69,7 +69,7 @@ instance Pattern Sequence where
   _iterBack  = _seqIter'
   toSignal = _seqToSignal
   _patternify f x pat = mapSeq (fmap f x) pat
-  _patternify_p_p f a b s = mapSeq ((fmap f a) <*> b ) s
+  _patternify_p_p f a b s = mapSeq (fmap f a <*> b ) s
 
 -- | Takes sequence of functions and a list of sequences which have
 -- | been aligned and applies the functions at the corresponding

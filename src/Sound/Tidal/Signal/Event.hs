@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
-
 module Sound.Tidal.Signal.Event
   (module Sound.Tidal.Time,
    module Sound.Tidal.Arc,
@@ -23,8 +21,8 @@ import qualified Data.Map.Strict   as Map
 -- ranges that an event is tagged with (see Types)
 
 isAnalog :: Event a -> Bool
-isAnalog (Event {whole = Nothing}) = True
-isAnalog _                         = False
+isAnalog Event {whole = Nothing} = True
+isAnalog _                       = False
 
 isDigital :: Event a -> Bool
 isDigital = not . isAnalog
@@ -34,8 +32,8 @@ onsetIn :: Arc -> Event a -> Bool
 onsetIn a e = isIn a (wholeBegin e)
 
 wholeOrActive :: Event a -> Arc
-wholeOrActive (Event {whole = Just a}) = a
-wholeOrActive e                        = active e
+wholeOrActive Event {whole = Just a} = a
+wholeOrActive e                      = active e
 
 -- | Get the onset of an event's 'whole'
 wholeBegin :: Event a -> Time

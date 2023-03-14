@@ -940,7 +940,7 @@ necklace :: Rational -> [Int] -> Signal Bool
 necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ fastFromList $ list xs
   where list :: [Int] -> [Bool]
         list []      = []
-        list (x:xs') = (True:(replicate (x-1) False)) ++ list xs'
+        list (x:xs') = (True : replicate (x-1) False) ++ list xs'
 
 -- | Inverts all the values in a boolean pattern (or other functor)
 -- TODO move to Pattern ?

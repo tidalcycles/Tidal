@@ -22,18 +22,18 @@ module Sound.Tidal.Params where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict            as Map
 
-import Sound.Tidal.Types
-import Sound.Tidal.Value
-import Sound.Tidal.Pattern
-import Sound.Tidal.Signal.Base
-import Sound.Tidal.Signal.Compose ((#))
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Compose ((#))
+import           Sound.Tidal.Types
+import           Sound.Tidal.Value
 -- import Sound.Tidal.Core ((#))
-import Sound.Tidal.Utils
-import Data.Maybe (fromMaybe)
-import Data.Word (Word8)
-import Data.Fixed (mod')
+import           Data.Fixed                 (mod')
+import           Data.Maybe                 (fromMaybe)
+import           Data.Word                  (Word8)
+import           Sound.Tidal.Utils
 
 -- | group multiple params into one
 grp :: [String -> ValueMap] -> Signal String -> ControlSignal
@@ -64,7 +64,7 @@ pI name = fmap (Map.singleton name . VI)
 
 pB :: String -> Signal Bool -> ControlSignal
 pB name = fmap (Map.singleton name . VB)
- 
+
 pR :: String -> Signal Rational -> ControlSignal
 pR name = fmap (Map.singleton name . VR)
 
@@ -77,42 +77,24 @@ pS name = fmap (Map.singleton name . VS)
 pX :: String -> Signal [Word8] -> ControlSignal
 pX name = fmap (Map.singleton name . VX)
 
-pStateF ::
-  String ->  -- ^ A parameter, e.g. `note`; a
-  -- `String` recognizable by a `ValueMap`.
-  String -> -- ^ Identifies the cycling state pattern.
-  -- Can be anything the user wants.
-  (Maybe Double -> Double) ->
-  ControlSignal
+pStateF :: String -> String -> (Maybe Double -> Double) -> ControlSignal
 pStateF name sName update = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
-        statef sMap = (Map.insert sName v sMap, v) 
-          where v = VF $ update $ (Map.lookup sName sMap) >>= getF
+        statef sMap = (Map.insert sName v sMap, v)
+          where v = VF $ update $ Map.lookup sName sMap >>= getF
 
--- | `pStateList` is made with cyclic lists in mind,
--- but it can even "cycle" through infinite lists.
-pStateList ::
-  String ->  -- ^ A parameter, e.g. `note`; a
-  -- `String` recognizable by a `ValueMap`.
-  String ->  -- ^ Identifies the cycling state pattern.
-  -- Can be anything the user wants.
-  [Value] ->  -- ^ The list to cycle through.
-  ControlSignal
+pStateList :: String -> String -> [Value] -> ControlSignal
 pStateList name sName xs = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
-        statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped) 
-          where xs' = fromMaybe xs ((Map.lookup sName sMap) >>= getList)
+        statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped)
+          where xs' = fromMaybe xs (Map.lookup sName sMap >>= getList)
                 -- do this instead of a cycle, so it can get updated with the a list
                 looped | null xs' = xs
                        | otherwise = xs'
 
--- | A wrapper for `pStateList` that accepts a `[Double]`
--- rather than a `[Value]`.
 pStateListF :: String -> String -> [Double] -> ControlSignal
 pStateListF name sName = pStateList name sName . map VF
 
--- | A wrapper for `pStateList` that accepts a `[String]`
--- rather than a `[Value]`.
 pStateListS :: String -> String -> [String] -> ControlSignal
 pStateListS name sName = pStateList name sName . map VS
 
@@ -207,7 +189,7 @@ drumN "bt" = 84
 drumN "ct" = 85
 drumN "ms" = 86
 drumN "os" = 87
-drumN _ = 0
+drumN _    = 0
 
 -- Generated params
 
@@ -222,7 +204,7 @@ accelerateCountTo :: String -> Signal Double -> Signal ValueMap
 accelerateCountTo name ipat = innerJoin $ (\i -> pStateF "accelerate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 acceleratebus :: Signal Int -> Signal Double -> ControlSignal
-acceleratebus _ _ = error $ "Control parameter 'accelerate' can't be sent to a bus."
+acceleratebus _ _ = error "Control parameter 'accelerate' can't be sent to a bus."
 
 -- | like @gain@, but linear.
 amp :: Signal Double -> ControlSignal
@@ -235,7 +217,7 @@ ampCountTo :: String -> Signal Double -> Signal ValueMap
 ampCountTo name ipat = innerJoin $ (\i -> pStateF "amp" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ampbus :: Signal Int -> Signal Double -> ControlSignal
-ampbus busid pat = (pF "amp" pat) # (pI "^amp" busid)
+ampbus busid pat = pF "amp" pat # pI "^amp" busid
 amprecv :: Signal Int -> ControlSignal
 amprecv busid = pI "^amp" busid
 
@@ -245,7 +227,7 @@ array = pX "array"
 arrayTake :: String -> [Double] -> ControlSignal
 arrayTake name xs = pStateListF "array" name xs
 arraybus :: Signal Int -> Signal [Word8] -> ControlSignal
-arraybus _ _ = error $ "Control parameter 'array' can't be sent to a bus."
+arraybus _ _ = error "Control parameter 'array' can't be sent to a bus."
 
 -- | a pattern of numbers to specify the attack time (in seconds) of an envelope applied to each sample.
 attack :: Signal Double -> ControlSignal
@@ -258,7 +240,7 @@ attackCountTo :: String -> Signal Double -> Signal ValueMap
 attackCountTo name ipat = innerJoin $ (\i -> pStateF "attack" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 attackbus :: Signal Int -> Signal Double -> ControlSignal
-attackbus busid pat = (pF "attack" pat) # (pI "^attack" busid)
+attackbus busid pat = pF "attack" pat # pI "^attack" busid
 attackrecv :: Signal Int -> ControlSignal
 attackrecv busid = pI "^attack" busid
 
@@ -273,7 +255,7 @@ bandfCountTo :: String -> Signal Double -> Signal ValueMap
 bandfCountTo name ipat = innerJoin $ (\i -> pStateF "bandf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 bandfbus :: Signal Int -> Signal Double -> ControlSignal
-bandfbus busid pat = (pF "bandf" pat) # (pI "^bandf" busid)
+bandfbus busid pat = pF "bandf" pat # pI "^bandf" busid
 bandfrecv :: Signal Int -> ControlSignal
 bandfrecv busid = pI "^bandf" busid
 
@@ -288,7 +270,7 @@ bandqCountTo :: String -> Signal Double -> Signal ValueMap
 bandqCountTo name ipat = innerJoin $ (\i -> pStateF "bandq" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 bandqbus :: Signal Int -> Signal Double -> ControlSignal
-bandqbus busid pat = (pF "bandq" pat) # (pI "^bandq" busid)
+bandqbus busid pat = pF "bandq" pat # pI "^bandq" busid
 bandqrecv :: Signal Int -> ControlSignal
 bandqrecv busid = pI "^bandq" busid
 
@@ -303,7 +285,7 @@ beginCountTo :: String -> Signal Double -> Signal ValueMap
 beginCountTo name ipat = innerJoin $ (\i -> pStateF "begin" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 beginbus :: Signal Int -> Signal Double -> ControlSignal
-beginbus _ _ = error $ "Control parameter 'begin' can't be sent to a bus."
+beginbus _ _ = error "Control parameter 'begin' can't be sent to a bus."
 
 -- | Spectral binshift
 binshift :: Signal Double -> ControlSignal
@@ -316,7 +298,7 @@ binshiftCountTo :: String -> Signal Double -> Signal ValueMap
 binshiftCountTo name ipat = innerJoin $ (\i -> pStateF "binshift" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 binshiftbus :: Signal Int -> Signal Double -> ControlSignal
-binshiftbus busid pat = (pF "binshift" pat) # (pI "^binshift" busid)
+binshiftbus busid pat = pF "binshift" pat # pI "^binshift" busid
 binshiftrecv :: Signal Int -> ControlSignal
 binshiftrecv busid = pI "^binshift" busid
 
@@ -331,7 +313,7 @@ button0CountTo :: String -> Signal Double -> Signal ValueMap
 button0CountTo name ipat = innerJoin $ (\i -> pStateF "button0" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button0bus :: Signal Int -> Signal Double -> ControlSignal
-button0bus busid pat = (pF "button0" pat) # (pI "^button0" busid)
+button0bus busid pat = pF "button0" pat # pI "^button0" busid
 button0recv :: Signal Int -> ControlSignal
 button0recv busid = pI "^button0" busid
 
@@ -346,7 +328,7 @@ button1CountTo :: String -> Signal Double -> Signal ValueMap
 button1CountTo name ipat = innerJoin $ (\i -> pStateF "button1" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button1bus :: Signal Int -> Signal Double -> ControlSignal
-button1bus busid pat = (pF "button1" pat) # (pI "^button1" busid)
+button1bus busid pat = pF "button1" pat # pI "^button1" busid
 button1recv :: Signal Int -> ControlSignal
 button1recv busid = pI "^button1" busid
 
@@ -361,7 +343,7 @@ button10CountTo :: String -> Signal Double -> Signal ValueMap
 button10CountTo name ipat = innerJoin $ (\i -> pStateF "button10" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button10bus :: Signal Int -> Signal Double -> ControlSignal
-button10bus busid pat = (pF "button10" pat) # (pI "^button10" busid)
+button10bus busid pat = pF "button10" pat # pI "^button10" busid
 button10recv :: Signal Int -> ControlSignal
 button10recv busid = pI "^button10" busid
 
@@ -376,7 +358,7 @@ button11CountTo :: String -> Signal Double -> Signal ValueMap
 button11CountTo name ipat = innerJoin $ (\i -> pStateF "button11" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button11bus :: Signal Int -> Signal Double -> ControlSignal
-button11bus busid pat = (pF "button11" pat) # (pI "^button11" busid)
+button11bus busid pat = pF "button11" pat # pI "^button11" busid
 button11recv :: Signal Int -> ControlSignal
 button11recv busid = pI "^button11" busid
 
@@ -391,7 +373,7 @@ button12CountTo :: String -> Signal Double -> Signal ValueMap
 button12CountTo name ipat = innerJoin $ (\i -> pStateF "button12" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button12bus :: Signal Int -> Signal Double -> ControlSignal
-button12bus busid pat = (pF "button12" pat) # (pI "^button12" busid)
+button12bus busid pat = pF "button12" pat # pI "^button12" busid
 button12recv :: Signal Int -> ControlSignal
 button12recv busid = pI "^button12" busid
 
@@ -406,7 +388,7 @@ button13CountTo :: String -> Signal Double -> Signal ValueMap
 button13CountTo name ipat = innerJoin $ (\i -> pStateF "button13" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button13bus :: Signal Int -> Signal Double -> ControlSignal
-button13bus busid pat = (pF "button13" pat) # (pI "^button13" busid)
+button13bus busid pat = pF "button13" pat # pI "^button13" busid
 button13recv :: Signal Int -> ControlSignal
 button13recv busid = pI "^button13" busid
 
@@ -421,7 +403,7 @@ button14CountTo :: String -> Signal Double -> Signal ValueMap
 button14CountTo name ipat = innerJoin $ (\i -> pStateF "button14" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button14bus :: Signal Int -> Signal Double -> ControlSignal
-button14bus busid pat = (pF "button14" pat) # (pI "^button14" busid)
+button14bus busid pat = pF "button14" pat # pI "^button14" busid
 button14recv :: Signal Int -> ControlSignal
 button14recv busid = pI "^button14" busid
 
@@ -436,7 +418,7 @@ button15CountTo :: String -> Signal Double -> Signal ValueMap
 button15CountTo name ipat = innerJoin $ (\i -> pStateF "button15" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button15bus :: Signal Int -> Signal Double -> ControlSignal
-button15bus busid pat = (pF "button15" pat) # (pI "^button15" busid)
+button15bus busid pat = pF "button15" pat # pI "^button15" busid
 button15recv :: Signal Int -> ControlSignal
 button15recv busid = pI "^button15" busid
 
@@ -451,7 +433,7 @@ button2CountTo :: String -> Signal Double -> Signal ValueMap
 button2CountTo name ipat = innerJoin $ (\i -> pStateF "button2" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button2bus :: Signal Int -> Signal Double -> ControlSignal
-button2bus busid pat = (pF "button2" pat) # (pI "^button2" busid)
+button2bus busid pat = pF "button2" pat # pI "^button2" busid
 button2recv :: Signal Int -> ControlSignal
 button2recv busid = pI "^button2" busid
 
@@ -466,7 +448,7 @@ button3CountTo :: String -> Signal Double -> Signal ValueMap
 button3CountTo name ipat = innerJoin $ (\i -> pStateF "button3" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button3bus :: Signal Int -> Signal Double -> ControlSignal
-button3bus busid pat = (pF "button3" pat) # (pI "^button3" busid)
+button3bus busid pat = pF "button3" pat # pI "^button3" busid
 button3recv :: Signal Int -> ControlSignal
 button3recv busid = pI "^button3" busid
 
@@ -481,7 +463,7 @@ button4CountTo :: String -> Signal Double -> Signal ValueMap
 button4CountTo name ipat = innerJoin $ (\i -> pStateF "button4" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button4bus :: Signal Int -> Signal Double -> ControlSignal
-button4bus busid pat = (pF "button4" pat) # (pI "^button4" busid)
+button4bus busid pat = pF "button4" pat # pI "^button4" busid
 button4recv :: Signal Int -> ControlSignal
 button4recv busid = pI "^button4" busid
 
@@ -496,7 +478,7 @@ button5CountTo :: String -> Signal Double -> Signal ValueMap
 button5CountTo name ipat = innerJoin $ (\i -> pStateF "button5" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button5bus :: Signal Int -> Signal Double -> ControlSignal
-button5bus busid pat = (pF "button5" pat) # (pI "^button5" busid)
+button5bus busid pat = pF "button5" pat # pI "^button5" busid
 button5recv :: Signal Int -> ControlSignal
 button5recv busid = pI "^button5" busid
 
@@ -511,7 +493,7 @@ button6CountTo :: String -> Signal Double -> Signal ValueMap
 button6CountTo name ipat = innerJoin $ (\i -> pStateF "button6" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button6bus :: Signal Int -> Signal Double -> ControlSignal
-button6bus busid pat = (pF "button6" pat) # (pI "^button6" busid)
+button6bus busid pat = pF "button6" pat # pI "^button6" busid
 button6recv :: Signal Int -> ControlSignal
 button6recv busid = pI "^button6" busid
 
@@ -526,7 +508,7 @@ button7CountTo :: String -> Signal Double -> Signal ValueMap
 button7CountTo name ipat = innerJoin $ (\i -> pStateF "button7" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button7bus :: Signal Int -> Signal Double -> ControlSignal
-button7bus busid pat = (pF "button7" pat) # (pI "^button7" busid)
+button7bus busid pat = pF "button7" pat # pI "^button7" busid
 button7recv :: Signal Int -> ControlSignal
 button7recv busid = pI "^button7" busid
 
@@ -541,7 +523,7 @@ button8CountTo :: String -> Signal Double -> Signal ValueMap
 button8CountTo name ipat = innerJoin $ (\i -> pStateF "button8" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button8bus :: Signal Int -> Signal Double -> ControlSignal
-button8bus busid pat = (pF "button8" pat) # (pI "^button8" busid)
+button8bus busid pat = pF "button8" pat # pI "^button8" busid
 button8recv :: Signal Int -> ControlSignal
 button8recv busid = pI "^button8" busid
 
@@ -556,7 +538,7 @@ button9CountTo :: String -> Signal Double -> Signal ValueMap
 button9CountTo name ipat = innerJoin $ (\i -> pStateF "button9" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 button9bus :: Signal Int -> Signal Double -> ControlSignal
-button9bus busid pat = (pF "button9" pat) # (pI "^button9" busid)
+button9bus busid pat = pF "button9" pat # pI "^button9" busid
 button9recv :: Signal Int -> ControlSignal
 button9recv busid = pI "^button9" busid
 
@@ -571,7 +553,7 @@ ccnCountTo :: String -> Signal Double -> Signal ValueMap
 ccnCountTo name ipat = innerJoin $ (\i -> pStateF "ccn" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ccnbus :: Signal Int -> Signal Double -> ControlSignal
-ccnbus _ _ = error $ "Control parameter 'ccn' can't be sent to a bus."
+ccnbus _ _ = error "Control parameter 'ccn' can't be sent to a bus."
 
 -- | 
 ccv :: Signal Double -> ControlSignal
@@ -584,7 +566,7 @@ ccvCountTo :: String -> Signal Double -> Signal ValueMap
 ccvCountTo name ipat = innerJoin $ (\i -> pStateF "ccv" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ccvbus :: Signal Int -> Signal Double -> ControlSignal
-ccvbus _ _ = error $ "Control parameter 'ccv' can't be sent to a bus."
+ccvbus _ _ = error "Control parameter 'ccv' can't be sent to a bus."
 
 -- | choose the channel the pattern is sent to in superdirt
 channel :: Signal Int -> ControlSignal
@@ -597,7 +579,7 @@ channelCountTo :: String -> Signal Double -> Signal ValueMap
 channelCountTo name ipat = innerJoin $ (\i -> pStateF "channel" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 channelbus :: Signal Int -> Signal Int -> ControlSignal
-channelbus _ _ = error $ "Control parameter 'channel' can't be sent to a bus."
+channelbus _ _ = error "Control parameter 'channel' can't be sent to a bus."
 
 -- | 
 clhatdecay :: Signal Double -> ControlSignal
@@ -610,7 +592,7 @@ clhatdecayCountTo :: String -> Signal Double -> Signal ValueMap
 clhatdecayCountTo name ipat = innerJoin $ (\i -> pStateF "clhatdecay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 clhatdecaybus :: Signal Int -> Signal Double -> ControlSignal
-clhatdecaybus busid pat = (pF "clhatdecay" pat) # (pI "^clhatdecay" busid)
+clhatdecaybus busid pat = pF "clhatdecay" pat # pI "^clhatdecay" busid
 clhatdecayrecv :: Signal Int -> ControlSignal
 clhatdecayrecv busid = pI "^clhatdecay" busid
 
@@ -625,7 +607,7 @@ coarseCountTo :: String -> Signal Double -> Signal ValueMap
 coarseCountTo name ipat = innerJoin $ (\i -> pStateF "coarse" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 coarsebus :: Signal Int -> Signal Double -> ControlSignal
-coarsebus busid pat = (pF "coarse" pat) # (pI "^coarse" busid)
+coarsebus busid pat = pF "coarse" pat # pI "^coarse" busid
 coarserecv :: Signal Int -> ControlSignal
 coarserecv busid = pI "^coarse" busid
 
@@ -640,7 +622,7 @@ combCountTo :: String -> Signal Double -> Signal ValueMap
 combCountTo name ipat = innerJoin $ (\i -> pStateF "comb" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 combbus :: Signal Int -> Signal Double -> ControlSignal
-combbus busid pat = (pF "comb" pat) # (pI "^comb" busid)
+combbus busid pat = pF "comb" pat # pI "^comb" busid
 combrecv :: Signal Int -> ControlSignal
 combrecv busid = pI "^comb" busid
 
@@ -655,7 +637,7 @@ controlCountTo :: String -> Signal Double -> Signal ValueMap
 controlCountTo name ipat = innerJoin $ (\i -> pStateF "control" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 controlbus :: Signal Int -> Signal Double -> ControlSignal
-controlbus _ _ = error $ "Control parameter 'control' can't be sent to a bus."
+controlbus _ _ = error "Control parameter 'control' can't be sent to a bus."
 
 -- | 
 cps :: Signal Double -> ControlSignal
@@ -668,7 +650,7 @@ cpsCountTo :: String -> Signal Double -> Signal ValueMap
 cpsCountTo name ipat = innerJoin $ (\i -> pStateF "cps" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 cpsbus :: Signal Int -> Signal Double -> ControlSignal
-cpsbus busid pat = (pF "cps" pat) # (pI "^cps" busid)
+cpsbus busid pat = pF "cps" pat # pI "^cps" busid
 cpsrecv :: Signal Int -> ControlSignal
 cpsrecv busid = pI "^cps" busid
 
@@ -683,7 +665,7 @@ crushCountTo :: String -> Signal Double -> Signal ValueMap
 crushCountTo name ipat = innerJoin $ (\i -> pStateF "crush" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 crushbus :: Signal Int -> Signal Double -> ControlSignal
-crushbus busid pat = (pF "crush" pat) # (pI "^crush" busid)
+crushbus busid pat = pF "crush" pat # pI "^crush" busid
 crushrecv :: Signal Int -> ControlSignal
 crushrecv busid = pI "^crush" busid
 
@@ -698,7 +680,7 @@ ctlNumCountTo :: String -> Signal Double -> Signal ValueMap
 ctlNumCountTo name ipat = innerJoin $ (\i -> pStateF "ctlNum" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ctlNumbus :: Signal Int -> Signal Double -> ControlSignal
-ctlNumbus _ _ = error $ "Control parameter 'ctlNum' can't be sent to a bus."
+ctlNumbus _ _ = error "Control parameter 'ctlNum' can't be sent to a bus."
 
 -- | 
 ctranspose :: Signal Double -> ControlSignal
@@ -711,7 +693,7 @@ ctransposeCountTo :: String -> Signal Double -> Signal ValueMap
 ctransposeCountTo name ipat = innerJoin $ (\i -> pStateF "ctranspose" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ctransposebus :: Signal Int -> Signal Double -> ControlSignal
-ctransposebus busid pat = (pF "ctranspose" pat) # (pI "^ctranspose" busid)
+ctransposebus busid pat = pF "ctranspose" pat # pI "^ctranspose" busid
 ctransposerecv :: Signal Int -> ControlSignal
 ctransposerecv busid = pI "^ctranspose" busid
 
@@ -726,7 +708,7 @@ cutCountTo :: String -> Signal Double -> Signal ValueMap
 cutCountTo name ipat = innerJoin $ (\i -> pStateF "cut" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 cutbus :: Signal Int -> Signal Int -> ControlSignal
-cutbus busid pat = (pI "cut" pat) # (pI "^cut" busid)
+cutbus busid pat = pI "cut" pat # pI "^cut" busid
 cutrecv :: Signal Int -> ControlSignal
 cutrecv busid = pI "^cut" busid
 
@@ -741,7 +723,7 @@ cutoffCountTo :: String -> Signal Double -> Signal ValueMap
 cutoffCountTo name ipat = innerJoin $ (\i -> pStateF "cutoff" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 cutoffbus :: Signal Int -> Signal Double -> ControlSignal
-cutoffbus busid pat = (pF "cutoff" pat) # (pI "^cutoff" busid)
+cutoffbus busid pat = pF "cutoff" pat # pI "^cutoff" busid
 cutoffrecv :: Signal Int -> ControlSignal
 cutoffrecv busid = pI "^cutoff" busid
 
@@ -756,7 +738,7 @@ cutoffegintCountTo :: String -> Signal Double -> Signal ValueMap
 cutoffegintCountTo name ipat = innerJoin $ (\i -> pStateF "cutoffegint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 cutoffegintbus :: Signal Int -> Signal Double -> ControlSignal
-cutoffegintbus busid pat = (pF "cutoffegint" pat) # (pI "^cutoffegint" busid)
+cutoffegintbus busid pat = pF "cutoffegint" pat # pI "^cutoffegint" busid
 cutoffegintrecv :: Signal Int -> ControlSignal
 cutoffegintrecv busid = pI "^cutoffegint" busid
 
@@ -771,7 +753,7 @@ decayCountTo :: String -> Signal Double -> Signal ValueMap
 decayCountTo name ipat = innerJoin $ (\i -> pStateF "decay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 decaybus :: Signal Int -> Signal Double -> ControlSignal
-decaybus busid pat = (pF "decay" pat) # (pI "^decay" busid)
+decaybus busid pat = pF "decay" pat # pI "^decay" busid
 decayrecv :: Signal Int -> ControlSignal
 decayrecv busid = pI "^decay" busid
 
@@ -786,7 +768,7 @@ degreeCountTo :: String -> Signal Double -> Signal ValueMap
 degreeCountTo name ipat = innerJoin $ (\i -> pStateF "degree" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 degreebus :: Signal Int -> Signal Double -> ControlSignal
-degreebus busid pat = (pF "degree" pat) # (pI "^degree" busid)
+degreebus busid pat = pF "degree" pat # pI "^degree" busid
 degreerecv :: Signal Int -> ControlSignal
 degreerecv busid = pI "^degree" busid
 
@@ -801,7 +783,7 @@ delayCountTo :: String -> Signal Double -> Signal ValueMap
 delayCountTo name ipat = innerJoin $ (\i -> pStateF "delay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 delaybus :: Signal Int -> Signal Double -> ControlSignal
-delaybus busid pat = (pF "delay" pat) # (pI "^delay" busid)
+delaybus busid pat = pF "delay" pat # pI "^delay" busid
 delayrecv :: Signal Int -> ControlSignal
 delayrecv busid = pI "^delay" busid
 
@@ -816,7 +798,7 @@ delayfeedbackCountTo :: String -> Signal Double -> Signal ValueMap
 delayfeedbackCountTo name ipat = innerJoin $ (\i -> pStateF "delayfeedback" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 delayfeedbackbus :: Signal Int -> Signal Double -> ControlSignal
-delayfeedbackbus busid pat = (pF "delayfeedback" pat) # (pI "^delayfeedback" busid)
+delayfeedbackbus busid pat = pF "delayfeedback" pat # pI "^delayfeedback" busid
 delayfeedbackrecv :: Signal Int -> ControlSignal
 delayfeedbackrecv busid = pI "^delayfeedback" busid
 
@@ -831,7 +813,7 @@ delaytimeCountTo :: String -> Signal Double -> Signal ValueMap
 delaytimeCountTo name ipat = innerJoin $ (\i -> pStateF "delaytime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 delaytimebus :: Signal Int -> Signal Double -> ControlSignal
-delaytimebus busid pat = (pF "delaytime" pat) # (pI "^delaytime" busid)
+delaytimebus busid pat = pF "delaytime" pat # pI "^delaytime" busid
 delaytimerecv :: Signal Int -> ControlSignal
 delaytimerecv busid = pI "^delaytime" busid
 
@@ -846,7 +828,7 @@ detuneCountTo :: String -> Signal Double -> Signal ValueMap
 detuneCountTo name ipat = innerJoin $ (\i -> pStateF "detune" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 detunebus :: Signal Int -> Signal Double -> ControlSignal
-detunebus busid pat = (pF "detune" pat) # (pI "^detune" busid)
+detunebus busid pat = pF "detune" pat # pI "^detune" busid
 detunerecv :: Signal Int -> ControlSignal
 detunerecv busid = pI "^detune" busid
 
@@ -861,7 +843,7 @@ distortCountTo :: String -> Signal Double -> Signal ValueMap
 distortCountTo name ipat = innerJoin $ (\i -> pStateF "distort" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 distortbus :: Signal Int -> Signal Double -> ControlSignal
-distortbus busid pat = (pF "distort" pat) # (pI "^distort" busid)
+distortbus busid pat = pF "distort" pat # pI "^distort" busid
 distortrecv :: Signal Int -> ControlSignal
 distortrecv busid = pI "^distort" busid
 
@@ -876,7 +858,7 @@ djfCountTo :: String -> Signal Double -> Signal ValueMap
 djfCountTo name ipat = innerJoin $ (\i -> pStateF "djf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 djfbus :: Signal Int -> Signal Double -> ControlSignal
-djfbus busid pat = (pF "djf" pat) # (pI "^djf" busid)
+djfbus busid pat = pF "djf" pat # pI "^djf" busid
 djfrecv :: Signal Int -> ControlSignal
 djfrecv busid = pI "^djf" busid
 
@@ -891,7 +873,7 @@ dryCountTo :: String -> Signal Double -> Signal ValueMap
 dryCountTo name ipat = innerJoin $ (\i -> pStateF "dry" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 drybus :: Signal Int -> Signal Double -> ControlSignal
-drybus busid pat = (pF "dry" pat) # (pI "^dry" busid)
+drybus busid pat = pF "dry" pat # pI "^dry" busid
 dryrecv :: Signal Int -> ControlSignal
 dryrecv busid = pI "^dry" busid
 
@@ -906,7 +888,7 @@ durCountTo :: String -> Signal Double -> Signal ValueMap
 durCountTo name ipat = innerJoin $ (\i -> pStateF "dur" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 durbus :: Signal Int -> Signal Double -> ControlSignal
-durbus busid pat = (pF "dur" pat) # (pI "^dur" busid)
+durbus busid pat = pF "dur" pat # pI "^dur" busid
 durrecv :: Signal Int -> ControlSignal
 durrecv busid = pI "^dur" busid
 
@@ -921,7 +903,7 @@ endCountTo :: String -> Signal Double -> Signal ValueMap
 endCountTo name ipat = innerJoin $ (\i -> pStateF "end" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 endbus :: Signal Int -> Signal Double -> ControlSignal
-endbus _ _ = error $ "Control parameter 'end' can't be sent to a bus."
+endbus _ _ = error "Control parameter 'end' can't be sent to a bus."
 
 -- | Spectral enhance
 enhance :: Signal Double -> ControlSignal
@@ -934,7 +916,7 @@ enhanceCountTo :: String -> Signal Double -> Signal ValueMap
 enhanceCountTo name ipat = innerJoin $ (\i -> pStateF "enhance" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 enhancebus :: Signal Int -> Signal Double -> ControlSignal
-enhancebus busid pat = (pF "enhance" pat) # (pI "^enhance" busid)
+enhancebus busid pat = pF "enhance" pat # pI "^enhance" busid
 enhancerecv :: Signal Int -> ControlSignal
 enhancerecv busid = pI "^enhance" busid
 
@@ -949,7 +931,7 @@ expressionCountTo :: String -> Signal Double -> Signal ValueMap
 expressionCountTo name ipat = innerJoin $ (\i -> pStateF "expression" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 expressionbus :: Signal Int -> Signal Double -> ControlSignal
-expressionbus busid pat = (pF "expression" pat) # (pI "^expression" busid)
+expressionbus busid pat = pF "expression" pat # pI "^expression" busid
 expressionrecv :: Signal Int -> ControlSignal
 expressionrecv busid = pI "^expression" busid
 
@@ -964,7 +946,7 @@ fadeInTimeCountTo :: String -> Signal Double -> Signal ValueMap
 fadeInTimeCountTo name ipat = innerJoin $ (\i -> pStateF "fadeInTime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 fadeInTimebus :: Signal Int -> Signal Double -> ControlSignal
-fadeInTimebus _ _ = error $ "Control parameter 'fadeInTime' can't be sent to a bus."
+fadeInTimebus _ _ = error "Control parameter 'fadeInTime' can't be sent to a bus."
 
 -- | Used when using begin/end or chop/striate and friends, to change the fade out time of the 'grain' envelope.
 fadeTime :: Signal Double -> ControlSignal
@@ -977,7 +959,7 @@ fadeTimeCountTo :: String -> Signal Double -> Signal ValueMap
 fadeTimeCountTo name ipat = innerJoin $ (\i -> pStateF "fadeTime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 fadeTimebus :: Signal Int -> Signal Double -> ControlSignal
-fadeTimebus _ _ = error $ "Control parameter 'fadeTime' can't be sent to a bus."
+fadeTimebus _ _ = error "Control parameter 'fadeTime' can't be sent to a bus."
 
 -- | 
 frameRate :: Signal Double -> ControlSignal
@@ -990,7 +972,7 @@ frameRateCountTo :: String -> Signal Double -> Signal ValueMap
 frameRateCountTo name ipat = innerJoin $ (\i -> pStateF "frameRate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 frameRatebus :: Signal Int -> Signal Double -> ControlSignal
-frameRatebus _ _ = error $ "Control parameter 'frameRate' can't be sent to a bus."
+frameRatebus _ _ = error "Control parameter 'frameRate' can't be sent to a bus."
 
 -- | 
 frames :: Signal Double -> ControlSignal
@@ -1003,7 +985,7 @@ framesCountTo :: String -> Signal Double -> Signal ValueMap
 framesCountTo name ipat = innerJoin $ (\i -> pStateF "frames" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 framesbus :: Signal Int -> Signal Double -> ControlSignal
-framesbus _ _ = error $ "Control parameter 'frames' can't be sent to a bus."
+framesbus _ _ = error "Control parameter 'frames' can't be sent to a bus."
 
 -- | Spectral freeze
 freeze :: Signal Double -> ControlSignal
@@ -1016,7 +998,7 @@ freezeCountTo :: String -> Signal Double -> Signal ValueMap
 freezeCountTo name ipat = innerJoin $ (\i -> pStateF "freeze" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 freezebus :: Signal Int -> Signal Double -> ControlSignal
-freezebus busid pat = (pF "freeze" pat) # (pI "^freeze" busid)
+freezebus busid pat = pF "freeze" pat # pI "^freeze" busid
 freezerecv :: Signal Int -> ControlSignal
 freezerecv busid = pI "^freeze" busid
 
@@ -1031,7 +1013,7 @@ freqCountTo :: String -> Signal Double -> Signal ValueMap
 freqCountTo name ipat = innerJoin $ (\i -> pStateF "freq" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 freqbus :: Signal Int -> Signal Double -> ControlSignal
-freqbus busid pat = (pF "freq" pat) # (pI "^freq" busid)
+freqbus busid pat = pF "freq" pat # pI "^freq" busid
 freqrecv :: Signal Int -> ControlSignal
 freqrecv busid = pI "^freq" busid
 
@@ -1046,7 +1028,7 @@ fromCountTo :: String -> Signal Double -> Signal ValueMap
 fromCountTo name ipat = innerJoin $ (\i -> pStateF "from" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 frombus :: Signal Int -> Signal Double -> ControlSignal
-frombus busid pat = (pF "from" pat) # (pI "^from" busid)
+frombus busid pat = pF "from" pat # pI "^from" busid
 fromrecv :: Signal Int -> ControlSignal
 fromrecv busid = pI "^from" busid
 
@@ -1061,7 +1043,7 @@ fshiftCountTo :: String -> Signal Double -> Signal ValueMap
 fshiftCountTo name ipat = innerJoin $ (\i -> pStateF "fshift" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 fshiftbus :: Signal Int -> Signal Double -> ControlSignal
-fshiftbus busid pat = (pF "fshift" pat) # (pI "^fshift" busid)
+fshiftbus busid pat = pF "fshift" pat # pI "^fshift" busid
 fshiftrecv :: Signal Int -> ControlSignal
 fshiftrecv busid = pI "^fshift" busid
 
@@ -1076,7 +1058,7 @@ fshiftnoteCountTo :: String -> Signal Double -> Signal ValueMap
 fshiftnoteCountTo name ipat = innerJoin $ (\i -> pStateF "fshiftnote" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 fshiftnotebus :: Signal Int -> Signal Double -> ControlSignal
-fshiftnotebus busid pat = (pF "fshiftnote" pat) # (pI "^fshiftnote" busid)
+fshiftnotebus busid pat = pF "fshiftnote" pat # pI "^fshiftnote" busid
 fshiftnoterecv :: Signal Int -> ControlSignal
 fshiftnoterecv busid = pI "^fshiftnote" busid
 
@@ -1091,7 +1073,7 @@ fshiftphaseCountTo :: String -> Signal Double -> Signal ValueMap
 fshiftphaseCountTo name ipat = innerJoin $ (\i -> pStateF "fshiftphase" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 fshiftphasebus :: Signal Int -> Signal Double -> ControlSignal
-fshiftphasebus busid pat = (pF "fshiftphase" pat) # (pI "^fshiftphase" busid)
+fshiftphasebus busid pat = pF "fshiftphase" pat # pI "^fshiftphase" busid
 fshiftphaserecv :: Signal Int -> ControlSignal
 fshiftphaserecv busid = pI "^fshiftphase" busid
 
@@ -1106,7 +1088,7 @@ gainCountTo :: String -> Signal Double -> Signal ValueMap
 gainCountTo name ipat = innerJoin $ (\i -> pStateF "gain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 gainbus :: Signal Int -> Signal Double -> ControlSignal
-gainbus _ _ = error $ "Control parameter 'gain' can't be sent to a bus."
+gainbus _ _ = error "Control parameter 'gain' can't be sent to a bus."
 
 -- | 
 gate :: Signal Double -> ControlSignal
@@ -1119,7 +1101,7 @@ gateCountTo :: String -> Signal Double -> Signal ValueMap
 gateCountTo name ipat = innerJoin $ (\i -> pStateF "gate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 gatebus :: Signal Int -> Signal Double -> ControlSignal
-gatebus busid pat = (pF "gate" pat) # (pI "^gate" busid)
+gatebus busid pat = pF "gate" pat # pI "^gate" busid
 gaterecv :: Signal Int -> ControlSignal
 gaterecv busid = pI "^gate" busid
 
@@ -1134,7 +1116,7 @@ harmonicCountTo :: String -> Signal Double -> Signal ValueMap
 harmonicCountTo name ipat = innerJoin $ (\i -> pStateF "harmonic" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 harmonicbus :: Signal Int -> Signal Double -> ControlSignal
-harmonicbus busid pat = (pF "harmonic" pat) # (pI "^harmonic" busid)
+harmonicbus busid pat = pF "harmonic" pat # pI "^harmonic" busid
 harmonicrecv :: Signal Int -> ControlSignal
 harmonicrecv busid = pI "^harmonic" busid
 
@@ -1149,7 +1131,7 @@ hatgrainCountTo :: String -> Signal Double -> Signal ValueMap
 hatgrainCountTo name ipat = innerJoin $ (\i -> pStateF "hatgrain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 hatgrainbus :: Signal Int -> Signal Double -> ControlSignal
-hatgrainbus busid pat = (pF "hatgrain" pat) # (pI "^hatgrain" busid)
+hatgrainbus busid pat = pF "hatgrain" pat # pI "^hatgrain" busid
 hatgrainrecv :: Signal Int -> ControlSignal
 hatgrainrecv busid = pI "^hatgrain" busid
 
@@ -1164,7 +1146,7 @@ hbrickCountTo :: String -> Signal Double -> Signal ValueMap
 hbrickCountTo name ipat = innerJoin $ (\i -> pStateF "hbrick" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 hbrickbus :: Signal Int -> Signal Double -> ControlSignal
-hbrickbus busid pat = (pF "hbrick" pat) # (pI "^hbrick" busid)
+hbrickbus busid pat = pF "hbrick" pat # pI "^hbrick" busid
 hbrickrecv :: Signal Int -> ControlSignal
 hbrickrecv busid = pI "^hbrick" busid
 
@@ -1179,7 +1161,7 @@ hcutoffCountTo :: String -> Signal Double -> Signal ValueMap
 hcutoffCountTo name ipat = innerJoin $ (\i -> pStateF "hcutoff" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 hcutoffbus :: Signal Int -> Signal Double -> ControlSignal
-hcutoffbus busid pat = (pF "hcutoff" pat) # (pI "^hcutoff" busid)
+hcutoffbus busid pat = pF "hcutoff" pat # pI "^hcutoff" busid
 hcutoffrecv :: Signal Int -> ControlSignal
 hcutoffrecv busid = pI "^hcutoff" busid
 
@@ -1194,7 +1176,7 @@ holdCountTo :: String -> Signal Double -> Signal ValueMap
 holdCountTo name ipat = innerJoin $ (\i -> pStateF "hold" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 holdbus :: Signal Int -> Signal Double -> ControlSignal
-holdbus busid pat = (pF "hold" pat) # (pI "^hold" busid)
+holdbus busid pat = pF "hold" pat # pI "^hold" busid
 holdrecv :: Signal Int -> ControlSignal
 holdrecv busid = pI "^hold" busid
 
@@ -1209,7 +1191,7 @@ hoursCountTo :: String -> Signal Double -> Signal ValueMap
 hoursCountTo name ipat = innerJoin $ (\i -> pStateF "hours" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 hoursbus :: Signal Int -> Signal Double -> ControlSignal
-hoursbus _ _ = error $ "Control parameter 'hours' can't be sent to a bus."
+hoursbus _ _ = error "Control parameter 'hours' can't be sent to a bus."
 
 -- | a pattern of numbers from 0 to 1. Applies the resonance of the high-pass filter. Has alias @hpq@
 hresonance :: Signal Double -> ControlSignal
@@ -1222,7 +1204,7 @@ hresonanceCountTo :: String -> Signal Double -> Signal ValueMap
 hresonanceCountTo name ipat = innerJoin $ (\i -> pStateF "hresonance" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 hresonancebus :: Signal Int -> Signal Double -> ControlSignal
-hresonancebus busid pat = (pF "hresonance" pat) # (pI "^hresonance" busid)
+hresonancebus busid pat = pF "hresonance" pat # pI "^hresonance" busid
 hresonancerecv :: Signal Int -> ControlSignal
 hresonancerecv busid = pI "^hresonance" busid
 
@@ -1237,7 +1219,7 @@ imagCountTo :: String -> Signal Double -> Signal ValueMap
 imagCountTo name ipat = innerJoin $ (\i -> pStateF "imag" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 imagbus :: Signal Int -> Signal Double -> ControlSignal
-imagbus busid pat = (pF "imag" pat) # (pI "^imag" busid)
+imagbus busid pat = pF "imag" pat # pI "^imag" busid
 imagrecv :: Signal Int -> ControlSignal
 imagrecv busid = pI "^imag" busid
 
@@ -1252,7 +1234,7 @@ kcutoffCountTo :: String -> Signal Double -> Signal ValueMap
 kcutoffCountTo name ipat = innerJoin $ (\i -> pStateF "kcutoff" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 kcutoffbus :: Signal Int -> Signal Double -> ControlSignal
-kcutoffbus busid pat = (pF "kcutoff" pat) # (pI "^kcutoff" busid)
+kcutoffbus busid pat = pF "kcutoff" pat # pI "^kcutoff" busid
 kcutoffrecv :: Signal Int -> ControlSignal
 kcutoffrecv busid = pI "^kcutoff" busid
 
@@ -1267,7 +1249,7 @@ krushCountTo :: String -> Signal Double -> Signal ValueMap
 krushCountTo name ipat = innerJoin $ (\i -> pStateF "krush" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 krushbus :: Signal Int -> Signal Double -> ControlSignal
-krushbus busid pat = (pF "krush" pat) # (pI "^krush" busid)
+krushbus busid pat = pF "krush" pat # pI "^krush" busid
 krushrecv :: Signal Int -> ControlSignal
 krushrecv busid = pI "^krush" busid
 
@@ -1282,7 +1264,7 @@ lagogoCountTo :: String -> Signal Double -> Signal ValueMap
 lagogoCountTo name ipat = innerJoin $ (\i -> pStateF "lagogo" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lagogobus :: Signal Int -> Signal Double -> ControlSignal
-lagogobus busid pat = (pF "lagogo" pat) # (pI "^lagogo" busid)
+lagogobus busid pat = pF "lagogo" pat # pI "^lagogo" busid
 lagogorecv :: Signal Int -> ControlSignal
 lagogorecv busid = pI "^lagogo" busid
 
@@ -1297,7 +1279,7 @@ lbrickCountTo :: String -> Signal Double -> Signal ValueMap
 lbrickCountTo name ipat = innerJoin $ (\i -> pStateF "lbrick" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lbrickbus :: Signal Int -> Signal Double -> ControlSignal
-lbrickbus busid pat = (pF "lbrick" pat) # (pI "^lbrick" busid)
+lbrickbus busid pat = pF "lbrick" pat # pI "^lbrick" busid
 lbrickrecv :: Signal Int -> ControlSignal
 lbrickrecv busid = pI "^lbrick" busid
 
@@ -1312,7 +1294,7 @@ lclapCountTo :: String -> Signal Double -> Signal ValueMap
 lclapCountTo name ipat = innerJoin $ (\i -> pStateF "lclap" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lclapbus :: Signal Int -> Signal Double -> ControlSignal
-lclapbus busid pat = (pF "lclap" pat) # (pI "^lclap" busid)
+lclapbus busid pat = pF "lclap" pat # pI "^lclap" busid
 lclaprecv :: Signal Int -> ControlSignal
 lclaprecv busid = pI "^lclap" busid
 
@@ -1327,7 +1309,7 @@ lclavesCountTo :: String -> Signal Double -> Signal ValueMap
 lclavesCountTo name ipat = innerJoin $ (\i -> pStateF "lclaves" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lclavesbus :: Signal Int -> Signal Double -> ControlSignal
-lclavesbus busid pat = (pF "lclaves" pat) # (pI "^lclaves" busid)
+lclavesbus busid pat = pF "lclaves" pat # pI "^lclaves" busid
 lclavesrecv :: Signal Int -> ControlSignal
 lclavesrecv busid = pI "^lclaves" busid
 
@@ -1342,7 +1324,7 @@ lclhatCountTo :: String -> Signal Double -> Signal ValueMap
 lclhatCountTo name ipat = innerJoin $ (\i -> pStateF "lclhat" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lclhatbus :: Signal Int -> Signal Double -> ControlSignal
-lclhatbus busid pat = (pF "lclhat" pat) # (pI "^lclhat" busid)
+lclhatbus busid pat = pF "lclhat" pat # pI "^lclhat" busid
 lclhatrecv :: Signal Int -> ControlSignal
 lclhatrecv busid = pI "^lclhat" busid
 
@@ -1357,7 +1339,7 @@ lcrashCountTo :: String -> Signal Double -> Signal ValueMap
 lcrashCountTo name ipat = innerJoin $ (\i -> pStateF "lcrash" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lcrashbus :: Signal Int -> Signal Double -> ControlSignal
-lcrashbus busid pat = (pF "lcrash" pat) # (pI "^lcrash" busid)
+lcrashbus busid pat = pF "lcrash" pat # pI "^lcrash" busid
 lcrashrecv :: Signal Int -> ControlSignal
 lcrashrecv busid = pI "^lcrash" busid
 
@@ -1372,7 +1354,7 @@ legatoCountTo :: String -> Signal Double -> Signal ValueMap
 legatoCountTo name ipat = innerJoin $ (\i -> pStateF "legato" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 legatobus :: Signal Int -> Signal Double -> ControlSignal
-legatobus _ _ = error $ "Control parameter 'legato' can't be sent to a bus."
+legatobus _ _ = error "Control parameter 'legato' can't be sent to a bus."
 
 -- | 
 leslie :: Signal Double -> ControlSignal
@@ -1385,7 +1367,7 @@ leslieCountTo :: String -> Signal Double -> Signal ValueMap
 leslieCountTo name ipat = innerJoin $ (\i -> pStateF "leslie" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lesliebus :: Signal Int -> Signal Double -> ControlSignal
-lesliebus busid pat = (pF "leslie" pat) # (pI "^leslie" busid)
+lesliebus busid pat = pF "leslie" pat # pI "^leslie" busid
 leslierecv :: Signal Int -> ControlSignal
 leslierecv busid = pI "^leslie" busid
 
@@ -1400,7 +1382,7 @@ lfoCountTo :: String -> Signal Double -> Signal ValueMap
 lfoCountTo name ipat = innerJoin $ (\i -> pStateF "lfo" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lfobus :: Signal Int -> Signal Double -> ControlSignal
-lfobus busid pat = (pF "lfo" pat) # (pI "^lfo" busid)
+lfobus busid pat = pF "lfo" pat # pI "^lfo" busid
 lforecv :: Signal Int -> ControlSignal
 lforecv busid = pI "^lfo" busid
 
@@ -1415,7 +1397,7 @@ lfocutoffintCountTo :: String -> Signal Double -> Signal ValueMap
 lfocutoffintCountTo name ipat = innerJoin $ (\i -> pStateF "lfocutoffint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lfocutoffintbus :: Signal Int -> Signal Double -> ControlSignal
-lfocutoffintbus busid pat = (pF "lfocutoffint" pat) # (pI "^lfocutoffint" busid)
+lfocutoffintbus busid pat = pF "lfocutoffint" pat # pI "^lfocutoffint" busid
 lfocutoffintrecv :: Signal Int -> ControlSignal
 lfocutoffintrecv busid = pI "^lfocutoffint" busid
 
@@ -1430,7 +1412,7 @@ lfodelayCountTo :: String -> Signal Double -> Signal ValueMap
 lfodelayCountTo name ipat = innerJoin $ (\i -> pStateF "lfodelay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lfodelaybus :: Signal Int -> Signal Double -> ControlSignal
-lfodelaybus busid pat = (pF "lfodelay" pat) # (pI "^lfodelay" busid)
+lfodelaybus busid pat = pF "lfodelay" pat # pI "^lfodelay" busid
 lfodelayrecv :: Signal Int -> ControlSignal
 lfodelayrecv busid = pI "^lfodelay" busid
 
@@ -1445,7 +1427,7 @@ lfointCountTo :: String -> Signal Double -> Signal ValueMap
 lfointCountTo name ipat = innerJoin $ (\i -> pStateF "lfoint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lfointbus :: Signal Int -> Signal Double -> ControlSignal
-lfointbus busid pat = (pF "lfoint" pat) # (pI "^lfoint" busid)
+lfointbus busid pat = pF "lfoint" pat # pI "^lfoint" busid
 lfointrecv :: Signal Int -> ControlSignal
 lfointrecv busid = pI "^lfoint" busid
 
@@ -1460,7 +1442,7 @@ lfopitchintCountTo :: String -> Signal Double -> Signal ValueMap
 lfopitchintCountTo name ipat = innerJoin $ (\i -> pStateF "lfopitchint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lfopitchintbus :: Signal Int -> Signal Double -> ControlSignal
-lfopitchintbus busid pat = (pF "lfopitchint" pat) # (pI "^lfopitchint" busid)
+lfopitchintbus busid pat = pF "lfopitchint" pat # pI "^lfopitchint" busid
 lfopitchintrecv :: Signal Int -> ControlSignal
 lfopitchintrecv busid = pI "^lfopitchint" busid
 
@@ -1475,7 +1457,7 @@ lfoshapeCountTo :: String -> Signal Double -> Signal ValueMap
 lfoshapeCountTo name ipat = innerJoin $ (\i -> pStateF "lfoshape" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lfoshapebus :: Signal Int -> Signal Double -> ControlSignal
-lfoshapebus busid pat = (pF "lfoshape" pat) # (pI "^lfoshape" busid)
+lfoshapebus busid pat = pF "lfoshape" pat # pI "^lfoshape" busid
 lfoshaperecv :: Signal Int -> ControlSignal
 lfoshaperecv busid = pI "^lfoshape" busid
 
@@ -1490,7 +1472,7 @@ lfosyncCountTo :: String -> Signal Double -> Signal ValueMap
 lfosyncCountTo name ipat = innerJoin $ (\i -> pStateF "lfosync" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lfosyncbus :: Signal Int -> Signal Double -> ControlSignal
-lfosyncbus busid pat = (pF "lfosync" pat) # (pI "^lfosync" busid)
+lfosyncbus busid pat = pF "lfosync" pat # pI "^lfosync" busid
 lfosyncrecv :: Signal Int -> ControlSignal
 lfosyncrecv busid = pI "^lfosync" busid
 
@@ -1505,7 +1487,7 @@ lhitomCountTo :: String -> Signal Double -> Signal ValueMap
 lhitomCountTo name ipat = innerJoin $ (\i -> pStateF "lhitom" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lhitombus :: Signal Int -> Signal Double -> ControlSignal
-lhitombus busid pat = (pF "lhitom" pat) # (pI "^lhitom" busid)
+lhitombus busid pat = pF "lhitom" pat # pI "^lhitom" busid
 lhitomrecv :: Signal Int -> ControlSignal
 lhitomrecv busid = pI "^lhitom" busid
 
@@ -1520,7 +1502,7 @@ lkickCountTo :: String -> Signal Double -> Signal ValueMap
 lkickCountTo name ipat = innerJoin $ (\i -> pStateF "lkick" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lkickbus :: Signal Int -> Signal Double -> ControlSignal
-lkickbus busid pat = (pF "lkick" pat) # (pI "^lkick" busid)
+lkickbus busid pat = pF "lkick" pat # pI "^lkick" busid
 lkickrecv :: Signal Int -> ControlSignal
 lkickrecv busid = pI "^lkick" busid
 
@@ -1535,7 +1517,7 @@ llotomCountTo :: String -> Signal Double -> Signal ValueMap
 llotomCountTo name ipat = innerJoin $ (\i -> pStateF "llotom" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 llotombus :: Signal Int -> Signal Double -> ControlSignal
-llotombus busid pat = (pF "llotom" pat) # (pI "^llotom" busid)
+llotombus busid pat = pF "llotom" pat # pI "^llotom" busid
 llotomrecv :: Signal Int -> ControlSignal
 llotomrecv busid = pI "^llotom" busid
 
@@ -1550,7 +1532,7 @@ lockCountTo :: String -> Signal Double -> Signal ValueMap
 lockCountTo name ipat = innerJoin $ (\i -> pStateF "lock" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lockbus :: Signal Int -> Signal Double -> ControlSignal
-lockbus busid pat = (pF "lock" pat) # (pI "^lock" busid)
+lockbus busid pat = pF "lock" pat # pI "^lock" busid
 lockrecv :: Signal Int -> ControlSignal
 lockrecv busid = pI "^lock" busid
 
@@ -1565,7 +1547,7 @@ loopCountTo :: String -> Signal Double -> Signal ValueMap
 loopCountTo name ipat = innerJoin $ (\i -> pStateF "loop" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 loopbus :: Signal Int -> Signal Double -> ControlSignal
-loopbus _ _ = error $ "Control parameter 'loop' can't be sent to a bus."
+loopbus _ _ = error "Control parameter 'loop' can't be sent to a bus."
 
 -- | 
 lophat :: Signal Double -> ControlSignal
@@ -1578,7 +1560,7 @@ lophatCountTo :: String -> Signal Double -> Signal ValueMap
 lophatCountTo name ipat = innerJoin $ (\i -> pStateF "lophat" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lophatbus :: Signal Int -> Signal Double -> ControlSignal
-lophatbus busid pat = (pF "lophat" pat) # (pI "^lophat" busid)
+lophatbus busid pat = pF "lophat" pat # pI "^lophat" busid
 lophatrecv :: Signal Int -> ControlSignal
 lophatrecv busid = pI "^lophat" busid
 
@@ -1593,7 +1575,7 @@ lrateCountTo :: String -> Signal Double -> Signal ValueMap
 lrateCountTo name ipat = innerJoin $ (\i -> pStateF "lrate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lratebus :: Signal Int -> Signal Double -> ControlSignal
-lratebus busid pat = (pF "lrate" pat) # (pI "^lrate" busid)
+lratebus busid pat = pF "lrate" pat # pI "^lrate" busid
 lraterecv :: Signal Int -> ControlSignal
 lraterecv busid = pI "^lrate" busid
 
@@ -1608,7 +1590,7 @@ lsizeCountTo :: String -> Signal Double -> Signal ValueMap
 lsizeCountTo name ipat = innerJoin $ (\i -> pStateF "lsize" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lsizebus :: Signal Int -> Signal Double -> ControlSignal
-lsizebus busid pat = (pF "lsize" pat) # (pI "^lsize" busid)
+lsizebus busid pat = pF "lsize" pat # pI "^lsize" busid
 lsizerecv :: Signal Int -> ControlSignal
 lsizerecv busid = pI "^lsize" busid
 
@@ -1623,7 +1605,7 @@ lsnareCountTo :: String -> Signal Double -> Signal ValueMap
 lsnareCountTo name ipat = innerJoin $ (\i -> pStateF "lsnare" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 lsnarebus :: Signal Int -> Signal Double -> ControlSignal
-lsnarebus busid pat = (pF "lsnare" pat) # (pI "^lsnare" busid)
+lsnarebus busid pat = pF "lsnare" pat # pI "^lsnare" busid
 lsnarerecv :: Signal Int -> ControlSignal
 lsnarerecv busid = pI "^lsnare" busid
 
@@ -1638,7 +1620,7 @@ midibendCountTo :: String -> Signal Double -> Signal ValueMap
 midibendCountTo name ipat = innerJoin $ (\i -> pStateF "midibend" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 midibendbus :: Signal Int -> Signal Double -> ControlSignal
-midibendbus _ _ = error $ "Control parameter 'midibend' can't be sent to a bus."
+midibendbus _ _ = error "Control parameter 'midibend' can't be sent to a bus."
 
 -- | 
 midichan :: Signal Double -> ControlSignal
@@ -1651,7 +1633,7 @@ midichanCountTo :: String -> Signal Double -> Signal ValueMap
 midichanCountTo name ipat = innerJoin $ (\i -> pStateF "midichan" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 midichanbus :: Signal Int -> Signal Double -> ControlSignal
-midichanbus _ _ = error $ "Control parameter 'midichan' can't be sent to a bus."
+midichanbus _ _ = error "Control parameter 'midichan' can't be sent to a bus."
 
 -- | 
 midicmd :: Signal String -> ControlSignal
@@ -1659,7 +1641,7 @@ midicmd = pS "midicmd"
 midicmdTake :: String -> [Double] -> ControlSignal
 midicmdTake name xs = pStateListF "midicmd" name xs
 midicmdbus :: Signal Int -> Signal String -> ControlSignal
-midicmdbus _ _ = error $ "Control parameter 'midicmd' can't be sent to a bus."
+midicmdbus _ _ = error "Control parameter 'midicmd' can't be sent to a bus."
 
 -- | 
 miditouch :: Signal Double -> ControlSignal
@@ -1672,7 +1654,7 @@ miditouchCountTo :: String -> Signal Double -> Signal ValueMap
 miditouchCountTo name ipat = innerJoin $ (\i -> pStateF "miditouch" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 miditouchbus :: Signal Int -> Signal Double -> ControlSignal
-miditouchbus _ _ = error $ "Control parameter 'miditouch' can't be sent to a bus."
+miditouchbus _ _ = error "Control parameter 'miditouch' can't be sent to a bus."
 
 -- | 
 minutes :: Signal Double -> ControlSignal
@@ -1685,7 +1667,7 @@ minutesCountTo :: String -> Signal Double -> Signal ValueMap
 minutesCountTo name ipat = innerJoin $ (\i -> pStateF "minutes" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 minutesbus :: Signal Int -> Signal Double -> ControlSignal
-minutesbus _ _ = error $ "Control parameter 'minutes' can't be sent to a bus."
+minutesbus _ _ = error "Control parameter 'minutes' can't be sent to a bus."
 
 -- | 
 modwheel :: Signal Double -> ControlSignal
@@ -1698,7 +1680,7 @@ modwheelCountTo :: String -> Signal Double -> Signal ValueMap
 modwheelCountTo name ipat = innerJoin $ (\i -> pStateF "modwheel" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 modwheelbus :: Signal Int -> Signal Double -> ControlSignal
-modwheelbus busid pat = (pF "modwheel" pat) # (pI "^modwheel" busid)
+modwheelbus busid pat = pF "modwheel" pat # pI "^modwheel" busid
 modwheelrecv :: Signal Int -> ControlSignal
 modwheelrecv busid = pI "^modwheel" busid
 
@@ -1713,7 +1695,7 @@ mtransposeCountTo :: String -> Signal Double -> Signal ValueMap
 mtransposeCountTo name ipat = innerJoin $ (\i -> pStateF "mtranspose" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 mtransposebus :: Signal Int -> Signal Double -> ControlSignal
-mtransposebus busid pat = (pF "mtranspose" pat) # (pI "^mtranspose" busid)
+mtransposebus busid pat = pF "mtranspose" pat # pI "^mtranspose" busid
 mtransposerecv :: Signal Int -> ControlSignal
 mtransposerecv busid = pI "^mtranspose" busid
 
@@ -1728,7 +1710,7 @@ nCountTo :: String -> Signal Double -> Signal ValueMap
 nCountTo name ipat = innerJoin $ (\i -> pStateF "n" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 nbus :: Signal Int -> Signal Note -> ControlSignal
-nbus _ _ = error $ "Control parameter 'n' can't be sent to a bus."
+nbus _ _ = error "Control parameter 'n' can't be sent to a bus."
 
 -- | The note or pitch to play a sound or synth with
 note :: Signal Note -> ControlSignal
@@ -1741,7 +1723,7 @@ noteCountTo :: String -> Signal Double -> Signal ValueMap
 noteCountTo name ipat = innerJoin $ (\i -> pStateF "note" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 notebus :: Signal Int -> Signal Note -> ControlSignal
-notebus _ _ = error $ "Control parameter 'note' can't be sent to a bus."
+notebus _ _ = error "Control parameter 'note' can't be sent to a bus."
 
 -- | Nudges events into the future by the specified number of seconds. Negative numbers work up to a point as well (due to internal latency)
 nudge :: Signal Double -> ControlSignal
@@ -1754,7 +1736,7 @@ nudgeCountTo :: String -> Signal Double -> Signal ValueMap
 nudgeCountTo name ipat = innerJoin $ (\i -> pStateF "nudge" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 nudgebus :: Signal Int -> Signal Double -> ControlSignal
-nudgebus busid pat = (pF "nudge" pat) # (pI "^nudge" busid)
+nudgebus busid pat = pF "nudge" pat # pI "^nudge" busid
 nudgerecv :: Signal Int -> ControlSignal
 nudgerecv busid = pI "^nudge" busid
 
@@ -1769,7 +1751,7 @@ octaveCountTo :: String -> Signal Double -> Signal ValueMap
 octaveCountTo name ipat = innerJoin $ (\i -> pStateF "octave" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 octavebus :: Signal Int -> Signal Int -> ControlSignal
-octavebus _ _ = error $ "Control parameter 'octave' can't be sent to a bus."
+octavebus _ _ = error "Control parameter 'octave' can't be sent to a bus."
 
 -- | 
 octaveR :: Signal Double -> ControlSignal
@@ -1782,7 +1764,7 @@ octaveRCountTo :: String -> Signal Double -> Signal ValueMap
 octaveRCountTo name ipat = innerJoin $ (\i -> pStateF "octaveR" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 octaveRbus :: Signal Int -> Signal Double -> ControlSignal
-octaveRbus busid pat = (pF "octaveR" pat) # (pI "^octaveR" busid)
+octaveRbus busid pat = pF "octaveR" pat # pI "^octaveR" busid
 octaveRrecv :: Signal Int -> ControlSignal
 octaveRrecv busid = pI "^octaveR" busid
 
@@ -1797,7 +1779,7 @@ octerCountTo :: String -> Signal Double -> Signal ValueMap
 octerCountTo name ipat = innerJoin $ (\i -> pStateF "octer" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 octerbus :: Signal Int -> Signal Double -> ControlSignal
-octerbus busid pat = (pF "octer" pat) # (pI "^octer" busid)
+octerbus busid pat = pF "octer" pat # pI "^octer" busid
 octerrecv :: Signal Int -> ControlSignal
 octerrecv busid = pI "^octer" busid
 
@@ -1812,7 +1794,7 @@ octersubCountTo :: String -> Signal Double -> Signal ValueMap
 octersubCountTo name ipat = innerJoin $ (\i -> pStateF "octersub" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 octersubbus :: Signal Int -> Signal Double -> ControlSignal
-octersubbus busid pat = (pF "octersub" pat) # (pI "^octersub" busid)
+octersubbus busid pat = pF "octersub" pat # pI "^octersub" busid
 octersubrecv :: Signal Int -> ControlSignal
 octersubrecv busid = pI "^octersub" busid
 
@@ -1827,7 +1809,7 @@ octersubsubCountTo :: String -> Signal Double -> Signal ValueMap
 octersubsubCountTo name ipat = innerJoin $ (\i -> pStateF "octersubsub" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 octersubsubbus :: Signal Int -> Signal Double -> ControlSignal
-octersubsubbus busid pat = (pF "octersubsub" pat) # (pI "^octersubsub" busid)
+octersubsubbus busid pat = pF "octersubsub" pat # pI "^octersubsub" busid
 octersubsubrecv :: Signal Int -> ControlSignal
 octersubsubrecv busid = pI "^octersubsub" busid
 
@@ -1842,7 +1824,7 @@ offsetCountTo :: String -> Signal Double -> Signal ValueMap
 offsetCountTo name ipat = innerJoin $ (\i -> pStateF "offset" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 offsetbus :: Signal Int -> Signal Double -> ControlSignal
-offsetbus _ _ = error $ "Control parameter 'offset' can't be sent to a bus."
+offsetbus _ _ = error "Control parameter 'offset' can't be sent to a bus."
 
 -- | 
 ophatdecay :: Signal Double -> ControlSignal
@@ -1855,7 +1837,7 @@ ophatdecayCountTo :: String -> Signal Double -> Signal ValueMap
 ophatdecayCountTo name ipat = innerJoin $ (\i -> pStateF "ophatdecay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ophatdecaybus :: Signal Int -> Signal Double -> ControlSignal
-ophatdecaybus busid pat = (pF "ophatdecay" pat) # (pI "^ophatdecay" busid)
+ophatdecaybus busid pat = pF "ophatdecay" pat # pI "^ophatdecay" busid
 ophatdecayrecv :: Signal Int -> ControlSignal
 ophatdecayrecv busid = pI "^ophatdecay" busid
 
@@ -1870,7 +1852,7 @@ orbitCountTo :: String -> Signal Double -> Signal ValueMap
 orbitCountTo name ipat = innerJoin $ (\i -> pStateF "orbit" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 orbitbus :: Signal Int -> Signal Int -> ControlSignal
-orbitbus busid pat = (pI "orbit" pat) # (pI "^orbit" busid)
+orbitbus busid pat = pI "orbit" pat # pI "^orbit" busid
 orbitrecv :: Signal Int -> ControlSignal
 orbitrecv busid = pI "^orbit" busid
 
@@ -1885,7 +1867,7 @@ overgainCountTo :: String -> Signal Double -> Signal ValueMap
 overgainCountTo name ipat = innerJoin $ (\i -> pStateF "overgain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 overgainbus :: Signal Int -> Signal Double -> ControlSignal
-overgainbus _ _ = error $ "Control parameter 'overgain' can't be sent to a bus."
+overgainbus _ _ = error "Control parameter 'overgain' can't be sent to a bus."
 
 -- | 
 overshape :: Signal Double -> ControlSignal
@@ -1898,7 +1880,7 @@ overshapeCountTo :: String -> Signal Double -> Signal ValueMap
 overshapeCountTo name ipat = innerJoin $ (\i -> pStateF "overshape" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 overshapebus :: Signal Int -> Signal Double -> ControlSignal
-overshapebus busid pat = (pF "overshape" pat) # (pI "^overshape" busid)
+overshapebus busid pat = pF "overshape" pat # pI "^overshape" busid
 overshaperecv :: Signal Int -> ControlSignal
 overshaperecv busid = pI "^overshape" busid
 
@@ -1913,7 +1895,7 @@ panCountTo :: String -> Signal Double -> Signal ValueMap
 panCountTo name ipat = innerJoin $ (\i -> pStateF "pan" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 panbus :: Signal Int -> Signal Double -> ControlSignal
-panbus busid pat = (pF "pan" pat) # (pI "^pan" busid)
+panbus busid pat = pF "pan" pat # pI "^pan" busid
 panrecv :: Signal Int -> ControlSignal
 panrecv busid = pI "^pan" busid
 
@@ -1928,7 +1910,7 @@ panorientCountTo :: String -> Signal Double -> Signal ValueMap
 panorientCountTo name ipat = innerJoin $ (\i -> pStateF "panorient" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 panorientbus :: Signal Int -> Signal Double -> ControlSignal
-panorientbus busid pat = (pF "panorient" pat) # (pI "^panorient" busid)
+panorientbus busid pat = pF "panorient" pat # pI "^panorient" busid
 panorientrecv :: Signal Int -> ControlSignal
 panorientrecv busid = pI "^panorient" busid
 
@@ -1943,7 +1925,7 @@ panspanCountTo :: String -> Signal Double -> Signal ValueMap
 panspanCountTo name ipat = innerJoin $ (\i -> pStateF "panspan" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 panspanbus :: Signal Int -> Signal Double -> ControlSignal
-panspanbus busid pat = (pF "panspan" pat) # (pI "^panspan" busid)
+panspanbus busid pat = pF "panspan" pat # pI "^panspan" busid
 panspanrecv :: Signal Int -> ControlSignal
 panspanrecv busid = pI "^panspan" busid
 
@@ -1958,7 +1940,7 @@ pansplayCountTo :: String -> Signal Double -> Signal ValueMap
 pansplayCountTo name ipat = innerJoin $ (\i -> pStateF "pansplay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 pansplaybus :: Signal Int -> Signal Double -> ControlSignal
-pansplaybus busid pat = (pF "pansplay" pat) # (pI "^pansplay" busid)
+pansplaybus busid pat = pF "pansplay" pat # pI "^pansplay" busid
 pansplayrecv :: Signal Int -> ControlSignal
 pansplayrecv busid = pI "^pansplay" busid
 
@@ -1973,7 +1955,7 @@ panwidthCountTo :: String -> Signal Double -> Signal ValueMap
 panwidthCountTo name ipat = innerJoin $ (\i -> pStateF "panwidth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 panwidthbus :: Signal Int -> Signal Double -> ControlSignal
-panwidthbus busid pat = (pF "panwidth" pat) # (pI "^panwidth" busid)
+panwidthbus busid pat = pF "panwidth" pat # pI "^panwidth" busid
 panwidthrecv :: Signal Int -> ControlSignal
 panwidthrecv busid = pI "^panwidth" busid
 
@@ -1988,7 +1970,7 @@ partialsCountTo :: String -> Signal Double -> Signal ValueMap
 partialsCountTo name ipat = innerJoin $ (\i -> pStateF "partials" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 partialsbus :: Signal Int -> Signal Double -> ControlSignal
-partialsbus busid pat = (pF "partials" pat) # (pI "^partials" busid)
+partialsbus busid pat = pF "partials" pat # pI "^partials" busid
 partialsrecv :: Signal Int -> ControlSignal
 partialsrecv busid = pI "^partials" busid
 
@@ -2003,7 +1985,7 @@ phaserdepthCountTo :: String -> Signal Double -> Signal ValueMap
 phaserdepthCountTo name ipat = innerJoin $ (\i -> pStateF "phaserdepth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 phaserdepthbus :: Signal Int -> Signal Double -> ControlSignal
-phaserdepthbus busid pat = (pF "phaserdepth" pat) # (pI "^phaserdepth" busid)
+phaserdepthbus busid pat = pF "phaserdepth" pat # pI "^phaserdepth" busid
 phaserdepthrecv :: Signal Int -> ControlSignal
 phaserdepthrecv busid = pI "^phaserdepth" busid
 
@@ -2018,7 +2000,7 @@ phaserrateCountTo :: String -> Signal Double -> Signal ValueMap
 phaserrateCountTo name ipat = innerJoin $ (\i -> pStateF "phaserrate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 phaserratebus :: Signal Int -> Signal Double -> ControlSignal
-phaserratebus busid pat = (pF "phaserrate" pat) # (pI "^phaserrate" busid)
+phaserratebus busid pat = pF "phaserrate" pat # pI "^phaserrate" busid
 phaserraterecv :: Signal Int -> ControlSignal
 phaserraterecv busid = pI "^phaserrate" busid
 
@@ -2033,7 +2015,7 @@ pitch1CountTo :: String -> Signal Double -> Signal ValueMap
 pitch1CountTo name ipat = innerJoin $ (\i -> pStateF "pitch1" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 pitch1bus :: Signal Int -> Signal Double -> ControlSignal
-pitch1bus busid pat = (pF "pitch1" pat) # (pI "^pitch1" busid)
+pitch1bus busid pat = pF "pitch1" pat # pI "^pitch1" busid
 pitch1recv :: Signal Int -> ControlSignal
 pitch1recv busid = pI "^pitch1" busid
 
@@ -2048,7 +2030,7 @@ pitch2CountTo :: String -> Signal Double -> Signal ValueMap
 pitch2CountTo name ipat = innerJoin $ (\i -> pStateF "pitch2" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 pitch2bus :: Signal Int -> Signal Double -> ControlSignal
-pitch2bus busid pat = (pF "pitch2" pat) # (pI "^pitch2" busid)
+pitch2bus busid pat = pF "pitch2" pat # pI "^pitch2" busid
 pitch2recv :: Signal Int -> ControlSignal
 pitch2recv busid = pI "^pitch2" busid
 
@@ -2063,7 +2045,7 @@ pitch3CountTo :: String -> Signal Double -> Signal ValueMap
 pitch3CountTo name ipat = innerJoin $ (\i -> pStateF "pitch3" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 pitch3bus :: Signal Int -> Signal Double -> ControlSignal
-pitch3bus busid pat = (pF "pitch3" pat) # (pI "^pitch3" busid)
+pitch3bus busid pat = pF "pitch3" pat # pI "^pitch3" busid
 pitch3recv :: Signal Int -> ControlSignal
 pitch3recv busid = pI "^pitch3" busid
 
@@ -2078,7 +2060,7 @@ polyTouchCountTo :: String -> Signal Double -> Signal ValueMap
 polyTouchCountTo name ipat = innerJoin $ (\i -> pStateF "polyTouch" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 polyTouchbus :: Signal Int -> Signal Double -> ControlSignal
-polyTouchbus _ _ = error $ "Control parameter 'polyTouch' can't be sent to a bus."
+polyTouchbus _ _ = error "Control parameter 'polyTouch' can't be sent to a bus."
 
 -- | 
 portamento :: Signal Double -> ControlSignal
@@ -2091,7 +2073,7 @@ portamentoCountTo :: String -> Signal Double -> Signal ValueMap
 portamentoCountTo name ipat = innerJoin $ (\i -> pStateF "portamento" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 portamentobus :: Signal Int -> Signal Double -> ControlSignal
-portamentobus busid pat = (pF "portamento" pat) # (pI "^portamento" busid)
+portamentobus busid pat = pF "portamento" pat # pI "^portamento" busid
 portamentorecv :: Signal Int -> ControlSignal
 portamentorecv busid = pI "^portamento" busid
 
@@ -2106,7 +2088,7 @@ progNumCountTo :: String -> Signal Double -> Signal ValueMap
 progNumCountTo name ipat = innerJoin $ (\i -> pStateF "progNum" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 progNumbus :: Signal Int -> Signal Double -> ControlSignal
-progNumbus _ _ = error $ "Control parameter 'progNum' can't be sent to a bus."
+progNumbus _ _ = error "Control parameter 'progNum' can't be sent to a bus."
 
 -- | used in SuperDirt softsynths as a control rate or 'speed'
 rate :: Signal Double -> ControlSignal
@@ -2119,7 +2101,7 @@ rateCountTo :: String -> Signal Double -> Signal ValueMap
 rateCountTo name ipat = innerJoin $ (\i -> pStateF "rate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ratebus :: Signal Int -> Signal Double -> ControlSignal
-ratebus busid pat = (pF "rate" pat) # (pI "^rate" busid)
+ratebus busid pat = pF "rate" pat # pI "^rate" busid
 raterecv :: Signal Int -> ControlSignal
 raterecv busid = pI "^rate" busid
 
@@ -2134,7 +2116,7 @@ realCountTo :: String -> Signal Double -> Signal ValueMap
 realCountTo name ipat = innerJoin $ (\i -> pStateF "real" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 realbus :: Signal Int -> Signal Double -> ControlSignal
-realbus busid pat = (pF "real" pat) # (pI "^real" busid)
+realbus busid pat = pF "real" pat # pI "^real" busid
 realrecv :: Signal Int -> ControlSignal
 realrecv busid = pI "^real" busid
 
@@ -2149,7 +2131,7 @@ releaseCountTo :: String -> Signal Double -> Signal ValueMap
 releaseCountTo name ipat = innerJoin $ (\i -> pStateF "release" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 releasebus :: Signal Int -> Signal Double -> ControlSignal
-releasebus busid pat = (pF "release" pat) # (pI "^release" busid)
+releasebus busid pat = pF "release" pat # pI "^release" busid
 releaserecv :: Signal Int -> ControlSignal
 releaserecv busid = pI "^release" busid
 
@@ -2164,7 +2146,7 @@ resonanceCountTo :: String -> Signal Double -> Signal ValueMap
 resonanceCountTo name ipat = innerJoin $ (\i -> pStateF "resonance" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 resonancebus :: Signal Int -> Signal Double -> ControlSignal
-resonancebus busid pat = (pF "resonance" pat) # (pI "^resonance" busid)
+resonancebus busid pat = pF "resonance" pat # pI "^resonance" busid
 resonancerecv :: Signal Int -> ControlSignal
 resonancerecv busid = pI "^resonance" busid
 
@@ -2179,7 +2161,7 @@ ringCountTo :: String -> Signal Double -> Signal ValueMap
 ringCountTo name ipat = innerJoin $ (\i -> pStateF "ring" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ringbus :: Signal Int -> Signal Double -> ControlSignal
-ringbus busid pat = (pF "ring" pat) # (pI "^ring" busid)
+ringbus busid pat = pF "ring" pat # pI "^ring" busid
 ringrecv :: Signal Int -> ControlSignal
 ringrecv busid = pI "^ring" busid
 
@@ -2194,7 +2176,7 @@ ringdfCountTo :: String -> Signal Double -> Signal ValueMap
 ringdfCountTo name ipat = innerJoin $ (\i -> pStateF "ringdf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ringdfbus :: Signal Int -> Signal Double -> ControlSignal
-ringdfbus busid pat = (pF "ringdf" pat) # (pI "^ringdf" busid)
+ringdfbus busid pat = pF "ringdf" pat # pI "^ringdf" busid
 ringdfrecv :: Signal Int -> ControlSignal
 ringdfrecv busid = pI "^ringdf" busid
 
@@ -2209,7 +2191,7 @@ ringfCountTo :: String -> Signal Double -> Signal ValueMap
 ringfCountTo name ipat = innerJoin $ (\i -> pStateF "ringf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 ringfbus :: Signal Int -> Signal Double -> ControlSignal
-ringfbus busid pat = (pF "ringf" pat) # (pI "^ringf" busid)
+ringfbus busid pat = pF "ringf" pat # pI "^ringf" busid
 ringfrecv :: Signal Int -> ControlSignal
 ringfrecv busid = pI "^ringf" busid
 
@@ -2224,7 +2206,7 @@ roomCountTo :: String -> Signal Double -> Signal ValueMap
 roomCountTo name ipat = innerJoin $ (\i -> pStateF "room" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 roombus :: Signal Int -> Signal Double -> ControlSignal
-roombus busid pat = (pF "room" pat) # (pI "^room" busid)
+roombus busid pat = pF "room" pat # pI "^room" busid
 roomrecv :: Signal Int -> ControlSignal
 roomrecv busid = pI "^room" busid
 
@@ -2239,7 +2221,7 @@ sagogoCountTo :: String -> Signal Double -> Signal ValueMap
 sagogoCountTo name ipat = innerJoin $ (\i -> pStateF "sagogo" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 sagogobus :: Signal Int -> Signal Double -> ControlSignal
-sagogobus busid pat = (pF "sagogo" pat) # (pI "^sagogo" busid)
+sagogobus busid pat = pF "sagogo" pat # pI "^sagogo" busid
 sagogorecv :: Signal Int -> ControlSignal
 sagogorecv busid = pI "^sagogo" busid
 
@@ -2254,7 +2236,7 @@ sclapCountTo :: String -> Signal Double -> Signal ValueMap
 sclapCountTo name ipat = innerJoin $ (\i -> pStateF "sclap" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 sclapbus :: Signal Int -> Signal Double -> ControlSignal
-sclapbus busid pat = (pF "sclap" pat) # (pI "^sclap" busid)
+sclapbus busid pat = pF "sclap" pat # pI "^sclap" busid
 sclaprecv :: Signal Int -> ControlSignal
 sclaprecv busid = pI "^sclap" busid
 
@@ -2269,7 +2251,7 @@ sclavesCountTo :: String -> Signal Double -> Signal ValueMap
 sclavesCountTo name ipat = innerJoin $ (\i -> pStateF "sclaves" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 sclavesbus :: Signal Int -> Signal Double -> ControlSignal
-sclavesbus busid pat = (pF "sclaves" pat) # (pI "^sclaves" busid)
+sclavesbus busid pat = pF "sclaves" pat # pI "^sclaves" busid
 sclavesrecv :: Signal Int -> ControlSignal
 sclavesrecv busid = pI "^sclaves" busid
 
@@ -2284,7 +2266,7 @@ scramCountTo :: String -> Signal Double -> Signal ValueMap
 scramCountTo name ipat = innerJoin $ (\i -> pStateF "scram" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 scrambus :: Signal Int -> Signal Double -> ControlSignal
-scrambus busid pat = (pF "scram" pat) # (pI "^scram" busid)
+scrambus busid pat = pF "scram" pat # pI "^scram" busid
 scramrecv :: Signal Int -> ControlSignal
 scramrecv busid = pI "^scram" busid
 
@@ -2299,7 +2281,7 @@ scrashCountTo :: String -> Signal Double -> Signal ValueMap
 scrashCountTo name ipat = innerJoin $ (\i -> pStateF "scrash" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 scrashbus :: Signal Int -> Signal Double -> ControlSignal
-scrashbus busid pat = (pF "scrash" pat) # (pI "^scrash" busid)
+scrashbus busid pat = pF "scrash" pat # pI "^scrash" busid
 scrashrecv :: Signal Int -> ControlSignal
 scrashrecv busid = pI "^scrash" busid
 
@@ -2314,7 +2296,7 @@ secondsCountTo :: String -> Signal Double -> Signal ValueMap
 secondsCountTo name ipat = innerJoin $ (\i -> pStateF "seconds" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 secondsbus :: Signal Int -> Signal Double -> ControlSignal
-secondsbus _ _ = error $ "Control parameter 'seconds' can't be sent to a bus."
+secondsbus _ _ = error "Control parameter 'seconds' can't be sent to a bus."
 
 -- | 
 semitone :: Signal Double -> ControlSignal
@@ -2327,7 +2309,7 @@ semitoneCountTo :: String -> Signal Double -> Signal ValueMap
 semitoneCountTo name ipat = innerJoin $ (\i -> pStateF "semitone" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 semitonebus :: Signal Int -> Signal Double -> ControlSignal
-semitonebus busid pat = (pF "semitone" pat) # (pI "^semitone" busid)
+semitonebus busid pat = pF "semitone" pat # pI "^semitone" busid
 semitonerecv :: Signal Int -> ControlSignal
 semitonerecv busid = pI "^semitone" busid
 
@@ -2342,7 +2324,7 @@ shapeCountTo :: String -> Signal Double -> Signal ValueMap
 shapeCountTo name ipat = innerJoin $ (\i -> pStateF "shape" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 shapebus :: Signal Int -> Signal Double -> ControlSignal
-shapebus busid pat = (pF "shape" pat) # (pI "^shape" busid)
+shapebus busid pat = pF "shape" pat # pI "^shape" busid
 shaperecv :: Signal Int -> ControlSignal
 shaperecv busid = pI "^shape" busid
 
@@ -2357,7 +2339,7 @@ sizeCountTo :: String -> Signal Double -> Signal ValueMap
 sizeCountTo name ipat = innerJoin $ (\i -> pStateF "size" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 sizebus :: Signal Int -> Signal Double -> ControlSignal
-sizebus busid pat = (pF "size" pat) # (pI "^size" busid)
+sizebus busid pat = pF "size" pat # pI "^size" busid
 sizerecv :: Signal Int -> ControlSignal
 sizerecv busid = pI "^size" busid
 
@@ -2372,7 +2354,7 @@ slideCountTo :: String -> Signal Double -> Signal ValueMap
 slideCountTo name ipat = innerJoin $ (\i -> pStateF "slide" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slidebus :: Signal Int -> Signal Double -> ControlSignal
-slidebus busid pat = (pF "slide" pat) # (pI "^slide" busid)
+slidebus busid pat = pF "slide" pat # pI "^slide" busid
 sliderecv :: Signal Int -> ControlSignal
 sliderecv busid = pI "^slide" busid
 
@@ -2387,7 +2369,7 @@ slider0CountTo :: String -> Signal Double -> Signal ValueMap
 slider0CountTo name ipat = innerJoin $ (\i -> pStateF "slider0" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider0bus :: Signal Int -> Signal Double -> ControlSignal
-slider0bus busid pat = (pF "slider0" pat) # (pI "^slider0" busid)
+slider0bus busid pat = pF "slider0" pat # pI "^slider0" busid
 slider0recv :: Signal Int -> ControlSignal
 slider0recv busid = pI "^slider0" busid
 
@@ -2402,7 +2384,7 @@ slider1CountTo :: String -> Signal Double -> Signal ValueMap
 slider1CountTo name ipat = innerJoin $ (\i -> pStateF "slider1" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider1bus :: Signal Int -> Signal Double -> ControlSignal
-slider1bus busid pat = (pF "slider1" pat) # (pI "^slider1" busid)
+slider1bus busid pat = pF "slider1" pat # pI "^slider1" busid
 slider1recv :: Signal Int -> ControlSignal
 slider1recv busid = pI "^slider1" busid
 
@@ -2417,7 +2399,7 @@ slider10CountTo :: String -> Signal Double -> Signal ValueMap
 slider10CountTo name ipat = innerJoin $ (\i -> pStateF "slider10" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider10bus :: Signal Int -> Signal Double -> ControlSignal
-slider10bus busid pat = (pF "slider10" pat) # (pI "^slider10" busid)
+slider10bus busid pat = pF "slider10" pat # pI "^slider10" busid
 slider10recv :: Signal Int -> ControlSignal
 slider10recv busid = pI "^slider10" busid
 
@@ -2432,7 +2414,7 @@ slider11CountTo :: String -> Signal Double -> Signal ValueMap
 slider11CountTo name ipat = innerJoin $ (\i -> pStateF "slider11" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider11bus :: Signal Int -> Signal Double -> ControlSignal
-slider11bus busid pat = (pF "slider11" pat) # (pI "^slider11" busid)
+slider11bus busid pat = pF "slider11" pat # pI "^slider11" busid
 slider11recv :: Signal Int -> ControlSignal
 slider11recv busid = pI "^slider11" busid
 
@@ -2447,7 +2429,7 @@ slider12CountTo :: String -> Signal Double -> Signal ValueMap
 slider12CountTo name ipat = innerJoin $ (\i -> pStateF "slider12" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider12bus :: Signal Int -> Signal Double -> ControlSignal
-slider12bus busid pat = (pF "slider12" pat) # (pI "^slider12" busid)
+slider12bus busid pat = pF "slider12" pat # pI "^slider12" busid
 slider12recv :: Signal Int -> ControlSignal
 slider12recv busid = pI "^slider12" busid
 
@@ -2462,7 +2444,7 @@ slider13CountTo :: String -> Signal Double -> Signal ValueMap
 slider13CountTo name ipat = innerJoin $ (\i -> pStateF "slider13" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider13bus :: Signal Int -> Signal Double -> ControlSignal
-slider13bus busid pat = (pF "slider13" pat) # (pI "^slider13" busid)
+slider13bus busid pat = pF "slider13" pat # pI "^slider13" busid
 slider13recv :: Signal Int -> ControlSignal
 slider13recv busid = pI "^slider13" busid
 
@@ -2477,7 +2459,7 @@ slider14CountTo :: String -> Signal Double -> Signal ValueMap
 slider14CountTo name ipat = innerJoin $ (\i -> pStateF "slider14" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider14bus :: Signal Int -> Signal Double -> ControlSignal
-slider14bus busid pat = (pF "slider14" pat) # (pI "^slider14" busid)
+slider14bus busid pat = pF "slider14" pat # pI "^slider14" busid
 slider14recv :: Signal Int -> ControlSignal
 slider14recv busid = pI "^slider14" busid
 
@@ -2492,7 +2474,7 @@ slider15CountTo :: String -> Signal Double -> Signal ValueMap
 slider15CountTo name ipat = innerJoin $ (\i -> pStateF "slider15" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider15bus :: Signal Int -> Signal Double -> ControlSignal
-slider15bus busid pat = (pF "slider15" pat) # (pI "^slider15" busid)
+slider15bus busid pat = pF "slider15" pat # pI "^slider15" busid
 slider15recv :: Signal Int -> ControlSignal
 slider15recv busid = pI "^slider15" busid
 
@@ -2507,7 +2489,7 @@ slider2CountTo :: String -> Signal Double -> Signal ValueMap
 slider2CountTo name ipat = innerJoin $ (\i -> pStateF "slider2" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider2bus :: Signal Int -> Signal Double -> ControlSignal
-slider2bus busid pat = (pF "slider2" pat) # (pI "^slider2" busid)
+slider2bus busid pat = pF "slider2" pat # pI "^slider2" busid
 slider2recv :: Signal Int -> ControlSignal
 slider2recv busid = pI "^slider2" busid
 
@@ -2522,7 +2504,7 @@ slider3CountTo :: String -> Signal Double -> Signal ValueMap
 slider3CountTo name ipat = innerJoin $ (\i -> pStateF "slider3" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider3bus :: Signal Int -> Signal Double -> ControlSignal
-slider3bus busid pat = (pF "slider3" pat) # (pI "^slider3" busid)
+slider3bus busid pat = pF "slider3" pat # pI "^slider3" busid
 slider3recv :: Signal Int -> ControlSignal
 slider3recv busid = pI "^slider3" busid
 
@@ -2537,7 +2519,7 @@ slider4CountTo :: String -> Signal Double -> Signal ValueMap
 slider4CountTo name ipat = innerJoin $ (\i -> pStateF "slider4" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider4bus :: Signal Int -> Signal Double -> ControlSignal
-slider4bus busid pat = (pF "slider4" pat) # (pI "^slider4" busid)
+slider4bus busid pat = pF "slider4" pat # pI "^slider4" busid
 slider4recv :: Signal Int -> ControlSignal
 slider4recv busid = pI "^slider4" busid
 
@@ -2552,7 +2534,7 @@ slider5CountTo :: String -> Signal Double -> Signal ValueMap
 slider5CountTo name ipat = innerJoin $ (\i -> pStateF "slider5" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider5bus :: Signal Int -> Signal Double -> ControlSignal
-slider5bus busid pat = (pF "slider5" pat) # (pI "^slider5" busid)
+slider5bus busid pat = pF "slider5" pat # pI "^slider5" busid
 slider5recv :: Signal Int -> ControlSignal
 slider5recv busid = pI "^slider5" busid
 
@@ -2567,7 +2549,7 @@ slider6CountTo :: String -> Signal Double -> Signal ValueMap
 slider6CountTo name ipat = innerJoin $ (\i -> pStateF "slider6" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider6bus :: Signal Int -> Signal Double -> ControlSignal
-slider6bus busid pat = (pF "slider6" pat) # (pI "^slider6" busid)
+slider6bus busid pat = pF "slider6" pat # pI "^slider6" busid
 slider6recv :: Signal Int -> ControlSignal
 slider6recv busid = pI "^slider6" busid
 
@@ -2582,7 +2564,7 @@ slider7CountTo :: String -> Signal Double -> Signal ValueMap
 slider7CountTo name ipat = innerJoin $ (\i -> pStateF "slider7" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider7bus :: Signal Int -> Signal Double -> ControlSignal
-slider7bus busid pat = (pF "slider7" pat) # (pI "^slider7" busid)
+slider7bus busid pat = pF "slider7" pat # pI "^slider7" busid
 slider7recv :: Signal Int -> ControlSignal
 slider7recv busid = pI "^slider7" busid
 
@@ -2597,7 +2579,7 @@ slider8CountTo :: String -> Signal Double -> Signal ValueMap
 slider8CountTo name ipat = innerJoin $ (\i -> pStateF "slider8" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider8bus :: Signal Int -> Signal Double -> ControlSignal
-slider8bus busid pat = (pF "slider8" pat) # (pI "^slider8" busid)
+slider8bus busid pat = pF "slider8" pat # pI "^slider8" busid
 slider8recv :: Signal Int -> ControlSignal
 slider8recv busid = pI "^slider8" busid
 
@@ -2612,7 +2594,7 @@ slider9CountTo :: String -> Signal Double -> Signal ValueMap
 slider9CountTo name ipat = innerJoin $ (\i -> pStateF "slider9" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 slider9bus :: Signal Int -> Signal Double -> ControlSignal
-slider9bus busid pat = (pF "slider9" pat) # (pI "^slider9" busid)
+slider9bus busid pat = pF "slider9" pat # pI "^slider9" busid
 slider9recv :: Signal Int -> ControlSignal
 slider9recv busid = pI "^slider9" busid
 
@@ -2627,7 +2609,7 @@ smearCountTo :: String -> Signal Double -> Signal ValueMap
 smearCountTo name ipat = innerJoin $ (\i -> pStateF "smear" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 smearbus :: Signal Int -> Signal Double -> ControlSignal
-smearbus busid pat = (pF "smear" pat) # (pI "^smear" busid)
+smearbus busid pat = pF "smear" pat # pI "^smear" busid
 smearrecv :: Signal Int -> ControlSignal
 smearrecv busid = pI "^smear" busid
 
@@ -2642,7 +2624,7 @@ songPtrCountTo :: String -> Signal Double -> Signal ValueMap
 songPtrCountTo name ipat = innerJoin $ (\i -> pStateF "songPtr" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 songPtrbus :: Signal Int -> Signal Double -> ControlSignal
-songPtrbus _ _ = error $ "Control parameter 'songPtr' can't be sent to a bus."
+songPtrbus _ _ = error "Control parameter 'songPtr' can't be sent to a bus."
 
 -- | a pattern of numbers which changes the speed of sample playback, i.e. a cheap way of changing pitch. Negative values will play the sample backwards!
 speed :: Signal Double -> ControlSignal
@@ -2655,7 +2637,7 @@ speedCountTo :: String -> Signal Double -> Signal ValueMap
 speedCountTo name ipat = innerJoin $ (\i -> pStateF "speed" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 speedbus :: Signal Int -> Signal Double -> ControlSignal
-speedbus _ _ = error $ "Control parameter 'speed' can't be sent to a bus."
+speedbus _ _ = error "Control parameter 'speed' can't be sent to a bus."
 
 -- | 
 squiz :: Signal Double -> ControlSignal
@@ -2668,7 +2650,7 @@ squizCountTo :: String -> Signal Double -> Signal ValueMap
 squizCountTo name ipat = innerJoin $ (\i -> pStateF "squiz" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 squizbus :: Signal Int -> Signal Double -> ControlSignal
-squizbus busid pat = (pF "squiz" pat) # (pI "^squiz" busid)
+squizbus busid pat = pF "squiz" pat # pI "^squiz" busid
 squizrecv :: Signal Int -> ControlSignal
 squizrecv busid = pI "^squiz" busid
 
@@ -2683,7 +2665,7 @@ stepsPerOctaveCountTo :: String -> Signal Double -> Signal ValueMap
 stepsPerOctaveCountTo name ipat = innerJoin $ (\i -> pStateF "stepsPerOctave" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 stepsPerOctavebus :: Signal Int -> Signal Double -> ControlSignal
-stepsPerOctavebus busid pat = (pF "stepsPerOctave" pat) # (pI "^stepsPerOctave" busid)
+stepsPerOctavebus busid pat = pF "stepsPerOctave" pat # pI "^stepsPerOctave" busid
 stepsPerOctaverecv :: Signal Int -> ControlSignal
 stepsPerOctaverecv busid = pI "^stepsPerOctave" busid
 
@@ -2698,7 +2680,7 @@ stutterdepthCountTo :: String -> Signal Double -> Signal ValueMap
 stutterdepthCountTo name ipat = innerJoin $ (\i -> pStateF "stutterdepth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 stutterdepthbus :: Signal Int -> Signal Double -> ControlSignal
-stutterdepthbus busid pat = (pF "stutterdepth" pat) # (pI "^stutterdepth" busid)
+stutterdepthbus busid pat = pF "stutterdepth" pat # pI "^stutterdepth" busid
 stutterdepthrecv :: Signal Int -> ControlSignal
 stutterdepthrecv busid = pI "^stutterdepth" busid
 
@@ -2713,7 +2695,7 @@ stuttertimeCountTo :: String -> Signal Double -> Signal ValueMap
 stuttertimeCountTo name ipat = innerJoin $ (\i -> pStateF "stuttertime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 stuttertimebus :: Signal Int -> Signal Double -> ControlSignal
-stuttertimebus busid pat = (pF "stuttertime" pat) # (pI "^stuttertime" busid)
+stuttertimebus busid pat = pF "stuttertime" pat # pI "^stuttertime" busid
 stuttertimerecv :: Signal Int -> ControlSignal
 stuttertimerecv busid = pI "^stuttertime" busid
 
@@ -2728,7 +2710,7 @@ sustainCountTo :: String -> Signal Double -> Signal ValueMap
 sustainCountTo name ipat = innerJoin $ (\i -> pStateF "sustain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 sustainbus :: Signal Int -> Signal Double -> ControlSignal
-sustainbus _ _ = error $ "Control parameter 'sustain' can't be sent to a bus."
+sustainbus _ _ = error "Control parameter 'sustain' can't be sent to a bus."
 
 -- | 
 sustainpedal :: Signal Double -> ControlSignal
@@ -2741,7 +2723,7 @@ sustainpedalCountTo :: String -> Signal Double -> Signal ValueMap
 sustainpedalCountTo name ipat = innerJoin $ (\i -> pStateF "sustainpedal" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 sustainpedalbus :: Signal Int -> Signal Double -> ControlSignal
-sustainpedalbus busid pat = (pF "sustainpedal" pat) # (pI "^sustainpedal" busid)
+sustainpedalbus busid pat = pF "sustainpedal" pat # pI "^sustainpedal" busid
 sustainpedalrecv :: Signal Int -> ControlSignal
 sustainpedalrecv busid = pI "^sustainpedal" busid
 
@@ -2756,7 +2738,7 @@ timescaleCountTo :: String -> Signal Double -> Signal ValueMap
 timescaleCountTo name ipat = innerJoin $ (\i -> pStateF "timescale" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 timescalebus :: Signal Int -> Signal Double -> ControlSignal
-timescalebus _ _ = error $ "Control parameter 'timescale' can't be sent to a bus."
+timescalebus _ _ = error "Control parameter 'timescale' can't be sent to a bus."
 
 -- | time stretch window size
 timescalewin :: Signal Double -> ControlSignal
@@ -2769,7 +2751,7 @@ timescalewinCountTo :: String -> Signal Double -> Signal ValueMap
 timescalewinCountTo name ipat = innerJoin $ (\i -> pStateF "timescalewin" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 timescalewinbus :: Signal Int -> Signal Double -> ControlSignal
-timescalewinbus _ _ = error $ "Control parameter 'timescalewin' can't be sent to a bus."
+timescalewinbus _ _ = error "Control parameter 'timescalewin' can't be sent to a bus."
 
 -- | for internal sound routing
 to :: Signal Double -> ControlSignal
@@ -2782,7 +2764,7 @@ toCountTo :: String -> Signal Double -> Signal ValueMap
 toCountTo name ipat = innerJoin $ (\i -> pStateF "to" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 tobus :: Signal Int -> Signal Double -> ControlSignal
-tobus busid pat = (pF "to" pat) # (pI "^to" busid)
+tobus busid pat = pF "to" pat # pI "^to" busid
 torecv :: Signal Int -> ControlSignal
 torecv busid = pI "^to" busid
 
@@ -2792,7 +2774,7 @@ toArg = pS "toArg"
 toArgTake :: String -> [Double] -> ControlSignal
 toArgTake name xs = pStateListF "toArg" name xs
 toArgbus :: Signal Int -> Signal String -> ControlSignal
-toArgbus busid pat = (pS "toArg" pat) # (pI "^toArg" busid)
+toArgbus busid pat = pS "toArg" pat # pI "^toArg" busid
 toArgrecv :: Signal Int -> ControlSignal
 toArgrecv busid = pI "^toArg" busid
 
@@ -2807,7 +2789,7 @@ tomdecayCountTo :: String -> Signal Double -> Signal ValueMap
 tomdecayCountTo name ipat = innerJoin $ (\i -> pStateF "tomdecay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 tomdecaybus :: Signal Int -> Signal Double -> ControlSignal
-tomdecaybus busid pat = (pF "tomdecay" pat) # (pI "^tomdecay" busid)
+tomdecaybus busid pat = pF "tomdecay" pat # pI "^tomdecay" busid
 tomdecayrecv :: Signal Int -> ControlSignal
 tomdecayrecv busid = pI "^tomdecay" busid
 
@@ -2822,7 +2804,7 @@ tremolodepthCountTo :: String -> Signal Double -> Signal ValueMap
 tremolodepthCountTo name ipat = innerJoin $ (\i -> pStateF "tremolodepth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 tremolodepthbus :: Signal Int -> Signal Double -> ControlSignal
-tremolodepthbus busid pat = (pF "tremolodepth" pat) # (pI "^tremolodepth" busid)
+tremolodepthbus busid pat = pF "tremolodepth" pat # pI "^tremolodepth" busid
 tremolodepthrecv :: Signal Int -> ControlSignal
 tremolodepthrecv busid = pI "^tremolodepth" busid
 
@@ -2837,7 +2819,7 @@ tremolorateCountTo :: String -> Signal Double -> Signal ValueMap
 tremolorateCountTo name ipat = innerJoin $ (\i -> pStateF "tremolorate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 tremoloratebus :: Signal Int -> Signal Double -> ControlSignal
-tremoloratebus busid pat = (pF "tremolorate" pat) # (pI "^tremolorate" busid)
+tremoloratebus busid pat = pF "tremolorate" pat # pI "^tremolorate" busid
 tremoloraterecv :: Signal Int -> ControlSignal
 tremoloraterecv busid = pI "^tremolorate" busid
 
@@ -2852,7 +2834,7 @@ triodeCountTo :: String -> Signal Double -> Signal ValueMap
 triodeCountTo name ipat = innerJoin $ (\i -> pStateF "triode" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 triodebus :: Signal Int -> Signal Double -> ControlSignal
-triodebus busid pat = (pF "triode" pat) # (pI "^triode" busid)
+triodebus busid pat = pF "triode" pat # pI "^triode" busid
 trioderecv :: Signal Int -> ControlSignal
 trioderecv busid = pI "^triode" busid
 
@@ -2867,7 +2849,7 @@ tsdelayCountTo :: String -> Signal Double -> Signal ValueMap
 tsdelayCountTo name ipat = innerJoin $ (\i -> pStateF "tsdelay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 tsdelaybus :: Signal Int -> Signal Double -> ControlSignal
-tsdelaybus busid pat = (pF "tsdelay" pat) # (pI "^tsdelay" busid)
+tsdelaybus busid pat = pF "tsdelay" pat # pI "^tsdelay" busid
 tsdelayrecv :: Signal Int -> ControlSignal
 tsdelayrecv busid = pI "^tsdelay" busid
 
@@ -2882,7 +2864,7 @@ uidCountTo :: String -> Signal Double -> Signal ValueMap
 uidCountTo name ipat = innerJoin $ (\i -> pStateF "uid" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 uidbus :: Signal Int -> Signal Double -> ControlSignal
-uidbus _ _ = error $ "Control parameter 'uid' can't be sent to a bus."
+uidbus _ _ = error "Control parameter 'uid' can't be sent to a bus."
 
 -- | used in conjunction with `speed`, accepts values of "r" (rate, default behavior), "c" (cycles), or "s" (seconds). Using `unit "c"` means `speed` will be interpreted in units of cycles, e.g. `speed "1"` means samples will be stretched to fill a cycle. Using `unit "s"` means the playback speed will be adjusted so that the duration is the number of seconds specified by `speed`.
 unit :: Signal String -> ControlSignal
@@ -2890,7 +2872,7 @@ unit = pS "unit"
 unitTake :: String -> [Double] -> ControlSignal
 unitTake name xs = pStateListF "unit" name xs
 unitbus :: Signal Int -> Signal String -> ControlSignal
-unitbus _ _ = error $ "Control parameter 'unit' can't be sent to a bus."
+unitbus _ _ = error "Control parameter 'unit' can't be sent to a bus."
 
 -- | 
 val :: Signal Double -> ControlSignal
@@ -2903,7 +2885,7 @@ valCountTo :: String -> Signal Double -> Signal ValueMap
 valCountTo name ipat = innerJoin $ (\i -> pStateF "val" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 valbus :: Signal Int -> Signal Double -> ControlSignal
-valbus _ _ = error $ "Control parameter 'val' can't be sent to a bus."
+valbus _ _ = error "Control parameter 'val' can't be sent to a bus."
 
 -- | 
 vcfegint :: Signal Double -> ControlSignal
@@ -2916,7 +2898,7 @@ vcfegintCountTo :: String -> Signal Double -> Signal ValueMap
 vcfegintCountTo name ipat = innerJoin $ (\i -> pStateF "vcfegint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 vcfegintbus :: Signal Int -> Signal Double -> ControlSignal
-vcfegintbus busid pat = (pF "vcfegint" pat) # (pI "^vcfegint" busid)
+vcfegintbus busid pat = pF "vcfegint" pat # pI "^vcfegint" busid
 vcfegintrecv :: Signal Int -> ControlSignal
 vcfegintrecv busid = pI "^vcfegint" busid
 
@@ -2931,7 +2913,7 @@ vcoegintCountTo :: String -> Signal Double -> Signal ValueMap
 vcoegintCountTo name ipat = innerJoin $ (\i -> pStateF "vcoegint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 vcoegintbus :: Signal Int -> Signal Double -> ControlSignal
-vcoegintbus busid pat = (pF "vcoegint" pat) # (pI "^vcoegint" busid)
+vcoegintbus busid pat = pF "vcoegint" pat # pI "^vcoegint" busid
 vcoegintrecv :: Signal Int -> ControlSignal
 vcoegintrecv busid = pI "^vcoegint" busid
 
@@ -2946,7 +2928,7 @@ velocityCountTo :: String -> Signal Double -> Signal ValueMap
 velocityCountTo name ipat = innerJoin $ (\i -> pStateF "velocity" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 velocitybus :: Signal Int -> Signal Double -> ControlSignal
-velocitybus busid pat = (pF "velocity" pat) # (pI "^velocity" busid)
+velocitybus busid pat = pF "velocity" pat # pI "^velocity" busid
 velocityrecv :: Signal Int -> ControlSignal
 velocityrecv busid = pI "^velocity" busid
 
@@ -2961,7 +2943,7 @@ voiceCountTo :: String -> Signal Double -> Signal ValueMap
 voiceCountTo name ipat = innerJoin $ (\i -> pStateF "voice" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 voicebus :: Signal Int -> Signal Double -> ControlSignal
-voicebus busid pat = (pF "voice" pat) # (pI "^voice" busid)
+voicebus busid pat = pF "voice" pat # pI "^voice" busid
 voicerecv :: Signal Int -> ControlSignal
 voicerecv busid = pI "^voice" busid
 
@@ -2971,7 +2953,7 @@ vowel = pS "vowel"
 vowelTake :: String -> [Double] -> ControlSignal
 vowelTake name xs = pStateListF "vowel" name xs
 vowelbus :: Signal Int -> Signal String -> ControlSignal
-vowelbus busid pat = (pS "vowel" pat) # (pI "^vowel" busid)
+vowelbus busid pat = pS "vowel" pat # pI "^vowel" busid
 vowelrecv :: Signal Int -> ControlSignal
 vowelrecv busid = pI "^vowel" busid
 
@@ -2986,7 +2968,7 @@ wavelossCountTo :: String -> Signal Double -> Signal ValueMap
 wavelossCountTo name ipat = innerJoin $ (\i -> pStateF "waveloss" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 wavelossbus :: Signal Int -> Signal Double -> ControlSignal
-wavelossbus busid pat = (pF "waveloss" pat) # (pI "^waveloss" busid)
+wavelossbus busid pat = pF "waveloss" pat # pI "^waveloss" busid
 wavelossrecv :: Signal Int -> ControlSignal
 wavelossrecv busid = pI "^waveloss" busid
 
@@ -3001,7 +2983,7 @@ xsdelayCountTo :: String -> Signal Double -> Signal ValueMap
 xsdelayCountTo name ipat = innerJoin $ (\i -> pStateF "xsdelay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
 xsdelaybus :: Signal Int -> Signal Double -> ControlSignal
-xsdelaybus busid pat = (pF "xsdelay" pat) # (pI "^xsdelay" busid)
+xsdelaybus busid pat = pF "xsdelay" pat # pI "^xsdelay" busid
 xsdelayrecv :: Signal Int -> ControlSignal
 xsdelayrecv busid = pI "^xsdelay" busid
 

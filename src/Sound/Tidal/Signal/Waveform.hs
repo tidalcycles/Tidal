@@ -20,7 +20,7 @@ waveform :: (Time -> a) -> Signal a
 waveform timeF = Signal $ \(State (Arc b e) _) ->
   [Event {metadata = mempty,
           whole = Nothing,
-          active = (Arc b e),
+          active = Arc b e,
           value = timeF $ b+((e - b)/2)
          }
   ]
