@@ -8,11 +8,11 @@
 
 module Sound.Tidal.Signal.ComposeExtra where
 
-import Prelude hiding ((<*), (*>))
+import           Prelude                 hiding ((*>), (<*))
 
-import Sound.Tidal.Types
-import Sound.Tidal.Signal.Base
-import Sound.Tidal.Pattern
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Types
 
 -- | @wedge t p p'@ combines signals @p@ and @p'@ by squashing the
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the
@@ -22,5 +22,5 @@ wedge pt pa pb = innerJoin $ (\t -> _wedge t pa pb) <$> pt
 
 _wedge :: Time -> Signal a -> Signal a -> Signal a
 _wedge 0 _ p' = p'
-_wedge 1 p _ = p
+_wedge 1 p _  = p
 _wedge t p p' = overlay (_fastGap (1/t) p) (t `_late` _fastGap (1/(1-t)) p')

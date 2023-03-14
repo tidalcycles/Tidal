@@ -1,17 +1,20 @@
 module Sound.Tidal.Signal.Random where
 
-import Prelude hiding ((<*), (*>))
+import           Prelude                     hiding ((*>), (<*))
 
-import Data.Bits (testBit, Bits, xor, shiftL, shiftR)
-import Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
-import Data.Ratio
+import           Data.Bits                   (Bits, shiftL, shiftR, testBit,
+                                              xor)
+import           Data.List                   (elemIndex, findIndex, findIndices,
+                                              groupBy, intercalate, sort,
+                                              sortOn, transpose)
+import           Data.Ratio
 
-import Sound.Tidal.Types
-import Sound.Tidal.Signal.Base
-import Sound.Tidal.Pattern
-import Sound.Tidal.Signal.Event
-import Sound.Tidal.Utils
-import Sound.Tidal.Signal.Waveform
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Event
+import           Sound.Tidal.Signal.Waveform
+import           Sound.Tidal.Types
+import           Sound.Tidal.Utils
 
 -- ************************************************************ --
 -- Internal functions

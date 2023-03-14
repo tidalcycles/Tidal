@@ -7,14 +7,14 @@ module Sound.Tidal.Signal.Event
   )
 where
 
-import Data.Maybe (fromJust, isJust)
+import           Data.Maybe        (fromJust, isJust)
 
-import Sound.Tidal.Arc
-import Sound.Tidal.Time
-import Sound.Tidal.Types
+import           Sound.Tidal.Arc
+import           Sound.Tidal.Time
+import           Sound.Tidal.Types
 
-import qualified Data.Map.Strict as Map
-import qualified  Data.List as List
+import qualified Data.List         as List
+import qualified Data.Map.Strict   as Map
 
 -- ************************************************************ --
 -- Event
@@ -24,7 +24,7 @@ import qualified  Data.List as List
 
 isAnalog :: Event a -> Bool
 isAnalog (Event {whole = Nothing}) = True
-isAnalog _ = False
+isAnalog _                         = False
 
 isDigital :: Event a -> Bool
 isDigital = not . isAnalog
@@ -35,7 +35,7 @@ onsetIn a e = isIn a (wholeBegin e)
 
 wholeOrActive :: Event a -> Arc
 wholeOrActive (Event {whole = Just a}) = a
-wholeOrActive e = active e
+wholeOrActive e                        = active e
 
 -- | Get the onset of an event's 'whole'
 wholeBegin :: Event a -> Time
@@ -74,12 +74,12 @@ resolveState :: ValueMap -> [Event ValueMap] -> (ValueMap, [Event ValueMap])
 resolveState sMap [] = (sMap, [])
 resolveState sMap (e:es) = (sMap'', (e {value = v'}):es')
   where f sm (VState v) = v sm
-        f sm v = (sm, v)
+        f sm v          = (sm, v)
         (sMap', v') | eventHasOnset e = Map.mapAccum f sMap (value e)    -- pass state through VState functions
                     | otherwise = (sMap, Map.filter notVState $ value e) -- filter out VState values without onsets
         (sMap'', es') = resolveState sMap' es
         notVState (VState _) = False
-        notVState _ = True
+        notVState _          = True
 
 -- | Returns 'True' if the two given events are adjacent parts of the same whole
 isAdjacent :: Eq a => Event a -> Event a -> Bool

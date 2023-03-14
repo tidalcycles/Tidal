@@ -6,11 +6,11 @@
 
 module Sound.Tidal.Signal.Waveform where
 
-import Sound.Tidal.Types
-import Sound.Tidal.Pattern
-import Sound.Tidal.Signal.Base
-import Sound.Tidal.Utils
-import Data.Fixed (mod')
+import           Data.Fixed              (mod')
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Types
+import           Sound.Tidal.Utils
 
 -- ************************************************************ --
 -- Waveforms
@@ -18,7 +18,7 @@ import Data.Fixed (mod')
 -- | A continuous signal as a function from time to values. Takes the
 -- midpoint of the given query as the time value.
 waveform :: (Time -> a) -> Signal a
-waveform timeF = Signal $ \(State (Arc b e) _) -> 
+waveform timeF = Signal $ \(State (Arc b e) _) ->
   [Event {metadata = mempty,
           whole = Nothing,
           active = (Arc b e),

@@ -1,4 +1,7 @@
-{-# LANGUAGE FlexibleInstances, OverloadedStrings, FlexibleContexts, BangPatterns #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Sound.Tidal.Signal.Control where
 {-
@@ -21,24 +24,25 @@ module Sound.Tidal.Signal.Control where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Prelude hiding ((<*), (*>))
+import           Prelude                     hiding ((*>), (<*))
 
-import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe, isJust, fromJust, mapMaybe)
-import Data.Ratio
+import qualified Data.Map.Strict             as Map
+import           Data.Maybe                  (fromJust, fromMaybe, isJust,
+                                              mapMaybe)
+import           Data.Ratio
 
-import Sound.Tidal.Arc
-import Sound.Tidal.Types
-import Sound.Tidal.Pattern
-import Sound.Tidal.Stream (patternTimeID)
-import qualified Sound.Tidal.Params as P
-import Sound.Tidal.Signal.Base
-import Sound.Tidal.Signal.Compose ((#), (|=|), (|*), (*|), (|/))
-import Sound.Tidal.Signal.Event
-import Sound.Tidal.Signal.Random
-import Sound.Tidal.Signal.Waveform (sine)
-import Sound.Tidal.Utils
-import Sound.Tidal.Value
+import           Sound.Tidal.Arc
+import qualified Sound.Tidal.Params          as P
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Compose  ((#), (*|), (|*), (|/), (|=|))
+import           Sound.Tidal.Signal.Event
+import           Sound.Tidal.Signal.Random
+import           Sound.Tidal.Signal.Waveform (sine)
+import           Sound.Tidal.Stream          (patternTimeID)
+import           Sound.Tidal.Types
+import           Sound.Tidal.Utils
+import           Sound.Tidal.Value
 
 {- | `spin` will "spin" a layer up a signal the given number of times,
 with each successive layer offset in time by an additional `1/n` of a
@@ -428,16 +432,16 @@ trigger = triggerWith id
 -- | (Alias @__qt__@) Quantise trigger. Aligns the start of the pattern
 -- with the next cycle boundary. For example, this pattern will fade in
 -- starting with the next cycle after the pattern is evaluated:
--- 
+--
 -- @
 -- d1 $ qtrigger $ s "hh(5, 8)" # amp envL
 -- @
--- 
+--
 -- Note that the pattern will start playing immediately. The /start/ of the
 -- pattern aligns with the next cycle boundary, but events will play before
 -- if the pattern has events at negative timestamps (which most loops do).
 -- These events can be filtered out, for example:
--- 
+--
 -- @
 -- d1 $ qtrigger $ filterWhen (>= 0) $ s "hh(5, 8)"
 -- @
@@ -508,7 +512,7 @@ contrastBy comp f f' p p' = overlay (f matched) (f' unmatched)
         matched = filterJusts $ (\(t, a) -> if t then Just a else Nothing) <$> matches
         unmatched :: ControlSignal
         unmatched = filterJusts $ (\(t, a) -> if not t then Just a else Nothing) <$> matches
-        
+
         -- | Mark values in the first pattern which match with at least one
         -- value in the second pattern.
         matchManyToOne :: (b -> a -> Bool) -> Signal a -> Signal b -> Signal (Bool, b)
@@ -532,7 +536,7 @@ contrastRange = contrastBy f
             f (VF s, VF e) (VF v) = v >= s && v <= e
             f (VN s, VN e) (VN v) = v >= s && v <= e
             f (VS s, VS e) (VS v) = v == s && v == e
-            f _ _ = False
+            f _ _                 = False
 
 -- | Like @contrast@, but one function is given, and applied to events with matching controls.
 fix :: (ControlSignal -> ControlSignal) -> ControlSignal -> ControlSignal -> ControlSignal

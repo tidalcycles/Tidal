@@ -3,7 +3,7 @@
 
 module Sound.Tidal.Pattern where
 
-import Sound.Tidal.Types
+import           Sound.Tidal.Types
 
 -- ************************************************************ --
 -- Pattern class
@@ -90,7 +90,7 @@ superimpose :: Pattern p => (p x -> p x) -> p x -> p x
 superimpose p pat = overlay pat (p pat)
 
 _slow :: Pattern p => Time -> p x -> p x
-_slow 0 _ = silence
+_slow 0 _   = silence
 _slow t pat = _fast (1/t) pat
 
 slow :: Pattern p => p Time -> p x -> p x
@@ -163,7 +163,7 @@ fastFromList = fastcat . map pure
 -- gaps in the pattern.
 fromMaybes :: Pattern t => [Maybe a] -> t a
 fromMaybes = fastcat . map f
-  where f Nothing = silence
+  where f Nothing  = silence
         f (Just x) = pure x
 
 run :: (Pattern t, Enum a, Num a) => t a -> t a

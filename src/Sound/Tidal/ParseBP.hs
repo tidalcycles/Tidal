@@ -1,5 +1,10 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, CPP, DeriveFunctor, GADTs, StandaloneDeriving #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE CPP                #-}
+{-# LANGUAGE DeriveFunctor      #-}
+{-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE GADTs              #-}
+{-# LANGUAGE LambdaCase         #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -Wall -fno-warn-orphans -fno-warn-unused-do-bind #-}
 
 module Sound.Tidal.ParseBP where
@@ -23,31 +28,34 @@ module Sound.Tidal.ParseBP where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Control.Applicative ()
-import qualified Control.Exception as E
+import           Control.Applicative                    ()
+import qualified Control.Exception                      as E
 import           Data.Colour
 import           Data.Colour.Names
-import           Data.Functor.Identity (Identity)
-import           Data.List (intercalate)
+import           Data.Functor.Identity                  (Identity)
+import           Data.List                              (intercalate)
 import           Data.Ratio
-import           Data.Typeable (Typeable)
-import           GHC.Exts ( IsString(..) )
+import           Data.Typeable                          (Typeable)
+import           GHC.Exts                               (IsString (..))
 import           Text.Parsec.Error
-import           Text.ParserCombinators.Parsec
-import           Text.ParserCombinators.Parsec.Language ( haskellDef )
-import qualified Text.ParserCombinators.Parsec.Token as P
 import qualified Text.Parsec.Prim
+import           Text.ParserCombinators.Parsec
+import           Text.ParserCombinators.Parsec.Language (haskellDef)
+import qualified Text.ParserCombinators.Parsec.Token    as P
 
-import           Sound.Tidal.Types
-import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Signal.Random (rand, chooseBy, _degradeByUsing)
+import           Sound.Tidal.Chords                     (Modifier (..),
+                                                         chordTable,
+                                                         chordToPatSeq)
 import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Random              (_degradeByUsing,
+                                                         chooseBy, rand)
+import           Sound.Tidal.Types
+import           Sound.Tidal.Utils                      (fromRight)
 import           Sound.Tidal.Value
-import           Sound.Tidal.Chords (Modifier(..), chordTable, chordToPatSeq)
-import           Sound.Tidal.Utils (fromRight)
 
 data TidalParseError = TidalParseError {parsecError :: ParseError,
-                                        code :: String
+                                        code        :: String
                                        }
   deriving (Eq, Typeable)
 
@@ -174,7 +182,7 @@ toPat = \case
 
 resolve_tpat :: (Enumerable a, Parseable a) => TPat a -> (Rational, Signal a)
 resolve_tpat (TPat_Seq xs) = resolve_seq xs
-resolve_tpat a = (1, toPat a)
+resolve_tpat a             = (1, toPat a)
 
 resolve_seq :: (Enumerable a, Parseable a) => [TPat a] -> (Rational, Signal a)
 resolve_seq xs = (total_size, timeCat sized_pats)
@@ -182,15 +190,15 @@ resolve_seq xs = (total_size, timeCat sized_pats)
         total_size = sum $ map fst sized_pats
 
 resolve_size :: [TPat a] -> [(Rational, TPat a)]
-resolve_size [] = []
+resolve_size []                       = []
 resolve_size ((TPat_Elongate r p):ps) = (r, p):resolve_size ps
-resolve_size ((TPat_Repeat n p):ps) = replicate n (1,p) ++ resolve_size ps
-resolve_size (p:ps) = (1,p):resolve_size ps
+resolve_size ((TPat_Repeat n p):ps)   = replicate n (1,p) ++ resolve_size ps
+resolve_size (p:ps)                   = (1,p):resolve_size ps
 
 
 steps_tpat :: (Show a) => TPat a -> (Rational, String)
 steps_tpat (TPat_Seq xs) = steps_seq xs
-steps_tpat a = (1, tShow a)
+steps_tpat a             = (1, tShow a)
 
 steps_seq :: (Show a) => [TPat a] -> (Rational, String)
 steps_seq xs = (total_size, "timeCat [" ++ intercalate "," (map (\(r,s) -> "(" ++ show r ++ ", " ++ s ++ ")") sized_pats) ++ "]")
@@ -198,10 +206,10 @@ steps_seq xs = (total_size, "timeCat [" ++ intercalate "," (map (\(r,s) -> "(" +
         total_size = sum $ map fst sized_pats
 
 steps_size :: Show a => [TPat a] -> [(Rational, String)]
-steps_size [] = []
+steps_size []                       = []
 steps_size ((TPat_Elongate r p):ps) = (r, tShow p):steps_size ps
-steps_size ((TPat_Repeat n p):ps) = replicate n (1, tShow p) ++ steps_size ps
-steps_size (p:ps) = (1,tShow p):steps_size ps
+steps_size ((TPat_Repeat n p):ps)   = replicate n (1, tShow p) ++ steps_size ps
+steps_size (p:ps)                   = (1,tShow p):steps_size ps
 
 parseBP :: (Enumerable a, Parseable a) => String -> Either ParseError (Signal a)
 parseBP s = toPat <$> parseTPat s
@@ -211,7 +219,7 @@ parseBP_E s = toE parsed
   where
     parsed = parseTPat s
     -- TODO - custom error
-    toE (Left e) = E.throw $ TidalParseError {parsecError = e, code = s}
+    toE (Left e)   = E.throw $ TidalParseError {parsecError = e, code = s}
     toE (Right tp) = toPat tp
 
 parseTPat :: Parseable a => String -> Either ParseError (TPat a)

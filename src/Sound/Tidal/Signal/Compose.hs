@@ -8,14 +8,14 @@
 
 module Sound.Tidal.Signal.Compose where
 
-import Prelude hiding ((<*), (*>))
-import Control.Monad (forM)
-import Data.Bits
+import           Control.Monad           (forM)
+import           Data.Bits
+import           Prelude                 hiding ((*>), (<*))
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict         as Map
 
-import Sound.Tidal.Types
-import Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Types
 
 -- ************************************************************ --
 -- Hack to allow 'union' to be used on any value
@@ -38,19 +38,19 @@ opMix f a b = f <$> a <*> b
 
 opIn :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opIn f a b = f <$> a <* b
-  
+
 opOut :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opOut f a b = f <$> a *> b
 
 opSqueeze :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opSqueeze f a b = squeezeJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
-  
+
 opSqueezeOut :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opSqueezeOut f pata patb = squeezeJoin $ fmap (\a -> fmap (\b -> f b a)  pata) patb
 
 opTrig :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opTrig f a b = trigJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
-  
+
 opTrigzero :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opTrigzero f a b = trigzeroJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
 
