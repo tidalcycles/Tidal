@@ -22,18 +22,18 @@ module Sound.Tidal.Params where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict            as Map
 
-import Sound.Tidal.Types
-import Sound.Tidal.Value
-import Sound.Tidal.Pattern
-import Sound.Tidal.Signal.Base
-import Sound.Tidal.Signal.Compose ((#))
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Compose ((#))
+import           Sound.Tidal.Types
+import           Sound.Tidal.Value
 -- import Sound.Tidal.Core ((#))
-import Sound.Tidal.Utils
-import Data.Maybe (fromMaybe)
-import Data.Word (Word8)
-import Data.Fixed (mod')
+import           Data.Fixed                 (mod')
+import           Data.Maybe                 (fromMaybe)
+import           Data.Word                  (Word8)
+import           Sound.Tidal.Utils
 
 -- | group multiple params into one
 grp :: [String -> ValueMap] -> Signal String -> ControlSignal
@@ -64,7 +64,7 @@ pI name = fmap (Map.singleton name . VI)
 
 pB :: String -> Signal Bool -> ControlSignal
 pB name = fmap (Map.singleton name . VB)
- 
+
 pR :: String -> Signal Rational -> ControlSignal
 pR name = fmap (Map.singleton name . VR)
 
@@ -80,13 +80,13 @@ pX name = fmap (Map.singleton name . VX)
 pStateF :: String -> String -> (Maybe Double -> Double) -> ControlSignal
 pStateF name sName update = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
-        statef sMap = (Map.insert sName v sMap, v) 
-          where v = VF $ update $ (Map.lookup sName sMap) >>= getF
+        statef sMap = (Map.insert sName v sMap, v)
+          where v = VF $ update $ Map.lookup sName sMap >>= getF
 
 pStateList :: String -> String -> [Value] -> ControlSignal
 pStateList name sName xs = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
-        statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped) 
+        statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped)
           where xs' = fromMaybe xs ((Map.lookup sName sMap) >>= getList)
                 -- do this instead of a cycle, so it can get updated with the a list
                 looped | null xs' = xs
@@ -189,7 +189,7 @@ drumN "bt" = 84
 drumN "ct" = 85
 drumN "ms" = 86
 drumN "os" = 87
-drumN _ = 0
+drumN _    = 0
 
 -- Generated params
 
