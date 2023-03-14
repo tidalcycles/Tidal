@@ -516,11 +516,11 @@ contrastBy comp f f' p p' = overlay (f matched) (f' unmatched)
         -- | Mark values in the first pattern which match with at least one
         -- value in the second pattern.
         matchManyToOne :: (b -> a -> Bool) -> Signal a -> Signal b -> Signal (Bool, b)
-        matchManyToOne f' pa pb = pa {query = q}
+        matchManyToOne f'' pa pb = pa {query = q}
           where q st = map match $ query pb st
                   where
                     match ex@(Event xContext xWhole xActive x) =
-                      Event (mconcat $ xContext:map metadata as') xWhole xActive (any (f' x . value) as', x)
+                      Event (mconcat $ xContext:map metadata as') xWhole xActive (any (f'' x . value) as', x)
                       where as' = as $ aBegin $ wholeOrActive ex
                     as s = query pa $ fQuery s
                     fQuery s = st {sArc = Arc s s}

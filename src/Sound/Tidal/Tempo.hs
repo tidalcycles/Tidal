@@ -1,29 +1,32 @@
-{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, BangPatterns #-}
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns -fno-warn-orphans #-}
 
 
 module Sound.Tidal.Tempo where
 
-import Control.Concurrent.MVar
+import           Control.Concurrent.MVar
 
-import qualified Sound.Tidal.Pattern as P
-import qualified Sound.Tidal.Signal.Base as P
-import qualified Sound.Tidal.Types as P
+import qualified Sound.Tidal.Pattern     as P
+-- import qualified Sound.Tidal.Signal.Base as P
+import qualified Sound.Tidal.Types       as P
 
-import qualified Sound.Osc.Fd as O
-import Control.Concurrent (forkIO, ThreadId, threadDelay)
-import Control.Monad (when)
-import qualified Data.Map.Strict as Map
-import qualified Control.Exception as E
-import Sound.Tidal.ID
-import Sound.Tidal.Config
-import Sound.Tidal.Utils (writeError)
-import qualified Sound.Tidal.Link as Link
-import Foreign.C.Types (CDouble(..))
-import System.IO (hPutStrLn, stderr)
-import Data.Int(Int64)
+import           Control.Concurrent      (ThreadId, forkIO, threadDelay)
+import qualified Control.Exception       as E
+import           Control.Monad           (when)
+import           Data.Int                (Int64)
+import qualified Data.Map.Strict         as Map
+import           Foreign.C.Types         (CDouble (..))
+import qualified Sound.Osc.Fd            as O
+import           Sound.Tidal.Config
+import           Sound.Tidal.ID
+import qualified Sound.Tidal.Link        as Link
+import           Sound.Tidal.Utils       (writeError)
+import           System.IO               (hPutStrLn, stderr)
 
-import Sound.Tidal.StreamTypes
+import           Sound.Tidal.StreamTypes
 
 {-
     Tempo.hs - Tidal's scheduler
@@ -55,10 +58,10 @@ data TempoAction =
   | StreamReplace ID P.ControlSignal
   | Transition Bool TransitionMapper ID P.ControlSignal
 
-data State = State {ticks    :: Int64,
-                    start    :: Link.Micros,
-                    nowArc   :: P.Arc,
-                    nudged   :: Double
+data State = State {ticks  :: Int64,
+                    start  :: Link.Micros,
+                    nowArc :: P.Arc,
+                    nudged :: Double
                    }
   deriving Show
 
@@ -71,13 +74,13 @@ data ActionHandler =
 
 data LinkOperations =
   LinkOperations {
-    timeAtBeat :: Link.Beat -> IO Link.Micros,
-    timeToCycles :: Link.Micros -> IO P.Time,
-    getTempo :: IO Link.BPM,
-    setTempo :: Link.BPM -> Link.Micros -> IO (),
+    timeAtBeat    :: Link.Beat -> IO Link.Micros,
+    timeToCycles  :: Link.Micros -> IO P.Time,
+    getTempo      :: IO Link.BPM,
+    setTempo      :: Link.BPM -> Link.Micros -> IO (),
     linkToOscTime :: Link.Micros -> O.Time,
-    beatToCycles :: CDouble -> CDouble,
-    cyclesToBeat :: CDouble -> CDouble
+    beatToCycles  :: CDouble -> CDouble,
+    cyclesToBeat  :: CDouble -> CDouble
   }
 
 setCycle :: P.Time -> MVar [TempoAction] -> IO ()
@@ -162,7 +165,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
         processAhead = round $ (cProcessAhead config) * 1000000
         checkArc :: State -> IO a
         checkArc st = do
-          actions <- swapMVar actionsMV [] 
+          actions <- swapMVar actionsMV []
           st' <- processActions st actions
           let logicalEnd = logicalTime (start st') $ ticks st' + 1
               nextArcStartCycle = P.aEnd $ nowArc st'
@@ -172,7 +175,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
           if (arcStartTime < logicalEnd)
             then processArc st'
             else tick st'
-        processArc :: State -> IO a 
+        processArc :: State -> IO a
         processArc st =
           do
             streamState <- takeMVar stateMV
@@ -224,7 +227,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
             Link.requestBeatAtTime sessionState beat startAt quantum
             Link.commitAndDestroyAppSessionState abletonLink sessionState
 
-                  
+
             let st'' = st' {
                   ticks = 0,
                   start = now,

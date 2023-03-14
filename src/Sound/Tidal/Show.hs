@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances, RecordWildCards #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Sound.Tidal.Show where
@@ -22,16 +23,16 @@ module Sound.Tidal.Show where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import Sound.Tidal.Types
+import           Sound.Tidal.Types
 
-import Sound.Tidal.Signal.Base (queryArc)
-import Sound.Tidal.Signal.Event (eventHasOnset)
+import           Sound.Tidal.Signal.Base  (queryArc)
+import           Sound.Tidal.Signal.Event (eventHasOnset)
 
-import Data.List (intercalate, sortOn)
-import Data.Ratio (numerator, denominator)
-import Data.Maybe (fromMaybe)
+import           Data.List                (intercalate, sortOn)
+import           Data.Maybe               (fromMaybe)
+import           Data.Ratio               (denominator, numerator)
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict          as Map
 
 
 instance (Show a) => Show (Signal a) where
@@ -83,16 +84,16 @@ instance Show Metadata where
   show (Metadata cs) = show cs
 
 instance Show Value where
-  show (VS s)  = ('"':s) ++ "\""
-  show (VI i)  = show i
-  show (VF f)  = show f ++ "f"
-  show (VN n)  = show n
-  show (VR r)  = prettyRat r ++ "r"
-  show (VB b)  = show b
-  show (VX xs) = show xs
---  show (VPattern pat) = "(" ++ show pat ++ ")"
-  show (VState f) = show $ f Map.empty
-  show (VList vs) = show $ map show vs
+  show (VS s)       = ('"':s) ++ "\""
+  show (VI i)       = show i
+  show (VF f)       = show f ++ "f"
+  show (VN n)       = show n
+  show (VR r)       = prettyRat r ++ "r"
+  show (VB b)       = show b
+  show (VX xs)      = show xs
+  show (VSignal vs) = "(" ++ show vs ++ ")"
+  show (VState f)   = show $ f Map.empty
+  show (VList vl)   = show $ map show vl
 
 instance {-# OVERLAPPING #-} Show ValueMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m

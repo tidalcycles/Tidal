@@ -10,7 +10,6 @@ import           Data.Fixed              (mod')
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Types
-import           Sound.Tidal.Utils
 
 -- ************************************************************ --
 -- Waveforms

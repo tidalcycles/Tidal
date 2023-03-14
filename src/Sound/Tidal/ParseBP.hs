@@ -44,7 +44,6 @@ import           Text.ParserCombinators.Parsec.Language (haskellDef)
 import qualified Text.ParserCombinators.Parsec.Token    as P
 
 import           Sound.Tidal.Chords                     (Modifier (..),
-                                                         chordTable,
                                                          chordToPatSeq)
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Signal.Base

@@ -7,8 +7,8 @@ where
 -- (c) Alex McLean 2022
 -- Shared under the terms of the GNU Public License v. 3.0
 
-import Sound.Tidal.Time
-import Sound.Tidal.Types
+import           Sound.Tidal.Time
+import           Sound.Tidal.Types
 
 -- | Returns the whole cycle arc that the given arc is in
 timeToCycleArc :: Time -> Arc
@@ -52,7 +52,7 @@ splitArcs (Arc s e) | s == e = [Arc s e] -- support zero-width arcs
   where splitArcs' (Arc s' e') | e' <= s' = []
                                | sam s' == sam e' = [Arc s' e']
                                | otherwise
-          = (Arc s' (nextSam s')):(splitArcs' (Arc (nextSam s') e'))
+          = Arc s' (nextSam s') : splitArcs' (Arc (nextSam s') e')
 
 
 -- | Shifts a timearc to one of equal duration that starts within cycle zero.
