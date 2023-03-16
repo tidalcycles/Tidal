@@ -3,22 +3,22 @@
 -- This can be run with e.g.:
 -- runhaskell generate-params.hs > ../src/Sound/Tidal/Params.hs
 
-import Data.List
-import Data.Function
-import System.IO
+import           Data.Function
+import           Data.List
+import           System.IO
 
 toType :: String -> String
-toType "s" = "Signal String"
-toType "f" = "Signal Double"
-toType "i" = "Signal Int"
-toType "note" = "Signal Note"
+toType "s"       = "Signal String"
+toType "f"       = "Signal Double"
+toType "i"       = "Signal Int"
+toType "note"    = "Signal Note"
 toType "[word8]" = "Signal [Word8]"
 
 toFunc :: String -> String
-toFunc "s" = "pS"
-toFunc "f" = "pF"
-toFunc "i" = "pI"
-toFunc "note" = "pN"
+toFunc "s"       = "pS"
+toFunc "f"       = "pF"
+toFunc "i"       = "pI"
+toFunc "note"    = "pN"
 toFunc "[word8]" = "pX"
 
 main :: IO ()
@@ -52,11 +52,11 @@ controls = intercalate "\n" $ map fs $ sortBy (compare `on` (\(_,x,_) -> x)) gen
         counters _ _ = ""
         bus (t,name,desc) | elem name nobus = concat [
                               name, "bus :: Signal Int -> ", toType t, " -> ControlSignal\n",
-                              name, "bus _ _ = error $ \"Control parameter '" ++ name ++ "' can't be sent to a bus.\"\n"
+                              name, "bus _ _ = error \"Control parameter '" ++ name ++ "' can't be sent to a bus.\"\n"
                               ]
-                          | otherwise = 
+                          | otherwise =
           concat [name, "bus :: Signal Int -> ", toType t, " -> ControlSignal\n",
-                  name, "bus busid pat = (", toFunc t, " \"", name, "\" pat) # (pI \"^", name, "\" busid)\n",
+                  name, "bus busid pat = ", toFunc t, " \"", name, "\" pat # pI \"^", name, "\" busid\n",
                   name, "recv :: Signal Int -> ControlSignal\n",
                   name, "recv busid = pI \"^", name, "\" busid\n"
                  ]

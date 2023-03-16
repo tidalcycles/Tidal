@@ -87,7 +87,7 @@ pStateList :: String -> String -> [Value] -> ControlSignal
 pStateList name sName xs = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
         statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped)
-          where xs' = fromMaybe xs ((Map.lookup sName sMap) >>= getList)
+          where xs' = fromMaybe xs (Map.lookup sName sMap >>= getList)
                 -- do this instead of a cycle, so it can get updated with the a list
                 looped | null xs' = xs
                        | otherwise = xs'
