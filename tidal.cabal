@@ -30,6 +30,7 @@ library
   Exposed-modules:
                        Sound.Tidal.Arc
                        Sound.Tidal.Bjorklund
+                       Sound.Tidal.Boot
                        Sound.Tidal.Chords
                        Sound.Tidal.Config
                        Sound.Tidal.Signal.Control
