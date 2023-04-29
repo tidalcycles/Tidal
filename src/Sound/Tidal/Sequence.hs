@@ -5,25 +5,26 @@
 
 module Sound.Tidal.Sequence where
 
-import Sound.Tidal.Time
+import           Sound.Tidal.Time
 -- import Sound.Tidal.Value
-import Sound.Tidal.Pattern
-import Sound.Tidal.Types
-import Sound.Tidal.Signal.Base ()
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base ()
+import           Sound.Tidal.Types
 
-import Data.List (inits)
-import Prelude hiding (span)
-import Data.Ratio
+import           Data.List               (inits)
+import           Data.Ratio
+import           Prelude                 hiding (span)
 
 -- import Sound.Tidal.Bjorklund
 
 instance Functor Sequence where
-  fmap f (Atom t v) = Atom t (f v)
-  fmap _ (Gap t) = Gap t
+  fmap f (Atom t v)    = Atom t (f v)
+  fmap _ (Gap t)       = Gap t
   fmap f (Sequence xs) = Sequence $ map (fmap f) xs
-  fmap f (Stack xs) = Stack $ map (fmap f) xs
+  fmap f (Stack xs)    = Stack $ map (fmap f) xs
 
 instance Applicative Sequence where
+  -- Sequence of one step
   pure x = Atom 1 x
   (Atom x f) <*> something =
     let (p,q) = align (Atom x f) something
@@ -44,10 +45,10 @@ instance Applicative Sequence where
 
 instance Monad Sequence where
   return = pure
-  Atom _ y >>= f = f y
-  Gap x >>= _ = Gap x
+  Atom _ y >>= f   = f y
+  Gap x >>= _      = Gap x
   Sequence x >>= f = Sequence $ map (>>= f) x
-  Stack y >>= f = Stack (map (>>= f) y)
+  Stack y >>= f    = Stack (map (>>= f) y)
 
 instance Pattern Sequence where
   slowcat = seqSlowcat
@@ -94,10 +95,10 @@ funcMap _ _ = error "funcMap cannot be called on stack"
 
 -- | Mapping a function on entire sequence instead of just the values it takes
 map' :: (Sequence a1 -> Sequence a2) -> Sequence a1 -> Sequence a2
-map' f (Atom x y) = f (Atom x y)
-map' f (Gap x) = f (Gap x)
+map' f (Atom x y)   = f (Atom x y)
+map' f (Gap x)      = f (Gap x)
 map' f (Sequence x) = Sequence $ map (map' f) x
-map' f (Stack y) = Stack (map (map' f) y)
+map' f (Stack y)    = Stack (map (map' f) y)
 
 -- | Maps a sequence of functions on another sequence
 mapSeq :: Sequence (Sequence a -> Sequence b) -> Sequence a -> Sequence b
@@ -247,23 +248,23 @@ align a b = alignS a b Expand
 
 unwrap :: Sequence a -> Sequence a
 unwrap (Sequence x) = Sequence $ unwrapper x
-unwrap (Stack x) = Stack $ map unwrap x
-unwrap s = s
+unwrap (Stack x)    = Stack $ map unwrap x
+unwrap s            = s
 
 -- | Unwrapping a sequence referes to removing the redundancies that
 -- are present in the code
 unwrapper :: [Sequence a] -> [Sequence a]
-unwrapper [] = []
-unwrapper [Sequence x] = unwrapper x
+unwrapper []               = []
+unwrapper [Sequence x]     = unwrapper x
 unwrapper (Sequence x :xs) = unwrapper x ++ unwrapper xs
-unwrapper (Atom x s:xs) = Atom x s : unwrapper xs
-unwrapper (Gap x:xs) = if x ==0 then unwrapper xs else Gap x: unwrapper xs
-unwrapper (Stack x:xs) = Stack x : unwrapper xs
+unwrapper (Atom x s:xs)    = Atom x s : unwrapper xs
+unwrapper (Gap x:xs)       = if x ==0 then unwrapper xs else Gap x: unwrapper xs
+unwrapper (Stack x:xs)     = Stack x : unwrapper xs
 
 seqRev :: Sequence a -> Sequence a
 seqRev (Sequence bs) = Sequence $ reverse $ map rev bs
-seqRev (Stack bs) = Stack $ map rev bs
-seqRev b = b
+seqRev (Stack bs)    = Stack $ map rev bs
+seqRev b             = b
 
 -- ply :: Sequence Time -> Sequence a -> Sequence a
 -- ply sr s =  mapSeq (fmap _ply sr) s
@@ -275,11 +276,11 @@ _seqPly n (Sequence x) = unwrap $ Sequence (map (_ply n) x)
 _seqPly n (Stack x) =  Stack (map (_ply n) x)
 
 seqSpan :: Sequence a -> Time
-seqSpan (Atom s _) = s
-seqSpan (Gap s) = s
+seqSpan (Atom s _)    = s
+seqSpan (Gap s)       = s
 seqSpan (Sequence bs) = sum $ map seqSpan bs
-seqSpan (Stack []) = 0
-seqSpan (Stack x) = seqSpan $ head x
+seqSpan (Stack [])    = 0
+seqSpan (Stack x)     = seqSpan $ head x
 
 -- | stratApply takes a list of sequences, a strategy, and then aligns all those sequences according to these strategies
 stratApply::Strategy -> [Sequence a] ->Sequence a
@@ -354,28 +355,28 @@ expand' (Stack x) r = Stack $ map (`expand'` r) x
 
 -- | Expand a sequence to a particular length
 expand::Sequence a-> Time -> Sequence a
-expand (Atom x s) r = Atom (x*r) s
-expand (Gap x) r = Gap (x*r)
+expand (Atom x s) r   = Atom (x*r) s
+expand (Gap x) r      = Gap (x*r)
 expand (Sequence x) r = Sequence $ map (`expand` r) x
-expand (Stack x) r = Stack $ map (`expand` r) x
+expand (Stack x) r    = Stack $ map (`expand` r) x
 
 -- | Reduces a list of sequences by joining contiguous gaps and
 -- removing zero-length atoms
 reduce :: [Sequence a] -> [Sequence a]
-reduce (Atom 0 _:xs) = reduce xs
+reduce (Atom 0 _:xs)      = reduce xs
 reduce (Gap x1:Gap x2:xs) = reduce $ Gap (x1+x2):xs
 -- TODO I don't understand this.. how can `reduce x` typecheck, when 'x' isn't a list?
-reduce (Sequence x:xs) = Sequence (reduce x):reduce xs
+reduce (Sequence x:xs)    = Sequence (reduce x):reduce xs
 -- TODO this means `reduce [Stack [Gap 1, Gap 2]]` returns `[Stack [Gap (3 % 1)]]` which seems wrong
-reduce (Stack x:xs) = Stack (reduce x):reduce xs
-reduce (x:xs) = x:reduce xs
-reduce [] = []
+reduce (Stack x:xs)       = Stack (reduce x):reduce xs
+reduce (x:xs)             = x:reduce xs
+reduce []                 = []
 
 _seqFast :: Time -> Sequence a -> Sequence a
-_seqFast n (Atom x s) = Atom (x/n) s
-_seqFast n (Gap x) = Gap (x/n)
+_seqFast n (Atom x s)   = Atom (x/n) s
+_seqFast n (Gap x)      = Gap (x/n)
 _seqFast n (Sequence s) = Sequence $ map (_fast n) s
-_seqFast n (Stack x) = Stack $ map(_fast n) x
+_seqFast n (Stack x)    = Stack $ map(_fast n) x
 
 -- | Speed up the sequence with a given fixed strategy
 fastS :: Sequence Time -> Sequence a -> Strategy -> Sequence a
@@ -387,10 +388,10 @@ slowS sr = mapSeqS (fmap _slow sr)
 
 -- | Repeat the sequence a desired number of times without changing duration
 rep :: Int -> Sequence a-> Sequence a
-rep n (Atom x s) = Atom (realToFrac n * x) s
-rep n (Gap x) = Gap (realToFrac  n * x)
+rep n (Atom x s)   = Atom (realToFrac n * x) s
+rep n (Gap x)      = Gap (realToFrac  n * x)
 rep n (Sequence s) = Sequence $ reduce $ concat $ replicate n s
-rep n (Stack s) = Stack $ map (rep n) s
+rep n (Stack s)    = Stack $ map (rep n) s
 
 -- | Repeat sequence desired number of times, and squeeze it into the duration of the original sequence
 repSqueeze :: Int -> Sequence a-> Sequence a
@@ -402,7 +403,7 @@ seqStack s =
   let a = foldl (\acc x->if seqSpan x==acc then acc else -1) (seqSpan $ head s) s
   in if a == (-1) then stratApply Expand s else Stack s
 
--- | Works like stack, but user can give the desired strategy 
+-- | Works like stack, but user can give the desired strategy
 seqStackS :: [Sequence a] -> Strategy -> Sequence a
 seqStackS s strat =
   let a = foldl (\acc x->if seqSpan x==acc then acc else -1) (seqSpan $ head s) s
@@ -415,7 +416,7 @@ seqStackS s strat =
 --       d = mapSeq c sa
 --   in d
 
--- -- | Obtain a euclidean pattern 
+-- -- | Obtain a euclidean pattern
 -- _euclid:: Int-> Int-> Sequence a -> Sequence a
 -- _euclid a b s  =
 --   let x = bjorklund (a, b)
@@ -433,9 +434,9 @@ whenS boolpat f pat strat = mapSeqS (fmap (\b -> if b then f else id) boolpat) p
 -- -- | Apply a function to a sequence every "n" iterations
 -- now implemented in 'pattern'
 -- seqEvery :: Sequence Int -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
--- seqEvery (Atom x s) f sb = _seqEvery s f sb 
--- seqEvery (Gap _) _ sb = sb 
--- seqEvery (Sequence x) f sb = Sequence $ reduce $  map (\t -> every t f sb) x 
+-- seqEvery (Atom x s) f sb = _seqEvery s f sb
+-- seqEvery (Gap _) _ sb = sb
+-- seqEvery (Sequence x) f sb = Sequence $ reduce $  map (\t -> every t f sb) x
 -- seqEvery (Stack x) f sb = Stack $ map (\t -> every t f sb) x
 
 -- -- | Like every, but the strategy for stacking is given
@@ -467,9 +468,9 @@ _seqRun :: (Enum a, Num a) => a -> Sequence a
 _seqRun n = unwrap $  fastFromList [0 .. n-1]
 
 seqSlowcat :: [Sequence a] -> Sequence a
-seqSlowcat [] = Gap 0
+seqSlowcat []  = Gap 0
 seqSlowcat [b] = b
-seqSlowcat bs = Sequence bs
+seqSlowcat bs  = Sequence bs
 
 -- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
 _seqScan :: (Enum a, Num a) => a -> Sequence a
@@ -480,13 +481,13 @@ seqTimeCat x = cat $ map (\t -> _fast (seqSpan (snd t)/fst t) (snd t)) x
 
 rotL :: Time -> Sequence a -> Sequence a
 rotL t (Sequence x) = splitUp t x
-rotL t (Stack x) = Stack $ map (t `rotL`) x
-rotL _ x = x
+rotL t (Stack x)    = Stack $ map (t `rotL`) x
+rotL _ x            = x
 
 rotR :: Time -> Sequence a -> Sequence a
 rotR t (Sequence x) = splitUp (seqSpan (Sequence x) - t) x
-rotR t (Stack x) = Stack $ map (t `rotR`) x
-rotR _ x = x
+rotR t (Stack x)    = Stack $ map (t `rotR`) x
+rotR _ x            = x
 
 splitUp :: Time -> [Sequence a] -> Sequence a
 splitUp t x =
@@ -512,10 +513,10 @@ iterS sr s st =
   in unwrap $  iterer (Sequence a) (Sequence b)
 
 iterer :: Sequence Int -> Sequence a -> Sequence a
-iterer (Atom _ s) sr = _iter s sr
-iterer (Gap x) _ = Gap x
+iterer (Atom _ s) sr   = _iter s sr
+iterer (Gap x) _       = Gap x
 iterer (Sequence x) sr = Sequence $ map (`iterer` sr) x
-iterer (Stack x) sr = stack $ map (`iterer` sr) x
+iterer (Stack x) sr    = stack $ map (`iterer` sr) x
 
 _seqIter :: Int -> Sequence a -> Sequence a
 _seqIter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n-1)]
@@ -548,7 +549,7 @@ _seqToSignal (Atom t v) = _fast t $ atom v
 _seqToSignal (Gap t) = _slow t $ silence
 _seqToSignal (Sequence seqs) = let t = seqSpan (Sequence seqs) in
   slow (fromRational $ toRational t) $ timeCat $ map (\b-> (seqSpan b, _seqSignalHelp b)) seqs
-_seqToSignal (Stack seqs) = let t = seqSpan (Sequence seqs) in 
+_seqToSignal (Stack seqs) = let t = seqSpan (Sequence seqs) in
   slow (fromRational $ toRational t) $ stack $ map _seqToSignal seqs
 
 _seqSignalHelp:: Sequence a -> Signal a

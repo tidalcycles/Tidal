@@ -1,4 +1,10 @@
-{-# LANGUAGE RecordWildCards, DeriveFunctor, DeriveDataTypeable, DeriveGeneric, GeneralizedNewtypeDeriving, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
 
 -- (c) Alex McLean and contributors 2022
 -- Shared under the terms of the GNU Public License v3.0
@@ -7,13 +13,13 @@ module Sound.Tidal.Types where
 
 import           GHC.Generics
 
-import qualified Data.Map.Strict as Map
-import           Data.Typeable (Typeable)
-import           Data.Data (Data) -- toConstr
+import           Data.Data           (Data)
+import qualified Data.Map.Strict     as Map
+import           Data.Typeable       (Typeable)
 
-import Data.Word (Word8)
-import Control.DeepSeq (NFData)
-import Control.Applicative (liftA2)
+import           Control.Applicative (liftA2)
+import           Control.DeepSeq     (NFData)
+import           Data.Word           (Word8)
 
 -- | In Tidal, time is rational
 type Time = Rational
@@ -70,54 +76,54 @@ instance Eq Value where
   (VI x) == (VR y) = toRational x == y
   (VR y) == (VI x) = toRational x == y
 
-  _ == _ = False
+  _ == _           = False
 
 instance Ord Value where
-  compare (VS x) (VS y) = compare x y
-  compare (VB x) (VB y) = compare x y
-  compare (VF x) (VF y) = compare x y
-  compare (VN x) (VN y) = compare (unNote x) (unNote y)
-  compare (VI x) (VI y) = compare x y
-  compare (VR x) (VR y) = compare x y
-  compare (VX x) (VX y) = compare x y
+  compare (VS x) (VS y)           = compare x y
+  compare (VB x) (VB y)           = compare x y
+  compare (VF x) (VF y)           = compare x y
+  compare (VN x) (VN y)           = compare (unNote x) (unNote y)
+  compare (VI x) (VI y)           = compare x y
+  compare (VR x) (VR y)           = compare x y
+  compare (VX x) (VX y)           = compare x y
 
-  compare (VS _) _ = LT
-  compare _ (VS _) = GT
-  compare (VB _) _ = LT
-  compare _ (VB _) = GT
-  compare (VX _) _ = LT
-  compare _ (VX _) = GT
+  compare (VS _) _                = LT
+  compare _ (VS _)                = GT
+  compare (VB _) _                = LT
+  compare _ (VB _)                = GT
+  compare (VX _) _                = LT
+  compare _ (VX _)                = GT
 
-  compare (VF x) (VI y) = compare x (fromIntegral y)
-  compare (VI x) (VF y) = compare (fromIntegral x) y
+  compare (VF x) (VI y)           = compare x (fromIntegral y)
+  compare (VI x) (VF y)           = compare (fromIntegral x) y
 
-  compare (VR x) (VI y) = compare x (fromIntegral y)
-  compare (VI x) (VR y) = compare (fromIntegral x) y
+  compare (VR x) (VI y)           = compare x (fromIntegral y)
+  compare (VI x) (VR y)           = compare (fromIntegral x) y
 
-  compare (VF x) (VR y) = compare x (fromRational y)
-  compare (VR x) (VF y) = compare (fromRational x) y
+  compare (VF x) (VR y)           = compare x (fromRational y)
+  compare (VR x) (VF y)           = compare (fromRational x) y
 
-  compare (VN x) (VI y) = compare x (fromIntegral y)
-  compare (VI x) (VN y) = compare (fromIntegral x) y
+  compare (VN x) (VI y)           = compare x (fromIntegral y)
+  compare (VI x) (VN y)           = compare (fromIntegral x) y
 
-  compare (VN x) (VR y) = compare (unNote x) (fromRational y)
-  compare (VR x) (VN y) = compare (fromRational x) (unNote y)
+  compare (VN x) (VR y)           = compare (unNote x) (fromRational y)
+  compare (VR x) (VN y)           = compare (fromRational x) (unNote y)
 
-  compare (VF x) (VN y) = compare x (unNote y)
-  compare (VN x) (VF y) = compare (unNote x) y
+  compare (VF x) (VN y)           = compare x (unNote y)
+  compare (VN x) (VF y)           = compare (unNote x) y
 
   -- you can't really compare patterns, state or lists..
   compare (VSignal _) (VSignal _) = EQ
-  compare (VSignal _) _ = GT
-  compare _ (VSignal _) = LT
+  compare (VSignal _) _           = GT
+  compare _ (VSignal _)           = LT
 
-  compare (VState _) (VState _) = EQ
-  compare (VState _) _          = GT
-  compare _ (VState _)          = LT
+  compare (VState _) (VState _)   = EQ
+  compare (VState _) _            = GT
+  compare _ (VState _)            = LT
 
-  compare (VList _) (VList _) = EQ
-  compare (VList _) _          = GT
-  compare _ (VList _)          = LT
+  compare (VList _) (VList _)     = EQ
+  compare (VList _) _             = GT
+  compare _ (VList _)             = LT
 
 instance Valuable String where
   toValue a = VS a
@@ -144,7 +150,7 @@ type ControlSignal = Signal ValueMap
 
 -- | A timearc and some named control values, used to query a signal
 -- with
-data State = State {sArc :: Arc,
+data State = State {sArc      :: Arc,
                     sControls :: ValueMap
                    }
 
@@ -153,7 +159,7 @@ data State = State {sArc :: Arc,
 
 data ArcF a = Arc
   { aBegin :: a
-  , aEnd :: a
+  , aEnd   :: a
   } deriving (Eq, Ord, Functor, Show, Generic)
 
 type Arc = ArcF Time
@@ -190,9 +196,9 @@ instance Monoid Metadata where
 -- | An event, consisting of a value, its 'whole' timearc, and the
 -- timearc that is active (called a 'part' in tidal v1)
 data Event a = Event {metadata :: Metadata,
-                      whole :: Maybe Arc,
-                      active :: Arc,
-                      value :: a
+                      whole    :: Maybe Arc,
+                      active   :: Arc,
+                      value    :: a
                      }
   deriving (Functor, Eq, Ord)
 
@@ -205,7 +211,7 @@ instance NFData a => NFData (Signal a)
 -- | A discrete sequence
 data Sequence a = Atom Time a
                 | Gap Time
-                | Sequence [Sequence a]
+                | Cat [Sequence a]
                 | Stack [Sequence a]
               deriving Show
 
