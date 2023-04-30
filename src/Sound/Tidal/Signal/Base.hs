@@ -1,4 +1,6 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, BangPatterns #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
@@ -11,23 +13,24 @@
 
 module Sound.Tidal.Signal.Base where
 
-import Data.Ratio
-import Data.Maybe (isJust, mapMaybe, fromJust, fromMaybe)
-import qualified Data.Map.Strict as Map
-import Data.List ((\\), sort, groupBy)
-import Control.Applicative (liftA2)
-import Data.Bool (bool)
-import Data.Char (ord)
-import Data.Bits (testBit, Bits)
+import           Control.Applicative      (liftA2)
+import           Data.Bits                (Bits, testBit)
+import           Data.Bool                (bool)
+import           Data.Char                (ord)
+import           Data.List                (groupBy, sort, (\\))
+import qualified Data.Map.Strict          as Map
+import           Data.Maybe               (fromJust, fromMaybe, isJust,
+                                           mapMaybe)
+import           Data.Ratio
 
-import Sound.Tidal.Value
-import Sound.Tidal.Signal.Event
-import Sound.Tidal.Types
-import Sound.Tidal.Pattern
-import Sound.Tidal.Bjorklund (bjorklund)
-import Sound.Tidal.Utils (enumerate)
+import           Sound.Tidal.Bjorklund    (bjorklund)
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Event
+import           Sound.Tidal.Types
+import           Sound.Tidal.Utils        (enumerate)
+import           Sound.Tidal.Value
 
-import Prelude hiding ((<*), (*>))
+import           Prelude                  hiding ((*>), (<*))
 
 -- ************************************************************ --
 -- Signal
@@ -68,7 +71,7 @@ instance Pattern Signal where
   _appAlign  = _sigAppAlign
 
 _sigAppAlign :: (a -> Signal b -> Signal c) -> Align (Signal a) (Signal b) -> Signal c
-_sigAppAlign f (Align Squeeze patt patv) = squeezeJoin $ (\t -> f t patv) <$> patt
+_sigAppAlign f (Align SqueezeIn patt patv) = squeezeJoin $ (\t -> f t patv) <$> patt
 -- TODO - this one is wierd.. can it be simplified by defining squeezeOutJoin ?
 _sigAppAlign f (Align SqueezeOut patt patv) =
   squeezeJoin $ (\v -> (_patternify f) patt (pure v)) <$> patv
@@ -431,9 +434,9 @@ sigSlowcat pats = splitQueries $ Signal queryCycle
         n = length pats
 
 _sigFast :: Time -> Signal a -> Signal a
-_sigFast 0 _ = silence
+_sigFast 0 _   = silence
 _sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
-  
+
 _fastGap :: Time -> Signal a -> Signal a
 _fastGap factor pat = splitQueries $ withEvent ef $ withQueryArcMaybe qf pat
   -- A bit fiddly, to drop zero-width queries at the start of the next cycle
@@ -599,7 +602,7 @@ sigTimeCat :: [(Time, Signal a)] -> Signal a
 sigTimeCat tps = stack $ map (\(s,e,p) -> _compressArc (Arc (s/total) (e/total)) p) $ arrange 0 tps
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Signal a)] -> [(Time, Time, Signal a)]
-          arrange _ [] = []
+          arrange _ []            = []
           arrange t ((t',p):tps') = (t,t+t',p) : arrange (t+t') tps'
 
 sigWhen :: Signal Bool -> (Signal b -> Signal b) -> Signal b -> Signal b
@@ -666,8 +669,8 @@ _collectEvent l@(e:_) = Just $ e {metadata = con, value = vs}
 _collectEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [Event [a]]
 _collectEventsBy f es = remNo $ map _collectEvent (_groupEventsBy f es)
   where
-    remNo [] = []
-    remNo (Nothing:cs) = remNo cs
+    remNo []            = []
+    remNo (Nothing:cs)  = remNo cs
     remNo ((Just c):cs) = c : (remNo cs)
 
 -- | collects all events satisfying the same constraint into a list
@@ -681,7 +684,7 @@ sigCollect = _collectBy _sameDur
 _uncollectEvent :: Event [a] -> [Event a]
 _uncollectEvent e = [e {value = (value e)!!i, metadata = resolveMetadata i (metadata e)} | i <-[0..length (value e) - 1]]
   where resolveMetadata i (Metadata xs) = case length xs <= i of
-                                            True -> Metadata []
+                                            True  -> Metadata []
                                             False -> Metadata [xs!!i]
 
 _uncollectEvents :: [Event [a]] -> [Event a]
@@ -854,7 +857,7 @@ rolledWith t = withEvents aux
          where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ ((isRev t) es))
                isRev b = (\x -> if x > 0 then id else reverse ) b
                steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
-               timeguard _ _ ev 0 = return ev
+               timeguard _ _ ev 0  = return ev
                timeguard n xs ev _ = (shiftIt n (length xs) ev)
                shiftIt n d (Event c (Just (Arc s e)) a' v) = do
                          a'' <- maybeSect (Arc newS e) a'
@@ -936,7 +939,7 @@ ascii p = squeezeJoin $ (fastFromList . concatMap (__binary 8 . ord)) <$> p
 necklace :: Rational -> [Int] -> Signal Bool
 necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ fastFromList $ list xs
   where list :: [Int] -> [Bool]
-        list [] = []
+        list []      = []
         list (x:xs') = (True:(replicate (x-1) False)) ++ list xs'
 
 -- | Inverts all the values in a boolean pattern (or other functor)
@@ -1035,10 +1038,10 @@ _distrib :: [Int] -> Signal a -> Signal a
 _distrib xs p = boolsToPat (foldr distrib' (replicate (last xs) True) (reverse $ layers xs)) p
   where
     distrib' :: [Bool] -> [Bool] -> [Bool]
-    distrib' [] _ = []
-    distrib' (_:a) [] = False : distrib' a []
+    distrib' [] _           = []
+    distrib' (_:a) []       = False : distrib' a []
     distrib' (True:a) (x:b) = x : distrib' a b
-    distrib' (False:a) b = False : distrib' a b
+    distrib' (False:a) b    = False : distrib' a b
     layers = map bjorklund . (zip<*>tail)
     boolsToPat a b' = flip const <$> filterValues (== True) (fastFromList a) <*> b'
 
@@ -1059,7 +1062,7 @@ _euclidInv n k a = _euclid (-n) k a
 
 valueToSignal :: Value -> Signal Value
 valueToSignal (VSignal pat) = pat
-valueToSignal v = pure v
+valueToSignal v             = pure v
 
 _getP_ :: (Value -> Maybe a) -> Signal Value -> Signal a
 _getP_ f pat = filterJusts $ f <$> pat

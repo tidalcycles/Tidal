@@ -209,11 +209,12 @@ data Signal a = Signal {query :: State -> [Event a]}
 instance NFData a => NFData (Signal a)
 
 -- | A discrete sequence
-data Sequence a = Atom Time a
+data Sequence a = Atom {atomDuration :: Time,
+                        atomInset :: Time, atomOutset :: Time,
+                        atomValue :: a}
                 | Gap Time
                 | Cat [Sequence a]
                 | Stack [Sequence a]
-              deriving Show
 
 data Alignment a = Alignment [Sequence a]
 
@@ -227,7 +228,7 @@ data Strategy = JustifyLeft
               | TruncateRepeat
               | RepeatLCM
               | Centre
-              | Squeeze
+              | SqueezeIn
               | SqueezeOut
               | CycleIn
               | CycleOut
