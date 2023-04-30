@@ -11,7 +11,7 @@ import           Sound.Tidal.Pattern
 import           Sound.Tidal.Signal.Base ()
 import           Sound.Tidal.Types
 
-import           Data.List               (inits)
+import           Data.List               (intersperse)
 import           Data.Ratio
 import           Prelude                 hiding (span)
 
@@ -66,6 +66,10 @@ seqDuration (Cat xs)      = sum $ map seqDuration xs
 seqDuration (Stack [])    = 0
 seqDuration (Stack (x:_)) = seqDuration x
 
+seqCount :: Sequence a -> Int
+seqCount (Cat xs) = length xs
+seqCount _        = 1
+
 -- | Removes duplication, zero-width steps etc.
 normalise :: Sequence a -> Sequence a
 normalise (Cat [x]) = normalise x
@@ -95,6 +99,9 @@ _seqFast t (Gap x)    = Gap (x/t)
 _seqFast t (Cat s)    = Cat $ map (_seqFast t) s
 _seqFast t (Stack x)  = Stack $ map(_seqFast t) x
 
+_seqSlow :: Time -> Sequence a -> Sequence a
+_seqSlow t = _seqFast (1/t)
+
 -- TODO - more general version that takes rational
 seqReplicate :: Int -> Sequence a -> Sequence a
 seqReplicate n (Cat xs) = Cat $ concat $ replicate n xs
@@ -102,16 +109,13 @@ seqReplicate n x        = Cat $ replicate n x
 
 -- | Alignment
 
-_withCat :: (Sequence a -> Sequence a) -> Sequence a -> Sequence a
-_withCat f s@(Cat {}) = f s
-_withCat f s          = f $ Cat [s]
-
 seqPadBy :: ([Sequence a] -> Sequence a -> [Sequence a]) -> Time -> Sequence a -> Sequence a
-seqPadBy by t x = _withCat f x
+seqPadBy by t x = f x
   where f (Cat xs) | t < 0 = error "Can't do negative pad"
                    | t == 0 = x
                    | otherwise = Cat $ by xs $ Gap $ t
-        f _           = error "can't happen"
+        -- wrap in Cat for padding
+        f x = seqPadBy by t $ Cat [x]
 
 seqPadRightBy :: Time -> Sequence a -> Sequence a
 seqPadRightBy = seqPadBy $ \xs x -> xs ++ [x]
@@ -122,10 +126,19 @@ seqPadLeftBy = seqPadBy $ flip (:)
 seqPadBothBy :: Time -> Sequence a -> Sequence a
 seqPadBothBy = seqPadBy (\xs x -> (x:xs) ++ [x])
 
+seqSpaceOutBy :: Time -> Sequence a -> Sequence a
+seqSpaceOutBy t (Cat ss) | t < 0 = error "Can't do negative pad"
+                         | t == 0 = Cat ss
+                         | otherwise = Cat $ intersperse gap ss
+  where gap = Gap $ t / (toRational $ (length ss) - 1)
+seqSpaceOutBy t s = seqSpaceOutBy t $ Cat [s]
+
+-- requires RankNTypes
 withSmallest :: (forall x. Sequence x -> Sequence x) -> Sequence a -> Sequence b -> (Sequence a, Sequence b)
-withSmallest f a b | seqDuration a < seqDuration b = (f a, b)
-                   | seqDuration a > seqDuration b = (a, f b)
+withSmallest f a b | o == LT = (f a, b)
+                   | o == GT = (a, f b)
                    | otherwise = (a, b)
+  where o = compare (seqDuration a) (seqDuration b)
 
 -- Align two sequences so that they are the same overall duration,
 -- according to a given strategy.
@@ -133,7 +146,7 @@ withSmallest f a b | seqDuration a < seqDuration b = (f a, b)
 align :: Strategy -> Sequence a -> Sequence b -> (Sequence a, Sequence b)
 align RepeatLCM a b = (rep a, rep b)
   where duration = lcmTime (seqDuration a) (seqDuration b)
-        rep = seqReplicate (floor $ duration / seqDuration a)
+        rep x = seqReplicate (floor $ duration / seqDuration x) x
 
 align JustifyLeft a b = withSmallest (seqPadRightBy by) a b
   where by = abs $ seqDuration a - seqDuration b
@@ -141,16 +154,24 @@ align JustifyLeft a b = withSmallest (seqPadRightBy by) a b
 align JustifyRight a b = withSmallest (seqPadLeftBy by) a b
   where by = abs $ seqDuration a - seqDuration b
 
+align JustifyBoth a b = withSmallest (seqSpaceOutBy by) a b
+  where by = abs $ seqDuration a - seqDuration b
+
 align Centre a b = withSmallest (seqPadBothBy by) a b
   where by = abs $ (seqDuration a - seqDuration b) / 2
+
+align Expand a b = withSmallest (_seqFast by) a b
+  where ratio = seqDuration a / seqDuration b
+        by | ratio < 1 = ratio
+           | otherwise = 1/ratio
 
 -- data Strategy = / JustifyLeft
 --               | / JustifyRight
 --               | / RepeatLCM
 --               | / Centre
+--               | / Expand
 
 --               | JustifyBoth
---               | Expand
 --               | TruncateMax
 --               | TruncateMin
 --               | Squeeze

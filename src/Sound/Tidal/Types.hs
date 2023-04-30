@@ -215,6 +215,8 @@ data Sequence a = Atom Time a
                 | Stack [Sequence a]
               deriving Show
 
+data Alignment a = Alignment [Sequence a]
+
 -- | Strategies for aligning two sequences or patterns
 data Strategy = JustifyLeft
               | JustifyRight
