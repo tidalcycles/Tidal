@@ -222,8 +222,9 @@ data Strategy = JustifyLeft
               | JustifyRight
               | JustifyBoth
               | Expand
-              | TruncateMax
-              | TruncateMin
+              | TruncateLeft
+              | TruncateRight
+              | TruncateRepeat
               | RepeatLCM
               | Centre
               | Squeeze

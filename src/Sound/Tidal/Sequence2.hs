@@ -7,13 +7,13 @@ module Sound.Tidal.Sequence2 where
 
 import           Sound.Tidal.Time
 -- import Sound.Tidal.Value
+import           Data.List               (intersperse)
+import           Data.Maybe              (fromMaybe)
+import           Data.Ratio
+import           Prelude                 hiding (span)
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Signal.Base ()
 import           Sound.Tidal.Types
-
-import           Data.List               (intersperse)
-import           Data.Ratio
-import           Prelude                 hiding (span)
 
 -- | Instances
 
@@ -42,6 +42,9 @@ seqTake t (Cat ss) = Cat <$> (sequence $ step t ss)
                       | otherwise = (seqTake stepDur s):(step (t - stepDur) ss)
           where stepDur = seqDuration s
 
+seqTake' :: Time -> Sequence a -> Sequence a
+seqTake' t s = fromMaybe (Gap 0) $ seqTake t s -- TODO - error handling..
+
 seqDrop :: Time -> Sequence a -> Maybe (Sequence a)
 seqDrop t (a@(Atom d v)) | t > d = Nothing
                          | t == d = Just $ Gap 0
@@ -59,6 +62,9 @@ seqDrop t (Cat ss) = Cat <$> (sequence $ step t ss)
                       | t <= stepDur = seqDrop t s:(map Just ss)
                       | otherwise = step (t - stepDur) ss
           where stepDur = seqDuration s
+
+seqDrop' :: Time -> Sequence a -> Sequence a
+seqDrop' t s = fromMaybe (Gap 0) $ seqDrop t s -- TODO - error handling..
 
 seqDuration (Atom t _)    = t
 seqDuration (Gap t)       = t
@@ -133,11 +139,21 @@ seqSpaceOutBy t (Cat ss) | t < 0 = error "Can't do negative pad"
   where gap = Gap $ t / (toRational $ (length ss) - 1)
 seqSpaceOutBy t s = seqSpaceOutBy t $ Cat [s]
 
+seqRepeatTo :: Time -> Sequence a -> Sequence a
+seqRepeatTo t (Cat ss) = seqTake' t $ Cat $ cycle ss
+seqRepeatTo t s        = seqRepeatTo t $ Cat [s]
+
 -- requires RankNTypes
 withSmallest :: (forall x. Sequence x -> Sequence x) -> Sequence a -> Sequence b -> (Sequence a, Sequence b)
 withSmallest f a b | o == LT = (f a, b)
                    | o == GT = (a, f b)
                    | otherwise = (a, b)
+  where o = compare (seqDuration a) (seqDuration b)
+
+withLargest :: (forall x. Sequence x -> Sequence x) -> Sequence a -> Sequence b -> (Sequence a, Sequence b)
+withLargest f a b | o == LT = (a, f b)
+                  | o == GT = (f a, b)
+                  | otherwise = (a, b)
   where o = compare (seqDuration a) (seqDuration b)
 
 -- Align two sequences so that they are the same overall duration,
@@ -165,15 +181,22 @@ align Expand a b = withSmallest (_seqFast by) a b
         by | ratio < 1 = ratio
            | otherwise = 1/ratio
 
+align TruncateLeft a b = withLargest (seqTake' $ min (seqDuration a) (seqDuration b)) a b
+
+align TruncateRight a b = withLargest (seqDrop' $ abs $ (seqDuration a) - (seqDuration b)) a b
+
+align TruncateRepeat a b = withSmallest (seqRepeatTo to) a b
+  where to = max (seqDuration a) (seqDuration b)
+
 -- data Strategy = / JustifyLeft
 --               | / JustifyRight
 --               | / RepeatLCM
 --               | / Centre
 --               | / Expand
-
---               | JustifyBoth
---               | TruncateMax
---               | TruncateMin
+--               | / JustifyBoth
+--               | / TruncateLeft
+--               | / TruncateRight
+--               | / TruncateRepeat
 --               | Squeeze
 --               | SqueezeOut
 --               | CycleIn
