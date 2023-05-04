@@ -211,14 +211,14 @@ instance NFData a => NFData (Signal a)
 -- | A discrete sequence
 data Sequence a = Atom {atomDuration :: Time,
                         atomInset :: Time, atomOutset :: Time,
-                        atomValue :: a}
-                | Gap Time
+                        atomValue :: Maybe a
+                       }
                 | Cat [Sequence a]
                 | Stack [Sequence a]
 
 data Alignment a = Alignment [Sequence a]
 
--- | Strategies for aligning two sequences or patterns
+-- | Strategies for aligning two sequences or patterns over time (horizontally)
 data Strategy = JustifyLeft
               | JustifyRight
               | JustifyBoth
@@ -236,6 +236,16 @@ data Strategy = JustifyLeft
               | Trig
               | TrigZero
               deriving Show
+
+-- | Strategies for aligning stacks (vertically)
+data VStrategy = VZip -- Like zip lists
+               | VCombine -- all possible pairs
+               | VCycle
+
+-- | Once we've aligned two patterns, where does the structure come from?
+data Direction = In
+               | Out
+               | Mix
 
 data Align a b = Align Strategy a b
   deriving Show
