@@ -14,7 +14,7 @@ import           Data.Tuple              (swap)
 import           Prelude                 hiding (span)
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Show
-import           Sound.Tidal.Signal.Base ()
+import           Sound.Tidal.Signal.Base (_zoomArc)
 import           Sound.Tidal.Types
 
 -- | Instances
@@ -28,6 +28,78 @@ instance Functor Sequence where
 instance Applicative Sequence where
   pure x = Atom 1 0 0 $ Just x
   fseq <*> vseq = (\(f,v) -> f v) <$> pairAlign RepeatLCM In fseq vseq
+
+-- | TODO - does this need to be more complicated?
+instance Monad Sequence where
+  return = pure
+  Atom _ _ _ (Just v) >>= f = f v
+  Atom d i o Nothing >>= _  = Atom d i o Nothing
+  Cat xs >>= f              = Cat $ map (>>= f) xs
+  Stack xs >>= f            = Stack $ map (>>= f) xs
+
+instance Pattern Sequence where
+  toSignal = seqToSignal
+  slowcat = seqCat
+  fastcat = seqFastcat
+--   slowcat :: [p a] -> p a
+--   fastcat :: [p a] -> p a
+--   fastcat pats = _fast (toRational $ length pats) $ slowcat pats
+--   _fast :: Time -> p a -> p a
+--   silence :: p a
+--   atom :: a -> p a
+--   stack :: [p a] -> p a
+--   -- patternify the first parameter
+--   _patternify :: (a -> p b -> p c) -> (p a -> p b -> p c)
+--   -- patternify the first two parameters
+--   _patternify_p_p :: (a -> b -> p c -> p d) -> (p a -> p b -> p c -> p d)
+--   -- patternify the first but not the second parameters
+--   _patternify_p_n :: (a -> b -> p c -> p d) -> (p a -> b -> p c -> p d)
+--   -- patternify the first three parameters
+--   _patternify_p_p_p :: (a -> b -> c -> p d -> p e) -> (p a -> p b -> p c -> p d -> p e)
+--   _appAlign :: (a -> p b -> p c) -> Align (p a) (p b) -> p c
+--   rev :: p a -> p a
+--   _ply :: Time -> p a-> p a
+--   euclid :: p Int -> p Int -> p a -> p a
+--   _euclid :: Int -> Int -> p a -> p a
+--   timeCat :: [(Time, p a)] -> p a
+--   _run :: (Enum a, Num a) => a -> p a
+--   _scan :: (Enum a, Num a) => a -> p a
+--   -- every :: p Int -> (p b -> p b) -> p b -> p b
+--   when :: p Bool -> (p b -> p b) -> p b -> p b
+--   -- listToPat :: [a] -> p a
+--   _iter :: Int -> p a -> p a
+--   _iterBack :: Int -> p a -> p a
+--   collect :: Eq a => p a -> p [a]
+--   uncollect :: p [a] -> p a
+--   _pressBy :: Time -> p a -> p a
+
+-- | Pattern instance implementations
+
+-- One beat per cycle
+seqToSignal :: Sequence a -> Signal a
+seqToSignal seq = _slow (seqDuration seq) $ seqToSignal' seq
+
+-- One sequence per cycle
+seqToSignal' :: Sequence a -> Signal a
+seqToSignal' (Atom t i o (Just v)) = _zoomArc (Arc (i/t) (1 - (o/t))) $ pure v
+seqToSignal' (Cat xs) = timeCat $ timeseqs
+  where timeseqs = map (\x -> (seqDuration x, seqToSignal' x)) xs
+seqToSignal' (Stack xs) = stack $ map seqToSignal' xs
+
+seqAppend :: Sequence a -> Sequence a -> Sequence a
+seqAppend (Cat as) (Cat bs) = Cat (as ++ bs)
+seqAppend a (Cat bs)        = Cat (a:bs)
+seqAppend (Cat as) b        = Cat (as ++ [b])
+seqAppend a b               = Cat [a,b]
+
+seqCat :: [Sequence a] -> Sequence a
+seqCat ([])     = Cat []
+seqCat (a:[])   = a
+seqCat (a:b:[]) = seqAppend a b
+seqCat (a:xs)   = seqAppend a $ seqCat xs
+
+seqFastcat :: [Sequence a] -> Sequence a
+seqFastcat xs = _slow (sum $ map seqDuration xs) $ seqCat xs
 
 -- | Utils
 
@@ -216,18 +288,6 @@ align strategy _ _ = error $ show strategy ++ " not implemented for sequences."
 --   where step [] _ = []
 --         step (x:xs) b' = (x, h):(step xs t)
 --           where (h,t) = seqSplitAt' (seqDuration x) b'
-
-seqAppend :: Sequence a -> Sequence a -> Sequence a
-seqAppend (Cat as) (Cat bs) = Cat (as ++ bs)
-seqAppend a (Cat bs)        = Cat (a:bs)
-seqAppend (Cat as) b        = Cat (as ++ [b])
-seqAppend a b               = Cat [a,b]
-
-seqCat :: [Sequence a] -> Sequence a
-seqCat ([])     = Cat []
-seqCat (a:[])   = a
-seqCat (a:b:[]) = seqAppend a b
-seqCat (a:xs)   = seqAppend a $ seqCat xs
 
 pairAligned :: Direction -> Sequence a -> Sequence b -> Sequence (a, b)
 
