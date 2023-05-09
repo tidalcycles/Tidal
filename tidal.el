@@ -240,9 +240,9 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
 ;; Generate the functions `tidal-run-d1' and `tidal-stop-d1'
 (tidal-create-runner "d1")
 
-;; This generates tidal-run-* and tidal-stop-* functions for d1 to d9.
+;; This generates tidal-run-* and tidal-stop-* functions for d1 to d10.
 (mapc #'tidal-create-runner
-      '("d1" "d2" "d3" "d4" "d5" "d6" "d7" "d8" "d9"))
+      '("d1" "d2" "d3" "d4" "d5" "d6" "d7" "d8" "d9" "d10"))
 
 (defun tidal-run-region ()
   "Place the region in a do block and compile."
@@ -263,6 +263,11 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   "Run current main."
   (interactive)
   (tidal-send-string "main"))
+
+(defun tidal-hush ()
+  "Stop all the patterns currently running."
+  (interactive)
+  (tidal-send-string "hush"))
 
 (defun tidal-interrupt-haskell ()
   "Interrupt running process."
@@ -287,6 +292,7 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   (define-key map [?\C-c ?\C-l] 'tidal-load-buffer)
   (define-key map [?\C-c ?\C-i] 'tidal-interrupt-haskell)
   (define-key map [?\C-c ?\C-m] 'tidal-run-main)
+  (define-key map [?\C-c ?\C-h] 'tidal-hush)
   (define-key map [?\C-c ?\C-1] 'tidal-run-d1)
   (define-key map [?\C-c ?\C-2] 'tidal-run-d2)
   (define-key map [?\C-c ?\C-3] 'tidal-run-d3)
@@ -296,6 +302,7 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   (define-key map [?\C-c ?\C-7] 'tidal-run-d7)
   (define-key map [?\C-c ?\C-8] 'tidal-run-d8)
   (define-key map [?\C-c ?\C-9] 'tidal-run-d9)
+  (define-key map [?\C-c ?\C-0] 'tidal-run-d10)
   (define-key map [?\C-v ?\C-1] 'tidal-stop-d1)
   (define-key map [?\C-v ?\C-2] 'tidal-stop-d2)
   (define-key map [?\C-v ?\C-3] 'tidal-stop-d3)
@@ -304,7 +311,8 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   (define-key map [?\C-v ?\C-6] 'tidal-stop-d6)
   (define-key map [?\C-v ?\C-7] 'tidal-stop-d7)
   (define-key map [?\C-v ?\C-8] 'tidal-stop-d8)
-  (define-key map [?\C-v ?\C-9] 'tidal-stop-d9))
+  (define-key map [?\C-v ?\C-9] 'tidal-stop-d9)
+  (define-key map [?\C-v ?\C-0] 'tidal-stop-d10))
 
 (defun tidal-turn-on-keybindings ()
   "Haskell Tidal keybindings in the local map."
@@ -318,6 +326,7 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   (local-set-key [?\C-c ?\C-l] 'tidal-load-buffer)
   (local-set-key [?\C-c ?\C-i] 'tidal-interrupt-haskell)
   (local-set-key [?\C-c ?\C-m] 'tidal-run-main)
+  (local-set-key [?\C-c ?\C-h] 'tidal-hush)
   (local-set-key [?\C-c ?\C-1] 'tidal-run-d1)
   (local-set-key [?\C-c ?\C-2] 'tidal-run-d2)
   (local-set-key [?\C-c ?\C-3] 'tidal-run-d3)
@@ -327,6 +336,7 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   (local-set-key [?\C-c ?\C-7] 'tidal-run-d7)
   (local-set-key [?\C-c ?\C-8] 'tidal-run-d8)
   (local-set-key [?\C-c ?\C-9] 'tidal-run-d9)
+  (local-set-key [?\C-c ?\C-0] 'tidal-run-d10)
   (local-set-key [?\C-v ?\C-1] 'tidal-stop-d1)
   (local-set-key [?\C-v ?\C-2] 'tidal-stop-d2)
   (local-set-key [?\C-v ?\C-3] 'tidal-stop-d3)
@@ -335,7 +345,8 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   (local-set-key [?\C-v ?\C-6] 'tidal-stop-d6)
   (local-set-key [?\C-v ?\C-7] 'tidal-stop-d7)
   (local-set-key [?\C-v ?\C-8] 'tidal-stop-d8)
-  (local-set-key [?\C-v ?\C-9] 'tidal-stop-d9))
+  (local-set-key [?\C-v ?\C-9] 'tidal-stop-d9)
+  (local-set-key [?\C-v ?\C-0] 'tidal-stop-d10))
 
 (defun tidal-mode-menu (map)
   "Haskell Tidal menu MAP."
