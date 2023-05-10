@@ -26,28 +26,33 @@ instance Functor Sequence where
 
 
 instance Applicative Sequence where
-  pure x = Atom 1 0 0 $ Just x
+  pure = step 1
   fseq <*> vseq = (\(f,v) -> f v) <$> pairAlign RepeatLCM In fseq vseq
+
+join :: Sequence (Sequence a) -> Sequence a
+join (Atom d i o (Just seq)) = _fast (innerDur / d) $ active
+  where innerDur = seqDuration seq
+        skipHead = (i/d) * innerDur
+        skipTail = (o/d) * innerDur
+        body = innerDur - (skipHead + skipTail)
+        active = seqTake' body $ seqDrop' skipHead seq
+join (Atom d i o Nothing) = Atom d i o Nothing
+join (Cat xs) = Cat $ map join xs
+join (Stack xs) = Stack $ map join xs
 
 -- | TODO - does this need to be more complicated?
 instance Monad Sequence where
   return = pure
-  Atom _ _ _ (Just v) >>= f = f v
-  Atom d i o Nothing >>= _  = Atom d i o Nothing
-  Cat xs >>= f              = Cat $ map (>>= f) xs
-  Stack xs >>= f            = Stack $ map (>>= f) xs
+  seqv >>= f = join $ fmap f seqv
 
 instance Pattern Sequence where
   toSignal = seqToSignal
   slowcat = seqCat
   fastcat = seqFastcat
---   slowcat :: [p a] -> p a
---   fastcat :: [p a] -> p a
---   fastcat pats = _fast (toRational $ length pats) $ slowcat pats
---   _fast :: Time -> p a -> p a
---   silence :: p a
---   atom :: a -> p a
---   stack :: [p a] -> p a
+  _fast = _seqFast
+  silence = gap 1
+  atom = step 1
+  stack = Stack
 --   -- patternify the first parameter
 --   _patternify :: (a -> p b -> p c) -> (p a -> p b -> p c)
 --   -- patternify the first two parameters
