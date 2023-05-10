@@ -133,6 +133,7 @@ seqTake' :: Time -> Sequence a -> Sequence a
 seqTake' t s = fromMaybe (gap 0) $ seqTake t s -- TODO - error handling..
 
 seqDrop :: Time -> Sequence a -> Maybe (Sequence a)
+seqDrop 0 s = Just s
 seqDrop t (a@(Atom d i o v)) | t > d = Nothing
                              | t == d = Just $ gap 0
                              | otherwise = Just $ Atom (d - t) (i + t) o v
