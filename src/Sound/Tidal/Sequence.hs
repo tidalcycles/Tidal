@@ -56,6 +56,8 @@ instance Pattern Sequence where
   innerJoin = join -- TODO - is this right?
   (<*) = (<*>) -- TODO - are these right? Probably not..
   (*>) = (<*>)
+  rev = seqRev
+  _ply = _seqPly
 
 --   -- patternify the first parameter
 --   _patternify :: (a -> p b -> p c) -> (p a -> p b -> p c)
@@ -194,6 +196,19 @@ normalise (Stack xs) = listToStack $ loop xs
         loop (x:xs)         = normalise x:loop xs
         loop []             = []
 normalise x = x
+
+seqRev :: Sequence a -> Sequence a
+seqRev (Stack xs) = Stack $ map seqRev xs
+seqRev (Cat xs)   = Cat $ reverse $ map seqRev xs
+seqRev x          = x
+
+_seqPly :: Time -> Sequence a -> Sequence a
+_seqPly t (Stack xs)             = Stack $ map (_seqPly t) xs
+-- TODO more efficient catmap that avoids cats within cats
+_seqPly t (Cat xs)               = normalise $ Cat $ map (_seqPly t) xs
+-- You can't ply nothing, just make it longer
+_seqPly t a@(Atom d i o Nothing) = _seqSlow t a
+_seqPly t seq                    = seqTake' t $ Cat $ repeat seq
 
 -- | Transformation
 
