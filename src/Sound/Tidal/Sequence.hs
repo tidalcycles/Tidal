@@ -24,7 +24,6 @@ instance Functor Sequence where
   fmap f (Cat xs)       = Cat $ map (fmap f) xs
   fmap f (Stack xs)     = Stack $ map (fmap f) xs
 
-
 instance Applicative Sequence where
   pure = step 1
   fseq <*> vseq = (\(f,v) -> f v) <$> pairAlign RepeatLCM In fseq vseq
@@ -346,4 +345,3 @@ pairAligned In (Atom d i o v) (Atom d' i' o' v') = Atom d i o $ do a <- v
 pairAlign :: Strategy -> Direction -> Sequence a -> Sequence b -> Sequence (a, b)
 pairAlign s d a b = pairAligned d a' b'
   where (a', b') = align s a b
-

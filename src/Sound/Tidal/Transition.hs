@@ -2,24 +2,24 @@
 
 module Sound.Tidal.Transition where
 
-import Prelude hiding ((<*), (*>))
+import           Prelude                 hiding ((*>), (<*))
 
-import Control.Concurrent.MVar (modifyMVar_)
+import           Control.Concurrent.MVar (modifyMVar_)
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict         as Map
 -- import Data.Maybe (fromJust)
 
-import Sound.Tidal.Control
-import Sound.Tidal.ID
-import Sound.Tidal.Params (gain, pan)
-import Sound.Tidal.Pattern
-import Sound.Tidal.Signal.Base (envLR, innerJoin, late, playFor)
-import Sound.Tidal.Stream
-import Sound.Tidal.Tempo as T
-import Sound.Tidal.Time (sam)
-import Sound.Tidal.Types
-import Sound.Tidal.UI (fadeOutFrom, fadeInFrom)
-import Sound.Tidal.Utils (enumerate)
+import           Sound.Tidal.Control
+import           Sound.Tidal.ID
+import           Sound.Tidal.Params      (gain, pan)
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base (envLR, innerJoin, late, playFor)
+import           Sound.Tidal.Stream
+import           Sound.Tidal.Tempo       as T
+import           Sound.Tidal.Time        (sam)
+import           Sound.Tidal.Types
+import           Sound.Tidal.UI          (fadeInFrom, fadeOutFrom)
+import           Sound.Tidal.Utils       (enumerate)
 
 {-
     Transition.hs - A library for handling transitions between signals
@@ -43,12 +43,12 @@ import Sound.Tidal.Utils (enumerate)
 -- the "historyFlag" determines if the new signal should be placed on the history stack or not
 transition :: Stream -> Bool -> (Time -> [ControlSignal] -> ControlSignal) -> ID -> ControlSignal -> IO ()
 transition stream historyFlag f patId !pat =
-  modifyMVar_ (sActionsMV stream) (\actions -> return $! (T.Transition historyFlag f patId pat) : actions)
+  modifyMVar_ (sActionsMV stream) (\actions -> return $! T.Transition historyFlag f patId pat : actions)
 
 mortalOverlay :: Time -> Time -> [Signal a] -> Signal a
 mortalOverlay _ _ [] = silence
 mortalOverlay t now (pat:ps) = overlay (pop ps) (playFor s (s+t) pat) where
-  pop [] = silence
+  pop []    = silence
   pop (x:_) = x
   s = sam (now - fromIntegral (floor now `mod` floor t :: Int)) + sam t
 
@@ -58,12 +58,12 @@ mortalOverlay t now (pat:ps) = overlay (pop ps) (playFor s (s+t) pat) where
 -}
 wash :: (Signal a -> Signal a) -> (Signal a -> Signal a) -> Time -> Time -> Time -> Time -> [Signal a] -> Signal a
 wash _ _ _ _ _ _ [] = silence
-wash _ _ _ _ _ _ (pat:[]) = pat
+wash _ _ _ _ _ _ [pat] = pat
 wash fout fin delay durin durout now (pat:pat':_) =
-   stack [(filterTime (< (now + delay)) pat'),
-          (filterTime (between (now + delay) (now + delay + durin)) $ fout pat'),
-          (filterTime (between (now + delay + durin) (now + delay + durin + durout)) $ fin pat),
-          (filterTime (>= (now + delay + durin + durout)) $ pat)
+   stack [filterTime (< (now + delay)) pat',
+          filterTime (between (now + delay) (now + delay + durin)) $ fout pat',
+          filterTime (between (now + delay + durin) (now + delay + durin + durout)) $ fin pat,
+          filterTime (>= (now + delay + durin + durout)) pat
          ]
  where
    between lo hi x = (x >= lo) && (x < hi)
@@ -86,7 +86,7 @@ histpan n _ ps = stack $ map (\(i,pat) -> pat # pan (pure $ (fromIntegral i) / (
 
 -- | Just stop for a bit before playing new signal
 wait :: Time -> Time -> [ControlSignal] -> ControlSignal
-wait _ _ [] = silence
+wait _ _ []        = silence
 wait t now (pat:_) = filterTime (>= (nextSam (now+t-1))) pat
 
 {- | Just as `wait`, `waitT` stops for a bit and then applies the given transition to the playing signal
@@ -98,7 +98,7 @@ t1 (waitT (xfadeIn 8) 4) $ sound "hh*8"
 @
 -}
 waitT :: (Time -> [ControlSignal] -> ControlSignal) -> Time -> Time -> [ControlSignal] -> ControlSignal
-waitT _ _ _ [] = silence
+waitT _ _ _ []     = silence
 waitT f t now pats = filterTime (>= (nextSam (now+t-1))) (f (now + t) pats)
 
 {- |
@@ -180,8 +180,8 @@ t1 (clutchIn 8) $ sound "[hh*4, odx(3,8)]"
 will take 8 cycles for the transition.
 -}
 clutchIn :: Time -> Time -> [Signal a] -> Signal a
-clutchIn _ _ [] = silence
-clutchIn _ _ (p:[]) = p
+clutchIn _ _ []         = silence
+clutchIn _ _ (p:[])     = p
 clutchIn t now (p:p':_) = overlay (fadeOutFrom now t p') (fadeInFrom now t p)
 
 {-| same as `anticipate` though it allows you to specify the number of cycles until dropping to the new signal, e.g.:

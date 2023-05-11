@@ -4,7 +4,7 @@
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
--- (c) Alex McLean 2022 and contributors
+-- (c) Alex McLean 2023 and contributors
 -- Shared under the terms of the GNU Public License v. 3.0
 
 -- Base representation and instances for Signals, including
@@ -79,7 +79,7 @@ _sigAppAlign f (Align CycleOut patt patv) = outerJoin $ (\t -> f t patv) <$> pat
 _sigAppAlign f (Align CycleMix patt patv) = mixJoin $ (\t -> f t patv) <$> patt
 _sigAppAlign f (Align Trig patt patv) = trigJoin $ (\t -> f t patv) <$> patt
 _sigAppAlign f (Align TrigZero patt patv) = trigzeroJoin $ (\t -> f t patv) <$> patt
-_sigAppAlign f (Align a _ _) = error $ "Alignment " ++ show a ++ " not implemented for signals"
+_sigAppAlign _ (Align a _ _) = error $ "Alignment " ++ show a ++ " not implemented for signals"
 
 -- ************************************************************ --
 
@@ -934,7 +934,7 @@ necklace :: Rational -> [Int] -> Signal Bool
 necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ fastFromList $ list xs
   where list :: [Int] -> [Bool]
         list []      = []
-        list (x:xs') = (True:(replicate (x-1) False)) ++ list xs'
+        list (x:xs') = (True : replicate (x-1) False) ++ list xs'
 
 -- | Inverts all the values in a boolean pattern (or other functor)
 -- TODO move to Pattern ?

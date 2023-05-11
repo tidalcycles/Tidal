@@ -1,17 +1,16 @@
 module Sound.Tidal.Signal.Random where
 
-import Prelude hiding ((<*), (*>))
+import           Prelude                     hiding ((*>), (<*))
 
-import Data.Bits (testBit, Bits, xor, shiftL, shiftR)
-import Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
-import Data.Ratio
+import           Data.Bits                   (shiftL, shiftR, xor)
+import           Data.List                   (findIndices)
+import           Data.Ratio
 
-import Sound.Tidal.Types
-import Sound.Tidal.Signal.Base
-import Sound.Tidal.Pattern
-import Sound.Tidal.Signal.Event
-import Sound.Tidal.Utils
-import Sound.Tidal.Signal.Waveform
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Waveform
+import           Sound.Tidal.Types
+import           Sound.Tidal.Utils
 
 -- ************************************************************ --
 -- Internal functions
@@ -40,7 +39,7 @@ _timeToRands t n = _timeToRands' (_timeToIntSeed t) n
 _timeToRands' :: Fractional a => Int -> Int -> [a]
 _timeToRands' seed n
   | n <= 0 = []
-  | otherwise = (_intSeedToRand seed) : (_timeToRands' (_xorwise seed) (n-1))
+  | otherwise = _intSeedToRand seed : _timeToRands' (_xorwise seed) (n-1)
 
 -- ************************************************************ --
 -- Pseudo-random waveforms
@@ -81,7 +80,7 @@ jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 @
 -}
 rand :: Fractional a => Signal a
-rand = Signal (\(State a@(Arc s e) _) -> [Event (Metadata []) Nothing a (realToFrac $ (_timeToRand ((e + s)/2) :: Double))])
+rand = Signal (\(State a@(Arc s e) _) -> [Event (Metadata []) Nothing a (realToFrac (_timeToRand ((e + s)/2) :: Double))])
 
 -- | Boolean rand - a continuous stream of true/false values, with a 50/50 chance.
 brand :: Signal Bool
@@ -89,7 +88,7 @@ brand = _brandBy 0.5
 
 -- | Boolean rand with probability as input, e.g. brandBy 0.25 is 25% chance of being true.
 brandBy :: Signal Double -> Signal Bool
-brandBy probpat = innerJoin $ (\prob -> _brandBy prob) <$> probpat
+brandBy probpat = innerJoin $ _brandBy <$> probpat
 
 _brandBy :: Double -> Signal Bool
 _brandBy prob = fmap (< prob) rand
@@ -119,7 +118,7 @@ repeat every cycle (because the saw does)
 The `perlin` function uses the cycle count as input and can be used much like @rand@.
 -}
 perlinWith :: Fractional a => Signal Double -> Signal a
-perlinWith p = fmap realToFrac $ (interp) <$> (p-pa) <*> (_timeToRand <$> pa) <*> (_timeToRand <$> pb) where
+perlinWith p = fmap realToFrac $ interp <$> (p-pa) <*> (_timeToRand <$> pa) <*> (_timeToRand <$> pb) where
   pa = (fromIntegral :: Int -> Double) . floor <$> p
   pb = (fromIntegral :: Int -> Double) . (+1) . floor <$> p
   interp x a b = a + smootherStep x * (b-a)

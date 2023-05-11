@@ -4,7 +4,6 @@
 module Sound.Tidal.Pattern where
 
 import           Sound.Tidal.Types
-
 import           Prelude           hiding ((*>), (<*))
 
 -- ************************************************************ --
@@ -56,7 +55,7 @@ infixl 4 <*, *>
 infixl 4 <#, #>, |#, #|, |#|, !#, !!#
 
 _opA :: Pattern p => (a -> b -> c) -> Align (p a) (p b) -> p c
-_opA op = _appAlign (\n -> fmap (op n))
+_opA op = _appAlign $ fmap . op
 
 addA :: Num a => Pattern p => Align (p a) (p a) -> p a
 addA = _opA (+)
@@ -193,7 +192,7 @@ scan = (>>= _run)
 _firstOf :: Pattern t => Int -> (t a -> t a) -> t a -> t a
 _firstOf n f pat | n <= 0 = silence
                  | otherwise = when (fromList
-                                     (True : (replicate (n - 1) False))
+                                     (True : replicate (n - 1) False)
                                     ) f pat
 
 firstOf :: Pattern t => t Int -> (t a -> t a) -> t a -> t a
@@ -202,7 +201,7 @@ firstOf = _patternify_p_n _firstOf
 _lastOf :: Pattern t => Int -> (t a -> t a) -> t a -> t a
 _lastOf n f pat | n <= 0 = silence
                 | otherwise = when (fromList
-                                    ((replicate (n - 1) False) ++ [True])
+                                    (replicate (n - 1) False ++ [True])
                                    ) f pat
 
 lastOf :: Pattern t => t Int -> (t a -> t a) -> t a -> t a

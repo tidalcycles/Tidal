@@ -18,9 +18,9 @@ module Sound.Tidal.Chords where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import Data.Maybe
+import           Data.Maybe
 
-import Sound.Tidal.Pattern
+import           Sound.Tidal.Pattern
 
 -- major chords
 major :: Num a => [a]
@@ -283,20 +283,22 @@ data Modifier = Range Int | Drop Int | Invert | Open deriving Eq
 
 instance Show Modifier where
   show (Range i) = "Range " ++ show i
-  show (Drop i) = "Drop " ++ show i
-  show Invert = "Invert"
-  show Open = "Open"
+  show (Drop i)  = "Drop " ++ show i
+  show Invert    = "Invert"
+  show Open      = "Open"
 
 applyModifier :: (Enum a, Num a) => Modifier -> [a] -> [a]
 applyModifier (Range i) ds = take i $ concatMap (\x -> map (+ x) ds) [0,12..]
 applyModifier Invert [] = []
 applyModifier Invert (d:ds) = ds ++ [d+12]
-applyModifier Open ds = case length ds > 2 of
-                              True -> [ (ds !! 0 - 12), (ds !! 2 - 12), (ds !! 1) ] ++ reverse (take (length ds - 3) (reverse ds))
-                              False -> ds
-applyModifier (Drop i) ds = case length ds < i of
-                              True -> ds
-                              False -> (ds!!s - 12):(xs ++ drop 1 ys)
+applyModifier Open ds = if length ds > 2 then
+                          [ ds !! 0 - 12, ds !! 2 - 12, ds !! 1 ] ++ reverse (take (length ds - 3) (reverse ds))
+                        else
+                          ds
+applyModifier (Drop i) ds = if length ds < i then
+                              ds
+                            else
+                              (ds!!s - 12):(xs ++ drop 1 ys)
                           where (xs,ys) = splitAt s ds
                                 s = length ds - i
 
