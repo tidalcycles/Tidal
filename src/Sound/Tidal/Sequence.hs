@@ -61,45 +61,13 @@ instance Pattern Sequence where
   _iter = _seqIter
   _iterBack = _seqIterBack
   _pressBy = _seqPressBy
+  when = seqWhenS Expand
   
 --   euclid :: p Int -> p Int -> p a -> p a
 --   _euclid :: Int -> Int -> p a -> p a
---   -- every :: p Int -> (p b -> p b) -> p b -> p b
---   when :: p Bool -> (p b -> p b) -> p b -> p b
---   -- listToPat :: [a] -> p a
---   _iter :: Int -> p a -> p a
---   _iterBack :: Int -> p a -> p a
 --   collect :: Eq a => p a -> p [a]
 --   uncollect :: p [a] -> p a
---   _pressBy :: Time -> p a -> p a
 
--- | Pattern instance implementations
-
--- One beat per cycle
-seqToSignal :: Sequence a -> Signal a
-seqToSignal seq = _slow (seqDuration seq) $ seqToSignal' seq
-
--- One sequence per cycle
-seqToSignal' :: Sequence a -> Signal a
-seqToSignal' (Atom t i o (Just v)) = _zoomArc (Arc (i/t) (1 - (o/t))) $ pure v
-seqToSignal' (Cat xs) = timeCat $ timeseqs
-  where timeseqs = map (\x -> (seqDuration x, seqToSignal' x)) xs
-seqToSignal' (Stack xs) = stack $ map seqToSignal' xs
-
-seqAppend :: Sequence a -> Sequence a -> Sequence a
-seqAppend (Cat as) (Cat bs) = Cat (as ++ bs)
-seqAppend a (Cat bs)        = Cat (a:bs)
-seqAppend (Cat as) b        = Cat (as ++ [b])
-seqAppend a b               = Cat [a,b]
-
-seqCat :: [Sequence a] -> Sequence a
-seqCat ([])     = Cat []
-seqCat (a:[])   = a
-seqCat (a:b:[]) = seqAppend a b
-seqCat (a:xs)   = seqAppend a $ seqCat xs
-
-seqFastcat :: [Sequence a] -> Sequence a
-seqFastcat xs = _slow (sum $ map seqDuration xs) $ seqCat xs
 
 -- | Utils
 
@@ -186,9 +154,44 @@ normalise (Stack xs) = listToStack $ loop xs
         loop []             = []
 normalise x = x
 
+withAtom :: (Sequence a -> Sequence a) -> Sequence a -> Sequence a
+withAtom f a@(Atom _ _ _ _) = f a
+withAtom f (Cat xs) = Cat $ map (withAtom f) xs
+withAtom f (Stack xs) = Stack $ map (withAtom f) xs
+
+-- | Pattern instance implementations
+
+-- One beat per cycle
+seqToSignal :: Sequence a -> Signal a
+seqToSignal seq = _slow (seqDuration seq) $ seqToSignal' seq
+
+-- One sequence per cycle
+seqToSignal' :: Sequence a -> Signal a
+seqToSignal' (Atom t i o (Just v)) = _zoomArc (Arc (i/t) (1 - (o/t))) $ pure v
+seqToSignal' (Cat xs) = timeCat $ timeseqs
+  where timeseqs = map (\x -> (seqDuration x, seqToSignal' x)) xs
+seqToSignal' (Stack xs) = stack $ map seqToSignal' xs
+
+seqAppend :: Sequence a -> Sequence a -> Sequence a
+seqAppend (Cat as) (Cat bs) = Cat (as ++ bs)
+seqAppend a (Cat bs)        = Cat (a:bs)
+seqAppend (Cat as) b        = Cat (as ++ [b])
+seqAppend a b               = Cat [a,b]
+
+seqCat :: [Sequence a] -> Sequence a
+seqCat ([])     = Cat []
+seqCat (a:[])   = a
+seqCat (a:b:[]) = seqAppend a b
+seqCat (a:xs)   = seqAppend a $ seqCat xs
+
+seqFastcat :: [Sequence a] -> Sequence a
+seqFastcat xs = _slow (sum $ map seqDuration xs) $ seqCat xs
+
 seqRev :: Sequence a -> Sequence a
 seqRev (Stack xs) = Stack $ map seqRev xs
-seqRev (Cat xs)   = Cat $ reverse $ map seqRev xs
+seqRev (Cat xs)   = withAtom swapio $ Cat $ reverse $ map seqRev xs
+  where swapio (Atom d i o v) = Atom d o i v
+        swapio seq = seq -- shouldn't happen
 seqRev x          = x
 
 _seqPly :: Time -> Sequence a -> Sequence a
@@ -222,6 +225,17 @@ _seqIterBack n seq = normalise $ Cat $ map fori [0 .. (n-1)]
 
 _seqPressBy :: Time -> Sequence a -> Sequence a
 _seqPressBy t seq = normalise $ join $ fmap (\v -> Cat [gap t, step (1-t) v]) seq
+
+seqWhenS :: Strategy -> Sequence Bool -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
+seqWhenS strategy bseq f seq = normalise $ loop bseq' seq'
+  where (bseq', seq') = align strategy bseq seq
+        loop (Stack as) b = Stack $ map (\a -> loop a b) as
+        loop (Cat as) b = Cat $ subloop as b
+          where subloop [] _ = []
+                subloop (a:as) b = loop a (seqTake' (seqDuration a) b):(subloop as $ seqDrop' (seqDuration a) b)
+        loop (Atom _ _ _ (Just True)) b = f b -- TODO - double check a and b are equal in duration? they should be..
+        loop (Atom _ _ _ Nothing) b = b
+        
 
 -- | Transformation
 
@@ -322,40 +336,33 @@ align SqueezeOut a b = swap $ align SqueezeIn b a
 
 align strategy _ _ = error $ show strategy ++ " not implemented for sequences."
 
--- pairAligned :: Strategy -> Direction -> Sequence a -> Sequence b -> [(Sequence a, Sequence b)]
--- pairAligned s In (Cat xs) b = step xs b
---   where step [] _ = []
---         step (x:xs) b' = (x, h):(step xs t)
---           where (h,t) = seqSplitAt' (seqDuration x) b'
-
-pairAligned :: Direction -> Sequence a -> Sequence b -> Sequence (a, b)
+pairAligned :: Direction -> (Sequence a, Sequence b) -> Sequence (a, b)
 
 -- TODO - vertical alignments
-pairAligned strategy (Stack as) b = seqCat $ map (\a -> pairAligned strategy a b) as
-pairAligned strategy a (Stack bs) = seqCat $ map (\b -> pairAligned strategy a b) bs
+pairAligned direction ((Stack as), b) = seqCat $ map (\a -> pairAligned direction (a, b)) as
+pairAligned direction (a, (Stack bs)) = seqCat $ map (\b -> pairAligned direction (a, b)) bs
 
-pairAligned In (Cat as) b = loop 0 as b
+pairAligned In ((Cat as), b) = loop 0 as b
   where loop t ([]) _ = gap 0
-        loop t (a:[]) b = pairAligned In a b
-        loop t (a:as) b = seqAppend (pairAligned In a b') $ loop t' as b''
+        loop t (a:[]) b = pairAligned In (a, b)
+        loop t (a:as) b = seqAppend (pairAligned In (a, b')) $ loop t' as b''
           where t' = t + seqDuration a
                 (b', b'') = seqSplitAt' t' b
 
-pairAligned In a (Cat bs) = loop 0 a bs
+pairAligned In (a, (Cat bs)) = loop 0 a bs
   where loop t _ ([]) = gap 0
-        loop t a (b:[]) = pairAligned In a b
-        loop t a (b:bs) = seqAppend (pairAligned In a' b) $ loop t' a'' bs
+        loop t a (b:[]) = pairAligned In (a, b)
+        loop t a (b:bs) = seqAppend (pairAligned In (a', b)) $ loop t' a'' bs
           where t' = t + seqDuration b
                 (a', a'') = seqSplitAt' t' a
 
 
-pairAligned Out a b = swap <$> pairAligned In b a
+pairAligned Out (a, b) = swap <$> pairAligned In (b, a)
 
 -- TODO - should the value be Nothing if one/both are nothings?
-pairAligned In (Atom d i o v) (Atom d' i' o' v') = Atom d i o $ do a <- v
-                                                                   b <- v'
-                                                                   return (a,b)
+pairAligned In ((Atom d i o v), (Atom d' i' o' v')) = Atom d i o $ do a <- v
+                                                                      b <- v'
+                                                                      return (a,b)
 
 pairAlign :: Strategy -> Direction -> Sequence a -> Sequence b -> Sequence (a, b)
-pairAlign s d a b = pairAligned d a' b'
-  where (a', b') = align s a b
+pairAlign s d a b = pairAligned d $ align s a b
