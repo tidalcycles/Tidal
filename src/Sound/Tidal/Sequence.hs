@@ -58,22 +58,9 @@ instance Pattern Sequence where
   rev = seqRev
   _ply = _seqPly
 
---   -- patternify the first parameter
---   _patternify :: (a -> p b -> p c) -> (p a -> p b -> p c)
---   -- patternify the first two parameters
---   _patternify_p_p :: (a -> b -> p c -> p d) -> (p a -> p b -> p c -> p d)
---   -- patternify the first but not the second parameters
---   _patternify_p_n :: (a -> b -> p c -> p d) -> (p a -> b -> p c -> p d)
---   -- patternify the first three parameters
---   _patternify_p_p_p :: (a -> b -> c -> p d -> p e) -> (p a -> p b -> p c -> p d -> p e)
---   _appAlign :: (a -> p b -> p c) -> Align (p a) (p b) -> p c
---   rev :: p a -> p a
---   _ply :: Time -> p a-> p a
 --   euclid :: p Int -> p Int -> p a -> p a
 --   _euclid :: Int -> Int -> p a -> p a
 --   timeCat :: [(Time, p a)] -> p a
---   _run :: (Enum a, Num a) => a -> p a
---   _scan :: (Enum a, Num a) => a -> p a
 --   -- every :: p Int -> (p b -> p b) -> p b -> p b
 --   when :: p Bool -> (p b -> p b) -> p b -> p b
 --   -- listToPat :: [a] -> p a
@@ -208,6 +195,8 @@ _seqPly t (Cat xs)               = normalise $ Cat $ map (_seqPly t) xs
 -- You can't ply nothing, just make it longer
 _seqPly t a@(Atom d i o Nothing) = _seqSlow t a
 _seqPly t seq                    = seqTake' t $ Cat $ repeat seq
+
+_seqRun 
 
 -- | Transformation
 

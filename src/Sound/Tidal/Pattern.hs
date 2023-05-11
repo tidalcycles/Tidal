@@ -24,8 +24,6 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   euclid :: p Int -> p Int -> p a -> p a
   _euclid :: Int -> Int -> p a -> p a
   timeCat :: [(Time, p a)] -> p a
-  _run :: (Enum a, Num a) => a -> p a
-  _scan :: (Enum a, Num a) => a -> p a
   -- every :: p Int -> (p b -> p b) -> p b -> p b
   when :: p Bool -> (p b -> p b) -> p b -> p b
   -- listToPat :: [a] -> p a
@@ -158,6 +156,15 @@ slowAppend a b = slowcat [a,b]
 
 append :: Pattern p => p x -> p x -> p x
 append = slowAppend
+
+-- | A pattern of whole numbers from 0 up to (and not including) the
+-- given number, in a single cycle.
+_run :: (Pattern p, Enum a, Num a) => a -> p a
+_run n = fastFromList [0 .. n-1] -- TODO - what about a slow version?
+
+-- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
+_scan :: (Pattern p, Enum a, Num a) => a -> p a
+_scan n = slowcat $ map _run [1 .. n]
 
 -- | Converts from a range from 0 to 1, to a range from -1 to 1
 toBipolar :: (Pattern p, Fractional x) => p x -> p x

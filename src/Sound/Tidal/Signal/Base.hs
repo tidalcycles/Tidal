@@ -51,8 +51,6 @@ instance Pattern Signal where
   stack   = sigStack
   _fast   = _sigFast
   rev     = sigRev
-  _run    = _sigRun
-  _scan   = _sigScan
   timeCat = sigTimeCat
   when    = sigWhen
   _ply    = _sigPly
@@ -579,17 +577,6 @@ sigRev pat = splitQueries $ Signal f
           where cyc = sam $ aBegin $ sArc state
                 next_cyc = nextSam cyc
                 reflect (Arc b e) = Arc (cyc + (next_cyc - e)) (cyc + (next_cyc - b))
-
-
--- | A signal of whole numbers from 0 up to (and not including) the
--- given number, in a single cycle.
-_sigRun :: (Enum a, Num a) => a -> Signal a
-_sigRun n = fastFromList [0 .. n-1]
-
-
--- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
-_sigScan :: (Enum a, Num a) => a -> Signal a
-_sigScan n = slowcat $ map _run [1 .. n]
 
 -- | Similar to @fastCat@, but each signal is given a relative duration
 sigTimeCat :: [(Time, Signal a)] -> Signal a
