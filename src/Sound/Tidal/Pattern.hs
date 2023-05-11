@@ -5,6 +5,8 @@ module Sound.Tidal.Pattern where
 
 import           Sound.Tidal.Types
 
+import           Prelude           hiding ((*>), (<*))
+
 -- ************************************************************ --
 -- Pattern class
 
@@ -17,14 +19,6 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   silence :: p a
   atom :: a -> p a
   stack :: [p a] -> p a
-  -- patternify the first parameter
-  _patternify :: (a -> p b -> p c) -> (p a -> p b -> p c)
-  -- patternify the first two parameters
-  _patternify_p_p :: (a -> b -> p c -> p d) -> (p a -> p b -> p c -> p d)
-  -- patternify the first but not the second parameters
-  _patternify_p_n :: (a -> b -> p c -> p d) -> (p a -> b -> p c -> p d)
-  -- patternify the first three parameters
-  _patternify_p_p_p :: (a -> b -> c -> p d -> p e) -> (p a -> p b -> p c -> p d -> p e)
   _appAlign :: (a -> p b -> p c) -> Align (p a) (p b) -> p c
   rev :: p a -> p a
   _ply :: Time -> p a-> p a
@@ -41,6 +35,11 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   collect :: Eq a => p a -> p [a]
   uncollect :: p [a] -> p a
   _pressBy :: Time -> p a -> p a
+  innerJoin :: p (p a) -> p a
+  (<*) :: p (a -> b) -> p a -> p b
+  (*>) :: p (a -> b) -> p a -> p b
+
+infixl 4 <*, *>
 
 -- ************************************************************ --
 -- Alignment
@@ -79,6 +78,25 @@ powA = _opA (^)
 
 powfA :: Floating a => Pattern p => Align (p a) (p a) -> p a
 powfA = _opA (**)
+
+-- ************************************************************ --
+-- Patternification
+
+-- patternify the first parameter
+_patternify :: Pattern p => (a -> p b -> p c) -> (p a -> p b -> p c)
+_patternify f apat pat                 = innerJoin $ (`f` pat) <$> apat
+
+-- patternify the first two parameters
+_patternify_p_p :: (Pattern p) => (a -> b -> p c -> p d) -> (p a -> p b -> p c -> p d)
+_patternify_p_p f apat bpat pat        = innerJoin $ (\a b -> f a b pat) <$> apat <* bpat
+
+-- patternify the first but not the second parameters
+-- _patternify_p_n :: Pattern p => (a -> b -> p c -> p d) -> (p a -> b -> p c -> p d)
+_patternify_p_n f apat b pat           = innerJoin $ (\a -> f a b pat) <$> apat
+
+-- patternify the first three parameters
+-- _patternify_p_p_p :: Pattern p => (a -> b -> c -> p d -> p e) -> (p a -> p b -> p c -> p d -> p e)
+_patternify_p_p_p f apat bpat cpat pat = innerJoin $ (\a b c -> f a b c pat) <$> apat <* bpat <* cpat
 
 -- ************************************************************ --
 -- Other functions common to Signals and Sequences

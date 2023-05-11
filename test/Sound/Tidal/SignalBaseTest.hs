@@ -5,21 +5,25 @@ module Sound.Tidal.SignalBaseTest where
 import           Test.Microspec
 import           TestUtils
 
-import           Prelude             hiding ((*>), (<*))
+import           Prelude                     hiding ((*>), (<*))
 
+import           Data.List                   (sort)
 import           Data.Ratio
-import           Data.List (sort)
 
-import           Sound.Tidal.Types
+import           Sound.Tidal.Params          (n, s)
+import           Sound.Tidal.ParseBP         (parseBP_E)
+import           Sound.Tidal.Pattern         (_slow, append, atom, cat, euclid,
+                                              every, fast, fastCat, ply, press,
+                                              pressBy, range, rev, run, silence,
+                                              slow, stack, superimpose, timeCat,
+                                              (*>), (<*))
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Pattern (atom, fastCat, slow, _slow, fast, timeCat, every, append, rev, cat, silence, stack, range, ply, press, pressBy, euclid, run, superimpose)
-import           Sound.Tidal.Params (s, n)
-import           Sound.Tidal.ParseBP (parseBP_E)
-import           Sound.Tidal.Signal.Compose (struct, (|=|), (|+))
-import           Sound.Tidal.Signal.Random (irand)
-import           Sound.Tidal.Signal.Waveform (tri, saw, sine)
+import           Sound.Tidal.Signal.Compose  (struct, (|+), (|=|))
+import           Sound.Tidal.Signal.Random   (irand)
+import           Sound.Tidal.Signal.Waveform (saw, sine, tri)
+import           Sound.Tidal.Types
 
-import qualified Data.Map.Strict     as Map
+import qualified Data.Map.Strict             as Map
 
 run :: Microspec ()
 run =
@@ -56,7 +60,7 @@ run =
            (Event (Metadata []) (Just $ Arc 0.5 1.5) (Arc 1 1.5) "a")
           ]
 
-        
+
       it "does not return events outside of the query" $ do
         (queryArc(_fastGap 2 $ fastCat [atom "a", atom ("b" :: String)]) (Arc 0.5 0.9))
           `shouldBe` []
@@ -214,48 +218,48 @@ run =
        (query (atom 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (VF 0.5)))
        `shouldBe` [(Event (Metadata []) (Just $ Arc (0 % 1) (1 % 1)) (Arc (0 % 1) (1 % 1)) 3.5)]
 
-    describe "withEventArc" $ do 
+    describe "withEventArc" $ do
      it "apply given function to the Arcs" $ do
-      let p = withEventArc (+5) (stripMetadata $ fast "1 2" "3 4" :: Signal Int) 
+      let p = withEventArc (+5) (stripMetadata $ fast "1 2" "3 4" :: Signal Int)
       let res = queryArc p (Arc 0 1)
       property $ res === fmap toEvent [(((5, 11%2), (5, 11%2)), 3), (((11%2, 23%4), (11%2, 23%4)), 3), (((23%4, 6), (23%4, 6)), 4)]
 
 
-    describe "filterValues" $ do 
-     it "remove Events above given threshold" $ do 
-       let fil = filterValues (<2) $ fastCat [atom 1, atom 2, atom 3] :: Signal Time 
+    describe "filterValues" $ do
+     it "remove Events above given threshold" $ do
+       let fil = filterValues (<2) $ fastCat [atom 1, atom 2, atom 3] :: Signal Time
        let res = queryArc fil (Arc 0.5 1.5)
        property $ fmap toEvent [(((1, 4%3), (1, 4%3)), 1%1)] === res
 
-     it "remove Events below given threshold" $ do 
-       let fil = filterValues (>2) $ fastCat [atom 1, atom 2, atom 3] :: Signal Time 
+     it "remove Events below given threshold" $ do
+       let fil = filterValues (>2) $ fastCat [atom 1, atom 2, atom 3] :: Signal Time
        let res = queryArc fil (Arc 0.5 1.5)
        property $ fmap toEvent [(((2%3, 1), (2%3, 1)), 3%1)] === res
 
-    describe "filterTime" $ do 
-      it "filter below given threshold" $ do 
+    describe "filterTime" $ do
+      it "filter below given threshold" $ do
         let fil = filterTime (<0.5) $ struct "t*4" $ (tri :: Signal Double) + 1
         let res = queryArc fil (Arc 0.5 1.5)
         property $ [] === res
 
-      it "filter above given threshold" $ do 
+      it "filter above given threshold" $ do
         let fil = stripMetadata $ filterTime (>0.5) $ struct "t*4" $ (tri :: Signal Double) + 1
         let res = queryArc fil (Arc 0.5 1.5)
         property $ fmap toEvent [(((3%4, 1), (3%4, 1)), 1.25), (((1, 5%4), (1, 5%4)), 1.25), (((5%4, 3%2), (5%4, 3%2)), 1.75)] === res
 
     describe "_compressArc" $ do
-      it "return empty if start time is greater than end time" $ do 
+      it "return empty if start time is greater than end time" $ do
         let res = queryArc (_compressArc (Arc 0.8 0.1) (fast "1 2" "3 4" :: Signal Time) ) (Arc 1 2)
         property $ [] === res
 
-      it "return empty if start time or end time are greater than 1" $ do 
+      it "return empty if start time or end time are greater than 1" $ do
         let res = queryArc (_compressArc (Arc 0.1 2) (fast "1 2" "3 4" :: Signal Time)) (Arc 1 2)
         property $ [] === res
 
       it "return empty if start or end are less than zero" $ do
         let res = queryArc (_compressArc (Arc (-0.8) 0.1) (fast "1 2" "3 4" :: Signal Time)) (Arc 1 2)
         property $ [] === res
-      
+
       it "otherwise compress difference between start and end values of Arc" $ do
         let p = fast "1 2" "3 4" :: Signal Time
         let res = queryArc (stripMetadata $ _compressArc (Arc 0.2 0.8) p) (Arc 0 1)
@@ -267,7 +271,7 @@ run =
         queryArc (timeCat [(1, (slow 2 "a") :: Signal String)]) (Arc 0 2)
         `shouldBe`
         queryArc (slow 2 "a" :: Signal String) (Arc 0 2)
-  
+
     describe "every" $
       it "`every n id` doesn't change the signal's structure" $ do
         comparePD
@@ -785,7 +789,7 @@ run =
           (off "-e" id $ s "0")
           (superimpose ("e" <~) $ s "0")
 
-          
+
     describe "necklace" $ do
       it "can specify rhythm by IOI" $ do
         compareP (Arc 0 1)

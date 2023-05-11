@@ -40,8 +40,8 @@ prettyRatio r | denominator r == 1 = show $ numerator r
               | otherwise = show (numerator r) ++ "/" ++ show (denominator r)
 
 instance (Show a) => Show (Sequence a) where
-  show (Atom d _ _ Nothing) = "~" ++ ">" ++ prettyRatio d
-  show (Atom d i o (Just v)) = show v ++ ">" ++ prettyRatio d ++ showio
+  show (Atom d _ _ Nothing) = "~" ++ "×" ++ prettyRatio d
+  show (Atom d i o (Just v)) = show v ++ "×" ++ prettyRatio d ++ showio
     where showio | i == 0 && o == 0 = ""
                  | otherwise = "(" ++ prettyRatio i ++ "," ++ prettyRatio o ++ ")"
   show (Cat xs) = "[" ++ (intercalate " " (map show xs)) ++ "]"

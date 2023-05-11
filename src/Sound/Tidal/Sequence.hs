@@ -3,7 +3,7 @@
 -- (c) Alex McLean, Aravind Mohandas and contributors 2022
 -- Shared under the terms of the GNU Public License v3.0
 
-module Sound.Tidal.Sequence2 where
+module Sound.Tidal.Sequence where
 
 import           Sound.Tidal.Time
 -- import Sound.Tidal.Value
@@ -53,6 +53,10 @@ instance Pattern Sequence where
   silence = gap 1
   atom = step 1
   stack = Stack
+  innerJoin = join -- TODO - is this right?
+  (<*) = (<*>) -- TODO - are these right? Probably not..
+  (*>) = (<*>)
+
 --   -- patternify the first parameter
 --   _patternify :: (a -> p b -> p c) -> (p a -> p b -> p c)
 --   -- patternify the first two parameters
@@ -115,8 +119,9 @@ step :: Time -> a -> Sequence a
 step t v = Atom t 0 0 $ Just v
 
 seqTake :: Time -> Sequence a -> Maybe (Sequence a)
+seqTake 0 _ = Just $ gap 0
 seqTake t (a@(Atom d i o v)) | t > d = Nothing
-                             | otherwise = Just $ Atom t i o v
+                             | otherwise = Just $ Atom t i (max 0 $ d - t) v
 -- Return nothing if you ask for too much
 seqTake t (Stack ss) = Stack <$> (sequence $ map (seqTake t) ss)
 seqTake t (Cat ss) = Cat <$> (sequence $ loop t ss)
