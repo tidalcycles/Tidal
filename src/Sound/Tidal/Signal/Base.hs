@@ -62,16 +62,15 @@ instance Pattern Signal where
   uncollect = sigUncollect
   euclid  = sigEuclid
   _euclid = _sigEuclid
-  _patternify f apat pat                 = innerJoin $ (`f` pat) <$> apat
-  _patternify_p_p f apat bpat pat        = innerJoin $ (\a b -> f a b pat) <$> apat <* bpat
-  _patternify_p_n f apat b pat           = innerJoin $ (\a -> f a b pat) <$> apat
-  _patternify_p_p_p f apat bpat cpat pat = innerJoin $ (\a b c -> f a b c pat) <$> apat <* bpat <* cpat
+  innerJoin = sigInnerJoin
+  (<*) = sigAppLeft
+  (*>) = sigAppRight
   toSignal = id
   _pressBy = _sigPressBy
   _appAlign  = _sigAppAlign
 
 _sigAppAlign :: (a -> Signal b -> Signal c) -> Align (Signal a) (Signal b) -> Signal c
-_sigAppAlign f (Align Squeeze patt patv) = squeezeJoin $ (\t -> f t patv) <$> patt
+_sigAppAlign f (Align SqueezeIn patt patv) = squeezeJoin $ (\t -> f t patv) <$> patt
 -- TODO - this one is wierd.. can it be simplified by defining squeezeOutJoin ?
 _sigAppAlign f (Align SqueezeOut patt patv) =
   squeezeJoin $ (\v -> (_patternify f) patt (pure v)) <$> patv
@@ -86,12 +85,12 @@ _sigAppAlign _ (Align a _ _) = error $ "Alignment " ++ show a ++ " not implement
 
 instance Applicative Signal where
   pure = atom -- TODO - would this be better as 'steady'?
-  (<*>) = app
+  (<*>) = sigApp
 
 -- | Apply a pattern of values to a pattern of functions, given a
 -- function to merge the 'whole' timearcs
-app :: Signal (a -> b) -> Signal a -> Signal b
-app patf patv = Signal f
+sigApp :: Signal (a -> b) -> Signal a -> Signal b
+sigApp patf patv = Signal f
     where f s = concatMap (\ef -> mapMaybe (combine ef) $ query patv s) $ query patf s
           combine ef ev = do new_active <- maybeSect (active ef) (active ev)
                              return $ Event {metadata = metadata ef <> metadata ev,
@@ -102,8 +101,8 @@ app patf patv = Signal f
 
 -- | Alternative definition of <*>, which takes the wholes from the
 -- pattern of functions (unrelated to the <* in Prelude)
-(<*), appLeft :: Signal (a -> b) -> Signal a -> Signal b
-(<*) patf patv = Signal f
+sigAppLeft :: Signal (a -> b) -> Signal a -> Signal b
+sigAppLeft patf patv = Signal f
   where f s = concatMap (\ef -> mapMaybe (combine ef) $ query patv (s {sArc = wholeOrActive ef})
                         ) $ query patf s
         combine ef ev = do new_active <- maybeSect (active ef) (active ev)
@@ -112,12 +111,11 @@ app patf patv = Signal f
                                            active = new_active,
                                            value = value ef $ value ev
                                           }
-appLeft = (<*)
 
 -- | Alternative definition of <*>, which takes the wholes from the
 -- pattern of functions (unrelated to the <* in Prelude)
-(*>), appRight :: Signal (a -> b) -> Signal a -> Signal b
-(*>) patf patv = Signal f
+sigAppRight :: Signal (a -> b) -> Signal a -> Signal b
+sigAppRight patf patv = Signal f
   where f s = concatMap (\ev -> mapMaybe (combine ev) $ query patf (s {sArc = wholeOrActive ev})
                         ) $ query patv s
         combine ev ef = do new_active <- maybeSect (active ef) (active ev)
@@ -126,10 +124,6 @@ appLeft = (<*)
                                            active = new_active,
                                            value = value ef $ value ev
                                           }
-
-appRight = (*>)
-
-infixl 4 <*, *>
 
 -- ************************************************************ --
 
@@ -153,8 +147,8 @@ mixJoin s = bind s id
 innerBind :: Signal a -> (a -> Signal b) -> Signal b
 innerBind = bindWhole (flip const)
 
-innerJoin :: Signal (Signal a) -> Signal a
-innerJoin s = innerBind s id
+sigInnerJoin :: Signal (Signal a) -> Signal a
+sigInnerJoin s = innerBind s id
 
 outerBind :: Signal a -> (a -> Signal b) -> Signal b
 outerBind = bindWhole (const)

@@ -209,22 +209,26 @@ data Signal a = Signal {query :: State -> [Event a]}
 instance NFData a => NFData (Signal a)
 
 -- | A discrete sequence
-data Sequence a = Atom Time a
-                | Gap Time
-                | Sequence [Sequence a]
+data Sequence a = Atom {atomDuration :: Time,
+                        atomInset :: Time, atomOutset :: Time,
+                        atomValue :: Maybe a
+                       }
+                | Cat [Sequence a]
                 | Stack [Sequence a]
-              deriving Show
 
--- | Strategies for aligning two sequences or patterns
+data Alignment a = Alignment [Sequence a]
+
+-- | Strategies for aligning two sequences or patterns over time (horizontally)
 data Strategy = JustifyLeft
               | JustifyRight
               | JustifyBoth
               | Expand
-              | TruncateMax
-              | TruncateMin
+              | TruncateLeft
+              | TruncateRight
+              | TruncateRepeat
               | RepeatLCM
               | Centre
-              | Squeeze
+              | SqueezeIn
               | SqueezeOut
               | CycleIn
               | CycleOut
@@ -232,6 +236,16 @@ data Strategy = JustifyLeft
               | Trig
               | TrigZero
               deriving Show
+
+-- | Strategies for aligning stacks (vertically)
+data VStrategy = VZip -- Like zip lists
+               | VCombine -- all possible pairs
+               | VCycle
+
+-- | Once we've aligned two patterns, where does the structure come from?
+data Direction = In
+               | Out
+               | Mix
 
 data Align a b = Align Strategy a b
   deriving Show

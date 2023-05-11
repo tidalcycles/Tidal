@@ -18,11 +18,12 @@ module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale) where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import Prelude hiding ((<*), (*>))
-import Data.Maybe
-import Sound.Tidal.Types
-import Sound.Tidal.Signal.Base ((<*))
-import Sound.Tidal.Utils
+import           Data.Maybe
+import           Prelude                 hiding ((*>), (<*))
+import           Sound.Tidal.Pattern     ((<*))
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Types
+import           Sound.Tidal.Utils
 
 -- five notes scales
 minPent :: Fractional a => [a]

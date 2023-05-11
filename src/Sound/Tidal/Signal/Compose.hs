@@ -13,6 +13,7 @@ import           Prelude                 hiding ((*>), (<*))
 
 import qualified Data.Map.Strict         as Map
 
+import           Sound.Tidal.Pattern     ((*>), (<*))
 import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Types
 

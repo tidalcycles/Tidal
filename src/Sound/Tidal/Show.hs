@@ -34,6 +34,18 @@ import           Data.Ratio               (denominator, numerator)
 import qualified Data.Map.Strict          as Map
 
 
+prettyRatio :: Rational -> String
+prettyRatio r | denominator r == 1 = show $ numerator r
+              | otherwise = show (numerator r) ++ "/" ++ show (denominator r)
+
+instance (Show a) => Show (Sequence a) where
+  show (Atom d _ _ Nothing) = "~" ++ "×" ++ prettyRatio d
+  show (Atom d i o (Just v)) = show v ++ "×" ++ prettyRatio d ++ showio
+    where showio | i == 0 && o == 0 = ""
+                 | otherwise = "(" ++ prettyRatio i ++ "," ++ prettyRatio o ++ ")"
+  show (Cat xs) = "[" ++ (intercalate " " (map show xs)) ++ "]"
+  show (Stack xs) = "[" ++ (intercalate ", " $ map show xs) ++ "]"
+
 instance (Show a) => Show (Signal a) where
   show = showSignal (Arc 0 1)
 
@@ -83,16 +95,16 @@ instance Show Metadata where
   show (Metadata cs) = show cs
 
 instance Show Value where
-  show (VS s)       = ('"':s) ++ "\""
-  show (VI i)       = show i
-  show (VF f)       = show f ++ "f"
-  show (VN n)       = show n
-  show (VR r)       = prettyRat r ++ "r"
-  show (VB b)       = show b
-  show (VX xs)      = show xs
-  show (VSignal vs) = "(" ++ show vs ++ ")"
-  show (VState f)   = show $ f Map.empty
-  show (VList vl)   = show $ map show vl
+  show (VS s)     = ('"':s) ++ "\""
+  show (VI i)     = show i
+  show (VF f)     = show f ++ "f"
+  show (VN n)     = show n
+  show (VR r)     = prettyRat r ++ "r"
+  show (VB b)     = show b
+  show (VX xs)    = show xs
+--  show (VPattern pat) = "(" ++ show pat ++ ")"
+  show (VState f) = show $ f Map.empty
+  show (VList vs) = show $ map show vs
 
 instance {-# OVERLAPPING #-} Show ValueMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m

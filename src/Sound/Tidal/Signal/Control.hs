@@ -191,20 +191,20 @@ _striateBy n f p = fastcat $ map (offset . fromIntegral) [0 .. n-1]
   where offset i = p # P.begin (pure (slot * i) :: Signal Double) # P.end (pure ((slot * i) + f) :: Signal Double)
         slot = (1 - f) / fromIntegral n
 
-{- | `gap` is similar to `chop` in that it granualizes every sample in place as it is played,
+{- | `chopgap` is similar to `chop` in that it granualizes every sample in place as it is played,
 but every other grain is silent. Use an integer value to specify how many granules
 each sample is chopped into:
 
 @
-d1 $ gap 8 $ sound "jvbass"
-d1 $ gap 16 $ sound "[jvbass drum:4]"
+d1 $ chopgap 8 $ sound "jvbass"
+d1 $ chopgap 16 $ sound "[jvbass drum:4]"
 @-}
 
-gap :: Signal Int -> ControlSignal -> ControlSignal
-gap = _patternify _gap
+chopgap :: Signal Int -> ControlSignal -> ControlSignal
+chopgap = _patternify _chopgap
 
-_gap :: Int -> ControlSignal -> ControlSignal
-_gap n p = _fast (toRational n) (cat [pure 1, silence]) |=| _chop n p
+_chopgap :: Int -> ControlSignal -> ControlSignal
+_chopgap n p = _fast (toRational n) (cat [pure 1, silence]) |=| _chop n p
 
 {- |
 `weave` applies a function smoothly over an array of different signals. It uses an `OscSignal` to

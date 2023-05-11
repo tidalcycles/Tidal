@@ -162,7 +162,7 @@ toPat = \case
    TPat_Euclid n k s thing -> doEuclid (toPat n) (toPat k) (toPat s) (toPat thing)
    TPat_Stack xs -> stack $ map toPat xs
    TPat_Silence -> silence
-   TPat_EnumFromTo a b -> mixJoin $ (fromTo <$> toPat a) `appLeft` toPat b
+   TPat_EnumFromTo a b -> mixJoin $ (fromTo <$> toPat a) `sigAppLeft` toPat b
    -- TPat_EnumFromTo a b -> unwrap $ fromTo <$> toPat a <*> toPat b
    TPat_Polyrhythm mSteprate ps -> stack $ map adjust_speed pats
      where adjust_speed (sz, pat) = fast ((/sz) <$> steprate) pat
