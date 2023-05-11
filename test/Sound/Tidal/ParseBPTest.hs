@@ -2,17 +2,18 @@
 
 module Sound.Tidal.ParseBPTest where
 
-import Test.Microspec
-import TestUtils
-import Control.Exception
+import           Control.Exception
+import           Test.Microspec
+import           TestUtils
 
-import Prelude hiding ((<*), (*>))
+import           Prelude                    hiding ((*>), (<*))
 
-import Sound.Tidal.ExceptionsTest (shouldThrow, anyException)
-import Sound.Tidal.Types
-import Sound.Tidal.ParseBP
-import Sound.Tidal.Pattern (slow, silence, fastcat, fastCat, cat, fast, stack, timeCat)
-import Sound.Tidal.Signal.Random (_degradeBy)
+import           Sound.Tidal.ExceptionsTest (anyException, shouldThrow)
+import           Sound.Tidal.ParseBP
+import           Sound.Tidal.Pattern        (cat, fast, fastCat, fastcat,
+                                             silence, slow, stack, timeCat)
+import           Sound.Tidal.Signal.Random  (_degradeBy)
+import           Sound.Tidal.Types
 
 run :: Microspec ()
 run =
@@ -57,7 +58,7 @@ run =
       it "can replicate with ! inside {}" $ do
         compareP (Arc 0 2)
           ("{a a}%2" :: Signal String)
-          ("{a !}%2" :: Signal String)
+          ("{a!}%2" :: Signal String)
       it "can replicate with ! and number" $ do
         compareP (Arc 0 2)
           ("a!3 b" :: Signal String)
@@ -116,11 +117,11 @@ run =
           ("0 1 2 3 4 5 6 7 8")
       it "can handle repeats (!) and durations (@) with <>" $ do
         compareP (Arc 0 31)
-          ("<a!3 b ! c@5>" :: Signal String)
+          ("<a!3 b! c@5>" :: Signal String)
           (slow 10 "[a a a b b] c")
       it "can handle repeats (!) and durations (@) with <> (with ints)" $ do
         compareP (Arc 0 31)
-          ("<1!3 2 ! 3@5>" :: Signal Int)
+          ("<1!3 2! 3@5>" :: Signal Int)
           (slow 10 "[1 1 1 2 2] 3")
       it "can handle fractional durations" $ do
         compareP (Arc 0 2)
