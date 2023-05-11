@@ -57,10 +57,13 @@ instance Pattern Sequence where
   (*>) = (<*>)
   rev = seqRev
   _ply = _seqPly
-
+  timeCat = seqTimeCat
+  _iter = _seqIter
+  _iterBack = _seqIterBack
+  _pressBy = _seqPressBy
+  
 --   euclid :: p Int -> p Int -> p a -> p a
 --   _euclid :: Int -> Int -> p a -> p a
---   timeCat :: [(Time, p a)] -> p a
 --   -- every :: p Int -> (p b -> p b) -> p b -> p b
 --   when :: p Bool -> (p b -> p b) -> p b -> p b
 --   -- listToPat :: [a] -> p a
@@ -196,7 +199,29 @@ _seqPly t (Cat xs)               = normalise $ Cat $ map (_seqPly t) xs
 _seqPly t a@(Atom d i o Nothing) = _seqSlow t a
 _seqPly t seq                    = seqTake' t $ Cat $ repeat seq
 
-_seqRun 
+seqTimeCat :: [(Time, Sequence a)] -> Sequence a
+seqTimeCat seqs = normalise $ join $ Cat $ map (uncurry step) seqs
+
+_seqIter :: Int -> Sequence a -> Sequence a
+_seqIter 0 seq = seq
+_seqIter 1 seq = seq
+_seqIter n seq = normalise $ Cat $ map fori [0 .. (n-1)]
+  where d = seqDuration seq
+        fori 0 = seq
+        fori i = swap $ seqSplitAt' (d*((fromIntegral i)%(fromIntegral n))) seq
+        swap (a,b) = Cat [b,a]
+
+_seqIterBack :: Int -> Sequence a -> Sequence a
+_seqIterBack 0 seq = seq
+_seqIterBack 1 seq = seq
+_seqIterBack n seq = normalise $ Cat $ map fori [0 .. (n-1)]
+  where d = seqDuration seq
+        fori 0 = seq
+        fori i = swap $ seqSplitAt' (d-(d*((fromIntegral i)%(fromIntegral n)))) seq
+        swap (a,b) = Cat [b,a]
+
+_seqPressBy :: Time -> Sequence a -> Sequence a
+_seqPressBy t seq = normalise $ join $ fmap (\v -> Cat [gap t, step (1-t) v]) seq
 
 -- | Transformation
 
