@@ -44,6 +44,7 @@ import qualified Text.ParserCombinators.Parsec.Token    as P
 import           Sound.Tidal.Chords                     (Modifier (..),
                                                          chordToPatSeq)
 import           Sound.Tidal.Pattern
+import qualified Sound.Tidal.Sequence                   as S
 import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Signal.Random              (_degradeByUsing,
                                                          chooseBy, rand)
@@ -177,6 +178,26 @@ toPat = \case
    p@(TPat_Repeat _ _) -> toPat $ TPat_Seq [p] --this is a bit of a hack
    _ -> silence
 
+
+toSeq :: (Parseable a, Enumerable a) => TPat a -> Sequence a
+toSeq = \case
+   TPat_Atom _ x -> S.step 1 x
+   TPat_Fast t x -> fast (toSeq t) $ toSeq x
+   TPat_Slow t x -> slow (toSeq t) $ toSeq x
+   -- TPat_DegradeBy
+   -- TPat_CycleChoose
+   -- TPat_Euclid
+   TPat_Stack xs -> Stack $ map toSeq xs
+   TPat_Silence -> silence
+   -- TPat_EnumFromTo
+   TPat_Polyrhythm _ ps -> S.poly $ map toSeq ps
+   TPat_Seq xs -> Cat $ map toSeq xs
+   -- TPat
+   -- TPat_Chord
+   TPat_Repeat n p -> Cat $ replicate n $ toSeq p
+   TPat_Elongate r p -> _slow r $ toSeq p
+   _ -> silence
+
 resolve_tpat :: (Enumerable a, Parseable a) => TPat a -> (Rational, Signal a)
 resolve_tpat (TPat_Seq xs) = resolve_seq xs
 resolve_tpat a             = (1, toPat a)
@@ -218,6 +239,13 @@ parseBP_E s = toE parsed
     -- TODO - custom error
     toE (Left e)   = E.throw $ TidalParseError {parsecError = e, code = s}
     toE (Right tp) = toPat tp
+
+parseSeq_E :: (Enumerable a, Parseable a) => String -> Sequence a
+parseSeq_E s = toE parsed
+  where
+    parsed = parseTPat s
+    toE (Left e)   = E.throw $ TidalParseError {parsecError = e, code = s}
+    toE (Right tp) = toSeq tp
 
 parseTPat :: Parseable a => String -> Either ParseError (TPat a)
 parseTPat = runParser (pSeq Prelude.<* eof) (0 :: Int) ""
@@ -327,6 +355,9 @@ instance Enumerable ColourD where
 
 instance (Enumerable a, Parseable a) => IsString (Signal a) where
   fromString = parseBP_E
+
+instance (Enumerable a, Parseable a) => IsString (Sequence a) where
+  fromString = parseSeq_E
 
 -- imported haskell parsers
 

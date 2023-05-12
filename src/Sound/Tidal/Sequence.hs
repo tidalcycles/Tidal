@@ -62,11 +62,10 @@ instance Pattern Sequence where
   _iterBack = _seqIterBack
   _pressBy = _seqPressBy
   when = seqWhenS Expand
-  
 --   euclid :: p Int -> p Int -> p a -> p a
 --   _euclid :: Int -> Int -> p a -> p a
---   collect :: Eq a => p a -> p [a]
---   uncollect :: p [a] -> p a
+  collect = seqCollect
+  uncollect = seqUncollect
 
 
 -- | Utils
@@ -135,6 +134,8 @@ seqCount (Cat xs) = length xs
 seqCount _        = 1
 
 -- | Removes duplication, zero-width steps etc.
+-- TODO - do we really want to use this internally? E.g. a stack of
+-- stacks might represent structure rather than being redundant.
 normalise :: Sequence a -> Sequence a
 normalise (Cat [x]) = normalise x
 normalise (Cat xs) = listToCat $ loop $ map normalise xs
@@ -156,8 +157,8 @@ normalise x = x
 
 withAtom :: (Sequence a -> Sequence a) -> Sequence a -> Sequence a
 withAtom f a@(Atom _ _ _ _) = f a
-withAtom f (Cat xs) = Cat $ map (withAtom f) xs
-withAtom f (Stack xs) = Stack $ map (withAtom f) xs
+withAtom f (Cat xs)         = Cat $ map (withAtom f) xs
+withAtom f (Stack xs)       = Stack $ map (withAtom f) xs
 
 -- | Pattern instance implementations
 
@@ -191,7 +192,7 @@ seqRev :: Sequence a -> Sequence a
 seqRev (Stack xs) = Stack $ map seqRev xs
 seqRev (Cat xs)   = withAtom swapio $ Cat $ reverse $ map seqRev xs
   where swapio (Atom d i o v) = Atom d o i v
-        swapio seq = seq -- shouldn't happen
+        swapio seq            = seq -- shouldn't happen
 seqRev x          = x
 
 _seqPly :: Time -> Sequence a -> Sequence a
@@ -235,7 +236,16 @@ seqWhenS strategy bseq f seq = normalise $ loop bseq' seq'
                 subloop (a:as) b = loop a (seqTake' (seqDuration a) b):(subloop as $ seqDrop' (seqDuration a) b)
         loop (Atom _ _ _ (Just True)) b = f b -- TODO - double check a and b are equal in duration? they should be..
         loop (Atom _ _ _ Nothing) b = b
-        
+
+seqCollect :: Eq a => Sequence a -> Sequence [a]
+seqCollect = error "collect is not yet defined"
+
+seqUncollect :: Sequence [a] -> Sequence a
+seqUncollect seq = loop seq
+  where loop (Atom d i o (Just xs)) = Stack $ map (Atom d i o . Just) xs
+        loop (Atom d i o Nothing)   = (Atom d i o Nothing)
+        loop (Cat xs)               = Cat $ map loop xs
+        loop (Stack xs)             = Stack $ map loop xs
 
 -- | Transformation
 
@@ -251,6 +261,15 @@ _seqSlow t = _seqFast (1/t)
 seqReplicate :: Int -> Sequence a -> Sequence a
 seqReplicate n (Cat xs) = Cat $ concat $ replicate n xs
 seqReplicate n x        = Cat $ replicate n x
+
+-- | Combination
+
+poly :: [Sequence a] -> Sequence a
+poly xs = normalise $ poly' xs
+  where poly' ([])   = silence
+        poly' (x:[]) = x
+        poly' (x:xs) = Stack [a,b]
+          where (a, b) = align RepeatLCM x $ poly xs
 
 -- | Alignment
 
