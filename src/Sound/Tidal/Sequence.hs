@@ -173,6 +173,9 @@ seqToSignal' (Cat xs) = timeCat $ timeseqs
   where timeseqs = map (\x -> (seqDuration x, seqToSignal' x)) xs
 seqToSignal' (Stack xs) = stack $ map seqToSignal' xs
 
+toCycle :: Rational -> Sequence a -> Signal a
+toCycle beats seq = _fast beats $ seqToSignal seq
+
 seqAppend :: Sequence a -> Sequence a -> Sequence a
 seqAppend (Cat as) (Cat bs) = Cat (as ++ bs)
 seqAppend a (Cat bs)        = Cat (a:bs)
@@ -186,7 +189,7 @@ seqCat (a:b:[]) = seqAppend a b
 seqCat (a:xs)   = seqAppend a $ seqCat xs
 
 seqFastcat :: [Sequence a] -> Sequence a
-seqFastcat xs = _slow (sum $ map seqDuration xs) $ seqCat xs
+seqFastcat xs = _fast (sum $ map seqDuration xs) $ seqCat xs
 
 seqRev :: Sequence a -> Sequence a
 seqRev (Stack xs) = Stack $ map seqRev xs

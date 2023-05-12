@@ -191,7 +191,7 @@ toSeq = \case
    TPat_Silence -> silence
    -- TPat_EnumFromTo
    TPat_Polyrhythm _ ps -> S.poly $ map toSeq ps
-   TPat_Seq xs -> Cat $ map toSeq xs
+   TPat_Seq xs -> fastcat $ map toSeq xs
    -- TPat
    -- TPat_Chord
    TPat_Repeat n p -> Cat $ replicate n $ toSeq p
@@ -214,11 +214,11 @@ resolve_size ((TPat_Repeat n p):ps)   = replicate n (1,p) ++ resolve_size ps
 resolve_size (p:ps)                   = (1,p):resolve_size ps
 
 
-steps_tpat :: (Show a) => TPat a -> (Rational, String)
+steps_tpat :: Show a => TPat a -> (Rational, String)
 steps_tpat (TPat_Seq xs) = steps_seq xs
 steps_tpat a             = (1, tShow a)
 
-steps_seq :: (Show a) => [TPat a] -> (Rational, String)
+steps_seq :: (Show a) =>  [TPat a] -> (Rational, String)
 steps_seq xs = (total_size, "timeCat [" ++ intercalate "," (map (\(r,s) -> "(" ++ show r ++ ", " ++ s ++ ")") sized_pats) ++ "]")
   where sized_pats = steps_size xs
         total_size = sum $ map fst sized_pats
@@ -241,11 +241,13 @@ parseBP_E s = toE parsed
     toE (Right tp) = toPat tp
 
 parseSeq_E :: (Enumerable a, Parseable a) => String -> Sequence a
-parseSeq_E s = toE parsed
+parseSeq_E s =  _slow l $ toSeq parsed
   where
-    parsed = parseTPat s
+    -- Temporary hack to get around the Show constraint..
+    l = fst $ steps_tpat (const "" <$> parsed)
+    parsed = toE $ parseTPat s
     toE (Left e)   = E.throw $ TidalParseError {parsecError = e, code = s}
-    toE (Right tp) = toSeq tp
+    toE (Right tp) = tp
 
 parseTPat :: Parseable a => String -> Either ParseError (TPat a)
 parseTPat = runParser (pSeq Prelude.<* eof) (0 :: Int) ""
