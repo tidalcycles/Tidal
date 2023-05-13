@@ -12,6 +12,7 @@ import           Data.Maybe              (fromMaybe)
 import           Data.Ratio
 import           Data.Tuple              (swap)
 import           Prelude                 hiding (span)
+import           Sound.Tidal.Bjorklund   (bjorklund)
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Show
 import           Sound.Tidal.Signal.Base (_zoomArc)
@@ -62,12 +63,9 @@ instance Pattern Sequence where
   _iterBack = _seqIterBack
   _pressBy = _seqPressBy
   when = seqWhenS Expand
-  
---   euclid :: p Int -> p Int -> p a -> p a
---   _euclid :: Int -> Int -> p a -> p a
+  _euclid = _seqEuclid
 --   collect :: Eq a => p a -> p [a]
 --   uncollect :: p [a] -> p a
-
 
 -- | Utils
 
@@ -156,8 +154,8 @@ normalise x = x
 
 withAtom :: (Sequence a -> Sequence a) -> Sequence a -> Sequence a
 withAtom f a@(Atom _ _ _ _) = f a
-withAtom f (Cat xs) = Cat $ map (withAtom f) xs
-withAtom f (Stack xs) = Stack $ map (withAtom f) xs
+withAtom f (Cat xs)         = Cat $ map (withAtom f) xs
+withAtom f (Stack xs)       = Stack $ map (withAtom f) xs
 
 -- | Pattern instance implementations
 
@@ -191,7 +189,7 @@ seqRev :: Sequence a -> Sequence a
 seqRev (Stack xs) = Stack $ map seqRev xs
 seqRev (Cat xs)   = withAtom swapio $ Cat $ reverse $ map seqRev xs
   where swapio (Atom d i o v) = Atom d o i v
-        swapio seq = seq -- shouldn't happen
+        swapio seq            = seq -- shouldn't happen
 seqRev x          = x
 
 _seqPly :: Time -> Sequence a -> Sequence a
@@ -226,16 +224,24 @@ _seqIterBack n seq = normalise $ Cat $ map fori [0 .. (n-1)]
 _seqPressBy :: Time -> Sequence a -> Sequence a
 _seqPressBy t seq = normalise $ join $ fmap (\v -> Cat [gap t, step (1-t) v]) seq
 
-seqWhenS :: Strategy -> Sequence Bool -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
-seqWhenS strategy bseq f seq = normalise $ loop bseq' seq'
+seqMosesS :: Strategy -> Sequence Bool -> (Sequence b -> Sequence b) -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
+seqMosesS strategy bseq fyes fno seq = normalise $ loop bseq' seq'
   where (bseq', seq') = align strategy bseq seq
         loop (Stack as) b = Stack $ map (\a -> loop a b) as
         loop (Cat as) b = Cat $ subloop as b
           where subloop [] _ = []
                 subloop (a:as) b = loop a (seqTake' (seqDuration a) b):(subloop as $ seqDrop' (seqDuration a) b)
-        loop (Atom _ _ _ (Just True)) b = f b -- TODO - double check a and b are equal in duration? they should be..
-        loop (Atom _ _ _ Nothing) b = b
-        
+        loop (Atom _ _ _ (Just True)) b = fyes b -- TODO - double check a and b are equal in duration? they should be..
+        loop (Atom _ _ _ Nothing) b = fno b
+
+seqWhenS :: Strategy -> Sequence Bool -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
+seqWhenS strategy bseq fyes seq = seqMosesS strategy bseq fyes id seq
+
+-- TODO - take structure from binary pattern..
+_seqEuclid :: Int -> Int -> Sequence a -> Sequence a
+_seqEuclid n k seq | n >= 0 = seqMosesS Expand bseq (id) (gap . seqDuration) seq
+                   | otherwise = seqMosesS Expand bseq (gap . seqDuration) (id) seq
+              where bseq = Cat $ map (step 1) $ bjorklund (abs n,k)
 
 -- | Transformation
 
@@ -355,7 +361,6 @@ pairAligned In (a, (Cat bs)) = loop 0 a bs
         loop t a (b:bs) = seqAppend (pairAligned In (a', b)) $ loop t' a'' bs
           where t' = t + seqDuration b
                 (a', a'') = seqSplitAt' t' a
-
 
 pairAligned Out (a, b) = swap <$> pairAligned In (b, a)
 

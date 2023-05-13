@@ -58,7 +58,6 @@ instance Pattern Signal where
   _iterBack = _sigIterBack
   collect = sigCollect
   uncollect = sigUncollect
-  euclid  = sigEuclid
   _euclid = _sigEuclid
   innerJoin = sigInnerJoin
   (<*) = sigAppLeft
@@ -977,8 +976,6 @@ including rotation in some cases.
 - (13,24,5) : Another rhythm necklace of the Aka Pygmies of the upper Sangha.
 @
 -}
-sigEuclid :: Signal Int -> Signal Int -> Signal a -> Signal a
-sigEuclid = _patternify_p_p _euclid
 
 _sigEuclid :: Int -> Int -> Signal a -> Signal a
 _sigEuclid n k a | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n,k)

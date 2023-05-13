@@ -3,8 +3,8 @@
 
 module Sound.Tidal.Pattern where
 
-import           Sound.Tidal.Types
 import           Prelude           hiding ((*>), (<*))
+import           Sound.Tidal.Types
 
 -- ************************************************************ --
 -- Pattern class
@@ -21,7 +21,6 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   _appAlign :: (a -> p b -> p c) -> Align (p a) (p b) -> p c
   rev :: p a -> p a
   _ply :: Time -> p a-> p a
-  euclid :: p Int -> p Int -> p a -> p a
   _euclid :: Int -> Int -> p a -> p a
   timeCat :: [(Time, p a)] -> p a
   -- every :: p Int -> (p b -> p b) -> p b -> p b
@@ -97,6 +96,9 @@ _patternify_p_p_p f apat bpat cpat pat = innerJoin $ (\a b c -> f a b c pat) <$>
 
 -- ************************************************************ --
 -- Other functions common to Signals and Sequences
+
+euclid :: Pattern p => p Int -> p Int -> p a -> p a
+euclid = _patternify_p_p _euclid
 
 overlay :: Pattern p => p x -> p x -> p x
 overlay a b = stack [a, b]
