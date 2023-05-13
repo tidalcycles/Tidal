@@ -64,8 +64,8 @@ instance Pattern Sequence where
   _pressBy = _seqPressBy
   when = seqWhenS Expand
   _euclid = _seqEuclid
---   collect :: Eq a => p a -> p [a]
---   uncollect :: p [a] -> p a
+  collect = seqCollect
+  uncollect = seqUncollect
 
 -- | Utils
 
@@ -133,6 +133,8 @@ seqCount (Cat xs) = length xs
 seqCount _        = 1
 
 -- | Removes duplication, zero-width steps etc.
+-- TODO - do we really want to use this internally? E.g. a stack of
+-- stacks might represent structure rather than being redundant.
 normalise :: Sequence a -> Sequence a
 normalise (Cat [x]) = normalise x
 normalise (Cat xs) = listToCat $ loop $ map normalise xs
@@ -170,6 +172,9 @@ seqToSignal' (Cat xs) = timeCat $ timeseqs
   where timeseqs = map (\x -> (seqDuration x, seqToSignal' x)) xs
 seqToSignal' (Stack xs) = stack $ map seqToSignal' xs
 
+toCycle :: Rational -> Sequence a -> Signal a
+toCycle beats seq = _fast beats $ seqToSignal seq
+
 seqAppend :: Sequence a -> Sequence a -> Sequence a
 seqAppend (Cat as) (Cat bs) = Cat (as ++ bs)
 seqAppend a (Cat bs)        = Cat (a:bs)
@@ -183,7 +188,7 @@ seqCat (a:b:[]) = seqAppend a b
 seqCat (a:xs)   = seqAppend a $ seqCat xs
 
 seqFastcat :: [Sequence a] -> Sequence a
-seqFastcat xs = _slow (sum $ map seqDuration xs) $ seqCat xs
+seqFastcat xs = _fast (sum $ map seqDuration xs) $ seqCat xs
 
 seqRev :: Sequence a -> Sequence a
 seqRev (Stack xs) = Stack $ map seqRev xs
@@ -231,6 +236,7 @@ seqMosesS strategy bseq fyes fno seq = normalise $ loop bseq' seq'
         loop (Cat as) b = Cat $ subloop as b
           where subloop [] _ = []
                 subloop (a:as) b = loop a (seqTake' (seqDuration a) b):(subloop as $ seqDrop' (seqDuration a) b)
+
         loop (Atom _ _ _ (Just True)) b = fyes b -- TODO - double check a and b are equal in duration? they should be..
         loop (Atom _ _ _ Nothing) b = fno b
 
@@ -242,6 +248,19 @@ _seqEuclid :: Int -> Int -> Sequence a -> Sequence a
 _seqEuclid n k seq | n >= 0 = seqMosesS Expand bseq (id) (gap . seqDuration) seq
                    | otherwise = seqMosesS Expand bseq (gap . seqDuration) (id) seq
               where bseq = Cat $ map (step 1) $ bjorklund (abs n,k)
+
+        loop (Atom _ _ _ (Just True)) b = f b -- TODO - double check a and b are equal in duration? they should be..
+        loop (Atom _ _ _ Nothing) b = b
+
+seqCollect :: Eq a => Sequence a -> Sequence [a]
+seqCollect = error "collect is not yet defined"
+
+seqUncollect :: Sequence [a] -> Sequence a
+seqUncollect seq = loop seq
+  where loop (Atom d i o (Just xs)) = Stack $ map (Atom d i o . Just) xs
+        loop (Atom d i o Nothing)   = (Atom d i o Nothing)
+        loop (Cat xs)               = Cat $ map loop xs
+        loop (Stack xs)             = Stack $ map loop xs
 
 -- | Transformation
 
@@ -257,6 +276,15 @@ _seqSlow t = _seqFast (1/t)
 seqReplicate :: Int -> Sequence a -> Sequence a
 seqReplicate n (Cat xs) = Cat $ concat $ replicate n xs
 seqReplicate n x        = Cat $ replicate n x
+
+-- | Combination
+
+poly :: [Sequence a] -> Sequence a
+poly xs = normalise $ poly' xs
+  where poly' ([])   = silence
+        poly' (x:[]) = x
+        poly' (x:xs) = Stack [a,b]
+          where (a, b) = align RepeatLCM x $ poly xs
 
 -- | Alignment
 
