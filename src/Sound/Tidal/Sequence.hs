@@ -175,6 +175,9 @@ seqToSignal' (Stack xs) = stack $ map seqToSignal' xs
 toCycle :: Rational -> Sequence a -> Signal a
 toCycle beats seq = _fast beats $ seqToSignal seq
 
+beatMode :: Rational -> Sequence a -> Signal a
+beatMode = toCycle
+
 seqAppend :: Sequence a -> Sequence a -> Sequence a
 seqAppend (Cat as) (Cat bs) = Cat (as ++ bs)
 seqAppend a (Cat bs)        = Cat (a:bs)
@@ -248,9 +251,6 @@ _seqEuclid :: Int -> Int -> Sequence a -> Sequence a
 _seqEuclid n k seq | n >= 0 = seqMosesS Expand bseq (id) (gap . seqDuration) seq
                    | otherwise = seqMosesS Expand bseq (gap . seqDuration) (id) seq
               where bseq = Cat $ map (step 1) $ bjorklund (abs n,k)
-
-        loop (Atom _ _ _ (Just True)) b = f b -- TODO - double check a and b are equal in duration? they should be..
-        loop (Atom _ _ _ Nothing) b = b
 
 seqCollect :: Eq a => Sequence a -> Sequence [a]
 seqCollect = error "collect is not yet defined"
