@@ -99,7 +99,7 @@ seqDrop 0 s = Just s
 seqDrop t (a@(Atom d i o v)) | t > d = Nothing
                              | t == d = Just $ gap 0
                              | otherwise = Just $ Atom (d - t) (i + t) o v
--- Return nothing if you ask for too much
+
 seqDrop t (Stack ss) = Stack <$> (sequence $ map (seqDrop t) ss)
 seqDrop t (Cat ss) = Cat <$> (sequence $ loop t ss)
   where loop :: Time -> [Sequence a] -> [Maybe (Sequence a)]
@@ -107,6 +107,7 @@ seqDrop t (Cat ss) = Cat <$> (sequence $ loop t ss)
         -- Return nothing if you ask for too much
         loop t []  = [Nothing]
         loop t (s:ss) | t <= 0 = []
+                      | t == stepDur = map Just ss
                       | t <= stepDur = seqDrop t s:(map Just ss)
                       | otherwise = loop (t - stepDur) ss
           where stepDur = seqDuration s
@@ -168,6 +169,7 @@ seqToSignal seq = _slow (seqDuration seq) $ seqToSignal' seq
 -- One sequence per cycle
 seqToSignal' :: Sequence a -> Signal a
 seqToSignal' (Atom t i o (Just v)) = _zoomArc (Arc (i/t) (1 - (o/t))) $ pure v
+seqToSignal' (Atom _ _ _ Nothing) = silence
 seqToSignal' (Cat xs) = timeCat $ timeseqs
   where timeseqs = map (\x -> (seqDuration x, seqToSignal' x)) xs
 seqToSignal' (Stack xs) = stack $ map seqToSignal' xs
@@ -370,6 +372,9 @@ align SqueezeOut a b = swap $ align SqueezeIn b a
 
 align strategy _ _ = error $ show strategy ++ " not implemented for sequences."
 
+alignStack :: Strategy -> Sequence a -> Sequence a -> Sequence a
+alignStack s a b = Stack $ (\(a, b) -> [a,b]) $ align s a b
+
 pairAligned :: Direction -> (Sequence a, Sequence b) -> Sequence (a, b)
 
 -- TODO - vertical alignments
@@ -399,3 +404,9 @@ pairAligned In ((Atom d i o v), (Atom d' i' o' v')) = Atom d i o $ do a <- v
 
 pairAlign :: Strategy -> Direction -> Sequence a -> Sequence b -> Sequence (a, b)
 pairAlign s d a b = pairAligned d $ align s a b
+
+-- alignF :: Strategy -> Direction -> (a -> b -> c) -> Sequence a -> Sequence b -> Sequence c
+-- alignF s d f a b = (uncurry f) <$> pairAlign s d a b
+
+-- expandIn :: (a -> b -> c) -> Sequence a -> Sequence b -> Sequence c
+-- expandIn f a b = alignF Expand In
