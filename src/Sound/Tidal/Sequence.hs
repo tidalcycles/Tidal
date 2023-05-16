@@ -11,10 +11,10 @@ import           Data.List               (intersperse)
 import           Data.Maybe              (fromMaybe)
 import           Data.Ratio
 import           Data.Tuple              (swap)
-import           Prelude                 hiding (span)
+import           Prelude                 hiding (seq, span)
 import           Sound.Tidal.Bjorklund   (bjorklund)
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Show
+import           Sound.Tidal.Show        ()
 import           Sound.Tidal.Signal.Base (_zoomArc)
 import           Sound.Tidal.Types
 
@@ -30,12 +30,12 @@ instance Applicative Sequence where
   fseq <*> vseq = (\(f,v) -> f v) <$> pairAlign RepeatLCM In fseq vseq
 
 join :: Sequence (Sequence a) -> Sequence a
-join (Atom d i o (Just seq)) = _fast (innerDur / d) $ active
+join (Atom d i o (Just seq)) = _fast (innerDur / d) $ actives
   where innerDur = seqDuration seq
         skipHead = (i/d) * innerDur
         skipTail = (o/d) * innerDur
         body = innerDur - (skipHead + skipTail)
-        active = seqTake' body $ seqDrop' skipHead seq
+        actives = seqTake' body $ seqDrop' skipHead seq
 join (Atom d i o Nothing) = Atom d i o Nothing
 join (Cat xs) = Cat $ map join xs
 join (Stack xs) = Stack $ map join xs
@@ -75,20 +75,28 @@ gap t = Atom t 0 0 Nothing
 step :: Time -> a -> Sequence a
 step t v = Atom t 0 0 $ Just v
 
+firstDuration :: Sequence a -> Time
+firstDuration (Cat (x:_)) = seqDuration x
+firstDuration x           = seqDuration x
+
+takeFirst :: Sequence a -> Sequence a
+takeFirst (Cat (x:_)) = x
+takeFirst x           = x
+
 seqTake :: Time -> Sequence a -> Maybe (Sequence a)
 seqTake 0 _ = Just $ gap 0
-seqTake t (a@(Atom d i o v)) | t > d = Nothing
-                             | otherwise = Just $ Atom t i (max 0 $ d - t) v
+seqTake t (Atom d i _ v) | t > d = Nothing
+                         | otherwise = Just $ Atom t i (max 0 $ d - t) v
 -- Return nothing if you ask for too much
 seqTake t (Stack ss) = Stack <$> (sequence $ map (seqTake t) ss)
 seqTake t (Cat ss) = Cat <$> (sequence $ loop t ss)
   where loop :: Time -> [Sequence a] -> [Maybe (Sequence a)]
         loop 0 []  = []
         -- Return nothing if you ask for too much
-        loop t []  = [Nothing]
-        loop t (s:ss) | t <= 0 = []
-                      | t <= stepDur = [seqTake t s]
-                      | otherwise = (seqTake stepDur s):(loop (t - stepDur) ss)
+        loop _ []  = [Nothing]
+        loop t' (s:ss') | t' <= 0 = []
+                        | t' <= stepDur = [seqTake t' s]
+                        | otherwise = (seqTake stepDur s):(loop (t' - stepDur) ss')
           where stepDur = seqDuration s
 
 seqTake' :: Time -> Sequence a -> Sequence a
@@ -96,20 +104,20 @@ seqTake' t s = fromMaybe (gap 0) $ seqTake t s -- TODO - error handling..
 
 seqDrop :: Time -> Sequence a -> Maybe (Sequence a)
 seqDrop 0 s = Just s
-seqDrop t (a@(Atom d i o v)) | t > d = Nothing
-                             | t == d = Just $ gap 0
-                             | otherwise = Just $ Atom (d - t) (i + t) o v
+seqDrop t (Atom d i o v) | t > d = Nothing
+                         | t == d = Just $ gap 0
+                         | otherwise = Just $ Atom (d - t) (i + t) o v
 
 seqDrop t (Stack ss) = Stack <$> (sequence $ map (seqDrop t) ss)
 seqDrop t (Cat ss) = Cat <$> (sequence $ loop t ss)
   where loop :: Time -> [Sequence a] -> [Maybe (Sequence a)]
         loop 0 []  = []
         -- Return nothing if you ask for too much
-        loop t []  = [Nothing]
-        loop t (s:ss) | t <= 0 = []
-                      | t == stepDur = map Just ss
-                      | t <= stepDur = seqDrop t s:(map Just ss)
-                      | otherwise = loop (t - stepDur) ss
+        loop _ []  = [Nothing]
+        loop t' (s:ss') | t' <= 0 = []
+                        | t' == stepDur = map Just ss'
+                        | t' <= stepDur = seqDrop t' s:(map Just ss')
+                        | otherwise = loop (t' - stepDur) ss'
           where stepDur = seqDuration s
 
 seqDrop' :: Time -> Sequence a -> Sequence a
@@ -124,6 +132,7 @@ seqSplitAt t s = do a <- seqTake t s
 seqSplitAt' :: Time -> Sequence a -> (Sequence a, Sequence a)
 seqSplitAt' t s = fromMaybe (gap 0, gap 0) $ seqSplitAt t s -- TODO - error handling..
 
+seqDuration :: Sequence a -> Time
 seqDuration (Atom d _ _ _) = d
 seqDuration (Cat xs)       = sum $ map seqDuration xs
 seqDuration (Stack [])     = 0
@@ -140,19 +149,19 @@ normalise :: Sequence a -> Sequence a
 normalise (Cat [x]) = normalise x
 normalise (Cat xs) = listToCat $ loop $ map normalise xs
   where listToCat [x] = x
-        listToCat xs  = Cat xs
-        loop []                = []
-        loop (Atom 0 _ _ _:xs) = loop xs
-        loop (Atom t _ _ Nothing:Atom t' _ _ Nothing:xs) = loop $ (gap $ t + t'):xs
-        loop (Cat xs':xs)      = loop $ xs' ++ xs
-        loop (x:xs)            = normalise x:loop xs
+        listToCat xs' = Cat xs'
+        loop []                 = []
+        loop (Atom 0 _ _ _:xs') = loop xs'
+        loop (Atom t _ _ Nothing:Atom t' _ _ Nothing:xs') = loop $ (gap $ t + t'):xs'
+        loop (Cat xs':xs'')     = loop $ xs' ++ xs''
+        loop (x:xs')             = normalise x:loop xs'
 normalise (Stack [x]) = normalise x
 normalise (Stack xs) = listToStack $ loop xs
   where listToStack [x] = x
-        listToStack xs  = Stack xs
-        loop (Stack xs':xs) = loop $ xs' ++ xs
-        loop (x:xs)         = normalise x:loop xs
-        loop []             = []
+        listToStack xs' = Stack xs'
+        loop (Stack xs':xs'') = loop $ xs' ++ xs''
+        loop (x:xs')          = normalise x:loop xs'
+        loop []               = []
 normalise x = x
 
 withAtom :: (Sequence a -> Sequence a) -> Sequence a -> Sequence a
@@ -207,7 +216,7 @@ _seqPly t (Stack xs)             = Stack $ map (_seqPly t) xs
 -- TODO more efficient catmap that avoids cats within cats
 _seqPly t (Cat xs)               = normalise $ Cat $ map (_seqPly t) xs
 -- You can't ply nothing, just make it longer
-_seqPly t a@(Atom d i o Nothing) = _seqSlow t a
+_seqPly t a@(Atom _ _ _ Nothing) = _seqSlow t a
 _seqPly t seq                    = seqTake' t $ Cat $ repeat seq
 
 seqTimeCat :: [(Time, Sequence a)] -> Sequence a
@@ -219,8 +228,8 @@ _seqIter 1 seq = seq
 _seqIter n seq = normalise $ Cat $ map fori [0 .. (n-1)]
   where d = seqDuration seq
         fori 0 = seq
-        fori i = swap $ seqSplitAt' (d*((fromIntegral i)%(fromIntegral n))) seq
-        swap (a,b) = Cat [b,a]
+        fori i = swapcat $ seqSplitAt' (d*((fromIntegral i)%(fromIntegral n))) seq
+        swapcat (a,b) = Cat [b,a]
 
 _seqIterBack :: Int -> Sequence a -> Sequence a
 _seqIterBack 0 seq = seq
@@ -228,8 +237,8 @@ _seqIterBack 1 seq = seq
 _seqIterBack n seq = normalise $ Cat $ map fori [0 .. (n-1)]
   where d = seqDuration seq
         fori 0 = seq
-        fori i = swap $ seqSplitAt' (d-(d*((fromIntegral i)%(fromIntegral n)))) seq
-        swap (a,b) = Cat [b,a]
+        fori i = swapcat $ seqSplitAt' (d-(d*((fromIntegral i)%(fromIntegral n)))) seq
+        swapcat (a,b) = Cat [b,a]
 
 _seqPressBy :: Time -> Sequence a -> Sequence a
 _seqPressBy t seq = normalise $ join $ fmap (\v -> Cat [gap t, step (1-t) v]) seq
@@ -240,10 +249,10 @@ seqMosesS strategy bseq fyes fno seq = normalise $ loop bseq' seq'
         loop (Stack as) b = Stack $ map (\a -> loop a b) as
         loop (Cat as) b = Cat $ subloop as b
           where subloop [] _ = []
-                subloop (a:as) b = loop a (seqTake' (seqDuration a) b):(subloop as $ seqDrop' (seqDuration a) b)
+                subloop (a:as') b' = loop a (seqTake' (seqDuration a) b'):(subloop as' $ seqDrop' (seqDuration a) b')
 
         loop (Atom _ _ _ (Just True)) b = fyes b -- TODO - double check a and b are equal in duration? they should be..
-        loop (Atom _ _ _ Nothing) b = fno b
+        loop (Atom _ _ _ _) b = fno b
 
 seqWhenS :: Strategy -> Sequence Bool -> (Sequence b -> Sequence b) -> Sequence b -> Sequence b
 seqWhenS strategy bseq fyes seq = seqMosesS strategy bseq fyes id seq
@@ -285,8 +294,8 @@ poly :: [Sequence a] -> Sequence a
 poly xs = normalise $ poly' xs
   where poly' ([])   = silence
         poly' (x:[]) = x
-        poly' (x:xs) = Stack [a,b]
-          where (a, b) = align RepeatLCM x $ poly xs
+        poly' (x:xs') = Stack [a,b]
+          where (a, b) = align RepeatLCM x $ poly xs'
 
 -- | Alignment
 
@@ -296,7 +305,7 @@ seqPadBy by t x = f x
                    | t == 0 = x
                    | otherwise = Cat $ by xs $ gap t
         -- wrap in Cat for padding
-        f x = seqPadBy by t $ Cat [x]
+        f x' = seqPadBy by t $ Cat [x']
 
 seqPadRightBy :: Time -> Sequence a -> Sequence a
 seqPadRightBy = seqPadBy $ \xs x -> xs ++ [x]
@@ -373,34 +382,49 @@ align SqueezeOut a b = swap $ align SqueezeIn b a
 align strategy _ _ = error $ show strategy ++ " not implemented for sequences."
 
 alignStack :: Strategy -> Sequence a -> Sequence a -> Sequence a
-alignStack s a b = Stack $ (\(a, b) -> [a,b]) $ align s a b
+alignStack s a b = Stack $ (\(a',b') -> [a',b']) $ align s a b
 
 pairAligned :: Direction -> (Sequence a, Sequence b) -> Sequence (a, b)
 
 -- TODO - vertical alignments
+-- TODO - 'Mixed' direction
 pairAligned direction ((Stack as), b) = seqCat $ map (\a -> pairAligned direction (a, b)) as
 pairAligned direction (a, (Stack bs)) = seqCat $ map (\b -> pairAligned direction (a, b)) bs
 
-pairAligned In ((Cat as), b) = loop 0 as b
-  where loop t ([]) _ = gap 0
-        loop t (a:[]) b = pairAligned In (a, b)
+-- TODO - should the value be Nothing if one/both are nothings?
+pairAligned In ((Atom d i o v), (Atom _ _ _ v')) = Atom d i o $ do a <- v
+                                                                   b <- v'
+                                                                   return (a,b)
+
+pairAligned In (Cat xs, Cat ys) = Cat $ loop xs ys
+  where loop ([]) _ = []
+        loop _ ([]) = []
+        loop (a:as) (b:bs) | cmp == LT = (pairAligned In (a, b')):(loop as (b'':bs))
+                           | cmp == GT = (pairAligned In (a', b)):(loop (a'':as) bs)
+                           | cmp == EQ = (pairAligned In (a, b)):(loop as bs)
+          where adur = seqDuration a
+                bdur = seqDuration b
+                cmp = compare adur bdur
+                (a', a'') = seqSplitAt' bdur a
+                (b', b'') = seqSplitAt' adur b
+
+pairAligned In ((Cat xs), y) = loop 0 xs y
+  where loop _ ([]) _ = gap 0
+        loop _ (a:[]) b = pairAligned In (a, b)
         loop t (a:as) b = seqAppend (pairAligned In (a, b')) $ loop t' as b''
           where t' = t + seqDuration a
                 (b', b'') = seqSplitAt' t' b
 
-pairAligned In (a, (Cat bs)) = loop 0 a bs
-  where loop t _ ([]) = gap 0
-        loop t a (b:[]) = pairAligned In (a, b)
+pairAligned In (x, (Cat ys)) = loop 0 x ys
+  where loop :: Time -> (Sequence a) -> [Sequence b] -> Sequence (a,b)
+        loop _ _ ([]) = gap 0
+        loop _ a (b:[]) = pairAligned In (a, b)
         loop t a (b:bs) = seqAppend (pairAligned In (a', b)) $ loop t' a'' bs
           where t' = t + seqDuration b
                 (a', a'') = seqSplitAt' t' a
 
-pairAligned Out (a, b) = swap <$> pairAligned In (b, a)
 
--- TODO - should the value be Nothing if one/both are nothings?
-pairAligned In ((Atom d i o v), (Atom d' i' o' v')) = Atom d i o $ do a <- v
-                                                                      b <- v'
-                                                                      return (a,b)
+pairAligned Out (a, b) = swap <$> pairAligned In (b, a)
 
 pairAlign :: Strategy -> Direction -> Sequence a -> Sequence b -> Sequence (a, b)
 pairAlign s d a b = pairAligned d $ align s a b
