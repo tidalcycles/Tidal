@@ -429,8 +429,9 @@ pairAligned Out (a, b) = swap <$> pairAligned In (b, a)
 pairAlign :: Strategy -> Direction -> Sequence a -> Sequence b -> Sequence (a, b)
 pairAlign s d a b = pairAligned d $ align s a b
 
--- alignF :: Strategy -> Direction -> (a -> b -> c) -> Sequence a -> Sequence b -> Sequence c
--- alignF s d f a b = (uncurry f) <$> pairAlign s d a b
+alignF :: Strategy -> Direction -> (a -> b -> c) -> Sequence a -> Sequence b -> Sequence c
+alignF s d f a b = (uncurry f) <$> pairAlign s d a b
 
 -- expandIn :: (a -> b -> c) -> Sequence a -> Sequence b -> Sequence c
 -- expandIn f a b = alignF Expand In
+
