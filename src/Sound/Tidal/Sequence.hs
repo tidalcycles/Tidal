@@ -177,7 +177,8 @@ seqToSignal seq = _slow (seqDuration seq) $ seqToSignal' seq
 
 -- One sequence per cycle
 seqToSignal' :: Sequence a -> Signal a
-seqToSignal' (Atom t i o (Just v)) = _zoomArc (Arc (i/t) (1 - (o/t))) $ pure v
+seqToSignal' (Atom d i o (Just v)) | d == 0 = error "whoops"
+                                   | otherwise = _zoomArc (Arc i (1-o)) $ pure v
 seqToSignal' (Atom _ _ _ Nothing) = silence
 seqToSignal' (Cat xs) = timeCat $ timeseqs
   where timeseqs = map (\x -> (seqDuration x, seqToSignal' x)) xs
