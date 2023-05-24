@@ -19,8 +19,7 @@ import           Data.Bool                (bool)
 import           Data.Char                (ord)
 import           Data.List                (groupBy, sort, (\\))
 import qualified Data.Map.Strict          as Map
-import           Data.Maybe               (fromJust, fromMaybe, isJust,
-                                           mapMaybe)
+import           Data.Maybe               (fromMaybe, isJust, mapMaybe)
 import           Data.Ratio
 
 import           Sound.Tidal.Bjorklund    (bjorklund)
@@ -65,6 +64,8 @@ instance Pattern Signal where
   toSignal = id
   _pressBy = _sigPressBy
   _appAlign  = _sigAppAlign
+  filterOnsets = filterEvents eventHasOnset
+  filterValues f = filterEvents (f . value)
 
 _sigAppAlign :: (a -> Signal b -> Signal c) -> Align (Signal a) (Signal b) -> Signal c
 _sigAppAlign f (Align SqueezeIn patt patv) = squeezeJoin $ (\t -> f t patv) <$> patt
@@ -314,15 +315,6 @@ instance Show (a -> b) where
 
 filterEvents :: (Event a -> Bool) -> Signal a -> Signal a
 filterEvents f pat = Signal $ \state -> filter f $ query pat state
-
-filterOnsets :: Signal a -> Signal a
-filterOnsets = filterEvents eventHasOnset
-
-filterValues :: (a -> Bool) -> Signal a -> Signal a
-filterValues f = filterEvents (f . value)
-
-filterJusts :: Signal (Maybe a) -> Signal a
-filterJusts = fmap fromJust . filterValues isJust
 
 filterTime :: (Time -> Bool) -> Signal a -> Signal a
 filterTime test p = p {query = filter (test . aBegin . wholeOrActive) . query p}

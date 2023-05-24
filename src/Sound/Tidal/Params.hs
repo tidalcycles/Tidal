@@ -36,7 +36,7 @@ import           Data.Word                  (Word8)
 import           Sound.Tidal.Utils
 
 -- | group multiple params into one
-grp :: [String -> ValueMap] -> Signal String -> ControlSignal
+grp :: Pattern p => [String -> ValueMap] -> p String -> p ValueMap
 grp [] _ = silence
 grp fs p = splitby <$> p
   where splitby name = Map.unions $ map (\(v, f) -> f v) $ zip (split name) fs
@@ -56,34 +56,34 @@ mS name v = Map.singleton name (VS v)
 
 -- | Param makers
 
-pF :: String -> Signal Double -> ControlSignal
+pF :: Pattern p => String -> p Double -> p ValueMap
 pF name = fmap (Map.singleton name . VF)
 
-pI :: String -> Signal Int -> ControlSignal
+pI :: Pattern p => String -> p Int -> p ValueMap
 pI name = fmap (Map.singleton name . VI)
 
-pB :: String -> Signal Bool -> ControlSignal
+pB :: Pattern p => String -> p Bool -> p ValueMap
 pB name = fmap (Map.singleton name . VB)
 
-pR :: String -> Signal Rational -> ControlSignal
+pR :: Pattern p => String -> p Time -> p ValueMap
 pR name = fmap (Map.singleton name . VR)
 
-pN :: String -> Signal Note -> ControlSignal
+pN :: Pattern p => String -> p Note -> p ValueMap
 pN name = fmap (Map.singleton name . VN)
 
-pS :: String -> Signal String -> ControlSignal
+pS :: Pattern p => String -> p String -> p ValueMap
 pS name = fmap (Map.singleton name . VS)
 
-pX :: String -> Signal [Word8] -> ControlSignal
+pX :: Pattern p => String -> p [Word8] -> p ValueMap
 pX name = fmap (Map.singleton name . VX)
 
-pStateF :: String -> String -> (Maybe Double -> Double) -> ControlSignal
+pStateF :: Pattern p => String -> String -> (Maybe Double -> Double) -> p ValueMap
 pStateF name sName update = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
         statef sMap = (Map.insert sName v sMap, v)
           where v = VF $ update $ Map.lookup sName sMap >>= getF
 
-pStateList :: String -> String -> [Value] -> ControlSignal
+pStateList :: Pattern p => String -> String -> [Value] -> p ValueMap
 pStateList name sName xs = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
         statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped)
@@ -92,39 +92,39 @@ pStateList name sName xs = pure $ Map.singleton name $ VState statef
                 looped | null xs' = xs
                        | otherwise = xs'
 
-pStateListF :: String -> String -> [Double] -> ControlSignal
+pStateListF :: Pattern p => String -> String -> [Double] -> p ValueMap
 pStateListF name sName = pStateList name sName . map VF
 
-pStateListS :: String -> String -> [String] -> ControlSignal
+pStateListS :: Pattern p => String -> String -> [String] -> p ValueMap
 pStateListS name sName = pStateList name sName . map VS
 
 -- | Grouped params
 
-sound :: Signal String -> ControlSignal
+sound :: Pattern p => p String -> p ValueMap
 sound = grp [mS "s", mF "n"]
 
-sTake :: String -> [String] -> ControlSignal
+sTake :: Pattern p =>  String -> [String] -> p ValueMap
 sTake name xs = pStateListS "s" name xs
 
-cc :: Signal String -> ControlSignal
+cc :: Pattern p =>  p String -> p ValueMap
 cc = grp [mF "ccn", mF "ccv"]
 
-nrpn :: Signal String -> ControlSignal
+nrpn :: Pattern p =>  p String -> p ValueMap
 nrpn = grp [mI "nrpn", mI "val"]
 
-nrpnn :: Signal Int -> ControlSignal
+nrpnn :: Pattern p =>  p Int -> p ValueMap
 nrpnn = pI "nrpn"
 
-nrpnv :: Signal Int -> ControlSignal
+nrpnv :: Pattern p =>  p Int -> p ValueMap
 nrpnv = pI "val"
 
-grain' :: Signal String -> ControlSignal
+grain' :: Pattern p =>  p String -> p ValueMap
 grain' = grp [mF "begin", mF "end"]
 
-midinote :: Signal Note -> ControlSignal
+midinote :: Pattern p =>  p Note -> p ValueMap
 midinote = note . (subtract 60 <$>)
 
-drum :: Signal String -> ControlSignal
+drum :: Pattern p => p String -> p ValueMap
 drum = n . (subtract 60 . drumN <$>)
 
 drumN :: Num a => String -> a
@@ -194,3178 +194,3178 @@ drumN _    = 0
 -- Generated params
 
 -- | a pattern of numbers that speed up (or slow down) samples while they play.
-accelerate :: Signal Double -> ControlSignal
+accelerate :: Pattern p => p Double -> p ValueMap
 accelerate = pF "accelerate"
-accelerateTake :: String -> [Double] -> ControlSignal
+accelerateTake :: Pattern p => String -> [Double] -> p ValueMap
 accelerateTake name xs = pStateListF "accelerate" name xs
-accelerateCount :: String -> ControlSignal
+accelerateCount :: Pattern p => String -> p ValueMap
 accelerateCount name = pStateF "accelerate" name (maybe 0 (+1))
-accelerateCountTo :: String -> Signal Double -> Signal ValueMap
+accelerateCountTo :: Pattern p => String -> p Double -> p ValueMap
 accelerateCountTo name ipat = innerJoin $ (\i -> pStateF "accelerate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-acceleratebus :: Signal Int -> Signal Double -> ControlSignal
+acceleratebus :: Pattern p => p Int -> p Double -> p ValueMap
 acceleratebus _ _ = error "Control parameter 'accelerate' can't be sent to a bus."
 
 -- | like @gain@, but linear.
-amp :: Signal Double -> ControlSignal
+amp :: Pattern p => p Double -> p ValueMap
 amp = pF "amp"
-ampTake :: String -> [Double] -> ControlSignal
+ampTake :: Pattern p => String -> [Double] -> p ValueMap
 ampTake name xs = pStateListF "amp" name xs
-ampCount :: String -> ControlSignal
+ampCount :: Pattern p => String -> p ValueMap
 ampCount name = pStateF "amp" name (maybe 0 (+1))
-ampCountTo :: String -> Signal Double -> Signal ValueMap
+ampCountTo :: Pattern p => String -> p Double -> p ValueMap
 ampCountTo name ipat = innerJoin $ (\i -> pStateF "amp" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-ampbus :: Signal Int -> Signal Double -> ControlSignal
+ampbus :: Pattern p => p Int -> p Double -> p ValueMap
 ampbus busid pat = pF "amp" pat # pI "^amp" busid
-amprecv :: Signal Int -> ControlSignal
+amprecv :: Pattern p => p Int -> p ValueMap
 amprecv busid = pI "^amp" busid
 
 -- | 
-array :: Signal [Word8] -> ControlSignal
+array :: Pattern p => p [Word8] -> p ValueMap
 array = pX "array"
-arrayTake :: String -> [Double] -> ControlSignal
+arrayTake :: Pattern p => String -> [Double] -> p ValueMap
 arrayTake name xs = pStateListF "array" name xs
-arraybus :: Signal Int -> Signal [Word8] -> ControlSignal
+arraybus :: Pattern p => p Int -> p [Word8] -> p ValueMap
 arraybus _ _ = error "Control parameter 'array' can't be sent to a bus."
 
 -- | a pattern of numbers to specify the attack time (in seconds) of an envelope applied to each sample.
-attack :: Signal Double -> ControlSignal
+attack :: Pattern p => p Double -> p ValueMap
 attack = pF "attack"
-attackTake :: String -> [Double] -> ControlSignal
+attackTake :: Pattern p => String -> [Double] -> p ValueMap
 attackTake name xs = pStateListF "attack" name xs
-attackCount :: String -> ControlSignal
+attackCount :: Pattern p => String -> p ValueMap
 attackCount name = pStateF "attack" name (maybe 0 (+1))
-attackCountTo :: String -> Signal Double -> Signal ValueMap
+attackCountTo :: Pattern p => String -> p Double -> p ValueMap
 attackCountTo name ipat = innerJoin $ (\i -> pStateF "attack" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-attackbus :: Signal Int -> Signal Double -> ControlSignal
+attackbus :: Pattern p => p Int -> p Double -> p ValueMap
 attackbus busid pat = pF "attack" pat # pI "^attack" busid
-attackrecv :: Signal Int -> ControlSignal
+attackrecv :: Pattern p => p Int -> p ValueMap
 attackrecv busid = pI "^attack" busid
 
 -- | a pattern of numbers from 0 to 1. Sets the center frequency of the band-pass filter.
-bandf :: Signal Double -> ControlSignal
+bandf :: Pattern p => p Double -> p ValueMap
 bandf = pF "bandf"
-bandfTake :: String -> [Double] -> ControlSignal
+bandfTake :: Pattern p => String -> [Double] -> p ValueMap
 bandfTake name xs = pStateListF "bandf" name xs
-bandfCount :: String -> ControlSignal
+bandfCount :: Pattern p => String -> p ValueMap
 bandfCount name = pStateF "bandf" name (maybe 0 (+1))
-bandfCountTo :: String -> Signal Double -> Signal ValueMap
+bandfCountTo :: Pattern p => String -> p Double -> p ValueMap
 bandfCountTo name ipat = innerJoin $ (\i -> pStateF "bandf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-bandfbus :: Signal Int -> Signal Double -> ControlSignal
+bandfbus :: Pattern p => p Int -> p Double -> p ValueMap
 bandfbus busid pat = pF "bandf" pat # pI "^bandf" busid
-bandfrecv :: Signal Int -> ControlSignal
+bandfrecv :: Pattern p => p Int -> p ValueMap
 bandfrecv busid = pI "^bandf" busid
 
 -- | a pattern of anumbers from 0 to 1. Sets the q-factor of the band-pass filter.
-bandq :: Signal Double -> ControlSignal
+bandq :: Pattern p => p Double -> p ValueMap
 bandq = pF "bandq"
-bandqTake :: String -> [Double] -> ControlSignal
+bandqTake :: Pattern p => String -> [Double] -> p ValueMap
 bandqTake name xs = pStateListF "bandq" name xs
-bandqCount :: String -> ControlSignal
+bandqCount :: Pattern p => String -> p ValueMap
 bandqCount name = pStateF "bandq" name (maybe 0 (+1))
-bandqCountTo :: String -> Signal Double -> Signal ValueMap
+bandqCountTo :: Pattern p => String -> p Double -> p ValueMap
 bandqCountTo name ipat = innerJoin $ (\i -> pStateF "bandq" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-bandqbus :: Signal Int -> Signal Double -> ControlSignal
+bandqbus :: Pattern p => p Int -> p Double -> p ValueMap
 bandqbus busid pat = pF "bandq" pat # pI "^bandq" busid
-bandqrecv :: Signal Int -> ControlSignal
+bandqrecv :: Pattern p => p Int -> p ValueMap
 bandqrecv busid = pI "^bandq" busid
 
 -- | a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample.
-begin :: Signal Double -> ControlSignal
+begin :: Pattern p => p Double -> p ValueMap
 begin = pF "begin"
-beginTake :: String -> [Double] -> ControlSignal
+beginTake :: Pattern p => String -> [Double] -> p ValueMap
 beginTake name xs = pStateListF "begin" name xs
-beginCount :: String -> ControlSignal
+beginCount :: Pattern p => String -> p ValueMap
 beginCount name = pStateF "begin" name (maybe 0 (+1))
-beginCountTo :: String -> Signal Double -> Signal ValueMap
+beginCountTo :: Pattern p => String -> p Double -> p ValueMap
 beginCountTo name ipat = innerJoin $ (\i -> pStateF "begin" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-beginbus :: Signal Int -> Signal Double -> ControlSignal
+beginbus :: Pattern p => p Int -> p Double -> p ValueMap
 beginbus _ _ = error "Control parameter 'begin' can't be sent to a bus."
 
 -- | Spectral binshift
-binshift :: Signal Double -> ControlSignal
+binshift :: Pattern p => p Double -> p ValueMap
 binshift = pF "binshift"
-binshiftTake :: String -> [Double] -> ControlSignal
+binshiftTake :: Pattern p => String -> [Double] -> p ValueMap
 binshiftTake name xs = pStateListF "binshift" name xs
-binshiftCount :: String -> ControlSignal
+binshiftCount :: Pattern p => String -> p ValueMap
 binshiftCount name = pStateF "binshift" name (maybe 0 (+1))
-binshiftCountTo :: String -> Signal Double -> Signal ValueMap
+binshiftCountTo :: Pattern p => String -> p Double -> p ValueMap
 binshiftCountTo name ipat = innerJoin $ (\i -> pStateF "binshift" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-binshiftbus :: Signal Int -> Signal Double -> ControlSignal
+binshiftbus :: Pattern p => p Int -> p Double -> p ValueMap
 binshiftbus busid pat = pF "binshift" pat # pI "^binshift" busid
-binshiftrecv :: Signal Int -> ControlSignal
+binshiftrecv :: Pattern p => p Int -> p ValueMap
 binshiftrecv busid = pI "^binshift" busid
 
 -- | 
-button0 :: Signal Double -> ControlSignal
+button0 :: Pattern p => p Double -> p ValueMap
 button0 = pF "button0"
-button0Take :: String -> [Double] -> ControlSignal
+button0Take :: Pattern p => String -> [Double] -> p ValueMap
 button0Take name xs = pStateListF "button0" name xs
-button0Count :: String -> ControlSignal
+button0Count :: Pattern p => String -> p ValueMap
 button0Count name = pStateF "button0" name (maybe 0 (+1))
-button0CountTo :: String -> Signal Double -> Signal ValueMap
+button0CountTo :: Pattern p => String -> p Double -> p ValueMap
 button0CountTo name ipat = innerJoin $ (\i -> pStateF "button0" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button0bus :: Signal Int -> Signal Double -> ControlSignal
+button0bus :: Pattern p => p Int -> p Double -> p ValueMap
 button0bus busid pat = pF "button0" pat # pI "^button0" busid
-button0recv :: Signal Int -> ControlSignal
+button0recv :: Pattern p => p Int -> p ValueMap
 button0recv busid = pI "^button0" busid
 
 -- | 
-button1 :: Signal Double -> ControlSignal
+button1 :: Pattern p => p Double -> p ValueMap
 button1 = pF "button1"
-button1Take :: String -> [Double] -> ControlSignal
+button1Take :: Pattern p => String -> [Double] -> p ValueMap
 button1Take name xs = pStateListF "button1" name xs
-button1Count :: String -> ControlSignal
+button1Count :: Pattern p => String -> p ValueMap
 button1Count name = pStateF "button1" name (maybe 0 (+1))
-button1CountTo :: String -> Signal Double -> Signal ValueMap
+button1CountTo :: Pattern p => String -> p Double -> p ValueMap
 button1CountTo name ipat = innerJoin $ (\i -> pStateF "button1" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button1bus :: Signal Int -> Signal Double -> ControlSignal
+button1bus :: Pattern p => p Int -> p Double -> p ValueMap
 button1bus busid pat = pF "button1" pat # pI "^button1" busid
-button1recv :: Signal Int -> ControlSignal
+button1recv :: Pattern p => p Int -> p ValueMap
 button1recv busid = pI "^button1" busid
 
 -- | 
-button10 :: Signal Double -> ControlSignal
+button10 :: Pattern p => p Double -> p ValueMap
 button10 = pF "button10"
-button10Take :: String -> [Double] -> ControlSignal
+button10Take :: Pattern p => String -> [Double] -> p ValueMap
 button10Take name xs = pStateListF "button10" name xs
-button10Count :: String -> ControlSignal
+button10Count :: Pattern p => String -> p ValueMap
 button10Count name = pStateF "button10" name (maybe 0 (+1))
-button10CountTo :: String -> Signal Double -> Signal ValueMap
+button10CountTo :: Pattern p => String -> p Double -> p ValueMap
 button10CountTo name ipat = innerJoin $ (\i -> pStateF "button10" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button10bus :: Signal Int -> Signal Double -> ControlSignal
+button10bus :: Pattern p => p Int -> p Double -> p ValueMap
 button10bus busid pat = pF "button10" pat # pI "^button10" busid
-button10recv :: Signal Int -> ControlSignal
+button10recv :: Pattern p => p Int -> p ValueMap
 button10recv busid = pI "^button10" busid
 
 -- | 
-button11 :: Signal Double -> ControlSignal
+button11 :: Pattern p => p Double -> p ValueMap
 button11 = pF "button11"
-button11Take :: String -> [Double] -> ControlSignal
+button11Take :: Pattern p => String -> [Double] -> p ValueMap
 button11Take name xs = pStateListF "button11" name xs
-button11Count :: String -> ControlSignal
+button11Count :: Pattern p => String -> p ValueMap
 button11Count name = pStateF "button11" name (maybe 0 (+1))
-button11CountTo :: String -> Signal Double -> Signal ValueMap
+button11CountTo :: Pattern p => String -> p Double -> p ValueMap
 button11CountTo name ipat = innerJoin $ (\i -> pStateF "button11" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button11bus :: Signal Int -> Signal Double -> ControlSignal
+button11bus :: Pattern p => p Int -> p Double -> p ValueMap
 button11bus busid pat = pF "button11" pat # pI "^button11" busid
-button11recv :: Signal Int -> ControlSignal
+button11recv :: Pattern p => p Int -> p ValueMap
 button11recv busid = pI "^button11" busid
 
 -- | 
-button12 :: Signal Double -> ControlSignal
+button12 :: Pattern p => p Double -> p ValueMap
 button12 = pF "button12"
-button12Take :: String -> [Double] -> ControlSignal
+button12Take :: Pattern p => String -> [Double] -> p ValueMap
 button12Take name xs = pStateListF "button12" name xs
-button12Count :: String -> ControlSignal
+button12Count :: Pattern p => String -> p ValueMap
 button12Count name = pStateF "button12" name (maybe 0 (+1))
-button12CountTo :: String -> Signal Double -> Signal ValueMap
+button12CountTo :: Pattern p => String -> p Double -> p ValueMap
 button12CountTo name ipat = innerJoin $ (\i -> pStateF "button12" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button12bus :: Signal Int -> Signal Double -> ControlSignal
+button12bus :: Pattern p => p Int -> p Double -> p ValueMap
 button12bus busid pat = pF "button12" pat # pI "^button12" busid
-button12recv :: Signal Int -> ControlSignal
+button12recv :: Pattern p => p Int -> p ValueMap
 button12recv busid = pI "^button12" busid
 
 -- | 
-button13 :: Signal Double -> ControlSignal
+button13 :: Pattern p => p Double -> p ValueMap
 button13 = pF "button13"
-button13Take :: String -> [Double] -> ControlSignal
+button13Take :: Pattern p => String -> [Double] -> p ValueMap
 button13Take name xs = pStateListF "button13" name xs
-button13Count :: String -> ControlSignal
+button13Count :: Pattern p => String -> p ValueMap
 button13Count name = pStateF "button13" name (maybe 0 (+1))
-button13CountTo :: String -> Signal Double -> Signal ValueMap
+button13CountTo :: Pattern p => String -> p Double -> p ValueMap
 button13CountTo name ipat = innerJoin $ (\i -> pStateF "button13" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button13bus :: Signal Int -> Signal Double -> ControlSignal
+button13bus :: Pattern p => p Int -> p Double -> p ValueMap
 button13bus busid pat = pF "button13" pat # pI "^button13" busid
-button13recv :: Signal Int -> ControlSignal
+button13recv :: Pattern p => p Int -> p ValueMap
 button13recv busid = pI "^button13" busid
 
 -- | 
-button14 :: Signal Double -> ControlSignal
+button14 :: Pattern p => p Double -> p ValueMap
 button14 = pF "button14"
-button14Take :: String -> [Double] -> ControlSignal
+button14Take :: Pattern p => String -> [Double] -> p ValueMap
 button14Take name xs = pStateListF "button14" name xs
-button14Count :: String -> ControlSignal
+button14Count :: Pattern p => String -> p ValueMap
 button14Count name = pStateF "button14" name (maybe 0 (+1))
-button14CountTo :: String -> Signal Double -> Signal ValueMap
+button14CountTo :: Pattern p => String -> p Double -> p ValueMap
 button14CountTo name ipat = innerJoin $ (\i -> pStateF "button14" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button14bus :: Signal Int -> Signal Double -> ControlSignal
+button14bus :: Pattern p => p Int -> p Double -> p ValueMap
 button14bus busid pat = pF "button14" pat # pI "^button14" busid
-button14recv :: Signal Int -> ControlSignal
+button14recv :: Pattern p => p Int -> p ValueMap
 button14recv busid = pI "^button14" busid
 
 -- | 
-button15 :: Signal Double -> ControlSignal
+button15 :: Pattern p => p Double -> p ValueMap
 button15 = pF "button15"
-button15Take :: String -> [Double] -> ControlSignal
+button15Take :: Pattern p => String -> [Double] -> p ValueMap
 button15Take name xs = pStateListF "button15" name xs
-button15Count :: String -> ControlSignal
+button15Count :: Pattern p => String -> p ValueMap
 button15Count name = pStateF "button15" name (maybe 0 (+1))
-button15CountTo :: String -> Signal Double -> Signal ValueMap
+button15CountTo :: Pattern p => String -> p Double -> p ValueMap
 button15CountTo name ipat = innerJoin $ (\i -> pStateF "button15" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button15bus :: Signal Int -> Signal Double -> ControlSignal
+button15bus :: Pattern p => p Int -> p Double -> p ValueMap
 button15bus busid pat = pF "button15" pat # pI "^button15" busid
-button15recv :: Signal Int -> ControlSignal
+button15recv :: Pattern p => p Int -> p ValueMap
 button15recv busid = pI "^button15" busid
 
 -- | 
-button2 :: Signal Double -> ControlSignal
+button2 :: Pattern p => p Double -> p ValueMap
 button2 = pF "button2"
-button2Take :: String -> [Double] -> ControlSignal
+button2Take :: Pattern p => String -> [Double] -> p ValueMap
 button2Take name xs = pStateListF "button2" name xs
-button2Count :: String -> ControlSignal
+button2Count :: Pattern p => String -> p ValueMap
 button2Count name = pStateF "button2" name (maybe 0 (+1))
-button2CountTo :: String -> Signal Double -> Signal ValueMap
+button2CountTo :: Pattern p => String -> p Double -> p ValueMap
 button2CountTo name ipat = innerJoin $ (\i -> pStateF "button2" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button2bus :: Signal Int -> Signal Double -> ControlSignal
+button2bus :: Pattern p => p Int -> p Double -> p ValueMap
 button2bus busid pat = pF "button2" pat # pI "^button2" busid
-button2recv :: Signal Int -> ControlSignal
+button2recv :: Pattern p => p Int -> p ValueMap
 button2recv busid = pI "^button2" busid
 
 -- | 
-button3 :: Signal Double -> ControlSignal
+button3 :: Pattern p => p Double -> p ValueMap
 button3 = pF "button3"
-button3Take :: String -> [Double] -> ControlSignal
+button3Take :: Pattern p => String -> [Double] -> p ValueMap
 button3Take name xs = pStateListF "button3" name xs
-button3Count :: String -> ControlSignal
+button3Count :: Pattern p => String -> p ValueMap
 button3Count name = pStateF "button3" name (maybe 0 (+1))
-button3CountTo :: String -> Signal Double -> Signal ValueMap
+button3CountTo :: Pattern p => String -> p Double -> p ValueMap
 button3CountTo name ipat = innerJoin $ (\i -> pStateF "button3" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button3bus :: Signal Int -> Signal Double -> ControlSignal
+button3bus :: Pattern p => p Int -> p Double -> p ValueMap
 button3bus busid pat = pF "button3" pat # pI "^button3" busid
-button3recv :: Signal Int -> ControlSignal
+button3recv :: Pattern p => p Int -> p ValueMap
 button3recv busid = pI "^button3" busid
 
 -- | 
-button4 :: Signal Double -> ControlSignal
+button4 :: Pattern p => p Double -> p ValueMap
 button4 = pF "button4"
-button4Take :: String -> [Double] -> ControlSignal
+button4Take :: Pattern p => String -> [Double] -> p ValueMap
 button4Take name xs = pStateListF "button4" name xs
-button4Count :: String -> ControlSignal
+button4Count :: Pattern p => String -> p ValueMap
 button4Count name = pStateF "button4" name (maybe 0 (+1))
-button4CountTo :: String -> Signal Double -> Signal ValueMap
+button4CountTo :: Pattern p => String -> p Double -> p ValueMap
 button4CountTo name ipat = innerJoin $ (\i -> pStateF "button4" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button4bus :: Signal Int -> Signal Double -> ControlSignal
+button4bus :: Pattern p => p Int -> p Double -> p ValueMap
 button4bus busid pat = pF "button4" pat # pI "^button4" busid
-button4recv :: Signal Int -> ControlSignal
+button4recv :: Pattern p => p Int -> p ValueMap
 button4recv busid = pI "^button4" busid
 
 -- | 
-button5 :: Signal Double -> ControlSignal
+button5 :: Pattern p => p Double -> p ValueMap
 button5 = pF "button5"
-button5Take :: String -> [Double] -> ControlSignal
+button5Take :: Pattern p => String -> [Double] -> p ValueMap
 button5Take name xs = pStateListF "button5" name xs
-button5Count :: String -> ControlSignal
+button5Count :: Pattern p => String -> p ValueMap
 button5Count name = pStateF "button5" name (maybe 0 (+1))
-button5CountTo :: String -> Signal Double -> Signal ValueMap
+button5CountTo :: Pattern p => String -> p Double -> p ValueMap
 button5CountTo name ipat = innerJoin $ (\i -> pStateF "button5" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button5bus :: Signal Int -> Signal Double -> ControlSignal
+button5bus :: Pattern p => p Int -> p Double -> p ValueMap
 button5bus busid pat = pF "button5" pat # pI "^button5" busid
-button5recv :: Signal Int -> ControlSignal
+button5recv :: Pattern p => p Int -> p ValueMap
 button5recv busid = pI "^button5" busid
 
 -- | 
-button6 :: Signal Double -> ControlSignal
+button6 :: Pattern p => p Double -> p ValueMap
 button6 = pF "button6"
-button6Take :: String -> [Double] -> ControlSignal
+button6Take :: Pattern p => String -> [Double] -> p ValueMap
 button6Take name xs = pStateListF "button6" name xs
-button6Count :: String -> ControlSignal
+button6Count :: Pattern p => String -> p ValueMap
 button6Count name = pStateF "button6" name (maybe 0 (+1))
-button6CountTo :: String -> Signal Double -> Signal ValueMap
+button6CountTo :: Pattern p => String -> p Double -> p ValueMap
 button6CountTo name ipat = innerJoin $ (\i -> pStateF "button6" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button6bus :: Signal Int -> Signal Double -> ControlSignal
+button6bus :: Pattern p => p Int -> p Double -> p ValueMap
 button6bus busid pat = pF "button6" pat # pI "^button6" busid
-button6recv :: Signal Int -> ControlSignal
+button6recv :: Pattern p => p Int -> p ValueMap
 button6recv busid = pI "^button6" busid
 
 -- | 
-button7 :: Signal Double -> ControlSignal
+button7 :: Pattern p => p Double -> p ValueMap
 button7 = pF "button7"
-button7Take :: String -> [Double] -> ControlSignal
+button7Take :: Pattern p => String -> [Double] -> p ValueMap
 button7Take name xs = pStateListF "button7" name xs
-button7Count :: String -> ControlSignal
+button7Count :: Pattern p => String -> p ValueMap
 button7Count name = pStateF "button7" name (maybe 0 (+1))
-button7CountTo :: String -> Signal Double -> Signal ValueMap
+button7CountTo :: Pattern p => String -> p Double -> p ValueMap
 button7CountTo name ipat = innerJoin $ (\i -> pStateF "button7" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button7bus :: Signal Int -> Signal Double -> ControlSignal
+button7bus :: Pattern p => p Int -> p Double -> p ValueMap
 button7bus busid pat = pF "button7" pat # pI "^button7" busid
-button7recv :: Signal Int -> ControlSignal
+button7recv :: Pattern p => p Int -> p ValueMap
 button7recv busid = pI "^button7" busid
 
 -- | 
-button8 :: Signal Double -> ControlSignal
+button8 :: Pattern p => p Double -> p ValueMap
 button8 = pF "button8"
-button8Take :: String -> [Double] -> ControlSignal
+button8Take :: Pattern p => String -> [Double] -> p ValueMap
 button8Take name xs = pStateListF "button8" name xs
-button8Count :: String -> ControlSignal
+button8Count :: Pattern p => String -> p ValueMap
 button8Count name = pStateF "button8" name (maybe 0 (+1))
-button8CountTo :: String -> Signal Double -> Signal ValueMap
+button8CountTo :: Pattern p => String -> p Double -> p ValueMap
 button8CountTo name ipat = innerJoin $ (\i -> pStateF "button8" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button8bus :: Signal Int -> Signal Double -> ControlSignal
+button8bus :: Pattern p => p Int -> p Double -> p ValueMap
 button8bus busid pat = pF "button8" pat # pI "^button8" busid
-button8recv :: Signal Int -> ControlSignal
+button8recv :: Pattern p => p Int -> p ValueMap
 button8recv busid = pI "^button8" busid
 
 -- | 
-button9 :: Signal Double -> ControlSignal
+button9 :: Pattern p => p Double -> p ValueMap
 button9 = pF "button9"
-button9Take :: String -> [Double] -> ControlSignal
+button9Take :: Pattern p => String -> [Double] -> p ValueMap
 button9Take name xs = pStateListF "button9" name xs
-button9Count :: String -> ControlSignal
+button9Count :: Pattern p => String -> p ValueMap
 button9Count name = pStateF "button9" name (maybe 0 (+1))
-button9CountTo :: String -> Signal Double -> Signal ValueMap
+button9CountTo :: Pattern p => String -> p Double -> p ValueMap
 button9CountTo name ipat = innerJoin $ (\i -> pStateF "button9" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-button9bus :: Signal Int -> Signal Double -> ControlSignal
+button9bus :: Pattern p => p Int -> p Double -> p ValueMap
 button9bus busid pat = pF "button9" pat # pI "^button9" busid
-button9recv :: Signal Int -> ControlSignal
+button9recv :: Pattern p => p Int -> p ValueMap
 button9recv busid = pI "^button9" busid
 
 -- | 
-ccn :: Signal Double -> ControlSignal
+ccn :: Pattern p => p Double -> p ValueMap
 ccn = pF "ccn"
-ccnTake :: String -> [Double] -> ControlSignal
+ccnTake :: Pattern p => String -> [Double] -> p ValueMap
 ccnTake name xs = pStateListF "ccn" name xs
-ccnCount :: String -> ControlSignal
+ccnCount :: Pattern p => String -> p ValueMap
 ccnCount name = pStateF "ccn" name (maybe 0 (+1))
-ccnCountTo :: String -> Signal Double -> Signal ValueMap
+ccnCountTo :: Pattern p => String -> p Double -> p ValueMap
 ccnCountTo name ipat = innerJoin $ (\i -> pStateF "ccn" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-ccnbus :: Signal Int -> Signal Double -> ControlSignal
+ccnbus :: Pattern p => p Int -> p Double -> p ValueMap
 ccnbus _ _ = error "Control parameter 'ccn' can't be sent to a bus."
 
 -- | 
-ccv :: Signal Double -> ControlSignal
+ccv :: Pattern p => p Double -> p ValueMap
 ccv = pF "ccv"
-ccvTake :: String -> [Double] -> ControlSignal
+ccvTake :: Pattern p => String -> [Double] -> p ValueMap
 ccvTake name xs = pStateListF "ccv" name xs
-ccvCount :: String -> ControlSignal
+ccvCount :: Pattern p => String -> p ValueMap
 ccvCount name = pStateF "ccv" name (maybe 0 (+1))
-ccvCountTo :: String -> Signal Double -> Signal ValueMap
+ccvCountTo :: Pattern p => String -> p Double -> p ValueMap
 ccvCountTo name ipat = innerJoin $ (\i -> pStateF "ccv" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-ccvbus :: Signal Int -> Signal Double -> ControlSignal
+ccvbus :: Pattern p => p Int -> p Double -> p ValueMap
 ccvbus _ _ = error "Control parameter 'ccv' can't be sent to a bus."
 
 -- | choose the channel the pattern is sent to in superdirt
-channel :: Signal Int -> ControlSignal
+channel :: Pattern p => p Int -> p ValueMap
 channel = pI "channel"
-channelTake :: String -> [Double] -> ControlSignal
+channelTake :: Pattern p => String -> [Double] -> p ValueMap
 channelTake name xs = pStateListF "channel" name xs
-channelCount :: String -> ControlSignal
+channelCount :: Pattern p => String -> p ValueMap
 channelCount name = pStateF "channel" name (maybe 0 (+1))
-channelCountTo :: String -> Signal Double -> Signal ValueMap
+channelCountTo :: Pattern p => String -> p Double -> p ValueMap
 channelCountTo name ipat = innerJoin $ (\i -> pStateF "channel" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-channelbus :: Signal Int -> Signal Int -> ControlSignal
+channelbus :: Pattern p => p Int -> p Int -> p ValueMap
 channelbus _ _ = error "Control parameter 'channel' can't be sent to a bus."
 
 -- | 
-clhatdecay :: Signal Double -> ControlSignal
+clhatdecay :: Pattern p => p Double -> p ValueMap
 clhatdecay = pF "clhatdecay"
-clhatdecayTake :: String -> [Double] -> ControlSignal
+clhatdecayTake :: Pattern p => String -> [Double] -> p ValueMap
 clhatdecayTake name xs = pStateListF "clhatdecay" name xs
-clhatdecayCount :: String -> ControlSignal
+clhatdecayCount :: Pattern p => String -> p ValueMap
 clhatdecayCount name = pStateF "clhatdecay" name (maybe 0 (+1))
-clhatdecayCountTo :: String -> Signal Double -> Signal ValueMap
+clhatdecayCountTo :: Pattern p => String -> p Double -> p ValueMap
 clhatdecayCountTo name ipat = innerJoin $ (\i -> pStateF "clhatdecay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-clhatdecaybus :: Signal Int -> Signal Double -> ControlSignal
+clhatdecaybus :: Pattern p => p Int -> p Double -> p ValueMap
 clhatdecaybus busid pat = pF "clhatdecay" pat # pI "^clhatdecay" busid
-clhatdecayrecv :: Signal Int -> ControlSignal
+clhatdecayrecv :: Pattern p => p Int -> p ValueMap
 clhatdecayrecv busid = pI "^clhatdecay" busid
 
 -- | fake-resampling, a pattern of numbers for lowering the sample rate, i.e. 1 for original 2 for half, 3 for a third and so on.
-coarse :: Signal Double -> ControlSignal
+coarse :: Pattern p => p Double -> p ValueMap
 coarse = pF "coarse"
-coarseTake :: String -> [Double] -> ControlSignal
+coarseTake :: Pattern p => String -> [Double] -> p ValueMap
 coarseTake name xs = pStateListF "coarse" name xs
-coarseCount :: String -> ControlSignal
+coarseCount :: Pattern p => String -> p ValueMap
 coarseCount name = pStateF "coarse" name (maybe 0 (+1))
-coarseCountTo :: String -> Signal Double -> Signal ValueMap
+coarseCountTo :: Pattern p => String -> p Double -> p ValueMap
 coarseCountTo name ipat = innerJoin $ (\i -> pStateF "coarse" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-coarsebus :: Signal Int -> Signal Double -> ControlSignal
+coarsebus :: Pattern p => p Int -> p Double -> p ValueMap
 coarsebus busid pat = pF "coarse" pat # pI "^coarse" busid
-coarserecv :: Signal Int -> ControlSignal
+coarserecv :: Pattern p => p Int -> p ValueMap
 coarserecv busid = pI "^coarse" busid
 
 -- | Spectral comb
-comb :: Signal Double -> ControlSignal
+comb :: Pattern p => p Double -> p ValueMap
 comb = pF "comb"
-combTake :: String -> [Double] -> ControlSignal
+combTake :: Pattern p => String -> [Double] -> p ValueMap
 combTake name xs = pStateListF "comb" name xs
-combCount :: String -> ControlSignal
+combCount :: Pattern p => String -> p ValueMap
 combCount name = pStateF "comb" name (maybe 0 (+1))
-combCountTo :: String -> Signal Double -> Signal ValueMap
+combCountTo :: Pattern p => String -> p Double -> p ValueMap
 combCountTo name ipat = innerJoin $ (\i -> pStateF "comb" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-combbus :: Signal Int -> Signal Double -> ControlSignal
+combbus :: Pattern p => p Int -> p Double -> p ValueMap
 combbus busid pat = pF "comb" pat # pI "^comb" busid
-combrecv :: Signal Int -> ControlSignal
+combrecv :: Pattern p => p Int -> p ValueMap
 combrecv busid = pI "^comb" busid
 
 -- | 
-control :: Signal Double -> ControlSignal
+control :: Pattern p => p Double -> p ValueMap
 control = pF "control"
-controlTake :: String -> [Double] -> ControlSignal
+controlTake :: Pattern p => String -> [Double] -> p ValueMap
 controlTake name xs = pStateListF "control" name xs
-controlCount :: String -> ControlSignal
+controlCount :: Pattern p => String -> p ValueMap
 controlCount name = pStateF "control" name (maybe 0 (+1))
-controlCountTo :: String -> Signal Double -> Signal ValueMap
+controlCountTo :: Pattern p => String -> p Double -> p ValueMap
 controlCountTo name ipat = innerJoin $ (\i -> pStateF "control" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-controlbus :: Signal Int -> Signal Double -> ControlSignal
+controlbus :: Pattern p => p Int -> p Double -> p ValueMap
 controlbus _ _ = error "Control parameter 'control' can't be sent to a bus."
 
 -- | 
-cps :: Signal Double -> ControlSignal
+cps :: Pattern p => p Double -> p ValueMap
 cps = pF "cps"
-cpsTake :: String -> [Double] -> ControlSignal
+cpsTake :: Pattern p => String -> [Double] -> p ValueMap
 cpsTake name xs = pStateListF "cps" name xs
-cpsCount :: String -> ControlSignal
+cpsCount :: Pattern p => String -> p ValueMap
 cpsCount name = pStateF "cps" name (maybe 0 (+1))
-cpsCountTo :: String -> Signal Double -> Signal ValueMap
+cpsCountTo :: Pattern p => String -> p Double -> p ValueMap
 cpsCountTo name ipat = innerJoin $ (\i -> pStateF "cps" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-cpsbus :: Signal Int -> Signal Double -> ControlSignal
+cpsbus :: Pattern p => p Int -> p Double -> p ValueMap
 cpsbus busid pat = pF "cps" pat # pI "^cps" busid
-cpsrecv :: Signal Int -> ControlSignal
+cpsrecv :: Pattern p => p Int -> p ValueMap
 cpsrecv busid = pI "^cps" busid
 
 -- | bit crushing, a pattern of numbers from 1 (for drastic reduction in bit-depth) to 16 (for barely no reduction).
-crush :: Signal Double -> ControlSignal
+crush :: Pattern p => p Double -> p ValueMap
 crush = pF "crush"
-crushTake :: String -> [Double] -> ControlSignal
+crushTake :: Pattern p => String -> [Double] -> p ValueMap
 crushTake name xs = pStateListF "crush" name xs
-crushCount :: String -> ControlSignal
+crushCount :: Pattern p => String -> p ValueMap
 crushCount name = pStateF "crush" name (maybe 0 (+1))
-crushCountTo :: String -> Signal Double -> Signal ValueMap
+crushCountTo :: Pattern p => String -> p Double -> p ValueMap
 crushCountTo name ipat = innerJoin $ (\i -> pStateF "crush" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-crushbus :: Signal Int -> Signal Double -> ControlSignal
+crushbus :: Pattern p => p Int -> p Double -> p ValueMap
 crushbus busid pat = pF "crush" pat # pI "^crush" busid
-crushrecv :: Signal Int -> ControlSignal
+crushrecv :: Pattern p => p Int -> p ValueMap
 crushrecv busid = pI "^crush" busid
 
 -- | 
-ctlNum :: Signal Double -> ControlSignal
+ctlNum :: Pattern p => p Double -> p ValueMap
 ctlNum = pF "ctlNum"
-ctlNumTake :: String -> [Double] -> ControlSignal
+ctlNumTake :: Pattern p => String -> [Double] -> p ValueMap
 ctlNumTake name xs = pStateListF "ctlNum" name xs
-ctlNumCount :: String -> ControlSignal
+ctlNumCount :: Pattern p => String -> p ValueMap
 ctlNumCount name = pStateF "ctlNum" name (maybe 0 (+1))
-ctlNumCountTo :: String -> Signal Double -> Signal ValueMap
+ctlNumCountTo :: Pattern p => String -> p Double -> p ValueMap
 ctlNumCountTo name ipat = innerJoin $ (\i -> pStateF "ctlNum" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-ctlNumbus :: Signal Int -> Signal Double -> ControlSignal
+ctlNumbus :: Pattern p => p Int -> p Double -> p ValueMap
 ctlNumbus _ _ = error "Control parameter 'ctlNum' can't be sent to a bus."
 
 -- | 
-ctranspose :: Signal Double -> ControlSignal
+ctranspose :: Pattern p => p Double -> p ValueMap
 ctranspose = pF "ctranspose"
-ctransposeTake :: String -> [Double] -> ControlSignal
+ctransposeTake :: Pattern p => String -> [Double] -> p ValueMap
 ctransposeTake name xs = pStateListF "ctranspose" name xs
-ctransposeCount :: String -> ControlSignal
+ctransposeCount :: Pattern p => String -> p ValueMap
 ctransposeCount name = pStateF "ctranspose" name (maybe 0 (+1))
-ctransposeCountTo :: String -> Signal Double -> Signal ValueMap
+ctransposeCountTo :: Pattern p => String -> p Double -> p ValueMap
 ctransposeCountTo name ipat = innerJoin $ (\i -> pStateF "ctranspose" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-ctransposebus :: Signal Int -> Signal Double -> ControlSignal
+ctransposebus :: Pattern p => p Int -> p Double -> p ValueMap
 ctransposebus busid pat = pF "ctranspose" pat # pI "^ctranspose" busid
-ctransposerecv :: Signal Int -> ControlSignal
+ctransposerecv :: Pattern p => p Int -> p ValueMap
 ctransposerecv busid = pI "^ctranspose" busid
 
 -- | In the style of classic drum-machines, `cut` will stop a playing sample as soon as another samples with in same cutgroup is to be played. An example would be an open hi-hat followed by a closed one, essentially muting the open.
-cut :: Signal Int -> ControlSignal
+cut :: Pattern p => p Int -> p ValueMap
 cut = pI "cut"
-cutTake :: String -> [Double] -> ControlSignal
+cutTake :: Pattern p => String -> [Double] -> p ValueMap
 cutTake name xs = pStateListF "cut" name xs
-cutCount :: String -> ControlSignal
+cutCount :: Pattern p => String -> p ValueMap
 cutCount name = pStateF "cut" name (maybe 0 (+1))
-cutCountTo :: String -> Signal Double -> Signal ValueMap
+cutCountTo :: Pattern p => String -> p Double -> p ValueMap
 cutCountTo name ipat = innerJoin $ (\i -> pStateF "cut" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-cutbus :: Signal Int -> Signal Int -> ControlSignal
+cutbus :: Pattern p => p Int -> p Int -> p ValueMap
 cutbus busid pat = pI "cut" pat # pI "^cut" busid
-cutrecv :: Signal Int -> ControlSignal
+cutrecv :: Pattern p => p Int -> p ValueMap
 cutrecv busid = pI "^cut" busid
 
 -- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter.
-cutoff :: Signal Double -> ControlSignal
+cutoff :: Pattern p => p Double -> p ValueMap
 cutoff = pF "cutoff"
-cutoffTake :: String -> [Double] -> ControlSignal
+cutoffTake :: Pattern p => String -> [Double] -> p ValueMap
 cutoffTake name xs = pStateListF "cutoff" name xs
-cutoffCount :: String -> ControlSignal
+cutoffCount :: Pattern p => String -> p ValueMap
 cutoffCount name = pStateF "cutoff" name (maybe 0 (+1))
-cutoffCountTo :: String -> Signal Double -> Signal ValueMap
+cutoffCountTo :: Pattern p => String -> p Double -> p ValueMap
 cutoffCountTo name ipat = innerJoin $ (\i -> pStateF "cutoff" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-cutoffbus :: Signal Int -> Signal Double -> ControlSignal
+cutoffbus :: Pattern p => p Int -> p Double -> p ValueMap
 cutoffbus busid pat = pF "cutoff" pat # pI "^cutoff" busid
-cutoffrecv :: Signal Int -> ControlSignal
+cutoffrecv :: Pattern p => p Int -> p ValueMap
 cutoffrecv busid = pI "^cutoff" busid
 
 -- | 
-cutoffegint :: Signal Double -> ControlSignal
+cutoffegint :: Pattern p => p Double -> p ValueMap
 cutoffegint = pF "cutoffegint"
-cutoffegintTake :: String -> [Double] -> ControlSignal
+cutoffegintTake :: Pattern p => String -> [Double] -> p ValueMap
 cutoffegintTake name xs = pStateListF "cutoffegint" name xs
-cutoffegintCount :: String -> ControlSignal
+cutoffegintCount :: Pattern p => String -> p ValueMap
 cutoffegintCount name = pStateF "cutoffegint" name (maybe 0 (+1))
-cutoffegintCountTo :: String -> Signal Double -> Signal ValueMap
+cutoffegintCountTo :: Pattern p => String -> p Double -> p ValueMap
 cutoffegintCountTo name ipat = innerJoin $ (\i -> pStateF "cutoffegint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-cutoffegintbus :: Signal Int -> Signal Double -> ControlSignal
+cutoffegintbus :: Pattern p => p Int -> p Double -> p ValueMap
 cutoffegintbus busid pat = pF "cutoffegint" pat # pI "^cutoffegint" busid
-cutoffegintrecv :: Signal Int -> ControlSignal
+cutoffegintrecv :: Pattern p => p Int -> p ValueMap
 cutoffegintrecv busid = pI "^cutoffegint" busid
 
 -- | 
-decay :: Signal Double -> ControlSignal
+decay :: Pattern p => p Double -> p ValueMap
 decay = pF "decay"
-decayTake :: String -> [Double] -> ControlSignal
+decayTake :: Pattern p => String -> [Double] -> p ValueMap
 decayTake name xs = pStateListF "decay" name xs
-decayCount :: String -> ControlSignal
+decayCount :: Pattern p => String -> p ValueMap
 decayCount name = pStateF "decay" name (maybe 0 (+1))
-decayCountTo :: String -> Signal Double -> Signal ValueMap
+decayCountTo :: Pattern p => String -> p Double -> p ValueMap
 decayCountTo name ipat = innerJoin $ (\i -> pStateF "decay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-decaybus :: Signal Int -> Signal Double -> ControlSignal
+decaybus :: Pattern p => p Int -> p Double -> p ValueMap
 decaybus busid pat = pF "decay" pat # pI "^decay" busid
-decayrecv :: Signal Int -> ControlSignal
+decayrecv :: Pattern p => p Int -> p ValueMap
 decayrecv busid = pI "^decay" busid
 
 -- | 
-degree :: Signal Double -> ControlSignal
+degree :: Pattern p => p Double -> p ValueMap
 degree = pF "degree"
-degreeTake :: String -> [Double] -> ControlSignal
+degreeTake :: Pattern p => String -> [Double] -> p ValueMap
 degreeTake name xs = pStateListF "degree" name xs
-degreeCount :: String -> ControlSignal
+degreeCount :: Pattern p => String -> p ValueMap
 degreeCount name = pStateF "degree" name (maybe 0 (+1))
-degreeCountTo :: String -> Signal Double -> Signal ValueMap
+degreeCountTo :: Pattern p => String -> p Double -> p ValueMap
 degreeCountTo name ipat = innerJoin $ (\i -> pStateF "degree" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-degreebus :: Signal Int -> Signal Double -> ControlSignal
+degreebus :: Pattern p => p Int -> p Double -> p ValueMap
 degreebus busid pat = pF "degree" pat # pI "^degree" busid
-degreerecv :: Signal Int -> ControlSignal
+degreerecv :: Pattern p => p Int -> p ValueMap
 degreerecv busid = pI "^degree" busid
 
 -- | a pattern of numbers from 0 to 1. Sets the level of the delay signal.
-delay :: Signal Double -> ControlSignal
+delay :: Pattern p => p Double -> p ValueMap
 delay = pF "delay"
-delayTake :: String -> [Double] -> ControlSignal
+delayTake :: Pattern p => String -> [Double] -> p ValueMap
 delayTake name xs = pStateListF "delay" name xs
-delayCount :: String -> ControlSignal
+delayCount :: Pattern p => String -> p ValueMap
 delayCount name = pStateF "delay" name (maybe 0 (+1))
-delayCountTo :: String -> Signal Double -> Signal ValueMap
+delayCountTo :: Pattern p => String -> p Double -> p ValueMap
 delayCountTo name ipat = innerJoin $ (\i -> pStateF "delay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-delaybus :: Signal Int -> Signal Double -> ControlSignal
+delaybus :: Pattern p => p Int -> p Double -> p ValueMap
 delaybus busid pat = pF "delay" pat # pI "^delay" busid
-delayrecv :: Signal Int -> ControlSignal
+delayrecv :: Pattern p => p Int -> p ValueMap
 delayrecv busid = pI "^delay" busid
 
 -- | a pattern of numbers from 0 to 1. Sets the amount of delay feedback.
-delayfeedback :: Signal Double -> ControlSignal
+delayfeedback :: Pattern p => p Double -> p ValueMap
 delayfeedback = pF "delayfeedback"
-delayfeedbackTake :: String -> [Double] -> ControlSignal
+delayfeedbackTake :: Pattern p => String -> [Double] -> p ValueMap
 delayfeedbackTake name xs = pStateListF "delayfeedback" name xs
-delayfeedbackCount :: String -> ControlSignal
+delayfeedbackCount :: Pattern p => String -> p ValueMap
 delayfeedbackCount name = pStateF "delayfeedback" name (maybe 0 (+1))
-delayfeedbackCountTo :: String -> Signal Double -> Signal ValueMap
+delayfeedbackCountTo :: Pattern p => String -> p Double -> p ValueMap
 delayfeedbackCountTo name ipat = innerJoin $ (\i -> pStateF "delayfeedback" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-delayfeedbackbus :: Signal Int -> Signal Double -> ControlSignal
+delayfeedbackbus :: Pattern p => p Int -> p Double -> p ValueMap
 delayfeedbackbus busid pat = pF "delayfeedback" pat # pI "^delayfeedback" busid
-delayfeedbackrecv :: Signal Int -> ControlSignal
+delayfeedbackrecv :: Pattern p => p Int -> p ValueMap
 delayfeedbackrecv busid = pI "^delayfeedback" busid
 
 -- | a pattern of numbers from 0 to 1. Sets the length of the delay.
-delaytime :: Signal Double -> ControlSignal
+delaytime :: Pattern p => p Double -> p ValueMap
 delaytime = pF "delaytime"
-delaytimeTake :: String -> [Double] -> ControlSignal
+delaytimeTake :: Pattern p => String -> [Double] -> p ValueMap
 delaytimeTake name xs = pStateListF "delaytime" name xs
-delaytimeCount :: String -> ControlSignal
+delaytimeCount :: Pattern p => String -> p ValueMap
 delaytimeCount name = pStateF "delaytime" name (maybe 0 (+1))
-delaytimeCountTo :: String -> Signal Double -> Signal ValueMap
+delaytimeCountTo :: Pattern p => String -> p Double -> p ValueMap
 delaytimeCountTo name ipat = innerJoin $ (\i -> pStateF "delaytime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-delaytimebus :: Signal Int -> Signal Double -> ControlSignal
+delaytimebus :: Pattern p => p Int -> p Double -> p ValueMap
 delaytimebus busid pat = pF "delaytime" pat # pI "^delaytime" busid
-delaytimerecv :: Signal Int -> ControlSignal
+delaytimerecv :: Pattern p => p Int -> p ValueMap
 delaytimerecv busid = pI "^delaytime" busid
 
 -- | 
-detune :: Signal Double -> ControlSignal
+detune :: Pattern p => p Double -> p ValueMap
 detune = pF "detune"
-detuneTake :: String -> [Double] -> ControlSignal
+detuneTake :: Pattern p => String -> [Double] -> p ValueMap
 detuneTake name xs = pStateListF "detune" name xs
-detuneCount :: String -> ControlSignal
+detuneCount :: Pattern p => String -> p ValueMap
 detuneCount name = pStateF "detune" name (maybe 0 (+1))
-detuneCountTo :: String -> Signal Double -> Signal ValueMap
+detuneCountTo :: Pattern p => String -> p Double -> p ValueMap
 detuneCountTo name ipat = innerJoin $ (\i -> pStateF "detune" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-detunebus :: Signal Int -> Signal Double -> ControlSignal
+detunebus :: Pattern p => p Int -> p Double -> p ValueMap
 detunebus busid pat = pF "detune" pat # pI "^detune" busid
-detunerecv :: Signal Int -> ControlSignal
+detunerecv :: Pattern p => p Int -> p ValueMap
 detunerecv busid = pI "^detune" busid
 
 -- | noisy fuzzy distortion
-distort :: Signal Double -> ControlSignal
+distort :: Pattern p => p Double -> p ValueMap
 distort = pF "distort"
-distortTake :: String -> [Double] -> ControlSignal
+distortTake :: Pattern p => String -> [Double] -> p ValueMap
 distortTake name xs = pStateListF "distort" name xs
-distortCount :: String -> ControlSignal
+distortCount :: Pattern p => String -> p ValueMap
 distortCount name = pStateF "distort" name (maybe 0 (+1))
-distortCountTo :: String -> Signal Double -> Signal ValueMap
+distortCountTo :: Pattern p => String -> p Double -> p ValueMap
 distortCountTo name ipat = innerJoin $ (\i -> pStateF "distort" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-distortbus :: Signal Int -> Signal Double -> ControlSignal
+distortbus :: Pattern p => p Int -> p Double -> p ValueMap
 distortbus busid pat = pF "distort" pat # pI "^distort" busid
-distortrecv :: Signal Int -> ControlSignal
+distortrecv :: Pattern p => p Int -> p ValueMap
 distortrecv busid = pI "^distort" busid
 
 -- | DJ filter, below 0.5 is low pass filter, above is high pass filter.
-djf :: Signal Double -> ControlSignal
+djf :: Pattern p => p Double -> p ValueMap
 djf = pF "djf"
-djfTake :: String -> [Double] -> ControlSignal
+djfTake :: Pattern p => String -> [Double] -> p ValueMap
 djfTake name xs = pStateListF "djf" name xs
-djfCount :: String -> ControlSignal
+djfCount :: Pattern p => String -> p ValueMap
 djfCount name = pStateF "djf" name (maybe 0 (+1))
-djfCountTo :: String -> Signal Double -> Signal ValueMap
+djfCountTo :: Pattern p => String -> p Double -> p ValueMap
 djfCountTo name ipat = innerJoin $ (\i -> pStateF "djf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-djfbus :: Signal Int -> Signal Double -> ControlSignal
+djfbus :: Pattern p => p Int -> p Double -> p ValueMap
 djfbus busid pat = pF "djf" pat # pI "^djf" busid
-djfrecv :: Signal Int -> ControlSignal
+djfrecv :: Pattern p => p Int -> p ValueMap
 djfrecv busid = pI "^djf" busid
 
 -- | when set to `1` will disable all reverb for this pattern. See `room` and `size` for more information about reverb.
-dry :: Signal Double -> ControlSignal
+dry :: Pattern p => p Double -> p ValueMap
 dry = pF "dry"
-dryTake :: String -> [Double] -> ControlSignal
+dryTake :: Pattern p => String -> [Double] -> p ValueMap
 dryTake name xs = pStateListF "dry" name xs
-dryCount :: String -> ControlSignal
+dryCount :: Pattern p => String -> p ValueMap
 dryCount name = pStateF "dry" name (maybe 0 (+1))
-dryCountTo :: String -> Signal Double -> Signal ValueMap
+dryCountTo :: Pattern p => String -> p Double -> p ValueMap
 dryCountTo name ipat = innerJoin $ (\i -> pStateF "dry" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-drybus :: Signal Int -> Signal Double -> ControlSignal
+drybus :: Pattern p => p Int -> p Double -> p ValueMap
 drybus busid pat = pF "dry" pat # pI "^dry" busid
-dryrecv :: Signal Int -> ControlSignal
+dryrecv :: Pattern p => p Int -> p ValueMap
 dryrecv busid = pI "^dry" busid
 
 -- | 
-dur :: Signal Double -> ControlSignal
+dur :: Pattern p => p Double -> p ValueMap
 dur = pF "dur"
-durTake :: String -> [Double] -> ControlSignal
+durTake :: Pattern p => String -> [Double] -> p ValueMap
 durTake name xs = pStateListF "dur" name xs
-durCount :: String -> ControlSignal
+durCount :: Pattern p => String -> p ValueMap
 durCount name = pStateF "dur" name (maybe 0 (+1))
-durCountTo :: String -> Signal Double -> Signal ValueMap
+durCountTo :: Pattern p => String -> p Double -> p ValueMap
 durCountTo name ipat = innerJoin $ (\i -> pStateF "dur" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-durbus :: Signal Int -> Signal Double -> ControlSignal
+durbus :: Pattern p => p Int -> p Double -> p ValueMap
 durbus busid pat = pF "dur" pat # pI "^dur" busid
-durrecv :: Signal Int -> ControlSignal
+durrecv :: Pattern p => p Int -> p ValueMap
 durrecv busid = pI "^dur" busid
 
 -- | the same as `begin`, but cuts the end off samples, shortening them; e.g. `0.75` to cut off the last quarter of each sample.
-end :: Signal Double -> ControlSignal
+end :: Pattern p => p Double -> p ValueMap
 end = pF "end"
-endTake :: String -> [Double] -> ControlSignal
+endTake :: Pattern p => String -> [Double] -> p ValueMap
 endTake name xs = pStateListF "end" name xs
-endCount :: String -> ControlSignal
+endCount :: Pattern p => String -> p ValueMap
 endCount name = pStateF "end" name (maybe 0 (+1))
-endCountTo :: String -> Signal Double -> Signal ValueMap
+endCountTo :: Pattern p => String -> p Double -> p ValueMap
 endCountTo name ipat = innerJoin $ (\i -> pStateF "end" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-endbus :: Signal Int -> Signal Double -> ControlSignal
+endbus :: Pattern p => p Int -> p Double -> p ValueMap
 endbus _ _ = error "Control parameter 'end' can't be sent to a bus."
 
 -- | Spectral enhance
-enhance :: Signal Double -> ControlSignal
+enhance :: Pattern p => p Double -> p ValueMap
 enhance = pF "enhance"
-enhanceTake :: String -> [Double] -> ControlSignal
+enhanceTake :: Pattern p => String -> [Double] -> p ValueMap
 enhanceTake name xs = pStateListF "enhance" name xs
-enhanceCount :: String -> ControlSignal
+enhanceCount :: Pattern p => String -> p ValueMap
 enhanceCount name = pStateF "enhance" name (maybe 0 (+1))
-enhanceCountTo :: String -> Signal Double -> Signal ValueMap
+enhanceCountTo :: Pattern p => String -> p Double -> p ValueMap
 enhanceCountTo name ipat = innerJoin $ (\i -> pStateF "enhance" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-enhancebus :: Signal Int -> Signal Double -> ControlSignal
+enhancebus :: Pattern p => p Int -> p Double -> p ValueMap
 enhancebus busid pat = pF "enhance" pat # pI "^enhance" busid
-enhancerecv :: Signal Int -> ControlSignal
+enhancerecv :: Pattern p => p Int -> p ValueMap
 enhancerecv busid = pI "^enhance" busid
 
 -- | 
-expression :: Signal Double -> ControlSignal
+expression :: Pattern p => p Double -> p ValueMap
 expression = pF "expression"
-expressionTake :: String -> [Double] -> ControlSignal
+expressionTake :: Pattern p => String -> [Double] -> p ValueMap
 expressionTake name xs = pStateListF "expression" name xs
-expressionCount :: String -> ControlSignal
+expressionCount :: Pattern p => String -> p ValueMap
 expressionCount name = pStateF "expression" name (maybe 0 (+1))
-expressionCountTo :: String -> Signal Double -> Signal ValueMap
+expressionCountTo :: Pattern p => String -> p Double -> p ValueMap
 expressionCountTo name ipat = innerJoin $ (\i -> pStateF "expression" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-expressionbus :: Signal Int -> Signal Double -> ControlSignal
+expressionbus :: Pattern p => p Int -> p Double -> p ValueMap
 expressionbus busid pat = pF "expression" pat # pI "^expression" busid
-expressionrecv :: Signal Int -> ControlSignal
+expressionrecv :: Pattern p => p Int -> p ValueMap
 expressionrecv busid = pI "^expression" busid
 
 -- | As with fadeTime, but controls the fade in time of the grain envelope. Not used if the grain begins at position 0 in the sample.
-fadeInTime :: Signal Double -> ControlSignal
+fadeInTime :: Pattern p => p Double -> p ValueMap
 fadeInTime = pF "fadeInTime"
-fadeInTimeTake :: String -> [Double] -> ControlSignal
+fadeInTimeTake :: Pattern p => String -> [Double] -> p ValueMap
 fadeInTimeTake name xs = pStateListF "fadeInTime" name xs
-fadeInTimeCount :: String -> ControlSignal
+fadeInTimeCount :: Pattern p => String -> p ValueMap
 fadeInTimeCount name = pStateF "fadeInTime" name (maybe 0 (+1))
-fadeInTimeCountTo :: String -> Signal Double -> Signal ValueMap
+fadeInTimeCountTo :: Pattern p => String -> p Double -> p ValueMap
 fadeInTimeCountTo name ipat = innerJoin $ (\i -> pStateF "fadeInTime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-fadeInTimebus :: Signal Int -> Signal Double -> ControlSignal
+fadeInTimebus :: Pattern p => p Int -> p Double -> p ValueMap
 fadeInTimebus _ _ = error "Control parameter 'fadeInTime' can't be sent to a bus."
 
 -- | Used when using begin/end or chop/striate and friends, to change the fade out time of the 'grain' envelope.
-fadeTime :: Signal Double -> ControlSignal
+fadeTime :: Pattern p => p Double -> p ValueMap
 fadeTime = pF "fadeTime"
-fadeTimeTake :: String -> [Double] -> ControlSignal
+fadeTimeTake :: Pattern p => String -> [Double] -> p ValueMap
 fadeTimeTake name xs = pStateListF "fadeTime" name xs
-fadeTimeCount :: String -> ControlSignal
+fadeTimeCount :: Pattern p => String -> p ValueMap
 fadeTimeCount name = pStateF "fadeTime" name (maybe 0 (+1))
-fadeTimeCountTo :: String -> Signal Double -> Signal ValueMap
+fadeTimeCountTo :: Pattern p => String -> p Double -> p ValueMap
 fadeTimeCountTo name ipat = innerJoin $ (\i -> pStateF "fadeTime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-fadeTimebus :: Signal Int -> Signal Double -> ControlSignal
+fadeTimebus :: Pattern p => p Int -> p Double -> p ValueMap
 fadeTimebus _ _ = error "Control parameter 'fadeTime' can't be sent to a bus."
 
 -- | 
-frameRate :: Signal Double -> ControlSignal
+frameRate :: Pattern p => p Double -> p ValueMap
 frameRate = pF "frameRate"
-frameRateTake :: String -> [Double] -> ControlSignal
+frameRateTake :: Pattern p => String -> [Double] -> p ValueMap
 frameRateTake name xs = pStateListF "frameRate" name xs
-frameRateCount :: String -> ControlSignal
+frameRateCount :: Pattern p => String -> p ValueMap
 frameRateCount name = pStateF "frameRate" name (maybe 0 (+1))
-frameRateCountTo :: String -> Signal Double -> Signal ValueMap
+frameRateCountTo :: Pattern p => String -> p Double -> p ValueMap
 frameRateCountTo name ipat = innerJoin $ (\i -> pStateF "frameRate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-frameRatebus :: Signal Int -> Signal Double -> ControlSignal
+frameRatebus :: Pattern p => p Int -> p Double -> p ValueMap
 frameRatebus _ _ = error "Control parameter 'frameRate' can't be sent to a bus."
 
 -- | 
-frames :: Signal Double -> ControlSignal
+frames :: Pattern p => p Double -> p ValueMap
 frames = pF "frames"
-framesTake :: String -> [Double] -> ControlSignal
+framesTake :: Pattern p => String -> [Double] -> p ValueMap
 framesTake name xs = pStateListF "frames" name xs
-framesCount :: String -> ControlSignal
+framesCount :: Pattern p => String -> p ValueMap
 framesCount name = pStateF "frames" name (maybe 0 (+1))
-framesCountTo :: String -> Signal Double -> Signal ValueMap
+framesCountTo :: Pattern p => String -> p Double -> p ValueMap
 framesCountTo name ipat = innerJoin $ (\i -> pStateF "frames" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-framesbus :: Signal Int -> Signal Double -> ControlSignal
+framesbus :: Pattern p => p Int -> p Double -> p ValueMap
 framesbus _ _ = error "Control parameter 'frames' can't be sent to a bus."
 
 -- | Spectral freeze
-freeze :: Signal Double -> ControlSignal
+freeze :: Pattern p => p Double -> p ValueMap
 freeze = pF "freeze"
-freezeTake :: String -> [Double] -> ControlSignal
+freezeTake :: Pattern p => String -> [Double] -> p ValueMap
 freezeTake name xs = pStateListF "freeze" name xs
-freezeCount :: String -> ControlSignal
+freezeCount :: Pattern p => String -> p ValueMap
 freezeCount name = pStateF "freeze" name (maybe 0 (+1))
-freezeCountTo :: String -> Signal Double -> Signal ValueMap
+freezeCountTo :: Pattern p => String -> p Double -> p ValueMap
 freezeCountTo name ipat = innerJoin $ (\i -> pStateF "freeze" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-freezebus :: Signal Int -> Signal Double -> ControlSignal
+freezebus :: Pattern p => p Int -> p Double -> p ValueMap
 freezebus busid pat = pF "freeze" pat # pI "^freeze" busid
-freezerecv :: Signal Int -> ControlSignal
+freezerecv :: Pattern p => p Int -> p ValueMap
 freezerecv busid = pI "^freeze" busid
 
 -- | 
-freq :: Signal Double -> ControlSignal
+freq :: Pattern p => p Double -> p ValueMap
 freq = pF "freq"
-freqTake :: String -> [Double] -> ControlSignal
+freqTake :: Pattern p => String -> [Double] -> p ValueMap
 freqTake name xs = pStateListF "freq" name xs
-freqCount :: String -> ControlSignal
+freqCount :: Pattern p => String -> p ValueMap
 freqCount name = pStateF "freq" name (maybe 0 (+1))
-freqCountTo :: String -> Signal Double -> Signal ValueMap
+freqCountTo :: Pattern p => String -> p Double -> p ValueMap
 freqCountTo name ipat = innerJoin $ (\i -> pStateF "freq" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-freqbus :: Signal Int -> Signal Double -> ControlSignal
+freqbus :: Pattern p => p Int -> p Double -> p ValueMap
 freqbus busid pat = pF "freq" pat # pI "^freq" busid
-freqrecv :: Signal Int -> ControlSignal
+freqrecv :: Pattern p => p Int -> p ValueMap
 freqrecv busid = pI "^freq" busid
 
 -- | for internal sound routing
-from :: Signal Double -> ControlSignal
+from :: Pattern p => p Double -> p ValueMap
 from = pF "from"
-fromTake :: String -> [Double] -> ControlSignal
+fromTake :: Pattern p => String -> [Double] -> p ValueMap
 fromTake name xs = pStateListF "from" name xs
-fromCount :: String -> ControlSignal
+fromCount :: Pattern p => String -> p ValueMap
 fromCount name = pStateF "from" name (maybe 0 (+1))
-fromCountTo :: String -> Signal Double -> Signal ValueMap
+fromCountTo :: Pattern p => String -> p Double -> p ValueMap
 fromCountTo name ipat = innerJoin $ (\i -> pStateF "from" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-frombus :: Signal Int -> Signal Double -> ControlSignal
+frombus :: Pattern p => p Int -> p Double -> p ValueMap
 frombus busid pat = pF "from" pat # pI "^from" busid
-fromrecv :: Signal Int -> ControlSignal
+fromrecv :: Pattern p => p Int -> p ValueMap
 fromrecv busid = pI "^from" busid
 
 -- | frequency shifter
-fshift :: Signal Double -> ControlSignal
+fshift :: Pattern p => p Double -> p ValueMap
 fshift = pF "fshift"
-fshiftTake :: String -> [Double] -> ControlSignal
+fshiftTake :: Pattern p => String -> [Double] -> p ValueMap
 fshiftTake name xs = pStateListF "fshift" name xs
-fshiftCount :: String -> ControlSignal
+fshiftCount :: Pattern p => String -> p ValueMap
 fshiftCount name = pStateF "fshift" name (maybe 0 (+1))
-fshiftCountTo :: String -> Signal Double -> Signal ValueMap
+fshiftCountTo :: Pattern p => String -> p Double -> p ValueMap
 fshiftCountTo name ipat = innerJoin $ (\i -> pStateF "fshift" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-fshiftbus :: Signal Int -> Signal Double -> ControlSignal
+fshiftbus :: Pattern p => p Int -> p Double -> p ValueMap
 fshiftbus busid pat = pF "fshift" pat # pI "^fshift" busid
-fshiftrecv :: Signal Int -> ControlSignal
+fshiftrecv :: Pattern p => p Int -> p ValueMap
 fshiftrecv busid = pI "^fshift" busid
 
 -- | frequency shifter
-fshiftnote :: Signal Double -> ControlSignal
+fshiftnote :: Pattern p => p Double -> p ValueMap
 fshiftnote = pF "fshiftnote"
-fshiftnoteTake :: String -> [Double] -> ControlSignal
+fshiftnoteTake :: Pattern p => String -> [Double] -> p ValueMap
 fshiftnoteTake name xs = pStateListF "fshiftnote" name xs
-fshiftnoteCount :: String -> ControlSignal
+fshiftnoteCount :: Pattern p => String -> p ValueMap
 fshiftnoteCount name = pStateF "fshiftnote" name (maybe 0 (+1))
-fshiftnoteCountTo :: String -> Signal Double -> Signal ValueMap
+fshiftnoteCountTo :: Pattern p => String -> p Double -> p ValueMap
 fshiftnoteCountTo name ipat = innerJoin $ (\i -> pStateF "fshiftnote" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-fshiftnotebus :: Signal Int -> Signal Double -> ControlSignal
+fshiftnotebus :: Pattern p => p Int -> p Double -> p ValueMap
 fshiftnotebus busid pat = pF "fshiftnote" pat # pI "^fshiftnote" busid
-fshiftnoterecv :: Signal Int -> ControlSignal
+fshiftnoterecv :: Pattern p => p Int -> p ValueMap
 fshiftnoterecv busid = pI "^fshiftnote" busid
 
 -- | frequency shifter
-fshiftphase :: Signal Double -> ControlSignal
+fshiftphase :: Pattern p => p Double -> p ValueMap
 fshiftphase = pF "fshiftphase"
-fshiftphaseTake :: String -> [Double] -> ControlSignal
+fshiftphaseTake :: Pattern p => String -> [Double] -> p ValueMap
 fshiftphaseTake name xs = pStateListF "fshiftphase" name xs
-fshiftphaseCount :: String -> ControlSignal
+fshiftphaseCount :: Pattern p => String -> p ValueMap
 fshiftphaseCount name = pStateF "fshiftphase" name (maybe 0 (+1))
-fshiftphaseCountTo :: String -> Signal Double -> Signal ValueMap
+fshiftphaseCountTo :: Pattern p => String -> p Double -> p ValueMap
 fshiftphaseCountTo name ipat = innerJoin $ (\i -> pStateF "fshiftphase" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-fshiftphasebus :: Signal Int -> Signal Double -> ControlSignal
+fshiftphasebus :: Pattern p => p Int -> p Double -> p ValueMap
 fshiftphasebus busid pat = pF "fshiftphase" pat # pI "^fshiftphase" busid
-fshiftphaserecv :: Signal Int -> ControlSignal
+fshiftphaserecv :: Pattern p => p Int -> p ValueMap
 fshiftphaserecv busid = pI "^fshiftphase" busid
 
 -- | a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder. For the linear equivalent, see @amp@.
-gain :: Signal Double -> ControlSignal
+gain :: Pattern p => p Double -> p ValueMap
 gain = pF "gain"
-gainTake :: String -> [Double] -> ControlSignal
+gainTake :: Pattern p => String -> [Double] -> p ValueMap
 gainTake name xs = pStateListF "gain" name xs
-gainCount :: String -> ControlSignal
+gainCount :: Pattern p => String -> p ValueMap
 gainCount name = pStateF "gain" name (maybe 0 (+1))
-gainCountTo :: String -> Signal Double -> Signal ValueMap
+gainCountTo :: Pattern p => String -> p Double -> p ValueMap
 gainCountTo name ipat = innerJoin $ (\i -> pStateF "gain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-gainbus :: Signal Int -> Signal Double -> ControlSignal
+gainbus :: Pattern p => p Int -> p Double -> p ValueMap
 gainbus _ _ = error "Control parameter 'gain' can't be sent to a bus."
 
 -- | 
-gate :: Signal Double -> ControlSignal
+gate :: Pattern p => p Double -> p ValueMap
 gate = pF "gate"
-gateTake :: String -> [Double] -> ControlSignal
+gateTake :: Pattern p => String -> [Double] -> p ValueMap
 gateTake name xs = pStateListF "gate" name xs
-gateCount :: String -> ControlSignal
+gateCount :: Pattern p => String -> p ValueMap
 gateCount name = pStateF "gate" name (maybe 0 (+1))
-gateCountTo :: String -> Signal Double -> Signal ValueMap
+gateCountTo :: Pattern p => String -> p Double -> p ValueMap
 gateCountTo name ipat = innerJoin $ (\i -> pStateF "gate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-gatebus :: Signal Int -> Signal Double -> ControlSignal
+gatebus :: Pattern p => p Int -> p Double -> p ValueMap
 gatebus busid pat = pF "gate" pat # pI "^gate" busid
-gaterecv :: Signal Int -> ControlSignal
+gaterecv :: Pattern p => p Int -> p ValueMap
 gaterecv busid = pI "^gate" busid
 
 -- | 
-harmonic :: Signal Double -> ControlSignal
+harmonic :: Pattern p => p Double -> p ValueMap
 harmonic = pF "harmonic"
-harmonicTake :: String -> [Double] -> ControlSignal
+harmonicTake :: Pattern p => String -> [Double] -> p ValueMap
 harmonicTake name xs = pStateListF "harmonic" name xs
-harmonicCount :: String -> ControlSignal
+harmonicCount :: Pattern p => String -> p ValueMap
 harmonicCount name = pStateF "harmonic" name (maybe 0 (+1))
-harmonicCountTo :: String -> Signal Double -> Signal ValueMap
+harmonicCountTo :: Pattern p => String -> p Double -> p ValueMap
 harmonicCountTo name ipat = innerJoin $ (\i -> pStateF "harmonic" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-harmonicbus :: Signal Int -> Signal Double -> ControlSignal
+harmonicbus :: Pattern p => p Int -> p Double -> p ValueMap
 harmonicbus busid pat = pF "harmonic" pat # pI "^harmonic" busid
-harmonicrecv :: Signal Int -> ControlSignal
+harmonicrecv :: Pattern p => p Int -> p ValueMap
 harmonicrecv busid = pI "^harmonic" busid
 
 -- | 
-hatgrain :: Signal Double -> ControlSignal
+hatgrain :: Pattern p => p Double -> p ValueMap
 hatgrain = pF "hatgrain"
-hatgrainTake :: String -> [Double] -> ControlSignal
+hatgrainTake :: Pattern p => String -> [Double] -> p ValueMap
 hatgrainTake name xs = pStateListF "hatgrain" name xs
-hatgrainCount :: String -> ControlSignal
+hatgrainCount :: Pattern p => String -> p ValueMap
 hatgrainCount name = pStateF "hatgrain" name (maybe 0 (+1))
-hatgrainCountTo :: String -> Signal Double -> Signal ValueMap
+hatgrainCountTo :: Pattern p => String -> p Double -> p ValueMap
 hatgrainCountTo name ipat = innerJoin $ (\i -> pStateF "hatgrain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-hatgrainbus :: Signal Int -> Signal Double -> ControlSignal
+hatgrainbus :: Pattern p => p Int -> p Double -> p ValueMap
 hatgrainbus busid pat = pF "hatgrain" pat # pI "^hatgrain" busid
-hatgrainrecv :: Signal Int -> ControlSignal
+hatgrainrecv :: Pattern p => p Int -> p ValueMap
 hatgrainrecv busid = pI "^hatgrain" busid
 
 -- | High pass sort of spectral filter
-hbrick :: Signal Double -> ControlSignal
+hbrick :: Pattern p => p Double -> p ValueMap
 hbrick = pF "hbrick"
-hbrickTake :: String -> [Double] -> ControlSignal
+hbrickTake :: Pattern p => String -> [Double] -> p ValueMap
 hbrickTake name xs = pStateListF "hbrick" name xs
-hbrickCount :: String -> ControlSignal
+hbrickCount :: Pattern p => String -> p ValueMap
 hbrickCount name = pStateF "hbrick" name (maybe 0 (+1))
-hbrickCountTo :: String -> Signal Double -> Signal ValueMap
+hbrickCountTo :: Pattern p => String -> p Double -> p ValueMap
 hbrickCountTo name ipat = innerJoin $ (\i -> pStateF "hbrick" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-hbrickbus :: Signal Int -> Signal Double -> ControlSignal
+hbrickbus :: Pattern p => p Int -> p Double -> p ValueMap
 hbrickbus busid pat = pF "hbrick" pat # pI "^hbrick" busid
-hbrickrecv :: Signal Int -> ControlSignal
+hbrickrecv :: Pattern p => p Int -> p ValueMap
 hbrickrecv busid = pI "^hbrick" busid
 
 -- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the high-pass filter. Also has alias @hpf@
-hcutoff :: Signal Double -> ControlSignal
+hcutoff :: Pattern p => p Double -> p ValueMap
 hcutoff = pF "hcutoff"
-hcutoffTake :: String -> [Double] -> ControlSignal
+hcutoffTake :: Pattern p => String -> [Double] -> p ValueMap
 hcutoffTake name xs = pStateListF "hcutoff" name xs
-hcutoffCount :: String -> ControlSignal
+hcutoffCount :: Pattern p => String -> p ValueMap
 hcutoffCount name = pStateF "hcutoff" name (maybe 0 (+1))
-hcutoffCountTo :: String -> Signal Double -> Signal ValueMap
+hcutoffCountTo :: Pattern p => String -> p Double -> p ValueMap
 hcutoffCountTo name ipat = innerJoin $ (\i -> pStateF "hcutoff" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-hcutoffbus :: Signal Int -> Signal Double -> ControlSignal
+hcutoffbus :: Pattern p => p Int -> p Double -> p ValueMap
 hcutoffbus busid pat = pF "hcutoff" pat # pI "^hcutoff" busid
-hcutoffrecv :: Signal Int -> ControlSignal
+hcutoffrecv :: Pattern p => p Int -> p ValueMap
 hcutoffrecv busid = pI "^hcutoff" busid
 
 -- | a pattern of numbers to specify the hold time (in seconds) of an envelope applied to each sample. Only takes effect if `attack` and `release` are also specified.
-hold :: Signal Double -> ControlSignal
+hold :: Pattern p => p Double -> p ValueMap
 hold = pF "hold"
-holdTake :: String -> [Double] -> ControlSignal
+holdTake :: Pattern p => String -> [Double] -> p ValueMap
 holdTake name xs = pStateListF "hold" name xs
-holdCount :: String -> ControlSignal
+holdCount :: Pattern p => String -> p ValueMap
 holdCount name = pStateF "hold" name (maybe 0 (+1))
-holdCountTo :: String -> Signal Double -> Signal ValueMap
+holdCountTo :: Pattern p => String -> p Double -> p ValueMap
 holdCountTo name ipat = innerJoin $ (\i -> pStateF "hold" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-holdbus :: Signal Int -> Signal Double -> ControlSignal
+holdbus :: Pattern p => p Int -> p Double -> p ValueMap
 holdbus busid pat = pF "hold" pat # pI "^hold" busid
-holdrecv :: Signal Int -> ControlSignal
+holdrecv :: Pattern p => p Int -> p ValueMap
 holdrecv busid = pI "^hold" busid
 
 -- | 
-hours :: Signal Double -> ControlSignal
+hours :: Pattern p => p Double -> p ValueMap
 hours = pF "hours"
-hoursTake :: String -> [Double] -> ControlSignal
+hoursTake :: Pattern p => String -> [Double] -> p ValueMap
 hoursTake name xs = pStateListF "hours" name xs
-hoursCount :: String -> ControlSignal
+hoursCount :: Pattern p => String -> p ValueMap
 hoursCount name = pStateF "hours" name (maybe 0 (+1))
-hoursCountTo :: String -> Signal Double -> Signal ValueMap
+hoursCountTo :: Pattern p => String -> p Double -> p ValueMap
 hoursCountTo name ipat = innerJoin $ (\i -> pStateF "hours" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-hoursbus :: Signal Int -> Signal Double -> ControlSignal
+hoursbus :: Pattern p => p Int -> p Double -> p ValueMap
 hoursbus _ _ = error "Control parameter 'hours' can't be sent to a bus."
 
 -- | a pattern of numbers from 0 to 1. Applies the resonance of the high-pass filter. Has alias @hpq@
-hresonance :: Signal Double -> ControlSignal
+hresonance :: Pattern p => p Double -> p ValueMap
 hresonance = pF "hresonance"
-hresonanceTake :: String -> [Double] -> ControlSignal
+hresonanceTake :: Pattern p => String -> [Double] -> p ValueMap
 hresonanceTake name xs = pStateListF "hresonance" name xs
-hresonanceCount :: String -> ControlSignal
+hresonanceCount :: Pattern p => String -> p ValueMap
 hresonanceCount name = pStateF "hresonance" name (maybe 0 (+1))
-hresonanceCountTo :: String -> Signal Double -> Signal ValueMap
+hresonanceCountTo :: Pattern p => String -> p Double -> p ValueMap
 hresonanceCountTo name ipat = innerJoin $ (\i -> pStateF "hresonance" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-hresonancebus :: Signal Int -> Signal Double -> ControlSignal
+hresonancebus :: Pattern p => p Int -> p Double -> p ValueMap
 hresonancebus busid pat = pF "hresonance" pat # pI "^hresonance" busid
-hresonancerecv :: Signal Int -> ControlSignal
+hresonancerecv :: Pattern p => p Int -> p ValueMap
 hresonancerecv busid = pI "^hresonance" busid
 
 -- | 
-imag :: Signal Double -> ControlSignal
+imag :: Pattern p => p Double -> p ValueMap
 imag = pF "imag"
-imagTake :: String -> [Double] -> ControlSignal
+imagTake :: Pattern p => String -> [Double] -> p ValueMap
 imagTake name xs = pStateListF "imag" name xs
-imagCount :: String -> ControlSignal
+imagCount :: Pattern p => String -> p ValueMap
 imagCount name = pStateF "imag" name (maybe 0 (+1))
-imagCountTo :: String -> Signal Double -> Signal ValueMap
+imagCountTo :: Pattern p => String -> p Double -> p ValueMap
 imagCountTo name ipat = innerJoin $ (\i -> pStateF "imag" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-imagbus :: Signal Int -> Signal Double -> ControlSignal
+imagbus :: Pattern p => p Int -> p Double -> p ValueMap
 imagbus busid pat = pF "imag" pat # pI "^imag" busid
-imagrecv :: Signal Int -> ControlSignal
+imagrecv :: Pattern p => p Int -> p ValueMap
 imagrecv busid = pI "^imag" busid
 
 -- | 
-kcutoff :: Signal Double -> ControlSignal
+kcutoff :: Pattern p => p Double -> p ValueMap
 kcutoff = pF "kcutoff"
-kcutoffTake :: String -> [Double] -> ControlSignal
+kcutoffTake :: Pattern p => String -> [Double] -> p ValueMap
 kcutoffTake name xs = pStateListF "kcutoff" name xs
-kcutoffCount :: String -> ControlSignal
+kcutoffCount :: Pattern p => String -> p ValueMap
 kcutoffCount name = pStateF "kcutoff" name (maybe 0 (+1))
-kcutoffCountTo :: String -> Signal Double -> Signal ValueMap
+kcutoffCountTo :: Pattern p => String -> p Double -> p ValueMap
 kcutoffCountTo name ipat = innerJoin $ (\i -> pStateF "kcutoff" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-kcutoffbus :: Signal Int -> Signal Double -> ControlSignal
+kcutoffbus :: Pattern p => p Int -> p Double -> p ValueMap
 kcutoffbus busid pat = pF "kcutoff" pat # pI "^kcutoff" busid
-kcutoffrecv :: Signal Int -> ControlSignal
+kcutoffrecv :: Pattern p => p Int -> p ValueMap
 kcutoffrecv busid = pI "^kcutoff" busid
 
 -- | shape/bass enhancer
-krush :: Signal Double -> ControlSignal
+krush :: Pattern p => p Double -> p ValueMap
 krush = pF "krush"
-krushTake :: String -> [Double] -> ControlSignal
+krushTake :: Pattern p => String -> [Double] -> p ValueMap
 krushTake name xs = pStateListF "krush" name xs
-krushCount :: String -> ControlSignal
+krushCount :: Pattern p => String -> p ValueMap
 krushCount name = pStateF "krush" name (maybe 0 (+1))
-krushCountTo :: String -> Signal Double -> Signal ValueMap
+krushCountTo :: Pattern p => String -> p Double -> p ValueMap
 krushCountTo name ipat = innerJoin $ (\i -> pStateF "krush" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-krushbus :: Signal Int -> Signal Double -> ControlSignal
+krushbus :: Pattern p => p Int -> p Double -> p ValueMap
 krushbus busid pat = pF "krush" pat # pI "^krush" busid
-krushrecv :: Signal Int -> ControlSignal
+krushrecv :: Pattern p => p Int -> p ValueMap
 krushrecv busid = pI "^krush" busid
 
 -- | 
-lagogo :: Signal Double -> ControlSignal
+lagogo :: Pattern p => p Double -> p ValueMap
 lagogo = pF "lagogo"
-lagogoTake :: String -> [Double] -> ControlSignal
+lagogoTake :: Pattern p => String -> [Double] -> p ValueMap
 lagogoTake name xs = pStateListF "lagogo" name xs
-lagogoCount :: String -> ControlSignal
+lagogoCount :: Pattern p => String -> p ValueMap
 lagogoCount name = pStateF "lagogo" name (maybe 0 (+1))
-lagogoCountTo :: String -> Signal Double -> Signal ValueMap
+lagogoCountTo :: Pattern p => String -> p Double -> p ValueMap
 lagogoCountTo name ipat = innerJoin $ (\i -> pStateF "lagogo" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lagogobus :: Signal Int -> Signal Double -> ControlSignal
+lagogobus :: Pattern p => p Int -> p Double -> p ValueMap
 lagogobus busid pat = pF "lagogo" pat # pI "^lagogo" busid
-lagogorecv :: Signal Int -> ControlSignal
+lagogorecv :: Pattern p => p Int -> p ValueMap
 lagogorecv busid = pI "^lagogo" busid
 
 -- | Low pass sort of spectral filter
-lbrick :: Signal Double -> ControlSignal
+lbrick :: Pattern p => p Double -> p ValueMap
 lbrick = pF "lbrick"
-lbrickTake :: String -> [Double] -> ControlSignal
+lbrickTake :: Pattern p => String -> [Double] -> p ValueMap
 lbrickTake name xs = pStateListF "lbrick" name xs
-lbrickCount :: String -> ControlSignal
+lbrickCount :: Pattern p => String -> p ValueMap
 lbrickCount name = pStateF "lbrick" name (maybe 0 (+1))
-lbrickCountTo :: String -> Signal Double -> Signal ValueMap
+lbrickCountTo :: Pattern p => String -> p Double -> p ValueMap
 lbrickCountTo name ipat = innerJoin $ (\i -> pStateF "lbrick" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lbrickbus :: Signal Int -> Signal Double -> ControlSignal
+lbrickbus :: Pattern p => p Int -> p Double -> p ValueMap
 lbrickbus busid pat = pF "lbrick" pat # pI "^lbrick" busid
-lbrickrecv :: Signal Int -> ControlSignal
+lbrickrecv :: Pattern p => p Int -> p ValueMap
 lbrickrecv busid = pI "^lbrick" busid
 
 -- | 
-lclap :: Signal Double -> ControlSignal
+lclap :: Pattern p => p Double -> p ValueMap
 lclap = pF "lclap"
-lclapTake :: String -> [Double] -> ControlSignal
+lclapTake :: Pattern p => String -> [Double] -> p ValueMap
 lclapTake name xs = pStateListF "lclap" name xs
-lclapCount :: String -> ControlSignal
+lclapCount :: Pattern p => String -> p ValueMap
 lclapCount name = pStateF "lclap" name (maybe 0 (+1))
-lclapCountTo :: String -> Signal Double -> Signal ValueMap
+lclapCountTo :: Pattern p => String -> p Double -> p ValueMap
 lclapCountTo name ipat = innerJoin $ (\i -> pStateF "lclap" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lclapbus :: Signal Int -> Signal Double -> ControlSignal
+lclapbus :: Pattern p => p Int -> p Double -> p ValueMap
 lclapbus busid pat = pF "lclap" pat # pI "^lclap" busid
-lclaprecv :: Signal Int -> ControlSignal
+lclaprecv :: Pattern p => p Int -> p ValueMap
 lclaprecv busid = pI "^lclap" busid
 
 -- | 
-lclaves :: Signal Double -> ControlSignal
+lclaves :: Pattern p => p Double -> p ValueMap
 lclaves = pF "lclaves"
-lclavesTake :: String -> [Double] -> ControlSignal
+lclavesTake :: Pattern p => String -> [Double] -> p ValueMap
 lclavesTake name xs = pStateListF "lclaves" name xs
-lclavesCount :: String -> ControlSignal
+lclavesCount :: Pattern p => String -> p ValueMap
 lclavesCount name = pStateF "lclaves" name (maybe 0 (+1))
-lclavesCountTo :: String -> Signal Double -> Signal ValueMap
+lclavesCountTo :: Pattern p => String -> p Double -> p ValueMap
 lclavesCountTo name ipat = innerJoin $ (\i -> pStateF "lclaves" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lclavesbus :: Signal Int -> Signal Double -> ControlSignal
+lclavesbus :: Pattern p => p Int -> p Double -> p ValueMap
 lclavesbus busid pat = pF "lclaves" pat # pI "^lclaves" busid
-lclavesrecv :: Signal Int -> ControlSignal
+lclavesrecv :: Pattern p => p Int -> p ValueMap
 lclavesrecv busid = pI "^lclaves" busid
 
 -- | 
-lclhat :: Signal Double -> ControlSignal
+lclhat :: Pattern p => p Double -> p ValueMap
 lclhat = pF "lclhat"
-lclhatTake :: String -> [Double] -> ControlSignal
+lclhatTake :: Pattern p => String -> [Double] -> p ValueMap
 lclhatTake name xs = pStateListF "lclhat" name xs
-lclhatCount :: String -> ControlSignal
+lclhatCount :: Pattern p => String -> p ValueMap
 lclhatCount name = pStateF "lclhat" name (maybe 0 (+1))
-lclhatCountTo :: String -> Signal Double -> Signal ValueMap
+lclhatCountTo :: Pattern p => String -> p Double -> p ValueMap
 lclhatCountTo name ipat = innerJoin $ (\i -> pStateF "lclhat" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lclhatbus :: Signal Int -> Signal Double -> ControlSignal
+lclhatbus :: Pattern p => p Int -> p Double -> p ValueMap
 lclhatbus busid pat = pF "lclhat" pat # pI "^lclhat" busid
-lclhatrecv :: Signal Int -> ControlSignal
+lclhatrecv :: Pattern p => p Int -> p ValueMap
 lclhatrecv busid = pI "^lclhat" busid
 
 -- | 
-lcrash :: Signal Double -> ControlSignal
+lcrash :: Pattern p => p Double -> p ValueMap
 lcrash = pF "lcrash"
-lcrashTake :: String -> [Double] -> ControlSignal
+lcrashTake :: Pattern p => String -> [Double] -> p ValueMap
 lcrashTake name xs = pStateListF "lcrash" name xs
-lcrashCount :: String -> ControlSignal
+lcrashCount :: Pattern p => String -> p ValueMap
 lcrashCount name = pStateF "lcrash" name (maybe 0 (+1))
-lcrashCountTo :: String -> Signal Double -> Signal ValueMap
+lcrashCountTo :: Pattern p => String -> p Double -> p ValueMap
 lcrashCountTo name ipat = innerJoin $ (\i -> pStateF "lcrash" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lcrashbus :: Signal Int -> Signal Double -> ControlSignal
+lcrashbus :: Pattern p => p Int -> p Double -> p ValueMap
 lcrashbus busid pat = pF "lcrash" pat # pI "^lcrash" busid
-lcrashrecv :: Signal Int -> ControlSignal
+lcrashrecv :: Pattern p => p Int -> p ValueMap
 lcrashrecv busid = pI "^lcrash" busid
 
 -- | controls the amount of overlap between two adjacent sounds
-legato :: Signal Double -> ControlSignal
+legato :: Pattern p => p Double -> p ValueMap
 legato = pF "legato"
-legatoTake :: String -> [Double] -> ControlSignal
+legatoTake :: Pattern p => String -> [Double] -> p ValueMap
 legatoTake name xs = pStateListF "legato" name xs
-legatoCount :: String -> ControlSignal
+legatoCount :: Pattern p => String -> p ValueMap
 legatoCount name = pStateF "legato" name (maybe 0 (+1))
-legatoCountTo :: String -> Signal Double -> Signal ValueMap
+legatoCountTo :: Pattern p => String -> p Double -> p ValueMap
 legatoCountTo name ipat = innerJoin $ (\i -> pStateF "legato" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-legatobus :: Signal Int -> Signal Double -> ControlSignal
+legatobus :: Pattern p => p Int -> p Double -> p ValueMap
 legatobus _ _ = error "Control parameter 'legato' can't be sent to a bus."
 
 -- | 
-leslie :: Signal Double -> ControlSignal
+leslie :: Pattern p => p Double -> p ValueMap
 leslie = pF "leslie"
-leslieTake :: String -> [Double] -> ControlSignal
+leslieTake :: Pattern p => String -> [Double] -> p ValueMap
 leslieTake name xs = pStateListF "leslie" name xs
-leslieCount :: String -> ControlSignal
+leslieCount :: Pattern p => String -> p ValueMap
 leslieCount name = pStateF "leslie" name (maybe 0 (+1))
-leslieCountTo :: String -> Signal Double -> Signal ValueMap
+leslieCountTo :: Pattern p => String -> p Double -> p ValueMap
 leslieCountTo name ipat = innerJoin $ (\i -> pStateF "leslie" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lesliebus :: Signal Int -> Signal Double -> ControlSignal
+lesliebus :: Pattern p => p Int -> p Double -> p ValueMap
 lesliebus busid pat = pF "leslie" pat # pI "^leslie" busid
-leslierecv :: Signal Int -> ControlSignal
+leslierecv :: Pattern p => p Int -> p ValueMap
 leslierecv busid = pI "^leslie" busid
 
 -- | 
-lfo :: Signal Double -> ControlSignal
+lfo :: Pattern p => p Double -> p ValueMap
 lfo = pF "lfo"
-lfoTake :: String -> [Double] -> ControlSignal
+lfoTake :: Pattern p => String -> [Double] -> p ValueMap
 lfoTake name xs = pStateListF "lfo" name xs
-lfoCount :: String -> ControlSignal
+lfoCount :: Pattern p => String -> p ValueMap
 lfoCount name = pStateF "lfo" name (maybe 0 (+1))
-lfoCountTo :: String -> Signal Double -> Signal ValueMap
+lfoCountTo :: Pattern p => String -> p Double -> p ValueMap
 lfoCountTo name ipat = innerJoin $ (\i -> pStateF "lfo" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lfobus :: Signal Int -> Signal Double -> ControlSignal
+lfobus :: Pattern p => p Int -> p Double -> p ValueMap
 lfobus busid pat = pF "lfo" pat # pI "^lfo" busid
-lforecv :: Signal Int -> ControlSignal
+lforecv :: Pattern p => p Int -> p ValueMap
 lforecv busid = pI "^lfo" busid
 
 -- | 
-lfocutoffint :: Signal Double -> ControlSignal
+lfocutoffint :: Pattern p => p Double -> p ValueMap
 lfocutoffint = pF "lfocutoffint"
-lfocutoffintTake :: String -> [Double] -> ControlSignal
+lfocutoffintTake :: Pattern p => String -> [Double] -> p ValueMap
 lfocutoffintTake name xs = pStateListF "lfocutoffint" name xs
-lfocutoffintCount :: String -> ControlSignal
+lfocutoffintCount :: Pattern p => String -> p ValueMap
 lfocutoffintCount name = pStateF "lfocutoffint" name (maybe 0 (+1))
-lfocutoffintCountTo :: String -> Signal Double -> Signal ValueMap
+lfocutoffintCountTo :: Pattern p => String -> p Double -> p ValueMap
 lfocutoffintCountTo name ipat = innerJoin $ (\i -> pStateF "lfocutoffint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lfocutoffintbus :: Signal Int -> Signal Double -> ControlSignal
+lfocutoffintbus :: Pattern p => p Int -> p Double -> p ValueMap
 lfocutoffintbus busid pat = pF "lfocutoffint" pat # pI "^lfocutoffint" busid
-lfocutoffintrecv :: Signal Int -> ControlSignal
+lfocutoffintrecv :: Pattern p => p Int -> p ValueMap
 lfocutoffintrecv busid = pI "^lfocutoffint" busid
 
 -- | 
-lfodelay :: Signal Double -> ControlSignal
+lfodelay :: Pattern p => p Double -> p ValueMap
 lfodelay = pF "lfodelay"
-lfodelayTake :: String -> [Double] -> ControlSignal
+lfodelayTake :: Pattern p => String -> [Double] -> p ValueMap
 lfodelayTake name xs = pStateListF "lfodelay" name xs
-lfodelayCount :: String -> ControlSignal
+lfodelayCount :: Pattern p => String -> p ValueMap
 lfodelayCount name = pStateF "lfodelay" name (maybe 0 (+1))
-lfodelayCountTo :: String -> Signal Double -> Signal ValueMap
+lfodelayCountTo :: Pattern p => String -> p Double -> p ValueMap
 lfodelayCountTo name ipat = innerJoin $ (\i -> pStateF "lfodelay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lfodelaybus :: Signal Int -> Signal Double -> ControlSignal
+lfodelaybus :: Pattern p => p Int -> p Double -> p ValueMap
 lfodelaybus busid pat = pF "lfodelay" pat # pI "^lfodelay" busid
-lfodelayrecv :: Signal Int -> ControlSignal
+lfodelayrecv :: Pattern p => p Int -> p ValueMap
 lfodelayrecv busid = pI "^lfodelay" busid
 
 -- | 
-lfoint :: Signal Double -> ControlSignal
+lfoint :: Pattern p => p Double -> p ValueMap
 lfoint = pF "lfoint"
-lfointTake :: String -> [Double] -> ControlSignal
+lfointTake :: Pattern p => String -> [Double] -> p ValueMap
 lfointTake name xs = pStateListF "lfoint" name xs
-lfointCount :: String -> ControlSignal
+lfointCount :: Pattern p => String -> p ValueMap
 lfointCount name = pStateF "lfoint" name (maybe 0 (+1))
-lfointCountTo :: String -> Signal Double -> Signal ValueMap
+lfointCountTo :: Pattern p => String -> p Double -> p ValueMap
 lfointCountTo name ipat = innerJoin $ (\i -> pStateF "lfoint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lfointbus :: Signal Int -> Signal Double -> ControlSignal
+lfointbus :: Pattern p => p Int -> p Double -> p ValueMap
 lfointbus busid pat = pF "lfoint" pat # pI "^lfoint" busid
-lfointrecv :: Signal Int -> ControlSignal
+lfointrecv :: Pattern p => p Int -> p ValueMap
 lfointrecv busid = pI "^lfoint" busid
 
 -- | 
-lfopitchint :: Signal Double -> ControlSignal
+lfopitchint :: Pattern p => p Double -> p ValueMap
 lfopitchint = pF "lfopitchint"
-lfopitchintTake :: String -> [Double] -> ControlSignal
+lfopitchintTake :: Pattern p => String -> [Double] -> p ValueMap
 lfopitchintTake name xs = pStateListF "lfopitchint" name xs
-lfopitchintCount :: String -> ControlSignal
+lfopitchintCount :: Pattern p => String -> p ValueMap
 lfopitchintCount name = pStateF "lfopitchint" name (maybe 0 (+1))
-lfopitchintCountTo :: String -> Signal Double -> Signal ValueMap
+lfopitchintCountTo :: Pattern p => String -> p Double -> p ValueMap
 lfopitchintCountTo name ipat = innerJoin $ (\i -> pStateF "lfopitchint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lfopitchintbus :: Signal Int -> Signal Double -> ControlSignal
+lfopitchintbus :: Pattern p => p Int -> p Double -> p ValueMap
 lfopitchintbus busid pat = pF "lfopitchint" pat # pI "^lfopitchint" busid
-lfopitchintrecv :: Signal Int -> ControlSignal
+lfopitchintrecv :: Pattern p => p Int -> p ValueMap
 lfopitchintrecv busid = pI "^lfopitchint" busid
 
 -- | 
-lfoshape :: Signal Double -> ControlSignal
+lfoshape :: Pattern p => p Double -> p ValueMap
 lfoshape = pF "lfoshape"
-lfoshapeTake :: String -> [Double] -> ControlSignal
+lfoshapeTake :: Pattern p => String -> [Double] -> p ValueMap
 lfoshapeTake name xs = pStateListF "lfoshape" name xs
-lfoshapeCount :: String -> ControlSignal
+lfoshapeCount :: Pattern p => String -> p ValueMap
 lfoshapeCount name = pStateF "lfoshape" name (maybe 0 (+1))
-lfoshapeCountTo :: String -> Signal Double -> Signal ValueMap
+lfoshapeCountTo :: Pattern p => String -> p Double -> p ValueMap
 lfoshapeCountTo name ipat = innerJoin $ (\i -> pStateF "lfoshape" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lfoshapebus :: Signal Int -> Signal Double -> ControlSignal
+lfoshapebus :: Pattern p => p Int -> p Double -> p ValueMap
 lfoshapebus busid pat = pF "lfoshape" pat # pI "^lfoshape" busid
-lfoshaperecv :: Signal Int -> ControlSignal
+lfoshaperecv :: Pattern p => p Int -> p ValueMap
 lfoshaperecv busid = pI "^lfoshape" busid
 
 -- | 
-lfosync :: Signal Double -> ControlSignal
+lfosync :: Pattern p => p Double -> p ValueMap
 lfosync = pF "lfosync"
-lfosyncTake :: String -> [Double] -> ControlSignal
+lfosyncTake :: Pattern p => String -> [Double] -> p ValueMap
 lfosyncTake name xs = pStateListF "lfosync" name xs
-lfosyncCount :: String -> ControlSignal
+lfosyncCount :: Pattern p => String -> p ValueMap
 lfosyncCount name = pStateF "lfosync" name (maybe 0 (+1))
-lfosyncCountTo :: String -> Signal Double -> Signal ValueMap
+lfosyncCountTo :: Pattern p => String -> p Double -> p ValueMap
 lfosyncCountTo name ipat = innerJoin $ (\i -> pStateF "lfosync" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lfosyncbus :: Signal Int -> Signal Double -> ControlSignal
+lfosyncbus :: Pattern p => p Int -> p Double -> p ValueMap
 lfosyncbus busid pat = pF "lfosync" pat # pI "^lfosync" busid
-lfosyncrecv :: Signal Int -> ControlSignal
+lfosyncrecv :: Pattern p => p Int -> p ValueMap
 lfosyncrecv busid = pI "^lfosync" busid
 
 -- | 
-lhitom :: Signal Double -> ControlSignal
+lhitom :: Pattern p => p Double -> p ValueMap
 lhitom = pF "lhitom"
-lhitomTake :: String -> [Double] -> ControlSignal
+lhitomTake :: Pattern p => String -> [Double] -> p ValueMap
 lhitomTake name xs = pStateListF "lhitom" name xs
-lhitomCount :: String -> ControlSignal
+lhitomCount :: Pattern p => String -> p ValueMap
 lhitomCount name = pStateF "lhitom" name (maybe 0 (+1))
-lhitomCountTo :: String -> Signal Double -> Signal ValueMap
+lhitomCountTo :: Pattern p => String -> p Double -> p ValueMap
 lhitomCountTo name ipat = innerJoin $ (\i -> pStateF "lhitom" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lhitombus :: Signal Int -> Signal Double -> ControlSignal
+lhitombus :: Pattern p => p Int -> p Double -> p ValueMap
 lhitombus busid pat = pF "lhitom" pat # pI "^lhitom" busid
-lhitomrecv :: Signal Int -> ControlSignal
+lhitomrecv :: Pattern p => p Int -> p ValueMap
 lhitomrecv busid = pI "^lhitom" busid
 
 -- | 
-lkick :: Signal Double -> ControlSignal
+lkick :: Pattern p => p Double -> p ValueMap
 lkick = pF "lkick"
-lkickTake :: String -> [Double] -> ControlSignal
+lkickTake :: Pattern p => String -> [Double] -> p ValueMap
 lkickTake name xs = pStateListF "lkick" name xs
-lkickCount :: String -> ControlSignal
+lkickCount :: Pattern p => String -> p ValueMap
 lkickCount name = pStateF "lkick" name (maybe 0 (+1))
-lkickCountTo :: String -> Signal Double -> Signal ValueMap
+lkickCountTo :: Pattern p => String -> p Double -> p ValueMap
 lkickCountTo name ipat = innerJoin $ (\i -> pStateF "lkick" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lkickbus :: Signal Int -> Signal Double -> ControlSignal
+lkickbus :: Pattern p => p Int -> p Double -> p ValueMap
 lkickbus busid pat = pF "lkick" pat # pI "^lkick" busid
-lkickrecv :: Signal Int -> ControlSignal
+lkickrecv :: Pattern p => p Int -> p ValueMap
 lkickrecv busid = pI "^lkick" busid
 
 -- | 
-llotom :: Signal Double -> ControlSignal
+llotom :: Pattern p => p Double -> p ValueMap
 llotom = pF "llotom"
-llotomTake :: String -> [Double] -> ControlSignal
+llotomTake :: Pattern p => String -> [Double] -> p ValueMap
 llotomTake name xs = pStateListF "llotom" name xs
-llotomCount :: String -> ControlSignal
+llotomCount :: Pattern p => String -> p ValueMap
 llotomCount name = pStateF "llotom" name (maybe 0 (+1))
-llotomCountTo :: String -> Signal Double -> Signal ValueMap
+llotomCountTo :: Pattern p => String -> p Double -> p ValueMap
 llotomCountTo name ipat = innerJoin $ (\i -> pStateF "llotom" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-llotombus :: Signal Int -> Signal Double -> ControlSignal
+llotombus :: Pattern p => p Int -> p Double -> p ValueMap
 llotombus busid pat = pF "llotom" pat # pI "^llotom" busid
-llotomrecv :: Signal Int -> ControlSignal
+llotomrecv :: Pattern p => p Int -> p ValueMap
 llotomrecv busid = pI "^llotom" busid
 
 -- | A pattern of numbers. Specifies whether delaytime is calculated relative to cps. When set to 1, delaytime is a direct multiple of a cycle.
-lock :: Signal Double -> ControlSignal
+lock :: Pattern p => p Double -> p ValueMap
 lock = pF "lock"
-lockTake :: String -> [Double] -> ControlSignal
+lockTake :: Pattern p => String -> [Double] -> p ValueMap
 lockTake name xs = pStateListF "lock" name xs
-lockCount :: String -> ControlSignal
+lockCount :: Pattern p => String -> p ValueMap
 lockCount name = pStateF "lock" name (maybe 0 (+1))
-lockCountTo :: String -> Signal Double -> Signal ValueMap
+lockCountTo :: Pattern p => String -> p Double -> p ValueMap
 lockCountTo name ipat = innerJoin $ (\i -> pStateF "lock" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lockbus :: Signal Int -> Signal Double -> ControlSignal
+lockbus :: Pattern p => p Int -> p Double -> p ValueMap
 lockbus busid pat = pF "lock" pat # pI "^lock" busid
-lockrecv :: Signal Int -> ControlSignal
+lockrecv :: Pattern p => p Int -> p ValueMap
 lockrecv busid = pI "^lock" busid
 
 -- | loops the sample (from `begin` to `end`) the specified number of times.
-loop :: Signal Double -> ControlSignal
+loop :: Pattern p => p Double -> p ValueMap
 loop = pF "loop"
-loopTake :: String -> [Double] -> ControlSignal
+loopTake :: Pattern p => String -> [Double] -> p ValueMap
 loopTake name xs = pStateListF "loop" name xs
-loopCount :: String -> ControlSignal
+loopCount :: Pattern p => String -> p ValueMap
 loopCount name = pStateF "loop" name (maybe 0 (+1))
-loopCountTo :: String -> Signal Double -> Signal ValueMap
+loopCountTo :: Pattern p => String -> p Double -> p ValueMap
 loopCountTo name ipat = innerJoin $ (\i -> pStateF "loop" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-loopbus :: Signal Int -> Signal Double -> ControlSignal
+loopbus :: Pattern p => p Int -> p Double -> p ValueMap
 loopbus _ _ = error "Control parameter 'loop' can't be sent to a bus."
 
 -- | 
-lophat :: Signal Double -> ControlSignal
+lophat :: Pattern p => p Double -> p ValueMap
 lophat = pF "lophat"
-lophatTake :: String -> [Double] -> ControlSignal
+lophatTake :: Pattern p => String -> [Double] -> p ValueMap
 lophatTake name xs = pStateListF "lophat" name xs
-lophatCount :: String -> ControlSignal
+lophatCount :: Pattern p => String -> p ValueMap
 lophatCount name = pStateF "lophat" name (maybe 0 (+1))
-lophatCountTo :: String -> Signal Double -> Signal ValueMap
+lophatCountTo :: Pattern p => String -> p Double -> p ValueMap
 lophatCountTo name ipat = innerJoin $ (\i -> pStateF "lophat" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lophatbus :: Signal Int -> Signal Double -> ControlSignal
+lophatbus :: Pattern p => p Int -> p Double -> p ValueMap
 lophatbus busid pat = pF "lophat" pat # pI "^lophat" busid
-lophatrecv :: Signal Int -> ControlSignal
+lophatrecv :: Pattern p => p Int -> p ValueMap
 lophatrecv busid = pI "^lophat" busid
 
 -- | 
-lrate :: Signal Double -> ControlSignal
+lrate :: Pattern p => p Double -> p ValueMap
 lrate = pF "lrate"
-lrateTake :: String -> [Double] -> ControlSignal
+lrateTake :: Pattern p => String -> [Double] -> p ValueMap
 lrateTake name xs = pStateListF "lrate" name xs
-lrateCount :: String -> ControlSignal
+lrateCount :: Pattern p => String -> p ValueMap
 lrateCount name = pStateF "lrate" name (maybe 0 (+1))
-lrateCountTo :: String -> Signal Double -> Signal ValueMap
+lrateCountTo :: Pattern p => String -> p Double -> p ValueMap
 lrateCountTo name ipat = innerJoin $ (\i -> pStateF "lrate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lratebus :: Signal Int -> Signal Double -> ControlSignal
+lratebus :: Pattern p => p Int -> p Double -> p ValueMap
 lratebus busid pat = pF "lrate" pat # pI "^lrate" busid
-lraterecv :: Signal Int -> ControlSignal
+lraterecv :: Pattern p => p Int -> p ValueMap
 lraterecv busid = pI "^lrate" busid
 
 -- | 
-lsize :: Signal Double -> ControlSignal
+lsize :: Pattern p => p Double -> p ValueMap
 lsize = pF "lsize"
-lsizeTake :: String -> [Double] -> ControlSignal
+lsizeTake :: Pattern p => String -> [Double] -> p ValueMap
 lsizeTake name xs = pStateListF "lsize" name xs
-lsizeCount :: String -> ControlSignal
+lsizeCount :: Pattern p => String -> p ValueMap
 lsizeCount name = pStateF "lsize" name (maybe 0 (+1))
-lsizeCountTo :: String -> Signal Double -> Signal ValueMap
+lsizeCountTo :: Pattern p => String -> p Double -> p ValueMap
 lsizeCountTo name ipat = innerJoin $ (\i -> pStateF "lsize" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lsizebus :: Signal Int -> Signal Double -> ControlSignal
+lsizebus :: Pattern p => p Int -> p Double -> p ValueMap
 lsizebus busid pat = pF "lsize" pat # pI "^lsize" busid
-lsizerecv :: Signal Int -> ControlSignal
+lsizerecv :: Pattern p => p Int -> p ValueMap
 lsizerecv busid = pI "^lsize" busid
 
 -- | 
-lsnare :: Signal Double -> ControlSignal
+lsnare :: Pattern p => p Double -> p ValueMap
 lsnare = pF "lsnare"
-lsnareTake :: String -> [Double] -> ControlSignal
+lsnareTake :: Pattern p => String -> [Double] -> p ValueMap
 lsnareTake name xs = pStateListF "lsnare" name xs
-lsnareCount :: String -> ControlSignal
+lsnareCount :: Pattern p => String -> p ValueMap
 lsnareCount name = pStateF "lsnare" name (maybe 0 (+1))
-lsnareCountTo :: String -> Signal Double -> Signal ValueMap
+lsnareCountTo :: Pattern p => String -> p Double -> p ValueMap
 lsnareCountTo name ipat = innerJoin $ (\i -> pStateF "lsnare" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-lsnarebus :: Signal Int -> Signal Double -> ControlSignal
+lsnarebus :: Pattern p => p Int -> p Double -> p ValueMap
 lsnarebus busid pat = pF "lsnare" pat # pI "^lsnare" busid
-lsnarerecv :: Signal Int -> ControlSignal
+lsnarerecv :: Pattern p => p Int -> p ValueMap
 lsnarerecv busid = pI "^lsnare" busid
 
 -- | 
-midibend :: Signal Double -> ControlSignal
+midibend :: Pattern p => p Double -> p ValueMap
 midibend = pF "midibend"
-midibendTake :: String -> [Double] -> ControlSignal
+midibendTake :: Pattern p => String -> [Double] -> p ValueMap
 midibendTake name xs = pStateListF "midibend" name xs
-midibendCount :: String -> ControlSignal
+midibendCount :: Pattern p => String -> p ValueMap
 midibendCount name = pStateF "midibend" name (maybe 0 (+1))
-midibendCountTo :: String -> Signal Double -> Signal ValueMap
+midibendCountTo :: Pattern p => String -> p Double -> p ValueMap
 midibendCountTo name ipat = innerJoin $ (\i -> pStateF "midibend" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-midibendbus :: Signal Int -> Signal Double -> ControlSignal
+midibendbus :: Pattern p => p Int -> p Double -> p ValueMap
 midibendbus _ _ = error "Control parameter 'midibend' can't be sent to a bus."
 
 -- | 
-midichan :: Signal Double -> ControlSignal
+midichan :: Pattern p => p Double -> p ValueMap
 midichan = pF "midichan"
-midichanTake :: String -> [Double] -> ControlSignal
+midichanTake :: Pattern p => String -> [Double] -> p ValueMap
 midichanTake name xs = pStateListF "midichan" name xs
-midichanCount :: String -> ControlSignal
+midichanCount :: Pattern p => String -> p ValueMap
 midichanCount name = pStateF "midichan" name (maybe 0 (+1))
-midichanCountTo :: String -> Signal Double -> Signal ValueMap
+midichanCountTo :: Pattern p => String -> p Double -> p ValueMap
 midichanCountTo name ipat = innerJoin $ (\i -> pStateF "midichan" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-midichanbus :: Signal Int -> Signal Double -> ControlSignal
+midichanbus :: Pattern p => p Int -> p Double -> p ValueMap
 midichanbus _ _ = error "Control parameter 'midichan' can't be sent to a bus."
 
 -- | 
-midicmd :: Signal String -> ControlSignal
+midicmd :: Pattern p => p String -> p ValueMap
 midicmd = pS "midicmd"
-midicmdTake :: String -> [Double] -> ControlSignal
+midicmdTake :: Pattern p => String -> [Double] -> p ValueMap
 midicmdTake name xs = pStateListF "midicmd" name xs
-midicmdbus :: Signal Int -> Signal String -> ControlSignal
+midicmdbus :: Pattern p => p Int -> p String -> p ValueMap
 midicmdbus _ _ = error "Control parameter 'midicmd' can't be sent to a bus."
 
 -- | 
-miditouch :: Signal Double -> ControlSignal
+miditouch :: Pattern p => p Double -> p ValueMap
 miditouch = pF "miditouch"
-miditouchTake :: String -> [Double] -> ControlSignal
+miditouchTake :: Pattern p => String -> [Double] -> p ValueMap
 miditouchTake name xs = pStateListF "miditouch" name xs
-miditouchCount :: String -> ControlSignal
+miditouchCount :: Pattern p => String -> p ValueMap
 miditouchCount name = pStateF "miditouch" name (maybe 0 (+1))
-miditouchCountTo :: String -> Signal Double -> Signal ValueMap
+miditouchCountTo :: Pattern p => String -> p Double -> p ValueMap
 miditouchCountTo name ipat = innerJoin $ (\i -> pStateF "miditouch" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-miditouchbus :: Signal Int -> Signal Double -> ControlSignal
+miditouchbus :: Pattern p => p Int -> p Double -> p ValueMap
 miditouchbus _ _ = error "Control parameter 'miditouch' can't be sent to a bus."
 
 -- | 
-minutes :: Signal Double -> ControlSignal
+minutes :: Pattern p => p Double -> p ValueMap
 minutes = pF "minutes"
-minutesTake :: String -> [Double] -> ControlSignal
+minutesTake :: Pattern p => String -> [Double] -> p ValueMap
 minutesTake name xs = pStateListF "minutes" name xs
-minutesCount :: String -> ControlSignal
+minutesCount :: Pattern p => String -> p ValueMap
 minutesCount name = pStateF "minutes" name (maybe 0 (+1))
-minutesCountTo :: String -> Signal Double -> Signal ValueMap
+minutesCountTo :: Pattern p => String -> p Double -> p ValueMap
 minutesCountTo name ipat = innerJoin $ (\i -> pStateF "minutes" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-minutesbus :: Signal Int -> Signal Double -> ControlSignal
+minutesbus :: Pattern p => p Int -> p Double -> p ValueMap
 minutesbus _ _ = error "Control parameter 'minutes' can't be sent to a bus."
 
 -- | 
-modwheel :: Signal Double -> ControlSignal
+modwheel :: Pattern p => p Double -> p ValueMap
 modwheel = pF "modwheel"
-modwheelTake :: String -> [Double] -> ControlSignal
+modwheelTake :: Pattern p => String -> [Double] -> p ValueMap
 modwheelTake name xs = pStateListF "modwheel" name xs
-modwheelCount :: String -> ControlSignal
+modwheelCount :: Pattern p => String -> p ValueMap
 modwheelCount name = pStateF "modwheel" name (maybe 0 (+1))
-modwheelCountTo :: String -> Signal Double -> Signal ValueMap
+modwheelCountTo :: Pattern p => String -> p Double -> p ValueMap
 modwheelCountTo name ipat = innerJoin $ (\i -> pStateF "modwheel" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-modwheelbus :: Signal Int -> Signal Double -> ControlSignal
+modwheelbus :: Pattern p => p Int -> p Double -> p ValueMap
 modwheelbus busid pat = pF "modwheel" pat # pI "^modwheel" busid
-modwheelrecv :: Signal Int -> ControlSignal
+modwheelrecv :: Pattern p => p Int -> p ValueMap
 modwheelrecv busid = pI "^modwheel" busid
 
 -- | 
-mtranspose :: Signal Double -> ControlSignal
+mtranspose :: Pattern p => p Double -> p ValueMap
 mtranspose = pF "mtranspose"
-mtransposeTake :: String -> [Double] -> ControlSignal
+mtransposeTake :: Pattern p => String -> [Double] -> p ValueMap
 mtransposeTake name xs = pStateListF "mtranspose" name xs
-mtransposeCount :: String -> ControlSignal
+mtransposeCount :: Pattern p => String -> p ValueMap
 mtransposeCount name = pStateF "mtranspose" name (maybe 0 (+1))
-mtransposeCountTo :: String -> Signal Double -> Signal ValueMap
+mtransposeCountTo :: Pattern p => String -> p Double -> p ValueMap
 mtransposeCountTo name ipat = innerJoin $ (\i -> pStateF "mtranspose" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-mtransposebus :: Signal Int -> Signal Double -> ControlSignal
+mtransposebus :: Pattern p => p Int -> p Double -> p ValueMap
 mtransposebus busid pat = pF "mtranspose" pat # pI "^mtranspose" busid
-mtransposerecv :: Signal Int -> ControlSignal
+mtransposerecv :: Pattern p => p Int -> p ValueMap
 mtransposerecv busid = pI "^mtranspose" busid
 
 -- | The note or sample number to choose for a synth or sampleset
-n :: Signal Note -> ControlSignal
+n :: Pattern p => p Note -> p ValueMap
 n = pN "n"
-nTake :: String -> [Double] -> ControlSignal
+nTake :: Pattern p => String -> [Double] -> p ValueMap
 nTake name xs = pStateListF "n" name xs
-nCount :: String -> ControlSignal
+nCount :: Pattern p => String -> p ValueMap
 nCount name = pStateF "n" name (maybe 0 (+1))
-nCountTo :: String -> Signal Double -> Signal ValueMap
+nCountTo :: Pattern p => String -> p Double -> p ValueMap
 nCountTo name ipat = innerJoin $ (\i -> pStateF "n" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-nbus :: Signal Int -> Signal Note -> ControlSignal
+nbus :: Pattern p => p Int -> p Note -> p ValueMap
 nbus _ _ = error "Control parameter 'n' can't be sent to a bus."
 
 -- | The note or pitch to play a sound or synth with
-note :: Signal Note -> ControlSignal
+note :: Pattern p => p Note -> p ValueMap
 note = pN "note"
-noteTake :: String -> [Double] -> ControlSignal
+noteTake :: Pattern p => String -> [Double] -> p ValueMap
 noteTake name xs = pStateListF "note" name xs
-noteCount :: String -> ControlSignal
+noteCount :: Pattern p => String -> p ValueMap
 noteCount name = pStateF "note" name (maybe 0 (+1))
-noteCountTo :: String -> Signal Double -> Signal ValueMap
+noteCountTo :: Pattern p => String -> p Double -> p ValueMap
 noteCountTo name ipat = innerJoin $ (\i -> pStateF "note" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-notebus :: Signal Int -> Signal Note -> ControlSignal
+notebus :: Pattern p => p Int -> p Note -> p ValueMap
 notebus _ _ = error "Control parameter 'note' can't be sent to a bus."
 
 -- | Nudges events into the future by the specified number of seconds. Negative numbers work up to a point as well (due to internal latency)
-nudge :: Signal Double -> ControlSignal
+nudge :: Pattern p => p Double -> p ValueMap
 nudge = pF "nudge"
-nudgeTake :: String -> [Double] -> ControlSignal
+nudgeTake :: Pattern p => String -> [Double] -> p ValueMap
 nudgeTake name xs = pStateListF "nudge" name xs
-nudgeCount :: String -> ControlSignal
+nudgeCount :: Pattern p => String -> p ValueMap
 nudgeCount name = pStateF "nudge" name (maybe 0 (+1))
-nudgeCountTo :: String -> Signal Double -> Signal ValueMap
+nudgeCountTo :: Pattern p => String -> p Double -> p ValueMap
 nudgeCountTo name ipat = innerJoin $ (\i -> pStateF "nudge" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-nudgebus :: Signal Int -> Signal Double -> ControlSignal
+nudgebus :: Pattern p => p Int -> p Double -> p ValueMap
 nudgebus busid pat = pF "nudge" pat # pI "^nudge" busid
-nudgerecv :: Signal Int -> ControlSignal
+nudgerecv :: Pattern p => p Int -> p ValueMap
 nudgerecv busid = pI "^nudge" busid
 
 -- | 
-octave :: Signal Int -> ControlSignal
+octave :: Pattern p => p Int -> p ValueMap
 octave = pI "octave"
-octaveTake :: String -> [Double] -> ControlSignal
+octaveTake :: Pattern p => String -> [Double] -> p ValueMap
 octaveTake name xs = pStateListF "octave" name xs
-octaveCount :: String -> ControlSignal
+octaveCount :: Pattern p => String -> p ValueMap
 octaveCount name = pStateF "octave" name (maybe 0 (+1))
-octaveCountTo :: String -> Signal Double -> Signal ValueMap
+octaveCountTo :: Pattern p => String -> p Double -> p ValueMap
 octaveCountTo name ipat = innerJoin $ (\i -> pStateF "octave" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-octavebus :: Signal Int -> Signal Int -> ControlSignal
+octavebus :: Pattern p => p Int -> p Int -> p ValueMap
 octavebus _ _ = error "Control parameter 'octave' can't be sent to a bus."
 
 -- | 
-octaveR :: Signal Double -> ControlSignal
+octaveR :: Pattern p => p Double -> p ValueMap
 octaveR = pF "octaveR"
-octaveRTake :: String -> [Double] -> ControlSignal
+octaveRTake :: Pattern p => String -> [Double] -> p ValueMap
 octaveRTake name xs = pStateListF "octaveR" name xs
-octaveRCount :: String -> ControlSignal
+octaveRCount :: Pattern p => String -> p ValueMap
 octaveRCount name = pStateF "octaveR" name (maybe 0 (+1))
-octaveRCountTo :: String -> Signal Double -> Signal ValueMap
+octaveRCountTo :: Pattern p => String -> p Double -> p ValueMap
 octaveRCountTo name ipat = innerJoin $ (\i -> pStateF "octaveR" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-octaveRbus :: Signal Int -> Signal Double -> ControlSignal
+octaveRbus :: Pattern p => p Int -> p Double -> p ValueMap
 octaveRbus busid pat = pF "octaveR" pat # pI "^octaveR" busid
-octaveRrecv :: Signal Int -> ControlSignal
+octaveRrecv :: Pattern p => p Int -> p ValueMap
 octaveRrecv busid = pI "^octaveR" busid
 
 -- | octaver effect
-octer :: Signal Double -> ControlSignal
+octer :: Pattern p => p Double -> p ValueMap
 octer = pF "octer"
-octerTake :: String -> [Double] -> ControlSignal
+octerTake :: Pattern p => String -> [Double] -> p ValueMap
 octerTake name xs = pStateListF "octer" name xs
-octerCount :: String -> ControlSignal
+octerCount :: Pattern p => String -> p ValueMap
 octerCount name = pStateF "octer" name (maybe 0 (+1))
-octerCountTo :: String -> Signal Double -> Signal ValueMap
+octerCountTo :: Pattern p => String -> p Double -> p ValueMap
 octerCountTo name ipat = innerJoin $ (\i -> pStateF "octer" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-octerbus :: Signal Int -> Signal Double -> ControlSignal
+octerbus :: Pattern p => p Int -> p Double -> p ValueMap
 octerbus busid pat = pF "octer" pat # pI "^octer" busid
-octerrecv :: Signal Int -> ControlSignal
+octerrecv :: Pattern p => p Int -> p ValueMap
 octerrecv busid = pI "^octer" busid
 
 -- | octaver effect
-octersub :: Signal Double -> ControlSignal
+octersub :: Pattern p => p Double -> p ValueMap
 octersub = pF "octersub"
-octersubTake :: String -> [Double] -> ControlSignal
+octersubTake :: Pattern p => String -> [Double] -> p ValueMap
 octersubTake name xs = pStateListF "octersub" name xs
-octersubCount :: String -> ControlSignal
+octersubCount :: Pattern p => String -> p ValueMap
 octersubCount name = pStateF "octersub" name (maybe 0 (+1))
-octersubCountTo :: String -> Signal Double -> Signal ValueMap
+octersubCountTo :: Pattern p => String -> p Double -> p ValueMap
 octersubCountTo name ipat = innerJoin $ (\i -> pStateF "octersub" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-octersubbus :: Signal Int -> Signal Double -> ControlSignal
+octersubbus :: Pattern p => p Int -> p Double -> p ValueMap
 octersubbus busid pat = pF "octersub" pat # pI "^octersub" busid
-octersubrecv :: Signal Int -> ControlSignal
+octersubrecv :: Pattern p => p Int -> p ValueMap
 octersubrecv busid = pI "^octersub" busid
 
 -- | octaver effect
-octersubsub :: Signal Double -> ControlSignal
+octersubsub :: Pattern p => p Double -> p ValueMap
 octersubsub = pF "octersubsub"
-octersubsubTake :: String -> [Double] -> ControlSignal
+octersubsubTake :: Pattern p => String -> [Double] -> p ValueMap
 octersubsubTake name xs = pStateListF "octersubsub" name xs
-octersubsubCount :: String -> ControlSignal
+octersubsubCount :: Pattern p => String -> p ValueMap
 octersubsubCount name = pStateF "octersubsub" name (maybe 0 (+1))
-octersubsubCountTo :: String -> Signal Double -> Signal ValueMap
+octersubsubCountTo :: Pattern p => String -> p Double -> p ValueMap
 octersubsubCountTo name ipat = innerJoin $ (\i -> pStateF "octersubsub" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-octersubsubbus :: Signal Int -> Signal Double -> ControlSignal
+octersubsubbus :: Pattern p => p Int -> p Double -> p ValueMap
 octersubsubbus busid pat = pF "octersubsub" pat # pI "^octersubsub" busid
-octersubsubrecv :: Signal Int -> ControlSignal
+octersubsubrecv :: Pattern p => p Int -> p ValueMap
 octersubsubrecv busid = pI "^octersubsub" busid
 
 -- | 
-offset :: Signal Double -> ControlSignal
+offset :: Pattern p => p Double -> p ValueMap
 offset = pF "offset"
-offsetTake :: String -> [Double] -> ControlSignal
+offsetTake :: Pattern p => String -> [Double] -> p ValueMap
 offsetTake name xs = pStateListF "offset" name xs
-offsetCount :: String -> ControlSignal
+offsetCount :: Pattern p => String -> p ValueMap
 offsetCount name = pStateF "offset" name (maybe 0 (+1))
-offsetCountTo :: String -> Signal Double -> Signal ValueMap
+offsetCountTo :: Pattern p => String -> p Double -> p ValueMap
 offsetCountTo name ipat = innerJoin $ (\i -> pStateF "offset" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-offsetbus :: Signal Int -> Signal Double -> ControlSignal
+offsetbus :: Pattern p => p Int -> p Double -> p ValueMap
 offsetbus _ _ = error "Control parameter 'offset' can't be sent to a bus."
 
 -- | 
-ophatdecay :: Signal Double -> ControlSignal
+ophatdecay :: Pattern p => p Double -> p ValueMap
 ophatdecay = pF "ophatdecay"
-ophatdecayTake :: String -> [Double] -> ControlSignal
+ophatdecayTake :: Pattern p => String -> [Double] -> p ValueMap
 ophatdecayTake name xs = pStateListF "ophatdecay" name xs
-ophatdecayCount :: String -> ControlSignal
+ophatdecayCount :: Pattern p => String -> p ValueMap
 ophatdecayCount name = pStateF "ophatdecay" name (maybe 0 (+1))
-ophatdecayCountTo :: String -> Signal Double -> Signal ValueMap
+ophatdecayCountTo :: Pattern p => String -> p Double -> p ValueMap
 ophatdecayCountTo name ipat = innerJoin $ (\i -> pStateF "ophatdecay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-ophatdecaybus :: Signal Int -> Signal Double -> ControlSignal
+ophatdecaybus :: Pattern p => p Int -> p Double -> p ValueMap
 ophatdecaybus busid pat = pF "ophatdecay" pat # pI "^ophatdecay" busid
-ophatdecayrecv :: Signal Int -> ControlSignal
+ophatdecayrecv :: Pattern p => p Int -> p ValueMap
 ophatdecayrecv busid = pI "^ophatdecay" busid
 
 -- | a pattern of numbers. An `orbit` is a global parameter context for patterns. Patterns with the same orbit will share hardware output bus offset and global effects, e.g. reverb and delay. The maximum number of orbits is specified in the superdirt startup, numbers higher than maximum will wrap around.
-orbit :: Signal Int -> ControlSignal
+orbit :: Pattern p => p Int -> p ValueMap
 orbit = pI "orbit"
-orbitTake :: String -> [Double] -> ControlSignal
+orbitTake :: Pattern p => String -> [Double] -> p ValueMap
 orbitTake name xs = pStateListF "orbit" name xs
-orbitCount :: String -> ControlSignal
+orbitCount :: Pattern p => String -> p ValueMap
 orbitCount name = pStateF "orbit" name (maybe 0 (+1))
-orbitCountTo :: String -> Signal Double -> Signal ValueMap
+orbitCountTo :: Pattern p => String -> p Double -> p ValueMap
 orbitCountTo name ipat = innerJoin $ (\i -> pStateF "orbit" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-orbitbus :: Signal Int -> Signal Int -> ControlSignal
+orbitbus :: Pattern p => p Int -> p Int -> p ValueMap
 orbitbus busid pat = pI "orbit" pat # pI "^orbit" busid
-orbitrecv :: Signal Int -> ControlSignal
+orbitrecv :: Pattern p => p Int -> p ValueMap
 orbitrecv busid = pI "^orbit" busid
 
 -- | 
-overgain :: Signal Double -> ControlSignal
+overgain :: Pattern p => p Double -> p ValueMap
 overgain = pF "overgain"
-overgainTake :: String -> [Double] -> ControlSignal
+overgainTake :: Pattern p => String -> [Double] -> p ValueMap
 overgainTake name xs = pStateListF "overgain" name xs
-overgainCount :: String -> ControlSignal
+overgainCount :: Pattern p => String -> p ValueMap
 overgainCount name = pStateF "overgain" name (maybe 0 (+1))
-overgainCountTo :: String -> Signal Double -> Signal ValueMap
+overgainCountTo :: Pattern p => String -> p Double -> p ValueMap
 overgainCountTo name ipat = innerJoin $ (\i -> pStateF "overgain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-overgainbus :: Signal Int -> Signal Double -> ControlSignal
+overgainbus :: Pattern p => p Int -> p Double -> p ValueMap
 overgainbus _ _ = error "Control parameter 'overgain' can't be sent to a bus."
 
 -- | 
-overshape :: Signal Double -> ControlSignal
+overshape :: Pattern p => p Double -> p ValueMap
 overshape = pF "overshape"
-overshapeTake :: String -> [Double] -> ControlSignal
+overshapeTake :: Pattern p => String -> [Double] -> p ValueMap
 overshapeTake name xs = pStateListF "overshape" name xs
-overshapeCount :: String -> ControlSignal
+overshapeCount :: Pattern p => String -> p ValueMap
 overshapeCount name = pStateF "overshape" name (maybe 0 (+1))
-overshapeCountTo :: String -> Signal Double -> Signal ValueMap
+overshapeCountTo :: Pattern p => String -> p Double -> p ValueMap
 overshapeCountTo name ipat = innerJoin $ (\i -> pStateF "overshape" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-overshapebus :: Signal Int -> Signal Double -> ControlSignal
+overshapebus :: Pattern p => p Int -> p Double -> p ValueMap
 overshapebus busid pat = pF "overshape" pat # pI "^overshape" busid
-overshaperecv :: Signal Int -> ControlSignal
+overshaperecv :: Pattern p => p Int -> p ValueMap
 overshaperecv busid = pI "^overshape" busid
 
 -- | a pattern of numbers between 0 and 1, from left to right (assuming stereo), once round a circle (assuming multichannel)
-pan :: Signal Double -> ControlSignal
+pan :: Pattern p => p Double -> p ValueMap
 pan = pF "pan"
-panTake :: String -> [Double] -> ControlSignal
+panTake :: Pattern p => String -> [Double] -> p ValueMap
 panTake name xs = pStateListF "pan" name xs
-panCount :: String -> ControlSignal
+panCount :: Pattern p => String -> p ValueMap
 panCount name = pStateF "pan" name (maybe 0 (+1))
-panCountTo :: String -> Signal Double -> Signal ValueMap
+panCountTo :: Pattern p => String -> p Double -> p ValueMap
 panCountTo name ipat = innerJoin $ (\i -> pStateF "pan" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-panbus :: Signal Int -> Signal Double -> ControlSignal
+panbus :: Pattern p => p Int -> p Double -> p ValueMap
 panbus busid pat = pF "pan" pat # pI "^pan" busid
-panrecv :: Signal Int -> ControlSignal
+panrecv :: Pattern p => p Int -> p ValueMap
 panrecv busid = pI "^pan" busid
 
 -- | a pattern of numbers between -1.0 and 1.0, which controls the relative position of the centre pan in a pair of adjacent speakers (multichannel only)
-panorient :: Signal Double -> ControlSignal
+panorient :: Pattern p => p Double -> p ValueMap
 panorient = pF "panorient"
-panorientTake :: String -> [Double] -> ControlSignal
+panorientTake :: Pattern p => String -> [Double] -> p ValueMap
 panorientTake name xs = pStateListF "panorient" name xs
-panorientCount :: String -> ControlSignal
+panorientCount :: Pattern p => String -> p ValueMap
 panorientCount name = pStateF "panorient" name (maybe 0 (+1))
-panorientCountTo :: String -> Signal Double -> Signal ValueMap
+panorientCountTo :: Pattern p => String -> p Double -> p ValueMap
 panorientCountTo name ipat = innerJoin $ (\i -> pStateF "panorient" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-panorientbus :: Signal Int -> Signal Double -> ControlSignal
+panorientbus :: Pattern p => p Int -> p Double -> p ValueMap
 panorientbus busid pat = pF "panorient" pat # pI "^panorient" busid
-panorientrecv :: Signal Int -> ControlSignal
+panorientrecv :: Pattern p => p Int -> p ValueMap
 panorientrecv busid = pI "^panorient" busid
 
 -- | a pattern of numbers between -inf and inf, which controls how much multichannel output is fanned out (negative is backwards ordering)
-panspan :: Signal Double -> ControlSignal
+panspan :: Pattern p => p Double -> p ValueMap
 panspan = pF "panspan"
-panspanTake :: String -> [Double] -> ControlSignal
+panspanTake :: Pattern p => String -> [Double] -> p ValueMap
 panspanTake name xs = pStateListF "panspan" name xs
-panspanCount :: String -> ControlSignal
+panspanCount :: Pattern p => String -> p ValueMap
 panspanCount name = pStateF "panspan" name (maybe 0 (+1))
-panspanCountTo :: String -> Signal Double -> Signal ValueMap
+panspanCountTo :: Pattern p => String -> p Double -> p ValueMap
 panspanCountTo name ipat = innerJoin $ (\i -> pStateF "panspan" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-panspanbus :: Signal Int -> Signal Double -> ControlSignal
+panspanbus :: Pattern p => p Int -> p Double -> p ValueMap
 panspanbus busid pat = pF "panspan" pat # pI "^panspan" busid
-panspanrecv :: Signal Int -> ControlSignal
+panspanrecv :: Pattern p => p Int -> p ValueMap
 panspanrecv busid = pI "^panspan" busid
 
 -- | a pattern of numbers between 0.0 and 1.0, which controls the multichannel spread range (multichannel only)
-pansplay :: Signal Double -> ControlSignal
+pansplay :: Pattern p => p Double -> p ValueMap
 pansplay = pF "pansplay"
-pansplayTake :: String -> [Double] -> ControlSignal
+pansplayTake :: Pattern p => String -> [Double] -> p ValueMap
 pansplayTake name xs = pStateListF "pansplay" name xs
-pansplayCount :: String -> ControlSignal
+pansplayCount :: Pattern p => String -> p ValueMap
 pansplayCount name = pStateF "pansplay" name (maybe 0 (+1))
-pansplayCountTo :: String -> Signal Double -> Signal ValueMap
+pansplayCountTo :: Pattern p => String -> p Double -> p ValueMap
 pansplayCountTo name ipat = innerJoin $ (\i -> pStateF "pansplay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-pansplaybus :: Signal Int -> Signal Double -> ControlSignal
+pansplaybus :: Pattern p => p Int -> p Double -> p ValueMap
 pansplaybus busid pat = pF "pansplay" pat # pI "^pansplay" busid
-pansplayrecv :: Signal Int -> ControlSignal
+pansplayrecv :: Pattern p => p Int -> p ValueMap
 pansplayrecv busid = pI "^pansplay" busid
 
 -- | a pattern of numbers between 0.0 and inf, which controls how much each channel is distributed over neighbours (multichannel only)
-panwidth :: Signal Double -> ControlSignal
+panwidth :: Pattern p => p Double -> p ValueMap
 panwidth = pF "panwidth"
-panwidthTake :: String -> [Double] -> ControlSignal
+panwidthTake :: Pattern p => String -> [Double] -> p ValueMap
 panwidthTake name xs = pStateListF "panwidth" name xs
-panwidthCount :: String -> ControlSignal
+panwidthCount :: Pattern p => String -> p ValueMap
 panwidthCount name = pStateF "panwidth" name (maybe 0 (+1))
-panwidthCountTo :: String -> Signal Double -> Signal ValueMap
+panwidthCountTo :: Pattern p => String -> p Double -> p ValueMap
 panwidthCountTo name ipat = innerJoin $ (\i -> pStateF "panwidth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-panwidthbus :: Signal Int -> Signal Double -> ControlSignal
+panwidthbus :: Pattern p => p Int -> p Double -> p ValueMap
 panwidthbus busid pat = pF "panwidth" pat # pI "^panwidth" busid
-panwidthrecv :: Signal Int -> ControlSignal
+panwidthrecv :: Pattern p => p Int -> p ValueMap
 panwidthrecv busid = pI "^panwidth" busid
 
 -- | 
-partials :: Signal Double -> ControlSignal
+partials :: Pattern p => p Double -> p ValueMap
 partials = pF "partials"
-partialsTake :: String -> [Double] -> ControlSignal
+partialsTake :: Pattern p => String -> [Double] -> p ValueMap
 partialsTake name xs = pStateListF "partials" name xs
-partialsCount :: String -> ControlSignal
+partialsCount :: Pattern p => String -> p ValueMap
 partialsCount name = pStateF "partials" name (maybe 0 (+1))
-partialsCountTo :: String -> Signal Double -> Signal ValueMap
+partialsCountTo :: Pattern p => String -> p Double -> p ValueMap
 partialsCountTo name ipat = innerJoin $ (\i -> pStateF "partials" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-partialsbus :: Signal Int -> Signal Double -> ControlSignal
+partialsbus :: Pattern p => p Int -> p Double -> p ValueMap
 partialsbus busid pat = pF "partials" pat # pI "^partials" busid
-partialsrecv :: Signal Int -> ControlSignal
+partialsrecv :: Pattern p => p Int -> p ValueMap
 partialsrecv busid = pI "^partials" busid
 
 -- | Phaser Audio DSP effect | params are 'phaserrate' and 'phaserdepth'
-phaserdepth :: Signal Double -> ControlSignal
+phaserdepth :: Pattern p => p Double -> p ValueMap
 phaserdepth = pF "phaserdepth"
-phaserdepthTake :: String -> [Double] -> ControlSignal
+phaserdepthTake :: Pattern p => String -> [Double] -> p ValueMap
 phaserdepthTake name xs = pStateListF "phaserdepth" name xs
-phaserdepthCount :: String -> ControlSignal
+phaserdepthCount :: Pattern p => String -> p ValueMap
 phaserdepthCount name = pStateF "phaserdepth" name (maybe 0 (+1))
-phaserdepthCountTo :: String -> Signal Double -> Signal ValueMap
+phaserdepthCountTo :: Pattern p => String -> p Double -> p ValueMap
 phaserdepthCountTo name ipat = innerJoin $ (\i -> pStateF "phaserdepth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-phaserdepthbus :: Signal Int -> Signal Double -> ControlSignal
+phaserdepthbus :: Pattern p => p Int -> p Double -> p ValueMap
 phaserdepthbus busid pat = pF "phaserdepth" pat # pI "^phaserdepth" busid
-phaserdepthrecv :: Signal Int -> ControlSignal
+phaserdepthrecv :: Pattern p => p Int -> p ValueMap
 phaserdepthrecv busid = pI "^phaserdepth" busid
 
 -- | Phaser Audio DSP effect | params are 'phaserrate' and 'phaserdepth'
-phaserrate :: Signal Double -> ControlSignal
+phaserrate :: Pattern p => p Double -> p ValueMap
 phaserrate = pF "phaserrate"
-phaserrateTake :: String -> [Double] -> ControlSignal
+phaserrateTake :: Pattern p => String -> [Double] -> p ValueMap
 phaserrateTake name xs = pStateListF "phaserrate" name xs
-phaserrateCount :: String -> ControlSignal
+phaserrateCount :: Pattern p => String -> p ValueMap
 phaserrateCount name = pStateF "phaserrate" name (maybe 0 (+1))
-phaserrateCountTo :: String -> Signal Double -> Signal ValueMap
+phaserrateCountTo :: Pattern p => String -> p Double -> p ValueMap
 phaserrateCountTo name ipat = innerJoin $ (\i -> pStateF "phaserrate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-phaserratebus :: Signal Int -> Signal Double -> ControlSignal
+phaserratebus :: Pattern p => p Int -> p Double -> p ValueMap
 phaserratebus busid pat = pF "phaserrate" pat # pI "^phaserrate" busid
-phaserraterecv :: Signal Int -> ControlSignal
+phaserraterecv :: Pattern p => p Int -> p ValueMap
 phaserraterecv busid = pI "^phaserrate" busid
 
 -- | 
-pitch1 :: Signal Double -> ControlSignal
+pitch1 :: Pattern p => p Double -> p ValueMap
 pitch1 = pF "pitch1"
-pitch1Take :: String -> [Double] -> ControlSignal
+pitch1Take :: Pattern p => String -> [Double] -> p ValueMap
 pitch1Take name xs = pStateListF "pitch1" name xs
-pitch1Count :: String -> ControlSignal
+pitch1Count :: Pattern p => String -> p ValueMap
 pitch1Count name = pStateF "pitch1" name (maybe 0 (+1))
-pitch1CountTo :: String -> Signal Double -> Signal ValueMap
+pitch1CountTo :: Pattern p => String -> p Double -> p ValueMap
 pitch1CountTo name ipat = innerJoin $ (\i -> pStateF "pitch1" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-pitch1bus :: Signal Int -> Signal Double -> ControlSignal
+pitch1bus :: Pattern p => p Int -> p Double -> p ValueMap
 pitch1bus busid pat = pF "pitch1" pat # pI "^pitch1" busid
-pitch1recv :: Signal Int -> ControlSignal
+pitch1recv :: Pattern p => p Int -> p ValueMap
 pitch1recv busid = pI "^pitch1" busid
 
 -- | 
-pitch2 :: Signal Double -> ControlSignal
+pitch2 :: Pattern p => p Double -> p ValueMap
 pitch2 = pF "pitch2"
-pitch2Take :: String -> [Double] -> ControlSignal
+pitch2Take :: Pattern p => String -> [Double] -> p ValueMap
 pitch2Take name xs = pStateListF "pitch2" name xs
-pitch2Count :: String -> ControlSignal
+pitch2Count :: Pattern p => String -> p ValueMap
 pitch2Count name = pStateF "pitch2" name (maybe 0 (+1))
-pitch2CountTo :: String -> Signal Double -> Signal ValueMap
+pitch2CountTo :: Pattern p => String -> p Double -> p ValueMap
 pitch2CountTo name ipat = innerJoin $ (\i -> pStateF "pitch2" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-pitch2bus :: Signal Int -> Signal Double -> ControlSignal
+pitch2bus :: Pattern p => p Int -> p Double -> p ValueMap
 pitch2bus busid pat = pF "pitch2" pat # pI "^pitch2" busid
-pitch2recv :: Signal Int -> ControlSignal
+pitch2recv :: Pattern p => p Int -> p ValueMap
 pitch2recv busid = pI "^pitch2" busid
 
 -- | 
-pitch3 :: Signal Double -> ControlSignal
+pitch3 :: Pattern p => p Double -> p ValueMap
 pitch3 = pF "pitch3"
-pitch3Take :: String -> [Double] -> ControlSignal
+pitch3Take :: Pattern p => String -> [Double] -> p ValueMap
 pitch3Take name xs = pStateListF "pitch3" name xs
-pitch3Count :: String -> ControlSignal
+pitch3Count :: Pattern p => String -> p ValueMap
 pitch3Count name = pStateF "pitch3" name (maybe 0 (+1))
-pitch3CountTo :: String -> Signal Double -> Signal ValueMap
+pitch3CountTo :: Pattern p => String -> p Double -> p ValueMap
 pitch3CountTo name ipat = innerJoin $ (\i -> pStateF "pitch3" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-pitch3bus :: Signal Int -> Signal Double -> ControlSignal
+pitch3bus :: Pattern p => p Int -> p Double -> p ValueMap
 pitch3bus busid pat = pF "pitch3" pat # pI "^pitch3" busid
-pitch3recv :: Signal Int -> ControlSignal
+pitch3recv :: Pattern p => p Int -> p ValueMap
 pitch3recv busid = pI "^pitch3" busid
 
 -- | 
-polyTouch :: Signal Double -> ControlSignal
+polyTouch :: Pattern p => p Double -> p ValueMap
 polyTouch = pF "polyTouch"
-polyTouchTake :: String -> [Double] -> ControlSignal
+polyTouchTake :: Pattern p => String -> [Double] -> p ValueMap
 polyTouchTake name xs = pStateListF "polyTouch" name xs
-polyTouchCount :: String -> ControlSignal
+polyTouchCount :: Pattern p => String -> p ValueMap
 polyTouchCount name = pStateF "polyTouch" name (maybe 0 (+1))
-polyTouchCountTo :: String -> Signal Double -> Signal ValueMap
+polyTouchCountTo :: Pattern p => String -> p Double -> p ValueMap
 polyTouchCountTo name ipat = innerJoin $ (\i -> pStateF "polyTouch" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-polyTouchbus :: Signal Int -> Signal Double -> ControlSignal
+polyTouchbus :: Pattern p => p Int -> p Double -> p ValueMap
 polyTouchbus _ _ = error "Control parameter 'polyTouch' can't be sent to a bus."
 
 -- | 
-portamento :: Signal Double -> ControlSignal
+portamento :: Pattern p => p Double -> p ValueMap
 portamento = pF "portamento"
-portamentoTake :: String -> [Double] -> ControlSignal
+portamentoTake :: Pattern p => String -> [Double] -> p ValueMap
 portamentoTake name xs = pStateListF "portamento" name xs
-portamentoCount :: String -> ControlSignal
+portamentoCount :: Pattern p => String -> p ValueMap
 portamentoCount name = pStateF "portamento" name (maybe 0 (+1))
-portamentoCountTo :: String -> Signal Double -> Signal ValueMap
+portamentoCountTo :: Pattern p => String -> p Double -> p ValueMap
 portamentoCountTo name ipat = innerJoin $ (\i -> pStateF "portamento" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-portamentobus :: Signal Int -> Signal Double -> ControlSignal
+portamentobus :: Pattern p => p Int -> p Double -> p ValueMap
 portamentobus busid pat = pF "portamento" pat # pI "^portamento" busid
-portamentorecv :: Signal Int -> ControlSignal
+portamentorecv :: Pattern p => p Int -> p ValueMap
 portamentorecv busid = pI "^portamento" busid
 
 -- | 
-progNum :: Signal Double -> ControlSignal
+progNum :: Pattern p => p Double -> p ValueMap
 progNum = pF "progNum"
-progNumTake :: String -> [Double] -> ControlSignal
+progNumTake :: Pattern p => String -> [Double] -> p ValueMap
 progNumTake name xs = pStateListF "progNum" name xs
-progNumCount :: String -> ControlSignal
+progNumCount :: Pattern p => String -> p ValueMap
 progNumCount name = pStateF "progNum" name (maybe 0 (+1))
-progNumCountTo :: String -> Signal Double -> Signal ValueMap
+progNumCountTo :: Pattern p => String -> p Double -> p ValueMap
 progNumCountTo name ipat = innerJoin $ (\i -> pStateF "progNum" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-progNumbus :: Signal Int -> Signal Double -> ControlSignal
+progNumbus :: Pattern p => p Int -> p Double -> p ValueMap
 progNumbus _ _ = error "Control parameter 'progNum' can't be sent to a bus."
 
 -- | used in SuperDirt softsynths as a control rate or 'speed'
-rate :: Signal Double -> ControlSignal
+rate :: Pattern p => p Double -> p ValueMap
 rate = pF "rate"
-rateTake :: String -> [Double] -> ControlSignal
+rateTake :: Pattern p => String -> [Double] -> p ValueMap
 rateTake name xs = pStateListF "rate" name xs
-rateCount :: String -> ControlSignal
+rateCount :: Pattern p => String -> p ValueMap
 rateCount name = pStateF "rate" name (maybe 0 (+1))
-rateCountTo :: String -> Signal Double -> Signal ValueMap
+rateCountTo :: Pattern p => String -> p Double -> p ValueMap
 rateCountTo name ipat = innerJoin $ (\i -> pStateF "rate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-ratebus :: Signal Int -> Signal Double -> ControlSignal
+ratebus :: Pattern p => p Int -> p Double -> p ValueMap
 ratebus busid pat = pF "rate" pat # pI "^rate" busid
-raterecv :: Signal Int -> ControlSignal
+raterecv :: Pattern p => p Int -> p ValueMap
 raterecv busid = pI "^rate" busid
 
 -- | Spectral conform
-real :: Signal Double -> ControlSignal
+real :: Pattern p => p Double -> p ValueMap
 real = pF "real"
-realTake :: String -> [Double] -> ControlSignal
+realTake :: Pattern p => String -> [Double] -> p ValueMap
 realTake name xs = pStateListF "real" name xs
-realCount :: String -> ControlSignal
+realCount :: Pattern p => String -> p ValueMap
 realCount name = pStateF "real" name (maybe 0 (+1))
-realCountTo :: String -> Signal Double -> Signal ValueMap
+realCountTo :: Pattern p => String -> p Double -> p ValueMap
 realCountTo name ipat = innerJoin $ (\i -> pStateF "real" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-realbus :: Signal Int -> Signal Double -> ControlSignal
+realbus :: Pattern p => p Int -> p Double -> p ValueMap
 realbus busid pat = pF "real" pat # pI "^real" busid
-realrecv :: Signal Int -> ControlSignal
+realrecv :: Pattern p => p Int -> p ValueMap
 realrecv busid = pI "^real" busid
 
 -- | a pattern of numbers to specify the release time (in seconds) of an envelope applied to each sample.
-release :: Signal Double -> ControlSignal
+release :: Pattern p => p Double -> p ValueMap
 release = pF "release"
-releaseTake :: String -> [Double] -> ControlSignal
+releaseTake :: Pattern p => String -> [Double] -> p ValueMap
 releaseTake name xs = pStateListF "release" name xs
-releaseCount :: String -> ControlSignal
+releaseCount :: Pattern p => String -> p ValueMap
 releaseCount name = pStateF "release" name (maybe 0 (+1))
-releaseCountTo :: String -> Signal Double -> Signal ValueMap
+releaseCountTo :: Pattern p => String -> p Double -> p ValueMap
 releaseCountTo name ipat = innerJoin $ (\i -> pStateF "release" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-releasebus :: Signal Int -> Signal Double -> ControlSignal
+releasebus :: Pattern p => p Int -> p Double -> p ValueMap
 releasebus busid pat = pF "release" pat # pI "^release" busid
-releaserecv :: Signal Int -> ControlSignal
+releaserecv :: Pattern p => p Int -> p ValueMap
 releaserecv busid = pI "^release" busid
 
 -- | a pattern of numbers from 0 to 1. Specifies the resonance of the low-pass filter.
-resonance :: Signal Double -> ControlSignal
+resonance :: Pattern p => p Double -> p ValueMap
 resonance = pF "resonance"
-resonanceTake :: String -> [Double] -> ControlSignal
+resonanceTake :: Pattern p => String -> [Double] -> p ValueMap
 resonanceTake name xs = pStateListF "resonance" name xs
-resonanceCount :: String -> ControlSignal
+resonanceCount :: Pattern p => String -> p ValueMap
 resonanceCount name = pStateF "resonance" name (maybe 0 (+1))
-resonanceCountTo :: String -> Signal Double -> Signal ValueMap
+resonanceCountTo :: Pattern p => String -> p Double -> p ValueMap
 resonanceCountTo name ipat = innerJoin $ (\i -> pStateF "resonance" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-resonancebus :: Signal Int -> Signal Double -> ControlSignal
+resonancebus :: Pattern p => p Int -> p Double -> p ValueMap
 resonancebus busid pat = pF "resonance" pat # pI "^resonance" busid
-resonancerecv :: Signal Int -> ControlSignal
+resonancerecv :: Pattern p => p Int -> p ValueMap
 resonancerecv busid = pI "^resonance" busid
 
 -- | ring modulation
-ring :: Signal Double -> ControlSignal
+ring :: Pattern p => p Double -> p ValueMap
 ring = pF "ring"
-ringTake :: String -> [Double] -> ControlSignal
+ringTake :: Pattern p => String -> [Double] -> p ValueMap
 ringTake name xs = pStateListF "ring" name xs
-ringCount :: String -> ControlSignal
+ringCount :: Pattern p => String -> p ValueMap
 ringCount name = pStateF "ring" name (maybe 0 (+1))
-ringCountTo :: String -> Signal Double -> Signal ValueMap
+ringCountTo :: Pattern p => String -> p Double -> p ValueMap
 ringCountTo name ipat = innerJoin $ (\i -> pStateF "ring" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-ringbus :: Signal Int -> Signal Double -> ControlSignal
+ringbus :: Pattern p => p Int -> p Double -> p ValueMap
 ringbus busid pat = pF "ring" pat # pI "^ring" busid
-ringrecv :: Signal Int -> ControlSignal
+ringrecv :: Pattern p => p Int -> p ValueMap
 ringrecv busid = pI "^ring" busid
 
 -- | ring modulation
-ringdf :: Signal Double -> ControlSignal
+ringdf :: Pattern p => p Double -> p ValueMap
 ringdf = pF "ringdf"
-ringdfTake :: String -> [Double] -> ControlSignal
+ringdfTake :: Pattern p => String -> [Double] -> p ValueMap
 ringdfTake name xs = pStateListF "ringdf" name xs
-ringdfCount :: String -> ControlSignal
+ringdfCount :: Pattern p => String -> p ValueMap
 ringdfCount name = pStateF "ringdf" name (maybe 0 (+1))
-ringdfCountTo :: String -> Signal Double -> Signal ValueMap
+ringdfCountTo :: Pattern p => String -> p Double -> p ValueMap
 ringdfCountTo name ipat = innerJoin $ (\i -> pStateF "ringdf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-ringdfbus :: Signal Int -> Signal Double -> ControlSignal
+ringdfbus :: Pattern p => p Int -> p Double -> p ValueMap
 ringdfbus busid pat = pF "ringdf" pat # pI "^ringdf" busid
-ringdfrecv :: Signal Int -> ControlSignal
+ringdfrecv :: Pattern p => p Int -> p ValueMap
 ringdfrecv busid = pI "^ringdf" busid
 
 -- | ring modulation
-ringf :: Signal Double -> ControlSignal
+ringf :: Pattern p => p Double -> p ValueMap
 ringf = pF "ringf"
-ringfTake :: String -> [Double] -> ControlSignal
+ringfTake :: Pattern p => String -> [Double] -> p ValueMap
 ringfTake name xs = pStateListF "ringf" name xs
-ringfCount :: String -> ControlSignal
+ringfCount :: Pattern p => String -> p ValueMap
 ringfCount name = pStateF "ringf" name (maybe 0 (+1))
-ringfCountTo :: String -> Signal Double -> Signal ValueMap
+ringfCountTo :: Pattern p => String -> p Double -> p ValueMap
 ringfCountTo name ipat = innerJoin $ (\i -> pStateF "ringf" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-ringfbus :: Signal Int -> Signal Double -> ControlSignal
+ringfbus :: Pattern p => p Int -> p Double -> p ValueMap
 ringfbus busid pat = pF "ringf" pat # pI "^ringf" busid
-ringfrecv :: Signal Int -> ControlSignal
+ringfrecv :: Pattern p => p Int -> p ValueMap
 ringfrecv busid = pI "^ringf" busid
 
 -- | a pattern of numbers from 0 to 1. Sets the level of reverb.
-room :: Signal Double -> ControlSignal
+room :: Pattern p => p Double -> p ValueMap
 room = pF "room"
-roomTake :: String -> [Double] -> ControlSignal
+roomTake :: Pattern p => String -> [Double] -> p ValueMap
 roomTake name xs = pStateListF "room" name xs
-roomCount :: String -> ControlSignal
+roomCount :: Pattern p => String -> p ValueMap
 roomCount name = pStateF "room" name (maybe 0 (+1))
-roomCountTo :: String -> Signal Double -> Signal ValueMap
+roomCountTo :: Pattern p => String -> p Double -> p ValueMap
 roomCountTo name ipat = innerJoin $ (\i -> pStateF "room" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-roombus :: Signal Int -> Signal Double -> ControlSignal
+roombus :: Pattern p => p Int -> p Double -> p ValueMap
 roombus busid pat = pF "room" pat # pI "^room" busid
-roomrecv :: Signal Int -> ControlSignal
+roomrecv :: Pattern p => p Int -> p ValueMap
 roomrecv busid = pI "^room" busid
 
 -- | 
-sagogo :: Signal Double -> ControlSignal
+sagogo :: Pattern p => p Double -> p ValueMap
 sagogo = pF "sagogo"
-sagogoTake :: String -> [Double] -> ControlSignal
+sagogoTake :: Pattern p => String -> [Double] -> p ValueMap
 sagogoTake name xs = pStateListF "sagogo" name xs
-sagogoCount :: String -> ControlSignal
+sagogoCount :: Pattern p => String -> p ValueMap
 sagogoCount name = pStateF "sagogo" name (maybe 0 (+1))
-sagogoCountTo :: String -> Signal Double -> Signal ValueMap
+sagogoCountTo :: Pattern p => String -> p Double -> p ValueMap
 sagogoCountTo name ipat = innerJoin $ (\i -> pStateF "sagogo" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-sagogobus :: Signal Int -> Signal Double -> ControlSignal
+sagogobus :: Pattern p => p Int -> p Double -> p ValueMap
 sagogobus busid pat = pF "sagogo" pat # pI "^sagogo" busid
-sagogorecv :: Signal Int -> ControlSignal
+sagogorecv :: Pattern p => p Int -> p ValueMap
 sagogorecv busid = pI "^sagogo" busid
 
 -- | 
-sclap :: Signal Double -> ControlSignal
+sclap :: Pattern p => p Double -> p ValueMap
 sclap = pF "sclap"
-sclapTake :: String -> [Double] -> ControlSignal
+sclapTake :: Pattern p => String -> [Double] -> p ValueMap
 sclapTake name xs = pStateListF "sclap" name xs
-sclapCount :: String -> ControlSignal
+sclapCount :: Pattern p => String -> p ValueMap
 sclapCount name = pStateF "sclap" name (maybe 0 (+1))
-sclapCountTo :: String -> Signal Double -> Signal ValueMap
+sclapCountTo :: Pattern p => String -> p Double -> p ValueMap
 sclapCountTo name ipat = innerJoin $ (\i -> pStateF "sclap" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-sclapbus :: Signal Int -> Signal Double -> ControlSignal
+sclapbus :: Pattern p => p Int -> p Double -> p ValueMap
 sclapbus busid pat = pF "sclap" pat # pI "^sclap" busid
-sclaprecv :: Signal Int -> ControlSignal
+sclaprecv :: Pattern p => p Int -> p ValueMap
 sclaprecv busid = pI "^sclap" busid
 
 -- | 
-sclaves :: Signal Double -> ControlSignal
+sclaves :: Pattern p => p Double -> p ValueMap
 sclaves = pF "sclaves"
-sclavesTake :: String -> [Double] -> ControlSignal
+sclavesTake :: Pattern p => String -> [Double] -> p ValueMap
 sclavesTake name xs = pStateListF "sclaves" name xs
-sclavesCount :: String -> ControlSignal
+sclavesCount :: Pattern p => String -> p ValueMap
 sclavesCount name = pStateF "sclaves" name (maybe 0 (+1))
-sclavesCountTo :: String -> Signal Double -> Signal ValueMap
+sclavesCountTo :: Pattern p => String -> p Double -> p ValueMap
 sclavesCountTo name ipat = innerJoin $ (\i -> pStateF "sclaves" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-sclavesbus :: Signal Int -> Signal Double -> ControlSignal
+sclavesbus :: Pattern p => p Int -> p Double -> p ValueMap
 sclavesbus busid pat = pF "sclaves" pat # pI "^sclaves" busid
-sclavesrecv :: Signal Int -> ControlSignal
+sclavesrecv :: Pattern p => p Int -> p ValueMap
 sclavesrecv busid = pI "^sclaves" busid
 
 -- | Spectral scramble
-scram :: Signal Double -> ControlSignal
+scram :: Pattern p => p Double -> p ValueMap
 scram = pF "scram"
-scramTake :: String -> [Double] -> ControlSignal
+scramTake :: Pattern p => String -> [Double] -> p ValueMap
 scramTake name xs = pStateListF "scram" name xs
-scramCount :: String -> ControlSignal
+scramCount :: Pattern p => String -> p ValueMap
 scramCount name = pStateF "scram" name (maybe 0 (+1))
-scramCountTo :: String -> Signal Double -> Signal ValueMap
+scramCountTo :: Pattern p => String -> p Double -> p ValueMap
 scramCountTo name ipat = innerJoin $ (\i -> pStateF "scram" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-scrambus :: Signal Int -> Signal Double -> ControlSignal
+scrambus :: Pattern p => p Int -> p Double -> p ValueMap
 scrambus busid pat = pF "scram" pat # pI "^scram" busid
-scramrecv :: Signal Int -> ControlSignal
+scramrecv :: Pattern p => p Int -> p ValueMap
 scramrecv busid = pI "^scram" busid
 
 -- | 
-scrash :: Signal Double -> ControlSignal
+scrash :: Pattern p => p Double -> p ValueMap
 scrash = pF "scrash"
-scrashTake :: String -> [Double] -> ControlSignal
+scrashTake :: Pattern p => String -> [Double] -> p ValueMap
 scrashTake name xs = pStateListF "scrash" name xs
-scrashCount :: String -> ControlSignal
+scrashCount :: Pattern p => String -> p ValueMap
 scrashCount name = pStateF "scrash" name (maybe 0 (+1))
-scrashCountTo :: String -> Signal Double -> Signal ValueMap
+scrashCountTo :: Pattern p => String -> p Double -> p ValueMap
 scrashCountTo name ipat = innerJoin $ (\i -> pStateF "scrash" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-scrashbus :: Signal Int -> Signal Double -> ControlSignal
+scrashbus :: Pattern p => p Int -> p Double -> p ValueMap
 scrashbus busid pat = pF "scrash" pat # pI "^scrash" busid
-scrashrecv :: Signal Int -> ControlSignal
+scrashrecv :: Pattern p => p Int -> p ValueMap
 scrashrecv busid = pI "^scrash" busid
 
 -- | 
-seconds :: Signal Double -> ControlSignal
+seconds :: Pattern p => p Double -> p ValueMap
 seconds = pF "seconds"
-secondsTake :: String -> [Double] -> ControlSignal
+secondsTake :: Pattern p => String -> [Double] -> p ValueMap
 secondsTake name xs = pStateListF "seconds" name xs
-secondsCount :: String -> ControlSignal
+secondsCount :: Pattern p => String -> p ValueMap
 secondsCount name = pStateF "seconds" name (maybe 0 (+1))
-secondsCountTo :: String -> Signal Double -> Signal ValueMap
+secondsCountTo :: Pattern p => String -> p Double -> p ValueMap
 secondsCountTo name ipat = innerJoin $ (\i -> pStateF "seconds" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-secondsbus :: Signal Int -> Signal Double -> ControlSignal
+secondsbus :: Pattern p => p Int -> p Double -> p ValueMap
 secondsbus _ _ = error "Control parameter 'seconds' can't be sent to a bus."
 
 -- | 
-semitone :: Signal Double -> ControlSignal
+semitone :: Pattern p => p Double -> p ValueMap
 semitone = pF "semitone"
-semitoneTake :: String -> [Double] -> ControlSignal
+semitoneTake :: Pattern p => String -> [Double] -> p ValueMap
 semitoneTake name xs = pStateListF "semitone" name xs
-semitoneCount :: String -> ControlSignal
+semitoneCount :: Pattern p => String -> p ValueMap
 semitoneCount name = pStateF "semitone" name (maybe 0 (+1))
-semitoneCountTo :: String -> Signal Double -> Signal ValueMap
+semitoneCountTo :: Pattern p => String -> p Double -> p ValueMap
 semitoneCountTo name ipat = innerJoin $ (\i -> pStateF "semitone" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-semitonebus :: Signal Int -> Signal Double -> ControlSignal
+semitonebus :: Pattern p => p Int -> p Double -> p ValueMap
 semitonebus busid pat = pF "semitone" pat # pI "^semitone" busid
-semitonerecv :: Signal Int -> ControlSignal
+semitonerecv :: Pattern p => p Int -> p ValueMap
 semitonerecv busid = pI "^semitone" busid
 
 -- | wave shaping distortion, a pattern of numbers from 0 for no distortion up to 1 for loads of distortion.
-shape :: Signal Double -> ControlSignal
+shape :: Pattern p => p Double -> p ValueMap
 shape = pF "shape"
-shapeTake :: String -> [Double] -> ControlSignal
+shapeTake :: Pattern p => String -> [Double] -> p ValueMap
 shapeTake name xs = pStateListF "shape" name xs
-shapeCount :: String -> ControlSignal
+shapeCount :: Pattern p => String -> p ValueMap
 shapeCount name = pStateF "shape" name (maybe 0 (+1))
-shapeCountTo :: String -> Signal Double -> Signal ValueMap
+shapeCountTo :: Pattern p => String -> p Double -> p ValueMap
 shapeCountTo name ipat = innerJoin $ (\i -> pStateF "shape" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-shapebus :: Signal Int -> Signal Double -> ControlSignal
+shapebus :: Pattern p => p Int -> p Double -> p ValueMap
 shapebus busid pat = pF "shape" pat # pI "^shape" busid
-shaperecv :: Signal Int -> ControlSignal
+shaperecv :: Pattern p => p Int -> p ValueMap
 shaperecv busid = pI "^shape" busid
 
 -- | a pattern of numbers from 0 to 1. Sets the perceptual size (reverb time) of the `room` to be used in reverb.
-size :: Signal Double -> ControlSignal
+size :: Pattern p => p Double -> p ValueMap
 size = pF "size"
-sizeTake :: String -> [Double] -> ControlSignal
+sizeTake :: Pattern p => String -> [Double] -> p ValueMap
 sizeTake name xs = pStateListF "size" name xs
-sizeCount :: String -> ControlSignal
+sizeCount :: Pattern p => String -> p ValueMap
 sizeCount name = pStateF "size" name (maybe 0 (+1))
-sizeCountTo :: String -> Signal Double -> Signal ValueMap
+sizeCountTo :: Pattern p => String -> p Double -> p ValueMap
 sizeCountTo name ipat = innerJoin $ (\i -> pStateF "size" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-sizebus :: Signal Int -> Signal Double -> ControlSignal
+sizebus :: Pattern p => p Int -> p Double -> p ValueMap
 sizebus busid pat = pF "size" pat # pI "^size" busid
-sizerecv :: Signal Int -> ControlSignal
+sizerecv :: Pattern p => p Int -> p ValueMap
 sizerecv busid = pI "^size" busid
 
 -- | 
-slide :: Signal Double -> ControlSignal
+slide :: Pattern p => p Double -> p ValueMap
 slide = pF "slide"
-slideTake :: String -> [Double] -> ControlSignal
+slideTake :: Pattern p => String -> [Double] -> p ValueMap
 slideTake name xs = pStateListF "slide" name xs
-slideCount :: String -> ControlSignal
+slideCount :: Pattern p => String -> p ValueMap
 slideCount name = pStateF "slide" name (maybe 0 (+1))
-slideCountTo :: String -> Signal Double -> Signal ValueMap
+slideCountTo :: Pattern p => String -> p Double -> p ValueMap
 slideCountTo name ipat = innerJoin $ (\i -> pStateF "slide" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slidebus :: Signal Int -> Signal Double -> ControlSignal
+slidebus :: Pattern p => p Int -> p Double -> p ValueMap
 slidebus busid pat = pF "slide" pat # pI "^slide" busid
-sliderecv :: Signal Int -> ControlSignal
+sliderecv :: Pattern p => p Int -> p ValueMap
 sliderecv busid = pI "^slide" busid
 
 -- | 
-slider0 :: Signal Double -> ControlSignal
+slider0 :: Pattern p => p Double -> p ValueMap
 slider0 = pF "slider0"
-slider0Take :: String -> [Double] -> ControlSignal
+slider0Take :: Pattern p => String -> [Double] -> p ValueMap
 slider0Take name xs = pStateListF "slider0" name xs
-slider0Count :: String -> ControlSignal
+slider0Count :: Pattern p => String -> p ValueMap
 slider0Count name = pStateF "slider0" name (maybe 0 (+1))
-slider0CountTo :: String -> Signal Double -> Signal ValueMap
+slider0CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider0CountTo name ipat = innerJoin $ (\i -> pStateF "slider0" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider0bus :: Signal Int -> Signal Double -> ControlSignal
+slider0bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider0bus busid pat = pF "slider0" pat # pI "^slider0" busid
-slider0recv :: Signal Int -> ControlSignal
+slider0recv :: Pattern p => p Int -> p ValueMap
 slider0recv busid = pI "^slider0" busid
 
 -- | 
-slider1 :: Signal Double -> ControlSignal
+slider1 :: Pattern p => p Double -> p ValueMap
 slider1 = pF "slider1"
-slider1Take :: String -> [Double] -> ControlSignal
+slider1Take :: Pattern p => String -> [Double] -> p ValueMap
 slider1Take name xs = pStateListF "slider1" name xs
-slider1Count :: String -> ControlSignal
+slider1Count :: Pattern p => String -> p ValueMap
 slider1Count name = pStateF "slider1" name (maybe 0 (+1))
-slider1CountTo :: String -> Signal Double -> Signal ValueMap
+slider1CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider1CountTo name ipat = innerJoin $ (\i -> pStateF "slider1" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider1bus :: Signal Int -> Signal Double -> ControlSignal
+slider1bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider1bus busid pat = pF "slider1" pat # pI "^slider1" busid
-slider1recv :: Signal Int -> ControlSignal
+slider1recv :: Pattern p => p Int -> p ValueMap
 slider1recv busid = pI "^slider1" busid
 
 -- | 
-slider10 :: Signal Double -> ControlSignal
+slider10 :: Pattern p => p Double -> p ValueMap
 slider10 = pF "slider10"
-slider10Take :: String -> [Double] -> ControlSignal
+slider10Take :: Pattern p => String -> [Double] -> p ValueMap
 slider10Take name xs = pStateListF "slider10" name xs
-slider10Count :: String -> ControlSignal
+slider10Count :: Pattern p => String -> p ValueMap
 slider10Count name = pStateF "slider10" name (maybe 0 (+1))
-slider10CountTo :: String -> Signal Double -> Signal ValueMap
+slider10CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider10CountTo name ipat = innerJoin $ (\i -> pStateF "slider10" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider10bus :: Signal Int -> Signal Double -> ControlSignal
+slider10bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider10bus busid pat = pF "slider10" pat # pI "^slider10" busid
-slider10recv :: Signal Int -> ControlSignal
+slider10recv :: Pattern p => p Int -> p ValueMap
 slider10recv busid = pI "^slider10" busid
 
 -- | 
-slider11 :: Signal Double -> ControlSignal
+slider11 :: Pattern p => p Double -> p ValueMap
 slider11 = pF "slider11"
-slider11Take :: String -> [Double] -> ControlSignal
+slider11Take :: Pattern p => String -> [Double] -> p ValueMap
 slider11Take name xs = pStateListF "slider11" name xs
-slider11Count :: String -> ControlSignal
+slider11Count :: Pattern p => String -> p ValueMap
 slider11Count name = pStateF "slider11" name (maybe 0 (+1))
-slider11CountTo :: String -> Signal Double -> Signal ValueMap
+slider11CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider11CountTo name ipat = innerJoin $ (\i -> pStateF "slider11" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider11bus :: Signal Int -> Signal Double -> ControlSignal
+slider11bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider11bus busid pat = pF "slider11" pat # pI "^slider11" busid
-slider11recv :: Signal Int -> ControlSignal
+slider11recv :: Pattern p => p Int -> p ValueMap
 slider11recv busid = pI "^slider11" busid
 
 -- | 
-slider12 :: Signal Double -> ControlSignal
+slider12 :: Pattern p => p Double -> p ValueMap
 slider12 = pF "slider12"
-slider12Take :: String -> [Double] -> ControlSignal
+slider12Take :: Pattern p => String -> [Double] -> p ValueMap
 slider12Take name xs = pStateListF "slider12" name xs
-slider12Count :: String -> ControlSignal
+slider12Count :: Pattern p => String -> p ValueMap
 slider12Count name = pStateF "slider12" name (maybe 0 (+1))
-slider12CountTo :: String -> Signal Double -> Signal ValueMap
+slider12CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider12CountTo name ipat = innerJoin $ (\i -> pStateF "slider12" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider12bus :: Signal Int -> Signal Double -> ControlSignal
+slider12bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider12bus busid pat = pF "slider12" pat # pI "^slider12" busid
-slider12recv :: Signal Int -> ControlSignal
+slider12recv :: Pattern p => p Int -> p ValueMap
 slider12recv busid = pI "^slider12" busid
 
 -- | 
-slider13 :: Signal Double -> ControlSignal
+slider13 :: Pattern p => p Double -> p ValueMap
 slider13 = pF "slider13"
-slider13Take :: String -> [Double] -> ControlSignal
+slider13Take :: Pattern p => String -> [Double] -> p ValueMap
 slider13Take name xs = pStateListF "slider13" name xs
-slider13Count :: String -> ControlSignal
+slider13Count :: Pattern p => String -> p ValueMap
 slider13Count name = pStateF "slider13" name (maybe 0 (+1))
-slider13CountTo :: String -> Signal Double -> Signal ValueMap
+slider13CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider13CountTo name ipat = innerJoin $ (\i -> pStateF "slider13" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider13bus :: Signal Int -> Signal Double -> ControlSignal
+slider13bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider13bus busid pat = pF "slider13" pat # pI "^slider13" busid
-slider13recv :: Signal Int -> ControlSignal
+slider13recv :: Pattern p => p Int -> p ValueMap
 slider13recv busid = pI "^slider13" busid
 
 -- | 
-slider14 :: Signal Double -> ControlSignal
+slider14 :: Pattern p => p Double -> p ValueMap
 slider14 = pF "slider14"
-slider14Take :: String -> [Double] -> ControlSignal
+slider14Take :: Pattern p => String -> [Double] -> p ValueMap
 slider14Take name xs = pStateListF "slider14" name xs
-slider14Count :: String -> ControlSignal
+slider14Count :: Pattern p => String -> p ValueMap
 slider14Count name = pStateF "slider14" name (maybe 0 (+1))
-slider14CountTo :: String -> Signal Double -> Signal ValueMap
+slider14CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider14CountTo name ipat = innerJoin $ (\i -> pStateF "slider14" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider14bus :: Signal Int -> Signal Double -> ControlSignal
+slider14bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider14bus busid pat = pF "slider14" pat # pI "^slider14" busid
-slider14recv :: Signal Int -> ControlSignal
+slider14recv :: Pattern p => p Int -> p ValueMap
 slider14recv busid = pI "^slider14" busid
 
 -- | 
-slider15 :: Signal Double -> ControlSignal
+slider15 :: Pattern p => p Double -> p ValueMap
 slider15 = pF "slider15"
-slider15Take :: String -> [Double] -> ControlSignal
+slider15Take :: Pattern p => String -> [Double] -> p ValueMap
 slider15Take name xs = pStateListF "slider15" name xs
-slider15Count :: String -> ControlSignal
+slider15Count :: Pattern p => String -> p ValueMap
 slider15Count name = pStateF "slider15" name (maybe 0 (+1))
-slider15CountTo :: String -> Signal Double -> Signal ValueMap
+slider15CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider15CountTo name ipat = innerJoin $ (\i -> pStateF "slider15" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider15bus :: Signal Int -> Signal Double -> ControlSignal
+slider15bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider15bus busid pat = pF "slider15" pat # pI "^slider15" busid
-slider15recv :: Signal Int -> ControlSignal
+slider15recv :: Pattern p => p Int -> p ValueMap
 slider15recv busid = pI "^slider15" busid
 
 -- | 
-slider2 :: Signal Double -> ControlSignal
+slider2 :: Pattern p => p Double -> p ValueMap
 slider2 = pF "slider2"
-slider2Take :: String -> [Double] -> ControlSignal
+slider2Take :: Pattern p => String -> [Double] -> p ValueMap
 slider2Take name xs = pStateListF "slider2" name xs
-slider2Count :: String -> ControlSignal
+slider2Count :: Pattern p => String -> p ValueMap
 slider2Count name = pStateF "slider2" name (maybe 0 (+1))
-slider2CountTo :: String -> Signal Double -> Signal ValueMap
+slider2CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider2CountTo name ipat = innerJoin $ (\i -> pStateF "slider2" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider2bus :: Signal Int -> Signal Double -> ControlSignal
+slider2bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider2bus busid pat = pF "slider2" pat # pI "^slider2" busid
-slider2recv :: Signal Int -> ControlSignal
+slider2recv :: Pattern p => p Int -> p ValueMap
 slider2recv busid = pI "^slider2" busid
 
 -- | 
-slider3 :: Signal Double -> ControlSignal
+slider3 :: Pattern p => p Double -> p ValueMap
 slider3 = pF "slider3"
-slider3Take :: String -> [Double] -> ControlSignal
+slider3Take :: Pattern p => String -> [Double] -> p ValueMap
 slider3Take name xs = pStateListF "slider3" name xs
-slider3Count :: String -> ControlSignal
+slider3Count :: Pattern p => String -> p ValueMap
 slider3Count name = pStateF "slider3" name (maybe 0 (+1))
-slider3CountTo :: String -> Signal Double -> Signal ValueMap
+slider3CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider3CountTo name ipat = innerJoin $ (\i -> pStateF "slider3" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider3bus :: Signal Int -> Signal Double -> ControlSignal
+slider3bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider3bus busid pat = pF "slider3" pat # pI "^slider3" busid
-slider3recv :: Signal Int -> ControlSignal
+slider3recv :: Pattern p => p Int -> p ValueMap
 slider3recv busid = pI "^slider3" busid
 
 -- | 
-slider4 :: Signal Double -> ControlSignal
+slider4 :: Pattern p => p Double -> p ValueMap
 slider4 = pF "slider4"
-slider4Take :: String -> [Double] -> ControlSignal
+slider4Take :: Pattern p => String -> [Double] -> p ValueMap
 slider4Take name xs = pStateListF "slider4" name xs
-slider4Count :: String -> ControlSignal
+slider4Count :: Pattern p => String -> p ValueMap
 slider4Count name = pStateF "slider4" name (maybe 0 (+1))
-slider4CountTo :: String -> Signal Double -> Signal ValueMap
+slider4CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider4CountTo name ipat = innerJoin $ (\i -> pStateF "slider4" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider4bus :: Signal Int -> Signal Double -> ControlSignal
+slider4bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider4bus busid pat = pF "slider4" pat # pI "^slider4" busid
-slider4recv :: Signal Int -> ControlSignal
+slider4recv :: Pattern p => p Int -> p ValueMap
 slider4recv busid = pI "^slider4" busid
 
 -- | 
-slider5 :: Signal Double -> ControlSignal
+slider5 :: Pattern p => p Double -> p ValueMap
 slider5 = pF "slider5"
-slider5Take :: String -> [Double] -> ControlSignal
+slider5Take :: Pattern p => String -> [Double] -> p ValueMap
 slider5Take name xs = pStateListF "slider5" name xs
-slider5Count :: String -> ControlSignal
+slider5Count :: Pattern p => String -> p ValueMap
 slider5Count name = pStateF "slider5" name (maybe 0 (+1))
-slider5CountTo :: String -> Signal Double -> Signal ValueMap
+slider5CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider5CountTo name ipat = innerJoin $ (\i -> pStateF "slider5" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider5bus :: Signal Int -> Signal Double -> ControlSignal
+slider5bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider5bus busid pat = pF "slider5" pat # pI "^slider5" busid
-slider5recv :: Signal Int -> ControlSignal
+slider5recv :: Pattern p => p Int -> p ValueMap
 slider5recv busid = pI "^slider5" busid
 
 -- | 
-slider6 :: Signal Double -> ControlSignal
+slider6 :: Pattern p => p Double -> p ValueMap
 slider6 = pF "slider6"
-slider6Take :: String -> [Double] -> ControlSignal
+slider6Take :: Pattern p => String -> [Double] -> p ValueMap
 slider6Take name xs = pStateListF "slider6" name xs
-slider6Count :: String -> ControlSignal
+slider6Count :: Pattern p => String -> p ValueMap
 slider6Count name = pStateF "slider6" name (maybe 0 (+1))
-slider6CountTo :: String -> Signal Double -> Signal ValueMap
+slider6CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider6CountTo name ipat = innerJoin $ (\i -> pStateF "slider6" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider6bus :: Signal Int -> Signal Double -> ControlSignal
+slider6bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider6bus busid pat = pF "slider6" pat # pI "^slider6" busid
-slider6recv :: Signal Int -> ControlSignal
+slider6recv :: Pattern p => p Int -> p ValueMap
 slider6recv busid = pI "^slider6" busid
 
 -- | 
-slider7 :: Signal Double -> ControlSignal
+slider7 :: Pattern p => p Double -> p ValueMap
 slider7 = pF "slider7"
-slider7Take :: String -> [Double] -> ControlSignal
+slider7Take :: Pattern p => String -> [Double] -> p ValueMap
 slider7Take name xs = pStateListF "slider7" name xs
-slider7Count :: String -> ControlSignal
+slider7Count :: Pattern p => String -> p ValueMap
 slider7Count name = pStateF "slider7" name (maybe 0 (+1))
-slider7CountTo :: String -> Signal Double -> Signal ValueMap
+slider7CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider7CountTo name ipat = innerJoin $ (\i -> pStateF "slider7" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider7bus :: Signal Int -> Signal Double -> ControlSignal
+slider7bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider7bus busid pat = pF "slider7" pat # pI "^slider7" busid
-slider7recv :: Signal Int -> ControlSignal
+slider7recv :: Pattern p => p Int -> p ValueMap
 slider7recv busid = pI "^slider7" busid
 
 -- | 
-slider8 :: Signal Double -> ControlSignal
+slider8 :: Pattern p => p Double -> p ValueMap
 slider8 = pF "slider8"
-slider8Take :: String -> [Double] -> ControlSignal
+slider8Take :: Pattern p => String -> [Double] -> p ValueMap
 slider8Take name xs = pStateListF "slider8" name xs
-slider8Count :: String -> ControlSignal
+slider8Count :: Pattern p => String -> p ValueMap
 slider8Count name = pStateF "slider8" name (maybe 0 (+1))
-slider8CountTo :: String -> Signal Double -> Signal ValueMap
+slider8CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider8CountTo name ipat = innerJoin $ (\i -> pStateF "slider8" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider8bus :: Signal Int -> Signal Double -> ControlSignal
+slider8bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider8bus busid pat = pF "slider8" pat # pI "^slider8" busid
-slider8recv :: Signal Int -> ControlSignal
+slider8recv :: Pattern p => p Int -> p ValueMap
 slider8recv busid = pI "^slider8" busid
 
 -- | 
-slider9 :: Signal Double -> ControlSignal
+slider9 :: Pattern p => p Double -> p ValueMap
 slider9 = pF "slider9"
-slider9Take :: String -> [Double] -> ControlSignal
+slider9Take :: Pattern p => String -> [Double] -> p ValueMap
 slider9Take name xs = pStateListF "slider9" name xs
-slider9Count :: String -> ControlSignal
+slider9Count :: Pattern p => String -> p ValueMap
 slider9Count name = pStateF "slider9" name (maybe 0 (+1))
-slider9CountTo :: String -> Signal Double -> Signal ValueMap
+slider9CountTo :: Pattern p => String -> p Double -> p ValueMap
 slider9CountTo name ipat = innerJoin $ (\i -> pStateF "slider9" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-slider9bus :: Signal Int -> Signal Double -> ControlSignal
+slider9bus :: Pattern p => p Int -> p Double -> p ValueMap
 slider9bus busid pat = pF "slider9" pat # pI "^slider9" busid
-slider9recv :: Signal Int -> ControlSignal
+slider9recv :: Pattern p => p Int -> p ValueMap
 slider9recv busid = pI "^slider9" busid
 
 -- | Spectral smear
-smear :: Signal Double -> ControlSignal
+smear :: Pattern p => p Double -> p ValueMap
 smear = pF "smear"
-smearTake :: String -> [Double] -> ControlSignal
+smearTake :: Pattern p => String -> [Double] -> p ValueMap
 smearTake name xs = pStateListF "smear" name xs
-smearCount :: String -> ControlSignal
+smearCount :: Pattern p => String -> p ValueMap
 smearCount name = pStateF "smear" name (maybe 0 (+1))
-smearCountTo :: String -> Signal Double -> Signal ValueMap
+smearCountTo :: Pattern p => String -> p Double -> p ValueMap
 smearCountTo name ipat = innerJoin $ (\i -> pStateF "smear" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-smearbus :: Signal Int -> Signal Double -> ControlSignal
+smearbus :: Pattern p => p Int -> p Double -> p ValueMap
 smearbus busid pat = pF "smear" pat # pI "^smear" busid
-smearrecv :: Signal Int -> ControlSignal
+smearrecv :: Pattern p => p Int -> p ValueMap
 smearrecv busid = pI "^smear" busid
 
 -- | 
-songPtr :: Signal Double -> ControlSignal
+songPtr :: Pattern p => p Double -> p ValueMap
 songPtr = pF "songPtr"
-songPtrTake :: String -> [Double] -> ControlSignal
+songPtrTake :: Pattern p => String -> [Double] -> p ValueMap
 songPtrTake name xs = pStateListF "songPtr" name xs
-songPtrCount :: String -> ControlSignal
+songPtrCount :: Pattern p => String -> p ValueMap
 songPtrCount name = pStateF "songPtr" name (maybe 0 (+1))
-songPtrCountTo :: String -> Signal Double -> Signal ValueMap
+songPtrCountTo :: Pattern p => String -> p Double -> p ValueMap
 songPtrCountTo name ipat = innerJoin $ (\i -> pStateF "songPtr" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-songPtrbus :: Signal Int -> Signal Double -> ControlSignal
+songPtrbus :: Pattern p => p Int -> p Double -> p ValueMap
 songPtrbus _ _ = error "Control parameter 'songPtr' can't be sent to a bus."
 
 -- | a pattern of numbers which changes the speed of sample playback, i.e. a cheap way of changing pitch. Negative values will play the sample backwards!
-speed :: Signal Double -> ControlSignal
+speed :: Pattern p => p Double -> p ValueMap
 speed = pF "speed"
-speedTake :: String -> [Double] -> ControlSignal
+speedTake :: Pattern p => String -> [Double] -> p ValueMap
 speedTake name xs = pStateListF "speed" name xs
-speedCount :: String -> ControlSignal
+speedCount :: Pattern p => String -> p ValueMap
 speedCount name = pStateF "speed" name (maybe 0 (+1))
-speedCountTo :: String -> Signal Double -> Signal ValueMap
+speedCountTo :: Pattern p => String -> p Double -> p ValueMap
 speedCountTo name ipat = innerJoin $ (\i -> pStateF "speed" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-speedbus :: Signal Int -> Signal Double -> ControlSignal
+speedbus :: Pattern p => p Int -> p Double -> p ValueMap
 speedbus _ _ = error "Control parameter 'speed' can't be sent to a bus."
 
 -- | 
-squiz :: Signal Double -> ControlSignal
+squiz :: Pattern p => p Double -> p ValueMap
 squiz = pF "squiz"
-squizTake :: String -> [Double] -> ControlSignal
+squizTake :: Pattern p => String -> [Double] -> p ValueMap
 squizTake name xs = pStateListF "squiz" name xs
-squizCount :: String -> ControlSignal
+squizCount :: Pattern p => String -> p ValueMap
 squizCount name = pStateF "squiz" name (maybe 0 (+1))
-squizCountTo :: String -> Signal Double -> Signal ValueMap
+squizCountTo :: Pattern p => String -> p Double -> p ValueMap
 squizCountTo name ipat = innerJoin $ (\i -> pStateF "squiz" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-squizbus :: Signal Int -> Signal Double -> ControlSignal
+squizbus :: Pattern p => p Int -> p Double -> p ValueMap
 squizbus busid pat = pF "squiz" pat # pI "^squiz" busid
-squizrecv :: Signal Int -> ControlSignal
+squizrecv :: Pattern p => p Int -> p ValueMap
 squizrecv busid = pI "^squiz" busid
 
 -- | 
-stepsPerOctave :: Signal Double -> ControlSignal
+stepsPerOctave :: Pattern p => p Double -> p ValueMap
 stepsPerOctave = pF "stepsPerOctave"
-stepsPerOctaveTake :: String -> [Double] -> ControlSignal
+stepsPerOctaveTake :: Pattern p => String -> [Double] -> p ValueMap
 stepsPerOctaveTake name xs = pStateListF "stepsPerOctave" name xs
-stepsPerOctaveCount :: String -> ControlSignal
+stepsPerOctaveCount :: Pattern p => String -> p ValueMap
 stepsPerOctaveCount name = pStateF "stepsPerOctave" name (maybe 0 (+1))
-stepsPerOctaveCountTo :: String -> Signal Double -> Signal ValueMap
+stepsPerOctaveCountTo :: Pattern p => String -> p Double -> p ValueMap
 stepsPerOctaveCountTo name ipat = innerJoin $ (\i -> pStateF "stepsPerOctave" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-stepsPerOctavebus :: Signal Int -> Signal Double -> ControlSignal
+stepsPerOctavebus :: Pattern p => p Int -> p Double -> p ValueMap
 stepsPerOctavebus busid pat = pF "stepsPerOctave" pat # pI "^stepsPerOctave" busid
-stepsPerOctaverecv :: Signal Int -> ControlSignal
+stepsPerOctaverecv :: Pattern p => p Int -> p ValueMap
 stepsPerOctaverecv busid = pI "^stepsPerOctave" busid
 
 -- | 
-stutterdepth :: Signal Double -> ControlSignal
+stutterdepth :: Pattern p => p Double -> p ValueMap
 stutterdepth = pF "stutterdepth"
-stutterdepthTake :: String -> [Double] -> ControlSignal
+stutterdepthTake :: Pattern p => String -> [Double] -> p ValueMap
 stutterdepthTake name xs = pStateListF "stutterdepth" name xs
-stutterdepthCount :: String -> ControlSignal
+stutterdepthCount :: Pattern p => String -> p ValueMap
 stutterdepthCount name = pStateF "stutterdepth" name (maybe 0 (+1))
-stutterdepthCountTo :: String -> Signal Double -> Signal ValueMap
+stutterdepthCountTo :: Pattern p => String -> p Double -> p ValueMap
 stutterdepthCountTo name ipat = innerJoin $ (\i -> pStateF "stutterdepth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-stutterdepthbus :: Signal Int -> Signal Double -> ControlSignal
+stutterdepthbus :: Pattern p => p Int -> p Double -> p ValueMap
 stutterdepthbus busid pat = pF "stutterdepth" pat # pI "^stutterdepth" busid
-stutterdepthrecv :: Signal Int -> ControlSignal
+stutterdepthrecv :: Pattern p => p Int -> p ValueMap
 stutterdepthrecv busid = pI "^stutterdepth" busid
 
 -- | 
-stuttertime :: Signal Double -> ControlSignal
+stuttertime :: Pattern p => p Double -> p ValueMap
 stuttertime = pF "stuttertime"
-stuttertimeTake :: String -> [Double] -> ControlSignal
+stuttertimeTake :: Pattern p => String -> [Double] -> p ValueMap
 stuttertimeTake name xs = pStateListF "stuttertime" name xs
-stuttertimeCount :: String -> ControlSignal
+stuttertimeCount :: Pattern p => String -> p ValueMap
 stuttertimeCount name = pStateF "stuttertime" name (maybe 0 (+1))
-stuttertimeCountTo :: String -> Signal Double -> Signal ValueMap
+stuttertimeCountTo :: Pattern p => String -> p Double -> p ValueMap
 stuttertimeCountTo name ipat = innerJoin $ (\i -> pStateF "stuttertime" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-stuttertimebus :: Signal Int -> Signal Double -> ControlSignal
+stuttertimebus :: Pattern p => p Int -> p Double -> p ValueMap
 stuttertimebus busid pat = pF "stuttertime" pat # pI "^stuttertime" busid
-stuttertimerecv :: Signal Int -> ControlSignal
+stuttertimerecv :: Pattern p => p Int -> p ValueMap
 stuttertimerecv busid = pI "^stuttertime" busid
 
 -- | 
-sustain :: Signal Double -> ControlSignal
+sustain :: Pattern p => p Double -> p ValueMap
 sustain = pF "sustain"
-sustainTake :: String -> [Double] -> ControlSignal
+sustainTake :: Pattern p => String -> [Double] -> p ValueMap
 sustainTake name xs = pStateListF "sustain" name xs
-sustainCount :: String -> ControlSignal
+sustainCount :: Pattern p => String -> p ValueMap
 sustainCount name = pStateF "sustain" name (maybe 0 (+1))
-sustainCountTo :: String -> Signal Double -> Signal ValueMap
+sustainCountTo :: Pattern p => String -> p Double -> p ValueMap
 sustainCountTo name ipat = innerJoin $ (\i -> pStateF "sustain" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-sustainbus :: Signal Int -> Signal Double -> ControlSignal
+sustainbus :: Pattern p => p Int -> p Double -> p ValueMap
 sustainbus _ _ = error "Control parameter 'sustain' can't be sent to a bus."
 
 -- | 
-sustainpedal :: Signal Double -> ControlSignal
+sustainpedal :: Pattern p => p Double -> p ValueMap
 sustainpedal = pF "sustainpedal"
-sustainpedalTake :: String -> [Double] -> ControlSignal
+sustainpedalTake :: Pattern p => String -> [Double] -> p ValueMap
 sustainpedalTake name xs = pStateListF "sustainpedal" name xs
-sustainpedalCount :: String -> ControlSignal
+sustainpedalCount :: Pattern p => String -> p ValueMap
 sustainpedalCount name = pStateF "sustainpedal" name (maybe 0 (+1))
-sustainpedalCountTo :: String -> Signal Double -> Signal ValueMap
+sustainpedalCountTo :: Pattern p => String -> p Double -> p ValueMap
 sustainpedalCountTo name ipat = innerJoin $ (\i -> pStateF "sustainpedal" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-sustainpedalbus :: Signal Int -> Signal Double -> ControlSignal
+sustainpedalbus :: Pattern p => p Int -> p Double -> p ValueMap
 sustainpedalbus busid pat = pF "sustainpedal" pat # pI "^sustainpedal" busid
-sustainpedalrecv :: Signal Int -> ControlSignal
+sustainpedalrecv :: Pattern p => p Int -> p ValueMap
 sustainpedalrecv busid = pI "^sustainpedal" busid
 
 -- | time stretch amount
-timescale :: Signal Double -> ControlSignal
+timescale :: Pattern p => p Double -> p ValueMap
 timescale = pF "timescale"
-timescaleTake :: String -> [Double] -> ControlSignal
+timescaleTake :: Pattern p => String -> [Double] -> p ValueMap
 timescaleTake name xs = pStateListF "timescale" name xs
-timescaleCount :: String -> ControlSignal
+timescaleCount :: Pattern p => String -> p ValueMap
 timescaleCount name = pStateF "timescale" name (maybe 0 (+1))
-timescaleCountTo :: String -> Signal Double -> Signal ValueMap
+timescaleCountTo :: Pattern p => String -> p Double -> p ValueMap
 timescaleCountTo name ipat = innerJoin $ (\i -> pStateF "timescale" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-timescalebus :: Signal Int -> Signal Double -> ControlSignal
+timescalebus :: Pattern p => p Int -> p Double -> p ValueMap
 timescalebus _ _ = error "Control parameter 'timescale' can't be sent to a bus."
 
 -- | time stretch window size
-timescalewin :: Signal Double -> ControlSignal
+timescalewin :: Pattern p => p Double -> p ValueMap
 timescalewin = pF "timescalewin"
-timescalewinTake :: String -> [Double] -> ControlSignal
+timescalewinTake :: Pattern p => String -> [Double] -> p ValueMap
 timescalewinTake name xs = pStateListF "timescalewin" name xs
-timescalewinCount :: String -> ControlSignal
+timescalewinCount :: Pattern p => String -> p ValueMap
 timescalewinCount name = pStateF "timescalewin" name (maybe 0 (+1))
-timescalewinCountTo :: String -> Signal Double -> Signal ValueMap
+timescalewinCountTo :: Pattern p => String -> p Double -> p ValueMap
 timescalewinCountTo name ipat = innerJoin $ (\i -> pStateF "timescalewin" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-timescalewinbus :: Signal Int -> Signal Double -> ControlSignal
+timescalewinbus :: Pattern p => p Int -> p Double -> p ValueMap
 timescalewinbus _ _ = error "Control parameter 'timescalewin' can't be sent to a bus."
 
 -- | for internal sound routing
-to :: Signal Double -> ControlSignal
+to :: Pattern p => p Double -> p ValueMap
 to = pF "to"
-toTake :: String -> [Double] -> ControlSignal
+toTake :: Pattern p => String -> [Double] -> p ValueMap
 toTake name xs = pStateListF "to" name xs
-toCount :: String -> ControlSignal
+toCount :: Pattern p => String -> p ValueMap
 toCount name = pStateF "to" name (maybe 0 (+1))
-toCountTo :: String -> Signal Double -> Signal ValueMap
+toCountTo :: Pattern p => String -> p Double -> p ValueMap
 toCountTo name ipat = innerJoin $ (\i -> pStateF "to" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-tobus :: Signal Int -> Signal Double -> ControlSignal
+tobus :: Pattern p => p Int -> p Double -> p ValueMap
 tobus busid pat = pF "to" pat # pI "^to" busid
-torecv :: Signal Int -> ControlSignal
+torecv :: Pattern p => p Int -> p ValueMap
 torecv busid = pI "^to" busid
 
 -- | for internal sound routing
-toArg :: Signal String -> ControlSignal
+toArg :: Pattern p => p String -> p ValueMap
 toArg = pS "toArg"
-toArgTake :: String -> [Double] -> ControlSignal
+toArgTake :: Pattern p => String -> [Double] -> p ValueMap
 toArgTake name xs = pStateListF "toArg" name xs
-toArgbus :: Signal Int -> Signal String -> ControlSignal
+toArgbus :: Pattern p => p Int -> p String -> p ValueMap
 toArgbus busid pat = pS "toArg" pat # pI "^toArg" busid
-toArgrecv :: Signal Int -> ControlSignal
+toArgrecv :: Pattern p => p Int -> p ValueMap
 toArgrecv busid = pI "^toArg" busid
 
 -- | 
-tomdecay :: Signal Double -> ControlSignal
+tomdecay :: Pattern p => p Double -> p ValueMap
 tomdecay = pF "tomdecay"
-tomdecayTake :: String -> [Double] -> ControlSignal
+tomdecayTake :: Pattern p => String -> [Double] -> p ValueMap
 tomdecayTake name xs = pStateListF "tomdecay" name xs
-tomdecayCount :: String -> ControlSignal
+tomdecayCount :: Pattern p => String -> p ValueMap
 tomdecayCount name = pStateF "tomdecay" name (maybe 0 (+1))
-tomdecayCountTo :: String -> Signal Double -> Signal ValueMap
+tomdecayCountTo :: Pattern p => String -> p Double -> p ValueMap
 tomdecayCountTo name ipat = innerJoin $ (\i -> pStateF "tomdecay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-tomdecaybus :: Signal Int -> Signal Double -> ControlSignal
+tomdecaybus :: Pattern p => p Int -> p Double -> p ValueMap
 tomdecaybus busid pat = pF "tomdecay" pat # pI "^tomdecay" busid
-tomdecayrecv :: Signal Int -> ControlSignal
+tomdecayrecv :: Pattern p => p Int -> p ValueMap
 tomdecayrecv busid = pI "^tomdecay" busid
 
 -- | Tremolo Audio DSP effect | params are 'tremolorate' and 'tremolodepth'
-tremolodepth :: Signal Double -> ControlSignal
+tremolodepth :: Pattern p => p Double -> p ValueMap
 tremolodepth = pF "tremolodepth"
-tremolodepthTake :: String -> [Double] -> ControlSignal
+tremolodepthTake :: Pattern p => String -> [Double] -> p ValueMap
 tremolodepthTake name xs = pStateListF "tremolodepth" name xs
-tremolodepthCount :: String -> ControlSignal
+tremolodepthCount :: Pattern p => String -> p ValueMap
 tremolodepthCount name = pStateF "tremolodepth" name (maybe 0 (+1))
-tremolodepthCountTo :: String -> Signal Double -> Signal ValueMap
+tremolodepthCountTo :: Pattern p => String -> p Double -> p ValueMap
 tremolodepthCountTo name ipat = innerJoin $ (\i -> pStateF "tremolodepth" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-tremolodepthbus :: Signal Int -> Signal Double -> ControlSignal
+tremolodepthbus :: Pattern p => p Int -> p Double -> p ValueMap
 tremolodepthbus busid pat = pF "tremolodepth" pat # pI "^tremolodepth" busid
-tremolodepthrecv :: Signal Int -> ControlSignal
+tremolodepthrecv :: Pattern p => p Int -> p ValueMap
 tremolodepthrecv busid = pI "^tremolodepth" busid
 
 -- | Tremolo Audio DSP effect | params are 'tremolorate' and 'tremolodepth'
-tremolorate :: Signal Double -> ControlSignal
+tremolorate :: Pattern p => p Double -> p ValueMap
 tremolorate = pF "tremolorate"
-tremolorateTake :: String -> [Double] -> ControlSignal
+tremolorateTake :: Pattern p => String -> [Double] -> p ValueMap
 tremolorateTake name xs = pStateListF "tremolorate" name xs
-tremolorateCount :: String -> ControlSignal
+tremolorateCount :: Pattern p => String -> p ValueMap
 tremolorateCount name = pStateF "tremolorate" name (maybe 0 (+1))
-tremolorateCountTo :: String -> Signal Double -> Signal ValueMap
+tremolorateCountTo :: Pattern p => String -> p Double -> p ValueMap
 tremolorateCountTo name ipat = innerJoin $ (\i -> pStateF "tremolorate" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-tremoloratebus :: Signal Int -> Signal Double -> ControlSignal
+tremoloratebus :: Pattern p => p Int -> p Double -> p ValueMap
 tremoloratebus busid pat = pF "tremolorate" pat # pI "^tremolorate" busid
-tremoloraterecv :: Signal Int -> ControlSignal
+tremoloraterecv :: Pattern p => p Int -> p ValueMap
 tremoloraterecv busid = pI "^tremolorate" busid
 
 -- | tube distortion
-triode :: Signal Double -> ControlSignal
+triode :: Pattern p => p Double -> p ValueMap
 triode = pF "triode"
-triodeTake :: String -> [Double] -> ControlSignal
+triodeTake :: Pattern p => String -> [Double] -> p ValueMap
 triodeTake name xs = pStateListF "triode" name xs
-triodeCount :: String -> ControlSignal
+triodeCount :: Pattern p => String -> p ValueMap
 triodeCount name = pStateF "triode" name (maybe 0 (+1))
-triodeCountTo :: String -> Signal Double -> Signal ValueMap
+triodeCountTo :: Pattern p => String -> p Double -> p ValueMap
 triodeCountTo name ipat = innerJoin $ (\i -> pStateF "triode" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-triodebus :: Signal Int -> Signal Double -> ControlSignal
+triodebus :: Pattern p => p Int -> p Double -> p ValueMap
 triodebus busid pat = pF "triode" pat # pI "^triode" busid
-trioderecv :: Signal Int -> ControlSignal
+trioderecv :: Pattern p => p Int -> p ValueMap
 trioderecv busid = pI "^triode" busid
 
 -- | 
-tsdelay :: Signal Double -> ControlSignal
+tsdelay :: Pattern p => p Double -> p ValueMap
 tsdelay = pF "tsdelay"
-tsdelayTake :: String -> [Double] -> ControlSignal
+tsdelayTake :: Pattern p => String -> [Double] -> p ValueMap
 tsdelayTake name xs = pStateListF "tsdelay" name xs
-tsdelayCount :: String -> ControlSignal
+tsdelayCount :: Pattern p => String -> p ValueMap
 tsdelayCount name = pStateF "tsdelay" name (maybe 0 (+1))
-tsdelayCountTo :: String -> Signal Double -> Signal ValueMap
+tsdelayCountTo :: Pattern p => String -> p Double -> p ValueMap
 tsdelayCountTo name ipat = innerJoin $ (\i -> pStateF "tsdelay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-tsdelaybus :: Signal Int -> Signal Double -> ControlSignal
+tsdelaybus :: Pattern p => p Int -> p Double -> p ValueMap
 tsdelaybus busid pat = pF "tsdelay" pat # pI "^tsdelay" busid
-tsdelayrecv :: Signal Int -> ControlSignal
+tsdelayrecv :: Pattern p => p Int -> p ValueMap
 tsdelayrecv busid = pI "^tsdelay" busid
 
 -- | 
-uid :: Signal Double -> ControlSignal
+uid :: Pattern p => p Double -> p ValueMap
 uid = pF "uid"
-uidTake :: String -> [Double] -> ControlSignal
+uidTake :: Pattern p => String -> [Double] -> p ValueMap
 uidTake name xs = pStateListF "uid" name xs
-uidCount :: String -> ControlSignal
+uidCount :: Pattern p => String -> p ValueMap
 uidCount name = pStateF "uid" name (maybe 0 (+1))
-uidCountTo :: String -> Signal Double -> Signal ValueMap
+uidCountTo :: Pattern p => String -> p Double -> p ValueMap
 uidCountTo name ipat = innerJoin $ (\i -> pStateF "uid" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-uidbus :: Signal Int -> Signal Double -> ControlSignal
+uidbus :: Pattern p => p Int -> p Double -> p ValueMap
 uidbus _ _ = error "Control parameter 'uid' can't be sent to a bus."
 
 -- | used in conjunction with `speed`, accepts values of "r" (rate, default behavior), "c" (cycles), or "s" (seconds). Using `unit "c"` means `speed` will be interpreted in units of cycles, e.g. `speed "1"` means samples will be stretched to fill a cycle. Using `unit "s"` means the playback speed will be adjusted so that the duration is the number of seconds specified by `speed`.
-unit :: Signal String -> ControlSignal
+unit :: Pattern p => p String -> p ValueMap
 unit = pS "unit"
-unitTake :: String -> [Double] -> ControlSignal
+unitTake :: Pattern p => String -> [Double] -> p ValueMap
 unitTake name xs = pStateListF "unit" name xs
-unitbus :: Signal Int -> Signal String -> ControlSignal
+unitbus :: Pattern p => p Int -> p String -> p ValueMap
 unitbus _ _ = error "Control parameter 'unit' can't be sent to a bus."
 
 -- | 
-val :: Signal Double -> ControlSignal
+val :: Pattern p => p Double -> p ValueMap
 val = pF "val"
-valTake :: String -> [Double] -> ControlSignal
+valTake :: Pattern p => String -> [Double] -> p ValueMap
 valTake name xs = pStateListF "val" name xs
-valCount :: String -> ControlSignal
+valCount :: Pattern p => String -> p ValueMap
 valCount name = pStateF "val" name (maybe 0 (+1))
-valCountTo :: String -> Signal Double -> Signal ValueMap
+valCountTo :: Pattern p => String -> p Double -> p ValueMap
 valCountTo name ipat = innerJoin $ (\i -> pStateF "val" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-valbus :: Signal Int -> Signal Double -> ControlSignal
+valbus :: Pattern p => p Int -> p Double -> p ValueMap
 valbus _ _ = error "Control parameter 'val' can't be sent to a bus."
 
 -- | 
-vcfegint :: Signal Double -> ControlSignal
+vcfegint :: Pattern p => p Double -> p ValueMap
 vcfegint = pF "vcfegint"
-vcfegintTake :: String -> [Double] -> ControlSignal
+vcfegintTake :: Pattern p => String -> [Double] -> p ValueMap
 vcfegintTake name xs = pStateListF "vcfegint" name xs
-vcfegintCount :: String -> ControlSignal
+vcfegintCount :: Pattern p => String -> p ValueMap
 vcfegintCount name = pStateF "vcfegint" name (maybe 0 (+1))
-vcfegintCountTo :: String -> Signal Double -> Signal ValueMap
+vcfegintCountTo :: Pattern p => String -> p Double -> p ValueMap
 vcfegintCountTo name ipat = innerJoin $ (\i -> pStateF "vcfegint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-vcfegintbus :: Signal Int -> Signal Double -> ControlSignal
+vcfegintbus :: Pattern p => p Int -> p Double -> p ValueMap
 vcfegintbus busid pat = pF "vcfegint" pat # pI "^vcfegint" busid
-vcfegintrecv :: Signal Int -> ControlSignal
+vcfegintrecv :: Pattern p => p Int -> p ValueMap
 vcfegintrecv busid = pI "^vcfegint" busid
 
 -- | 
-vcoegint :: Signal Double -> ControlSignal
+vcoegint :: Pattern p => p Double -> p ValueMap
 vcoegint = pF "vcoegint"
-vcoegintTake :: String -> [Double] -> ControlSignal
+vcoegintTake :: Pattern p => String -> [Double] -> p ValueMap
 vcoegintTake name xs = pStateListF "vcoegint" name xs
-vcoegintCount :: String -> ControlSignal
+vcoegintCount :: Pattern p => String -> p ValueMap
 vcoegintCount name = pStateF "vcoegint" name (maybe 0 (+1))
-vcoegintCountTo :: String -> Signal Double -> Signal ValueMap
+vcoegintCountTo :: Pattern p => String -> p Double -> p ValueMap
 vcoegintCountTo name ipat = innerJoin $ (\i -> pStateF "vcoegint" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-vcoegintbus :: Signal Int -> Signal Double -> ControlSignal
+vcoegintbus :: Pattern p => p Int -> p Double -> p ValueMap
 vcoegintbus busid pat = pF "vcoegint" pat # pI "^vcoegint" busid
-vcoegintrecv :: Signal Int -> ControlSignal
+vcoegintrecv :: Pattern p => p Int -> p ValueMap
 vcoegintrecv busid = pI "^vcoegint" busid
 
 -- | 
-velocity :: Signal Double -> ControlSignal
+velocity :: Pattern p => p Double -> p ValueMap
 velocity = pF "velocity"
-velocityTake :: String -> [Double] -> ControlSignal
+velocityTake :: Pattern p => String -> [Double] -> p ValueMap
 velocityTake name xs = pStateListF "velocity" name xs
-velocityCount :: String -> ControlSignal
+velocityCount :: Pattern p => String -> p ValueMap
 velocityCount name = pStateF "velocity" name (maybe 0 (+1))
-velocityCountTo :: String -> Signal Double -> Signal ValueMap
+velocityCountTo :: Pattern p => String -> p Double -> p ValueMap
 velocityCountTo name ipat = innerJoin $ (\i -> pStateF "velocity" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-velocitybus :: Signal Int -> Signal Double -> ControlSignal
+velocitybus :: Pattern p => p Int -> p Double -> p ValueMap
 velocitybus busid pat = pF "velocity" pat # pI "^velocity" busid
-velocityrecv :: Signal Int -> ControlSignal
+velocityrecv :: Pattern p => p Int -> p ValueMap
 velocityrecv busid = pI "^velocity" busid
 
 -- | 
-voice :: Signal Double -> ControlSignal
+voice :: Pattern p => p Double -> p ValueMap
 voice = pF "voice"
-voiceTake :: String -> [Double] -> ControlSignal
+voiceTake :: Pattern p => String -> [Double] -> p ValueMap
 voiceTake name xs = pStateListF "voice" name xs
-voiceCount :: String -> ControlSignal
+voiceCount :: Pattern p => String -> p ValueMap
 voiceCount name = pStateF "voice" name (maybe 0 (+1))
-voiceCountTo :: String -> Signal Double -> Signal ValueMap
+voiceCountTo :: Pattern p => String -> p Double -> p ValueMap
 voiceCountTo name ipat = innerJoin $ (\i -> pStateF "voice" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-voicebus :: Signal Int -> Signal Double -> ControlSignal
+voicebus :: Pattern p => p Int -> p Double -> p ValueMap
 voicebus busid pat = pF "voice" pat # pI "^voice" busid
-voicerecv :: Signal Int -> ControlSignal
+voicerecv :: Pattern p => p Int -> p ValueMap
 voicerecv busid = pI "^voice" busid
 
 -- | formant filter to make things sound like vowels, a pattern of either `a`, `e`, `i`, `o` or `u`. Use a rest (`~`) for no effect.
-vowel :: Signal String -> ControlSignal
+vowel :: Pattern p => p String -> p ValueMap
 vowel = pS "vowel"
-vowelTake :: String -> [Double] -> ControlSignal
+vowelTake :: Pattern p => String -> [Double] -> p ValueMap
 vowelTake name xs = pStateListF "vowel" name xs
-vowelbus :: Signal Int -> Signal String -> ControlSignal
+vowelbus :: Pattern p => p Int -> p String -> p ValueMap
 vowelbus busid pat = pS "vowel" pat # pI "^vowel" busid
-vowelrecv :: Signal Int -> ControlSignal
+vowelrecv :: Pattern p => p Int -> p ValueMap
 vowelrecv busid = pI "^vowel" busid
 
 -- | 
-waveloss :: Signal Double -> ControlSignal
+waveloss :: Pattern p => p Double -> p ValueMap
 waveloss = pF "waveloss"
-wavelossTake :: String -> [Double] -> ControlSignal
+wavelossTake :: Pattern p => String -> [Double] -> p ValueMap
 wavelossTake name xs = pStateListF "waveloss" name xs
-wavelossCount :: String -> ControlSignal
+wavelossCount :: Pattern p => String -> p ValueMap
 wavelossCount name = pStateF "waveloss" name (maybe 0 (+1))
-wavelossCountTo :: String -> Signal Double -> Signal ValueMap
+wavelossCountTo :: Pattern p => String -> p Double -> p ValueMap
 wavelossCountTo name ipat = innerJoin $ (\i -> pStateF "waveloss" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-wavelossbus :: Signal Int -> Signal Double -> ControlSignal
+wavelossbus :: Pattern p => p Int -> p Double -> p ValueMap
 wavelossbus busid pat = pF "waveloss" pat # pI "^waveloss" busid
-wavelossrecv :: Signal Int -> ControlSignal
+wavelossrecv :: Pattern p => p Int -> p ValueMap
 wavelossrecv busid = pI "^waveloss" busid
 
 -- | 
-xsdelay :: Signal Double -> ControlSignal
+xsdelay :: Pattern p => p Double -> p ValueMap
 xsdelay = pF "xsdelay"
-xsdelayTake :: String -> [Double] -> ControlSignal
+xsdelayTake :: Pattern p => String -> [Double] -> p ValueMap
 xsdelayTake name xs = pStateListF "xsdelay" name xs
-xsdelayCount :: String -> ControlSignal
+xsdelayCount :: Pattern p => String -> p ValueMap
 xsdelayCount name = pStateF "xsdelay" name (maybe 0 (+1))
-xsdelayCountTo :: String -> Signal Double -> Signal ValueMap
+xsdelayCountTo :: Pattern p => String -> p Double -> p ValueMap
 xsdelayCountTo name ipat = innerJoin $ (\i -> pStateF "xsdelay" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
 
-xsdelaybus :: Signal Int -> Signal Double -> ControlSignal
+xsdelaybus :: Pattern p => p Int -> p Double -> p ValueMap
 xsdelaybus busid pat = pF "xsdelay" pat # pI "^xsdelay" busid
-xsdelayrecv :: Signal Int -> ControlSignal
+xsdelayrecv :: Pattern p => p Int -> p ValueMap
 xsdelayrecv busid = pI "^xsdelay" busid
 
 
 
 -- aliases
 
-voi :: Signal Double -> ControlSignal
+voi :: Pattern p => p Double -> p ValueMap
 voi = voice
-voibus :: Signal Int -> Signal Double -> ControlSignal
+voibus :: Pattern p => p Int -> p Double -> p ValueMap
 voibus = voicebus
-voirecv :: Signal Int -> ControlSignal
+voirecv :: Pattern p => p Int -> p ValueMap
 voirecv = voicerecv
 
-vco :: Signal Double -> ControlSignal
+vco :: Pattern p => p Double -> p ValueMap
 vco = vcoegint
-vcobus :: Signal Int -> Signal Double -> ControlSignal
+vcobus :: Pattern p => p Int -> p Double -> p ValueMap
 vcobus = vcoegintbus
-vcorecv :: Signal Int -> ControlSignal
+vcorecv :: Pattern p => p Int -> p ValueMap
 vcorecv = vcoegintrecv
 
-vcf :: Signal Double -> ControlSignal
+vcf :: Pattern p => p Double -> p ValueMap
 vcf = vcfegint
-vcfbus :: Signal Int -> Signal Double -> ControlSignal
+vcfbus :: Pattern p => p Int -> p Double -> p ValueMap
 vcfbus = vcfegintbus
-vcfrecv :: Signal Int -> ControlSignal
+vcfrecv :: Pattern p => p Int -> p ValueMap
 vcfrecv = vcfegintrecv
 
-up :: Signal Note -> ControlSignal
+up :: Pattern p => p Note -> p ValueMap
 up = note
 
-tremr :: Signal Double -> ControlSignal
+tremr :: Pattern p => p Double -> p ValueMap
 tremr = tremolorate
-tremrbus :: Signal Int -> Signal Double -> ControlSignal
+tremrbus :: Pattern p => p Int -> p Double -> p ValueMap
 tremrbus = tremoloratebus
-tremrrecv :: Signal Int -> ControlSignal
+tremrrecv :: Pattern p => p Int -> p ValueMap
 tremrrecv = tremoloraterecv
 
-tremdp :: Signal Double -> ControlSignal
+tremdp :: Pattern p => p Double -> p ValueMap
 tremdp = tremolodepth
-tremdpbus :: Signal Int -> Signal Double -> ControlSignal
+tremdpbus :: Pattern p => p Int -> p Double -> p ValueMap
 tremdpbus = tremolodepthbus
-tremdprecv :: Signal Int -> ControlSignal
+tremdprecv :: Pattern p => p Int -> p ValueMap
 tremdprecv = tremolodepthrecv
 
-tdecay :: Signal Double -> ControlSignal
+tdecay :: Pattern p => p Double -> p ValueMap
 tdecay = tomdecay
-tdecaybus :: Signal Int -> Signal Double -> ControlSignal
+tdecaybus :: Pattern p => p Int -> p Double -> p ValueMap
 tdecaybus = tomdecaybus
-tdecayrecv :: Signal Int -> ControlSignal
+tdecayrecv :: Pattern p => p Int -> p ValueMap
 tdecayrecv = tomdecayrecv
 
-sz :: Signal Double -> ControlSignal
+sz :: Pattern p => p Double -> p ValueMap
 sz = size
-szbus :: Signal Int -> Signal Double -> ControlSignal
+szbus :: Pattern p => p Int -> p Double -> p ValueMap
 szbus = sizebus
-szrecv :: Signal Int -> ControlSignal
+szrecv :: Pattern p => p Int -> p ValueMap
 szrecv = sizerecv
 
-sus :: Signal Double -> ControlSignal
+sus :: Pattern p => p Double -> p ValueMap
 sus = sustain
 
-stt :: Signal Double -> ControlSignal
+stt :: Pattern p => p Double -> p ValueMap
 stt = stuttertime
-sttbus :: Signal Int -> Signal Double -> ControlSignal
+sttbus :: Pattern p => p Int -> p Double -> p ValueMap
 sttbus = stuttertimebus
-sttrecv :: Signal Int -> ControlSignal
+sttrecv :: Pattern p => p Int -> p ValueMap
 sttrecv = stuttertimerecv
 
-std :: Signal Double -> ControlSignal
+std :: Pattern p => p Double -> p ValueMap
 std = stutterdepth
-stdbus :: Signal Int -> Signal Double -> ControlSignal
+stdbus :: Pattern p => p Int -> p Double -> p ValueMap
 stdbus = stutterdepthbus
-stdrecv :: Signal Int -> ControlSignal
+stdrecv :: Pattern p => p Int -> p ValueMap
 stdrecv = stutterdepthrecv
 
-sld :: Signal Double -> ControlSignal
+sld :: Pattern p => p Double -> p ValueMap
 sld = slide
-sldbus :: Signal Int -> Signal Double -> ControlSignal
+sldbus :: Pattern p => p Int -> p Double -> p ValueMap
 sldbus = slidebus
-sldrecv :: Signal Int -> ControlSignal
+sldrecv :: Pattern p => p Int -> p ValueMap
 sldrecv = sliderecv
 
-scr :: Signal Double -> ControlSignal
+scr :: Pattern p => p Double -> p ValueMap
 scr = scrash
-scrbus :: Signal Int -> Signal Double -> ControlSignal
+scrbus :: Pattern p => p Int -> p Double -> p ValueMap
 scrbus = scrashbus
-scrrecv :: Signal Int -> ControlSignal
+scrrecv :: Pattern p => p Int -> p ValueMap
 scrrecv = scrashrecv
 
-scp :: Signal Double -> ControlSignal
+scp :: Pattern p => p Double -> p ValueMap
 scp = sclap
-scpbus :: Signal Int -> Signal Double -> ControlSignal
+scpbus :: Pattern p => p Int -> p Double -> p ValueMap
 scpbus = sclapbus
-scprecv :: Signal Int -> ControlSignal
+scprecv :: Pattern p => p Int -> p ValueMap
 scprecv = sclaprecv
 
-scl :: Signal Double -> ControlSignal
+scl :: Pattern p => p Double -> p ValueMap
 scl = sclaves
-sclbus :: Signal Int -> Signal Double -> ControlSignal
+sclbus :: Pattern p => p Int -> p Double -> p ValueMap
 sclbus = sclavesbus
-sclrecv :: Signal Int -> ControlSignal
+sclrecv :: Pattern p => p Int -> p ValueMap
 sclrecv = sclavesrecv
 
-sag :: Signal Double -> ControlSignal
+sag :: Pattern p => p Double -> p ValueMap
 sag = sagogo
-sagbus :: Signal Int -> Signal Double -> ControlSignal
+sagbus :: Pattern p => p Int -> p Double -> p ValueMap
 sagbus = sagogobus
-sagrecv :: Signal Int -> ControlSignal
+sagrecv :: Pattern p => p Int -> p ValueMap
 sagrecv = sagogorecv
 
-s :: Signal String -> ControlSignal
+s :: Pattern p => p String -> p ValueMap
 s = sound
 
-rel :: Signal Double -> ControlSignal
+rel :: Pattern p => p Double -> p ValueMap
 rel = release
-relbus :: Signal Int -> Signal Double -> ControlSignal
+relbus :: Pattern p => p Int -> p Double -> p ValueMap
 relbus = releasebus
-relrecv :: Signal Int -> ControlSignal
+relrecv :: Pattern p => p Int -> p ValueMap
 relrecv = releaserecv
 
-por :: Signal Double -> ControlSignal
+por :: Pattern p => p Double -> p ValueMap
 por = portamento
-porbus :: Signal Int -> Signal Double -> ControlSignal
+porbus :: Pattern p => p Int -> p Double -> p ValueMap
 porbus = portamentobus
-porrecv :: Signal Int -> ControlSignal
+porrecv :: Pattern p => p Int -> p ValueMap
 porrecv = portamentorecv
 
-pit3 :: Signal Double -> ControlSignal
+pit3 :: Pattern p => p Double -> p ValueMap
 pit3 = pitch3
-pit3bus :: Signal Int -> Signal Double -> ControlSignal
+pit3bus :: Pattern p => p Int -> p Double -> p ValueMap
 pit3bus = pitch3bus
-pit3recv :: Signal Int -> ControlSignal
+pit3recv :: Pattern p => p Int -> p ValueMap
 pit3recv = pitch3recv
 
-pit2 :: Signal Double -> ControlSignal
+pit2 :: Pattern p => p Double -> p ValueMap
 pit2 = pitch2
-pit2bus :: Signal Int -> Signal Double -> ControlSignal
+pit2bus :: Pattern p => p Int -> p Double -> p ValueMap
 pit2bus = pitch2bus
-pit2recv :: Signal Int -> ControlSignal
+pit2recv :: Pattern p => p Int -> p ValueMap
 pit2recv = pitch2recv
 
-pit1 :: Signal Double -> ControlSignal
+pit1 :: Pattern p => p Double -> p ValueMap
 pit1 = pitch1
-pit1bus :: Signal Int -> Signal Double -> ControlSignal
+pit1bus :: Pattern p => p Int -> p Double -> p ValueMap
 pit1bus = pitch1bus
-pit1recv :: Signal Int -> ControlSignal
+pit1recv :: Pattern p => p Int -> p ValueMap
 pit1recv = pitch1recv
 
-phasr :: Signal Double -> ControlSignal
+phasr :: Pattern p => p Double -> p ValueMap
 phasr = phaserrate
-phasrbus :: Signal Int -> Signal Double -> ControlSignal
+phasrbus :: Pattern p => p Int -> p Double -> p ValueMap
 phasrbus = phaserratebus
-phasrrecv :: Signal Int -> ControlSignal
+phasrrecv :: Pattern p => p Int -> p ValueMap
 phasrrecv = phaserraterecv
 
-phasdp :: Signal Double -> ControlSignal
+phasdp :: Pattern p => p Double -> p ValueMap
 phasdp = phaserdepth
-phasdpbus :: Signal Int -> Signal Double -> ControlSignal
+phasdpbus :: Pattern p => p Int -> p Double -> p ValueMap
 phasdpbus = phaserdepthbus
-phasdprecv :: Signal Int -> ControlSignal
+phasdprecv :: Pattern p => p Int -> p ValueMap
 phasdprecv = phaserdepthrecv
 
-ohdecay :: Signal Double -> ControlSignal
+ohdecay :: Pattern p => p Double -> p ValueMap
 ohdecay = ophatdecay
-ohdecaybus :: Signal Int -> Signal Double -> ControlSignal
+ohdecaybus :: Pattern p => p Int -> p Double -> p ValueMap
 ohdecaybus = ophatdecaybus
-ohdecayrecv :: Signal Int -> ControlSignal
+ohdecayrecv :: Pattern p => p Int -> p ValueMap
 ohdecayrecv = ophatdecayrecv
 
-number :: Signal Note -> ControlSignal
+number :: Pattern p => p Note -> p ValueMap
 number = n
 
-lsn :: Signal Double -> ControlSignal
+lsn :: Pattern p => p Double -> p ValueMap
 lsn = lsnare
-lsnbus :: Signal Int -> Signal Double -> ControlSignal
+lsnbus :: Pattern p => p Int -> p Double -> p ValueMap
 lsnbus = lsnarebus
-lsnrecv :: Signal Int -> ControlSignal
+lsnrecv :: Pattern p => p Int -> p ValueMap
 lsnrecv = lsnarerecv
 
-lpq :: Signal Double -> ControlSignal
+lpq :: Pattern p => p Double -> p ValueMap
 lpq = resonance
-lpqbus :: Signal Int -> Signal Double -> ControlSignal
+lpqbus :: Pattern p => p Int -> p Double -> p ValueMap
 lpqbus = resonancebus
-lpqrecv :: Signal Int -> ControlSignal
+lpqrecv :: Pattern p => p Int -> p ValueMap
 lpqrecv = resonancerecv
 
-lpf :: Signal Double -> ControlSignal
+lpf :: Pattern p => p Double -> p ValueMap
 lpf = cutoff
-lpfbus :: Signal Int -> Signal Double -> ControlSignal
+lpfbus :: Pattern p => p Int -> p Double -> p ValueMap
 lpfbus = cutoffbus
-lpfrecv :: Signal Int -> ControlSignal
+lpfrecv :: Pattern p => p Int -> p ValueMap
 lpfrecv = cutoffrecv
 
-loh :: Signal Double -> ControlSignal
+loh :: Pattern p => p Double -> p ValueMap
 loh = lophat
-lohbus :: Signal Int -> Signal Double -> ControlSignal
+lohbus :: Pattern p => p Int -> p Double -> p ValueMap
 lohbus = lophatbus
-lohrecv :: Signal Int -> ControlSignal
+lohrecv :: Pattern p => p Int -> p ValueMap
 lohrecv = lophatrecv
 
-llt :: Signal Double -> ControlSignal
+llt :: Pattern p => p Double -> p ValueMap
 llt = llotom
-lltbus :: Signal Int -> Signal Double -> ControlSignal
+lltbus :: Pattern p => p Int -> p Double -> p ValueMap
 lltbus = llotombus
-lltrecv :: Signal Int -> ControlSignal
+lltrecv :: Pattern p => p Int -> p ValueMap
 lltrecv = llotomrecv
 
-lht :: Signal Double -> ControlSignal
+lht :: Pattern p => p Double -> p ValueMap
 lht = lhitom
-lhtbus :: Signal Int -> Signal Double -> ControlSignal
+lhtbus :: Pattern p => p Int -> p Double -> p ValueMap
 lhtbus = lhitombus
-lhtrecv :: Signal Int -> ControlSignal
+lhtrecv :: Pattern p => p Int -> p ValueMap
 lhtrecv = lhitomrecv
 
-lfop :: Signal Double -> ControlSignal
+lfop :: Pattern p => p Double -> p ValueMap
 lfop = lfopitchint
-lfopbus :: Signal Int -> Signal Double -> ControlSignal
+lfopbus :: Pattern p => p Int -> p Double -> p ValueMap
 lfopbus = lfopitchintbus
-lfoprecv :: Signal Int -> ControlSignal
+lfoprecv :: Pattern p => p Int -> p ValueMap
 lfoprecv = lfopitchintrecv
 
-lfoi :: Signal Double -> ControlSignal
+lfoi :: Pattern p => p Double -> p ValueMap
 lfoi = lfoint
-lfoibus :: Signal Int -> Signal Double -> ControlSignal
+lfoibus :: Pattern p => p Int -> p Double -> p ValueMap
 lfoibus = lfointbus
-lfoirecv :: Signal Int -> ControlSignal
+lfoirecv :: Pattern p => p Int -> p ValueMap
 lfoirecv = lfointrecv
 
-lfoc :: Signal Double -> ControlSignal
+lfoc :: Pattern p => p Double -> p ValueMap
 lfoc = lfocutoffint
-lfocbus :: Signal Int -> Signal Double -> ControlSignal
+lfocbus :: Pattern p => p Int -> p Double -> p ValueMap
 lfocbus = lfocutoffintbus
-lfocrecv :: Signal Int -> ControlSignal
+lfocrecv :: Pattern p => p Int -> p ValueMap
 lfocrecv = lfocutoffintrecv
 
-lcr :: Signal Double -> ControlSignal
+lcr :: Pattern p => p Double -> p ValueMap
 lcr = lcrash
-lcrbus :: Signal Int -> Signal Double -> ControlSignal
+lcrbus :: Pattern p => p Int -> p Double -> p ValueMap
 lcrbus = lcrashbus
-lcrrecv :: Signal Int -> ControlSignal
+lcrrecv :: Pattern p => p Int -> p ValueMap
 lcrrecv = lcrashrecv
 
-lcp :: Signal Double -> ControlSignal
+lcp :: Pattern p => p Double -> p ValueMap
 lcp = lclap
-lcpbus :: Signal Int -> Signal Double -> ControlSignal
+lcpbus :: Pattern p => p Int -> p Double -> p ValueMap
 lcpbus = lclapbus
-lcprecv :: Signal Int -> ControlSignal
+lcprecv :: Pattern p => p Int -> p ValueMap
 lcprecv = lclaprecv
 
-lcl :: Signal Double -> ControlSignal
+lcl :: Pattern p => p Double -> p ValueMap
 lcl = lclaves
-lclbus :: Signal Int -> Signal Double -> ControlSignal
+lclbus :: Pattern p => p Int -> p Double -> p ValueMap
 lclbus = lclavesbus
-lclrecv :: Signal Int -> ControlSignal
+lclrecv :: Pattern p => p Int -> p ValueMap
 lclrecv = lclavesrecv
 
-lch :: Signal Double -> ControlSignal
+lch :: Pattern p => p Double -> p ValueMap
 lch = lclhat
-lchbus :: Signal Int -> Signal Double -> ControlSignal
+lchbus :: Pattern p => p Int -> p Double -> p ValueMap
 lchbus = lclhatbus
-lchrecv :: Signal Int -> ControlSignal
+lchrecv :: Pattern p => p Int -> p ValueMap
 lchrecv = lclhatrecv
 
-lbd :: Signal Double -> ControlSignal
+lbd :: Pattern p => p Double -> p ValueMap
 lbd = lkick
-lbdbus :: Signal Int -> Signal Double -> ControlSignal
+lbdbus :: Pattern p => p Int -> p Double -> p ValueMap
 lbdbus = lkickbus
-lbdrecv :: Signal Int -> ControlSignal
+lbdrecv :: Pattern p => p Int -> p ValueMap
 lbdrecv = lkickrecv
 
-lag :: Signal Double -> ControlSignal
+lag :: Pattern p => p Double -> p ValueMap
 lag = lagogo
-lagbus :: Signal Int -> Signal Double -> ControlSignal
+lagbus :: Pattern p => p Int -> p Double -> p ValueMap
 lagbus = lagogobus
-lagrecv :: Signal Int -> ControlSignal
+lagrecv :: Pattern p => p Int -> p ValueMap
 lagrecv = lagogorecv
 
-hpq :: Signal Double -> ControlSignal
+hpq :: Pattern p => p Double -> p ValueMap
 hpq = hresonance
-hpqbus :: Signal Int -> Signal Double -> ControlSignal
+hpqbus :: Pattern p => p Int -> p Double -> p ValueMap
 hpqbus = hresonancebus
-hpqrecv :: Signal Int -> ControlSignal
+hpqrecv :: Pattern p => p Int -> p ValueMap
 hpqrecv = hresonancerecv
 
-hpf :: Signal Double -> ControlSignal
+hpf :: Pattern p => p Double -> p ValueMap
 hpf = hcutoff
-hpfbus :: Signal Int -> Signal Double -> ControlSignal
+hpfbus :: Pattern p => p Int -> p Double -> p ValueMap
 hpfbus = hcutoffbus
-hpfrecv :: Signal Int -> ControlSignal
+hpfrecv :: Pattern p => p Int -> p ValueMap
 hpfrecv = hcutoffrecv
 
-hg :: Signal Double -> ControlSignal
+hg :: Pattern p => p Double -> p ValueMap
 hg = hatgrain
-hgbus :: Signal Int -> Signal Double -> ControlSignal
+hgbus :: Pattern p => p Int -> p Double -> p ValueMap
 hgbus = hatgrainbus
-hgrecv :: Signal Int -> ControlSignal
+hgrecv :: Pattern p => p Int -> p ValueMap
 hgrecv = hatgrainrecv
 
-gat :: Signal Double -> ControlSignal
+gat :: Pattern p => p Double -> p ValueMap
 gat = gate
-gatbus :: Signal Int -> Signal Double -> ControlSignal
+gatbus :: Pattern p => p Int -> p Double -> p ValueMap
 gatbus = gatebus
-gatrecv :: Signal Int -> ControlSignal
+gatrecv :: Pattern p => p Int -> p ValueMap
 gatrecv = gaterecv
 
-fadeOutTime :: Signal Double -> ControlSignal
+fadeOutTime :: Pattern p => p Double -> p ValueMap
 fadeOutTime = fadeTime
 
-dt :: Signal Double -> ControlSignal
+dt :: Pattern p => p Double -> p ValueMap
 dt = delaytime
-dtbus :: Signal Int -> Signal Double -> ControlSignal
+dtbus :: Pattern p => p Int -> p Double -> p ValueMap
 dtbus = delaytimebus
-dtrecv :: Signal Int -> ControlSignal
+dtrecv :: Pattern p => p Int -> p ValueMap
 dtrecv = delaytimerecv
 
-dfb :: Signal Double -> ControlSignal
+dfb :: Pattern p => p Double -> p ValueMap
 dfb = delayfeedback
-dfbbus :: Signal Int -> Signal Double -> ControlSignal
+dfbbus :: Pattern p => p Int -> p Double -> p ValueMap
 dfbbus = delayfeedbackbus
-dfbrecv :: Signal Int -> ControlSignal
+dfbrecv :: Pattern p => p Int -> p ValueMap
 dfbrecv = delayfeedbackrecv
 
-det :: Signal Double -> ControlSignal
+det :: Pattern p => p Double -> p ValueMap
 det = detune
-detbus :: Signal Int -> Signal Double -> ControlSignal
+detbus :: Pattern p => p Int -> p Double -> p ValueMap
 detbus = detunebus
-detrecv :: Signal Int -> ControlSignal
+detrecv :: Pattern p => p Int -> p ValueMap
 detrecv = detunerecv
 
-delayt :: Signal Double -> ControlSignal
+delayt :: Pattern p => p Double -> p ValueMap
 delayt = delaytime
-delaytbus :: Signal Int -> Signal Double -> ControlSignal
+delaytbus :: Pattern p => p Int -> p Double -> p ValueMap
 delaytbus = delaytimebus
-delaytrecv :: Signal Int -> ControlSignal
+delaytrecv :: Pattern p => p Int -> p ValueMap
 delaytrecv = delaytimerecv
 
-delayfb :: Signal Double -> ControlSignal
+delayfb :: Pattern p => p Double -> p ValueMap
 delayfb = delayfeedback
-delayfbbus :: Signal Int -> Signal Double -> ControlSignal
+delayfbbus :: Pattern p => p Int -> p Double -> p ValueMap
 delayfbbus = delayfeedbackbus
-delayfbrecv :: Signal Int -> ControlSignal
+delayfbrecv :: Pattern p => p Int -> p ValueMap
 delayfbrecv = delayfeedbackrecv
 
-ctfg :: Signal Double -> ControlSignal
+ctfg :: Pattern p => p Double -> p ValueMap
 ctfg = cutoffegint
-ctfgbus :: Signal Int -> Signal Double -> ControlSignal
+ctfgbus :: Pattern p => p Int -> p Double -> p ValueMap
 ctfgbus = cutoffegintbus
-ctfgrecv :: Signal Int -> ControlSignal
+ctfgrecv :: Pattern p => p Int -> p ValueMap
 ctfgrecv = cutoffegintrecv
 
-ctf :: Signal Double -> ControlSignal
+ctf :: Pattern p => p Double -> p ValueMap
 ctf = cutoff
-ctfbus :: Signal Int -> Signal Double -> ControlSignal
+ctfbus :: Pattern p => p Int -> p Double -> p ValueMap
 ctfbus = cutoffbus
-ctfrecv :: Signal Int -> ControlSignal
+ctfrecv :: Pattern p => p Int -> p ValueMap
 ctfrecv = cutoffrecv
 
-chdecay :: Signal Double -> ControlSignal
+chdecay :: Pattern p => p Double -> p ValueMap
 chdecay = clhatdecay
-chdecaybus :: Signal Int -> Signal Double -> ControlSignal
+chdecaybus :: Pattern p => p Int -> p Double -> p ValueMap
 chdecaybus = clhatdecaybus
-chdecayrecv :: Signal Int -> ControlSignal
+chdecayrecv :: Pattern p => p Int -> p ValueMap
 chdecayrecv = clhatdecayrecv
 
-bpq :: Signal Double -> ControlSignal
+bpq :: Pattern p => p Double -> p ValueMap
 bpq = bandq
-bpqbus :: Signal Int -> Signal Double -> ControlSignal
+bpqbus :: Pattern p => p Int -> p Double -> p ValueMap
 bpqbus = bandqbus
-bpqrecv :: Signal Int -> ControlSignal
+bpqrecv :: Pattern p => p Int -> p ValueMap
 bpqrecv = bandqrecv
 
-bpf :: Signal Double -> ControlSignal
+bpf :: Pattern p => p Double -> p ValueMap
 bpf = bandf
-bpfbus :: Signal Int -> Signal Double -> ControlSignal
+bpfbus :: Pattern p => p Int -> p Double -> p ValueMap
 bpfbus = bandfbus
-bpfrecv :: Signal Int -> ControlSignal
+bpfrecv :: Pattern p => p Int -> p ValueMap
 bpfrecv = bandfrecv
 
-att :: Signal Double -> ControlSignal
+att :: Pattern p => p Double -> p ValueMap
 att = attack
-attbus :: Signal Int -> Signal Double -> ControlSignal
+attbus :: Pattern p => p Int -> p Double -> p ValueMap
 attbus = attackbus
-attrecv :: Signal Int -> ControlSignal
+attrecv :: Pattern p => p Int -> p ValueMap
 attrecv = attackrecv
