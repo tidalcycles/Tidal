@@ -3,6 +3,7 @@
 
 module Sound.Tidal.Pattern where
 
+import           Data.Maybe        (fromJust, isJust)
 import           Prelude           hiding ((*>), (<*))
 import           Sound.Tidal.Types
 
@@ -34,6 +35,8 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   innerJoin :: p (p a) -> p a
   (<*) :: p (a -> b) -> p a -> p b
   (*>) :: p (a -> b) -> p a -> p b
+  filterOnsets :: p a -> p a
+  filterValues :: (a -> Bool) -> p a -> p a
 
 infixl 4 <*, *>
 
@@ -96,6 +99,9 @@ _patternify_p_p_p f apat bpat cpat pat = innerJoin $ (\a b c -> f a b c pat) <$>
 
 -- ************************************************************ --
 -- Other functions common to Signals and Sequences
+
+filterJusts :: Pattern p => p (Maybe a) -> p a
+filterJusts = fmap fromJust . filterValues isJust
 
 euclid :: Pattern p => p Int -> p Int -> p a -> p a
 euclid = _patternify_p_p _euclid

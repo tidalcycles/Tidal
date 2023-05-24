@@ -66,6 +66,25 @@ instance Pattern Sequence where
   _euclid = _seqEuclid
   collect = seqCollect
   uncollect = seqUncollect
+  filterOnsets = seqFilterOnsets
+  filterValues = seqFilterValues
+
+filterAtoms :: (Sequence a -> Bool) -> Sequence a -> Sequence a
+filterAtoms f a@(Atom d i o _) | f a = a
+                               | otherwise = Atom d i o Nothing
+filterAtoms f (Cat xs)         = Cat $ map (filterAtoms f) xs
+filterAtoms f (Stack xs)       = Stack $ map (filterAtoms f) xs
+
+seqFilterOnsets :: Sequence a -> Sequence a
+seqFilterOnsets = filterAtoms f
+  where f (Atom _ 0 _ _) = True
+        f _              = False
+
+seqFilterValues :: (a -> Bool) -> Sequence a -> Sequence a
+seqFilterValues f = filterAtoms f'
+  where f' a@(Atom _ _ _ Nothing) = True
+        f' (Atom _ _ _ (Just v))  = f v
+        f' _                      = False
 
 -- | Utils
 
