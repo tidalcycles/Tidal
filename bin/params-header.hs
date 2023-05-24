@@ -36,7 +36,7 @@ import           Data.Word                  (Word8)
 import           Sound.Tidal.Utils
 
 -- | group multiple params into one
-grp :: [String -> ValueMap] -> Signal String -> ControlSignal
+grp :: Pattern p => [String -> ValueMap] -> p String -> p ValueMap
 grp [] _ = silence
 grp fs p = splitby <$> p
   where splitby name = Map.unions $ map (\(v, f) -> f v) $ zip (split name) fs
@@ -56,34 +56,34 @@ mS name v = Map.singleton name (VS v)
 
 -- | Param makers
 
-pF :: String -> Signal Double -> ControlSignal
+pF :: Pattern p => String -> p Double -> p ValueMap
 pF name = fmap (Map.singleton name . VF)
 
-pI :: String -> Signal Int -> ControlSignal
+pI :: Pattern p => String -> p Int -> p ValueMap
 pI name = fmap (Map.singleton name . VI)
 
-pB :: String -> Signal Bool -> ControlSignal
+pB :: Pattern p => String -> p Bool -> p ValueMap
 pB name = fmap (Map.singleton name . VB)
 
-pR :: String -> Signal Rational -> ControlSignal
+pR :: Pattern p => String -> p Time -> p ValueMap
 pR name = fmap (Map.singleton name . VR)
 
-pN :: String -> Signal Note -> ControlSignal
+pN :: Pattern p => String -> p Note -> p ValueMap
 pN name = fmap (Map.singleton name . VN)
 
-pS :: String -> Signal String -> ControlSignal
+pS :: Pattern p => String -> p String -> p ValueMap
 pS name = fmap (Map.singleton name . VS)
 
-pX :: String -> Signal [Word8] -> ControlSignal
+pX :: Pattern p => String -> p [Word8] -> p ValueMap
 pX name = fmap (Map.singleton name . VX)
 
-pStateF :: String -> String -> (Maybe Double -> Double) -> ControlSignal
+pStateF :: Pattern p => String -> String -> (Maybe Double -> Double) -> p ValueMap
 pStateF name sName update = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
         statef sMap = (Map.insert sName v sMap, v)
           where v = VF $ update $ Map.lookup sName sMap >>= getF
 
-pStateList :: String -> String -> [Value] -> ControlSignal
+pStateList :: Pattern p => String -> String -> [Value] -> p ValueMap
 pStateList name sName xs = pure $ Map.singleton name $ VState statef
   where statef :: ValueMap -> (ValueMap, Value)
         statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped)
@@ -92,39 +92,39 @@ pStateList name sName xs = pure $ Map.singleton name $ VState statef
                 looped | null xs' = xs
                        | otherwise = xs'
 
-pStateListF :: String -> String -> [Double] -> ControlSignal
+pStateListF :: Pattern p => String -> String -> [Double] -> p ValueMap
 pStateListF name sName = pStateList name sName . map VF
 
-pStateListS :: String -> String -> [String] -> ControlSignal
+pStateListS :: Pattern p => String -> String -> [String] -> p ValueMap
 pStateListS name sName = pStateList name sName . map VS
 
 -- | Grouped params
 
-sound :: Signal String -> ControlSignal
+sound :: Pattern p => p String -> p ValueMap
 sound = grp [mS "s", mF "n"]
 
-sTake :: String -> [String] -> ControlSignal
+sTake :: Pattern p =>  String -> [String] -> p ValueMap
 sTake name xs = pStateListS "s" name xs
 
-cc :: Signal String -> ControlSignal
+cc :: Pattern p =>  p String -> p ValueMap
 cc = grp [mF "ccn", mF "ccv"]
 
-nrpn :: Signal String -> ControlSignal
+nrpn :: Pattern p =>  p String -> p ValueMap
 nrpn = grp [mI "nrpn", mI "val"]
 
-nrpnn :: Signal Int -> ControlSignal
+nrpnn :: Pattern p =>  p Int -> p ValueMap
 nrpnn = pI "nrpn"
 
-nrpnv :: Signal Int -> ControlSignal
+nrpnv :: Pattern p =>  p Int -> p ValueMap
 nrpnv = pI "val"
 
-grain' :: Signal String -> ControlSignal
+grain' :: Pattern p =>  p String -> p ValueMap
 grain' = grp [mF "begin", mF "end"]
 
-midinote :: Signal Note -> ControlSignal
+midinote :: Pattern p =>  p Note -> p ValueMap
 midinote = note . (subtract 60 <$>)
 
-drum :: Signal String -> ControlSignal
+drum :: Pattern p => p String -> p ValueMap
 drum = n . (subtract 60 . drumN <$>)
 
 drumN :: Num a => String -> a

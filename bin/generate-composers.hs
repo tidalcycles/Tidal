@@ -1,60 +1,70 @@
-import System.IO
-import Data.List
+import           Data.List
+import           System.IO
 
-whats :: [(String, [(String, String, String, String)])]
-whats = [("Unionable a => Signal a -> Signal a -> Signal a",
+whats :: [(String, String, [(String, String, String, String)])]
+whats = [("(Pattern p, Unionable a) => p a -> p a -> p a",
+          "(Unionable a) => Signal a -> Signal a -> Signal a",
           [
             ("set", "=", "flip union", ""),
             ("keep", ".", "union", "")
           ]
          ),
-         ("Unionable a => Signal a -> Signal Bool -> Signal a",
+         ("(Pattern p, Unionable a) => p a -> p Bool -> p a",
+          "(Unionable a) => Signal a -> Signal Bool -> Signal a",
           [
             ("keepif", "?", "\\a b -> if b then Just a else Nothing", "filterJusts $ ")
           ]
          ),
-         ("Num a => Signal a -> Signal a -> Signal a",
+         ("(Pattern p, Num a) => p a -> p a -> p a",
+          "(Num a) => Signal a -> Signal a -> Signal a",
           [
             ("add", "+", "+", ""),
             ("sub", "-", "-", ""),
             ("mul", "*", "*", "")
           ]
          ),
-         ("Fractional a => Signal a -> Signal a -> Signal a",
+         ("(Pattern p, Fractional a) => p a -> p a -> p a",
+          "(Fractional a) => Signal a -> Signal a -> Signal a",
           [
             ("div", "/", "/", "")
           ]
          ),
-         ("Integral a => Signal a -> Signal a -> Signal a",
+         ("(Pattern p, Integral a) => p a -> p a -> p a",
+          "(Integral a) => Signal a -> Signal a -> Signal a",
           [
             ("mod", "%", "mod", ""),
             ("pow", "^", "^", "")
           ]
          ),
-         ("Floating a => Signal a -> Signal a -> Signal a",
+         ("(Pattern p, Floating a) => p a -> p a -> p a",
+          "(Floating a) => Signal a -> Signal a -> Signal a",
           [
             ("powf", "**", "**", "")
           ]
          ),
-         ("Signal String -> Signal String -> Signal String",
+         ("Pattern p => p String -> p String -> p String",
+          "Signal String -> Signal String -> Signal String",
           [
             ("concat", "++", "++", "")
           ]
          ),
-         ("Bits a => Signal a -> Signal a -> Signal a",
+         ("(Pattern p, Bits a) => p a -> p a -> p a",
+          "(Bits a) => Signal a -> Signal a -> Signal a",
           [
             ("band", ".&.", ".&.", ""),
             ("bor", ".|.", ".|.", ""),
             ("bxor", ".^.", "xor", "")
           ]
          ),
-         ("Bits a => Signal a -> Signal Int -> Signal a",
+         ("(Pattern p, Bits a) => p a -> p Int -> p a",
+          "(Bits a) => Signal a -> Signal Int -> Signal a",
           [
             ("bshiftl", ".<<.", "shiftL", ""),
             ("bshiftr", ".>>.", "shiftR", "")
           ]
          ),
-         ("Ord a => Signal a -> Signal a -> Signal Bool",
+         ("(Pattern p, Ord a) => p a -> p a -> p Bool",
+          "(Ord a) => Signal a -> Signal a -> Signal Bool",
           [
             ("lt", "<", "<", ""),
             ("gt", ">", ">", ""),
@@ -62,13 +72,15 @@ whats = [("Unionable a => Signal a -> Signal a -> Signal a",
             ("gte", ">=", ">=", "")
           ]
          ),
-         ("Eq a => Signal a -> Signal a -> Signal Bool",
+         ("(Pattern p, Eq a) => p a -> p a -> p Bool",
+          "(Eq a) => Signal a -> Signal a -> Signal Bool",
           [
             ("eq", "==", "==", ""),
             ("ne", "/=", "/=", "")
           ]
          ),
-         ("Signal Bool -> Signal Bool -> Signal Bool",
+         ("Pattern p => p Bool -> p Bool -> p Bool",
+          "Signal Bool -> Signal Bool -> Signal Bool",
           [
             ("and", "&&", "&&", ""),
             ("or", ".||.", "||", "")
@@ -86,13 +98,17 @@ hows = [("Mix",      (\x -> "|" ++ x ++ "|")),
         ("Trigzero", ("!!" ++) )
        ]
 
-fwhat (sig, ops) = concatMap fop ops
+fwhat (sigpat, sigsig, ops) = concatMap fop ops
   where fop (name, tidalop, haskellop, munge) = "-- " ++ name ++ "\n\n" ++ concatMap fhow hows ++ "infixl 4 " ++ (intercalate ", " $ map fixity hows) ++ "\n\n"
-          where fhow (howname, howfix) = (name ++ howname ++ ", " ++ "(" ++ howfix tidalop ++ ")" ++ " :: " ++ sig ++ "\n"
+          where fhow (howname, howfix) = (name ++ howname ++ ", " ++ "(" ++ howfix tidalop ++ ")" ++ " :: " ++ sig howname ++ "\n"
                                           ++ name ++ howname ++ " pata patb = " ++ munge ++ "op" ++ howname ++ " (" ++ haskellop ++ ") pata patb\n"
                                           ++ "(" ++ howfix tidalop ++ ") = " ++ name ++ howname ++ "\n\n"
                                          )
                 fixity (_, howfix) = howfix tidalop
+                sig "Mix" = sigpat
+                sig "In"  = sigpat
+                sig "Out" = sigpat
+                sig _     = sigsig
 
 header :: IO ()
 header = do x <- openFile "composers-header.hs" ReadMode
