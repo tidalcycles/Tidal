@@ -8,14 +8,15 @@
 
 module Sound.Tidal.Signal.Compose where
 
-import Prelude hiding ((<*), (*>))
-import Control.Monad (forM)
-import Data.Bits
+import           Control.Monad           (forM)
+import           Data.Bits
+import           Prelude                 hiding ((*>), (<*))
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict         as Map
 
-import Sound.Tidal.Types
-import Sound.Tidal.Signal.Base
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Types
 
 -- ************************************************************ --
 -- Hack to allow 'union' to be used on any value
@@ -36,21 +37,21 @@ instance {-# OVERLAPPING #-} Unionable ValueMap where
 opMix :: Applicative t => (a -> b -> c) -> t a -> t b -> t c
 opMix f a b = f <$> a <*> b
 
-opIn :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
+opIn :: Pattern p => (a -> b -> c) -> p a -> p b -> p c
 opIn f a b = f <$> a <* b
-  
-opOut :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
+
+opOut :: Pattern p => (a -> b -> c) -> p a -> p b -> p c
 opOut f a b = f <$> a *> b
 
 opSqueeze :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opSqueeze f a b = squeezeJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
-  
+
 opSqueezeOut :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opSqueezeOut f pata patb = squeezeJoin $ fmap (\a -> fmap (\b -> f b a)  pata) patb
 
 opTrig :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opTrig f a b = trigJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
-  
+
 opTrigzero :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opTrigzero f a b = trigzeroJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
 
@@ -58,31 +59,31 @@ opTrigzero f a b = trigzeroJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
 
 -- Aliases
 
-(#) :: Unionable b => Signal b -> Signal b -> Signal b
+(#) :: (Pattern p, Unionable a) => p a -> p a -> p a
 (#) = (|=)
 
-struct :: Unionable a => Signal Bool -> Signal a -> Signal a
+struct :: (Pattern p, Unionable a) => p Bool -> p a -> p a
 struct = flip keepifOut
 
-structAll :: Unionable a => Signal a -> Signal a -> Signal a
+structAll :: (Pattern p, Unionable a) => p a -> p a -> p a
 structAll = flip keepOut
 
-mask :: Unionable a => Signal Bool -> Signal a -> Signal a
+mask :: (Pattern p, Unionable a) => p Bool -> p a -> p a
 mask = flip keepifIn
 
-maskAll :: Unionable a => Signal a -> Signal a -> Signal a
+maskAll :: (Pattern p, Unionable a) => p a -> p a -> p a
 maskAll = flip keepIn
 
-reset :: Unionable a => Signal Bool -> Signal a -> Signal a
+reset :: (Unionable a) => Signal Bool -> Signal a -> Signal a
 reset = flip keepifTrig
 
-resetAll :: Unionable a => Signal a -> Signal a -> Signal a
+resetAll :: (Unionable a) => Signal a -> Signal a -> Signal a
 resetAll = flip keepTrig
 
-restart :: Unionable a => Signal Bool -> Signal a -> Signal a
+restart :: (Unionable a) => Signal Bool -> Signal a -> Signal a
 restart = flip keepifTrigzero
 
-restartAll :: Unionable a => Signal a -> Signal a -> Signal a
+restartAll :: (Unionable a) => Signal a -> Signal a -> Signal a
 restartAll = flip keepTrigzero
 
 -- ************************************************************ --
