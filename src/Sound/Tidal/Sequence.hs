@@ -27,7 +27,7 @@ instance Functor Sequence where
 
 instance Applicative Sequence where
   pure = step 1
-  fseq <*> vseq = (\(f,v) -> f v) <$> pairAlign RepeatLCM In fseq vseq
+  fseq <*> vseq = (\(f,v) -> f v) <$> pairAlign Repeat In fseq vseq
 
 join :: Sequence (Sequence a) -> Sequence a
 join (Atom d i o (Just seq)) = _fast (innerDur / d) $ actives
@@ -296,7 +296,7 @@ poly xs = normalise $ poly' xs
   where poly' ([])   = silence
         poly' (x:[]) = x
         poly' (x:xs') = Stack [a,b]
-          where (a, b) = align RepeatLCM x $ poly xs'
+          where (a, b) = align Repeat x $ poly xs'
 
 -- | Alignment
 
@@ -345,7 +345,7 @@ withLargest f a b | o == LT = (a, f b)
 -- according to a given strategy.
 
 align :: Strategy -> Sequence a -> Sequence b -> (Sequence a, Sequence b)
-align RepeatLCM a b = (rep a, rep b)
+align Repeat a b = (rep a, rep b)
   where duration = lcmTime (seqDuration a) (seqDuration b)
         rep x = seqReplicate (floor $ duration / seqDuration x) x
 
