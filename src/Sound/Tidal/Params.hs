@@ -22,17 +22,17 @@ module Sound.Tidal.Params where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import qualified Data.Map.Strict            as Map
+import qualified Data.Map.Strict         as Map
 
+import           Sound.Tidal.Compose     ((#))
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Signal.Compose ((#))
 import           Sound.Tidal.Types
 import           Sound.Tidal.Value
 -- import Sound.Tidal.Core ((#))
-import           Data.Fixed                 (mod')
-import           Data.Maybe                 (fromMaybe)
-import           Data.Word                  (Word8)
+import           Data.Fixed              (mod')
+import           Data.Maybe              (fromMaybe)
+import           Data.Word               (Word8)
 import           Sound.Tidal.Utils
 
 -- | group multiple params into one
@@ -221,7 +221,7 @@ ampbus busid pat = pF "amp" pat # pI "^amp" busid
 amprecv :: Pattern p => p Int -> p ValueMap
 amprecv busid = pI "^amp" busid
 
--- | 
+-- |
 array :: Pattern p => p [Word8] -> p ValueMap
 array = pX "array"
 arrayTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -302,7 +302,7 @@ binshiftbus busid pat = pF "binshift" pat # pI "^binshift" busid
 binshiftrecv :: Pattern p => p Int -> p ValueMap
 binshiftrecv busid = pI "^binshift" busid
 
--- | 
+-- |
 button0 :: Pattern p => p Double -> p ValueMap
 button0 = pF "button0"
 button0Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -317,7 +317,7 @@ button0bus busid pat = pF "button0" pat # pI "^button0" busid
 button0recv :: Pattern p => p Int -> p ValueMap
 button0recv busid = pI "^button0" busid
 
--- | 
+-- |
 button1 :: Pattern p => p Double -> p ValueMap
 button1 = pF "button1"
 button1Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -332,7 +332,7 @@ button1bus busid pat = pF "button1" pat # pI "^button1" busid
 button1recv :: Pattern p => p Int -> p ValueMap
 button1recv busid = pI "^button1" busid
 
--- | 
+-- |
 button10 :: Pattern p => p Double -> p ValueMap
 button10 = pF "button10"
 button10Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -347,7 +347,7 @@ button10bus busid pat = pF "button10" pat # pI "^button10" busid
 button10recv :: Pattern p => p Int -> p ValueMap
 button10recv busid = pI "^button10" busid
 
--- | 
+-- |
 button11 :: Pattern p => p Double -> p ValueMap
 button11 = pF "button11"
 button11Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -362,7 +362,7 @@ button11bus busid pat = pF "button11" pat # pI "^button11" busid
 button11recv :: Pattern p => p Int -> p ValueMap
 button11recv busid = pI "^button11" busid
 
--- | 
+-- |
 button12 :: Pattern p => p Double -> p ValueMap
 button12 = pF "button12"
 button12Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -377,7 +377,7 @@ button12bus busid pat = pF "button12" pat # pI "^button12" busid
 button12recv :: Pattern p => p Int -> p ValueMap
 button12recv busid = pI "^button12" busid
 
--- | 
+-- |
 button13 :: Pattern p => p Double -> p ValueMap
 button13 = pF "button13"
 button13Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -392,7 +392,7 @@ button13bus busid pat = pF "button13" pat # pI "^button13" busid
 button13recv :: Pattern p => p Int -> p ValueMap
 button13recv busid = pI "^button13" busid
 
--- | 
+-- |
 button14 :: Pattern p => p Double -> p ValueMap
 button14 = pF "button14"
 button14Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -407,7 +407,7 @@ button14bus busid pat = pF "button14" pat # pI "^button14" busid
 button14recv :: Pattern p => p Int -> p ValueMap
 button14recv busid = pI "^button14" busid
 
--- | 
+-- |
 button15 :: Pattern p => p Double -> p ValueMap
 button15 = pF "button15"
 button15Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -422,7 +422,7 @@ button15bus busid pat = pF "button15" pat # pI "^button15" busid
 button15recv :: Pattern p => p Int -> p ValueMap
 button15recv busid = pI "^button15" busid
 
--- | 
+-- |
 button2 :: Pattern p => p Double -> p ValueMap
 button2 = pF "button2"
 button2Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -437,7 +437,7 @@ button2bus busid pat = pF "button2" pat # pI "^button2" busid
 button2recv :: Pattern p => p Int -> p ValueMap
 button2recv busid = pI "^button2" busid
 
--- | 
+-- |
 button3 :: Pattern p => p Double -> p ValueMap
 button3 = pF "button3"
 button3Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -452,7 +452,7 @@ button3bus busid pat = pF "button3" pat # pI "^button3" busid
 button3recv :: Pattern p => p Int -> p ValueMap
 button3recv busid = pI "^button3" busid
 
--- | 
+-- |
 button4 :: Pattern p => p Double -> p ValueMap
 button4 = pF "button4"
 button4Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -467,7 +467,7 @@ button4bus busid pat = pF "button4" pat # pI "^button4" busid
 button4recv :: Pattern p => p Int -> p ValueMap
 button4recv busid = pI "^button4" busid
 
--- | 
+-- |
 button5 :: Pattern p => p Double -> p ValueMap
 button5 = pF "button5"
 button5Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -482,7 +482,7 @@ button5bus busid pat = pF "button5" pat # pI "^button5" busid
 button5recv :: Pattern p => p Int -> p ValueMap
 button5recv busid = pI "^button5" busid
 
--- | 
+-- |
 button6 :: Pattern p => p Double -> p ValueMap
 button6 = pF "button6"
 button6Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -497,7 +497,7 @@ button6bus busid pat = pF "button6" pat # pI "^button6" busid
 button6recv :: Pattern p => p Int -> p ValueMap
 button6recv busid = pI "^button6" busid
 
--- | 
+-- |
 button7 :: Pattern p => p Double -> p ValueMap
 button7 = pF "button7"
 button7Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -512,7 +512,7 @@ button7bus busid pat = pF "button7" pat # pI "^button7" busid
 button7recv :: Pattern p => p Int -> p ValueMap
 button7recv busid = pI "^button7" busid
 
--- | 
+-- |
 button8 :: Pattern p => p Double -> p ValueMap
 button8 = pF "button8"
 button8Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -527,7 +527,7 @@ button8bus busid pat = pF "button8" pat # pI "^button8" busid
 button8recv :: Pattern p => p Int -> p ValueMap
 button8recv busid = pI "^button8" busid
 
--- | 
+-- |
 button9 :: Pattern p => p Double -> p ValueMap
 button9 = pF "button9"
 button9Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -542,7 +542,7 @@ button9bus busid pat = pF "button9" pat # pI "^button9" busid
 button9recv :: Pattern p => p Int -> p ValueMap
 button9recv busid = pI "^button9" busid
 
--- | 
+-- |
 ccn :: Pattern p => p Double -> p ValueMap
 ccn = pF "ccn"
 ccnTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -555,7 +555,7 @@ ccnCountTo name ipat = innerJoin $ (\i -> pStateF "ccn" name (maybe 0 ((`mod'` i
 ccnbus :: Pattern p => p Int -> p Double -> p ValueMap
 ccnbus _ _ = error "Control parameter 'ccn' can't be sent to a bus."
 
--- | 
+-- |
 ccv :: Pattern p => p Double -> p ValueMap
 ccv = pF "ccv"
 ccvTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -581,7 +581,7 @@ channelCountTo name ipat = innerJoin $ (\i -> pStateF "channel" name (maybe 0 ((
 channelbus :: Pattern p => p Int -> p Int -> p ValueMap
 channelbus _ _ = error "Control parameter 'channel' can't be sent to a bus."
 
--- | 
+-- |
 clhatdecay :: Pattern p => p Double -> p ValueMap
 clhatdecay = pF "clhatdecay"
 clhatdecayTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -626,7 +626,7 @@ combbus busid pat = pF "comb" pat # pI "^comb" busid
 combrecv :: Pattern p => p Int -> p ValueMap
 combrecv busid = pI "^comb" busid
 
--- | 
+-- |
 control :: Pattern p => p Double -> p ValueMap
 control = pF "control"
 controlTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -639,7 +639,7 @@ controlCountTo name ipat = innerJoin $ (\i -> pStateF "control" name (maybe 0 ((
 controlbus :: Pattern p => p Int -> p Double -> p ValueMap
 controlbus _ _ = error "Control parameter 'control' can't be sent to a bus."
 
--- | 
+-- |
 cps :: Pattern p => p Double -> p ValueMap
 cps = pF "cps"
 cpsTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -669,7 +669,7 @@ crushbus busid pat = pF "crush" pat # pI "^crush" busid
 crushrecv :: Pattern p => p Int -> p ValueMap
 crushrecv busid = pI "^crush" busid
 
--- | 
+-- |
 ctlNum :: Pattern p => p Double -> p ValueMap
 ctlNum = pF "ctlNum"
 ctlNumTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -682,7 +682,7 @@ ctlNumCountTo name ipat = innerJoin $ (\i -> pStateF "ctlNum" name (maybe 0 ((`m
 ctlNumbus :: Pattern p => p Int -> p Double -> p ValueMap
 ctlNumbus _ _ = error "Control parameter 'ctlNum' can't be sent to a bus."
 
--- | 
+-- |
 ctranspose :: Pattern p => p Double -> p ValueMap
 ctranspose = pF "ctranspose"
 ctransposeTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -727,7 +727,7 @@ cutoffbus busid pat = pF "cutoff" pat # pI "^cutoff" busid
 cutoffrecv :: Pattern p => p Int -> p ValueMap
 cutoffrecv busid = pI "^cutoff" busid
 
--- | 
+-- |
 cutoffegint :: Pattern p => p Double -> p ValueMap
 cutoffegint = pF "cutoffegint"
 cutoffegintTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -742,7 +742,7 @@ cutoffegintbus busid pat = pF "cutoffegint" pat # pI "^cutoffegint" busid
 cutoffegintrecv :: Pattern p => p Int -> p ValueMap
 cutoffegintrecv busid = pI "^cutoffegint" busid
 
--- | 
+-- |
 decay :: Pattern p => p Double -> p ValueMap
 decay = pF "decay"
 decayTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -757,7 +757,7 @@ decaybus busid pat = pF "decay" pat # pI "^decay" busid
 decayrecv :: Pattern p => p Int -> p ValueMap
 decayrecv busid = pI "^decay" busid
 
--- | 
+-- |
 degree :: Pattern p => p Double -> p ValueMap
 degree = pF "degree"
 degreeTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -817,7 +817,7 @@ delaytimebus busid pat = pF "delaytime" pat # pI "^delaytime" busid
 delaytimerecv :: Pattern p => p Int -> p ValueMap
 delaytimerecv busid = pI "^delaytime" busid
 
--- | 
+-- |
 detune :: Pattern p => p Double -> p ValueMap
 detune = pF "detune"
 detuneTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -877,7 +877,7 @@ drybus busid pat = pF "dry" pat # pI "^dry" busid
 dryrecv :: Pattern p => p Int -> p ValueMap
 dryrecv busid = pI "^dry" busid
 
--- | 
+-- |
 dur :: Pattern p => p Double -> p ValueMap
 dur = pF "dur"
 durTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -920,7 +920,7 @@ enhancebus busid pat = pF "enhance" pat # pI "^enhance" busid
 enhancerecv :: Pattern p => p Int -> p ValueMap
 enhancerecv busid = pI "^enhance" busid
 
--- | 
+-- |
 expression :: Pattern p => p Double -> p ValueMap
 expression = pF "expression"
 expressionTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -961,7 +961,7 @@ fadeTimeCountTo name ipat = innerJoin $ (\i -> pStateF "fadeTime" name (maybe 0 
 fadeTimebus :: Pattern p => p Int -> p Double -> p ValueMap
 fadeTimebus _ _ = error "Control parameter 'fadeTime' can't be sent to a bus."
 
--- | 
+-- |
 frameRate :: Pattern p => p Double -> p ValueMap
 frameRate = pF "frameRate"
 frameRateTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -974,7 +974,7 @@ frameRateCountTo name ipat = innerJoin $ (\i -> pStateF "frameRate" name (maybe 
 frameRatebus :: Pattern p => p Int -> p Double -> p ValueMap
 frameRatebus _ _ = error "Control parameter 'frameRate' can't be sent to a bus."
 
--- | 
+-- |
 frames :: Pattern p => p Double -> p ValueMap
 frames = pF "frames"
 framesTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1002,7 +1002,7 @@ freezebus busid pat = pF "freeze" pat # pI "^freeze" busid
 freezerecv :: Pattern p => p Int -> p ValueMap
 freezerecv busid = pI "^freeze" busid
 
--- | 
+-- |
 freq :: Pattern p => p Double -> p ValueMap
 freq = pF "freq"
 freqTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1090,7 +1090,7 @@ gainCountTo name ipat = innerJoin $ (\i -> pStateF "gain" name (maybe 0 ((`mod'`
 gainbus :: Pattern p => p Int -> p Double -> p ValueMap
 gainbus _ _ = error "Control parameter 'gain' can't be sent to a bus."
 
--- | 
+-- |
 gate :: Pattern p => p Double -> p ValueMap
 gate = pF "gate"
 gateTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1105,7 +1105,7 @@ gatebus busid pat = pF "gate" pat # pI "^gate" busid
 gaterecv :: Pattern p => p Int -> p ValueMap
 gaterecv busid = pI "^gate" busid
 
--- | 
+-- |
 harmonic :: Pattern p => p Double -> p ValueMap
 harmonic = pF "harmonic"
 harmonicTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1120,7 +1120,7 @@ harmonicbus busid pat = pF "harmonic" pat # pI "^harmonic" busid
 harmonicrecv :: Pattern p => p Int -> p ValueMap
 harmonicrecv busid = pI "^harmonic" busid
 
--- | 
+-- |
 hatgrain :: Pattern p => p Double -> p ValueMap
 hatgrain = pF "hatgrain"
 hatgrainTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1180,7 +1180,7 @@ holdbus busid pat = pF "hold" pat # pI "^hold" busid
 holdrecv :: Pattern p => p Int -> p ValueMap
 holdrecv busid = pI "^hold" busid
 
--- | 
+-- |
 hours :: Pattern p => p Double -> p ValueMap
 hours = pF "hours"
 hoursTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1208,7 +1208,7 @@ hresonancebus busid pat = pF "hresonance" pat # pI "^hresonance" busid
 hresonancerecv :: Pattern p => p Int -> p ValueMap
 hresonancerecv busid = pI "^hresonance" busid
 
--- | 
+-- |
 imag :: Pattern p => p Double -> p ValueMap
 imag = pF "imag"
 imagTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1223,7 +1223,7 @@ imagbus busid pat = pF "imag" pat # pI "^imag" busid
 imagrecv :: Pattern p => p Int -> p ValueMap
 imagrecv busid = pI "^imag" busid
 
--- | 
+-- |
 kcutoff :: Pattern p => p Double -> p ValueMap
 kcutoff = pF "kcutoff"
 kcutoffTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1253,7 +1253,7 @@ krushbus busid pat = pF "krush" pat # pI "^krush" busid
 krushrecv :: Pattern p => p Int -> p ValueMap
 krushrecv busid = pI "^krush" busid
 
--- | 
+-- |
 lagogo :: Pattern p => p Double -> p ValueMap
 lagogo = pF "lagogo"
 lagogoTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1283,7 +1283,7 @@ lbrickbus busid pat = pF "lbrick" pat # pI "^lbrick" busid
 lbrickrecv :: Pattern p => p Int -> p ValueMap
 lbrickrecv busid = pI "^lbrick" busid
 
--- | 
+-- |
 lclap :: Pattern p => p Double -> p ValueMap
 lclap = pF "lclap"
 lclapTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1298,7 +1298,7 @@ lclapbus busid pat = pF "lclap" pat # pI "^lclap" busid
 lclaprecv :: Pattern p => p Int -> p ValueMap
 lclaprecv busid = pI "^lclap" busid
 
--- | 
+-- |
 lclaves :: Pattern p => p Double -> p ValueMap
 lclaves = pF "lclaves"
 lclavesTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1313,7 +1313,7 @@ lclavesbus busid pat = pF "lclaves" pat # pI "^lclaves" busid
 lclavesrecv :: Pattern p => p Int -> p ValueMap
 lclavesrecv busid = pI "^lclaves" busid
 
--- | 
+-- |
 lclhat :: Pattern p => p Double -> p ValueMap
 lclhat = pF "lclhat"
 lclhatTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1328,7 +1328,7 @@ lclhatbus busid pat = pF "lclhat" pat # pI "^lclhat" busid
 lclhatrecv :: Pattern p => p Int -> p ValueMap
 lclhatrecv busid = pI "^lclhat" busid
 
--- | 
+-- |
 lcrash :: Pattern p => p Double -> p ValueMap
 lcrash = pF "lcrash"
 lcrashTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1356,7 +1356,7 @@ legatoCountTo name ipat = innerJoin $ (\i -> pStateF "legato" name (maybe 0 ((`m
 legatobus :: Pattern p => p Int -> p Double -> p ValueMap
 legatobus _ _ = error "Control parameter 'legato' can't be sent to a bus."
 
--- | 
+-- |
 leslie :: Pattern p => p Double -> p ValueMap
 leslie = pF "leslie"
 leslieTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1371,7 +1371,7 @@ lesliebus busid pat = pF "leslie" pat # pI "^leslie" busid
 leslierecv :: Pattern p => p Int -> p ValueMap
 leslierecv busid = pI "^leslie" busid
 
--- | 
+-- |
 lfo :: Pattern p => p Double -> p ValueMap
 lfo = pF "lfo"
 lfoTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1386,7 +1386,7 @@ lfobus busid pat = pF "lfo" pat # pI "^lfo" busid
 lforecv :: Pattern p => p Int -> p ValueMap
 lforecv busid = pI "^lfo" busid
 
--- | 
+-- |
 lfocutoffint :: Pattern p => p Double -> p ValueMap
 lfocutoffint = pF "lfocutoffint"
 lfocutoffintTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1401,7 +1401,7 @@ lfocutoffintbus busid pat = pF "lfocutoffint" pat # pI "^lfocutoffint" busid
 lfocutoffintrecv :: Pattern p => p Int -> p ValueMap
 lfocutoffintrecv busid = pI "^lfocutoffint" busid
 
--- | 
+-- |
 lfodelay :: Pattern p => p Double -> p ValueMap
 lfodelay = pF "lfodelay"
 lfodelayTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1416,7 +1416,7 @@ lfodelaybus busid pat = pF "lfodelay" pat # pI "^lfodelay" busid
 lfodelayrecv :: Pattern p => p Int -> p ValueMap
 lfodelayrecv busid = pI "^lfodelay" busid
 
--- | 
+-- |
 lfoint :: Pattern p => p Double -> p ValueMap
 lfoint = pF "lfoint"
 lfointTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1431,7 +1431,7 @@ lfointbus busid pat = pF "lfoint" pat # pI "^lfoint" busid
 lfointrecv :: Pattern p => p Int -> p ValueMap
 lfointrecv busid = pI "^lfoint" busid
 
--- | 
+-- |
 lfopitchint :: Pattern p => p Double -> p ValueMap
 lfopitchint = pF "lfopitchint"
 lfopitchintTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1446,7 +1446,7 @@ lfopitchintbus busid pat = pF "lfopitchint" pat # pI "^lfopitchint" busid
 lfopitchintrecv :: Pattern p => p Int -> p ValueMap
 lfopitchintrecv busid = pI "^lfopitchint" busid
 
--- | 
+-- |
 lfoshape :: Pattern p => p Double -> p ValueMap
 lfoshape = pF "lfoshape"
 lfoshapeTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1461,7 +1461,7 @@ lfoshapebus busid pat = pF "lfoshape" pat # pI "^lfoshape" busid
 lfoshaperecv :: Pattern p => p Int -> p ValueMap
 lfoshaperecv busid = pI "^lfoshape" busid
 
--- | 
+-- |
 lfosync :: Pattern p => p Double -> p ValueMap
 lfosync = pF "lfosync"
 lfosyncTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1476,7 +1476,7 @@ lfosyncbus busid pat = pF "lfosync" pat # pI "^lfosync" busid
 lfosyncrecv :: Pattern p => p Int -> p ValueMap
 lfosyncrecv busid = pI "^lfosync" busid
 
--- | 
+-- |
 lhitom :: Pattern p => p Double -> p ValueMap
 lhitom = pF "lhitom"
 lhitomTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1491,7 +1491,7 @@ lhitombus busid pat = pF "lhitom" pat # pI "^lhitom" busid
 lhitomrecv :: Pattern p => p Int -> p ValueMap
 lhitomrecv busid = pI "^lhitom" busid
 
--- | 
+-- |
 lkick :: Pattern p => p Double -> p ValueMap
 lkick = pF "lkick"
 lkickTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1506,7 +1506,7 @@ lkickbus busid pat = pF "lkick" pat # pI "^lkick" busid
 lkickrecv :: Pattern p => p Int -> p ValueMap
 lkickrecv busid = pI "^lkick" busid
 
--- | 
+-- |
 llotom :: Pattern p => p Double -> p ValueMap
 llotom = pF "llotom"
 llotomTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1549,7 +1549,7 @@ loopCountTo name ipat = innerJoin $ (\i -> pStateF "loop" name (maybe 0 ((`mod'`
 loopbus :: Pattern p => p Int -> p Double -> p ValueMap
 loopbus _ _ = error "Control parameter 'loop' can't be sent to a bus."
 
--- | 
+-- |
 lophat :: Pattern p => p Double -> p ValueMap
 lophat = pF "lophat"
 lophatTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1564,7 +1564,7 @@ lophatbus busid pat = pF "lophat" pat # pI "^lophat" busid
 lophatrecv :: Pattern p => p Int -> p ValueMap
 lophatrecv busid = pI "^lophat" busid
 
--- | 
+-- |
 lrate :: Pattern p => p Double -> p ValueMap
 lrate = pF "lrate"
 lrateTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1579,7 +1579,7 @@ lratebus busid pat = pF "lrate" pat # pI "^lrate" busid
 lraterecv :: Pattern p => p Int -> p ValueMap
 lraterecv busid = pI "^lrate" busid
 
--- | 
+-- |
 lsize :: Pattern p => p Double -> p ValueMap
 lsize = pF "lsize"
 lsizeTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1594,7 +1594,7 @@ lsizebus busid pat = pF "lsize" pat # pI "^lsize" busid
 lsizerecv :: Pattern p => p Int -> p ValueMap
 lsizerecv busid = pI "^lsize" busid
 
--- | 
+-- |
 lsnare :: Pattern p => p Double -> p ValueMap
 lsnare = pF "lsnare"
 lsnareTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1609,7 +1609,7 @@ lsnarebus busid pat = pF "lsnare" pat # pI "^lsnare" busid
 lsnarerecv :: Pattern p => p Int -> p ValueMap
 lsnarerecv busid = pI "^lsnare" busid
 
--- | 
+-- |
 midibend :: Pattern p => p Double -> p ValueMap
 midibend = pF "midibend"
 midibendTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1622,7 +1622,7 @@ midibendCountTo name ipat = innerJoin $ (\i -> pStateF "midibend" name (maybe 0 
 midibendbus :: Pattern p => p Int -> p Double -> p ValueMap
 midibendbus _ _ = error "Control parameter 'midibend' can't be sent to a bus."
 
--- | 
+-- |
 midichan :: Pattern p => p Double -> p ValueMap
 midichan = pF "midichan"
 midichanTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1635,7 +1635,7 @@ midichanCountTo name ipat = innerJoin $ (\i -> pStateF "midichan" name (maybe 0 
 midichanbus :: Pattern p => p Int -> p Double -> p ValueMap
 midichanbus _ _ = error "Control parameter 'midichan' can't be sent to a bus."
 
--- | 
+-- |
 midicmd :: Pattern p => p String -> p ValueMap
 midicmd = pS "midicmd"
 midicmdTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1643,7 +1643,7 @@ midicmdTake name xs = pStateListF "midicmd" name xs
 midicmdbus :: Pattern p => p Int -> p String -> p ValueMap
 midicmdbus _ _ = error "Control parameter 'midicmd' can't be sent to a bus."
 
--- | 
+-- |
 miditouch :: Pattern p => p Double -> p ValueMap
 miditouch = pF "miditouch"
 miditouchTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1656,7 +1656,7 @@ miditouchCountTo name ipat = innerJoin $ (\i -> pStateF "miditouch" name (maybe 
 miditouchbus :: Pattern p => p Int -> p Double -> p ValueMap
 miditouchbus _ _ = error "Control parameter 'miditouch' can't be sent to a bus."
 
--- | 
+-- |
 minutes :: Pattern p => p Double -> p ValueMap
 minutes = pF "minutes"
 minutesTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1669,7 +1669,7 @@ minutesCountTo name ipat = innerJoin $ (\i -> pStateF "minutes" name (maybe 0 ((
 minutesbus :: Pattern p => p Int -> p Double -> p ValueMap
 minutesbus _ _ = error "Control parameter 'minutes' can't be sent to a bus."
 
--- | 
+-- |
 modwheel :: Pattern p => p Double -> p ValueMap
 modwheel = pF "modwheel"
 modwheelTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1684,7 +1684,7 @@ modwheelbus busid pat = pF "modwheel" pat # pI "^modwheel" busid
 modwheelrecv :: Pattern p => p Int -> p ValueMap
 modwheelrecv busid = pI "^modwheel" busid
 
--- | 
+-- |
 mtranspose :: Pattern p => p Double -> p ValueMap
 mtranspose = pF "mtranspose"
 mtransposeTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1740,7 +1740,7 @@ nudgebus busid pat = pF "nudge" pat # pI "^nudge" busid
 nudgerecv :: Pattern p => p Int -> p ValueMap
 nudgerecv busid = pI "^nudge" busid
 
--- | 
+-- |
 octave :: Pattern p => p Int -> p ValueMap
 octave = pI "octave"
 octaveTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1753,7 +1753,7 @@ octaveCountTo name ipat = innerJoin $ (\i -> pStateF "octave" name (maybe 0 ((`m
 octavebus :: Pattern p => p Int -> p Int -> p ValueMap
 octavebus _ _ = error "Control parameter 'octave' can't be sent to a bus."
 
--- | 
+-- |
 octaveR :: Pattern p => p Double -> p ValueMap
 octaveR = pF "octaveR"
 octaveRTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1813,7 +1813,7 @@ octersubsubbus busid pat = pF "octersubsub" pat # pI "^octersubsub" busid
 octersubsubrecv :: Pattern p => p Int -> p ValueMap
 octersubsubrecv busid = pI "^octersubsub" busid
 
--- | 
+-- |
 offset :: Pattern p => p Double -> p ValueMap
 offset = pF "offset"
 offsetTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1826,7 +1826,7 @@ offsetCountTo name ipat = innerJoin $ (\i -> pStateF "offset" name (maybe 0 ((`m
 offsetbus :: Pattern p => p Int -> p Double -> p ValueMap
 offsetbus _ _ = error "Control parameter 'offset' can't be sent to a bus."
 
--- | 
+-- |
 ophatdecay :: Pattern p => p Double -> p ValueMap
 ophatdecay = pF "ophatdecay"
 ophatdecayTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1856,7 +1856,7 @@ orbitbus busid pat = pI "orbit" pat # pI "^orbit" busid
 orbitrecv :: Pattern p => p Int -> p ValueMap
 orbitrecv busid = pI "^orbit" busid
 
--- | 
+-- |
 overgain :: Pattern p => p Double -> p ValueMap
 overgain = pF "overgain"
 overgainTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1869,7 +1869,7 @@ overgainCountTo name ipat = innerJoin $ (\i -> pStateF "overgain" name (maybe 0 
 overgainbus :: Pattern p => p Int -> p Double -> p ValueMap
 overgainbus _ _ = error "Control parameter 'overgain' can't be sent to a bus."
 
--- | 
+-- |
 overshape :: Pattern p => p Double -> p ValueMap
 overshape = pF "overshape"
 overshapeTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -1959,7 +1959,7 @@ panwidthbus busid pat = pF "panwidth" pat # pI "^panwidth" busid
 panwidthrecv :: Pattern p => p Int -> p ValueMap
 panwidthrecv busid = pI "^panwidth" busid
 
--- | 
+-- |
 partials :: Pattern p => p Double -> p ValueMap
 partials = pF "partials"
 partialsTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2004,7 +2004,7 @@ phaserratebus busid pat = pF "phaserrate" pat # pI "^phaserrate" busid
 phaserraterecv :: Pattern p => p Int -> p ValueMap
 phaserraterecv busid = pI "^phaserrate" busid
 
--- | 
+-- |
 pitch1 :: Pattern p => p Double -> p ValueMap
 pitch1 = pF "pitch1"
 pitch1Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2019,7 +2019,7 @@ pitch1bus busid pat = pF "pitch1" pat # pI "^pitch1" busid
 pitch1recv :: Pattern p => p Int -> p ValueMap
 pitch1recv busid = pI "^pitch1" busid
 
--- | 
+-- |
 pitch2 :: Pattern p => p Double -> p ValueMap
 pitch2 = pF "pitch2"
 pitch2Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2034,7 +2034,7 @@ pitch2bus busid pat = pF "pitch2" pat # pI "^pitch2" busid
 pitch2recv :: Pattern p => p Int -> p ValueMap
 pitch2recv busid = pI "^pitch2" busid
 
--- | 
+-- |
 pitch3 :: Pattern p => p Double -> p ValueMap
 pitch3 = pF "pitch3"
 pitch3Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2049,7 +2049,7 @@ pitch3bus busid pat = pF "pitch3" pat # pI "^pitch3" busid
 pitch3recv :: Pattern p => p Int -> p ValueMap
 pitch3recv busid = pI "^pitch3" busid
 
--- | 
+-- |
 polyTouch :: Pattern p => p Double -> p ValueMap
 polyTouch = pF "polyTouch"
 polyTouchTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2062,7 +2062,7 @@ polyTouchCountTo name ipat = innerJoin $ (\i -> pStateF "polyTouch" name (maybe 
 polyTouchbus :: Pattern p => p Int -> p Double -> p ValueMap
 polyTouchbus _ _ = error "Control parameter 'polyTouch' can't be sent to a bus."
 
--- | 
+-- |
 portamento :: Pattern p => p Double -> p ValueMap
 portamento = pF "portamento"
 portamentoTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2077,7 +2077,7 @@ portamentobus busid pat = pF "portamento" pat # pI "^portamento" busid
 portamentorecv :: Pattern p => p Int -> p ValueMap
 portamentorecv busid = pI "^portamento" busid
 
--- | 
+-- |
 progNum :: Pattern p => p Double -> p ValueMap
 progNum = pF "progNum"
 progNumTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2210,7 +2210,7 @@ roombus busid pat = pF "room" pat # pI "^room" busid
 roomrecv :: Pattern p => p Int -> p ValueMap
 roomrecv busid = pI "^room" busid
 
--- | 
+-- |
 sagogo :: Pattern p => p Double -> p ValueMap
 sagogo = pF "sagogo"
 sagogoTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2225,7 +2225,7 @@ sagogobus busid pat = pF "sagogo" pat # pI "^sagogo" busid
 sagogorecv :: Pattern p => p Int -> p ValueMap
 sagogorecv busid = pI "^sagogo" busid
 
--- | 
+-- |
 sclap :: Pattern p => p Double -> p ValueMap
 sclap = pF "sclap"
 sclapTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2240,7 +2240,7 @@ sclapbus busid pat = pF "sclap" pat # pI "^sclap" busid
 sclaprecv :: Pattern p => p Int -> p ValueMap
 sclaprecv busid = pI "^sclap" busid
 
--- | 
+-- |
 sclaves :: Pattern p => p Double -> p ValueMap
 sclaves = pF "sclaves"
 sclavesTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2270,7 +2270,7 @@ scrambus busid pat = pF "scram" pat # pI "^scram" busid
 scramrecv :: Pattern p => p Int -> p ValueMap
 scramrecv busid = pI "^scram" busid
 
--- | 
+-- |
 scrash :: Pattern p => p Double -> p ValueMap
 scrash = pF "scrash"
 scrashTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2285,7 +2285,7 @@ scrashbus busid pat = pF "scrash" pat # pI "^scrash" busid
 scrashrecv :: Pattern p => p Int -> p ValueMap
 scrashrecv busid = pI "^scrash" busid
 
--- | 
+-- |
 seconds :: Pattern p => p Double -> p ValueMap
 seconds = pF "seconds"
 secondsTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2298,7 +2298,7 @@ secondsCountTo name ipat = innerJoin $ (\i -> pStateF "seconds" name (maybe 0 ((
 secondsbus :: Pattern p => p Int -> p Double -> p ValueMap
 secondsbus _ _ = error "Control parameter 'seconds' can't be sent to a bus."
 
--- | 
+-- |
 semitone :: Pattern p => p Double -> p ValueMap
 semitone = pF "semitone"
 semitoneTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2343,7 +2343,7 @@ sizebus busid pat = pF "size" pat # pI "^size" busid
 sizerecv :: Pattern p => p Int -> p ValueMap
 sizerecv busid = pI "^size" busid
 
--- | 
+-- |
 slide :: Pattern p => p Double -> p ValueMap
 slide = pF "slide"
 slideTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2358,7 +2358,7 @@ slidebus busid pat = pF "slide" pat # pI "^slide" busid
 sliderecv :: Pattern p => p Int -> p ValueMap
 sliderecv busid = pI "^slide" busid
 
--- | 
+-- |
 slider0 :: Pattern p => p Double -> p ValueMap
 slider0 = pF "slider0"
 slider0Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2373,7 +2373,7 @@ slider0bus busid pat = pF "slider0" pat # pI "^slider0" busid
 slider0recv :: Pattern p => p Int -> p ValueMap
 slider0recv busid = pI "^slider0" busid
 
--- | 
+-- |
 slider1 :: Pattern p => p Double -> p ValueMap
 slider1 = pF "slider1"
 slider1Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2388,7 +2388,7 @@ slider1bus busid pat = pF "slider1" pat # pI "^slider1" busid
 slider1recv :: Pattern p => p Int -> p ValueMap
 slider1recv busid = pI "^slider1" busid
 
--- | 
+-- |
 slider10 :: Pattern p => p Double -> p ValueMap
 slider10 = pF "slider10"
 slider10Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2403,7 +2403,7 @@ slider10bus busid pat = pF "slider10" pat # pI "^slider10" busid
 slider10recv :: Pattern p => p Int -> p ValueMap
 slider10recv busid = pI "^slider10" busid
 
--- | 
+-- |
 slider11 :: Pattern p => p Double -> p ValueMap
 slider11 = pF "slider11"
 slider11Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2418,7 +2418,7 @@ slider11bus busid pat = pF "slider11" pat # pI "^slider11" busid
 slider11recv :: Pattern p => p Int -> p ValueMap
 slider11recv busid = pI "^slider11" busid
 
--- | 
+-- |
 slider12 :: Pattern p => p Double -> p ValueMap
 slider12 = pF "slider12"
 slider12Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2433,7 +2433,7 @@ slider12bus busid pat = pF "slider12" pat # pI "^slider12" busid
 slider12recv :: Pattern p => p Int -> p ValueMap
 slider12recv busid = pI "^slider12" busid
 
--- | 
+-- |
 slider13 :: Pattern p => p Double -> p ValueMap
 slider13 = pF "slider13"
 slider13Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2448,7 +2448,7 @@ slider13bus busid pat = pF "slider13" pat # pI "^slider13" busid
 slider13recv :: Pattern p => p Int -> p ValueMap
 slider13recv busid = pI "^slider13" busid
 
--- | 
+-- |
 slider14 :: Pattern p => p Double -> p ValueMap
 slider14 = pF "slider14"
 slider14Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2463,7 +2463,7 @@ slider14bus busid pat = pF "slider14" pat # pI "^slider14" busid
 slider14recv :: Pattern p => p Int -> p ValueMap
 slider14recv busid = pI "^slider14" busid
 
--- | 
+-- |
 slider15 :: Pattern p => p Double -> p ValueMap
 slider15 = pF "slider15"
 slider15Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2478,7 +2478,7 @@ slider15bus busid pat = pF "slider15" pat # pI "^slider15" busid
 slider15recv :: Pattern p => p Int -> p ValueMap
 slider15recv busid = pI "^slider15" busid
 
--- | 
+-- |
 slider2 :: Pattern p => p Double -> p ValueMap
 slider2 = pF "slider2"
 slider2Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2493,7 +2493,7 @@ slider2bus busid pat = pF "slider2" pat # pI "^slider2" busid
 slider2recv :: Pattern p => p Int -> p ValueMap
 slider2recv busid = pI "^slider2" busid
 
--- | 
+-- |
 slider3 :: Pattern p => p Double -> p ValueMap
 slider3 = pF "slider3"
 slider3Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2508,7 +2508,7 @@ slider3bus busid pat = pF "slider3" pat # pI "^slider3" busid
 slider3recv :: Pattern p => p Int -> p ValueMap
 slider3recv busid = pI "^slider3" busid
 
--- | 
+-- |
 slider4 :: Pattern p => p Double -> p ValueMap
 slider4 = pF "slider4"
 slider4Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2523,7 +2523,7 @@ slider4bus busid pat = pF "slider4" pat # pI "^slider4" busid
 slider4recv :: Pattern p => p Int -> p ValueMap
 slider4recv busid = pI "^slider4" busid
 
--- | 
+-- |
 slider5 :: Pattern p => p Double -> p ValueMap
 slider5 = pF "slider5"
 slider5Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2538,7 +2538,7 @@ slider5bus busid pat = pF "slider5" pat # pI "^slider5" busid
 slider5recv :: Pattern p => p Int -> p ValueMap
 slider5recv busid = pI "^slider5" busid
 
--- | 
+-- |
 slider6 :: Pattern p => p Double -> p ValueMap
 slider6 = pF "slider6"
 slider6Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2553,7 +2553,7 @@ slider6bus busid pat = pF "slider6" pat # pI "^slider6" busid
 slider6recv :: Pattern p => p Int -> p ValueMap
 slider6recv busid = pI "^slider6" busid
 
--- | 
+-- |
 slider7 :: Pattern p => p Double -> p ValueMap
 slider7 = pF "slider7"
 slider7Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2568,7 +2568,7 @@ slider7bus busid pat = pF "slider7" pat # pI "^slider7" busid
 slider7recv :: Pattern p => p Int -> p ValueMap
 slider7recv busid = pI "^slider7" busid
 
--- | 
+-- |
 slider8 :: Pattern p => p Double -> p ValueMap
 slider8 = pF "slider8"
 slider8Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2583,7 +2583,7 @@ slider8bus busid pat = pF "slider8" pat # pI "^slider8" busid
 slider8recv :: Pattern p => p Int -> p ValueMap
 slider8recv busid = pI "^slider8" busid
 
--- | 
+-- |
 slider9 :: Pattern p => p Double -> p ValueMap
 slider9 = pF "slider9"
 slider9Take :: Pattern p => String -> [Double] -> p ValueMap
@@ -2613,7 +2613,7 @@ smearbus busid pat = pF "smear" pat # pI "^smear" busid
 smearrecv :: Pattern p => p Int -> p ValueMap
 smearrecv busid = pI "^smear" busid
 
--- | 
+-- |
 songPtr :: Pattern p => p Double -> p ValueMap
 songPtr = pF "songPtr"
 songPtrTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2639,7 +2639,7 @@ speedCountTo name ipat = innerJoin $ (\i -> pStateF "speed" name (maybe 0 ((`mod
 speedbus :: Pattern p => p Int -> p Double -> p ValueMap
 speedbus _ _ = error "Control parameter 'speed' can't be sent to a bus."
 
--- | 
+-- |
 squiz :: Pattern p => p Double -> p ValueMap
 squiz = pF "squiz"
 squizTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2654,7 +2654,7 @@ squizbus busid pat = pF "squiz" pat # pI "^squiz" busid
 squizrecv :: Pattern p => p Int -> p ValueMap
 squizrecv busid = pI "^squiz" busid
 
--- | 
+-- |
 stepsPerOctave :: Pattern p => p Double -> p ValueMap
 stepsPerOctave = pF "stepsPerOctave"
 stepsPerOctaveTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2669,7 +2669,7 @@ stepsPerOctavebus busid pat = pF "stepsPerOctave" pat # pI "^stepsPerOctave" bus
 stepsPerOctaverecv :: Pattern p => p Int -> p ValueMap
 stepsPerOctaverecv busid = pI "^stepsPerOctave" busid
 
--- | 
+-- |
 stutterdepth :: Pattern p => p Double -> p ValueMap
 stutterdepth = pF "stutterdepth"
 stutterdepthTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2684,7 +2684,7 @@ stutterdepthbus busid pat = pF "stutterdepth" pat # pI "^stutterdepth" busid
 stutterdepthrecv :: Pattern p => p Int -> p ValueMap
 stutterdepthrecv busid = pI "^stutterdepth" busid
 
--- | 
+-- |
 stuttertime :: Pattern p => p Double -> p ValueMap
 stuttertime = pF "stuttertime"
 stuttertimeTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2699,7 +2699,7 @@ stuttertimebus busid pat = pF "stuttertime" pat # pI "^stuttertime" busid
 stuttertimerecv :: Pattern p => p Int -> p ValueMap
 stuttertimerecv busid = pI "^stuttertime" busid
 
--- | 
+-- |
 sustain :: Pattern p => p Double -> p ValueMap
 sustain = pF "sustain"
 sustainTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2712,7 +2712,7 @@ sustainCountTo name ipat = innerJoin $ (\i -> pStateF "sustain" name (maybe 0 ((
 sustainbus :: Pattern p => p Int -> p Double -> p ValueMap
 sustainbus _ _ = error "Control parameter 'sustain' can't be sent to a bus."
 
--- | 
+-- |
 sustainpedal :: Pattern p => p Double -> p ValueMap
 sustainpedal = pF "sustainpedal"
 sustainpedalTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2778,7 +2778,7 @@ toArgbus busid pat = pS "toArg" pat # pI "^toArg" busid
 toArgrecv :: Pattern p => p Int -> p ValueMap
 toArgrecv busid = pI "^toArg" busid
 
--- | 
+-- |
 tomdecay :: Pattern p => p Double -> p ValueMap
 tomdecay = pF "tomdecay"
 tomdecayTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2838,7 +2838,7 @@ triodebus busid pat = pF "triode" pat # pI "^triode" busid
 trioderecv :: Pattern p => p Int -> p ValueMap
 trioderecv busid = pI "^triode" busid
 
--- | 
+-- |
 tsdelay :: Pattern p => p Double -> p ValueMap
 tsdelay = pF "tsdelay"
 tsdelayTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2853,7 +2853,7 @@ tsdelaybus busid pat = pF "tsdelay" pat # pI "^tsdelay" busid
 tsdelayrecv :: Pattern p => p Int -> p ValueMap
 tsdelayrecv busid = pI "^tsdelay" busid
 
--- | 
+-- |
 uid :: Pattern p => p Double -> p ValueMap
 uid = pF "uid"
 uidTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2874,7 +2874,7 @@ unitTake name xs = pStateListF "unit" name xs
 unitbus :: Pattern p => p Int -> p String -> p ValueMap
 unitbus _ _ = error "Control parameter 'unit' can't be sent to a bus."
 
--- | 
+-- |
 val :: Pattern p => p Double -> p ValueMap
 val = pF "val"
 valTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2887,7 +2887,7 @@ valCountTo name ipat = innerJoin $ (\i -> pStateF "val" name (maybe 0 ((`mod'` i
 valbus :: Pattern p => p Int -> p Double -> p ValueMap
 valbus _ _ = error "Control parameter 'val' can't be sent to a bus."
 
--- | 
+-- |
 vcfegint :: Pattern p => p Double -> p ValueMap
 vcfegint = pF "vcfegint"
 vcfegintTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2902,7 +2902,7 @@ vcfegintbus busid pat = pF "vcfegint" pat # pI "^vcfegint" busid
 vcfegintrecv :: Pattern p => p Int -> p ValueMap
 vcfegintrecv busid = pI "^vcfegint" busid
 
--- | 
+-- |
 vcoegint :: Pattern p => p Double -> p ValueMap
 vcoegint = pF "vcoegint"
 vcoegintTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2917,7 +2917,7 @@ vcoegintbus busid pat = pF "vcoegint" pat # pI "^vcoegint" busid
 vcoegintrecv :: Pattern p => p Int -> p ValueMap
 vcoegintrecv busid = pI "^vcoegint" busid
 
--- | 
+-- |
 velocity :: Pattern p => p Double -> p ValueMap
 velocity = pF "velocity"
 velocityTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2932,7 +2932,7 @@ velocitybus busid pat = pF "velocity" pat # pI "^velocity" busid
 velocityrecv :: Pattern p => p Int -> p ValueMap
 velocityrecv busid = pI "^velocity" busid
 
--- | 
+-- |
 voice :: Pattern p => p Double -> p ValueMap
 voice = pF "voice"
 voiceTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2957,7 +2957,7 @@ vowelbus busid pat = pS "vowel" pat # pI "^vowel" busid
 vowelrecv :: Pattern p => p Int -> p ValueMap
 vowelrecv busid = pI "^vowel" busid
 
--- | 
+-- |
 waveloss :: Pattern p => p Double -> p ValueMap
 waveloss = pF "waveloss"
 wavelossTake :: Pattern p => String -> [Double] -> p ValueMap
@@ -2972,7 +2972,7 @@ wavelossbus busid pat = pF "waveloss" pat # pI "^waveloss" busid
 wavelossrecv :: Pattern p => p Int -> p ValueMap
 wavelossrecv busid = pI "^waveloss" busid
 
--- | 
+-- |
 xsdelay :: Pattern p => p Double -> p ValueMap
 xsdelay = pF "xsdelay"
 xsdelayTake :: Pattern p => String -> [Double] -> p ValueMap

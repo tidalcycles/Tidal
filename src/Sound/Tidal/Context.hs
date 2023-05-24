@@ -18,28 +18,29 @@ module Sound.Tidal.Context (module C) where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Prelude                         hiding ((*>), (<*))
+import           Prelude                     hiding ((*>), (<*))
 
-import           Data.Ratio                      as C
+import           Data.Ratio                  as C
 
-import           Sound.Tidal.Config              as C
+import           Sound.Tidal.Config          as C
 -- import Sound.Tidal.Core as C
-import           Sound.Tidal.Params              as C
-import           Sound.Tidal.ParseBP             as C
-import           Sound.Tidal.Pattern             as C
-import           Sound.Tidal.Scales              as C
-import           Sound.Tidal.Sequence            as C
-import           Sound.Tidal.Show                as C
-import           Sound.Tidal.Signal.Base         as C
-import           Sound.Tidal.Signal.Compose      as C
-import           Sound.Tidal.Signal.ComposeExtra as C
-import           Sound.Tidal.Signal.Control      as C
-import           Sound.Tidal.Signal.Event        as C
-import           Sound.Tidal.Signal.Random       as C
-import           Sound.Tidal.Signal.Waveform     as C
+import           Sound.Tidal.Compose         as C
+import           Sound.Tidal.ComposeExtra    as C
+import           Sound.Tidal.Control         as C
+import           Sound.Tidal.Params          as C
+import           Sound.Tidal.ParseBP         as C
+import           Sound.Tidal.Pattern         as C
+import           Sound.Tidal.Scales          as C
+import           Sound.Tidal.Sequence        as C
+import           Sound.Tidal.Show            as C
+import           Sound.Tidal.Signal.Base     as C
+import           Sound.Tidal.Signal.Control  as C
+import           Sound.Tidal.Signal.Event    as C
+import           Sound.Tidal.Signal.Random   as C
+import           Sound.Tidal.Signal.Waveform as C
 -- import Sound.Tidal.Simple as C
-import           Sound.Tidal.Stream              as C
+import           Sound.Tidal.Stream          as C
 -- import Sound.Tidal.Time as C
 -- import Sound.Tidal.Transition as C
-import           Sound.Tidal.Types               as C
-import           Sound.Tidal.Version             as C
+import           Sound.Tidal.Types           as C
+import           Sound.Tidal.Version         as C

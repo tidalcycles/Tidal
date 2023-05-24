@@ -32,10 +32,10 @@ import           Data.Maybe                  (fromJust, fromMaybe, isJust,
 import           Data.Ratio
 
 import           Sound.Tidal.Arc
+import           Sound.Tidal.Compose         ((#), (*|), (|*), (|/), (|=|))
 import qualified Sound.Tidal.Params          as P
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Signal.Compose  ((#), (*|), (|*), (|/), (|=|))
 import           Sound.Tidal.Signal.Event
 import           Sound.Tidal.Signal.Random
 import           Sound.Tidal.Signal.Waveform (sine)

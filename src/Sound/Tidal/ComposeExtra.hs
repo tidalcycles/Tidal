@@ -6,7 +6,7 @@
 -- Additional ways to compose signals together that don't fit in the
 -- what/how scheme in Compose.hs
 
-module Sound.Tidal.Signal.ComposeExtra where
+module Sound.Tidal.ComposeExtra where
 
 import           Prelude                 hiding ((*>), (<*))
 
