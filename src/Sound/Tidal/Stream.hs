@@ -50,7 +50,7 @@ import           Sound.Tidal.Compose      ((#))
 import           Sound.Tidal.ID
 import qualified Sound.Tidal.Link         as Link
 import           Sound.Tidal.Params       (pS)
-import           Sound.Tidal.Pattern      (silence, stack)
+import           Sound.Tidal.Pattern      (_early, silence, stack)
 import           Sound.Tidal.Show         ()
 import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Signal.Event

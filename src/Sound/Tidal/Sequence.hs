@@ -7,6 +7,7 @@ module Sound.Tidal.Sequence where
 
 
 import           Control.Applicative
+import           Data.Fixed              (mod')
 import           Data.List               (intersperse)
 import           Data.Maybe              (fromMaybe)
 import           Data.Ratio
@@ -18,7 +19,6 @@ import           Sound.Tidal.Show        ()
 import           Sound.Tidal.Signal.Base (_zoomArc, setMetadata)
 import           Sound.Tidal.Time
 import           Sound.Tidal.Types
-
 -- | Instances
 
 
@@ -128,6 +128,7 @@ instance Pattern Sequence where
   slowcat = seqCat
   fastcat = seqFastcat
   _fast = _seqFast
+  _early = _seqEarly
   silence = gap 1
   atom = step 1
   stack = Stack
@@ -380,6 +381,11 @@ _seqFast t (Stack x)        = Stack $ map(_seqFast t) x
 
 _seqSlow :: Time -> Sequence a -> Sequence a
 _seqSlow t = _seqFast (1/t)
+
+_seqEarly :: Time -> Sequence a -> Sequence a
+_seqEarly t seq = swapcat $ seqSplitAt' t' seq
+  where t' = t `mod'` (seqDuration seq)
+        swapcat (a,b) = Cat [b,a]
 
 -- TODO - more general version that takes rational
 seqReplicate :: Int -> Sequence a -> Sequence a

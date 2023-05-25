@@ -3,8 +3,10 @@
 
 module Sound.Tidal.Pattern where
 
-import           Data.Maybe        (fromJust, isJust)
-import           Prelude           hiding ((*>), (<*))
+import           Data.Maybe            (fromJust, isJust)
+import           Data.Ratio            ((%))
+import           Prelude               hiding ((*>), (<*))
+import           Sound.Tidal.Bjorklund (bjorklund)
 import           Sound.Tidal.Types
 
 -- ************************************************************ --
@@ -16,6 +18,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   fastcat :: [p a] -> p a
   fastcat pats = _fast (toRational $ length pats) $ slowcat pats
   _fast :: Time -> p a -> p a
+  _early :: Time -> p a -> p a
   silence :: p a
   atom :: a -> p a
   stack :: [p a] -> p a
@@ -103,8 +106,59 @@ _patternify_p_p_p f apat bpat cpat pat = innerJoin $ (\a b c -> f a b c pat) <$>
 filterJusts :: Pattern p => p (Maybe a) -> p a
 filterJusts = fmap fromJust . filterValues isJust
 
+_late :: Pattern p => Time -> p x -> p x
+_late t = _early (0-t)
+
+-- | Shifts a signal backwards in time, i.e. so that events happen earlier
+early :: Pattern p => p Time -> p x -> p x
+early = _patternify _early
+
+-- | Infix operator for @early@
+(<~) :: Pattern p => p Time -> p x -> p x
+(<~) = early
+
+-- | Shifts a signal forwards in time, i.e. so that events happen later
+late :: Pattern p => p Time -> p x -> p x
+late = _patternify _late
+
 euclid :: Pattern p => p Int -> p Int -> p a -> p a
 euclid = _patternify_p_p _euclid
+
+euclidOff :: Pattern p => p Int -> p Int -> p Int -> p a -> p a
+euclidOff = _patternify_p_p_p _euclidOff
+
+eoff :: Pattern p => p Int -> p Int -> p Int -> p a -> p a
+eoff = euclidOff
+
+{- | `euclidInv` fills in the blanks left by `e`
+ -
+ @e 3 8 "x"@ -> @"x ~ ~ x ~ ~ x ~"@
+
+ @euclidInv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
+-}
+euclidInv :: Pattern p => p Int -> p Int -> p a -> p a
+euclidInv = _patternify_p_p _euclidInv
+
+_euclidInv :: Pattern p => Int -> Int -> p a -> p a
+_euclidInv n k a = _euclid (-n) k a
+
+{- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
+euclidFull :: Pattern p => p Int -> p Int -> p a -> p a -> p a
+euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
+
+_euclidBool :: Pattern p => Int -> Int -> p Bool
+_euclidBool n k = fastFromList $ bjorklund (n,k)
+
+_euclidOff :: Pattern p => Int -> Int -> Int -> p a -> p a
+_euclidOff _ 0 _ _ = silence
+_euclidOff n k s p = (_early $ fromIntegral s%fromIntegral k) (_euclid n k p)
+
+euclidOffBool :: Pattern p => p Int -> p Int -> p Int -> p Bool -> p Bool
+euclidOffBool = _patternify_p_p_p _euclidOffBool
+
+_euclidOffBool :: Pattern p => Int -> Int -> Int -> p Bool -> p Bool
+_euclidOffBool _ 0 _ _ = silence
+_euclidOffBool n k s p = ((fromIntegral s % fromIntegral k) `_early`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
 
 overlay :: Pattern p => p x -> p x -> p x
 overlay a b = stack [a, b]

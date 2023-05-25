@@ -49,6 +49,7 @@ instance Pattern Signal where
   atom    = sigAtom
   stack   = sigStack
   _fast   = _sigFast
+  _early  = _sigEarly
   rev     = sigRev
   timeCat = sigTimeCat
   when    = sigWhen
@@ -506,26 +507,11 @@ _focusArc (Arc b e) pat = _late (cyclePos b) $ _fast (1/(e-b)) pat
 focus :: Signal Time -> Signal Time -> Signal a -> Signal a
 focus patStart patDur pat = innerJoin $ (\s d -> _focusArc (Arc s (s+d)) pat) <$> patStart <*> patDur
 
-_early :: Time -> Signal a -> Signal a
-_early t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
-
--- | Shifts a signal backwards in time, i.e. so that events happen earlier
-early :: Signal Time -> Signal x -> Signal x
-early = _patternify _early
+_sigEarly :: Time -> Signal a -> Signal a
+_sigEarly t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
 
 earlyA :: Align (Signal Time) (Signal a) -> Signal a
 earlyA = _appAlign _early
-
--- | Infix operator for @early@
-(<~) :: Signal Time -> Signal x -> Signal x
-(<~) = early
-
-_late :: Time -> Signal x -> Signal x
-_late t = _early (0-t)
-
--- | Shifts a signal forwards in time, i.e. so that events happen later
-late :: Signal Time -> Signal x -> Signal x
-late = _patternify _late
 
 lateA :: Align (Signal Time) (Signal a) -> Signal a
 lateA = _appAlign _late
@@ -1011,32 +997,8 @@ _sigEuclid :: Int -> Int -> Signal a -> Signal a
 _sigEuclid n k a | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
                  | otherwise = fastcat $ fmap (bool a silence) $ bjorklund (-n,k)
 
-{- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
-euclidFull :: Signal Int -> Signal Int -> Signal a -> Signal a -> Signal a
-euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
-
-_euclidBool :: Int -> Int -> Signal Bool
-_euclidBool n k = fastFromList $ bjorklund (n,k)
-
 _euclid' :: Int -> Int -> Signal a -> Signal a
 _euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
-
-euclidOff :: Signal Int -> Signal Int -> Signal Int -> Signal a -> Signal a
-euclidOff = _patternify_p_p_p _euclidOff
-
-eoff :: Signal Int -> Signal Int -> Signal Int -> Signal a -> Signal a
-eoff = euclidOff
-
-_euclidOff :: Int -> Int -> Int -> Signal a -> Signal a
-_euclidOff _ 0 _ _ = silence
-_euclidOff n k s p = (_early $ fromIntegral s%fromIntegral k) (_euclid n k p)
-
-euclidOffBool :: Signal Int -> Signal Int -> Signal Int -> Signal Bool -> Signal Bool
-euclidOffBool = _patternify_p_p_p _euclidOffBool
-
-_euclidOffBool :: Int -> Int -> Int -> Signal Bool -> Signal Bool
-_euclidOffBool _ 0 _ _ = silence
-_euclidOffBool n k s p = ((fromIntegral s % fromIntegral k) `_early`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
 
 distrib :: [Signal Int] -> Signal a -> Signal a
 distrib ps p = do p' <- sequence ps
@@ -1052,18 +1014,6 @@ _distrib xs p = boolsToPat (foldr distrib' (replicate (last xs) True) (reverse $
     distrib' (False:a) b    = False : distrib' a b
     layers = map bjorklund . (zip<*>tail)
     boolsToPat a b' = flip const <$> filterValues (== True) (fastFromList a) <*> b'
-
-{- | `euclidInv` fills in the blanks left by `e`
- -
- @e 3 8 "x"@ -> @"x ~ ~ x ~ ~ x ~"@
-
- @euclidInv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
--}
-euclidInv :: Signal Int -> Signal Int -> Signal a -> Signal a
-euclidInv = _patternify_p_p _euclidInv
-
-_euclidInv :: Int -> Int -> Signal a -> Signal a
-_euclidInv n k a = _euclid (-n) k a
 
 -- ************************************************************ --
 -- Functions for getting control input as signals
