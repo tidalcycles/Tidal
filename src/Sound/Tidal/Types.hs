@@ -215,7 +215,7 @@ data Sequence a = Atom {atomDuration :: Time,
                        }
                 | Cat [Sequence a]
                 | Stack [Sequence a]
-                deriving Eq
+                deriving (Eq, Ord)
 
 data Alignment a = Alignment [Sequence a]
 

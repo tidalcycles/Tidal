@@ -2,11 +2,11 @@
 
 module Sound.Tidal.ParamsTest where
 
-import Test.Microspec
-import TestUtils
-import Sound.Tidal.Signal.Compose ((#))
-import Sound.Tidal.Params
-import Sound.Tidal.Types
+import           Sound.Tidal.Compose ((#))
+import           Sound.Tidal.Params
+import           Sound.Tidal.Types
+import           Test.Microspec
+import           TestUtils
 
 run :: Microspec ()
 run =

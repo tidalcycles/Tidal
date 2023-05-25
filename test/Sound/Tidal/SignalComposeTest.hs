@@ -5,18 +5,18 @@ module Sound.Tidal.SignalComposeTest where
 import           Test.Microspec
 import           TestUtils
 
-import           Prelude             hiding ((*>), (<*))
+import           Prelude                  hiding ((*>), (<*))
 
-import           Sound.Tidal.Types
+import           Sound.Tidal.Compose
+import           Sound.Tidal.ComposeExtra
+import           Sound.Tidal.Params       (s)
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Signal.Compose
-import           Sound.Tidal.Signal.ComposeExtra
-import           Sound.Tidal.Params (s)
+import           Sound.Tidal.Types
 
 run :: Microspec ()
 run =
-  describe "Sound.Tidal.Signal.ComposeExtra" $ do
+  describe "Sound.Tidal.ComposeExtra" $ do
     describe "wedge" $ do
       it "should not freeze tidal if amount is 1" $ do
         compareP (Arc 0 1)

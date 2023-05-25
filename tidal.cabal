@@ -46,8 +46,8 @@ library
                        Sound.Tidal.Sequence
                        Sound.Tidal.Show
                        Sound.Tidal.Signal.Base
-                       Sound.Tidal.Signal.Compose
-                       Sound.Tidal.Signal.ComposeExtra
+                       Sound.Tidal.Compose
+                       Sound.Tidal.ComposeExtra
                        Sound.Tidal.Signal.Event
                        Sound.Tidal.Signal.Random
                        Sound.Tidal.Signal.Waveform

@@ -20,6 +20,83 @@ import           Sound.Tidal.Types
 
 -- | Instances
 
+
+seqNoOv :: String -> a
+seqNoOv meth = error $ meth ++ ": not supported for sequences"
+
+instance Num a => Num (Sequence a) where
+  negate      = fmap negate
+  (+)         = liftA2 (+)
+  (*)         = liftA2 (*)
+  fromInteger = pure . fromInteger
+  abs         = fmap abs
+  signum      = fmap signum
+
+instance Enum a => Enum (Sequence a) where
+  succ           = fmap succ
+  pred           = fmap pred
+  toEnum         = pure . toEnum
+  fromEnum       = seqNoOv "fromEnum"
+  enumFrom       = seqNoOv "enumFrom"
+  enumFromThen   = seqNoOv "enumFromThen"
+  enumFromTo     = seqNoOv "enumFromTo"
+  enumFromThenTo = seqNoOv "enumFromThenTo"
+
+instance (Num a, Ord a) => Real (Sequence a) where
+  toRational = seqNoOv "toRational"
+
+instance (Integral a) => Integral (Sequence a) where
+  quot          = liftA2 quot
+  rem           = liftA2 rem
+  div           = liftA2 div
+  mod           = liftA2 mod
+  toInteger     = seqNoOv "toInteger"
+  x `quotRem` y = (x `quot` y, x `rem` y)
+  x `divMod`  y = (x `div`  y, x `mod` y)
+
+instance (Fractional a) => Fractional (Sequence a) where
+  recip        = fmap recip
+  fromRational = pure . fromRational
+
+instance (Floating a) => Floating (Sequence a) where
+  pi    = pure pi
+  sqrt  = fmap sqrt
+  exp   = fmap exp
+  log   = fmap log
+  sin   = fmap sin
+  cos   = fmap cos
+  asin  = fmap asin
+  atan  = fmap atan
+  acos  = fmap acos
+  sinh  = fmap sinh
+  cosh  = fmap cosh
+  asinh = fmap asinh
+  atanh = fmap atanh
+  acosh = fmap acosh
+
+instance (RealFrac a) => RealFrac (Sequence a) where
+  properFraction = seqNoOv "properFraction"
+  truncate       = seqNoOv "truncate"
+  round          = seqNoOv "round"
+  ceiling        = seqNoOv "ceiling"
+  floor          = seqNoOv "floor"
+
+instance (RealFloat a) => RealFloat (Sequence a) where
+  floatRadix     = seqNoOv "floatRadix"
+  floatDigits    = seqNoOv "floatDigits"
+  floatRange     = seqNoOv "floatRange"
+  decodeFloat    = seqNoOv "decodeFloat"
+  encodeFloat    = ((.).(.)) pure encodeFloat
+  exponent       = seqNoOv "exponent"
+  significand    = seqNoOv "significand"
+  scaleFloat n   = fmap (scaleFloat n)
+  isNaN          = seqNoOv "isNaN"
+  isInfinite     = seqNoOv "isInfinite"
+  isDenormalized = seqNoOv "isDenormalized"
+  isNegativeZero = seqNoOv "isNegativeZero"
+  isIEEE         = seqNoOv "isIEEE"
+  atan2          = liftA2 atan2
+
 instance Functor Sequence where
   fmap f (Atom d i o v) = Atom d i o (f <$> v)
   fmap f (Cat xs)       = Cat $ map (fmap f) xs
