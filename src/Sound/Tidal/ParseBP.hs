@@ -191,7 +191,7 @@ toSeq = \case
    TPat_Stack xs          -> Stack $ map toSeq xs
    TPat_Silence           -> silence
    -- TPat_EnumFromTo
-   TPat_Polyrhythm _ ps   -> S.poly $ map toSeq ps
+   TPat_Polyrhythm _ ps   -> S.polys $ map toSeq ps
    TPat_Seq xs            -> fastcat $ map toSeq xs
    -- TPat
    -- TPat_Chord

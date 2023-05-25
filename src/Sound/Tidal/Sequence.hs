@@ -394,12 +394,30 @@ seqReplicate n x        = Cat $ replicate n x
 
 -- | Combination
 
-poly :: [Sequence a] -> Sequence a
-poly xs = normalise $ poly' xs
-  where poly' ([])   = silence
-        poly' (x:[]) = x
-        poly' (x:xs') = Stack [a,b]
-          where (a, b) = align Repeat x $ poly xs'
+alignStack :: Strategy -> [Sequence a] -> Sequence a
+alignStack strat xs = normalise $ loop xs
+  where loop ([])   = silence
+        loop (x:[]) = x
+        loop (x:xs') = Stack [a,b]
+          where (a, b) = align strat x $ alignStack strat xs'
+
+polys :: [Sequence a] -> Sequence a
+polys = alignStack Repeat
+
+centres :: [Sequence a] -> Sequence a
+centres = alignStack Centre
+
+lefts :: [Sequence a] -> Sequence a
+lefts = alignStack JustifyLeft
+
+rights :: [Sequence a] -> Sequence a
+rights = alignStack JustifyRight
+
+truncs :: [Sequence a] -> Sequence a
+truncs = alignStack TruncateRepeat
+
+expands :: [Sequence a] -> Sequence a
+expands = alignStack Expand
 
 -- | Alignment
 
@@ -485,8 +503,8 @@ align SqueezeOut a b = swap $ align SqueezeIn b a
 
 align strategy _ _ = error $ show strategy ++ " not implemented for sequences."
 
-alignStack :: Strategy -> Sequence a -> Sequence a -> Sequence a
-alignStack s a b = Stack $ (\(a',b') -> [a',b']) $ align s a b
+alignOverlay :: Strategy -> Sequence a -> Sequence a -> Sequence a
+alignOverlay s a b = Stack $ (\(a',b') -> [a',b']) $ align s a b
 
 pairAligned :: Direction -> (Sequence a, Sequence b) -> Sequence (a, b)
 
