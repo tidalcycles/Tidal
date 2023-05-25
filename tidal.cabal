@@ -33,6 +33,7 @@ library
                        Sound.Tidal.Boot
                        Sound.Tidal.Chords
                        Sound.Tidal.Config
+                       Sound.Tidal.Control
                        Sound.Tidal.Signal.Control
                        Sound.Tidal.Context
                        -- Sound.Tidal.Core
