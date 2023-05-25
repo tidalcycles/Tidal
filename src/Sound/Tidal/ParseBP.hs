@@ -187,7 +187,7 @@ toSeq = \case
    TPat_Slow t x          -> slow (toSeq t) $ toSeq x
    -- TPat_DegradeBy
    -- TPat_CycleChoose
-   -- TPat_Euclid
+   TPat_Euclid n k s thing -> doEuclid (toSeq n) (toSeq k) (toSeq s) (toSeq thing)
    TPat_Stack xs          -> Stack $ map toSeq xs
    TPat_Silence           -> silence
    -- TPat_EnumFromTo
@@ -259,7 +259,7 @@ cP s = innerJoin $ parseBP_E <$> _cX_ getS s
 
 class Parseable a where
   tPatParser :: MyParser (TPat a)
-  doEuclid :: Signal Int -> Signal Int -> Signal Int -> Signal a -> Signal a
+  doEuclid :: Pattern p => p Int -> p Int -> p Int -> p a -> p a
   getControl :: String -> Signal a
   getControl _ = silence
 
