@@ -181,22 +181,23 @@ toPat = \case
 
 toSeq :: (Parseable a, Enumerable a) => TPat a -> Sequence a
 toSeq = \case
-   TPat_Atom _ x -> S.step 1 x
-   TPat_Fast t x -> fast (toSeq t) $ toSeq x
-   TPat_Slow t x -> slow (toSeq t) $ toSeq x
+   TPat_Atom (Just loc) x -> S.addMetadata (Metadata [loc]) $ S.step 1 x
+   TPat_Atom Nothing x    -> S.step 1 x
+   TPat_Fast t x          -> fast (toSeq t) $ toSeq x
+   TPat_Slow t x          -> slow (toSeq t) $ toSeq x
    -- TPat_DegradeBy
    -- TPat_CycleChoose
    -- TPat_Euclid
-   TPat_Stack xs -> Stack $ map toSeq xs
-   TPat_Silence -> silence
+   TPat_Stack xs          -> Stack $ map toSeq xs
+   TPat_Silence           -> silence
    -- TPat_EnumFromTo
-   TPat_Polyrhythm _ ps -> S.poly $ map toSeq ps
-   TPat_Seq xs -> fastcat $ map toSeq xs
+   TPat_Polyrhythm _ ps   -> S.poly $ map toSeq ps
+   TPat_Seq xs            -> fastcat $ map toSeq xs
    -- TPat
    -- TPat_Chord
-   TPat_Repeat n p -> Cat $ replicate n $ toSeq p
-   TPat_Elongate r p -> _slow r $ toSeq p
-   _ -> silence
+   TPat_Repeat n p        -> Cat $ replicate n $ toSeq p
+   TPat_Elongate r p      -> _slow r $ toSeq p
+   _                      -> silence
 
 resolve_tpat :: (Enumerable a, Parseable a) => TPat a -> (Rational, Signal a)
 resolve_tpat (TPat_Seq xs) = resolve_seq xs

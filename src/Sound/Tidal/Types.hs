@@ -209,7 +209,8 @@ data Signal a = Signal {query :: State -> [Event a]}
 instance NFData a => NFData (Signal a)
 
 -- | A discrete sequence
-data Sequence a = Atom {atomDuration :: Time,
+data Sequence a = Atom {atomMetadata :: Metadata,
+                        atomDuration :: Time,
                         atomInset :: Time, atomOutset :: Time,
                         atomValue :: Maybe a
                        }
@@ -253,4 +254,9 @@ data Align a b = Align Strategy a b
 
 data Patternable a = SequencePat (Sequence a)
                    | SignalPat (Signal a)
+
+withAtom :: (Sequence a -> Sequence a) -> Sequence a -> Sequence a
+withAtom f a@(Atom _ _ _ _ _) = f a
+withAtom f (Cat xs)           = Cat $ map (withAtom f) xs
+withAtom f (Stack xs)         = Stack $ map (withAtom f) xs
 

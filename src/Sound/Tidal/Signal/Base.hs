@@ -325,6 +325,44 @@ discreteOnly = filterEvents $ isJust . whole
 playFor :: Time -> Time -> Signal a -> Signal a
 playFor s e pat = Signal $ \st -> maybe [] (\a -> query pat (st {sArc = a})) $ maybeSect (Arc s e) (sArc st)
 
+-- A hack to add to manipulate source code to add calls to
+-- 'deltaContext' around strings, so events from mininotation know
+-- where they are within a whole tidal pattern
+deltaMini :: String -> String
+deltaMini = outside 0 0
+  where outside :: Int -> Int -> String -> String
+        outside _ _ [] = []
+        outside column line ('"':xs) = "(deltaMetadata "
+                                         ++ show column
+                                         ++ " "
+                                         ++ show line
+                                         ++ " \""
+                                         ++ inside (column+1) line xs
+        outside _ line ('\n':xs) = '\n':outside 0 (line+1) xs
+        outside column line (x:xs) = x:outside (column+1) line xs
+        inside :: Int -> Int -> String -> String
+        inside _ _ []               = []
+        inside column line ('"':xs) = '"':')':outside (column+1) line xs
+        inside _ line ('\n':xs)     = '\n':inside 0 (line+1) xs
+        inside column line (x:xs)   = x:inside (column+1) line xs
+
+class Stringy a where
+  deltaMetadata :: Int -> Int -> a -> a
+
+instance Stringy (Signal a) where
+  deltaMetadata column line pat = withEvents (map (\e -> e {metadata = f $ metadata e})) pat
+    where f :: Metadata -> Metadata
+          f (Metadata xs) = Metadata $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
+
+instance Stringy (Sequence a) where
+  deltaMetadata column line pat = withAtom (\a -> a {atomMetadata = f $ atomMetadata a}) pat
+    where f :: Metadata -> Metadata
+          f (Metadata xs) = Metadata $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
+
+-- deltaMetadata on an actual (non overloaded) string is a no-op
+instance Stringy String where
+  deltaMetadata _ _ = id
+
 -- ************************************************************ --
 -- Basic time/event manipulations
 

@@ -82,19 +82,19 @@ powfA = _opA (**)
 -- Patternification
 
 -- patternify the first parameter
-_patternify :: Pattern p => (a -> p b -> p c) -> (p a -> p b -> p c)
+_patternify :: Pattern p => (a -> b -> p c) -> (p a -> b -> p c)
 _patternify f apat pat                 = innerJoin $ (`f` pat) <$> apat
 
 -- patternify the first two parameters
-_patternify_p_p :: (Pattern p) => (a -> b -> p c -> p d) -> (p a -> p b -> p c -> p d)
+_patternify_p_p :: (Pattern p) => (a -> b -> c -> p d) -> (p a -> p b -> c -> p d)
 _patternify_p_p f apat bpat pat        = innerJoin $ (\a b -> f a b pat) <$> apat <* bpat
 
 -- patternify the first but not the second parameters
--- _patternify_p_n :: Pattern p => (a -> b -> p c -> p d) -> (p a -> b -> p c -> p d)
+_patternify_p_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> b -> c -> p d)
 _patternify_p_n f apat b pat           = innerJoin $ (\a -> f a b pat) <$> apat
 
 -- patternify the first three parameters
--- _patternify_p_p_p :: Pattern p => (a -> b -> c -> p d -> p e) -> (p a -> p b -> p c -> p d -> p e)
+_patternify_p_p_p :: Pattern p => (a -> b -> c -> d -> p e) -> (p a -> p b -> p c -> d -> p e)
 _patternify_p_p_p f apat bpat cpat pat = innerJoin $ (\a b c -> f a b c pat) <$> apat <* bpat <* cpat
 
 -- ************************************************************ --
@@ -277,6 +277,20 @@ press = _pressBy 0.5
 -- | Like @press@, but allows you to specify the amount in which each event is shifted. @pressBy 0.5@ is the same as @press@, while @pressBy (1/3)@ shifts each event by a third of its arc.
 pressBy :: Pattern p => p Time -> p a -> p a
 pressBy = _patternify _pressBy
+
+-- | chooses between a list of patterns, using a pattern of floats (from 0-1)
+select :: Pattern p => p Double -> [p a] -> p a
+select = _patternify _select
+
+_select :: Pattern p => Double -> [p a] -> p a
+_select f ps =  ps !! floor (max 0 (min 1 f) * fromIntegral (length ps - 1))
+
+-- | chooses between a list of functions, using a pattern of floats (from 0-1)
+selectF :: Pattern p => p Double -> [p a -> p a] -> p a -> p a
+selectF pf ps p = innerJoin $ (\f -> _selectF f ps p) <$> pf
+
+_selectF :: Double -> [p a -> p a] -> p a -> p a
+_selectF f ps p =  (ps !! floor (max 0 (min 0.999999 f) * fromIntegral (length ps))) p
 
 -- ************************************************************ --
 
