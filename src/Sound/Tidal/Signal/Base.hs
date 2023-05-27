@@ -19,8 +19,7 @@ import           Data.Bool                (bool)
 import           Data.Char                (ord)
 import           Data.List                (groupBy, sort, (\\))
 import qualified Data.Map.Strict          as Map
-import           Data.Maybe               (fromJust, fromMaybe, isJust,
-                                           mapMaybe)
+import           Data.Maybe               (fromMaybe, isJust, mapMaybe)
 import           Data.Ratio
 
 import           Sound.Tidal.Bjorklund    (bjorklund)
@@ -50,9 +49,8 @@ instance Pattern Signal where
   atom    = sigAtom
   stack   = sigStack
   _fast   = _sigFast
+  _early  = _sigEarly
   rev     = sigRev
-  _run    = _sigRun
-  _scan   = _sigScan
   timeCat = sigTimeCat
   when    = sigWhen
   _ply    = _sigPly
@@ -60,7 +58,6 @@ instance Pattern Signal where
   _iterBack = _sigIterBack
   collect = sigCollect
   uncollect = sigUncollect
-  euclid  = sigEuclid
   _euclid = _sigEuclid
   innerJoin = sigInnerJoin
   (<*) = sigAppLeft
@@ -68,6 +65,8 @@ instance Pattern Signal where
   toSignal = id
   _pressBy = _sigPressBy
   _appAlign  = _sigAppAlign
+  filterOnsets = filterEvents eventHasOnset
+  filterValues f = filterEvents (f . value)
 
 _sigAppAlign :: (a -> Signal b -> Signal c) -> Align (Signal a) (Signal b) -> Signal c
 _sigAppAlign f (Align SqueezeIn patt patv) = squeezeJoin $ (\t -> f t patv) <$> patt
@@ -318,15 +317,6 @@ instance Show (a -> b) where
 filterEvents :: (Event a -> Bool) -> Signal a -> Signal a
 filterEvents f pat = Signal $ \state -> filter f $ query pat state
 
-filterOnsets :: Signal a -> Signal a
-filterOnsets = filterEvents eventHasOnset
-
-filterValues :: (a -> Bool) -> Signal a -> Signal a
-filterValues f = filterEvents (f . value)
-
-filterJusts :: Signal (Maybe a) -> Signal a
-filterJusts = fmap fromJust . filterValues isJust
-
 filterTime :: (Time -> Bool) -> Signal a -> Signal a
 filterTime test p = p {query = filter (test . aBegin . wholeOrActive) . query p}
 
@@ -335,6 +325,44 @@ discreteOnly = filterEvents $ isJust . whole
 
 playFor :: Time -> Time -> Signal a -> Signal a
 playFor s e pat = Signal $ \st -> maybe [] (\a -> query pat (st {sArc = a})) $ maybeSect (Arc s e) (sArc st)
+
+-- A hack to add to manipulate source code to add calls to
+-- 'deltaContext' around strings, so events from mininotation know
+-- where they are within a whole tidal pattern
+deltaMini :: String -> String
+deltaMini = outside 0 0
+  where outside :: Int -> Int -> String -> String
+        outside _ _ [] = []
+        outside column line ('"':xs) = "(deltaMetadata "
+                                         ++ show column
+                                         ++ " "
+                                         ++ show line
+                                         ++ " \""
+                                         ++ inside (column+1) line xs
+        outside _ line ('\n':xs) = '\n':outside 0 (line+1) xs
+        outside column line (x:xs) = x:outside (column+1) line xs
+        inside :: Int -> Int -> String -> String
+        inside _ _ []               = []
+        inside column line ('"':xs) = '"':')':outside (column+1) line xs
+        inside _ line ('\n':xs)     = '\n':inside 0 (line+1) xs
+        inside column line (x:xs)   = x:inside (column+1) line xs
+
+class Stringy a where
+  deltaMetadata :: Int -> Int -> a -> a
+
+instance Stringy (Signal a) where
+  deltaMetadata column line pat = withEvents (map (\e -> e {metadata = f $ metadata e})) pat
+    where f :: Metadata -> Metadata
+          f (Metadata xs) = Metadata $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
+
+instance Stringy (Sequence a) where
+  deltaMetadata column line pat = withAtom (\a -> a {atomMetadata = f $ atomMetadata a}) pat
+    where f :: Metadata -> Metadata
+          f (Metadata xs) = Metadata $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
+
+-- deltaMetadata on an actual (non overloaded) string is a no-op
+instance Stringy String where
+  deltaMetadata _ _ = id
 
 -- ************************************************************ --
 -- Basic time/event manipulations
@@ -479,26 +507,11 @@ _focusArc (Arc b e) pat = _late (cyclePos b) $ _fast (1/(e-b)) pat
 focus :: Signal Time -> Signal Time -> Signal a -> Signal a
 focus patStart patDur pat = innerJoin $ (\s d -> _focusArc (Arc s (s+d)) pat) <$> patStart <*> patDur
 
-_early :: Time -> Signal a -> Signal a
-_early t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
-
--- | Shifts a signal backwards in time, i.e. so that events happen earlier
-early :: Signal Time -> Signal x -> Signal x
-early = _patternify _early
+_sigEarly :: Time -> Signal a -> Signal a
+_sigEarly t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
 
 earlyA :: Align (Signal Time) (Signal a) -> Signal a
 earlyA = _appAlign _early
-
--- | Infix operator for @early@
-(<~) :: Signal Time -> Signal x -> Signal x
-(<~) = early
-
-_late :: Time -> Signal x -> Signal x
-_late t = _early (0-t)
-
--- | Shifts a signal forwards in time, i.e. so that events happen later
-late :: Signal Time -> Signal x -> Signal x
-late = _patternify _late
 
 lateA :: Align (Signal Time) (Signal a) -> Signal a
 lateA = _appAlign _late
@@ -579,17 +592,6 @@ sigRev pat = splitQueries $ Signal f
           where cyc = sam $ aBegin $ sArc state
                 next_cyc = nextSam cyc
                 reflect (Arc b e) = Arc (cyc + (next_cyc - e)) (cyc + (next_cyc - b))
-
-
--- | A signal of whole numbers from 0 up to (and not including) the
--- given number, in a single cycle.
-_sigRun :: (Enum a, Num a) => a -> Signal a
-_sigRun n = fastFromList [0 .. n-1]
-
-
--- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
-_sigScan :: (Enum a, Num a) => a -> Signal a
-_sigScan n = slowcat $ map _run [1 .. n]
 
 -- | Similar to @fastCat@, but each signal is given a relative duration
 sigTimeCat :: [(Time, Signal a)] -> Signal a
@@ -990,39 +992,13 @@ including rotation in some cases.
 - (13,24,5) : Another rhythm necklace of the Aka Pygmies of the upper Sangha.
 @
 -}
-sigEuclid :: Signal Int -> Signal Int -> Signal a -> Signal a
-sigEuclid = _patternify_p_p _euclid
 
 _sigEuclid :: Int -> Int -> Signal a -> Signal a
 _sigEuclid n k a | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
                  | otherwise = fastcat $ fmap (bool a silence) $ bjorklund (-n,k)
 
-{- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
-euclidFull :: Signal Int -> Signal Int -> Signal a -> Signal a -> Signal a
-euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
-
-_euclidBool :: Int -> Int -> Signal Bool
-_euclidBool n k = fastFromList $ bjorklund (n,k)
-
 _euclid' :: Int -> Int -> Signal a -> Signal a
 _euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
-
-euclidOff :: Signal Int -> Signal Int -> Signal Int -> Signal a -> Signal a
-euclidOff = _patternify_p_p_p _euclidOff
-
-eoff :: Signal Int -> Signal Int -> Signal Int -> Signal a -> Signal a
-eoff = euclidOff
-
-_euclidOff :: Int -> Int -> Int -> Signal a -> Signal a
-_euclidOff _ 0 _ _ = silence
-_euclidOff n k s p = (_early $ fromIntegral s%fromIntegral k) (_euclid n k p)
-
-euclidOffBool :: Signal Int -> Signal Int -> Signal Int -> Signal Bool -> Signal Bool
-euclidOffBool = _patternify_p_p_p _euclidOffBool
-
-_euclidOffBool :: Int -> Int -> Int -> Signal Bool -> Signal Bool
-_euclidOffBool _ 0 _ _ = silence
-_euclidOffBool n k s p = ((fromIntegral s % fromIntegral k) `_early`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
 
 distrib :: [Signal Int] -> Signal a -> Signal a
 distrib ps p = do p' <- sequence ps
@@ -1038,18 +1014,6 @@ _distrib xs p = boolsToPat (foldr distrib' (replicate (last xs) True) (reverse $
     distrib' (False:a) b    = False : distrib' a b
     layers = map bjorklund . (zip<*>tail)
     boolsToPat a b' = flip const <$> filterValues (== True) (fastFromList a) <*> b'
-
-{- | `euclidInv` fills in the blanks left by `e`
- -
- @e 3 8 "x"@ -> @"x ~ ~ x ~ ~ x ~"@
-
- @euclidInv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
--}
-euclidInv :: Signal Int -> Signal Int -> Signal a -> Signal a
-euclidInv = _patternify_p_p _euclidInv
-
-_euclidInv :: Int -> Int -> Signal a -> Signal a
-_euclidInv n k a = _euclid (-n) k a
 
 -- ************************************************************ --
 -- Functions for getting control input as signals

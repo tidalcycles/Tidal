@@ -33,6 +33,7 @@ library
                        Sound.Tidal.Boot
                        Sound.Tidal.Chords
                        Sound.Tidal.Config
+                       Sound.Tidal.Control
                        Sound.Tidal.Signal.Control
                        Sound.Tidal.Context
                        -- Sound.Tidal.Core
@@ -46,8 +47,8 @@ library
                        Sound.Tidal.Sequence
                        Sound.Tidal.Show
                        Sound.Tidal.Signal.Base
-                       Sound.Tidal.Signal.Compose
-                       Sound.Tidal.Signal.ComposeExtra
+                       Sound.Tidal.Compose
+                       Sound.Tidal.ComposeExtra
                        Sound.Tidal.Signal.Event
                        Sound.Tidal.Signal.Random
                        Sound.Tidal.Signal.Waveform
@@ -104,6 +105,7 @@ test-suite tests
                  Sound.Tidal.ParamsTest
                  Sound.Tidal.ParseBPTest
                  Sound.Tidal.ScalesTest
+                 Sound.Tidal.SequenceTest
                  Sound.Tidal.SignalBaseTest
                  Sound.Tidal.SignalComposeTest
                  Sound.Tidal.SignalControlTest

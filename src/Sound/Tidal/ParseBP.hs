@@ -44,6 +44,7 @@ import qualified Text.ParserCombinators.Parsec.Token    as P
 import           Sound.Tidal.Chords                     (Modifier (..),
                                                          chordToPatSeq)
 import           Sound.Tidal.Pattern
+import qualified Sound.Tidal.Sequence                   as S
 import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Signal.Random              (_degradeByUsing,
                                                          chooseBy, rand)
@@ -177,6 +178,27 @@ toPat = \case
    p@(TPat_Repeat _ _) -> toPat $ TPat_Seq [p] --this is a bit of a hack
    _ -> silence
 
+
+toSeq :: (Parseable a, Enumerable a) => TPat a -> Sequence a
+toSeq = \case
+   TPat_Atom (Just loc) x -> S.addMetadata (Metadata [loc]) $ S.step 1 x
+   TPat_Atom Nothing x    -> S.step 1 x
+   TPat_Fast t x          -> fast (toSeq t) $ toSeq x
+   TPat_Slow t x          -> slow (toSeq t) $ toSeq x
+   -- TPat_DegradeBy
+   -- TPat_CycleChoose
+   TPat_Euclid n k s thing -> doEuclid (toSeq n) (toSeq k) (toSeq s) (toSeq thing)
+   TPat_Stack xs          -> Stack $ map toSeq xs
+   TPat_Silence           -> silence
+   -- TPat_EnumFromTo
+   TPat_Polyrhythm _ ps   -> S.polys $ map toSeq ps
+   TPat_Seq xs            -> fastcat $ map toSeq xs
+   -- TPat
+   -- TPat_Chord
+   TPat_Repeat n p        -> Cat $ replicate n $ toSeq p
+   TPat_Elongate r p      -> _slow r $ toSeq p
+   _                      -> silence
+
 resolve_tpat :: (Enumerable a, Parseable a) => TPat a -> (Rational, Signal a)
 resolve_tpat (TPat_Seq xs) = resolve_seq xs
 resolve_tpat a             = (1, toPat a)
@@ -193,11 +215,11 @@ resolve_size ((TPat_Repeat n p):ps)   = replicate n (1,p) ++ resolve_size ps
 resolve_size (p:ps)                   = (1,p):resolve_size ps
 
 
-steps_tpat :: (Show a) => TPat a -> (Rational, String)
+steps_tpat :: Show a => TPat a -> (Rational, String)
 steps_tpat (TPat_Seq xs) = steps_seq xs
 steps_tpat a             = (1, tShow a)
 
-steps_seq :: (Show a) => [TPat a] -> (Rational, String)
+steps_seq :: (Show a) =>  [TPat a] -> (Rational, String)
 steps_seq xs = (total_size, "timeCat [" ++ intercalate "," (map (\(r,s) -> "(" ++ show r ++ ", " ++ s ++ ")") sized_pats) ++ "]")
   where sized_pats = steps_size xs
         total_size = sum $ map fst sized_pats
@@ -219,6 +241,15 @@ parseBP_E s = toE parsed
     toE (Left e)   = E.throw $ TidalParseError {parsecError = e, code = s}
     toE (Right tp) = toPat tp
 
+parseSeq_E :: (Enumerable a, Parseable a) => String -> Sequence a
+parseSeq_E s =  _slow l $ toSeq parsed
+  where
+    -- Temporary hack to get around the Show constraint..
+    l = fst $ steps_tpat (const "" <$> parsed)
+    parsed = toE $ parseTPat s
+    toE (Left e)   = E.throw $ TidalParseError {parsecError = e, code = s}
+    toE (Right tp) = tp
+
 parseTPat :: Parseable a => String -> Either ParseError (TPat a)
 parseTPat = runParser (pSeq Prelude.<* eof) (0 :: Int) ""
 
@@ -228,7 +259,7 @@ cP s = innerJoin $ parseBP_E <$> _cX_ getS s
 
 class Parseable a where
   tPatParser :: MyParser (TPat a)
-  doEuclid :: Signal Int -> Signal Int -> Signal Int -> Signal a -> Signal a
+  doEuclid :: Pattern p => p Int -> p Int -> p Int -> p a -> p a
   getControl :: String -> Signal a
   getControl _ = silence
 
@@ -327,6 +358,9 @@ instance Enumerable ColourD where
 
 instance (Enumerable a, Parseable a) => IsString (Signal a) where
   fromString = parseBP_E
+
+instance (Enumerable a, Parseable a) => IsString (Sequence a) where
+  fromString = parseSeq_E
 
 -- imported haskell parsers
 

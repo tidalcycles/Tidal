@@ -10,15 +10,16 @@ import           Prelude                     hiding ((*>), (<*))
 import           Data.List                   (sort)
 import           Data.Ratio
 
+import           Sound.Tidal.Compose         (struct, (|+), (|=|))
 import           Sound.Tidal.Params          (n, s)
 import           Sound.Tidal.ParseBP         (parseBP_E)
 import           Sound.Tidal.Pattern         (_slow, append, atom, cat, euclid,
-                                              every, fast, fastCat, ply, press,
-                                              pressBy, range, rev, run, silence,
-                                              slow, stack, superimpose, timeCat,
-                                              (*>), (<*))
+                                              every, fast, fastCat,
+                                              filterValues, ply, press, pressBy,
+                                              range, rev, run, silence, slow,
+                                              stack, superimpose, timeCat, (*>),
+                                              (<*))
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Signal.Compose  (struct, (|+), (|=|))
 import           Sound.Tidal.Signal.Random   (irand)
 import           Sound.Tidal.Signal.Waveform (saw, sine, tri)
 import           Sound.Tidal.Types

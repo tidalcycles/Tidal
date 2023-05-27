@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Test.Microspec
+import           Test.Microspec
 
 -- import Sound.Tidal.CoreTest
 -- import Sound.Tidal.ParamsTest
@@ -11,23 +11,24 @@ import Test.Microspec
 -- import Sound.Tidal.StreamTest
 -- import Sound.Tidal.UITest
 -- import Sound.Tidal.ExceptionsTest
-import Sound.Tidal.ArcTest
-import Sound.Tidal.ChordsTest
-import Sound.Tidal.EventTest
-import Sound.Tidal.ExceptionsTest
-import Sound.Tidal.ParamsTest
-import Sound.Tidal.ParseBPTest
-import Sound.Tidal.ScalesTest
-import Sound.Tidal.SignalBaseTest
-import Sound.Tidal.SignalComposeTest
-import Sound.Tidal.SignalControlTest
-import Sound.Tidal.SignalRandomTest
-import Sound.Tidal.StreamTest
-import Sound.Tidal.TimeTest
-import Sound.Tidal.TypesTest
-import Sound.Tidal.UtilsTest
-import Sound.Tidal.ValueTest
-import Sound.Tidal.WaveformTest
+import           Sound.Tidal.ArcTest
+import           Sound.Tidal.ChordsTest
+import           Sound.Tidal.EventTest
+import           Sound.Tidal.ExceptionsTest
+import           Sound.Tidal.ParamsTest
+import           Sound.Tidal.ParseBPTest
+import           Sound.Tidal.ScalesTest
+import           Sound.Tidal.SequenceTest
+import           Sound.Tidal.SignalBaseTest
+import           Sound.Tidal.SignalComposeTest
+import           Sound.Tidal.SignalControlTest
+import           Sound.Tidal.SignalRandomTest
+import           Sound.Tidal.StreamTest
+import           Sound.Tidal.TimeTest
+import           Sound.Tidal.TypesTest
+import           Sound.Tidal.UtilsTest
+import           Sound.Tidal.ValueTest
+import           Sound.Tidal.WaveformTest
 
 main :: IO ()
 main = microspec $ do
@@ -47,6 +48,7 @@ main = microspec $ do
   Sound.Tidal.ParamsTest.run
   Sound.Tidal.ParseBPTest.run
   Sound.Tidal.ScalesTest.run
+  Sound.Tidal.SequenceTest.run
   Sound.Tidal.SignalBaseTest.run
   Sound.Tidal.SignalComposeTest.run
   Sound.Tidal.SignalControlTest.run

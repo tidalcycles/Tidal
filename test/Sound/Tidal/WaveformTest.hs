@@ -5,17 +5,17 @@ module Sound.Tidal.WaveformTest where
 import           Test.Microspec
 import           TestUtils
 
-import           Prelude             hiding ((*>), (<*))
+import           Prelude                     hiding ((*>), (<*))
 
 import           Data.Ratio
 
-import           Sound.Tidal.Types
+import           Sound.Tidal.Compose         (struct)
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Signal.Compose (struct)
 import           Sound.Tidal.Signal.Waveform
+import           Sound.Tidal.Types
 
-import qualified Data.Map.Strict     as Map
+import qualified Data.Map.Strict             as Map
 
 run :: Microspec ()
 run =
@@ -87,4 +87,4 @@ run =
             (Arc 0 1)
             (struct "t*8" $ (tri :: Signal Double) + 1)
             "1.125 1.375 1.625 1.875 1.875 1.625 1.375 1.125"
-  
+

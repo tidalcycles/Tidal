@@ -5,15 +5,15 @@ module Sound.Tidal.SignalRandomTest where
 import           Test.Microspec
 import           TestUtils
 
-import           Prelude             hiding ((*>), (<*))
+import           Prelude                     hiding ((*>), (<*))
 
-import           Sound.Tidal.Types
-import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Compose
+import           Sound.Tidal.Params          (s)
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Params (s)
-import           Sound.Tidal.Signal.Compose
+import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Signal.Random
 import           Sound.Tidal.Signal.Waveform
+import           Sound.Tidal.Types
 
 run :: Microspec ()
 run =

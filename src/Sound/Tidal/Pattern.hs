@@ -3,8 +3,11 @@
 
 module Sound.Tidal.Pattern where
 
+import           Data.Maybe            (fromJust, isJust)
+import           Data.Ratio            ((%))
+import           Prelude               hiding ((*>), (<*))
+import           Sound.Tidal.Bjorklund (bjorklund)
 import           Sound.Tidal.Types
-import           Prelude           hiding ((*>), (<*))
 
 -- ************************************************************ --
 -- Pattern class
@@ -15,17 +18,15 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   fastcat :: [p a] -> p a
   fastcat pats = _fast (toRational $ length pats) $ slowcat pats
   _fast :: Time -> p a -> p a
+  _early :: Time -> p a -> p a
   silence :: p a
   atom :: a -> p a
   stack :: [p a] -> p a
   _appAlign :: (a -> p b -> p c) -> Align (p a) (p b) -> p c
   rev :: p a -> p a
   _ply :: Time -> p a-> p a
-  euclid :: p Int -> p Int -> p a -> p a
   _euclid :: Int -> Int -> p a -> p a
   timeCat :: [(Time, p a)] -> p a
-  _run :: (Enum a, Num a) => a -> p a
-  _scan :: (Enum a, Num a) => a -> p a
   -- every :: p Int -> (p b -> p b) -> p b -> p b
   when :: p Bool -> (p b -> p b) -> p b -> p b
   -- listToPat :: [a] -> p a
@@ -37,6 +38,8 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   innerJoin :: p (p a) -> p a
   (<*) :: p (a -> b) -> p a -> p b
   (*>) :: p (a -> b) -> p a -> p b
+  filterOnsets :: p a -> p a
+  filterValues :: (a -> Bool) -> p a -> p a
 
 infixl 4 <*, *>
 
@@ -82,23 +85,80 @@ powfA = _opA (**)
 -- Patternification
 
 -- patternify the first parameter
-_patternify :: Pattern p => (a -> p b -> p c) -> (p a -> p b -> p c)
+_patternify :: Pattern p => (a -> b -> p c) -> (p a -> b -> p c)
 _patternify f apat pat                 = innerJoin $ (`f` pat) <$> apat
 
 -- patternify the first two parameters
-_patternify_p_p :: (Pattern p) => (a -> b -> p c -> p d) -> (p a -> p b -> p c -> p d)
+_patternify_p_p :: (Pattern p) => (a -> b -> c -> p d) -> (p a -> p b -> c -> p d)
 _patternify_p_p f apat bpat pat        = innerJoin $ (\a b -> f a b pat) <$> apat <* bpat
 
 -- patternify the first but not the second parameters
--- _patternify_p_n :: Pattern p => (a -> b -> p c -> p d) -> (p a -> b -> p c -> p d)
+_patternify_p_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> b -> c -> p d)
 _patternify_p_n f apat b pat           = innerJoin $ (\a -> f a b pat) <$> apat
 
 -- patternify the first three parameters
--- _patternify_p_p_p :: Pattern p => (a -> b -> c -> p d -> p e) -> (p a -> p b -> p c -> p d -> p e)
+_patternify_p_p_p :: Pattern p => (a -> b -> c -> d -> p e) -> (p a -> p b -> p c -> d -> p e)
 _patternify_p_p_p f apat bpat cpat pat = innerJoin $ (\a b c -> f a b c pat) <$> apat <* bpat <* cpat
 
 -- ************************************************************ --
 -- Other functions common to Signals and Sequences
+
+filterJusts :: Pattern p => p (Maybe a) -> p a
+filterJusts = fmap fromJust . filterValues isJust
+
+_late :: Pattern p => Time -> p x -> p x
+_late t = _early (0-t)
+
+-- | Shifts a signal backwards in time, i.e. so that events happen earlier
+early :: Pattern p => p Time -> p x -> p x
+early = _patternify _early
+
+-- | Infix operator for @early@
+(<~) :: Pattern p => p Time -> p x -> p x
+(<~) = early
+
+-- | Shifts a signal forwards in time, i.e. so that events happen later
+late :: Pattern p => p Time -> p x -> p x
+late = _patternify _late
+
+euclid :: Pattern p => p Int -> p Int -> p a -> p a
+euclid = _patternify_p_p _euclid
+
+euclidOff :: Pattern p => p Int -> p Int -> p Int -> p a -> p a
+euclidOff = _patternify_p_p_p _euclidOff
+
+eoff :: Pattern p => p Int -> p Int -> p Int -> p a -> p a
+eoff = euclidOff
+
+{- | `euclidInv` fills in the blanks left by `e`
+ -
+ @e 3 8 "x"@ -> @"x ~ ~ x ~ ~ x ~"@
+
+ @euclidInv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
+-}
+euclidInv :: Pattern p => p Int -> p Int -> p a -> p a
+euclidInv = _patternify_p_p _euclidInv
+
+_euclidInv :: Pattern p => Int -> Int -> p a -> p a
+_euclidInv n k a = _euclid (-n) k a
+
+{- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
+euclidFull :: Pattern p => p Int -> p Int -> p a -> p a -> p a
+euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
+
+_euclidBool :: Pattern p => Int -> Int -> p Bool
+_euclidBool n k = fastFromList $ bjorklund (n,k)
+
+_euclidOff :: Pattern p => Int -> Int -> Int -> p a -> p a
+_euclidOff _ 0 _ _ = silence
+_euclidOff n k s p = (_early $ fromIntegral s%fromIntegral k) (_euclid n k p)
+
+euclidOffBool :: Pattern p => p Int -> p Int -> p Int -> p Bool -> p Bool
+euclidOffBool = _patternify_p_p_p _euclidOffBool
+
+_euclidOffBool :: Pattern p => Int -> Int -> Int -> p Bool -> p Bool
+_euclidOffBool _ 0 _ _ = silence
+_euclidOffBool n k s p = ((fromIntegral s % fromIntegral k) `_early`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
 
 overlay :: Pattern p => p x -> p x -> p x
 overlay a b = stack [a, b]
@@ -158,6 +218,15 @@ slowAppend a b = slowcat [a,b]
 
 append :: Pattern p => p x -> p x -> p x
 append = slowAppend
+
+-- | A pattern of whole numbers from 0 up to (and not including) the
+-- given number, in a single cycle.
+_run :: (Pattern p, Enum a, Num a) => a -> p a
+_run n = fastFromList [0 .. n-1] -- TODO - what about a slow version?
+
+-- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
+_scan :: (Pattern p, Enum a, Num a) => a -> p a
+_scan n = slowcat $ map _run [1 .. n]
 
 -- | Converts from a range from 0 to 1, to a range from -1 to 1
 toBipolar :: (Pattern p, Fractional x) => p x -> p x
@@ -262,6 +331,20 @@ press = _pressBy 0.5
 -- | Like @press@, but allows you to specify the amount in which each event is shifted. @pressBy 0.5@ is the same as @press@, while @pressBy (1/3)@ shifts each event by a third of its arc.
 pressBy :: Pattern p => p Time -> p a -> p a
 pressBy = _patternify _pressBy
+
+-- | chooses between a list of patterns, using a pattern of floats (from 0-1)
+select :: Pattern p => p Double -> [p a] -> p a
+select = _patternify _select
+
+_select :: Pattern p => Double -> [p a] -> p a
+_select f ps =  ps !! floor (max 0 (min 1 f) * fromIntegral (length ps - 1))
+
+-- | chooses between a list of functions, using a pattern of floats (from 0-1)
+selectF :: Pattern p => p Double -> [p a -> p a] -> p a -> p a
+selectF pf ps p = innerJoin $ (\f -> _selectF f ps p) <$> pf
+
+_selectF :: Double -> [p a -> p a] -> p a -> p a
+_selectF f ps p =  (ps !! floor (max 0 (min 0.999999 f) * fromIntegral (length ps))) p
 
 -- ************************************************************ --
 

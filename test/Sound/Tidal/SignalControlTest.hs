@@ -2,21 +2,21 @@
 
 module Sound.Tidal.SignalControlTest where
 
-import TestUtils
-import Test.Microspec
+import           Test.Microspec
+import           TestUtils
 
-import Prelude hiding ((<*), (*>))
+import           Prelude                     hiding ((*>), (<*))
 
-import Sound.Tidal.Signal.Base
-import Sound.Tidal.Signal.Control
-import Sound.Tidal.Signal.Compose
-import Sound.Tidal.Signal.Random (irand)
-import Sound.Tidal.Signal.Waveform (sine)
-import Sound.Tidal.Types
-import Sound.Tidal.Pattern
-import Sound.Tidal.Params
+import           Sound.Tidal.Compose
+import           Sound.Tidal.Params
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Control
+import           Sound.Tidal.Signal.Random   (irand)
+import           Sound.Tidal.Signal.Waveform (sine)
+import           Sound.Tidal.Types
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict             as Map
 
 run :: Microspec ()
 run =

@@ -27,42 +27,42 @@ module Sound.Tidal.Stream (module Sound.Tidal.Stream) where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Control.Applicative        ((<|>))
+import           Control.Applicative      ((<|>))
 import           Control.Concurrent
-import qualified Control.Exception          as E
-import           Control.Monad              (forM_, when)
-import           Data.Coerce                (coerce)
-import qualified Data.Map.Strict            as Map
-import           Data.Maybe                 (catMaybes, fromJust, fromMaybe,
-                                             isJust)
+import qualified Control.Exception        as E
+import           Control.Monad            (forM_, when)
+import           Data.Coerce              (coerce)
+import qualified Data.Map.Strict          as Map
+import           Data.Maybe               (catMaybes, fromJust, fromMaybe,
+                                           isJust)
 import           Foreign
 import           Foreign.C.Types
-import           System.IO                  (hPutStrLn, stderr)
+import           System.IO                (hPutStrLn, stderr)
 
-import qualified Network.Socket             as N
-import qualified Sound.Osc.Fd               as O
-import qualified Sound.Osc.Time.Timeout     as O
+import qualified Network.Socket           as N
+import qualified Sound.Osc.Fd             as O
+import qualified Sound.Osc.Time.Timeout   as O
 
 import           Sound.Tidal.Config
 -- import           Sound.Tidal.Core (stack, silence, (#))
-import           Data.List                  (sortOn)
+import           Data.List                (sortOn)
+import           Sound.Tidal.Compose      ((#))
 import           Sound.Tidal.ID
-import qualified Sound.Tidal.Link           as Link
-import           Sound.Tidal.Params         (pS)
-import           Sound.Tidal.Pattern        (silence, stack)
-import           Sound.Tidal.Show           ()
+import qualified Sound.Tidal.Link         as Link
+import           Sound.Tidal.Params       (pS)
+import           Sound.Tidal.Pattern      (_early, silence, stack)
+import           Sound.Tidal.Show         ()
 import           Sound.Tidal.Signal.Base
-import           Sound.Tidal.Signal.Compose ((#))
 import           Sound.Tidal.Signal.Event
-import qualified Sound.Tidal.Tempo          as T
+import qualified Sound.Tidal.Tempo        as T
 import           Sound.Tidal.Types
-import           Sound.Tidal.Utils          ((!!!))
+import           Sound.Tidal.Utils        ((!!!))
 import           Sound.Tidal.Value
-import           System.Random              (getStdRandom, randomR)
+import           System.Random            (getStdRandom, randomR)
 
 import           Sound.Tidal.Version
 
-import           Sound.Tidal.StreamTypes    as Sound.Tidal.Stream
+import           Sound.Tidal.StreamTypes  as Sound.Tidal.Stream
 
 data Stream = Stream {sConfig    :: Config,
                       sBusses    :: MVar [Int],
