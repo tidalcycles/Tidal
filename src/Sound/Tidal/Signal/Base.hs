@@ -508,10 +508,6 @@ earlyA = _appAlign _early
 lateA :: Align (Signal Time) (Signal a) -> Signal a
 lateA = _appAlign _late
 
--- | Infix operator for @late@
-(~>) :: Signal Time -> Signal x -> Signal x
-(~>) = late
-
 {- | Plays a portion of a signal, specified by start and duration
 The new resulting signal is played over the time period of the original signal:
 
@@ -551,12 +547,6 @@ _fastRepeatCycles n p = fastcat $ replicate n p
 
 sigStack :: [Signal a] -> Signal a
 sigStack pats = Signal $ \s -> concatMap (`query` s) pats
-
-off :: Signal Time -> (Signal a -> Signal a) -> Signal a -> Signal a
-off tp f p = innerJoin $ (\tv -> _off tv f p) <$> tp
-
-_off :: Time -> (Signal a -> Signal a) -> Signal a -> Signal a
-_off t f p = superimpose (f . (t `_late`)) p
 
 squash :: Time -> Signal a -> Signal a
 squash into pat = splitQueries $ withEventArc ef $ withQueryArc qf pat

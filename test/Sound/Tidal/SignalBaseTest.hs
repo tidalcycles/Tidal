@@ -19,8 +19,7 @@ import           Sound.Tidal.Pattern         (_slow, append, atom, cat, early,
                                               filterValues, late, ply, press,
                                               pressBy, range, rev, run, silence,
                                               slow, stack, stripMetadata,
-                                              superimpose, timeCat, (*>), (<*),
-                                              (<~))
+                                              timeCat, (*>), (<*), (<~), (~>))
 import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Signal.Random   (irand)
 import           Sound.Tidal.Signal.Waveform (saw, sine, tri)
@@ -785,13 +784,6 @@ run =
         compareP (Arc 0 1)
           (ascii "a b")
           ("f t t f f f f t f t t f f f t f" :: Signal Bool)
-
-    describe "off" $ do
-      it "superimposes and shifts pattern" $ do
-        compareP (Arc 0 1)
-          (off "-e" id $ s "0")
-          (superimpose ("e" <~) $ s "0")
-
 
     describe "necklace" $ do
       it "can specify rhythm by IOI" $ do

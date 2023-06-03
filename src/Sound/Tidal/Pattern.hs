@@ -134,6 +134,16 @@ early = _patternify _early
 late :: Pattern p => p Time -> p x -> p x
 late = _patternify _late
 
+-- | Infix operator for @late@
+(~>) :: Pattern p => p Time -> p x -> p x
+(~>) = late
+
+off :: Pattern p => p Time -> (p a -> p a) -> p a -> p a
+off tp f p = innerJoin $ (\tv -> _off tv f p) <$> tp
+
+_off :: Pattern p => Time -> (p a -> p a) -> p a -> p a
+_off t f p = superimpose (f . (t `_late`)) p
+
 euclid :: Pattern p => p Int -> p Int -> p a -> p a
 euclid = _patternify_p_p _euclid
 
