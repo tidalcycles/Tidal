@@ -16,7 +16,7 @@ import           Prelude                 hiding (seq, span)
 import           Sound.Tidal.Bjorklund   (bjorklund)
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Show        ()
-import           Sound.Tidal.Signal.Base (_zoomArc, setMetadata)
+import           Sound.Tidal.Signal.Base (_zoomArc)
 import           Sound.Tidal.Time
 import           Sound.Tidal.Types
 -- | Instances
@@ -118,6 +118,13 @@ seqJoin (Atom m d i o Nothing) = Atom m d i o Nothing
 seqJoin (Cat xs) = Cat $ map seqJoin xs
 seqJoin (Stack xs) = Stack $ map seqJoin xs
 
+seqSqueezeJoin :: Sequence (Sequence a) -> Sequence a
+-- TODO should this slow by d + i + o ?
+seqSqueezeJoin (Atom m d i o (Just seq)) = addMetadata m $ _slow d $ seq
+seqSqueezeJoin (Atom m d i o Nothing)    = Atom m d i o Nothing
+seqSqueezeJoin (Cat xs)                  = Cat $ map seqSqueezeJoin xs
+seqSqueezeJoin (Stack xs)                = Stack $ map seqSqueezeJoin xs
+
 -- | TODO - does this need to be more complicated?
 instance Monad Sequence where
   return = pure
@@ -132,7 +139,7 @@ instance Pattern Sequence where
   silence = gap 1
   atom = step 1
   stack = Stack
-  innerJoin = seqJoin -- TODO - is this right?
+  innerJoin = seqSqueezeJoin -- TODO - is this right?
   (<*) = (<*>) -- TODO - are these right? Probably not..
   (*>) = (<*>)
   rev = seqRev
@@ -147,6 +154,9 @@ instance Pattern Sequence where
   uncollect = seqUncollect
   filterOnsets = seqFilterOnsets
   filterValues = seqFilterValues
+  withMetadata f pat = withAtom f' pat
+    where f' (Atom m d i o v) = Atom (f m) d i o v
+          f' x                = x
 
 filterAtoms :: (Sequence a -> Bool) -> Sequence a -> Sequence a
 filterAtoms f a@(Atom m d i o _) | f a = a
@@ -261,11 +271,6 @@ normalise (Stack xs) = listToStack $ loop xs
         loop (x:xs')          = normalise x:loop xs'
         loop []               = []
 normalise x = x
-
-addMetadata :: Metadata -> Sequence a -> Sequence a
-addMetadata m seq = withAtom f seq
-  where f (Atom m' d i o v) = Atom (m' <> m) d i o v
-        f x                 = x
 
 -- | Pattern instance implementations
 

@@ -67,6 +67,7 @@ instance Pattern Signal where
   _appAlign  = _sigAppAlign
   filterOnsets = filterEvents eventHasOnset
   filterValues f = filterEvents (f . value)
+  withMetadata f pat = withEvents (map (\e -> e {metadata = f $ metadata e})) pat
 
 _sigAppAlign :: (a -> Signal b -> Signal c) -> Align (Signal a) (Signal b) -> Signal c
 _sigAppAlign f (Align SqueezeIn patt patv) = squeezeJoin $ (\t -> f t patv) <$> patt
@@ -298,15 +299,6 @@ instance Num ValueMap where
 instance Fractional ValueMap where
   recip        = fmap (applyFIRS recip id recip id)
   fromRational r = Map.singleton "speed" $ VF (fromRational r)
-
--- ************************************************************ --
--- Metadata utils
-
-setMetadata :: Metadata -> Signal a -> Signal a
-setMetadata c pat = withEvents (map (\e -> e {metadata = c})) pat
-
-withMetadata :: (Metadata -> Metadata) -> Signal a -> Signal a
-withMetadata f pat = withEvents (map (\e -> e {metadata = f $ metadata e})) pat
 
 -- ************************************************************ --
 -- General hacks and utilities

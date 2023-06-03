@@ -40,6 +40,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   (*>) :: p (a -> b) -> p a -> p b
   filterOnsets :: p a -> p a
   filterValues :: (a -> Bool) -> p a -> p a
+  withMetadata :: (Metadata -> Metadata) -> p a -> p a
 
 infixl 4 <*, *>
 
@@ -80,6 +81,18 @@ powA = _opA (^)
 
 powfA :: Floating a => Pattern p => Align (p a) (p a) -> p a
 powfA = _opA (**)
+
+-- ************************************************************ --
+-- Metadata utils
+
+addMetadata :: Pattern p => Metadata -> p a -> p a
+addMetadata m = withMetadata (\m' -> m <> m')
+
+setMetadata :: Pattern p => Metadata -> p a -> p a
+setMetadata m = withMetadata (const m)
+
+stripMetadata :: Pattern p => p a -> p a
+stripMetadata = withMetadata (const (Metadata []))
 
 -- ************************************************************ --
 -- Patternification

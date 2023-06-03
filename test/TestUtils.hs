@@ -1,16 +1,14 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module TestUtils where
 
-import Test.Microspec
-
-import Prelude hiding ((<*), (*>))
-
-import Data.List (sort)
-
-import Sound.Tidal.Context
-
-import qualified Data.Map.Strict as Map
+import           Data.List           (sort)
+import qualified Data.Map.Strict     as Map
+import           Prelude             hiding ((*>), (<*))
+import           Sound.Tidal.Context
+import           Test.Microspec
 
 class TolerantEq a where
    (~==) :: a -> a -> Bool
@@ -23,7 +21,7 @@ instance TolerantEq Value where
          (VI a) ~== (VI b) = a == b
          (VR a) ~== (VR b) = a == b
          (VF a) ~== (VF b) = abs (a - b) < 0.000001
-         _ ~== _ = False
+         _ ~== _           = False
 
 instance TolerantEq a => TolerantEq [a] where
   as ~== bs = (length as == length bs) && all (uncurry (~==)) (zip as bs)
@@ -55,9 +53,6 @@ compareTol a p p' = (sort $ queryArc (stripMetadata p) a) ~== (sort $ queryArc (
 -- | Utility to create a pattern from a String
 ps :: String -> Signal String
 ps = parseBP_E
-
-stripMetadata :: Signal a -> Signal a
-stripMetadata = setMetadata $ Metadata []
 
 toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
 toEvent (((ws, we), (ps, pe)), v) = Event (Metadata []) (Just $ Arc ws we) (Arc ps pe) v
