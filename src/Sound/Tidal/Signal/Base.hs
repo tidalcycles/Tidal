@@ -575,7 +575,7 @@ bite npat ipat pat = innerJoin $ (\n -> _bite n ipat pat) <$> npat
 
 _bite :: Int -> Signal Int -> Signal a -> Signal a
 _bite n ipat pat = squeezeJoin $ zoompat <$> ipat
-  where zoompat i = _zoomArc (Arc (i' / fromIntegral n) (i'+1 / fromIntegral n)) pat
+  where zoompat i = _zoomArc (Arc (i' / fromIntegral n) ((i'+1) / fromIntegral n)) pat
            where i' = fromIntegral $ i `mod` n
 
 sigRev :: Signal a -> Signal a
