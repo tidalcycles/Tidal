@@ -44,8 +44,8 @@ juxBy
      -> (p ValueMap -> p ValueMap)
      -> p ValueMap
      -> p ValueMap
-juxBy n f p = stack [p |+ P.pan (fmap (0.5 -) half_n), f $ p |+ P.pan (fmap (0.5 +) half_n)]
-  where half_n = fmap (/2) n
+juxBy patn f p = stack [p |+ P.pan (fmap (0.5 -) half_n), f $ p |+ P.pan (fmap (0.5 +) half_n)]
+  where half_n = fmap (/2) patn
 
 {- | The `jux` function creates strange stereo effects, by applying a
 function to a pattern, but only in the right-hand channel. For

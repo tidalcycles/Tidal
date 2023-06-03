@@ -19,7 +19,7 @@ data-files:          BootTidal.hs
 Extra-source-files: README.md CHANGELOG.md tidal.el
 
 library
-  ghc-options: -Wall -Werror -Wno-orphans
+  ghc-options: -Wall -Wno-orphans
   hs-source-dirs:
                  src
 

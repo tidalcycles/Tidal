@@ -21,7 +21,7 @@ module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale) where
 import           Data.Maybe
 import           Prelude                 hiding ((*>), (<*))
 import           Sound.Tidal.Pattern     ((<*))
-import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Base ()
 import           Sound.Tidal.Types
 import           Sound.Tidal.Utils
 

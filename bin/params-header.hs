@@ -25,7 +25,6 @@ module Sound.Tidal.Params where
 import qualified Data.Map.Strict            as Map
 
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Signal.Compose ((#))
 import           Sound.Tidal.Types
 import           Sound.Tidal.Value

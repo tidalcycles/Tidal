@@ -531,12 +531,13 @@ pairAligned In (Cat xs, Cat ys) = Cat $ loop xs ys
   where loop :: [Sequence a] -> [Sequence b] -> [Sequence (a, b)]
         loop [] _ = []
         loop _ [] = []
-        loop (a:as) (b:bs) | cmp == LT = pairAligned In (a, b')
-                                         : loop as (b'':bs)
-                           | cmp == GT = pairAligned In (a', b)
-                                         : loop (a'':as) bs
-                           | cmp == EQ = pairAligned In (a, b)
-                                         : loop as bs
+        loop (a:as) (b:bs) = case cmp of
+                               LT -> pairAligned In (a, b')
+                                     : loop as (b'':bs)
+                               GT -> pairAligned In (a', b)
+                                     : loop (a'':as) bs
+                               EQ -> pairAligned In (a, b)
+                                     : loop as bs
           where adur = seqDuration a
                 bdur = seqDuration b
                 cmp = compare adur bdur

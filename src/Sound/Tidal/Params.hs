@@ -22,17 +22,16 @@ module Sound.Tidal.Params where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import qualified Data.Map.Strict         as Map
+import qualified Data.Map.Strict     as Map
 
-import           Sound.Tidal.Compose     ((#))
+import           Sound.Tidal.Compose ((#))
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Types
 import           Sound.Tidal.Value
 -- import Sound.Tidal.Core ((#))
-import           Data.Fixed              (mod')
-import           Data.Maybe              (fromMaybe)
-import           Data.Word               (Word8)
+import           Data.Fixed          (mod')
+import           Data.Maybe          (fromMaybe)
+import           Data.Word           (Word8)
 import           Sound.Tidal.Utils
 
 -- | group multiple params into one

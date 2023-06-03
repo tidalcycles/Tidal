@@ -43,16 +43,16 @@ opOut :: Pattern p => (a -> b -> c) -> p a -> p b -> p c
 opOut f a b = f <$> a *> b
 
 opSqueeze :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
-opSqueeze f a b = squeezeJoin $ fmap (\a -> fmap (f a)  b) a
+opSqueeze f pata patb = squeezeJoin $ fmap (\a -> fmap (f a)  patb) pata
 
 opSqueezeOut :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
 opSqueezeOut f pata patb = squeezeJoin $ fmap (\a -> fmap (`f` a)  pata) patb
 
 opTrig :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
-opTrig f a b = trigJoin $ fmap (\a -> fmap (f a)  b) a
+opTrig f pata patb = trigJoin $ fmap (\a -> fmap (f a)  patb) pata
 
 opTrigzero :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
-opTrigzero f a b = trigzeroJoin $ fmap (\a -> fmap (f a)  b) a
+opTrigzero f pata patb = trigzeroJoin $ fmap (\a -> fmap (f a)  patb) pata
 
 -- ************************************************************ --
 
