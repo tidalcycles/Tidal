@@ -120,7 +120,7 @@ seqJoin (Stack xs) = Stack $ map seqJoin xs
 
 seqSqueezeJoin :: Sequence (Sequence a) -> Sequence a
 -- TODO should this slow by d + i + o ?
-seqSqueezeJoin (Atom m d i o (Just seq)) = addMetadata m $ _slow d seq
+seqSqueezeJoin (Atom m d _ _ (Just seq)) = addMetadata m $ _slow d seq
 seqSqueezeJoin (Atom m d i o Nothing)    = Atom m d i o Nothing
 seqSqueezeJoin (Cat xs)                  = Cat $ map seqSqueezeJoin xs
 seqSqueezeJoin (Stack xs)                = Stack $ map seqSqueezeJoin xs
@@ -157,6 +157,7 @@ instance Pattern Sequence where
   withMetadata f pat = withAtom f' pat
     where f' (Atom m d i o v) = Atom (f m) d i o v
           f' x                = x
+  _appAlign _ _ = error "TODO !!"
 
 filterAtoms :: (Sequence a -> Bool) -> Sequence a -> Sequence a
 filterAtoms f a@(Atom m d i o _) | f a = a
@@ -171,9 +172,9 @@ seqFilterOnsets = filterAtoms f
 
 seqFilterValues :: (a -> Bool) -> Sequence a -> Sequence a
 seqFilterValues f = filterAtoms f'
-  where f' a@(Atom _ _ _ _ Nothing) = True
-        f' (Atom _ _ _ _ (Just v))  = f v
-        f' _                        = False
+  where f' (Atom {atomValue = Nothing}) = True
+        f' (Atom {atomValue = Just v})  = f v
+        f' _                            = False
 
 -- | Utils
 
@@ -516,6 +517,8 @@ pairAligned :: Direction -> (Sequence a, Sequence b) -> Sequence (a, b)
 
 -- TODO - vertical alignments
 -- TODO - 'Mixed' direction
+pairAligned Mix _ = error "TODO !!"
+
 pairAligned direction (Stack as, b) = seqCat $ map (\a -> pairAligned direction (a, b)) as
 pairAligned direction (a, Stack bs) = seqCat $ map (\b -> pairAligned direction (a, b)) bs
 
@@ -525,7 +528,8 @@ pairAligned In (Atom m d i o v, Atom m' _ _ _ v') = Atom (m <> m') d i o $ do a 
                                                                               return (a,b)
 
 pairAligned In (Cat xs, Cat ys) = Cat $ loop xs ys
-  where loop [] _ = []
+  where loop :: [Sequence a] -> [Sequence b] -> [Sequence (a, b)]
+        loop [] _ = []
         loop _ [] = []
         loop (a:as) (b:bs) | cmp == LT = pairAligned In (a, b')
                                          : loop as (b'':bs)

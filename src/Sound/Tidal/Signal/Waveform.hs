@@ -8,7 +8,7 @@ module Sound.Tidal.Signal.Waveform where
 
 import           Data.Fixed              (mod')
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Signal.Base
+import           Sound.Tidal.Signal.Base ()
 import           Sound.Tidal.Types
 
 -- ************************************************************ --

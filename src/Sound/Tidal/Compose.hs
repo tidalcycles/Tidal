@@ -8,7 +8,6 @@
 
 module Sound.Tidal.Compose where
 
-import           Control.Monad           (forM)
 import           Data.Bits
 import           Prelude                 hiding ((*>), (<*))
 

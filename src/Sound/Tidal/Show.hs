@@ -95,16 +95,17 @@ instance Show Metadata where
   show (Metadata cs) = show cs
 
 instance Show Value where
-  show (VS s)     = ('"':s) ++ "\""
-  show (VI i)     = show i
-  show (VF f)     = show f ++ "f"
-  show (VN n)     = show n
-  show (VR r)     = prettyRat r ++ "r"
-  show (VB b)     = show b
-  show (VX xs)    = show xs
+  show (VS s)      = ('"':s) ++ "\""
+  show (VI i)      = show i
+  show (VF f)      = show f ++ "f"
+  show (VN n)      = show n
+  show (VR r)      = prettyRat r ++ "r"
+  show (VB b)      = show b
+  show (VX xs)     = show xs
 --  show (VPattern pat) = "(" ++ show pat ++ ")"
-  show (VState f) = show $ f Map.empty
-  show (VList vs) = show $ map show vs
+  show (VState f)  = show $ f Map.empty
+  show (VList vs)  = show $ map show vs
+  show (VSignal s) = show s
 
 instance {-# OVERLAPPING #-} Show ValueMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m

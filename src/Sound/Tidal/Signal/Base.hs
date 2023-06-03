@@ -322,22 +322,22 @@ playFor s e pat = Signal $ \st -> maybe [] (\a -> query pat (st {sArc = a})) $ m
 -- 'deltaContext' around strings, so events from mininotation know
 -- where they are within a whole tidal pattern
 deltaMini :: String -> String
-deltaMini = outside 0 0
-  where outside :: Int -> Int -> String -> String
-        outside _ _ [] = []
-        outside column line ('"':xs) = "(deltaMetadata "
+deltaMini = outsideq 0 0
+  where outsideq :: Int -> Int -> String -> String
+        outsideq _ _ [] = []
+        outsideq column line ('"':xs) = "(deltaMetadata "
                                          ++ show column
                                          ++ " "
                                          ++ show line
                                          ++ " \""
-                                         ++ inside (column+1) line xs
-        outside _ line ('\n':xs) = '\n':outside 0 (line+1) xs
-        outside column line (x:xs) = x:outside (column+1) line xs
-        inside :: Int -> Int -> String -> String
-        inside _ _ []               = []
-        inside column line ('"':xs) = '"':')':outside (column+1) line xs
-        inside _ line ('\n':xs)     = '\n':inside 0 (line+1) xs
-        inside column line (x:xs)   = x:inside (column+1) line xs
+                                         ++ insideq (column+1) line xs
+        outsideq _ line ('\n':xs) = '\n':outsideq 0 (line+1) xs
+        outsideq column line (x:xs) = x:outsideq (column+1) line xs
+        insideq :: Int -> Int -> String -> String
+        insideq _ _ []               = []
+        insideq column line ('"':xs) = '"':')':outsideq (column+1) line xs
+        insideq _ line ('\n':xs)     = '\n':insideq 0 (line+1) xs
+        insideq column line (x:xs)   = x:insideq (column+1) line xs
 
 class Stringy a where
   deltaMetadata :: Int -> Int -> a -> a
