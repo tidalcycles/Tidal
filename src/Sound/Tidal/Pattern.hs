@@ -86,7 +86,7 @@ powfA = _opA (**)
 -- Metadata utils
 
 addMetadata :: Pattern p => Metadata -> p a -> p a
-addMetadata m = withMetadata (\m' -> m <> m')
+addMetadata m = withMetadata (m <>)
 
 setMetadata :: Pattern p => Metadata -> p a -> p a
 setMetadata m = withMetadata (const m)
@@ -120,7 +120,7 @@ filterJusts :: Pattern p => p (Maybe a) -> p a
 filterJusts = fmap fromJust . filterValues isJust
 
 _late :: Pattern p => Time -> p x -> p x
-_late t = _early (0-t)
+_late t = _early (negate t)
 
 -- | Shifts a signal backwards in time, i.e. so that events happen earlier
 early :: Pattern p => p Time -> p x -> p x
@@ -171,7 +171,7 @@ euclidOffBool = _patternify_p_p_p _euclidOffBool
 
 _euclidOffBool :: Pattern p => Int -> Int -> Int -> p Bool -> p Bool
 _euclidOffBool _ 0 _ _ = silence
-_euclidOffBool n k s p = ((fromIntegral s % fromIntegral k) `_early`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
+_euclidOffBool n k s p = (fromIntegral s % fromIntegral k) `_early` ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
 
 overlay :: Pattern p => p x -> p x -> p x
 overlay a b = stack [a, b]

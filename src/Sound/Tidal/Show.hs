@@ -43,8 +43,8 @@ instance (Show a) => Show (Sequence a) where
   show (Atom _ d i o (Just v)) = show v ++ "×" ++ prettyRatio d ++ showio
     where showio | i == 0 && o == 0 = ""
                  | otherwise = "(" ++ prettyRatio i ++ "," ++ prettyRatio o ++ ")"
-  show (Cat xs) = "[" ++ (intercalate " " (map show xs)) ++ "]"
-  show (Stack xs) = "[" ++ (intercalate ", " $ map show xs) ++ "]"
+  show (Cat xs) = "[" ++ unwords (map show xs) ++ "]"
+  show (Stack xs) = "[" ++ intercalate ", " (map show xs) ++ "]"
 
 instance (Show a) => Show (Signal a) where
   show = showSignal (Arc 0 1)

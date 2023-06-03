@@ -2,24 +2,25 @@
 
 module Sound.Tidal.Transition where
 
-import           Prelude                 hiding ((*>), (<*))
+import           Prelude                     hiding ((*>), (<*))
 
-import           Control.Concurrent.MVar (modifyMVar_)
+import           Control.Concurrent.MVar     (modifyMVar_)
 
-import qualified Data.Map.Strict         as Map
+import qualified Data.Map.Strict             as Map
 -- import Data.Maybe (fromJust)
 
 import           Sound.Tidal.Control
 import           Sound.Tidal.ID
-import           Sound.Tidal.Params      (gain, pan)
+import           Sound.Tidal.Params          (gain, pan)
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Signal.Base (envLR, innerJoin, late, playFor)
+import           Sound.Tidal.Signal.Base     (playFor)
+import           Sound.Tidal.Signal.Waveform (envLR)
 import           Sound.Tidal.Stream
-import           Sound.Tidal.Tempo       as T
-import           Sound.Tidal.Time        (sam)
+import           Sound.Tidal.Tempo           as T
+import           Sound.Tidal.Time            (sam)
 import           Sound.Tidal.Types
-import           Sound.Tidal.UI          (fadeInFrom, fadeOutFrom)
-import           Sound.Tidal.Utils       (enumerate)
+import           Sound.Tidal.UI              (fadeInFrom, fadeOutFrom)
+import           Sound.Tidal.Utils           (enumerate)
 
 {-
     Transition.hs - A library for handling transitions between signals
@@ -73,21 +74,21 @@ washIn f durin now pats = wash f id 0 durin 0 now pats
 
 xfadeIn :: Time -> Time -> [ControlSignal] -> ControlSignal
 xfadeIn _ _ [] = silence
-xfadeIn _ _ (pat:[]) = pat
-xfadeIn t now (pat:pat':_) = overlay (pat |* gain (now `late` (_slow t envEqR))) (pat' |* gain (now `late` (_slow t (envEq))))
+xfadeIn _ _ [pat] = pat
+xfadeIn t now (pat:pat':_) = overlay (pat |* gain (now `late` _slow t envEqR)) (pat' |* gain (now `late` _slow t envEq))
 
 -- | Pans the last n versions of the signal across the field
 histpan :: Int -> Time -> [ControlSignal] -> ControlSignal
 histpan _ _ [] = silence
 histpan 0 _ _ = silence
-histpan n _ ps = stack $ map (\(i,pat) -> pat # pan (pure $ (fromIntegral i) / (fromIntegral n'))) (enumerate ps')
+histpan n _ ps = stack $ map (\(i,pat) -> pat # pan (pure $ fromIntegral i / fromIntegral n')) (enumerate ps')
   where ps' = take n ps
         n' = length ps' -- in case there's fewer signals than requested
 
 -- | Just stop for a bit before playing new signal
 wait :: Time -> Time -> [ControlSignal] -> ControlSignal
 wait _ _ []        = silence
-wait t now (pat:_) = filterTime (>= (nextSam (now+t-1))) pat
+wait t now (pat:_) = filterTime (>= nextSam (now+t-1)) pat
 
 {- | Just as `wait`, `waitT` stops for a bit and then applies the given transition to the playing signal
 
@@ -99,7 +100,7 @@ t1 (waitT (xfadeIn 8) 4) $ sound "hh*8"
 -}
 waitT :: (Time -> [ControlSignal] -> ControlSignal) -> Time -> Time -> [ControlSignal] -> ControlSignal
 waitT _ _ _ []     = silence
-waitT f t now pats = filterTime (>= (nextSam (now+t-1))) (f (now + t) pats)
+waitT f t now pats = filterTime (>= nextSam (now+t-1)) (f (now + t) pats)
 
 {- |
 Jumps directly into the given signal, this is essentially the _no transition_-transition.
@@ -121,15 +122,15 @@ jumpIn n = wash id id (fromIntegral n) 0 0
 {- | Unlike `jumpIn` the variant `jumpIn'` will only transition at cycle boundary (e.g. when the cycle count is an integer).
 -}
 jumpIn' :: Int -> Time -> [ControlSignal] -> ControlSignal
-jumpIn' n now = wash id id ((nextSam now) - now + (fromIntegral n)) 0 0 now
+jumpIn' n now = wash id id (nextSam now - now + fromIntegral n) 0 0 now
 
 -- | Sharp `jump` transition at next cycle boundary where cycle mod n == 0
 jumpMod :: Int -> Time -> [ControlSignal] -> ControlSignal
-jumpMod n now = jumpIn' ((n-1) - ((floor now) `mod` n)) now
+jumpMod n now = jumpIn' ((n-1) - (floor now `mod` n)) now
 
 -- | Sharp `jump` transition at next cycle boundary where cycle mod n == p
 jumpMod' :: Int -> Int -> Time -> [ControlSignal] -> ControlSignal
-jumpMod' n p now = Sound.Tidal.Transition.jumpIn' ((n-1) - ((floor now) `mod` n) + p) now
+jumpMod' n p now = Sound.Tidal.Transition.jumpIn' ((n-1) - (floor now `mod` n) + p) now
 
 -- | Degrade the new signal over time until it ends in silence
 mortal :: Time -> Time -> Time -> [ControlSignal] -> ControlSignal
@@ -142,14 +143,13 @@ interpolate = interpolateIn 4
 
 interpolateIn :: Time -> Time -> [ControlSignal] -> ControlSignal
 interpolateIn _ _ [] = silence
-interpolateIn _ _ (p:[]) = p
+interpolateIn _ _ [p] = p
 interpolateIn t now (pat:pat':_) = f <$> pat' *> pat <* automation
-  where automation = now `late` (_slow t envL)
-        f = (\a b x -> Map.unionWith (fNum2 (\a' b' -> floor $ (fromIntegral a') * x + (fromIntegral b') * (1-x))
-                                            (\a' b' -> a' * x + b' * (1-x))
-                                     )
-                       b a
-            )
+  where automation = now `late` _slow t envL
+        f a b x = Map.unionWith (fNum2 (\a' b' -> floor $ fromIntegral a' * x + fromIntegral b' * (1-x))
+                                  (\a' b' -> a' * x + b' * (1-x))
+                                )
+                      b a
 
 {-|
 Degrades the current signal while undegrading the next.
@@ -181,7 +181,7 @@ will take 8 cycles for the transition.
 -}
 clutchIn :: Time -> Time -> [Signal a] -> Signal a
 clutchIn _ _ []         = silence
-clutchIn _ _ (p:[])     = p
+clutchIn _ _ [p]        = p
 clutchIn t now (p:p':_) = overlay (fadeOutFrom now t p') (fadeInFrom now t p)
 
 {-| same as `anticipate` though it allows you to specify the number of cycles until dropping to the new signal, e.g.:
@@ -192,7 +192,7 @@ d1 $ sound "jvbass(3,8)"
 t1 (anticipateIn 4) $ sound "jvbass(5,8)"
 @-}
 anticipateIn :: Time -> Time -> [ControlSignal] -> ControlSignal
-anticipateIn t now pats = washIn (innerJoin . (\pat -> (\v -> _stut 8 0.2 v pat) <$> (now `late` (_slow t $ toRational <$> envLR)))) t now pats
+anticipateIn t now pats = washIn (innerJoin . (\pat -> (\v -> _stut 8 0.2 v pat) <$> (now `late` _slow t (toRational <$> envLR)))) t now pats
 
 -- wash :: (Signal a -> Signal a) -> (Signal a -> Signal a) -> Time -> Time -> Time -> Time -> [Signal a] -> Signal a
 

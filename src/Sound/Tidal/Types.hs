@@ -3,8 +3,6 @@
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE TypeSynonymInstances       #-}
 
 -- (c) Alex McLean and contributors 2022
 -- Shared under the terms of the GNU Public License v3.0
@@ -182,7 +180,7 @@ instance (Fractional a) => Fractional (ArcF a) where
 
 -- | Metadata - currently just used for sourcecode positions that
 -- caused the event they're stored against
-data Metadata = Metadata {metaSrcPos :: [((Int, Int), (Int, Int))]}
+newtype Metadata = Metadata {metaSrcPos :: [((Int, Int), (Int, Int))]}
   deriving (Eq, Typeable, Generic, Ord)
 
 instance NFData Metadata
@@ -203,7 +201,7 @@ data Event a = Event {metadata :: Metadata,
   deriving (Functor, Eq, Ord)
 
 -- | A signal - a function from time to events. Known as a Pattern in tidal v1.
-data Signal a = Signal {query :: State -> [Event a]}
+newtype Signal a = Signal {query :: State -> [Event a]}
   deriving (Functor, Generic)
 
 instance NFData a => NFData (Signal a)
@@ -218,7 +216,7 @@ data Sequence a = Atom {atomMetadata :: Metadata,
                 | Stack [Sequence a]
                 deriving (Eq, Ord)
 
-data Alignment a = Alignment [Sequence a]
+newtype Alignment a = Alignment [Sequence a]
 
 -- | Strategies for aligning two sequences or patterns over time (horizontally)
 data Strategy = JustifyLeft
@@ -256,7 +254,7 @@ data Patternable a = SequencePat (Sequence a)
                    | SignalPat (Signal a)
 
 withAtom :: (Sequence a -> Sequence a) -> Sequence a -> Sequence a
-withAtom f a@(Atom _ _ _ _ _) = f a
-withAtom f (Cat xs)           = Cat $ map (withAtom f) xs
-withAtom f (Stack xs)         = Stack $ map (withAtom f) xs
+withAtom f a@Atom {}  = f a
+withAtom f (Cat xs)   = Cat $ map (withAtom f) xs
+withAtom f (Stack xs) = Stack $ map (withAtom f) xs
 

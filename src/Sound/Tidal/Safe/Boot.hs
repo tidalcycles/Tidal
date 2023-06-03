@@ -20,11 +20,11 @@
 -}
 
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
-{-# language NoMonomorphismRestriction #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Sound.Tidal.Safe.Boot where
 
-import Sound.Tidal.Safe.Context
+import           Sound.Tidal.Safe.Context
 import qualified Sound.Tidal.Transition
 
 -- everyone is missing the tidal :: Stream argument
@@ -49,18 +49,18 @@ xfadeIn i t = transition True (Sound.Tidal.Transition.xfadeIn t) i
 histpan i t = transition True (Sound.Tidal.Transition.histpan t) i
 wait i t = transition True (Sound.Tidal.Transition.wait t) i
 waitT i f t = transition True (Sound.Tidal.Transition.waitT f t) i
-jump i = transition True (Sound.Tidal.Transition.jump) i
+jump i = transition True Sound.Tidal.Transition.jump i
 jumpIn i t = transition True (Sound.Tidal.Transition.jumpIn t) i
 jumpIn' i t = transition True (Sound.Tidal.Transition.jumpIn' t) i
 jumpMod i t = transition True (Sound.Tidal.Transition.jumpMod t) i
 mortal i lifespan releaseTime = transition True (Sound.Tidal.Transition.mortal lifespan releaseTime) i
-interpolate i = transition True (Sound.Tidal.Transition.interpolate) i
+interpolate i = transition True Sound.Tidal.Transition.interpolate i
 interpolateIn i t = transition True (Sound.Tidal.Transition.interpolateIn t) i
-clutch i = transition True (Sound.Tidal.Transition.clutch) i
+clutch i = transition True Sound.Tidal.Transition.clutch i
 clutchIn i t = transition True (Sound.Tidal.Transition.clutchIn t) i
-anticipate i = transition True (Sound.Tidal.Transition.anticipate) i
+anticipate i = transition True Sound.Tidal.Transition.anticipate i
 anticipateIn i t = transition True (Sound.Tidal.Transition.anticipateIn t) i
-forId i t = transition False (Sound.Tidal.Transition.mortalOverlay t) i
+forId i t        = transition False (Sound.Tidal.Transition.mortalOverlay t) i
 
 d1 = p 1 . (|< orbit 0)
 d2 = p 2 . (|< orbit 1)

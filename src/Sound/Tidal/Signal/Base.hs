@@ -70,15 +70,15 @@ instance Pattern Signal where
   withMetadata f pat = withEvents (map (\e -> e {metadata = f $ metadata e})) pat
 
 _sigAppAlign :: (a -> Signal b -> Signal c) -> Align (Signal a) (Signal b) -> Signal c
-_sigAppAlign f (Align SqueezeIn patt patv) = squeezeJoin $ (\t -> f t patv) <$> patt
+_sigAppAlign f (Align SqueezeIn patt patv) = squeezeJoin $ (`f` patv) <$> patt
 -- TODO - this one is wierd.. can it be simplified by defining squeezeOutJoin ?
 _sigAppAlign f (Align SqueezeOut patt patv) =
-  squeezeJoin $ (\v -> (_patternify f) patt (pure v)) <$> patv
-_sigAppAlign f (Align CycleIn patt patv) = innerJoin $ (\t -> f t patv) <$> patt
-_sigAppAlign f (Align CycleOut patt patv) = outerJoin $ (\t -> f t patv) <$> patt
-_sigAppAlign f (Align CycleMix patt patv) = mixJoin $ (\t -> f t patv) <$> patt
-_sigAppAlign f (Align Trig patt patv) = trigJoin $ (\t -> f t patv) <$> patt
-_sigAppAlign f (Align TrigZero patt patv) = trigzeroJoin $ (\t -> f t patv) <$> patt
+  squeezeJoin $ _patternify f patt . pure <$> patv
+_sigAppAlign f (Align CycleIn patt patv) = innerJoin $ (`f` patv) <$> patt
+_sigAppAlign f (Align CycleOut patt patv) = outerJoin $ (`f` patv) <$> patt
+_sigAppAlign f (Align CycleMix patt patv) = mixJoin $ (`f` patv) <$> patt
+_sigAppAlign f (Align Trig patt patv) = trigJoin $ (`f` patv) <$> patt
+_sigAppAlign f (Align TrigZero patt patv) = trigzeroJoin $ (`f` patv) <$> patt
 _sigAppAlign _ (Align a _ _) = error $ "Alignment " ++ show a ++ " not implemented for signals"
 
 -- ************************************************************ --
@@ -151,7 +151,7 @@ sigInnerJoin :: Signal (Signal a) -> Signal a
 sigInnerJoin s = innerBind s id
 
 outerBind :: Signal a -> (a -> Signal b) -> Signal b
-outerBind = bindWhole (const)
+outerBind = bindWhole const
 
 outerJoin :: Signal (Signal a) -> Signal a
 outerJoin s = outerBind s id
@@ -174,7 +174,7 @@ squeezeJoin pp = pp {query = q}
           )
           (query pp st)
         munge oMetadata oWhole oPart (Event iMetadata iWhole iPart v) =
-          do w' <- (maybeSect <$> oWhole <*> iWhole)
+          do w' <- maybeSect <$> oWhole <*> iWhole
              p' <- maybeSect oPart iPart
              return (Event (iMetadata <> oMetadata) w' p' v)
 
@@ -192,7 +192,7 @@ _trigTimeJoin timeF patOfPats = Signal $ \state -> concatMap (queryInner state) 
                                                         active = a,
                                                         value = value innerEvent
                                                        }
-                ) $ query (_late (timeF $ (aBegin $ wholeOrActive outerEvent)) (value outerEvent)) state
+                ) $ query (_late (timeF $ aBegin $ wholeOrActive outerEvent) (value outerEvent)) state
 
 trigJoin :: Signal (Signal a) -> Signal a
 trigJoin = _trigTimeJoin cyclePos

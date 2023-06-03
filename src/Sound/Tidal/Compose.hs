@@ -44,16 +44,16 @@ opOut :: Pattern p => (a -> b -> c) -> p a -> p b -> p c
 opOut f a b = f <$> a *> b
 
 opSqueeze :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
-opSqueeze f a b = squeezeJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
+opSqueeze f a b = squeezeJoin $ fmap (\a -> fmap (f a)  b) a
 
 opSqueezeOut :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
-opSqueezeOut f pata patb = squeezeJoin $ fmap (\a -> fmap (\b -> f b a)  pata) patb
+opSqueezeOut f pata patb = squeezeJoin $ fmap (\a -> fmap (`f` a)  pata) patb
 
 opTrig :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
-opTrig f a b = trigJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
+opTrig f a b = trigJoin $ fmap (\a -> fmap (f a)  b) a
 
 opTrigzero :: (a -> b -> c) -> Signal a -> Signal b -> Signal c
-opTrigzero f a b = trigzeroJoin $ fmap (\a -> fmap (\b -> f a b)  b) a
+opTrigzero f a b = trigzeroJoin $ fmap (\a -> fmap (f a)  b) a
 
 -- ************************************************************ --
 
@@ -123,31 +123,31 @@ infixl 4 |=|, |=, =|, ||=, =||, !=, !!=
 -- keep
 
 keepMix, (|.|) :: (Pattern p, Unionable a) => p a -> p a -> p a
-keepMix pata patb = opMix (union) pata patb
+keepMix pata patb = opMix union pata patb
 (|.|) = keepMix
 
 keepIn, (|.) :: (Pattern p, Unionable a) => p a -> p a -> p a
-keepIn pata patb = opIn (union) pata patb
+keepIn pata patb = opIn union pata patb
 (|.) = keepIn
 
 keepOut, (.|) :: (Pattern p, Unionable a) => p a -> p a -> p a
-keepOut pata patb = opOut (union) pata patb
+keepOut pata patb = opOut union pata patb
 (.|) = keepOut
 
 keepSqueeze, (||.) :: (Unionable a) => Signal a -> Signal a -> Signal a
-keepSqueeze pata patb = opSqueeze (union) pata patb
+keepSqueeze pata patb = opSqueeze union pata patb
 (||.) = keepSqueeze
 
 keepSqueezeOut, (.||) :: (Unionable a) => Signal a -> Signal a -> Signal a
-keepSqueezeOut pata patb = opSqueezeOut (union) pata patb
+keepSqueezeOut pata patb = opSqueezeOut union pata patb
 (.||) = keepSqueezeOut
 
 keepTrig, (!.) :: (Unionable a) => Signal a -> Signal a -> Signal a
-keepTrig pata patb = opTrig (union) pata patb
+keepTrig pata patb = opTrig union pata patb
 (!.) = keepTrig
 
 keepTrigzero, (!!.) :: (Unionable a) => Signal a -> Signal a -> Signal a
-keepTrigzero pata patb = opTrigzero (union) pata patb
+keepTrigzero pata patb = opTrigzero union pata patb
 (!!.) = keepTrigzero
 
 infixl 4 |.|, |., .|, ||., .||, !., !!.
@@ -315,31 +315,31 @@ infixl 4 |/|, |/, /|, ||/, /||, !/, !!/
 -- mod
 
 modMix, (|%|) :: (Pattern p, Integral a) => p a -> p a -> p a
-modMix pata patb = opMix (mod) pata patb
+modMix pata patb = opMix mod pata patb
 (|%|) = modMix
 
 modIn, (|%) :: (Pattern p, Integral a) => p a -> p a -> p a
-modIn pata patb = opIn (mod) pata patb
+modIn pata patb = opIn mod pata patb
 (|%) = modIn
 
 modOut, (%|) :: (Pattern p, Integral a) => p a -> p a -> p a
-modOut pata patb = opOut (mod) pata patb
+modOut pata patb = opOut mod pata patb
 (%|) = modOut
 
 modSqueeze, (||%) :: (Integral a) => Signal a -> Signal a -> Signal a
-modSqueeze pata patb = opSqueeze (mod) pata patb
+modSqueeze pata patb = opSqueeze mod pata patb
 (||%) = modSqueeze
 
 modSqueezeOut, (%||) :: (Integral a) => Signal a -> Signal a -> Signal a
-modSqueezeOut pata patb = opSqueezeOut (mod) pata patb
+modSqueezeOut pata patb = opSqueezeOut mod pata patb
 (%||) = modSqueezeOut
 
 modTrig, (!%) :: (Integral a) => Signal a -> Signal a -> Signal a
-modTrig pata patb = opTrig (mod) pata patb
+modTrig pata patb = opTrig mod pata patb
 (!%) = modTrig
 
 modTrigzero, (!!%) :: (Integral a) => Signal a -> Signal a -> Signal a
-modTrigzero pata patb = opTrigzero (mod) pata patb
+modTrigzero pata patb = opTrigzero mod pata patb
 (!!%) = modTrigzero
 
 infixl 4 |%|, |%, %|, ||%, %||, !%, !!%
@@ -507,31 +507,31 @@ infixl 4 |.|.|, |.|., .|.|, ||.|., .|.||, !.|., !!.|.
 -- bxor
 
 bxorMix, (|.^.|) :: (Pattern p, Bits a) => p a -> p a -> p a
-bxorMix pata patb = opMix (xor) pata patb
+bxorMix pata patb = opMix xor pata patb
 (|.^.|) = bxorMix
 
 bxorIn, (|.^.) :: (Pattern p, Bits a) => p a -> p a -> p a
-bxorIn pata patb = opIn (xor) pata patb
+bxorIn pata patb = opIn xor pata patb
 (|.^.) = bxorIn
 
 bxorOut, (.^.|) :: (Pattern p, Bits a) => p a -> p a -> p a
-bxorOut pata patb = opOut (xor) pata patb
+bxorOut pata patb = opOut xor pata patb
 (.^.|) = bxorOut
 
 bxorSqueeze, (||.^.) :: (Bits a) => Signal a -> Signal a -> Signal a
-bxorSqueeze pata patb = opSqueeze (xor) pata patb
+bxorSqueeze pata patb = opSqueeze xor pata patb
 (||.^.) = bxorSqueeze
 
 bxorSqueezeOut, (.^.||) :: (Bits a) => Signal a -> Signal a -> Signal a
-bxorSqueezeOut pata patb = opSqueezeOut (xor) pata patb
+bxorSqueezeOut pata patb = opSqueezeOut xor pata patb
 (.^.||) = bxorSqueezeOut
 
 bxorTrig, (!.^.) :: (Bits a) => Signal a -> Signal a -> Signal a
-bxorTrig pata patb = opTrig (xor) pata patb
+bxorTrig pata patb = opTrig xor pata patb
 (!.^.) = bxorTrig
 
 bxorTrigzero, (!!.^.) :: (Bits a) => Signal a -> Signal a -> Signal a
-bxorTrigzero pata patb = opTrigzero (xor) pata patb
+bxorTrigzero pata patb = opTrigzero xor pata patb
 (!!.^.) = bxorTrigzero
 
 infixl 4 |.^.|, |.^., .^.|, ||.^., .^.||, !.^., !!.^.
@@ -539,31 +539,31 @@ infixl 4 |.^.|, |.^., .^.|, ||.^., .^.||, !.^., !!.^.
 -- bshiftl
 
 bshiftlMix, (|.<<.|) :: (Pattern p, Bits a) => p a -> p Int -> p a
-bshiftlMix pata patb = opMix (shiftL) pata patb
+bshiftlMix pata patb = opMix shiftL pata patb
 (|.<<.|) = bshiftlMix
 
 bshiftlIn, (|.<<.) :: (Pattern p, Bits a) => p a -> p Int -> p a
-bshiftlIn pata patb = opIn (shiftL) pata patb
+bshiftlIn pata patb = opIn shiftL pata patb
 (|.<<.) = bshiftlIn
 
 bshiftlOut, (.<<.|) :: (Pattern p, Bits a) => p a -> p Int -> p a
-bshiftlOut pata patb = opOut (shiftL) pata patb
+bshiftlOut pata patb = opOut shiftL pata patb
 (.<<.|) = bshiftlOut
 
 bshiftlSqueeze, (||.<<.) :: (Bits a) => Signal a -> Signal Int -> Signal a
-bshiftlSqueeze pata patb = opSqueeze (shiftL) pata patb
+bshiftlSqueeze pata patb = opSqueeze shiftL pata patb
 (||.<<.) = bshiftlSqueeze
 
 bshiftlSqueezeOut, (.<<.||) :: (Bits a) => Signal a -> Signal Int -> Signal a
-bshiftlSqueezeOut pata patb = opSqueezeOut (shiftL) pata patb
+bshiftlSqueezeOut pata patb = opSqueezeOut shiftL pata patb
 (.<<.||) = bshiftlSqueezeOut
 
 bshiftlTrig, (!.<<.) :: (Bits a) => Signal a -> Signal Int -> Signal a
-bshiftlTrig pata patb = opTrig (shiftL) pata patb
+bshiftlTrig pata patb = opTrig shiftL pata patb
 (!.<<.) = bshiftlTrig
 
 bshiftlTrigzero, (!!.<<.) :: (Bits a) => Signal a -> Signal Int -> Signal a
-bshiftlTrigzero pata patb = opTrigzero (shiftL) pata patb
+bshiftlTrigzero pata patb = opTrigzero shiftL pata patb
 (!!.<<.) = bshiftlTrigzero
 
 infixl 4 |.<<.|, |.<<., .<<.|, ||.<<., .<<.||, !.<<., !!.<<.
@@ -571,31 +571,31 @@ infixl 4 |.<<.|, |.<<., .<<.|, ||.<<., .<<.||, !.<<., !!.<<.
 -- bshiftr
 
 bshiftrMix, (|.>>.|) :: (Pattern p, Bits a) => p a -> p Int -> p a
-bshiftrMix pata patb = opMix (shiftR) pata patb
+bshiftrMix pata patb = opMix shiftR pata patb
 (|.>>.|) = bshiftrMix
 
 bshiftrIn, (|.>>.) :: (Pattern p, Bits a) => p a -> p Int -> p a
-bshiftrIn pata patb = opIn (shiftR) pata patb
+bshiftrIn pata patb = opIn shiftR pata patb
 (|.>>.) = bshiftrIn
 
 bshiftrOut, (.>>.|) :: (Pattern p, Bits a) => p a -> p Int -> p a
-bshiftrOut pata patb = opOut (shiftR) pata patb
+bshiftrOut pata patb = opOut shiftR pata patb
 (.>>.|) = bshiftrOut
 
 bshiftrSqueeze, (||.>>.) :: (Bits a) => Signal a -> Signal Int -> Signal a
-bshiftrSqueeze pata patb = opSqueeze (shiftR) pata patb
+bshiftrSqueeze pata patb = opSqueeze shiftR pata patb
 (||.>>.) = bshiftrSqueeze
 
 bshiftrSqueezeOut, (.>>.||) :: (Bits a) => Signal a -> Signal Int -> Signal a
-bshiftrSqueezeOut pata patb = opSqueezeOut (shiftR) pata patb
+bshiftrSqueezeOut pata patb = opSqueezeOut shiftR pata patb
 (.>>.||) = bshiftrSqueezeOut
 
 bshiftrTrig, (!.>>.) :: (Bits a) => Signal a -> Signal Int -> Signal a
-bshiftrTrig pata patb = opTrig (shiftR) pata patb
+bshiftrTrig pata patb = opTrig shiftR pata patb
 (!.>>.) = bshiftrTrig
 
 bshiftrTrigzero, (!!.>>.) :: (Bits a) => Signal a -> Signal Int -> Signal a
-bshiftrTrigzero pata patb = opTrigzero (shiftR) pata patb
+bshiftrTrigzero pata patb = opTrigzero shiftR pata patb
 (!!.>>.) = bshiftrTrigzero
 
 infixl 4 |.>>.|, |.>>., .>>.|, ||.>>., .>>.||, !.>>., !!.>>.
