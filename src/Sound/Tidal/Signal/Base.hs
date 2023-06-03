@@ -671,7 +671,7 @@ sigCollect = _collectBy _sameDur
 
 _uncollectEvent :: Event [a] -> [Event a]
 _uncollectEvent e = [e {value = value e !! i, metadata = resolveMetadata i (metadata e)} | i <-[0..length (value e) - 1]]
-  where resolveMetadata i (Metadata xs) = if (length xs <= i)
+  where resolveMetadata i (Metadata xs) = if length xs <= i
                                             then Metadata []
                                             else Metadata [xs!!i]
 
@@ -842,20 +842,20 @@ rolledBy "<1 -0.5 0.25 -0.125>" $ note "c'maj9" # s "superpiano"
 
 rolledWith :: Ratio Integer -> Signal a -> Signal a
 rolledWith t = withEvents aux
-         where aux es = concatMap steppityIn (groupBy (\a b -> whole a == whole b) $ (isRev t) es)
+         where aux es = concatMap steppityIn (groupBy (\a b -> whole a == whole b) $ isRev t es)
                isRev b = (\x -> if x > 0 then id else reverse ) b
-               steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
+               steppityIn xs = mapMaybe (\(n, ev) -> timeguard n xs ev t) $ enumerate xs
                timeguard _ _ ev 0  = return ev
-               timeguard n xs ev _ = (shiftIt n (length xs) ev)
+               timeguard n xs ev _ = shiftIt n (length xs) ev
                shiftIt n d (Event c (Just (Arc s e)) a' v) = do
                          a'' <- maybeSect (Arc newS e) a'
                          return (Event c (Just $ Arc newS e) a'' v)
                       where newS = s + (dur * fromIntegral n)
-                            dur = ((e - s)) / ((1/ (abs t))*fromIntegral d)
+                            dur = (e - s) / ((1 / abs t)*fromIntegral d)
                shiftIt _ _ ev =  return ev
 
 rolledBy :: Signal (Ratio Integer) -> Signal a -> Signal a
-rolledBy pt = _patternify rolledWith (_segment 1 $ pt)
+rolledBy pt = _patternify rolledWith $ _segment 1 pt
 
 rolled :: Signal a -> Signal a
 rolled = rolledBy (1/4)
@@ -918,14 +918,14 @@ binary :: Signal Int -> Signal Bool
 binary = binaryN 8
 
 ascii :: Signal String -> Signal Bool
-ascii p = squeezeJoin $ (fastFromList . concatMap (__binary 8 . ord)) <$> p
+ascii p = squeezeJoin $ fastFromList . concatMap (__binary 8 . ord) <$> p
 
 -- | For specifying a boolean pattern according to a list of offsets
 -- (aka inter-onset intervals).  For example `necklace 12 [4,2]` is
 -- the same as "t f f f t f t f f f t f". That is, 12 steps per cycle,
 -- with true values alternating between every 4 and every 2 steps.
 necklace :: Rational -> [Int] -> Signal Bool
-necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ fastFromList $ list xs
+necklace perCycle xs = _slow (toRational (sum xs) / perCycle) $ fastFromList $ list xs
   where list :: [Int] -> [Bool]
         list []      = []
         list (x:xs') = (True : replicate (x-1) False) ++ list xs'
