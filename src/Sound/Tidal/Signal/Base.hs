@@ -414,7 +414,7 @@ withEvent f = withEvents (map f)
 -- Fundamental signals
 
 sigSilence :: Signal a
-sigSilence = Signal (\_ -> [])
+sigSilence = Signal $ const []
 
 -- | Repeat discrete value once per cycle
 sigAtom :: a -> Signal a
@@ -436,20 +436,20 @@ sigAtom v = Signal $ \state -> map
 -- makes other functions easier to define, as events that cross cycle
 -- boundaries don't need to be considered then.
 splitQueries :: Signal a -> Signal a
-splitQueries pat = Signal $ \state -> (concatMap (\arc -> query pat (state {sArc = arc}))
-                                        $ splitArcs $ sArc state)
+splitQueries pat = Signal $ \state -> concatMap (\arc -> query pat (state {sArc = arc}))
+                                       $ splitArcs $ sArc state
 
 -- | Concatenate a list of signals, interleaving cycles.
 sigSlowcat :: [Signal a] -> Signal a
 sigSlowcat pats = splitQueries $ Signal queryCycle
   where queryCycle state = query (_late (offset $ sArc state) (pat $ sArc state)) state
-        pat arc = pats !! (mod (floor $ aBegin $ arc) n)
-        offset arc = (sam $ aBegin arc) - (sam $ aBegin arc / (toRational n))
+        pat arc = pats !! mod (floor $ aBegin arc) n
+        offset arc = sam (aBegin arc) - sam (aBegin arc / toRational n)
         n = length pats
 
 _sigFast :: Time -> Signal a -> Signal a
 _sigFast 0 _   = silence
-_sigFast t pat = withEventTime (/t) $ withQueryTime (*t) $ pat
+_sigFast t pat = withEventTime (/t) $ withQueryTime (*t) pat
 
 _fastGap :: Time -> Signal a -> Signal a
 _fastGap factor pat = splitQueries $ withEvent ef $ withQueryArcMaybe qf pat
@@ -469,8 +469,8 @@ _fastGap factor pat = splitQueries $ withEvent ef $ withQueryArcMaybe qf pat
                         bpos = min 1 $ (b - cyc) / factor
                         epos = min 1 $ (e - cyc) / factor
                 w' = do w <- whole ev
-                        let b' = aBegin a' - ((b - (aBegin w)) / factor)
-                            e' = aEnd a' + (((aEnd w) - e) / factor)
+                        let b' = aBegin a' - ((b - aBegin w) / factor)
+                            e' = aEnd a' + ((aEnd w - e) / factor)
                         return $ Arc b' e'
 
 -- | Like @fast@, but only plays one cycle of the original signal
@@ -482,7 +482,7 @@ fastGapA :: Align (Signal Time) (Signal a) -> Signal a
 fastGapA = _appAlign _fastGap
 
 _compressArc :: Arc -> Signal a -> Signal a
-_compressArc (Arc b e) pat | (b > e || b > 1 || e > 1 || b < 0 || e < 0) = silence
+_compressArc (Arc b e) pat | b > e || b > 1 || e > 1 || b < 0 || e < 0 = silence
                            | otherwise = _late b $ _fastGap (1/(e-b)) pat
 
 _compressArcTo :: Arc -> Signal a -> Signal a
@@ -500,7 +500,7 @@ focus :: Signal Time -> Signal Time -> Signal a -> Signal a
 focus patStart patDur pat = innerJoin $ (\s d -> _focusArc (Arc s (s+d)) pat) <$> patStart <*> patDur
 
 _sigEarly :: Time -> Signal a -> Signal a
-_sigEarly t pat = withEventTime (subtract t) $ withQueryTime (+ t) $ pat
+_sigEarly t pat = withEventTime (subtract t) $ withQueryTime (+ t) pat
 
 earlyA :: Align (Signal Time) (Signal a) -> Signal a
 earlyA = _appAlign _early
@@ -550,7 +550,7 @@ _fastRepeatCycles :: Int -> Signal a -> Signal a
 _fastRepeatCycles n p = fastcat $ replicate n p
 
 sigStack :: [Signal a] -> Signal a
-sigStack pats = Signal $ \s -> concatMap (\pat -> query pat s) pats
+sigStack pats = Signal $ \s -> concatMap (`query` s) pats
 
 off :: Signal Time -> (Signal a -> Signal a) -> Signal a -> Signal a
 off tp f p = innerJoin $ (\tv -> _off tv f p) <$> tp
@@ -560,7 +560,7 @@ _off t f p = superimpose (f . (t `_late`)) p
 
 squash :: Time -> Signal a -> Signal a
 squash into pat = splitQueries $ withEventArc ef $ withQueryArc qf pat
-  where qf (Arc s e) = Arc (sam s + (min 1 $ (s - sam s) / into)) (sam s + (min 1 $ (e - sam s) / into))
+  where qf (Arc s e) = Arc (sam s + min 1 ((s - sam s) / into)) (sam s + min 1 ((e - sam s) / into))
         ef (Arc s e) = Arc (sam s + (s - sam s) * into) (sam s + (e - sam s) * into)
 
 squashTo :: Time -> Time -> Signal a -> Signal a
@@ -575,7 +575,7 @@ bite npat ipat pat = innerJoin $ (\n -> _bite n ipat pat) <$> npat
 
 _bite :: Int -> Signal Int -> Signal a -> Signal a
 _bite n ipat pat = squeezeJoin $ zoompat <$> ipat
-  where zoompat i = _zoomArc (Arc (i'/(fromIntegral n)) ((i'+1)/(fromIntegral n))) pat
+  where zoompat i = _zoomArc (Arc (i' / fromIntegral n) (i'+1 / fromIntegral n)) pat
            where i' = fromIntegral $ i `mod` n
 
 sigRev :: Signal a -> Signal a
@@ -620,7 +620,7 @@ whenT test f p = splitQueries $ p {query = apply}
 
 
 _sigPly :: Time -> Signal a -> Signal a
-_sigPly t pat = squeezeJoin $ (_fast t . atom) <$> pat
+_sigPly t pat = squeezeJoin $ _fast t . atom <$> pat
 
 -- | @segment n p@: 'samples' the signal @p@ at a rate of @n@
 -- events per cycle. Useful for turning a continuous signal into a
@@ -641,7 +641,7 @@ _sameDur e1 e2 = (whole e1 == whole e2) && (active e1 == active e2)
 
 _groupEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [[Event a]]
 _groupEventsBy _ [] = []
-_groupEventsBy f (e:es) = eqs:(_groupEventsBy f (es \\ eqs))
+_groupEventsBy f (e:es) = eqs : _groupEventsBy f (es \\ eqs)
   where eqs = e:[x | x <- es, f e x]
 
 -- assumes that all events in the list have same whole/active
@@ -659,7 +659,7 @@ _collectEventsBy f es = remNo $ map _collectEvent (_groupEventsBy f es)
   where
     remNo []            = []
     remNo (Nothing:cs)  = remNo cs
-    remNo ((Just c):cs) = c : (remNo cs)
+    remNo ((Just c):cs) = c : remNo cs
 
 -- | collects all events satisfying the same constraint into a list
 _collectBy :: Eq a => (Event a -> Event a -> Bool) -> Signal a -> Signal [a]
@@ -670,10 +670,10 @@ sigCollect :: Eq a => Signal a -> Signal [a]
 sigCollect = _collectBy _sameDur
 
 _uncollectEvent :: Event [a] -> [Event a]
-_uncollectEvent e = [e {value = (value e)!!i, metadata = resolveMetadata i (metadata e)} | i <-[0..length (value e) - 1]]
-  where resolveMetadata i (Metadata xs) = case length xs <= i of
-                                            True  -> Metadata []
-                                            False -> Metadata [xs!!i]
+_uncollectEvent e = [e {value = value e !! i, metadata = resolveMetadata i (metadata e)} | i <-[0..length (value e) - 1]]
+  where resolveMetadata i (Metadata xs) = if (length xs <= i)
+                                            then Metadata []
+                                            else Metadata [xs!!i]
 
 _uncollectEvents :: [Event [a]] -> [Event a]
 _uncollectEvents = concatMap _uncollectEvent
@@ -683,7 +683,7 @@ sigUncollect :: Signal [a] -> Signal a
 sigUncollect = withEvents _uncollectEvents
 
 _sigPressBy :: Time -> Signal a -> Signal a
-_sigPressBy r pat = squeezeJoin $ (_compressArcTo (Arc r 1) . atom) <$> pat
+_sigPressBy r pat = squeezeJoin $ _compressArcTo (Arc r 1) . atom <$> pat
 
 {- | Make a pattern sound a bit like a breakbeat, by playing it twice as
    fast and shifted by a quarter of a cycle, every other cycle.
@@ -842,7 +842,7 @@ rolledBy "<1 -0.5 0.25 -0.125>" $ note "c'maj9" # s "superpiano"
 
 rolledWith :: Ratio Integer -> Signal a -> Signal a
 rolledWith t = withEvents aux
-         where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ ((isRev t) es))
+         where aux es = concatMap steppityIn (groupBy (\a b -> whole a == whole b) $ (isRev t) es)
                isRev b = (\x -> if x > 0 then id else reverse ) b
                steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
                timeguard _ _ ev 0  = return ev
