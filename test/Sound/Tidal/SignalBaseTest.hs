@@ -791,13 +791,6 @@ run =
           (necklace 12 [4,2])
           ("t f f f t f t f f f t f")
 
-    describe "quantise" $ do
-      it "can quantise notes" $ do
-        compareP (Arc 0 1)
-          (segment 2 $ quantise 1 $ sine :: Signal Note)
-          ("1 0" :: Signal Note)
-
-
     describe "loopFirst" $ do
       it "plays the first n cycles" $ do
         compareP (Arc 0 1)

@@ -390,8 +390,10 @@ _seqSlow :: Time -> Sequence a -> Sequence a
 _seqSlow t = _seqFast (1/t)
 
 _seqEarly :: Time -> Sequence a -> Sequence a
-_seqEarly t seq = swapcat $ seqSplitAt' t' seq
+_seqEarly t seq | dur == 0 = seq
+                | otherwise = swapcat $ seqSplitAt' t' seq
   where t' = t `mod'` seqDuration seq
+        dur = seqDuration seq
         swapcat (a,b) = Cat [b,a]
 
 -- TODO - more general version that takes rational

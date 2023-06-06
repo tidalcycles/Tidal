@@ -586,7 +586,6 @@ sigTimeCat tps = stack $ map (\(s,e,p) -> _compressArc (Arc (s/total) (e/total))
 sigWhen :: Signal Bool -> (Signal b -> Signal b) -> Signal b -> Signal b
 sigWhen boolpat f pat = innerJoin $ (\b -> if b then f pat else pat) <$> boolpat
 
-
 {-|
 Only `when` the given test function returns `True` the given signal
 transformation is applied. The test function will be called with the
@@ -872,22 +871,6 @@ snowball depth combinationFunction f signal = cat $ take depth $ scanl combinati
 -}
 soak ::  Int -> (Signal a -> Signal a) -> Signal a -> Signal a
 soak depth f signal = cat $ take depth $ iterate f signal
-
--- | limit values in a Pattern (or other Functor) to n equally spaced
--- divisions of 1.
--- TODO move to Pattern ?
-quantise :: (Functor f, RealFrac b) => b -> f b -> f b
-quantise n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . round . (*n))
-
--- quantise but with floor
-qfloor :: (Functor f, RealFrac b) => b -> f b -> f b
-qfloor n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . floor . (*n))
-
-qceiling :: (Functor f, RealFrac b) => b -> f b -> f b
-qceiling n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . ceiling . (*n))
-
-qround :: (Functor f, RealFrac b) => b -> f b -> f b
-qround = quantise
 
 -- ************************************************************ --
 -- Binary signals

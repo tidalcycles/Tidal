@@ -37,6 +37,7 @@ import           Data.Maybe               (catMaybes, fromJust, fromMaybe,
                                            isJust)
 import           Foreign
 import           Foreign.C.Types
+import           GHC.Stack
 import           System.IO                (hPutStrLn, stderr)
 
 import qualified Network.Socket           as N
@@ -508,10 +509,10 @@ onSingleTick stream ops s pat = do
 -- this function prints a warning and resets the current pattern
 -- to the previous one (or to silence if there isn't one) and continues,
 -- because the likely reason is that something is wrong with the current pattern.
-doTick :: Stream -> TickState -> T.LinkOperations -> ValueMap -> IO ValueMap
+doTick :: HasCallStack => Stream -> TickState -> T.LinkOperations -> ValueMap -> IO ValueMap
 doTick stream st ops sMap =
   E.handle (\ (e :: E.SomeException) -> do
-    hPutStrLn stderr $ "Failed to Stream.doTick: " ++ show e
+    hPutStrLn stderr $ "Failed to Stream.doTick: " ++ show e ++ " // " ++ prettyCallStack callStack
     hPutStrLn stderr $ "Return to previous pattern."
     setPreviousPatternOrSilence stream
     return sMap) (do
@@ -527,9 +528,9 @@ doTick stream st ops sMap =
         extraLatency = tickNudge st
         -- First the state is used to query the pattern
         es = sortOn (aBegin . active) $ query patstack (State {sArc = tickArc st,
-                                                            sControls = sMap'
-                                                           }
-                                                    )
+                                                               sControls = sMap'
+                                                              }
+                                                       )
          -- Then it's passed through the events
         (sMap'', es') = resolveState sMap' es
       tes <- processCps ops es'

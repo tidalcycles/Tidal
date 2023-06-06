@@ -369,5 +369,20 @@ selectF pf ps p = innerJoin $ (\f -> _selectF f ps p) <$> pf
 _selectF :: Double -> [p a -> p a] -> p a -> p a
 _selectF f ps p =  (ps !! floor (max 0 (min 0.999999 f) * fromIntegral (length ps))) p
 
+-- | limit values in a Pattern (or other Functor) to n equally spaced
+-- divisions of 1.
+quantise :: (Functor f, RealFrac b) => b -> f b -> f b
+quantise n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . round . (*n))
+
+-- quantise but with floor
+qfloor :: (Functor f, RealFrac b) => b -> f b -> f b
+qfloor n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . floor . (*n))
+
+qceiling :: (Functor f, RealFrac b) => b -> f b -> f b
+qceiling n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . ceiling . (*n))
+
+qround :: (Functor f, RealFrac b) => b -> f b -> f b
+qround = quantise
+
 -- ************************************************************ --
 
