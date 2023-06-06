@@ -1,0 +1,70 @@
+# Maintainer: David Runge <dvzrv@archlinux.org>
+
+_name=tidal
+pkgname=haskell-tidal
+pkgver=2.0.0
+pkgrel=6
+pkgdesc="A domain specific language for live coding pattern."
+arch=(x86_64)
+url="https://tidalcycles.org/"
+license=(GPL3)
+groups=(pro-audio)
+depends=(
+  ghc
+  ghc-libs
+  glibc
+  haskell-clock
+  haskell-colour
+  haskell-hosc
+  haskell-mwc-random
+  haskell-network
+  haskell-primitive
+  haskell-random
+  haskell-tidal-link
+  haskell-vector
+  supercollider
+)
+checkdepends=(haskell-microspec)
+optdepends=('sc3-plugins: Examples using special UGens')
+conflicts=(tidalcycles)
+replaces=(tidalcycles)
+source=(https://hackage.haskell.org/package/tidal-2.0.0/candidate/tidal-2.0.0.tar.gz)
+sha512sums=('3556fb7cf03ee6bdd7a44bd2453bc67995222f2ea7176ba7aa754e01e37d20416ef7dc1ac360dba64bd9b4149242a6cad58b955aa89498caec7005f78d8d52e1')
+b2sums=('3ae97b186f56919d6cc39dc99ad22291378398ba4d41f38a0bff587602e7ce09655192bfcce1d17382e4098c2258b356ab1121020f58da762b71125db6dad78b')
+
+build() {
+  local configure_options=(
+    -O
+    --datasubdir=$pkgname
+    --disable-library-vanilla
+    --docdir=/usr/share/doc/$pkgname --datasubdir=$pkgname
+    --dynlibdir=/usr/lib
+    --enable-executable-dynamic
+    --enable-shared
+    --enable-tests
+    --ghc-option=-fllvm
+    --prefix=/usr
+    --libsubdir=\$compiler/site-local/\$pkgid --ghc-option=-fllvm
+  )
+
+  cd $_name-$pkgver
+  runhaskell Setup configure "${configure_options[@]}"
+  runhaskell Setup build $MAKEFLAGS
+  runhaskell Setup register --gen-script
+  runhaskell Setup unregister --gen-script
+  sed -i -r -e "s|ghc-pkg.*update[^ ]* |&'--force' |" register.sh
+  sed -i -r -e "s|ghc-pkg.*unregister[^ ]* |&'--force' |" unregister.sh
+}
+
+check() {
+  cd $_name-$pkgver
+  runhaskell Setup test --show-details=direct
+}
+
+package() {
+  cd $_name-$pkgver
+  runhaskell Setup copy --destdir="$pkgdir"
+  install -vDm 744 register.sh "$pkgdir/usr/share/haskell/register/$pkgname.sh"
+  install -vDm 744 unregister.sh "$pkgdir/usr/share/haskell/unregister/$pkgname.sh"
+}
+
