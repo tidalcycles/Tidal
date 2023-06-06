@@ -521,8 +521,8 @@ pairAligned :: Direction -> (Sequence a, Sequence b) -> Sequence (a, b)
 -- TODO - 'Mixed' direction
 pairAligned Mix _ = error "TODO !!"
 
-pairAligned direction (Stack as, b) = seqCat $ map (\a -> pairAligned direction (a, b)) as
-pairAligned direction (a, Stack bs) = seqCat $ map (\b -> pairAligned direction (a, b)) bs
+pairAligned direction (Stack as, b) = Stack $ map (\a -> pairAligned direction (a, b)) as
+pairAligned direction (a, Stack bs) = Stack $ map (\b -> pairAligned direction (a, b)) bs
 
 -- TODO - should the value be Nothing if one/both are nothings?
 pairAligned In (Atom m d i o v, Atom m' _ _ _ v') = Atom (m <> m') d i o $ do a <- v
