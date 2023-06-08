@@ -282,7 +282,7 @@ seqToSignal seq = _slow (seqDuration seq) $ seqToSignal' seq
 -- One sequence per cycle
 seqToSignal' :: Sequence a -> Signal a
 seqToSignal' (Atom m d i o (Just v)) | d == 0 = error "whoops"
-                                     | otherwise = setMetadata m $ _zoomArc (Arc i (1-o)) $ pure v
+                                     | otherwise = setMetadata m $ _zoomArc (Arc (i/d) (1-(o/d))) $ pure v
 seqToSignal' (Atom _ _ _ _ Nothing) = silence
 seqToSignal' (Cat xs) = timeCat timeseqs
   where timeseqs = map (\x -> (seqDuration x, seqToSignal' x)) xs
@@ -390,8 +390,10 @@ _seqSlow :: Time -> Sequence a -> Sequence a
 _seqSlow t = _seqFast (1/t)
 
 _seqEarly :: Time -> Sequence a -> Sequence a
-_seqEarly t seq = swapcat $ seqSplitAt' t' seq
+_seqEarly t seq | dur == 0 = seq
+                | otherwise = swapcat $ seqSplitAt' t' seq
   where t' = t `mod'` seqDuration seq
+        dur = seqDuration seq
         swapcat (a,b) = Cat [b,a]
 
 -- TODO - more general version that takes rational
@@ -519,8 +521,8 @@ pairAligned :: Direction -> (Sequence a, Sequence b) -> Sequence (a, b)
 -- TODO - 'Mixed' direction
 pairAligned Mix _ = error "TODO !!"
 
-pairAligned direction (Stack as, b) = seqCat $ map (\a -> pairAligned direction (a, b)) as
-pairAligned direction (a, Stack bs) = seqCat $ map (\b -> pairAligned direction (a, b)) bs
+pairAligned direction (Stack as, b) = Stack $ map (\a -> pairAligned direction (a, b)) as
+pairAligned direction (a, Stack bs) = Stack $ map (\b -> pairAligned direction (a, b)) bs
 
 -- TODO - should the value be Nothing if one/both are nothings?
 pairAligned In (Atom m d i o v, Atom m' _ _ _ v') = Atom (m <> m') d i o $ do a <- v

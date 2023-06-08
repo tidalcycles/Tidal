@@ -16,7 +16,7 @@ import           Sound.Tidal.EventTest
 import           Sound.Tidal.ExceptionsTest
 import           Sound.Tidal.ParamsTest
 import           Sound.Tidal.ParseBPTest
--- import           Sound.Tidal.PatternTest
+import           Sound.Tidal.PatternTest
 import           Sound.Tidal.ScalesTest
 import           Sound.Tidal.SequenceTest
 import           Sound.Tidal.SignalBaseTest
@@ -46,7 +46,7 @@ main = microspec $ do
   Sound.Tidal.ExceptionsTest.run
   Sound.Tidal.ParamsTest.run
   Sound.Tidal.ParseBPTest.run
--- Sound.Tidal.PatternTest.run
+  Sound.Tidal.PatternTest.run
   Sound.Tidal.ScalesTest.run
   Sound.Tidal.SequenceTest.run
   Sound.Tidal.SignalBaseTest.run
