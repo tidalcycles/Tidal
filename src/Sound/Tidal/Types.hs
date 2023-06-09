@@ -145,6 +145,8 @@ instance Valuable [Value] where
 type ValueMap = (Map.Map String Value)
 
 type ControlSignal = Signal ValueMap
+type ControlSequence = Sequence ValueMap
+newtype ControlPattern = Pattern ValueMap
 
 -- | A timearc and some named control values, used to query a signal
 -- with

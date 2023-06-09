@@ -44,29 +44,29 @@ import           Prelude                  hiding ((*>), (<*))
 -- Pattern instance
 
 instance Pattern Signal where
-  slowcat = sigSlowcat
-  silence = sigSilence
-  atom    = sigAtom
-  stack   = sigStack
-  _fast   = _sigFast
-  _early  = _sigEarly
-  rev     = sigRev
-  timeCat = sigTimeCat
-  when    = sigWhen
-  _ply    = _sigPly
-  _iter    = _sigIter
-  _iterBack = _sigIterBack
-  collect = sigCollect
-  uncollect = sigUncollect
-  _euclid = _sigEuclid
-  innerJoin = sigInnerJoin
-  (<*) = sigAppLeft
-  (*>) = sigAppRight
-  toSignal = id
-  _pressBy = _sigPressBy
   _appAlign  = _sigAppAlign
+  atom    = sigAtom
+  collect = sigCollect
+  _early  = _sigEarly
+  _euclid = _sigEuclid
+  _fast   = _sigFast
   filterOnsets = filterEvents eventHasOnset
   filterValues f = filterEvents (f . value)
+  innerJoin = sigInnerJoin
+  _iter    = _sigIter
+  _iterBack = _sigIterBack
+  _ply    = _sigPly
+  _pressBy = _sigPressBy
+  rev     = sigRev
+  (<*) = sigAppLeft
+  (*>) = sigAppRight
+  silence = sigSilence
+  slowcat = sigSlowcat
+  stack   = sigStack
+  timeCat = sigTimeCat
+  toSignal = id
+  uncollect = sigUncollect
+  when    = sigWhen
   withMetadata f pat = withEvents (map (\e -> e {metadata = f $ metadata e})) pat
 
 _sigAppAlign :: (a -> Signal b -> Signal c) -> Align (Signal a) (Signal b) -> Signal c

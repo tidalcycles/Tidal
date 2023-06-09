@@ -13,33 +13,33 @@ import           Sound.Tidal.Types
 -- Pattern class
 
 class (Functor p, Applicative p, Monad p) => Pattern p where
-  toSignal :: p a -> Signal a
-  slowcat :: [p a] -> p a
+  _appAlign :: (a -> p b -> p c) -> Align (p a) (p b) -> p c
+  atom :: a -> p a
+  collect :: Eq a => p a -> p [a]
+  _early :: Time -> p a -> p a
+  _euclid :: Int -> Int -> p a -> p a
+  -- every :: p Int -> (p b -> p b) -> p b -> p b
   fastcat :: [p a] -> p a
   fastcat pats = _fast (toRational $ length pats) $ slowcat pats
   _fast :: Time -> p a -> p a
-  _early :: Time -> p a -> p a
-  silence :: p a
-  atom :: a -> p a
-  stack :: [p a] -> p a
-  _appAlign :: (a -> p b -> p c) -> Align (p a) (p b) -> p c
-  rev :: p a -> p a
-  _ply :: Time -> p a-> p a
-  _euclid :: Int -> Int -> p a -> p a
-  timeCat :: [(Time, p a)] -> p a
-  -- every :: p Int -> (p b -> p b) -> p b -> p b
-  when :: p Bool -> (p b -> p b) -> p b -> p b
-  -- listToPat :: [a] -> p a
-  _iter :: Int -> p a -> p a
-  _iterBack :: Int -> p a -> p a
-  collect :: Eq a => p a -> p [a]
-  uncollect :: p [a] -> p a
-  _pressBy :: Time -> p a -> p a
-  innerJoin :: p (p a) -> p a
-  (<*) :: p (a -> b) -> p a -> p b
-  (*>) :: p (a -> b) -> p a -> p b
   filterOnsets :: p a -> p a
   filterValues :: (a -> Bool) -> p a -> p a
+  innerJoin :: p (p a) -> p a
+  _iter :: Int -> p a -> p a
+  _iterBack :: Int -> p a -> p a
+  -- listToPat :: [a] -> p a
+  (*>) :: p (a -> b) -> p a -> p b
+  (<*) :: p (a -> b) -> p a -> p b
+  _ply :: Time -> p a-> p a
+  _pressBy :: Time -> p a -> p a
+  rev :: p a -> p a
+  silence :: p a
+  slowcat :: [p a] -> p a
+  stack :: [p a] -> p a
+  timeCat :: [(Time, p a)] -> p a
+  toSignal :: p a -> Signal a
+  uncollect :: p [a] -> p a
+  when :: p Bool -> (p b -> p b) -> p b -> p b
   withMetadata :: (Metadata -> Metadata) -> p a -> p a
 
 infixl 4 <*, *>

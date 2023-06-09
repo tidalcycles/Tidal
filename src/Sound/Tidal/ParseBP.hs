@@ -192,7 +192,7 @@ toSeq = \case
    TPat_Silence           -> silence
    -- TPat_EnumFromTo
    TPat_Polyrhythm _ ps   -> S.polys $ map toSeq ps
-   TPat_Seq xs            -> fastcat $ map toSeq xs
+   TPat_Seq xs            -> cat $ map toSeq xs
    -- TPat
    -- TPat_Chord
    TPat_Repeat n p        -> Cat $ replicate n $ toSeq p

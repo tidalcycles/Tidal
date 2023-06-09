@@ -20,6 +20,7 @@ module Sound.Tidal.Control where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
+import           Data.Ratio
 import           Sound.Tidal.Compose
 import           Sound.Tidal.Params  as P
 import           Sound.Tidal.Pattern
@@ -112,3 +113,49 @@ jux = juxBy (pure 1)
 --   :: (Pattern ValueMap -> Pattern ValueMap)
 --      -> Pattern ValueMap -> Pattern ValueMap
 -- jux4 f p = stack [p # P.pan (pure (5/8)), f $ p # P.pan (pure (1/8))]
+
+{- | `spin` will "spin" a layer up a signal the given number of times,
+with each successive layer offset in time by an additional `1/n` of a
+cycle, and panned by an additional `1/n`. The result is a signal that
+seems to spin around. This function works best on multichannel
+systems.
+
+@
+d1 $ slow 3 $ spin 4 $ sound "drum*3 tabla:4 [arpy:2 ~ arpy] [can:2 can:3]"
+@
+-}
+spin :: Pattern p => p Int -> p ValueMap -> p ValueMap
+spin = _patternify _spin
+
+_spin :: Pattern p => Int -> p ValueMap -> p ValueMap
+_spin copies p =
+  stack $ map (\i -> let offset = toInteger i % toInteger copies in
+                     offset `_early` p
+                     # P.pan (pure $ fromRational offset)
+              )
+          [0 .. (copies - 1)]
+
+{- |
+`weave` applies a function smoothly over an array of different signals. It uses an `OscSignal` to
+apply the function at different levels to each signal, creating a weaving effect.
+
+@
+d1 $ weave 3 (shape $ sine1) [sound "bd [sn drum:2*2] bd*2 [sn drum:1]", sound "arpy*8 ~"]
+@
+-}
+weave :: Pattern p => Time -> p ValueMap -> [p ValueMap] -> p ValueMap
+weave t p ps = weave' t p (map (#) ps)
+
+{- | `weaveWith` is similar in that it blends functions at the same time at different amounts over a signal:
+
+@
+d1 $ weaveWith 3 (sound "bd [sn drum:2*2] bd*2 [sn drum:1]") [density 2, (# speed "0.5"), chop 16]
+@
+-}
+weaveWith :: Pattern p => Time -> p a -> [p a -> p a] -> p a
+weaveWith t p fs | l == 0 = silence
+              | otherwise = _slow t $ stack $ zipWith (\ i f -> (fromIntegral i % l) `_early` _fast t (f (_slow t p))) [0 :: Int ..] fs
+  where l = fromIntegral $ length fs
+
+weave' :: Pattern p => Time -> p a -> [p a -> p a] -> p a
+weave' = weaveWith

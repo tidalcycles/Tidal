@@ -33,6 +33,7 @@ import           Data.Ratio
 
 import           Sound.Tidal.Arc
 import           Sound.Tidal.Compose         ((#), (*|), (|*), (|/), (|=|))
+import           Sound.Tidal.Control
 import qualified Sound.Tidal.Params          as P
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Signal.Base
@@ -43,27 +44,6 @@ import           Sound.Tidal.Stream          (patternTimeID)
 import           Sound.Tidal.Types
 import           Sound.Tidal.Utils
 import           Sound.Tidal.Value
-
-{- | `spin` will "spin" a layer up a signal the given number of times,
-with each successive layer offset in time by an additional `1/n` of a
-cycle, and panned by an additional `1/n`. The result is a signal that
-seems to spin around. This function works best on multichannel
-systems.
-
-@
-d1 $ slow 3 $ spin 4 $ sound "drum*3 tabla:4 [arpy:2 ~ arpy] [can:2 can:3]"
-@
--}
-spin :: Signal Int -> ControlSignal -> ControlSignal
-spin = _patternify _spin
-
-_spin :: Int -> ControlSignal -> ControlSignal
-_spin copies p =
-  stack $ map (\i -> let offset = toInteger i % toInteger copies in
-                     offset `_early` p
-                     # P.pan (pure $ fromRational offset)
-              )
-          [0 .. (copies - 1)]
 
 
 
@@ -207,31 +187,6 @@ _chopgap :: Int -> ControlSignal -> ControlSignal
 _chopgap n p = _fast (toRational n) (cat [pure 1, silence]) |=| _chop n p
 
 {- |
-`weave` applies a function smoothly over an array of different signals. It uses an `OscSignal` to
-apply the function at different levels to each signal, creating a weaving effect.
-
-@
-d1 $ weave 3 (shape $ sine1) [sound "bd [sn drum:2*2] bd*2 [sn drum:1]", sound "arpy*8 ~"]
-@
--}
-weave :: Time -> ControlSignal -> [ControlSignal] -> ControlSignal
-weave t p ps = weave' t p (map (#) ps)
-
-{- | `weaveWith` is similar in that it blends functions at the same time at different amounts over a signal:
-
-@
-d1 $ weaveWith 3 (sound "bd [sn drum:2*2] bd*2 [sn drum:1]") [density 2, (# speed "0.5"), chop 16]
-@
--}
-weaveWith :: Time -> Signal a -> [Signal a -> Signal a] -> Signal a
-weaveWith t p fs | l == 0 = silence
-              | otherwise = _slow t $ stack $ zipWith (\ i f -> (fromIntegral i % l) `_early` _fast t (f (_slow t p))) [0 :: Int ..] fs
-  where l = fromIntegral $ length fs
-
-weave' :: Time -> Signal a -> [Signal a -> Signal a] -> Signal a
-weave' = weaveWith
-
-{- |
 (A function that takes two ControlSignals, and blends them together into
 a new ControlSignal. An ControlSignal is basically a signal of messages to
 a synthesiser.)
@@ -273,20 +228,20 @@ en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate 
 
 -}
 
-slice :: Signal Int -> Signal Int -> ControlSignal -> ControlSignal
+randslice :: Signal Int -> ControlSignal -> ControlSignal
+randslice = _patternify $ \n p -> innerJoin $ (\i -> _slice n i p) <$> _irand n
+
+slice :: Pattern p => p Int -> p Int -> p ValueMap -> p ValueMap
 slice pN pI p = P.begin b # P.end e # p
   where b = div' <$> pI <* pN
         e = (\i n -> div' i n + div' 1 n) <$> pI <* pN
         div' num den = fromIntegral (num `mod` den) / fromIntegral den
 
-_slice :: Int -> Int -> ControlSignal -> ControlSignal
+_slice :: Pattern p => Int -> Int -> p ValueMap -> p ValueMap
 _slice n i p =
       p
       # P.begin (pure $ fromIntegral i / fromIntegral n)
       # P.end (pure $ fromIntegral (i+1) / fromIntegral n)
-
-randslice :: Signal Int -> ControlSignal -> ControlSignal
-randslice = _patternify $ \n p -> innerJoin $ (\i -> _slice n i p) <$> _irand n
 
 _splice :: Int -> Signal Int -> ControlSignal -> Signal (Map.Map String Value)
 _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure "c")

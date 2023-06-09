@@ -131,33 +131,33 @@ instance Monad Sequence where
   seqv >>= f = seqJoin $ fmap f seqv
 
 instance Pattern Sequence where
-  toSignal = seqToSignal
-  slowcat = seqCat
+  (*>) = (<*>)
+  _appAlign _ _ = error "TODO !!"
+  atom = step 1
+  collect = seqCollect
+  _early = _seqEarly
+  _euclid = _seqEuclid
   fastcat = seqFastcat
   _fast = _seqFast
-  _early = _seqEarly
-  silence = gap 1
-  atom = step 1
-  stack = Stack
-  innerJoin = seqSqueezeJoin -- TODO - is this right?
-  (<*) = (<*>) -- TODO - are these right? Probably not..
-  (*>) = (<*>)
-  rev = seqRev
-  _ply = _seqPly
-  timeCat = seqTimeCat
-  _iter = _seqIter
-  _iterBack = _seqIterBack
-  _pressBy = _seqPressBy
-  when = seqWhenS Expand
-  _euclid = _seqEuclid
-  collect = seqCollect
-  uncollect = seqUncollect
   filterOnsets = seqFilterOnsets
   filterValues = seqFilterValues
+  innerJoin = seqSqueezeJoin -- TODO - is this right?
+  _iterBack = _seqIterBack
+  _iter = _seqIter
+  _ply = _seqPly
+  _pressBy = _seqPressBy
+  rev = seqRev
+  silence = gap 1
+  slowcat = seqCat
+  stack = Stack
+  timeCat = seqTimeCat
+  (<*) = (<*>) -- TODO - are these right? Probably not..
+  toSignal = seqToSignal
+  uncollect = seqUncollect
+  when = seqWhenS Expand
   withMetadata f pat = withAtom f' pat
     where f' (Atom m d i o v) = Atom (f m) d i o v
           f' x                = x
-  _appAlign _ _ = error "TODO !!"
 
 filterAtoms :: (Sequence a -> Bool) -> Sequence a -> Sequence a
 filterAtoms f a@(Atom m d i o _) | f a = a
