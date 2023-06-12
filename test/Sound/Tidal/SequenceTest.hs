@@ -35,17 +35,17 @@ run =
                 a 0.5 0 0 Nothing
                ] :: Sequence (Int,Int))
     describe "alignF" $ do
-      it "Can align and combine two sequences by Expansion and addition" $ do
+      it "Can align and combine two sequences by expansion and addition" $ do
         ((alignF Expand In (+) "0 1 2" "10 20") :: Sequence Int)
           `metaless`
           (Cat [a 1 0 0 $ Just 10, a 0.5 0 0.5 $ Just 11, a 0.5 0.5 0 $ Just 21,
                 a 1 0 0 $ Just 22])
-      it "Can align and combine subsequences by Expansion and addition" $ do
+      it "Can align and combine subsequences by expansion and addition with subsequence" $ do
         ((alignF Expand In (+) "0 [1 2] 3" "10 20") :: Sequence Int)
           `metaless`
           (Cat [a 1 0 0 $ Just 10, a 0.5 0 0 $ Just 11, a 0.5 0 0 $ Just 22,
                 a 1 0 0 $ Just 23])
-      it "Can align and combine subsequences by Expansion and addition" $ do
+      it "Can align and combine subsequences by Expansion and addition with subsequences on both sides" $ do
         ((alignF Expand In (+) "0 [1 2] 3" "10 [20 30]") :: Sequence Int)
           `metaless`
           (Cat [a 1 0 0 $ Just 10, a 0.5 0 0 $ Just 11, a 0.5 0 0 $ Just 22,
@@ -59,3 +59,8 @@ run =
            Event (Metadata []) (Just $ Arc (1/2) (5/6)) (Arc (1/2) (2/3)) 22,
            Event (Metadata []) (Just $ Arc (1/2) (5/6)) (Arc (2/3) (5/6)) 32
           ]
+      it "Can convert half an event" $ do
+        compareP (Arc 0 1)
+          (beatMode 0.5 $ Atom (Metadata []) 0.5 0 0.5 (Just 'a'))
+          (_slow 2 $ pure 'a')
+

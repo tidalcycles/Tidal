@@ -19,8 +19,8 @@ import           Sound.Tidal.Show        ()
 import           Sound.Tidal.Signal.Base (_zoomArc)
 import           Sound.Tidal.Time
 import           Sound.Tidal.Types
--- | Instances
 
+-- | Instances
 
 seqNoOv :: String -> a
 seqNoOv meth = error $ meth ++ ": not supported for sequences"
@@ -107,23 +107,23 @@ instance Applicative Sequence where
   pure = step 1
   fseq <*> vseq = (\(f,v) -> f v) <$> pairAlign Repeat In fseq vseq
 
-seqJoin :: Sequence (Sequence a) -> Sequence a
-seqJoin (Atom m d i o (Just seq)) = addMetadata m $ _fast (innerDur / d) actives
-  where innerDur = seqDuration seq
-        skipHead = (i/d) * innerDur
-        skipTail = (o/d) * innerDur
-        body = innerDur - (skipHead + skipTail)
-        actives = seqTake' body $ seqDrop' skipHead seq
-seqJoin (Atom m d i o Nothing) = Atom m d i o Nothing
-seqJoin (Cat xs) = Cat $ map seqJoin xs
-seqJoin (Stack xs) = Stack $ map seqJoin xs
+-- seqJoin :: Sequence (Sequence a) -> Sequence a
+-- seqJoin (Atom m d i o (Just seq)) = addMetadata m $ _fast (innerDur / d) actives
+--   where innerDur = seqDuration seq
+--         skipHead = (i/d) * innerDur
+--         skipTail = (o/d) * innerDur
+--         body = innerDur - (skipHead + skipTail)
+--         actives = seqTake' body $ seqDrop' skipHead seq
+-- seqJoin (Atom m d i o Nothing) = Atom m d i o Nothing
+-- seqJoin (Cat xs) = Cat $ map seqJoin xs
+-- seqJoin (Stack xs) = Stack $ map seqJoin xs
 
-seqSqueezeJoin :: Sequence (Sequence a) -> Sequence a
--- TODO should this slow by d + i + o ?
-seqSqueezeJoin (Atom m d _ _ (Just seq)) = addMetadata m $ _slow d seq
-seqSqueezeJoin (Atom m d i o Nothing)    = Atom m d i o Nothing
-seqSqueezeJoin (Cat xs)                  = Cat $ map seqSqueezeJoin xs
-seqSqueezeJoin (Stack xs)                = Stack $ map seqSqueezeJoin xs
+-- Concatenate, using outer duration as relative duration for inner
+seqJoin :: Sequence (Sequence a) -> Sequence a
+seqJoin (Atom m d i o (Just seq)) = addMetadata m $ _slow (d + i + o) seq
+seqJoin (Atom m d i o Nothing)    = Atom m d i o Nothing
+seqJoin (Cat xs)                  = Cat $ map seqJoin xs
+seqJoin (Stack xs)                = Stack $ map seqJoin xs
 
 -- | TODO - does this need to be more complicated?
 instance Monad Sequence where
@@ -141,7 +141,7 @@ instance Pattern Sequence where
   _fast = _seqFast
   filterOnsets = seqFilterOnsets
   filterValues = seqFilterValues
-  innerJoin = seqSqueezeJoin -- TODO - is this right?
+  innerJoin = seqJoin -- TODO - only one kind of join?
   _iterBack = _seqIterBack
   _iter = _seqIter
   _ply = _seqPly
@@ -282,7 +282,8 @@ seqToSignal seq = _slow (seqDuration seq) $ seqToSignal' seq
 -- One sequence per cycle
 seqToSignal' :: Sequence a -> Signal a
 seqToSignal' (Atom m d i o (Just v)) | d == 0 = error "whoops"
-                                     | otherwise = setMetadata m $ _zoomArc (Arc (i/d) (1-(o/d))) $ pure v
+                                     | otherwise = setMetadata m $ _zoomArc (Arc (i/t) (1-(o/t))) $ pure v
+  where t = d + i + o
 seqToSignal' (Atom _ _ _ _ Nothing) = silence
 seqToSignal' (Cat xs) = timeCat timeseqs
   where timeseqs = map (\x -> (seqDuration x, seqToSignal' x)) xs

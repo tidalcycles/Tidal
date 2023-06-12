@@ -242,10 +242,10 @@ parseBP_E s = toE parsed
     toE (Right tp) = toPat tp
 
 parseSeq_E :: (Enumerable a, Parseable a) => String -> Sequence a
-parseSeq_E s =  _slow l $ toSeq parsed
+parseSeq_E s =  toSeq parsed
   where
     -- Temporary hack to get around the Show constraint..
-    l = fst $ steps_tpat (const ("" :: String) <$> parsed)
+    -- l = fst $ steps_tpat (const ("" :: String) <$> parsed)
     parsed = toE $ parseTPat s
     toE (Left e)   = E.throw $ TidalParseError {parsecError = e, code = s}
     toE (Right tp) = tp

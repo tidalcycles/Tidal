@@ -24,6 +24,5 @@ run =
 
     describe "quantise" $ do
       it "can quantise notes" $ do
-        compareP (Arc 0 1)
-          (segment 2 $ quantise 1 $ sine :: Signal Note)
+        compareP (Arc 0 1)          (segment 2 $ quantise 1 $ sine :: Signal Note)
           ("1 0" :: Signal Note)
