@@ -15,7 +15,8 @@ import           Sound.Tidal.Types
 a :: Time -> Time -> Time -> Maybe a -> Sequence a
 a = Atom (Metadata [])
 
-metaless a b = (stripMetadata a) `shouldBe` (stripMetadata b)
+metaless :: (Eq (p a), Show (p a), Pattern p) => p a -> p a -> Property
+metaless x y = (stripMetadata x) `shouldBe` (stripMetadata y)
 
 run :: Microspec ()
 run =

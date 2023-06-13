@@ -2,17 +2,14 @@
 
 module Sound.Tidal.SignalComposeTest where
 
-import           Test.Microspec
-import           TestUtils
-
 import           Prelude                  hiding ((*>), (<*))
-
-import           Sound.Tidal.Compose
+-- import           Sound.Tidal.Compose
 import           Sound.Tidal.ComposeExtra
 import           Sound.Tidal.Params       (s)
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Types
+import           Test.Microspec
+import           TestUtils
 
 run :: Microspec ()
 run =

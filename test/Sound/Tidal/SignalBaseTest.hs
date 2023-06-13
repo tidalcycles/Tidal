@@ -22,7 +22,7 @@ import           Sound.Tidal.Pattern         (_slow, append, atom, cat, early,
                                               timeCat, (*>), (<*), (<~), (~>))
 import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Signal.Random   (irand)
-import           Sound.Tidal.Signal.Waveform (saw, sine, tri)
+import           Sound.Tidal.Signal.Waveform (saw, tri)
 import           Sound.Tidal.Types
 
 import qualified Data.Map.Strict             as Map

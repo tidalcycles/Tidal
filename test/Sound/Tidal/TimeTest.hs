@@ -2,15 +2,10 @@
 
 module Sound.Tidal.TimeTest where
 
-import           Test.Microspec
-import           TestUtils
-
-import           Prelude             hiding ((*>), (<*))
-
-import           Data.Ratio
-
+import           Prelude           hiding ((*>), (<*))
 import           Sound.Tidal.Time
 import           Sound.Tidal.Types
+import           Test.Microspec
 
 run :: Microspec ()
 run =

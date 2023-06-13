@@ -7,8 +7,6 @@ import           TestUtils
 
 import           Prelude                     hiding ((*>), (<*))
 
-import           Data.Ratio
-
 import           Sound.Tidal.Compose         (struct)
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Signal.Base

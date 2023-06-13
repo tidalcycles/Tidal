@@ -51,8 +51,8 @@ compareTol :: Arc -> ControlSignal -> ControlSignal -> Bool
 compareTol a p p' = (sort $ queryArc (stripMetadata p) a) ~== (sort $ queryArc (stripMetadata p') a)
 
 -- | Utility to create a pattern from a String
-ps :: String -> Signal String
-ps = parseBP_E
+stringPat :: String -> Signal String
+stringPat = parseBP_E
 
 toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
 toEvent (((ws, we), (ps, pe)), v) = Event (Metadata []) (Just $ Arc ws we) (Arc ps pe) v

@@ -3,13 +3,11 @@
 module Sound.Tidal.ParseBPTest where
 
 import           Control.Exception
+import           Prelude                    hiding ((*>), (<*))
+import           Sound.Tidal.ExceptionsTest (anyException, shouldThrow)
 import           Test.Microspec
 import           TestUtils
-
-import           Prelude                    hiding ((*>), (<*))
-
-import           Sound.Tidal.ExceptionsTest (anyException, shouldThrow)
-import           Sound.Tidal.ParseBP
+-- import           Sound.Tidal.ParseBP
 import           Sound.Tidal.Pattern        (cat, fast, fastCat, fastcat,
                                              silence, slow, stack, timeCat)
 import           Sound.Tidal.Signal.Random  (_degradeBy)

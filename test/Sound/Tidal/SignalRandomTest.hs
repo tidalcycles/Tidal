@@ -22,16 +22,16 @@ run =
       it "does nothing when set at 0% probability" $ do
         let
           overTimeSpan = (Arc 0  1)
-          testMe = sometimesBy 0 (rev) (ps "bd*2 hh sn")
-          expectedResult = ps "bd*2 hh sn"
+          testMe = sometimesBy 0 (rev) (stringPat "bd*2 hh sn")
+          expectedResult = stringPat "bd*2 hh sn"
           in
             compareP overTimeSpan testMe expectedResult
 
       it "applies the 'rev' function when set at 100% probability" $ do
         let
           overTimeSpan = (Arc 0  1)
-          testMe = sometimesBy 1 (rev) (ps "bd*2 hh cp")
-          expectedResult = ps "cp hh bd*2"
+          testMe = sometimesBy 1 (rev) (stringPat "bd*2 hh cp")
+          expectedResult = stringPat "cp hh bd*2"
           in
             compareP overTimeSpan testMe expectedResult
 

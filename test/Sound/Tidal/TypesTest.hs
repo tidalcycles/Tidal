@@ -2,16 +2,9 @@
 
 module Sound.Tidal.TypesTest where
 
-import           Test.Microspec
-import           TestUtils
-
-import           Prelude             hiding ((*>), (<*))
-
-import           Data.Ratio
-
+import           Prelude           hiding ((*>), (<*))
 import           Sound.Tidal.Types
-
-import qualified Data.Map.Strict     as Map
+import           Test.Microspec
 
 run :: Microspec ()
 run =
@@ -34,27 +27,27 @@ run =
         it "returns the event value in an Event" $ do
           property $ 5 === value (Event (Metadata []) (Just $ Arc (1 :: Rational) 2) (Arc 3 4) ( 5 :: Int))
 {-
-    describe "wholeStart" $ do 
-      it "retrieve first element of a tuple, inside first element of a tuple, inside the first of another" $ do 
+    describe "wholeStart" $ do
+      it "retrieve first element of a tuple, inside first element of a tuple, inside the first of another" $ do
         property $ 1 === wholeStart (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "wholeStop" $ do
       it "retrieve the end time from the first Arc in an Event" $ do
         property $ 2 === wholeStop (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
-    describe "eventActiveStart" $ do 
-      it "retrieve the start time of the second Arc in an Event" $ do 
+    describe "eventActiveStart" $ do
+      it "retrieve the start time of the second Arc in an Event" $ do
         property $ 3 === eventActiveStart (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
-    describe "eventActiveStop" $ do 
-      it "retrieve the end time of the second Arc in an Event" $ do 
+    describe "eventActiveStop" $ do
+      it "retrieve the end time of the second Arc in an Event" $ do
         property $ 4 === eventActiveStop (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
-    
-    describe "eventActive" $ do 
-      it "retrieve the second Arc in an Event" $ do 
+
+    describe "eventActive" $ do
+      it "retrieve the second Arc in an Event" $ do
         property $ Arc 3 4 === eventActive (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
-    
+
     describe "eventValue" $ do
-      it "retrieve the second value from a tuple" $ do 
+      it "retrieve the second value from a tuple" $ do
         property $ 5 === eventValue (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "arcCyclesZW" $ do
@@ -82,7 +75,7 @@ run =
 
 {-
 
-        
+
 
     -- pending "Sound.Tidal.Signal.eventL" $ do
     --  it "succeeds if the first event 'whole' is shorter" $ do

@@ -2,17 +2,11 @@
 
 module Sound.Tidal.ArcTest where
 
-import           Test.Microspec
-import           TestUtils
-
-import           Prelude             hiding ((*>), (<*))
-
 import           Data.Ratio
-
-import           Sound.Tidal.Types
+import           Prelude           hiding ((*>), (<*))
 import           Sound.Tidal.Arc
-
-import qualified Data.Map.Strict     as Map
+import           Sound.Tidal.Types
+import           Test.Microspec
 
 run :: Microspec ()
 run =
@@ -26,14 +20,14 @@ run =
        it "(1,2,1)" $ splitArcs (Arc 1 2.1) `shouldBe` [(Arc 1 2),(Arc 2 2.1)]
        it "(3 + (1%3),5.1)" $
           splitArcs (Arc (3 + (1%3)) 5.1) `shouldBe` [(Arc (3+(1%3)) 4),(Arc 4 5),(Arc 5 5.1)]
-     it "if start time is greater than end time return empty list" $ do 
+     it "if start time is greater than end time return empty list" $ do
        let res = splitArcs (Arc 2.3 2.1)
-       property $ [] === res 
-     it "if start time is equal to end time, still return zero-width arc" $ do 
+       property $ [] === res
+     it "if start time is equal to end time, still return zero-width arc" $ do
        let res = splitArcs (Arc 3 3)
        property $ [Arc 3 3] === res
      it "if start and end time round down to same value return list of (start, end)" $ do
-       let res = splitArcs (Arc 2.1 2.3) 
+       let res = splitArcs (Arc 2.1 2.3)
        property $ [(Arc 2.1 2.3)] === res
      it "if start time is less than end time and start time does not round down to same value as end time" $ do
        let res = splitArcs (Arc 2.1 3.3)
@@ -58,18 +52,18 @@ run =
         let res = isIn (Arc 2.0 2.8) 3.2
         property $ False === res
 
-    describe "sect" $ do 
+    describe "sect" $ do
       it "take two Arcs and return - Arc (max of two starts) (min of two ends)" $ do
         let res = sect (Arc 2.2 3) (Arc 2 2.9)
         property $ Arc 2.2 2.9 == res
 
-    describe "hull" $ do 
+    describe "hull" $ do
       it "take two Arcs and return - Arc (min of two starts) (max of two ends)" $ do
-        let res = hull (Arc 2.2 3) (Arc 2 2.9) 
+        let res = hull (Arc 2.2 3) (Arc 2 2.9)
         property $ Arc 2 3 == res
 
     describe "maybeSect" $ do
-      it "Checks if an Arc is within another, returns Just (max $ (fst a1) (fst a2), min $ (snd a1) (snd a2)) if so, otherwise Nothing" $ do       
+      it "Checks if an Arc is within another, returns Just (max $ (fst a1) (fst a2), min $ (snd a1) (snd a2)) if so, otherwise Nothing" $ do
         let res = maybeSect (Arc 2.1 2.4) (Arc 2.4 2.8)
         property $ Nothing === res
       it "if max (fst arc1) (fst arc2) <= min (snd arc1) (snd arc2) return Just (max (fst arc1) (fst arc2), min...)" $ do
@@ -78,5 +72,5 @@ run =
 
     describe "timeToCycleArc" $ do
       it "given a Time value return the Arc in which it resides" $ do
-        let res = timeToCycleArc 2.2 
+        let res = timeToCycleArc 2.2
         property $ (Arc 2.0 3.0) === res
