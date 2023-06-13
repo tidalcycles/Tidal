@@ -178,9 +178,13 @@ toPat = \case
    p@(TPat_Repeat _ _) -> toPat $ TPat_Seq [p] --this is a bit of a hack
    _ -> silence
 
-
 toSeq :: (Parseable a, Enumerable a) => TPat a -> Sequence a
-toSeq = \case
+-- use cat rather than fastcat on the first level
+toSeq (TPat_Seq xs) = cat $ map toSeqInner xs
+toSeq x             = toSeqInner x
+
+toSeqInner :: (Parseable a, Enumerable a) => TPat a -> Sequence a
+toSeqInner = \case
    TPat_Atom (Just loc) x -> addMetadata (Metadata [loc]) $ S.step 1 x
    TPat_Atom Nothing x    -> S.step 1 x
    TPat_Fast t x          -> fast (toSeq t) $ toSeq x
@@ -192,7 +196,7 @@ toSeq = \case
    TPat_Silence           -> silence
    -- TPat_EnumFromTo
    TPat_Polyrhythm _ ps   -> S.polys $ map toSeq ps
-   TPat_Seq xs            -> cat $ map toSeq xs
+   TPat_Seq xs            -> fastcat $ map toSeq xs
    -- TPat
    -- TPat_Chord
    TPat_Repeat n p        -> Cat $ replicate n $ toSeq p
