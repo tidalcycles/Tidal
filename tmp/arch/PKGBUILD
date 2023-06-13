@@ -29,8 +29,8 @@ optdepends=('sc3-plugins: Examples using special UGens')
 conflicts=(tidalcycles)
 replaces=(tidalcycles)
 source=(https://hackage.haskell.org/package/tidal-2.0.0/candidate/tidal-2.0.0.tar.gz)
-sha512sums=('ff2f9e8a6b565a9eb2e9d704058389f433a032a521475d68ce52191545263ef63b3e5e57f94c6c5f58156e75c22741aa612618682c44232b50d7272e004d8e3f')
-b2sums=('e3a82e790ea55ac5bb767370ad790dd20f91686749a3e2444026ec892b99ff5b9a85bcd3629ec8401f1c20abb1866a687613cdddb551e3dce30db2b2e3cb2a74')
+sha512sums=('7c2cf5e1ebb66ff0d003c02a0129f1c40ad28a417cbe6a553c7ed11384005c01aa2b5a32551805346a105382bb37f8e8929fb0b17edbdaaf38453f39360005cc')
+b2sums=('a34fd120fac09bf5bdc737364f6055bf5170d61446f97bb3cc166de89de387f9671bef50bed8f9d6d0e335d12c5c3464e4d7571217a7e5293bfebe518222c274')
 
 build() {
   local configure_options=(
