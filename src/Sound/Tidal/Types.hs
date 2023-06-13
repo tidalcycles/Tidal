@@ -153,6 +153,7 @@ newtype ControlPattern = Pattern ValueMap
 data State = State {sArc      :: Arc,
                     sControls :: ValueMap
                    }
+             deriving Generic
 
 -- | Arc - an arc of time, with a start time (or onset) and a stop
 -- time (or offset). Also known as a 'timespan'.
@@ -200,7 +201,7 @@ data Event a = Event {metadata :: Metadata,
                       active   :: Arc,
                       value    :: a
                      }
-  deriving (Functor, Eq, Ord)
+  deriving (Functor, Eq, Ord, Generic)
 
 -- | A signal - a function from time to events. Known as a Pattern in tidal v1.
 newtype Signal a = Signal {query :: State -> [Event a]}
@@ -216,7 +217,7 @@ data Sequence a = Atom {atomMetadata :: Metadata,
                        }
                 | Cat [Sequence a]
                 | Stack [Sequence a]
-                deriving (Eq, Ord)
+                deriving (Eq, Ord, Generic)
 
 newtype Alignment a = Alignment [Sequence a]
 
