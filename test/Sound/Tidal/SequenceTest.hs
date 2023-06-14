@@ -13,7 +13,7 @@ import           Sound.Tidal.Signal.Base (queryArc)
 import           Sound.Tidal.Types
 
 a :: Time -> Time -> Time -> Maybe a -> Sequence a
-a = Atom (Metadata [])
+a = Atom mempty
 
 metaless :: (Eq (p a), Show (p a), Pattern p) => p a -> p a -> Property
 metaless x y = (stripMetadata x) `shouldBe` (stripMetadata y)
@@ -55,13 +55,13 @@ run =
       it "Can turn a sequence into a signal" $ do
         (queryArc (stripMetadata (seqToSignal' ( alignF Centre Out (+) ("10 20 30") ("1 2")) :: Signal Int)) (Arc 0 1))
           `shouldBe`
-          [Event (Metadata []) (Just $ Arc (1/6) (1/2)) (Arc (1/6) (1/3)) 11,
-           Event (Metadata []) (Just $ Arc (1/6) (1/2)) (Arc (1/3) (1/2)) 21,
-           Event (Metadata []) (Just $ Arc (1/2) (5/6)) (Arc (1/2) (2/3)) 22,
-           Event (Metadata []) (Just $ Arc (1/2) (5/6)) (Arc (2/3) (5/6)) 32
+          [Event mempty (Just $ Arc (1/6) (1/2)) (Arc (1/6) (1/3)) 11,
+           Event mempty (Just $ Arc (1/6) (1/2)) (Arc (1/3) (1/2)) 21,
+           Event mempty (Just $ Arc (1/2) (5/6)) (Arc (1/2) (2/3)) 22,
+           Event mempty (Just $ Arc (1/2) (5/6)) (Arc (2/3) (5/6)) 32
           ]
       it "Can convert half an event" $ do
         compareP (Arc 0 1)
-          (beatMode 0.5 $ Atom (Metadata []) 0.5 0 0.5 (Just 'a'))
+          (beatMode 0.5 $ Atom mempty 0.5 0 0.5 (Just 'a'))
           (_slow 2 $ pure 'a')
 

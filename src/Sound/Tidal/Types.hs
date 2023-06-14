@@ -268,3 +268,10 @@ withAtom f a@Atom {}  = f a
 withAtom f (Cat xs)   = Cat $ map (withAtom f) xs
 withAtom f (Stack xs) = Stack $ map (withAtom f) xs
 
+class Stringy a where
+  deltaMetadata :: Int -> Int -> a -> a
+
+-- deltaMetadata on an actual (non overloaded) string is a no-op
+instance Stringy String where
+  deltaMetadata _ _ = id
+

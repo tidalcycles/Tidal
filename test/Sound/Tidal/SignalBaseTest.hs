@@ -32,13 +32,13 @@ run =
   describe "Sound.Tidal.Signal.Base" $ do
     describe "atom" $ do
       it "fills a whole cycle" $ do
-        property $ queryArc (atom 0) (Arc 0 1) === [(Event (Metadata []) (Just $ Arc 0 1) (Arc 0 1) (0 :: Int))]
+        property $ queryArc (atom 0) (Arc 0 1) === [(Event mempty (Just $ Arc 0 1) (Arc 0 1) (0 :: Int))]
       it "returns the active of an atom that you ask for, preserving the whole" $ do
-        property $ queryArc (atom 0) (Arc 0.25 0.75) === [(Event (Metadata []) (Just $ Arc 0 1) (Arc 0.25 0.75) (0 :: Int))]
+        property $ queryArc (atom 0) (Arc 0.25 0.75) === [(Event mempty (Just $ Arc 0 1) (Arc 0.25 0.75) (0 :: Int))]
       it "gives correct fragments when you go over cycle boundaries" $ do
         property $ queryArc (atom 0) (Arc 0.25 1.25) ===
-          [ (Event (Metadata []) (Just $ Arc 0 1) (Arc 0.25 1) (0 :: Int)),
-            (Event (Metadata []) (Just $ Arc 1 2) (Arc 1 1.25) 0)
+          [ (Event mempty (Just $ Arc 0 1) (Arc 0.25 1) (0 :: Int)),
+            (Event mempty (Just $ Arc 1 2) (Arc 1 1.25) 0)
           ]
       it "works with zero-length queries" $ do
         it "0" $
@@ -52,14 +52,14 @@ run =
       it "copes with cross-cycle queries" $ do
         (queryArc(_fastGap 2 $ fastCat [atom "a", atom "b"]) (Arc 0.5 1.5))
           `shouldBe`
-          [(Event (Metadata []) (Just $ Arc (1 % 1) (5 % 4)) (Arc (1 % 1) (5 % 4)) ("a" :: String)),
-           (Event (Metadata []) (Just $ Arc (5 % 4) (3 % 2)) (Arc (5 % 4) (3 % 2)) "b")
+          [(Event mempty (Just $ Arc (1 % 1) (5 % 4)) (Arc (1 % 1) (5 % 4)) ("a" :: String)),
+           (Event mempty (Just $ Arc (5 % 4) (3 % 2)) (Arc (5 % 4) (3 % 2)) "b")
           ]
       it "copes with breaking up events across cycles" $ do
         (queryArc (stripMetadata $ _fastGap 2 $ slow 2 "a") (Arc 0 2))
           `shouldBe`
-          [(Event (Metadata []) (Just $ Arc 0 1) (Arc 0 0.5) ("a" :: String)),
-           (Event (Metadata []) (Just $ Arc 0.5 1.5) (Arc 1 1.5) "a")
+          [(Event mempty (Just $ Arc 0 1) (Arc 0 0.5) ("a" :: String)),
+           (Event mempty (Just $ Arc 0.5 1.5) (Arc 1 1.5) "a")
           ]
 
 
@@ -157,9 +157,9 @@ run =
             b = fastCat [atom "c", atom "d", atom "e"]
             pp = fastCat [atom a, atom b]
         queryArc (mixJoin pp) (Arc 0 1)
-          `shouldBe` [(Event (Metadata []) (Just $ Arc (0 % 1) (1 % 2)) (Arc (0 % 1) (1 % 2)) ("a" :: String)),
-                      (Event (Metadata []) (Just $ Arc (1 % 2) (2 % 3)) (Arc (1 % 2) (2 % 3)) "d"),
-                      (Event (Metadata []) (Just $ Arc (2 % 3) (1 % 1)) (Arc (2 % 3) (1 % 1)) "e")
+          `shouldBe` [(Event mempty (Just $ Arc (0 % 1) (1 % 2)) (Arc (0 % 1) (1 % 2)) ("a" :: String)),
+                      (Event mempty (Just $ Arc (1 % 2) (2 % 3)) (Arc (1 % 2) (2 % 3)) "d"),
+                      (Event mempty (Just $ Arc (2 % 3) (1 % 1)) (Arc (2 % 3) (1 % 1)) "e")
                      ]
 
     describe "squeezeJoin" $ do
@@ -168,11 +168,11 @@ run =
             b = fastCat [atom "c", atom "d", atom "e"]
             pp = fastCat [atom a, atom b]
         queryArc (squeezeJoin pp) (Arc 0 1)
-          `shouldBe` [(Event (Metadata []) (Just $ Arc (0 % 1) (1 % 4)) (Arc (0 % 1) (1 % 4)) ("a" :: String)),
-                      (Event (Metadata []) (Just $ Arc (1 % 4) (1 % 2)) (Arc (1 % 4) (1 % 2)) "b"),
-                      (Event (Metadata []) (Just $ Arc (1 % 2) (2 % 3)) (Arc (1 % 2) (2 % 3)) "c"),
-                      (Event (Metadata []) (Just $ Arc (2 % 3) (5 % 6)) (Arc (2 % 3) (5 % 6)) "d"),
-                      (Event (Metadata []) (Just $ Arc (5 % 6) (1 % 1)) (Arc (5 % 6) (1 % 1)) "e")
+          `shouldBe` [(Event mempty (Just $ Arc (0 % 1) (1 % 4)) (Arc (0 % 1) (1 % 4)) ("a" :: String)),
+                      (Event mempty (Just $ Arc (1 % 4) (1 % 2)) (Arc (1 % 4) (1 % 2)) "b"),
+                      (Event mempty (Just $ Arc (1 % 2) (2 % 3)) (Arc (1 % 2) (2 % 3)) "c"),
+                      (Event mempty (Just $ Arc (2 % 3) (5 % 6)) (Arc (2 % 3) (5 % 6)) "d"),
+                      (Event mempty (Just $ Arc (5 % 6) (1 % 1)) (Arc (5 % 6) (1 % 1)) "e")
                      ]
 
     describe ">>=" $ do
@@ -218,7 +218,7 @@ run =
     describe "cF_" $ do
       it "can retrieve values from state" $
        (query (atom 3 + cF_ "hello") $ State (Arc 0 1) (Map.singleton "hello" (VF 0.5)))
-       `shouldBe` [(Event (Metadata []) (Just $ Arc (0 % 1) (1 % 1)) (Arc (0 % 1) (1 % 1)) 3.5)]
+       `shouldBe` [(Event mempty (Just $ Arc (0 % 1) (1 % 1)) (Arc (0 % 1) (1 % 1)) 3.5)]
 
     describe "withEventArc" $ do
      it "apply given function to the Arcs" $ do
@@ -566,34 +566,34 @@ run =
         describe "from 3 to 4" $ do
           it "at the start of a cycle" $
             (queryArc (range 3 4 saw) (Arc 0 0)) `shouldBe`
-              [Event (Metadata []) Nothing (Arc 0 0) (3 :: Float)]
+              [Event mempty Nothing (Arc 0 0) (3 :: Float)]
           it "at 1/4 of a cycle" $
             (queryArc (range 3 4 saw) (Arc 0.25  0.25)) `shouldBe`
-              [Event (Metadata []) Nothing (Arc 0.25 0.25) (3.25 :: Float)]
+              [Event mempty Nothing (Arc 0.25 0.25) (3.25 :: Float)]
           it "at 3/4 of a cycle" $
             (queryArc (range 3 4 saw) (Arc 0.75 0.75)) `shouldBe`
-              [Event (Metadata []) Nothing (Arc 0.75 0.75) (3.75 :: Float)]
+              [Event mempty Nothing (Arc 0.75 0.75) (3.75 :: Float)]
 
         describe "from -1 to 1" $ do
           it "at 1/2 of a cycle" $
             (queryArc (range (-1) 1 saw) (Arc 0.5 0.5)) `shouldBe`
-              [Event (Metadata []) Nothing (Arc 0.5 0.5) (0 :: Float)]
+              [Event mempty Nothing (Arc 0.5 0.5) (0 :: Float)]
 
         describe "from 4 to 2" $ do
           it "at the start of a cycle" $
             (queryArc (range 4 2 saw) (Arc 0 0)) `shouldBe`
-              [Event (Metadata []) Nothing (Arc 0 0) (4 :: Float)]
+              [Event mempty Nothing (Arc 0 0) (4 :: Float)]
           it "at 1/4 of a cycle" $
             (queryArc (range 4 2 saw) (Arc 0.25 0.25)) `shouldBe`
-              [Event (Metadata []) Nothing (Arc 0.25 0.25) (3.5 :: Float)]
+              [Event mempty Nothing (Arc 0.25 0.25) (3.5 :: Float)]
           it "at 3/4 of a cycle" $
             (queryArc (range 4 2 saw) (Arc 0.75 0.75)) `shouldBe`
-              [Event (Metadata []) Nothing (Arc 0.75 0.75) (2.5 :: Float)]
+              [Event mempty Nothing (Arc 0.75 0.75) (2.5 :: Float)]
 
         describe "from 10 to 10" $ do
           it "at 1/2 of a cycle" $
             (queryArc (range 10 10 saw) (Arc 0.5 0.5)) `shouldBe`
-              [Event (Metadata []) Nothing (Arc 0.5 0.5) (10 :: Float)]
+              [Event mempty Nothing (Arc 0.5 0.5) (10 :: Float)]
 
     describe "rot" $ do
       it "rotates values in a pattern irrespective of structure" $

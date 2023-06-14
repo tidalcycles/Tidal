@@ -55,4 +55,4 @@ stringPat :: String -> Signal String
 stringPat = parseBP_E
 
 toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
-toEvent (((ws, we), (ps, pe)), v) = Event (Metadata []) (Just $ Arc ws we) (Arc ps pe) v
+toEvent (((ws, we), (ps, pe)), v) = Event mempty (Just $ Arc ws we) (Arc ps pe) v

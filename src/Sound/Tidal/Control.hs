@@ -20,9 +20,9 @@ module Sound.Tidal.Control where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Data.Ratio
+import           Data.Ratio          ((%))
 import           Sound.Tidal.Compose
-import           Sound.Tidal.Params  as P
+import qualified Sound.Tidal.Params  as P
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Types
 

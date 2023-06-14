@@ -17,38 +17,38 @@ run =
     describe "Event" $ do
       describe "whole" $ do
         it "returns the whole Arc in an Event" $ do
-          property $ (Just $ Arc 1 2) === whole (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) 5 :: Event Int)
+          property $ (Just $ Arc 1 2) === whole (Event mempty (Just $ Arc 1 2) (Arc 3 4) 5 :: Event Int)
 
       describe "active" $ do
         it "returns the active Arc in an Event" $ do
-          property $ (Arc 3 4) === active (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) 5 :: Event Int)
+          property $ (Arc 3 4) === active (Event mempty (Just $ Arc 1 2) (Arc 3 4) 5 :: Event Int)
 
       describe "value" $ do
         it "returns the event value in an Event" $ do
-          property $ 5 === value (Event (Metadata []) (Just $ Arc (1 :: Rational) 2) (Arc 3 4) ( 5 :: Int))
+          property $ 5 === value (Event mempty (Just $ Arc (1 :: Rational) 2) (Arc 3 4) ( 5 :: Int))
 {-
     describe "wholeStart" $ do
       it "retrieve first element of a tuple, inside first element of a tuple, inside the first of another" $ do
-        property $ 1 === wholeStart (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 1 === wholeStart (Event mempty (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "wholeStop" $ do
       it "retrieve the end time from the first Arc in an Event" $ do
-        property $ 2 === wholeStop (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 2 === wholeStop (Event mempty (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
     describe "eventActiveStart" $ do
       it "retrieve the start time of the second Arc in an Event" $ do
-        property $ 3 === eventActiveStart (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 3 === eventActiveStart (Event mempty (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "eventActiveStop" $ do
       it "retrieve the end time of the second Arc in an Event" $ do
-        property $ 4 === eventActiveStop (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 4 === eventActiveStop (Event mempty (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "eventActive" $ do
       it "retrieve the second Arc in an Event" $ do
-        property $ Arc 3 4 === eventActive (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ Arc 3 4 === eventActive (Event mempty (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "eventValue" $ do
       it "retrieve the second value from a tuple" $ do
-        property $ 5 === eventValue (Event (Metadata []) (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
+        property $ 5 === eventValue (Event mempty (Just $ Arc 1 2) (Arc 3 4) (5 :: Int))
 
     describe "arcCyclesZW" $ do
       it "if start and end time are equal return list of (start, end)" $ do
@@ -79,9 +79,9 @@ run =
 
     -- pending "Sound.Tidal.Signal.eventL" $ do
     --  it "succeeds if the first event 'whole' is shorter" $ do
-    --    property $ eventL (Event (Metadata []) (Just $ Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 1.1)) "x")
+    --    property $ eventL (Event mempty (Just $ Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 1.1)) "x")
     --  it "fails if the events are the same length" $ do
-    --    property $ not $ eventL (Event (Metadata []) (Just $ Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 1)) "x")
+    --    property $ not $ eventL (Event mempty (Just $ Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 1)) "x")
     --  it "fails if the second event is shorter" $ do
-    --    property $ not $ eventL (Event (Metadata []) (Just $ Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 0.5)) "x")
+    --    property $ not $ eventL (Event mempty (Just $ Arc 0,0),(Arc 0 1)),"x") (((0 0) (Arc 0 0.5)) "x")
 -}
