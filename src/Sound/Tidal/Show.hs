@@ -91,9 +91,6 @@ showAll a p = intercalate "\n" $ map showEventAll $ sortOn active $ queryArc p a
 showEventAll :: Show a => Event a -> String
 showEventAll e = show (metadata e) ++ uncurry (++) (showEvent e)
 
-instance Show Metadata where
-  show (Metadata cs) = show cs
-
 instance Show Value where
   show (VS s)      = ('"':s) ++ "\""
   show (VI i)      = show i

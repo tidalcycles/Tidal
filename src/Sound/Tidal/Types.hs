@@ -183,16 +183,18 @@ instance (Fractional a) => Fractional (ArcF a) where
 
 -- | Metadata - currently just used for sourcecode positions that
 -- caused the event they're stored against
-newtype Metadata = Metadata {metaSrcPos :: [((Int, Int), (Int, Int))]}
-  deriving (Eq, Typeable, Generic, Ord)
+data Metadata = Metadata {metaSrcPos    :: [((Int, Int), (Int, Int))],
+                          metaAlignment :: (Direction, Strategy)
+                         }
+  deriving (Eq, Typeable, Generic, Ord, Show)
 
 instance NFData Metadata
 
 instance Semigroup Metadata where
-  (<>) a b = Metadata (metaSrcPos a ++ metaSrcPos b)
+  (<>) a b = Metadata (metaSrcPos a ++ metaSrcPos b) (metaAlignment a)
 
 instance Monoid Metadata where
-  mempty = Metadata []
+  mempty = Metadata [] (In, Expand)
 
 -- | An event, consisting of a value, its 'whole' timearc, and the
 -- timearc that is active (called a 'part' in tidal v1)
@@ -238,7 +240,9 @@ data Strategy = JustifyLeft
               | CycleMix
               | Trig
               | TrigZero
-              deriving Show
+              deriving (Eq, Ord, Generic, Show)
+
+instance NFData Strategy
 
 -- | Strategies for aligning stacks (vertically)
 data VStrategy = VZip -- Like zip lists
@@ -249,6 +253,9 @@ data VStrategy = VZip -- Like zip lists
 data Direction = In
                | Out
                | Mix
+               deriving (Eq, Ord, Generic, Show)
+
+instance NFData Direction
 
 data Align a b = Align Strategy a b
   deriving Show

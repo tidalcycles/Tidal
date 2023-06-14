@@ -159,6 +159,9 @@ instance Pattern Sequence where
     where f' (Atom m d i o v) = Atom (f m) d i o v
           f' x                = x
 
+instance Stringy (Sequence a) where
+  deltaMetadata = patDeltaMetadata
+
 filterAtoms :: (Sequence a -> Bool) -> Sequence a -> Sequence a
 filterAtoms f a@(Atom m d i o _) | f a = a
                                  | otherwise = Atom m d i o Nothing

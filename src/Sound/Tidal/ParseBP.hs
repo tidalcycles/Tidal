@@ -154,7 +154,7 @@ tShow a = "can't happen? " ++ show a
 
 toPat :: (Parseable a, Enumerable a) => TPat a -> Signal a
 toPat = \case
-   TPat_Atom (Just loc) x -> setMetadata (Metadata [loc]) $ atom x
+   TPat_Atom (Just loc) x -> setMetadata (mempty {metaSrcPos = [loc]}) $ atom x
    TPat_Atom Nothing x -> atom x
    TPat_Fast t x -> fast (toPat t) $ toPat x
    TPat_Slow t x -> slow (toPat t) $ toPat x
@@ -185,7 +185,7 @@ toSeq x             = toSeqInner x
 
 toSeqInner :: (Parseable a, Enumerable a) => TPat a -> Sequence a
 toSeqInner = \case
-   TPat_Atom (Just loc) x -> addMetadata (Metadata [loc]) $ S.step 1 x
+   TPat_Atom (Just loc) x -> addMetadata (mempty {metaSrcPos = [loc]}) $ S.step 1 x
    TPat_Atom Nothing x    -> S.step 1 x
    TPat_Fast t x          -> fast (toSeq t) $ toSeq x
    TPat_Slow t x          -> slow (toSeq t) $ toSeq x

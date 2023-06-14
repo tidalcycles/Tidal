@@ -81,6 +81,9 @@ _sigAppAlign f (Align Trig patt patv) = trigJoin $ (`f` patv) <$> patt
 _sigAppAlign f (Align TrigZero patt patv) = trigzeroJoin $ (`f` patv) <$> patt
 _sigAppAlign _ (Align a _ _) = error $ "Alignment " ++ show a ++ " not implemented for signals"
 
+instance Stringy (Signal a) where
+  deltaMetadata = patDeltaMetadata
+
 -- ************************************************************ --
 
 instance Applicative Signal where
@@ -338,23 +341,6 @@ deltaMini = outsideq 0 0
         insideq column line ('"':xs) = '"':')':outsideq (column+1) line xs
         insideq _ line ('\n':xs)     = '\n':insideq 0 (line+1) xs
         insideq column line (x:xs)   = x:insideq (column+1) line xs
-
-class Stringy a where
-  deltaMetadata :: Int -> Int -> a -> a
-
-instance Stringy (Signal a) where
-  deltaMetadata column line pat = withEvents (map (\e -> e {metadata = f $ metadata e})) pat
-    where f :: Metadata -> Metadata
-          f (Metadata xs) = Metadata $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
-
-instance Stringy (Sequence a) where
-  deltaMetadata column line pat = withAtom (\a -> a {atomMetadata = f $ atomMetadata a}) pat
-    where f :: Metadata -> Metadata
-          f (Metadata xs) = Metadata $ map (\((bx,by), (ex,ey)) -> ((bx+column,by+line), (ex+column,ey+line))) xs
-
--- deltaMetadata on an actual (non overloaded) string is a no-op
-instance Stringy String where
-  deltaMetadata _ _ = id
 
 -- ************************************************************ --
 -- Basic time/event manipulations
@@ -636,12 +622,9 @@ _groupEventsBy f (e:es) = eqs : _groupEventsBy f (es \\ eqs)
 -- assumes that all events in the list have same whole/active
 _collectEvent :: [Event a] -> Maybe (Event [a])
 _collectEvent [] = Nothing
-_collectEvent l@(e:_) = Just $ e {metadata = con, value = vs}
-  where con = unionC $ map metadata l
-        vs = map value l
-        unionC [] = Metadata []
-        unionC ((Metadata is):cs) = Metadata (is ++ iss)
-          where Metadata iss = unionC cs
+_collectEvent es@(e:_) = Just $ e {metadata = mconcat $ map metadata es,
+                                   value = map value es
+                                  }
 
 _collectEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [Event [a]]
 _collectEventsBy f es = remNo $ map _collectEvent (_groupEventsBy f es)
@@ -659,10 +642,7 @@ sigCollect :: Eq a => Signal a -> Signal [a]
 sigCollect = _collectBy _sameDur
 
 _uncollectEvent :: Event [a] -> [Event a]
-_uncollectEvent e = [e {value = value e !! i, metadata = resolveMetadata i (metadata e)} | i <-[0..length (value e) - 1]]
-  where resolveMetadata i (Metadata xs) = if length xs <= i
-                                            then Metadata []
-                                            else Metadata [xs!!i]
+_uncollectEvent e = [e {value = value e !! i} | i <-[0..length (value e) - 1]]
 
 _uncollectEvents :: [Event [a]] -> [Event a]
 _uncollectEvents = concatMap _uncollectEvent

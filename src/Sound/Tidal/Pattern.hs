@@ -91,8 +91,26 @@ addMetadata m = withMetadata (m <>)
 setMetadata :: Pattern p => Metadata -> p a -> p a
 setMetadata m = withMetadata (const m)
 
+withSrcPos :: Pattern p => ([((Int, Int), (Int, Int))] -> [((Int, Int), (Int, Int))]) -> p a -> p a
+withSrcPos f = withMetadata (\m -> m {metaSrcPos = f $ metaSrcPos m})
+
+addSrcPos :: Pattern p => [((Int, Int), (Int, Int))] -> p a -> p a
+addSrcPos xs = withSrcPos (++ xs)
+
 stripMetadata :: Pattern p => p a -> p a
-stripMetadata = withMetadata (const (Metadata []))
+stripMetadata = withMetadata $ const mempty
+
+class Stringy a where
+  deltaMetadata :: Int -> Int -> a -> a
+
+patDeltaMetadata :: Pattern p => Int -> Int -> p a -> p a
+patDeltaMetadata column line pat
+    = withSrcPos (map (\((bx,by), (ex,ey)) ->
+                         ((bx+column,by+line), (ex+column,ey+line)))) pat
+
+-- deltaMetadata on an actual (non overloaded) string is a no-op
+instance Stringy String where
+  deltaMetadata _ _ = id
 
 -- ************************************************************ --
 -- Patternification
