@@ -200,7 +200,7 @@ defaultCps = 0.5625
 -- Spawns a thread within Tempo that acts as the clock
 -- Spawns a thread that listens to and acts on OSC control messages
 startStream :: Config -> [(Target, [OSC])] -> IO Stream
-startStream config oscmap 
+startStream config oscmap
   = do sMapMV <- newMVar Map.empty
        pMapMV <- newMVar Map.empty
        bussesMV <- newMVar []
@@ -219,7 +219,7 @@ startStream config oscmap
                                         u <- O.udp_socket (\sock sockaddr -> do N.setSocketOption sock N.Broadcast broadcast
                                                                                 N.connect sock sockaddr
                                                           ) (oAddress target) (oPort target)
-                                        return $ Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}                                        
+                                        return $ Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}
                    ) oscmap
        let bpm = (coerce defaultCps) * 60 * (cBeatsPerCycle config)
        abletonLink <- Link.create bpm
@@ -249,7 +249,7 @@ startStream config oscmap
 sendHandshakes :: Stream -> IO ()
 sendHandshakes stream = mapM_ sendHandshake $ filter (oHandshake . cxTarget) (sCxs stream)
   where sendHandshake cx = if (isJust $ sListen stream)
-                           then                                            
+                           then
                              do -- send it _from_ the udp socket we're listening to, so the
                                 -- replies go back there
                                 sendO False (sListen stream) cx $ O.Message "/dirt/handshake" []
@@ -290,7 +290,7 @@ toDatum (VB True) = O.int32 (1 :: Int)
 toDatum (VB False) = O.int32 (0 :: Int)
 toDatum (VX xs) = O.Blob $ O.blob_pack xs
 toDatum _ = error "toDatum: unhandled value"
-  
+
 toData :: OSC -> Event ValueMap -> Maybe [O.Datum]
 toData (OSC {args = ArgList as}) e = fmap (fmap (toDatum)) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
 toData (OSC {args = Named rqrd}) e
@@ -362,7 +362,7 @@ toOSC busses pe osc@(OSC _ _)
                   -- If there is already cps in the event, the union will preserve that.
                   let extra = Map.fromList [("cps", (VF (coerce $! peCps pe))),
                                           ("delta", VF (T.addMicrosToOsc (peDelta pe) 0)),
-                                          ("cycle", VF (fromRational (peCycle pe))) 
+                                          ("cycle", VF (fromRational (peCycle pe)))
                                         ]
                       addExtra = Map.union playmap' extra
                       ts = (peOnWholeOrPartOsc pe) + nudge -- + latency
@@ -399,8 +399,6 @@ toOSC _ pe (OSCContext oscpath)
         ident = fromMaybe "unknown" $ Map.lookup "_id_" (value $ peEvent pe) >>= getS
         ts = (peOnWholeOrPartOsc pe) + nudge -- + latency
 
-patternTimeID :: String
-patternTimeID = "_t_pattern"
 
 -- Used for Tempo callback
 updatePattern :: Stream -> ID -> Time -> ControlPattern -> IO ()
@@ -431,7 +429,7 @@ processCps ops = mapM processEvent
       onPart <- (T.timeAtBeat ops) partStartBeat
       when (eventHasOnset e) (do
         let cps' = Map.lookup "cps" (value e) >>= getF
-        maybe (return ()) (\newCps -> (T.setTempo ops) ((T.cyclesToBeat ops) (newCps * 60)) on) $ coerce cps' 
+        maybe (return ()) (\newCps -> (T.setTempo ops) ((T.cyclesToBeat ops) (newCps * 60)) on) $ coerce cps'
         )
       off <- (T.timeAtBeat ops) offBeat
       bpm <- (T.getTempo ops)
@@ -491,7 +489,7 @@ onSingleTick stream ops s pat = do
 -- If an exception occurs during sending,
 -- this functions prints a warning and continues, because
 -- the likely reason is that the backend (supercollider) isn't running.
--- 
+--
 -- If any exception occurs before or outside sending
 -- (e.g., while querying the pattern, while computing a message),
 -- this function prints a warning and resets the current pattern
@@ -691,7 +689,7 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
                                                         -- Only report the first time..
                                                         when (null prev) $ verbose c $ "Connected to SuperDirt."
                                                         return ()
-          where 
+          where
             bufferIndices [] = []
             bufferIndices (x:xs') | x == (O.AsciiString $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
                                   | otherwise = bufferIndices xs'
