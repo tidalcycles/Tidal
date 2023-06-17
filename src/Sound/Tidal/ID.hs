@@ -1,4 +1,4 @@
-module Sound.Tidal.ID (ID(..), patternTimeID) where
+module Sound.Tidal.ID (ID(..)) where
 
 {-
     ID.hs - Polymorphic pattern identifiers
@@ -39,6 +39,3 @@ instance Num ID where
 
 instance IsString ID where
   fromString = ID
-
-patternTimeID :: String
-patternTimeID = "_t_pattern"

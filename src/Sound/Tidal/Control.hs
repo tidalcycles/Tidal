@@ -29,7 +29,7 @@ import Data.Ratio
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Core
-import Sound.Tidal.ID (patternTimeID)
+import Sound.Tidal.StreamTypes (patternTimeID)
 import Sound.Tidal.UI
 import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Utils
