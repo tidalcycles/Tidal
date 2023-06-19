@@ -97,6 +97,9 @@ withSrcPos f = withMetadata (\m -> m {metaSrcPos = f $ metaSrcPos m})
 addSrcPos :: Pattern p => [((Int, Int), (Int, Int))] -> p a -> p a
 addSrcPos xs = withSrcPos (++ xs)
 
+setStrategy :: Pattern p => Strategy -> p a -> p a
+setStrategy strategy = withMetadata (\m -> m {metaStrategy = Just strategy})
+
 stripMetadata :: Pattern p => p a -> p a
 stripMetadata = withMetadata $ const mempty
 

@@ -42,5 +42,6 @@ import           Sound.Tidal.Signal.Waveform as C
 import           Sound.Tidal.Stream          as C
 -- import Sound.Tidal.Time as C
 -- import Sound.Tidal.Transition as C
+import           Sound.Tidal.Alignment       as C
 import           Sound.Tidal.Types           as C
 import           Sound.Tidal.Version         as C

@@ -183,18 +183,18 @@ instance (Fractional a) => Fractional (ArcF a) where
 
 -- | Metadata - currently just used for sourcecode positions that
 -- caused the event they're stored against
-data Metadata = Metadata {metaSrcPos    :: [((Int, Int), (Int, Int))],
-                          metaAlignment :: (Direction, Strategy)
+data Metadata = Metadata {metaSrcPos   :: [((Int, Int), (Int, Int))],
+                          metaStrategy :: Maybe Strategy
                          }
   deriving (Eq, Typeable, Generic, Ord, Show)
 
 instance NFData Metadata
 
 instance Semigroup Metadata where
-  (<>) a b = Metadata (metaSrcPos a ++ metaSrcPos b) (metaAlignment a)
+  (<>) a b = Metadata (metaSrcPos a ++ metaSrcPos b) (metaStrategy a)
 
 instance Monoid Metadata where
-  mempty = Metadata [] (In, Expand)
+  mempty = Metadata [] Nothing
 
 -- | An event, consisting of a value, its 'whole' timearc, and the
 -- timearc that is active (called a 'part' in tidal v1)
