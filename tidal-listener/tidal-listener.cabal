@@ -35,7 +35,7 @@ library
   default-language:    Haskell2010
   ghc-options: -threaded
                -Wall
-               -dynamic
+               -dynamic-too
                -- see: https://github.com/haskell-hint/hint/issues/156
 
 
