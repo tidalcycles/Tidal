@@ -61,3 +61,8 @@ stripMetadata = setMetadata $ Metadata []
 
 toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
 toEvent (((ws, we), (ps, pe)), v) = Event (Metadata []) (Just $ Arc ws we) (Arc ps pe) v
+
+stripSequenceMetadata :: Sequence a -> Sequence a
+stripSequenceMetadata = withAtom f
+  where f (Atom _ d i o v) = Atom mempty d i o v
+        f x                = x

@@ -2,27 +2,33 @@
 
 module Sound.Tidal.SignalBaseTest where
 
-import           Test.Microspec
-import           TestUtils
+import           Test.Microspec              (MTestable (describe), Microspec,
+                                              Testable (property), it, shouldBe,
+                                              (===))
+import           TestUtils                   (compareP, comparePD,
+                                              stripMetadata, toEvent)
 
 import           Prelude                     hiding ((*>), (<*))
 
 import           Data.List                   (sort)
-import           Data.Ratio
+import           Data.Ratio                  ((%))
 
 import           Sound.Tidal.Compose         (struct, (|+), (|=|))
 import           Sound.Tidal.Params          (n, s)
 import           Sound.Tidal.ParseBP         (parseBP_E)
-import           Sound.Tidal.Pattern         (_slow, append, atom, cat, euclid,
-                                              every, fast, fastCat,
-                                              filterValues, ply, press, pressBy,
-                                              range, rev, run, silence, slow,
-                                              stack, superimpose, timeCat, (*>),
-                                              (<*))
+import           Sound.Tidal.Pattern         (Pattern (atom, filterValues, rev, silence, stack, timeCat, (*>), (<*)),
+                                              _slow, append, cat, early, euclid,
+                                              euclidFull, euclidInv, every,
+                                              fast, fastCat, late, ply, press,
+                                              pressBy, range, run, slow,
+                                              superimpose, (<~))
 import           Sound.Tidal.Signal.Base
 import           Sound.Tidal.Signal.Random   (irand)
 import           Sound.Tidal.Signal.Waveform (saw, sine, tri)
-import           Sound.Tidal.Types
+import           Sound.Tidal.Types           (ArcF (Arc), Event (Event),
+                                              Metadata (Metadata), Note,
+                                              Signal (query), State (State),
+                                              Time, Value (VF))
 
 import qualified Data.Map.Strict             as Map
 
