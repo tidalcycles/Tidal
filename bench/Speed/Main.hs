@@ -6,7 +6,13 @@ import           Tidal.PatternB
 import           Tidal.UIB
 
 patternBs :: [IO ()]
-patternBs = defaultMain <$> [[sectB], [hullB]]
+patternBs = defaultMain <$> [ withQueryTimeB
+                            , withEventArcB
+                            , withQueryArcB
+                            , maybeSectB
+                            , [sectB]
+                            , [hullB]
+                            ]
 
 coreBs :: [IO ()] 
 coreBs = defaultMain <$> [fromListB, stackB, appendB, concatB, _fastB]
