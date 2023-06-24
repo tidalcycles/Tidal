@@ -29,7 +29,7 @@ import Data.Ratio
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Core
-import Sound.Tidal.Stream (patternTimeID)
+import Sound.Tidal.StreamTypes (patternTimeID)
 import Sound.Tidal.UI
 import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Utils
@@ -422,16 +422,16 @@ trigger = triggerWith id
 -- | (Alias @__qt__@) Quantise trigger. Aligns the start of the pattern
 -- with the next cycle boundary. For example, this pattern will fade in
 -- starting with the next cycle after the pattern is evaluated:
--- 
+--
 -- @
 -- d1 $ qtrigger $ s "hh(5, 8)" # amp envL
 -- @
--- 
+--
 -- Note that the pattern will start playing immediately. The /start/ of the
 -- pattern aligns with the next cycle boundary, but events will play before
 -- if the pattern has events at negative timestamps (which most loops do).
 -- These events can be filtered out, for example:
--- 
+--
 -- @
 -- d1 $ qtrigger $ filterWhen (>= 0) $ s "hh(5, 8)"
 -- @
