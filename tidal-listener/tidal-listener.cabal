@@ -33,8 +33,9 @@ library
   default-language:    Haskell2010
   ghc-options: -threaded
                -Wall
-               -dynamic-too
                -- see: https://github.com/haskell-hint/hint/issues/156
+  if !os(windows)
+    ghc-options:           -dynamic-too
 
 
 executable tidal-listener
@@ -46,5 +47,6 @@ executable tidal-listener
   default-language:    Haskell2010
   ghc-options: -threaded
                -Wall
-               -dynamic
                -- see: https://github.com/haskell-hint/hint/issues/156
+  if !os(windows)
+    ghc-options:           -dynamic-too
