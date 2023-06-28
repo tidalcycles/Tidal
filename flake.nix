@@ -23,6 +23,14 @@
   inputs = {
     utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # Temporarily add `hosc` at the latest v0.20 commit
+    # (nixpkgs currently only has 0.19.1).
+    # See this comment for details:
+    # https://github.com/tidalcycles/Tidal/pull/1022#issuecomment-1610978403
+    hosc = {
+      url = "github:rd--/hosc?rev=e77aa67cd0b99a32498fef246a687ba443c9b4be";
+      flake = false;
+    };
   };
 
   outputs = inputs: let
@@ -38,6 +46,7 @@
 
     mkPackages = pkgs: let
       project = pkgs.haskellPackages.extend (pkgs.haskell.lib.compose.packageSourceOverrides {
+        hosc = inputs.hosc; # Remove once `hosc` is at 0.20 in nixpkgs.
         tidal = ./.;
         tidal-link = ./tidal-link;
         tidal-listener = ./tidal-listener;
