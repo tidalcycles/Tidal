@@ -5,7 +5,6 @@
     Packages are included for:
     - tidal
     - tidal-link
-    - tidal-parse
 
     A `tidal-ghci` package is also included. This is a small script that starts
     an instance of `GHCi` with `Tidal` installed and with the `BootTidal.hs`
@@ -48,14 +47,12 @@
         hosc = inputs.hosc; # Remove once `hosc` is at 0.20 in nixpkgs.
         tidal = ./.;
         tidal-link = ./tidal-link;
-        tidal-parse = ./tidal-parse;
       });
       tidal-boot = ./BootTidal.hs;
       tidal-ghc = pkgs.haskellPackages.ghcWithPackages (hpkgs: [project.tidal]);
     in {
       tidal = project.tidal;
       tidal-link = project.tidal-link;
-      tidal-parse = project.tidal-parse;
       tidal-ghci = pkgs.writeShellScriptBin "tidal-ghci" ''
         ${tidal-ghc}/bin/ghci -ghci-script ${tidal-boot}
       '';

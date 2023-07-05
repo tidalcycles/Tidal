@@ -31,7 +31,7 @@ jobs:
     needs: cancel-previous-runs
     strategy:
       matrix:
-        package: [tidal, tidal-link, tidal-parse]
+        package: [tidal, tidal-link]
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
