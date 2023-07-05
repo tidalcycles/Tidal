@@ -2,11 +2,8 @@ resolver: lts-20.5
 
 packages:
   - '.'
-  - 'tidal-listener'
   - 'tidal-link'
 
 extra-deps:
   - hosc-0.20
   - haskellish-0.3.2.1
-
-

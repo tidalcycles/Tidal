@@ -5,7 +5,6 @@
     Packages are included for:
     - tidal
     - tidal-link
-    - tidal-listener
     - tidal-parse
 
     A `tidal-ghci` package is also included. This is a small script that starts
@@ -49,7 +48,6 @@
         hosc = inputs.hosc; # Remove once `hosc` is at 0.20 in nixpkgs.
         tidal = ./.;
         tidal-link = ./tidal-link;
-        tidal-listener = ./tidal-listener;
         tidal-parse = ./tidal-parse;
       });
       tidal-boot = ./BootTidal.hs;
@@ -57,7 +55,6 @@
     in {
       tidal = project.tidal;
       tidal-link = project.tidal-link;
-      tidal-listener = project.tidal-listener;
       tidal-parse = project.tidal-parse;
       tidal-ghci = pkgs.writeShellScriptBin "tidal-ghci" ''
         ${tidal-ghc}/bin/ghci -ghci-script ${tidal-boot}
