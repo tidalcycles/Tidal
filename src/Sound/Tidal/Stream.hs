@@ -214,10 +214,10 @@ startStream config oscmap
                                         remote_busses <- sequence (oBusPort target >> (Just $ newMVar []))
                                         let broadcast = if cCtrlBroadcast config then 1 else 0
                                         u <- O.udp_socket (\sock sockaddr -> do N.setSocketOption sock N.Broadcast broadcast
-                                                                                N.connect sock sockaddr
+                                                                                -- N.connect sock sockaddr
                                                           ) (oAddress target) (oPort target)
                                         let cx = Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxBusses = remote_busses, cxTarget = target, cxOSCs = os}
-                                        handshake cx config
+                                        _ <- forkIO $ handshake cx config
                                         return cx
                    ) oscmap
        let bpm = (coerce defaultCps) * 60 * (cBeatsPerCycle config)
@@ -243,10 +243,10 @@ startStream config oscmap
        return stream
 
 handshake :: Cx -> Config -> IO ()
-handshake Cx { cxUDP = udp, cxBusses = Just bussesMV } c = sendHandshake >> listen 0
+handshake Cx { cxUDP = udp, cxBusses = Just bussesMV, cxAddr = addr } c = sendHandshake >> listen 0
   where
     sendHandshake :: IO ()
-    sendHandshake = O.sendMessage udp (O.Message "/dirt/handshake" [])
+    sendHandshake = O.sendTo udp (O.Packet_Message $ O.Message "/dirt/handshake" []) (N.addrAddress addr)
     listen :: Int -> IO ()
     listen waits = do ms <- recvMessagesTimeout 2 udp
                       if (null ms)
