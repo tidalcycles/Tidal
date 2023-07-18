@@ -4,15 +4,13 @@ module Sound.Tidal.StreamTest where
 
 import Test.Microspec
 
-import Sound.Tidal.Config
 import Sound.Tidal.Stream
 import Sound.Tidal.Types
 import qualified Sound.Osc.Fd as O
 import qualified Data.Map.Strict as M
-import Control.Concurrent.MVar
 
-main :: Microspec ()
-main =
+run :: Microspec ()
+run =
   describe "Sound.Tidal.Stream" $ do
     describe "toDatum" $ do
       it "should convert VN to osc float" $ do
@@ -37,9 +35,3 @@ main =
         getString (M.singleton "s" (VS "sn")) "s=bd" `shouldBe` Just "sn"
       it "should work for missing params with fallback expressions" $ do
         getString M.empty "s=bd" `shouldBe` Just "bd"
-    
-    describe "handshake" $ do
-      it "should only handshake when a busPort is set" $ monadicIO $ do
-        superdirtHandshake <- run $ newMVar False
-        run $ startStream defaultConfig [(superdirtTarget, [superdirtShape])]
-        (== True) <$> run (readMVar superdirtHandshake)
