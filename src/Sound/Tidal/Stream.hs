@@ -743,6 +743,7 @@ streamGetcps s = do
   let config = sConfig s
   ss <- Link.createAndCaptureAppSessionState (sLink s)
   bpm <- Link.getTempo ss
+  Link.destroySessionState ss
   return $! coerce $ bpm / (cBeatsPerCycle config) / 60
 
 streamGetnow :: Stream -> IO Double
@@ -751,4 +752,16 @@ streamGetnow s = do
   ss <- Link.createAndCaptureAppSessionState (sLink s)
   now <- Link.clock (sLink s)
   beat <- Link.beatAtTime ss now (cQuantum config)
+  Link.destroySessionState ss
   return $! coerce $ beat / (cBeatsPerCycle config)
+
+getProcessAhead :: Stream -> Link.Micros
+getProcessAhead str = round $ (cProcessAhead $ sConfig str) * 100000
+
+streamGetAhead :: Stream -> IO Double
+streamGetAhead str = do
+  ss <- Link.createAndCaptureAppSessionState (sLink str)
+  now <- Link.clock (sLink str)
+  beat <- Link.beatAtTime ss (now + (getProcessAhead str)) (cQuantum $! sConfig str)
+  Link.destroySessionState ss
+  return $ coerce $! beat / (cBeatsPerCycle $! sConfig str)
