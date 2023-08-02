@@ -1,6 +1,5 @@
 module Sound.Tidal.Signal where
 
-import           Control.Applicative  (liftA2)
 import           Data.Maybe           (fromMaybe)
 import           Sound.Tidal.Event
 import           Sound.Tidal.Pattern
@@ -43,6 +42,9 @@ instance Pattern Signal where
                   reflect (Span b e) = Span (cyc + (next_cyc - e)) (cyc + (next_cyc - b))
   toSignal = id
   withMetadata f pat = withEvents (map (\e -> e {eventMetadata = f $ eventMetadata e})) pat
+
+-- instance Signalable (Signal a) a where toSig = id
+-- instance Signalable a a where toSig = pure
 
 -- | Split queries at sample boundaries. An internal function that
 -- makes other functions easier to define, as events that cross cycle

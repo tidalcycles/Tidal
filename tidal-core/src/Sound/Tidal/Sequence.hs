@@ -17,6 +17,9 @@ instance Functor Sequence where
   fmap f (Cat xs)         = Cat $ map (fmap f) xs
   fmap f (Stack xs)       = Stack $ map (fmap f) xs
 
+-- instance Sequenceable (Sequence a) a where toSeq = id
+-- instance Sequenceable a a where toSeq = pure
+
 -- new approach to patternify - allows strategy and bind to be set per parameter
 alignify :: Alignment x => (a -> Sequence b -> Sequence c) -> x a -> Sequence b -> Sequence c
 alignify f alignSeq seqb = seqa' `aBind` \a -> f a seqb'
@@ -157,7 +160,9 @@ withAtom f (Cat xs)   = Cat $ map (withAtom f) xs
 withAtom f (Stack xs) = Stack $ map (withAtom f) xs
 
 withAtomTime :: (Time -> Time) -> Sequence a -> Sequence a
-withAtomTime f = withAtom (\(Atom m d i o v) -> Atom m (f d) (f i) (f o) v)
+withAtomTime f = withAtom f'
+  where f' (Atom m d i o v) = Atom m (f d) (f i) (f o) v
+        f' x                = x
 
 instance Semigroup (Sequence a) where
   a <> b = cat [a,b]
@@ -206,7 +211,10 @@ instance Pattern Sequence where
     where f' (Atom m d i o v) = Atom (f m) d i o v
           f' x                = x
 
-  -- **********************
+-- class Pattern p => Patternable p a b where toP :: a -> p b
+
+
+-- **********************
 -- | Sequence alignment *
 -- **********************
 

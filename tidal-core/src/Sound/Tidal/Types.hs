@@ -1,6 +1,9 @@
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE RankNTypes                 #-}
 
 module Sound.Tidal.Types where
 
@@ -18,6 +21,21 @@ newtype Note = Note { unNote :: Double }
 
 -- | In Tidal, time is rational
 type Time = Rational
+
+-- class Test p where
+--   toSeq :: p a -> Sequence (a -> a)
+
+-- instance Test (a -> a) where
+--   toSeq = pure
+
+-- instance Test (Sequence (a -> a)) where
+--   toSeq = id
+
+-- accept both a and p a
+
+class Applicative t => Applicable t a b where toA :: a -> t b
+instance forall a t. Applicative t => Applicable t (a) (a) where toA = pure
+instance forall a t. Applicative t => Applicable t (t a) (a) where toA = id
 
 -- | A type class for patterns
 class (Functor p, Applicative p, Monad p) => Pattern p where
