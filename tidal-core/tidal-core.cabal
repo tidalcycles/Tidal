@@ -45,6 +45,7 @@ library
 
     -- Modules included in this library but not exported.
     other-modules:
+        Sound.Tidal.Bjorklund
         Sound.Tidal.Event
         Sound.Tidal.Pattern
         Sound.Tidal.Sequence
@@ -52,12 +53,15 @@ library
         Sound.Tidal.Time
         Sound.Tidal.TimeSpan
         Sound.Tidal.Types
+        Sound.Tidal.Utils
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base 
+    build-depends:    base
+                    , deepseq
+                    , containers
 
     -- Directories containing source files.
     hs-source-dirs:   src
