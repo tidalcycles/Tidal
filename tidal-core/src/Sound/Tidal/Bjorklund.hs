@@ -1,4 +1,4 @@
-module Sound.Tidal.Bjorklund (bjorklund) where
+module Sound.Tidal.Bjorklund where
 
 {-
     Bjorklund.hs - Euclidean patterns
