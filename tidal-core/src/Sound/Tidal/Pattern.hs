@@ -51,6 +51,9 @@ append a b = cat [a,b]
 fastAppend a b = fastcat [a,b]
 slowAppend = append
 
+overlay :: Pattern p => p a -> p a -> p a
+overlay a b =  cat [a,b]
+
 _fast, _slow, _late :: Pattern p => Time -> p a -> p a
 _fast t = withTime (/ t) (* t)
 _slow t = withTime (* t) (/ t)
@@ -113,8 +116,49 @@ every = lastOf
 foldEvery :: Pattern p => [Int] -> (p a -> p a) -> p a -> p a
 foldEvery ns f p = foldr (`_every` f) p ns
 
+_iter, _iterBack :: Pattern p => Int -> p a -> p a
+_iter n p | n == 0 = p
+          | n == 1 = p
+          | n < 0 = _iterBack (abs n) p
+          | otherwise = slowcat $ p:map (\t -> _early ((fromIntegral t)%(fromIntegral n)) p) [1 .. n]
+
+_iterBack n p | n == 0 = p
+              | n == 1 = p
+              | n < 0 = _iter (abs n) p
+              | otherwise = slowcat $ p:map (\t -> _early ((fromIntegral t)%(fromIntegral n)) p) [n .. 1]
+
+-- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
+-- the pattern alternates between forwards and backwards.
+palindrome :: Pattern p => p a -> p a
+palindrome p = slowcat [p, rev p]
+
+-- | Repeats each event @n@ times within its arc
+ply :: Pattern p => p Int -> p a -> p a
+ply = patternify_p_n _ply
+
+_ply :: Pattern p => Int -> p a -> p a
+_ply n pat = squeezeJoin $ fastcat . replicate n . pure <$> pat
+
+-- | Syncopates a rhythm, shifting each event halfway into its arc (aka timespan), e.g. @"a b [c d] e"@ becomes the equivalent of @"[~ a] [~ b] [[~ c] [~ d]] [~ e]"@
+press :: Pattern p => p a -> p a
+press = _pressBy 0.5
+
+pressBy :: Pattern p => p Time -> p a -> p a
+-- | Like @press@, but allows you to specify the amount in which each event is shifted. @pressBy 0.5@ is the same as @press@, while @pressBy (1/3)@ shifts each event by a third of its duration.
+pressBy = patternify_p_n _pressBy
+
+_pressBy :: Pattern p => Time -> p a -> p a
+_pressBy t pat = squeezeJoin $ (\v -> timeCat [(t, silence), (1-t, pure v)]) <$> pat
+
+-- iter, iterBack :: Pattern p => p Int -> p a -> p a
+-- iter = patternify_p_n _iter
+-- iterBack = patternify_p_n _iterBack
+
+-- ************************************************************ --
+-- Range manipulations
+
 {- | `range` will take a pattern which goes from 0 to 1 (like `sine`),
-   and range it to a different range - between the first and second
+   and scale it to a different range - between the first and second
    arguments. In the below example, `range 1 1.5` shifts the range of
    `sine1` from 0 - 1 to 1 - 1.5.
 
@@ -127,25 +171,21 @@ range :: (Pattern p, Num a) => p a -> p a -> p a -> p a
 range = patternify_p_p_n _range
 
 _range :: (Functor f, Num b) => b -> b -> f b -> f b
-_range from to p = (+ from) . (* (to-from)) <$> p
+_range from to pat = (+ from) . (* (to-from)) <$> pat
 
-_iter, _iterBack :: Pattern p => Int -> p a -> p a
-_iter n p | n == 0 = p
-          | n == 1 = p
-          | n < 0 = _iterBack (abs n) p
-          | otherwise = slowcat $ p:map (\t -> _early ((fromIntegral t)%(fromIntegral n)) p) [1 .. n]
+{- | `range2` does the same as `range`, but assumes a starting range
+   from -1 to 1 rather than from 0 to 1.
+-}
+range2 :: (Pattern p, Fractional a) => p a -> p a -> p a -> p a
+range2 from to pat = range from to $ fromBipolar pat
 
-_iterBack n p | n == 0 = p
-              | n == 1 = p
-              | n < 0 = _iter (abs n) p
-              | otherwise = slowcat $ p:map (\t -> _early ((fromIntegral t)%(fromIntegral n)) p) [n .. 1]
+-- | Converts from a range from 0 to 1, to a range from -1 to 1
+toBipolar :: (Pattern p, Fractional x) => p x -> p x
+toBipolar pat = fmap (\v -> (v*2)-1) pat
 
-_ply :: Pattern p => Time -> p a -> p a
-_ply t pat = squeezeJoin $ _fast t . pure <$> pat
-
--- iter, iterBack :: Pattern p => p Int -> p a -> p a
--- iter = patternify_p_n _iter
--- iterBack = patternify_p_n _iterBack
+-- | Converts from a range from -1 to 1, to a range from 0 to 1
+fromBipolar :: (Pattern p, Fractional x) => p x -> p x
+fromBipolar pat = fmap (\v -> (v+1)/2) pat
 
 -- ************************************************************ --
 -- Simple pattern generators

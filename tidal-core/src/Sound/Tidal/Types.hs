@@ -39,11 +39,15 @@ instance forall a t. Applicative t => Applicable t (t a) (a) where toA = id
 
 -- | A type class for patterns
 class (Functor p, Applicative p, Monad p) => Pattern p where
-  {-# MINIMAL (innerBind | innerJoin), (outerBind | outerJoin), (squeezeBind | squeezeJoin), duration, withTime, cat, timeCat, stack, _early, rev, toSignal, withMetadata, silence #-}
+  {-# MINIMAL (innerBind | innerJoin),
+              (outerBind | outerJoin),
+              (squeezeBind | squeezeJoin),
+              duration, withTime, cat, timeCat, stack, _early, rev, toSignal,
+              withMetadata, silence
+    #-}
   duration :: p a -> Time
   withTime :: (Time -> Time) -> (Time -> Time) -> p a -> p a
 
-  -- Instances must either define binds or joins
   innerBind, outerBind, squeezeBind :: p a -> (a -> p b) -> p b
   innerBind pat f = innerJoin $ fmap f pat
   outerBind pat f = outerJoin $ fmap f pat
