@@ -1,14 +1,12 @@
 module Sound.Tidal.Signal where
 
-import           Data.Maybe           (fromMaybe)
+import           Data.Maybe           (fromMaybe, mapMaybe)
 import           Sound.Tidal.Event
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Time
 import           Sound.Tidal.TimeSpan
 import           Sound.Tidal.Types
 
-instance Semigroup (Signal a) where a <> b = cat [a,b]
-instance Monoid (Signal a)    where mempty = Signal $ const []
 instance Monad Signal         where (>>=) = sigBindWith $ liftA2 sect
                                     return = pure
 -- Define applicative from monad
@@ -21,9 +19,10 @@ instance Pattern Signal where
   -- cycle, even though successive cycles very often differ
   duration _ = 1
   withTime fa fb pat = withEventTime fa $ withQueryTime fb pat
-  -- | Alternative binds
+  -- | Alternative binds/joins
   innerBind = sigBindWith $ flip const
   outerBind = sigBindWith const
+  squeezeJoin = sigSqueezeJoin
   -- | Concatenate a list of signals, interleaving cycles.
   cat pats = splitQueries $ Signal $ \a -> query (_late (offset a) (pats !! mod (floor $ aBegin a) n)) a
     where offset arc = sam (aBegin arc) - sam (aBegin arc / toRational n)
@@ -42,6 +41,7 @@ instance Pattern Signal where
                   reflect (Span b e) = Span (cyc + (next_cyc - e)) (cyc + (next_cyc - b))
   toSignal = id
   withMetadata f pat = withEvents (map (\e -> e {eventMetadata = f $ eventMetadata e})) pat
+  silence = Signal $ const []
 
 -- instance Signalable (Signal a) a where toSig = id
 -- instance Signalable a a where toSig = pure
@@ -87,6 +87,21 @@ sigBindWith chooseWhole pv f = Signal $ \q -> concatMap match $ query pv q
   where match event = map (withWhole event) $ query (f $ value event) (active event)
         withWhole event event' = event' {whole = chooseWhole (whole event) (whole event')}
 
+-- | Like @join@, but cycles of the inner patterns are compressed to fit the
+-- timearc of the outer whole (or the original query if it's a continuous pattern?)
+-- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
+sigSqueezeJoin :: Signal (Signal a) -> Signal a
+sigSqueezeJoin pp = pp {query = q}
+  where q st = concatMap
+          (\e@(Event m w p v) ->
+             mapMaybe (munge m w p) $ query (_focusSpan (wholeOrActive e) v) p
+          )
+          (query pp st)
+        munge oMetadata oWhole oPart (Event iMetadata iWhole iPart v) =
+          do w' <- maybeSect <$> oWhole <*> iWhole
+             p' <- maybeSect oPart iPart
+             return (Event (iMetadata <> oMetadata) w' p' v)
+
 _zoomSpan :: Span -> Signal a -> Signal a
 _zoomSpan (Span s e) p = splitQueries $ withEventSpan (mapCycle ((/d) . subtract s)) $ withQuery (mapCycle ((+s) . (*d))) p
      where d = e-s
@@ -125,3 +140,7 @@ sigTimeCat tps = stack $ map (\(s,e,p) -> _compressSpan (Span (s/total) (e/total
           arrange :: Time -> [(Time, Signal a)] -> [(Time, Time, Signal a)]
           arrange _ []            = []
           arrange t ((t',p):tps') = (t,t+t',p) : arrange (t+t') tps'
+
+_focusSpan :: Span -> Signal a -> Signal a
+_focusSpan (Span b e) pat = _late (cyclePos b) $ _fast (1/(e-b)) pat
+

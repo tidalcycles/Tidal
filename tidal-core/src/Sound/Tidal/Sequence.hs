@@ -77,11 +77,14 @@ normalise (Stack xs) = listToStack $ loop xs
         loop []               = []
 normalise x = x
 
-seqJoinWith :: (Time -> Sequence a -> Sequence a) -> Sequence (Sequence a) -> Sequence a
-seqJoinWith f (Atom m d i o (Just s)) = addMetadata m $ f (d + i + o) s
+seqJoinWith :: (Time -> Time -> Time -> Sequence a -> Sequence a) -> Sequence (Sequence a) -> Sequence a
+seqJoinWith f (Atom m d i o (Just s)) = addMetadata m $ f d i o s
 seqJoinWith _ (Atom m d i o Nothing)  = Atom m d i o Nothing
 seqJoinWith f (Cat xs)                = Cat $ map (seqJoinWith f) xs
 seqJoinWith f (Stack xs)              = Stack $ map (seqJoinWith f) xs
+
+seqJoinWithTime :: (Time -> Sequence a -> Sequence a) -> Sequence (Sequence a) -> Sequence a
+seqJoinWithTime f = seqJoinWith $ \d i o s -> f (d + i + o) s
 
 seqJoinWithSpan :: (Span -> Time -> Sequence a -> Sequence a) -> Sequence (Sequence a) -> Sequence a
 seqJoinWithSpan f pat = loop 0 pat
@@ -96,15 +99,15 @@ seqJoinWithSpan f pat = loop 0 pat
 
 -- Flatten, using outer duration as relative duration for inner
 seqJoin :: Sequence (Sequence a) -> Sequence a
-seqJoin = seqJoinWith _slow
+seqJoin = seqJoinWithTime _slow
 
 -- Flatten, expanding inner to outer duration
 seqExpandJoin :: Sequence (Sequence a) -> Sequence a
-seqExpandJoin = seqJoinWith (\t s -> _fast (duration s / t) s)
+seqExpandJoin = seqJoinWithTime (\t s -> _fast (duration s / t) s)
 
 -- Flatten, repeating inner to total duration of outer
 seqLoopJoin :: Sequence (Sequence a) -> Sequence a
-seqLoopJoin = seqJoinWith seqTakeLoop
+seqLoopJoin = seqJoinWithTime seqTakeLoop
 
 -- Flatten, changing duration of outer to fit inner
 seqInnerJoin :: Sequence (Sequence a) -> Sequence a
@@ -117,6 +120,10 @@ seqInnerJoin pat = seqJoinWithSpan f pat
 seqOuterJoin :: Sequence (Sequence a) -> Sequence a
 seqOuterJoin pat = _fast (duration inner / duration pat) inner
   where inner = seqInnerJoin pat
+
+-- Flatten, set duration of inner sequence to fit outer atom durations
+seqSqueezeJoin :: Sequence (Sequence a) -> Sequence a
+seqSqueezeJoin = seqJoinWith $ \d i o pat -> seqTakeLoop d $ seqDrop i $ _fast (duration pat / d + i + o) pat
 
 seqTakeLoop :: Time -> Sequence a -> Sequence a
 seqTakeLoop 0 _ = gap 0
@@ -154,21 +161,13 @@ seqDrop t s | t > duration s = seqDrop' (t `mod'` duration s) s
 seqSplitAt :: Time -> Sequence a -> (Sequence a, Sequence a)
 seqSplitAt t s = (seqTakeLoop t s, seqDrop t s)
 
-withAtom :: (Sequence a -> Sequence a) -> Sequence a -> Sequence a
-withAtom f a@Atom {}  = f a
-withAtom f (Cat xs)   = Cat $ map (withAtom f) xs
-withAtom f (Stack xs) = Stack $ map (withAtom f) xs
+withAtom :: (Metadata -> Time -> Time -> Time -> Maybe a -> Sequence a) -> Sequence a -> Sequence a
+withAtom f (Atom m d i o v) = f m d i o v
+withAtom f (Cat xs)         = Cat $ map (withAtom f) xs
+withAtom f (Stack xs)       = Stack $ map (withAtom f) xs
 
 withAtomTime :: (Time -> Time) -> Sequence a -> Sequence a
-withAtomTime f = withAtom f'
-  where f' (Atom m d i o v) = Atom m (f d) (f i) (f o) v
-        f' x                = x
-
-instance Semigroup (Sequence a) where
-  a <> b = cat [a,b]
-
-instance Monoid (Sequence a) where
-  mempty = gap 1
+withAtomTime f = withAtom $ \m d i o v -> Atom m (f d) (f i) (f o) v
 
 instance Monad Sequence where
   return = pure
@@ -188,13 +187,13 @@ instance Pattern Sequence where
   duration (Stack [])       = 0
   duration (Stack (x:_))    = duration x
   timeCat seqs = seqJoin $ Cat $ map (uncurry step) seqs
-  seqv `outerBind` f = seqOuterJoin $ fmap f seqv
-  seqv `innerBind` f = seqInnerJoin $ fmap f seqv
+  outerJoin = seqOuterJoin
+  innerJoin = seqInnerJoin
+  squeezeJoin = seqSqueezeJoin
   _early t = (\(a, b) -> cat [a,b]) . seqSplitAt t
   rev (Stack xs) = Stack $ map rev xs
   rev (Cat xs)   = withAtom swapio $ Cat $ reverse $ map rev xs
-    where swapio (Atom m d i o v) = Atom m d o i v
-          swapio x                = x -- shouldn't happen
+    where swapio m d i o v = Atom m d o i v
   rev x          = x
   -- One beat per cycle..
   toSignal pat = _slow (duration pat) $ toSignal' pat
@@ -207,9 +206,8 @@ instance Pattern Sequence where
       toSignal' (Cat xs) = timeCat timeseqs
         where timeseqs = map (\x -> (duration x, toSignal' x)) xs
       toSignal' (Stack xs) = stack $ map toSignal' xs
-  withMetadata f pat = withAtom f' pat
-    where f' (Atom m d i o v) = Atom (f m) d i o v
-          f' x                = x
+  withMetadata f = withAtom $ \m d i o v -> Atom (f m) d i o v
+  silence = gap 1
 
 -- class Pattern p => Patternable p a b where toP :: a -> p b
 

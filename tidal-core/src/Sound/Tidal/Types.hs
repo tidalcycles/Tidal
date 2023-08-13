@@ -39,9 +39,21 @@ instance forall a t. Applicative t => Applicable t (t a) (a) where toA = id
 
 -- | A type class for patterns
 class (Functor p, Applicative p, Monad p) => Pattern p where
+  {-# MINIMAL (innerBind | innerJoin), (outerBind | outerJoin), (squeezeBind | squeezeJoin), duration, withTime, cat, timeCat, stack, _early, rev, toSignal, withMetadata, silence #-}
   duration :: p a -> Time
   withTime :: (Time -> Time) -> (Time -> Time) -> p a -> p a
-  innerBind, outerBind :: p a -> (a -> p b) -> p b
+
+  -- Instances must either define binds or joins
+  innerBind, outerBind, squeezeBind :: p a -> (a -> p b) -> p b
+  innerBind pat f = innerJoin $ fmap f pat
+  outerBind pat f = outerJoin $ fmap f pat
+  squeezeBind pat f = squeezeJoin $ fmap f pat
+
+  innerJoin, outerJoin, squeezeJoin :: p (p a) -> p a
+  innerJoin pat = innerBind pat id
+  outerJoin pat = outerBind pat id
+  squeezeJoin pat = squeezeBind pat id
+
   cat :: [p a] -> p a
   timeCat :: [(Time, p a)] -> p a
   stack :: [p a] -> p a
@@ -49,6 +61,13 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   rev :: p a -> p a
   toSignal :: p a -> Signal a
   withMetadata :: (Metadata -> Metadata) -> p a -> p a
+  silence :: p a
+
+instance Pattern p => Semigroup (p a)
+  where a <> b = cat [a,b]
+
+instance Pattern p => Monoid (p a) where
+  mempty = silence
 
 data Span = Span { aBegin :: Time, aEnd :: Time}
   deriving (Eq, Ord, Show)

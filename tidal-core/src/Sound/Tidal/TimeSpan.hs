@@ -7,6 +7,19 @@ import           Sound.Tidal.Types
 sect :: Span -> Span -> Span
 sect (Span b e) (Span b' e') = Span (max b b') (min e e')
 
+
+-- | Intersection of two arcs, returns Nothing if they don't intersect
+-- The definition is a bit fiddly as results might be zero-width, but
+-- not at the end of an non-zero-width arc - e.g. (0,1) and (1,2) do
+-- not intersect, but (1,1) (1,1) does.
+maybeSect :: Span -> Span -> Maybe Span
+maybeSect a@(Span s e) b@(Span s' e')
+  | and [s'' == e'', s'' == e, s < e] = Nothing
+  | and [s'' == e'', s'' == e', s' < e'] = Nothing
+  | s'' <= e'' = Just (Span s'' e'')
+  | otherwise = Nothing
+  where (Span s'' e'') = sect a b
+
 -- | Returns the whole cycle arc that the given time is in
 timeToCycle :: Time -> Span
 timeToCycle t = Span (sam t) (nextSam t)

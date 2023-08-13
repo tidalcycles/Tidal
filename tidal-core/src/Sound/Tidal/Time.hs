@@ -11,6 +11,10 @@ sam s = toRational (floor s :: Int)
 nextSam :: Time -> Time
 nextSam = (+1) . sam
 
+-- | The position of a time value relative to the start of its cycle.
+cyclePos :: Time -> Time
+cyclePos t = t - sam t
+
 -- | Lowest common multiple
 lcmTime :: Time -> Time -> Time
 lcmTime a b = lcm (f a) (f b) % d

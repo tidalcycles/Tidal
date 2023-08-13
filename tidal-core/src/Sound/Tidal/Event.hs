@@ -9,3 +9,7 @@ eventWithSpan :: (Span -> Span) -> Event a -> Event a
 eventWithSpan f e = e {active = f $ active e,
                        whole  = f <$> whole e
                       }
+
+wholeOrActive :: Event a -> Span
+wholeOrActive Event {whole = Just a} = a
+wholeOrActive e                      = active e
