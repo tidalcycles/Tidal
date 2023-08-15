@@ -47,6 +47,7 @@ library
     other-modules:
         Sound.Tidal.Bjorklund
         Sound.Tidal.Event
+        Sound.Tidal.InstanceHacks
         Sound.Tidal.Pattern
         Sound.Tidal.Sequence
         Sound.Tidal.Signal
@@ -54,6 +55,7 @@ library
         Sound.Tidal.TimeSpan
         Sound.Tidal.Types
         Sound.Tidal.Utils
+        Sound.Tidal.Value
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

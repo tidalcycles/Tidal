@@ -169,4 +169,3 @@ data SeqStrategy a = SeqStrategy {sStrategy  :: Strategy,
                                   sDirection :: Direction,
                                   sSequence  :: Sequence a
                                  }
-

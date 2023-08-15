@@ -1,5 +1,6 @@
 module Sound.Tidal.Signal where
 
+import           Control.Applicative  (liftA2)
 import           Data.Maybe           (fromMaybe, mapMaybe)
 import           Sound.Tidal.Event
 import           Sound.Tidal.Pattern
@@ -88,7 +89,7 @@ sigBindWith chooseWhole pv f = Signal $ \q -> concatMap match $ query pv q
         withWhole event event' = event' {whole = chooseWhole (whole event) (whole event')}
 
 -- | Like @join@, but cycles of the inner patterns are compressed to fit the
--- timearc of the outer whole (or the original query if it's a continuous pattern?)
+-- timespan of the outer whole (or the original query if it's a continuous pattern?)
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 sigSqueezeJoin :: Signal (Signal a) -> Signal a
 sigSqueezeJoin pp = pp {query = q}
@@ -105,6 +106,22 @@ sigSqueezeJoin pp = pp {query = q}
 _zoomSpan :: Span -> Signal a -> Signal a
 _zoomSpan (Span s e) p = splitQueries $ withEventSpan (mapCycle ((/d) . subtract s)) $ withQuery (mapCycle ((+s) . (*d))) p
      where d = e-s
+
+{- | Plays a portion of a signal, specified by start and duration
+The new resulting signal is played over the time period of the original signal:
+
+@
+d1 $ zoom 0.25 0.75 $ sound "bd*2 hh*3 [sn bd]*2 drum"
+@
+
+In the signal above, `zoom` is used with an span from 25% to 75%. It is equivalent to this signal:
+
+@
+d1 $ sound "hh*3 [sn bd]*2"
+@
+-}
+zoom :: Signal Time -> Signal Time -> Signal a -> Signal a
+zoom patStart patDur pat = innerJoin $ (\s d -> _zoomSpan (Span s (s+d)) pat) <$> patStart <*> patDur
 
 -- TODO - why is this function so long?
 _fastGap :: Time -> Signal a -> Signal a
@@ -129,9 +146,18 @@ _fastGap factor pat = splitQueries $ withEvent ef $ withQueryMaybe qf pat
                             e' = aEnd a' + ((aEnd w - e) / factor)
                         return $ Span b' e'
 
+-- | Like @fast@, but only plays one cycle of the original signal
+-- once per cycle, leaving a gap at the end
+fastGap :: Signal Time -> Signal a -> Signal a
+fastGap = patternify_p_n _fastGap
+
 _compressSpan :: Span -> Signal a -> Signal a
 _compressSpan (Span b e) pat | b > e || b > 1 || e > 1 || b < 0 || e < 0 = silence
                            | otherwise = _late b $ _fastGap (1/(e-b)) pat
+
+-- | Like @fastGap@, but takes the start and duration of the span to compress the cycle into.
+compress :: Signal Time -> Signal Time -> Signal a -> Signal a
+compress patStart patDur pat = innerJoin $ (\s d -> _compressSpan (Span s (s+d)) pat) <$> patStart <*> patDur
 
 -- | Similar to @fastCat@, but each signal is given a relative duration
 sigTimeCat :: [(Time, Signal a)] -> Signal a
@@ -143,4 +169,8 @@ sigTimeCat tps = stack $ map (\(s,e,p) -> _compressSpan (Span (s/total) (e/total
 
 _focusSpan :: Span -> Signal a -> Signal a
 _focusSpan (Span b e) pat = _late (cyclePos b) $ _fast (1/(e-b)) pat
+
+-- | Like @compress@, but doesn't leave a gap and can 'focus' on any span (not just within a cycle)
+focus :: Signal Time -> Signal Time -> Signal a -> Signal a
+focus patStart patDur pat = innerJoin $ (\s d -> _focusSpan (Span s (s+d)) pat) <$> patStart <*> patDur
 

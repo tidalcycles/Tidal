@@ -60,13 +60,17 @@ _slow t = withTime (* t) (/ t)
 _late = _early . (0-)
 
 -- patternify parameters
-fast, density, slow, sparsity, early, late :: Pattern p => p Time -> p a -> p a
+fast, density, slow, sparsity, early, late, (<~), (~>) :: Pattern p => p Time -> p a -> p a
 fast  = patternify_p_n _fast
 density = fast
 slow  = patternify_p_n _slow
 sparsity = slow
 early = patternify_p_n _early
 late  = patternify_p_n _late
+-- Infix operator for `early`
+(<~) = early
+-- Infix operator for `late`
+(~>) = late
 
 _inside, _outside :: Pattern p => Time -> (p a -> p b) -> p a -> p b
 _inside n f p = _fast n $ f (_slow n p)
@@ -127,6 +131,10 @@ _iterBack n p | n == 0 = p
               | n < 0 = _iter (abs n) p
               | otherwise = slowcat $ p:map (\t -> _early ((fromIntegral t)%(fromIntegral n)) p) [n .. 1]
 
+iter, iterBack :: Pattern p => p Int -> p a -> p a
+iter = patternify_p_n _iter
+iterBack = patternify_p_n _iterBack
+
 -- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
 -- the pattern alternates between forwards and backwards.
 palindrome :: Pattern p => p a -> p a
@@ -150,12 +158,34 @@ pressBy = patternify_p_n _pressBy
 _pressBy :: Pattern p => Time -> p a -> p a
 _pressBy t pat = squeezeJoin $ (\v -> timeCat [(t, silence), (1-t, pure v)]) <$> pat
 
--- iter, iterBack :: Pattern p => p Int -> p a -> p a
--- iter = patternify_p_n _iter
--- iterBack = patternify_p_n _iterBack
+-- | chooses between a list of patterns, using a pattern of floats (from 0-1)
+select :: Pattern p => p Double -> [p a] -> p a
+select = patternify_p_n _select
+
+_select :: Pattern p => Double -> [p a] -> p a
+_select f ps =  ps !! floor (max 0 (min 1 f) * fromIntegral (length ps - 1))
+
+-- | chooses between a list of functions, using a pattern of floats (from 0-1)
+selectF :: Pattern p => p Double -> [p a -> p a] -> p a -> p a
+selectF pf ps p = innerJoin $ (\f -> _selectF f ps p) <$> pf
+
+_selectF :: Double -> [p a -> p a] -> p a -> p a
+_selectF f ps p =  (ps !! floor (max 0 (min 0.999999 f) * fromIntegral (length ps))) p
+
+_repeatCycles, _fastRepeatCycles, _slowRepeatCycles
+  :: Pattern p => Int -> p a -> p a
+_repeatCycles n p = slowcat $ replicate n p
+_fastRepeatCycles n p = fastcat $ replicate n p
+_slowRepeatCycles = _repeatCycles
+
+repeatCycles, fastRepeatCycles, slowRepeatCycles
+  :: Pattern p => p Int -> p a -> p a
+repeatCycles = patternify_p_n _repeatCycles
+fastRepeatCycles = patternify_p_n _fastRepeatCycles
+slowRepeatCycles = repeatCycles
 
 -- ************************************************************ --
--- Range manipulations
+-- Numerical manipulations
 
 {- | `range` will take a pattern which goes from 0 to 1 (like `sine`),
    and scale it to a different range - between the first and second
@@ -187,6 +217,21 @@ toBipolar pat = fmap (\v -> (v*2)-1) pat
 fromBipolar :: (Pattern p, Fractional x) => p x -> p x
 fromBipolar pat = fmap (\v -> (v+1)/2) pat
 
+-- | limit values in a Pattern (or other Functor) to n equally spaced
+-- divisions of 1.
+quantise :: (Functor f, RealFrac b) => b -> f b -> f b
+quantise n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . round . (*n))
+
+-- quantise but with floor
+qfloor :: (Functor f, RealFrac b) => b -> f b -> f b
+qfloor n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . floor . (*n))
+
+qceiling :: (Functor f, RealFrac b) => b -> f b -> f b
+qceiling n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . ceiling . (*n))
+
+qround :: (Functor f, RealFrac b) => b -> f b -> f b
+qround = quantise
+
 -- ************************************************************ --
 -- Simple pattern generators
 
@@ -195,6 +240,14 @@ fromList, fastFromList, slowFromList :: Pattern p => [a] -> p a
 fromList = slowcat . map pure
 slowFromList = fromList
 fastFromList = fastcat . map pure
+
+-- | 'fromMaybes; is similar to 'fromList', but allows values to
+-- be optional using the 'Maybe' type, so that 'Nothing' results in
+-- gaps in the pattern.
+fromMaybes :: Pattern t => [Maybe a] -> t a
+fromMaybes = fastcat . map f
+  where f Nothing  = silence
+        f (Just x) = pure x
 
 _run :: (Pattern p, Enum a, Num a) => a -> p a
 _run n = fastFromList [0 .. n-1]
