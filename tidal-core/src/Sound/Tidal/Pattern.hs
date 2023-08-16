@@ -95,7 +95,6 @@ _off t f p = _superimpose (f . (t `_late`)) p
 off :: Pattern p => p Time -> p (p a -> p a) -> p a -> p a
 off  = patternify_p_p_n _off
 
-
 when :: Pattern p => p Bool -> (p b -> p b) -> p b -> p b
 when boolpat f pat = innerJoin $ (\b -> if b then f pat else pat) <$> boolpat
 
@@ -231,6 +230,29 @@ qceiling n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . ceiling . (
 
 qround :: (Functor f, RealFrac b) => b -> f b -> f b
 qround = quantise
+
+
+{- @bite@ n ipat pat |
+  slices a signal `pat` into `n` pieces, then uses the `ipat` signal of integers to index into those slices.
+  So `bite 4 "0 2*2" (run 8)` is the same as `"[0 1] [4 5]*2"`.
+-}
+bite :: Pattern p => p Int -> p Int -> p a -> p a
+bite npat ipat pat = innerJoin $ (\n -> _bite n ipat pat) <$> npat
+
+_bite :: Pattern p => Int -> p Int -> p a -> p a
+_bite n ipat pat = squeezeJoin $ zoompat <$> ipat
+  where zoompat i = _zoomSpan (Span (i' / fromIntegral n) ((i'+1) / fromIntegral n)) pat
+           where i' = fromIntegral $ i `mod` n
+
+-- | @segment n p@: 'samples' the pattern @p@ at a rate of @n@
+-- events per cycle. Useful for turning a continuous signal into a
+-- discrete one.
+-- TODO - not working well for sequences
+segment :: Pattern p => p Time -> p a -> p a
+segment = patternify_p_n _segment
+
+_segment :: Pattern p => Time -> p a -> p a
+_segment n p = _fast n (pure id) <* p
 
 -- ************************************************************ --
 -- Simple pattern generators

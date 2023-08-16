@@ -208,9 +208,12 @@ instance Pattern Sequence where
       toSignal' (Stack xs) = stack $ map toSignal' xs
   withMetadata f = withAtom $ \m d i o v -> Atom (f m) d i o v
   silence = gap 1
+  _zoomSpan (Span s e) pat = _slow (d/(d * frac))
+                           $ seqTakeLoop (d*frac) $ seqDrop (d*s) pat
+    where d = duration pat
+          frac = e-s
 
 -- class Pattern p => Patternable p a b where toP :: a -> p b
-
 
 -- **********************
 -- | Sequence alignment *

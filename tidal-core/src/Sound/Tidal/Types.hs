@@ -43,7 +43,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
               (outerBind | outerJoin),
               (squeezeBind | squeezeJoin),
               duration, withTime, cat, timeCat, stack, _early, rev, toSignal,
-              withMetadata, silence
+              withMetadata, silence, _zoomSpan
     #-}
   duration :: p a -> Time
   withTime :: (Time -> Time) -> (Time -> Time) -> p a -> p a
@@ -66,6 +66,8 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   toSignal :: p a -> Signal a
   withMetadata :: (Metadata -> Metadata) -> p a -> p a
   silence :: p a
+  -- | Return part of a pattern, zoomed to the same (cycle) duration
+  _zoomSpan :: Span -> p a -> p a
 
 instance Pattern p => Semigroup (p a)
   where a <> b = cat [a,b]

@@ -43,6 +43,10 @@ instance Pattern Signal where
   toSignal = id
   withMetadata f pat = withEvents (map (\e -> e {eventMetadata = f $ eventMetadata e})) pat
   silence = Signal $ const []
+  _zoomSpan (Span s e) p = splitQueries
+                           $ withEventSpan (mapCycle ((/d) . subtract s))
+                           $ withQuery (mapCycle ((+s) . (*d))) p
+    where d = e-s
 
 -- instance Signalable (Signal a) a where toSig = id
 -- instance Signalable a a where toSig = pure
@@ -102,10 +106,6 @@ sigSqueezeJoin pp = pp {query = q}
           do w' <- maybeSect <$> oWhole <*> iWhole
              p' <- maybeSect oPart iPart
              return (Event (iMetadata <> oMetadata) w' p' v)
-
-_zoomSpan :: Span -> Signal a -> Signal a
-_zoomSpan (Span s e) p = splitQueries $ withEventSpan (mapCycle ((/d) . subtract s)) $ withQuery (mapCycle ((+s) . (*d))) p
-     where d = e-s
 
 {- | Plays a portion of a signal, specified by start and duration
 The new resulting signal is played over the time period of the original signal:
