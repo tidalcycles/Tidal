@@ -23,14 +23,14 @@ module Sound.Tidal.Show where
 
 import           Sound.Tidal.Types
 
-import           Sound.Tidal.Signal.Base  (queryArc)
-import           Sound.Tidal.Signal.Event (eventHasOnset)
+import           Sound.Tidal.Event  (eventHasOnset)
+import           Sound.Tidal.Signal (querySpan)
 
-import           Data.List                (intercalate, sortOn)
-import           Data.Maybe               (fromMaybe)
-import           Data.Ratio               (denominator, numerator)
+import           Data.List          (intercalate, sortOn)
+import           Data.Maybe         (fromMaybe)
+import           Data.Ratio         (denominator, numerator)
 
-import qualified Data.Map.Strict          as Map
+import qualified Data.Map.Strict    as Map
 
 
 instance Show Note where
@@ -51,14 +51,14 @@ instance (Show a) => Show (Sequence a) where
     where showio | i == 0 && o == 0 = ""
                  | otherwise = "(" ++ prettyRatio i ++ "," ++ prettyRatio o ++ ")"
   show (Cat xs) = "[" ++ unwords (map show xs) ++ "]"
-  show (Stack xs) = "[" ++ intercalate ", " (map show xs) ++ "]"
+  show (Stack xs) = "[\n" ++ intercalate ", \n" (map show xs) ++ "\n]"
 
 instance (Show a) => Show (Signal a) where
-  show = showSignal (Arc 0 1)
+  show = showSignal (Span 0 1)
 
 -- showStateful :: ControlSignal -> String
 -- showStateful p = intercalate "\n" evStrings
---   where (_, evs) = resolveState (Map.empty) $ sortOn part $ queryArc (filterOnsets p) (Arc 0 1)
+--   where (_, evs) = resolveState (Map.empty) $ sortOn part $ querySpan (filterOnsets p) (Span 0 1)
 --         evs' = map showEvent evs
 --         maxPartLength :: Int
 --         maxPartLength = maximum $ map (length . fst) evs'
@@ -69,9 +69,9 @@ instance (Show a) => Show (Signal a) where
 --                       )
 --         evStrings = map evString evs'
 
-showSignal :: Show a => Arc -> Signal a -> String
+showSignal :: Show a => Span -> Signal a -> String
 showSignal a p = intercalate "\n" evStrings
-  where evs = map showEvent $ sortOn active $ queryArc p a
+  where evs = map showEvent $ sortOn active $ querySpan p a
         maxActiveLength :: Int
         maxActiveLength = maximum $ map (length . fst) evs
         evString :: (String, String) -> String
@@ -80,7 +80,7 @@ showSignal a p = intercalate "\n" evStrings
         evStrings = map evString evs
 
 showEvent :: Show a => Event a -> (String, String)
-showEvent (Event _ (Just (Arc ws we)) a@(Arc ps pe) e) =
+showEvent (Event _ (Just (Span ws we)) a@(Span ps pe) e) =
   (h ++ "(" ++ show a ++ ")" ++ t ++ "|", show e)
   where h | ws == ps = ""
           | otherwise = prettyRat ws ++ "-"
@@ -91,12 +91,12 @@ showEvent (Event _ Nothing a e) =
   ("~" ++ show a ++ "~|", show e)
 
 -- Show everything, including event metadata
-showAll :: Show a => Arc -> Signal a -> String
-showAll a p = intercalate "\n" $ map showEventAll $ sortOn active $ queryArc p a
+showAll :: Show a => Span -> Signal a -> String
+showAll a p = intercalate "\n" $ map showEventAll $ sortOn active $ querySpan p a
 
 -- Show metadata of an event
 showEventAll :: Show a => Event a -> String
-showEventAll e = show (metadata e) ++ uncurry (++) (showEvent e)
+showEventAll e = show (eventMetadata e) ++ uncurry (++) (showEvent e)
 
 instance Show Value where
   show (VS s)      = ('"':s) ++ "\""
@@ -114,8 +114,8 @@ instance Show Value where
 instance {-# OVERLAPPING #-} Show ValueMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
 
-instance {-# OVERLAPPING #-} Show Arc where
-  show (Arc s e) = prettyRat s ++ ">" ++ prettyRat e
+instance {-# OVERLAPPING #-} Show Span where
+  show (Span s e) = prettyRat s ++ ">" ++ prettyRat e
 
 instance {-# OVERLAPPING #-} Show a => Show (Event a) where
   show e = uncurry (++) (showEvent e)
@@ -175,5 +175,5 @@ showFrac n d = fromMaybe plain $ do n' <- up n
         down _ = Nothing
 
 stepcount :: Signal a -> Int
-stepcount pat = fromIntegral $ eventSteps $ concatMap ((\ev -> [aBegin ev, aEnd ev]) . active) (filter eventHasOnset $ queryArc pat (Arc 0 1))
+stepcount pat = fromIntegral $ eventSteps $ concatMap ((\ev -> [aBegin ev, aEnd ev]) . active) (filter eventHasOnset $ querySpan pat (Span 0 1))
   where eventSteps xs = foldr (lcm . denominator) 1 xs

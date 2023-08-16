@@ -54,6 +54,9 @@ instance Pattern Signal where
 -- instance Signalable (Signal a) a where toSig = id
 -- instance Signalable a a where toSig = pure
 
+querySpan :: Signal a -> Span -> [Event a]
+querySpan = query
+
 -- | Split queries at sample boundaries. An internal function that
 -- makes other functions easier to define, as events that cross cycle
 -- boundaries don't need to be considered then.

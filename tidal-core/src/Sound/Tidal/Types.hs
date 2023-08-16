@@ -76,7 +76,7 @@ instance Pattern p => Monoid (p a) where
   mempty = silence
 
 data Span = Span { aBegin :: Time, aEnd :: Time}
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord)
 
 -- | Metadata - currently just used for sourcecode positions that
 -- caused the event they're stored against

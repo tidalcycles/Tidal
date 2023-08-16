@@ -3,8 +3,7 @@
 module Sound.Tidal.Sequence where
 
 import           Data.Fixed          (mod')
-import           Data.List           (intercalate, intersperse)
-import           Data.Ratio
+import           Data.List           (intersperse)
 import           Data.Tuple          (swap)
 
 import           Sound.Tidal.Pattern
@@ -35,18 +34,6 @@ afast  = alignify _fast
 aslow  = alignify _slow
 aearly = alignify _early
 alate  = alignify _late
-
-prettyRatio :: Rational -> String
-prettyRatio r | denominator r == 1 = show $ numerator r
-              | otherwise = show (numerator r) ++ "/" ++ show (denominator r)
-
-instance (Show a) => Show (Sequence a) where
-  show (Atom _ d _ _ Nothing) = "~" ++ "×" ++ prettyRatio d
-  show (Atom _ d i o (Just v)) = show v ++ "×" ++ prettyRatio d ++ showio
-    where showio | i == 0 && o == 0 = ""
-                 | otherwise = "(" ++ prettyRatio i ++ "," ++ prettyRatio o ++ ")"
-  show (Cat xs) = "[" ++ unwords (map show xs) ++ "]"
-  show (Stack xs) = "[\n" ++ intercalate ", \n" (map show xs) ++ "\n]"
 
 gap :: Time -> Sequence a
 gap t = Atom mempty t 0 0 Nothing

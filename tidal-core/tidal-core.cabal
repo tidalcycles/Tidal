@@ -50,6 +50,7 @@ library
         Sound.Tidal.InstanceHacks
         Sound.Tidal.Pattern
         Sound.Tidal.Sequence
+        Sound.Tidal.Show
         Sound.Tidal.Signal
         Sound.Tidal.Time
         Sound.Tidal.TimeSpan
