@@ -46,12 +46,16 @@ library
     -- Modules included in this library but not exported.
     other-modules:
         Sound.Tidal.Bjorklund
+        Sound.Tidal.Chords
         Sound.Tidal.Event
         Sound.Tidal.InstanceHacks
+--        Sound.Tidal.Mini
         Sound.Tidal.Pattern
         Sound.Tidal.Sequence
         Sound.Tidal.Show
         Sound.Tidal.Signal
+        Sound.Tidal.Signal.Random
+        Sound.Tidal.Signal.Waveform
         Sound.Tidal.Time
         Sound.Tidal.TimeSpan
         Sound.Tidal.Types
@@ -65,6 +69,9 @@ library
     build-depends:    base
                     , deepseq
                     , containers
+                    , colour
+                    , parsec
+                    
 
     -- Directories containing source files.
     hs-source-dirs:   src

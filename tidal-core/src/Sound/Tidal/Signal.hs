@@ -2,8 +2,10 @@ module Sound.Tidal.Signal where
 
 -- To get liftA2.. avoids import warning
 import           Control.Applicative  (Applicative (..))
-import           Prelude              hiding (Applicative (..))
+import           Prelude              hiding (Applicative (..), span)
 
+import           Data.List            ((\\))
+import qualified Data.Map.Strict      as Map
 import           Data.Maybe           (fromMaybe, mapMaybe)
 import           Sound.Tidal.Event
 import           Sound.Tidal.Pattern
@@ -11,11 +13,13 @@ import           Sound.Tidal.Time
 import           Sound.Tidal.TimeSpan
 import           Sound.Tidal.Types
 
-instance Monad Signal         where (>>=) = sigBindWith $ liftA2 sect
-                                    return = pure
+instance Monad Signal where
+  (>>=) = sigBindWith $ liftA2 sect
+  return = pure
+
 -- Define applicative from monad
 instance Applicative Signal where
-  pure v = Signal $ \q -> map (\arc -> Event mempty (Just $ timeToCycle $ aBegin arc) arc v) $ splitSpans q
+  pure v = Signal $ \state -> map (\span -> Event mempty (Just $ timeToCycle $ aBegin span) span v) $ splitSpans $ sSpan state
   pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
 
 instance Pattern Signal where
@@ -28,8 +32,9 @@ instance Pattern Signal where
   outerBind = sigBindWith const
   squeezeJoin = sigSqueezeJoin
   -- | Concatenate a list of signals, interleaving cycles.
-  cat pats = splitQueries $ Signal $ \a -> query (_late (offset a) (pats !! mod (floor $ aBegin a) n)) a
-    where offset arc = sam (aBegin arc) - sam (aBegin arc / toRational n)
+  cat pats = splitQueries $ Signal $ \state -> query (_late (offset $ sSpan state) (pat $ sSpan state)) state
+    where pat span = pats !! mod (floor $ aBegin span) n
+          offset span = sam (aBegin span) - sam (aBegin span / toRational n)
           n = length pats
   timeCat tps = stack $ map (\(s,e,p) -> _compressSpan (Span (s/total) (e/total)) p) $ arrange 0 tps
     where total = sum $ map fst tps
@@ -39,8 +44,8 @@ instance Pattern Signal where
   stack pats = Signal $ \a -> concatMap (`query` a) pats
   _early t = withTime (subtract t) (+ t)
   rev pat = splitQueries $ Signal f
-    where f a = eventWithSpan reflect <$> (query pat $ reflect a)
-            where cyc = sam $ aBegin a
+    where f state = eventWithSpan reflect <$> (query pat $ state {sSpan = reflect $ sSpan state})
+            where cyc = sam $ aBegin $ sSpan state
                   next_cyc = nextSam cyc
                   reflect (Span b e) = Span (cyc + (next_cyc - e)) (cyc + (next_cyc - b))
   toSignal = id
@@ -48,20 +53,28 @@ instance Pattern Signal where
   silence = Signal $ const []
   _zoomSpan (Span s e) p = splitQueries
                            $ withEventSpan (mapCycle ((/d) . subtract s))
-                           $ withQuery (mapCycle ((+s) . (*d))) p
+                           $ withQuerySpan (mapCycle ((+s) . (*d))) p
     where d = e-s
 
 -- instance Signalable (Signal a) a where toSig = id
 -- instance Signalable a a where toSig = pure
 
 querySpan :: Signal a -> Span -> [Event a]
-querySpan = query
+querySpan pat span = query pat $ State span Map.empty
 
 -- | Split queries at sample boundaries. An internal function that
 -- makes other functions easier to define, as events that cross cycle
 -- boundaries don't need to be considered then.
 splitQueries :: Signal a -> Signal a
-splitQueries pat = Signal $ concatMap (query pat) . splitSpans
+splitQueries pat =
+  Signal $ \state -> concatMap (\span -> query pat (state {sSpan = span}))
+                     $ splitSpans $ sSpan state
+
+filterEvents :: (Event a -> Bool) -> Signal a -> Signal a
+filterEvents f pat = Signal $ \state -> filter f $ query pat state
+
+filterValues :: (a -> Bool) -> Signal a -> Signal a
+filterValues f = filterEvents (f . value)
 
 -- | @withEvents f p@ returns a new @Signal@ with f applied to the
 -- resulting list of events for each query function @f@.
@@ -79,23 +92,37 @@ withEventTime timef = withEvent $ \e -> e {active = withSpanTime timef $ active 
                                           }
 
 withEventSpan :: (Span -> Span) -> Signal a -> Signal a
-withEventSpan arcf = withEvent $ \e -> e {active = arcf $ active e,
-                                          whole = arcf <$> whole e
-                                         }
+withEventSpan spanf = withEvent $ \e -> e {active = spanf $ active e,
+                                           whole = spanf <$> whole e
+                                          }
 
-withQuery :: (Span -> Span) -> Signal a -> Signal a
-withQuery arcf sig = Signal $ \arc -> query sig $ arcf arc
+withQuery :: (State -> State) -> Signal a -> Signal a
+withQuery statef sig = Signal $ \state -> query sig $ statef state
 
-withQueryMaybe :: (Span -> Maybe Span) -> Signal a -> Signal a
-withQueryMaybe qf pat = Signal $ \q -> fromMaybe [] $ qf q >>= Just . query pat
+withQueryMaybe :: (State -> Maybe State) -> Signal a -> Signal a
+withQueryMaybe statef sig = Signal $ \state -> fromMaybe [] $
+                                               do state' <- statef state
+                                                  return $ query sig state'
+
+withQuerySpan :: (Span -> Span) -> Signal a -> Signal a
+withQuerySpan spanf = withQuery (\state -> state {sSpan = spanf $ sSpan state})
+
+withQuerySpanMaybe :: (Span -> Maybe Span) -> Signal a -> Signal a
+withQuerySpanMaybe spanf = withQueryMaybe (\state -> do a <- spanf $ sSpan state
+                                                        return $ state {sSpan = a}
+                                          )
 
 withQueryTime :: (Time -> Time) -> Signal a -> Signal a
-withQueryTime timef = withQuery $ withSpanTime timef
+withQueryTime timef = withQuerySpan $ withSpanTime timef
 
 -- Makes a signal bind, given a function of how to calculate the 'whole' timespan
 sigBindWith :: (Maybe Span -> Maybe Span -> Maybe Span) -> Signal a -> (a -> Signal b) -> Signal b
-sigBindWith chooseWhole pv f = Signal $ \q -> concatMap match $ query pv q
-  where match event = map (withWhole event) $ query (f $ value event) (active event)
+sigBindWith chooseWhole pv f = Signal $ \state -> concatMap (match (sControls state)) $ query pv state
+  where match controls event = map (withWhole event)
+                               $ query (f $ value event)
+                               $ State {sSpan = active event,
+                                        sControls = controls
+                                       }
         withWhole event event' = event' {whole = chooseWhole (whole event) (whole event')}
 
 -- | Like @join@, but cycles of the inner patterns are compressed to fit the
@@ -103,11 +130,11 @@ sigBindWith chooseWhole pv f = Signal $ \q -> concatMap match $ query pv q
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 sigSqueezeJoin :: Signal (Signal a) -> Signal a
 sigSqueezeJoin pp = pp {query = q}
-  where q st = concatMap
+  where q state = concatMap
           (\e@(Event m w p v) ->
-             mapMaybe (munge m w p) $ query (_focusSpan (wholeOrActive e) v) p
+             mapMaybe (munge m w p) $ query (_focusSpan (wholeOrActive e) v) $ state {sSpan = p}
           )
-          (query pp st)
+          (query pp state)
         munge oMetadata oWhole oPart (Event iMetadata iWhole iPart v) =
           do w' <- maybeSect <$> oWhole <*> iWhole
              p' <- maybeSect oPart iPart
@@ -131,7 +158,7 @@ zoom patStart patDur pat = innerJoin $ (\s d -> _zoomSpan (Span s (s+d)) pat) <$
 
 -- TODO - why is this function so long?
 _fastGap :: Time -> Signal a -> Signal a
-_fastGap factor pat = splitQueries $ withEvent ef $ withQueryMaybe qf pat
+_fastGap factor pat = splitQueries $ withEvent ef $ withQuerySpanMaybe qf pat
   -- A bit fiddly, to drop zero-width queries at the start of the next cycle
   where qf (Span b e) | bpos < 1 = Just $ Span (cyc + bpos) (cyc + epos)
                       | otherwise = Nothing
@@ -173,10 +200,66 @@ sigTimeCat tps = stack $ map (\(s,e,p) -> _compressSpan (Span (s/total) (e/total
           arrange _ []            = []
           arrange t ((t',p):tps') = (t,t+t',p) : arrange (t+t') tps'
 
+{-|
+Only `when` the given test function returns `True` the given signal
+transformation is applied. The test function will be called with the
+current cycle as a number.
+
+@
+d1 $ whenT ((elem '4').show)
+  (striate 4)
+  $ sound "hh hc"
+@
+
+The above will only apply `striate 4` to the signal if the current
+cycle number contains the number 4. So the fourth cycle will be
+striated and the fourteenth and so on. Expect lots of striates after
+cycle number 399.
+-}
+whenT :: (Int -> Bool) -> (Signal a -> Signal a) ->  Signal a -> Signal a
+whenT test f p = splitQueries $ p {query = apply}
+  where apply st | test (floor $ aBegin $ sSpan st) = query (f p) st
+                 | otherwise = query p st
+
 _focusSpan :: Span -> Signal a -> Signal a
 _focusSpan (Span b e) pat = _late (cyclePos b) $ _fast (1/(e-b)) pat
 
 -- | Like @compress@, but doesn't leave a gap and can 'focus' on any span (not just within a cycle)
 focus :: Signal Time -> Signal Time -> Signal a -> Signal a
 focus patStart patDur pat = innerJoin $ (\s d -> _focusSpan (Span s (s+d)) pat) <$> patStart <*> patDur
+
+--- functions relating to chords/patterns of lists
+
+_sameDur :: Event a -> Event a -> Bool
+_sameDur e1 e2 = (whole e1 == whole e2) && (active e1 == active e2)
+
+_groupEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [[Event a]]
+_groupEventsBy _ [] = []
+_groupEventsBy f (e:es) = eqs : _groupEventsBy f (es \\ eqs)
+  where eqs = e:[x | x <- es, f e x]
+
+-- assumes that all events in the list have same whole/active
+_collectEvent :: [Event a] -> Maybe (Event [a])
+_collectEvent [] = Nothing
+_collectEvent es@(e:_) = Just $ e {eventMetadata = mconcat $ map eventMetadata es,
+                                   value = map value es
+                                  }
+
+_collectEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [Event [a]]
+_collectEventsBy f es = remNo $ map _collectEvent (_groupEventsBy f es)
+  where
+    remNo []            = []
+    remNo (Nothing:cs)  = remNo cs
+    remNo ((Just c):cs) = c : remNo cs
+
+-- | collects all events satisfying the same constraint into a list
+_collectBy :: Eq a => (Event a -> Event a -> Bool) -> Signal a -> Signal [a]
+_collectBy f = withEvents (_collectEventsBy f)
+
+-- TODO - define collect for sequences as well.
+
+-- | collects all events occuring at the exact same time into a
+-- list. See also 'uncollect' defined in the Pattern module.
+collect :: Eq a => Signal a -> Signal [a]
+collect = _collectBy _sameDur
 

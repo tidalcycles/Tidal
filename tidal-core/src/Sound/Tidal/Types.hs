@@ -118,10 +118,18 @@ data Event a = Event {eventMetadata :: Metadata,
                      }
   deriving (Functor, Eq, Ord)
 
--- A pattern that's a function from a timespan to events active during
--- that timespan. A continuous signal, that can nonetheless contain
--- discrete events.
-data Signal a = Signal {query :: Span -> [Event a]}
+
+-- | A timearc and some named control values, used to query a signal
+-- with
+data State = State {sSpan     :: Span,
+                    sControls :: ValueMap
+                   }
+             deriving Generic
+
+-- A pattern that's a function from a timespan (along with other
+-- state) to events active during that timespan. A continuous signal,
+-- that can nonetheless contain discrete events.
+data Signal a = Signal {query :: State -> [Event a]}
   deriving (Functor, Generic)
 
 instance NFData a => NFData (Signal a)

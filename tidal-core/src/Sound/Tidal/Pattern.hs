@@ -254,6 +254,12 @@ segment = patternify_p_n _segment
 _segment :: Pattern p => Time -> p a -> p a
 _segment n p = _fast n (pure id) <* p
 
+-- | Merges a pattern of lists into a pattern of values by stacking
+-- the values. There is also 'collect', but that's currently only
+-- defined for Signal patterns.
+uncollect :: Pattern p => p [a] -> p a
+uncollect = outerJoin . fmap (stack . map pure)
+
 -- ************************************************************ --
 -- Simple pattern generators
 
@@ -309,3 +315,4 @@ patDeltaMetadata :: Pattern p => Int -> Int -> p a -> p a
 patDeltaMetadata column line pat
     = withSrcPos (map (\((bx,by), (ex,ey)) ->
                          ((bx+column,by+line), (ex+column,ey+line)))) pat
+
