@@ -3,7 +3,10 @@
 
 module Sound.Tidal.InstanceHacks where
 
-import           Control.Applicative  (liftA2)
+-- To get liftA2.. avoids import warning
+import           Control.Applicative  (Applicative (..))
+import           Prelude              hiding (Applicative (..))
+
 import qualified Data.Map.Strict      as Map
 import           Sound.Tidal.Sequence ()
 import           Sound.Tidal.Signal   ()

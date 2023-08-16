@@ -8,7 +8,7 @@ import           Data.Ratio
 import           Data.Tuple          (swap)
 
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Signal
+import           Sound.Tidal.Signal  ()
 import           Sound.Tidal.Time
 import           Sound.Tidal.Types
 

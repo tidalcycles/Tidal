@@ -1,6 +1,9 @@
 module Sound.Tidal.Signal where
 
-import           Control.Applicative  (liftA2)
+-- To get liftA2.. avoids import warning
+import           Control.Applicative  (Applicative (..))
+import           Prelude              hiding (Applicative (..))
+
 import           Data.Maybe           (fromMaybe, mapMaybe)
 import           Sound.Tidal.Event
 import           Sound.Tidal.Pattern
