@@ -168,7 +168,7 @@ perlin2 = perlin2With (waveform fromRational)
 sound "superpiano(3,8)" # note (choose ["a", "e", "g", "c"])
 @
 
-plays a melody randomly choosing one of the four notes \"a\", \"e\", \"g\", \"c\".
+plays a melody randomly choosing one of the four notes "a", "e", "g", "c".
 -}
 choose :: [a] -> Signal a
 choose = chooseBy rand
