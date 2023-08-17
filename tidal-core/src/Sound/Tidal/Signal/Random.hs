@@ -108,7 +108,7 @@ irand = (>>= _irand)
 _irand :: Num a => Int -> Signal a
 _irand i = fromIntegral . (floor :: Double -> Int) . (* fromIntegral i) <$> rand
 
-{- | 1D Perlin (smooth) noise, works like rand but smoothly moves between random
+{- | 1 dimensional Perlin (smooth) noise, works like rand but smoothly moves between random
 values each cycle. `perlinWith` takes a pattern as the RNG's "input" instead
 of automatically using the cycle count.
 @
@@ -137,7 +137,7 @@ d1
  # lpq 0.3
 @
 will generate a smooth random cutoff pattern that repeats every cycle without
-any reversals or discontinuities (because the 2D path is a circle).
+any reversals or discontinuities (because the 2 dimensional path is a circle).
 `perlin2` only needs one input because it uses the cycle count as the
 second input.
 -}
@@ -287,21 +287,21 @@ sometimesBy x f pat = overlay (degradeBy x pat) (f $ unDegradeBy x pat)
 sometimesBy' :: Signal Double -> (Signal a -> Signal a) -> Signal a -> Signal a
 sometimesBy' x f pat = overlay (degradeBy x pat) (unDegradeBy x $ f pat)
 
--- | @sometimes@ is an alias for sometimesBy 0.5.
+-- | @sometimes@ is an alias for sometimesBy 0.5 .
 sometimes :: (Signal a -> Signal a) -> Signal a -> Signal a
 sometimes = sometimesBy 0.5
 
 sometimes' :: (Signal a -> Signal a) -> Signal a -> Signal a
 sometimes' = sometimesBy' 0.5
 
--- | @often@ is an alias for sometimesBy 0.75.
+-- | @often@ is an alias for sometimesBy 0.75 .
 often :: (Signal a -> Signal a) -> Signal a -> Signal a
 often = sometimesBy 0.75
 
 often' :: (Signal a -> Signal a) -> Signal a -> Signal a
 often' = sometimesBy' 0.75
 
--- | @rarely@ is an alias for sometimesBy 0.25.
+-- | @rarely@ is an alias for sometimesBy 0.25 .
 rarely :: (Signal a -> Signal a) -> Signal a -> Signal a
 rarely = sometimesBy 0.25
 

@@ -19,7 +19,7 @@ newtype Note = Note { unNote :: Double }
   deriving (Generic, Eq, Ord, Enum, Num,
             Fractional, Floating, Real, RealFrac, NFData)
 
--- | In Tidal, time is rational
+-- | in Tidal, time is rational
 type Time = Rational
 
 -- class Test p where

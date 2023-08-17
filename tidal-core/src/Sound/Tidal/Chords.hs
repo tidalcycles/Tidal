@@ -289,7 +289,7 @@ instance Show Modifier where
   show Open      = "Open"
 
 applyModifier :: (Enum a, Num a) => Modifier -> [a] -> [a]
-applyModifier (Range i) ds = take i $ concatMap (\x -> map (+ x) ds) [0,12..]
+applyModifier (Range i) ds = take i $ concatMap (\x -> map (+ x) ds) [0,12 ..]
 applyModifier Invert [] = []
 applyModifier Invert (d:ds) = ds ++ [d+12]
 applyModifier Open ds = if length ds > 2 then
