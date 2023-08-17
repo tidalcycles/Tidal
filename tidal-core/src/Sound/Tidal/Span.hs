@@ -1,4 +1,4 @@
-module Sound.Tidal.TimeSpan where
+module Sound.Tidal.Span where
 
 import           Sound.Tidal.Time
 import           Sound.Tidal.Types
@@ -6,7 +6,6 @@ import           Sound.Tidal.Types
 -- | Intersection of two arcs
 sect :: Span -> Span -> Span
 sect (Span b e) (Span b' e') = Span (max b b') (min e e')
-
 
 -- | Intersection of two arcs, returns Nothing if they don't intersect
 -- The definition is a bit fiddly as results might be zero-width, but
@@ -40,3 +39,4 @@ mapCycle f (Span s e) = Span (sam' + f (s - sam')) (sam' + f (e - sam'))
 
 withSpanTime :: (Time -> Time) -> Span -> Span
 withSpanTime timef (Span b e) = Span (timef b) (timef e)
+

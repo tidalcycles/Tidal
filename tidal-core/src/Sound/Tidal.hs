@@ -12,8 +12,8 @@ import           Sound.Tidal.Signal          as T
 import           Sound.Tidal.Signal.Input    as T
 import           Sound.Tidal.Signal.Random   as T
 import           Sound.Tidal.Signal.Waveform as T
+import           Sound.Tidal.Span            as T
 import           Sound.Tidal.Time            as T
-import           Sound.Tidal.TimeSpan        as T
 import           Sound.Tidal.Types           as T
 import           Sound.Tidal.Utils           as T
 import           Sound.Tidal.Value           as T

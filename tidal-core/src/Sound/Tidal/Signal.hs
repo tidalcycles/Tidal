@@ -1,16 +1,16 @@
 module Sound.Tidal.Signal where
 
 -- To get liftA2.. avoids import warning
-import           Control.Applicative  (Applicative (..))
-import           Prelude              hiding (Applicative (..), span)
+import           Control.Applicative (Applicative (..))
+import           Prelude             hiding (Applicative (..), span)
 
-import           Data.List            ((\\))
-import qualified Data.Map.Strict      as Map
-import           Data.Maybe           (fromJust, fromMaybe, isJust, mapMaybe)
+import           Data.List           ((\\))
+import qualified Data.Map.Strict     as Map
+import           Data.Maybe          (fromJust, fromMaybe, isJust, mapMaybe)
 import           Sound.Tidal.Event
 import           Sound.Tidal.Pattern
+import           Sound.Tidal.Span
 import           Sound.Tidal.Time
-import           Sound.Tidal.TimeSpan
 import           Sound.Tidal.Types
 
 instance Monad Signal where
