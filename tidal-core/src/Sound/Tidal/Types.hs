@@ -104,7 +104,7 @@ data Value = VS String
            deriving (Typeable, Generic)
 instance NFData Value
 
--- | Maps of values, used for representing synth control/trigger
+-- | Maps of values, used for representing synth control
 -- messages, and state
 type ValueMap = (Map.Map String Value)
 

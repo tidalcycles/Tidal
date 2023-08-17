@@ -188,8 +188,8 @@ slowRepeatCycles = repeatCycles
 
 {- | `range` will take a pattern which goes from 0 to 1 (like `sine`),
    and scale it to a different range - between the first and second
-   arguments. In the below example, `range 1 1.5` shifts the range of
-   `sine1` from 0 - 1 to 1 - 1.5.
+   arguments. in the below example, `range 1 1.5` shifts the range of
+   `sine1` from 0 - 1 to 1 - 1.5 .
 
 @
 d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
