@@ -66,7 +66,7 @@ time (via `cps (-1)`, then `cps 1.1` or whatever cps you want to
 restart with) the random pattern will emit the exact same _random_
 numbers again.
 
-In cases where you need two different random patterns, you can shift
+in cases where you need two different random patterns, you can shift
 one of them around to change the time from which the _random_ pattern
 is read, note the difference:
 
@@ -188,7 +188,7 @@ chooseBy f xs = (xs !!!) . floor <$> range 0 (fromIntegral $ length xs) f
 sound "superpiano(3,8)" # note (wchoose [("a",1), ("e",0.5), ("g",2), ("c",1)])
 @
 
-In the above example, the "a" and "c" notes are twice as likely to
+in the above example, the "a" and "c" notes are twice as likely to
 play as the "e" note, and half as likely to play as the "g" note.
 
 -}
