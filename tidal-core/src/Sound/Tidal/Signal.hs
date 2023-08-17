@@ -6,7 +6,7 @@ import           Prelude              hiding (Applicative (..), span)
 
 import           Data.List            ((\\))
 import qualified Data.Map.Strict      as Map
-import           Data.Maybe           (fromMaybe, mapMaybe)
+import           Data.Maybe           (fromJust, fromMaybe, isJust, mapMaybe)
 import           Sound.Tidal.Event
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Time
@@ -75,6 +75,9 @@ filterEvents f pat = Signal $ \state -> filter f $ query pat state
 
 filterValues :: (a -> Bool) -> Signal a -> Signal a
 filterValues f = filterEvents (f . value)
+
+filterJusts :: Signal (Maybe a) -> Signal a
+filterJusts = fmap fromJust . filterValues isJust
 
 -- | @withEvents f p@ returns a new @Signal@ with f applied to the
 -- resulting list of events for each query function @f@.

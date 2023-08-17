@@ -49,11 +49,12 @@ library
         Sound.Tidal.Chords
         Sound.Tidal.Event
         Sound.Tidal.InstanceHacks
---        Sound.Tidal.Mini
+        Sound.Tidal.Mininotation
         Sound.Tidal.Pattern
         Sound.Tidal.Sequence
         Sound.Tidal.Show
         Sound.Tidal.Signal
+        Sound.Tidal.Signal.Input
         Sound.Tidal.Signal.Random
         Sound.Tidal.Signal.Waveform
         Sound.Tidal.Time
