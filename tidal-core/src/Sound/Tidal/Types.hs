@@ -91,22 +91,22 @@ instance Monoid Metadata where
   mempty = Metadata []
 
 -- | A polymorphic event value
-data Value = VS String
-           | VF Double
-           | VI Int
-           | VR Rational
-           | VN Note
-           | VB Bool
-           | VSignal (Signal Value)
-           | VX { xvalue :: [Word8]  } -- Used for OSC 'blobs'
-           | VList {lvalue :: [Value]}
-           | VState {statevalue :: ValueMap -> (ValueMap, Value)}
-           deriving (Typeable, Generic)
-instance NFData Value
+data Val = VS String
+         | VF Double
+         | VI Int
+         | VR Rational
+         | VN Note
+         | VB Bool
+         | VSignal (Signal Val)
+         | VX { xvalue :: [Word8]  } -- Used for OSC 'blobs'
+         | VList {lvalue :: [Val]}
+         | VState {statevalue :: ValMap -> (ValMap, Val)}
+         deriving (Typeable, Generic)
+instance NFData Val
 
 -- | Maps of values, used for representing synth control
 -- messages, and state
-type ValueMap = (Map.Map String Value)
+type ValMap = (Map.Map String Val)
 
 -- A discrete value with a whole timespan, or a continuous one without
 -- It might be a fragment of an event, in which case its 'active' arc
@@ -122,7 +122,7 @@ data Event a = Event {eventMetadata :: Metadata,
 -- | A timearc and some named control values, used to query a signal
 -- with
 data State = State {sSpan     :: Span,
-                    sControls :: ValueMap
+                    sControls :: ValMap
                    }
              deriving Generic
 
@@ -144,7 +144,7 @@ data Sequence a = Atom {atomMetadata :: Metadata,
                         atomInset    :: Time,
                         atomOutset   :: Time,
                         -- A 'gap' or silence is an atom without a value
-                        atomValue    :: Maybe a
+                        atomVal      :: Maybe a
                        }
                 | Cat [Sequence a]
                 | Stack [Sequence a]

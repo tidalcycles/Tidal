@@ -98,7 +98,7 @@ showAll a p = intercalate "\n" $ map showEventAll $ sortOn active $ querySpan p 
 showEventAll :: Show a => Event a -> String
 showEventAll e = show (eventMetadata e) ++ uncurry (++) (showEvent e)
 
-instance Show Value where
+instance Show Val where
   show (VS s)      = ('"':s) ++ "\""
   show (VI i)      = show i
   show (VF f)      = show f ++ "f"
@@ -111,7 +111,7 @@ instance Show Value where
   show (VList vs)  = show $ map show vs
   show (VSignal s) = show s
 
-instance {-# OVERLAPPING #-} Show ValueMap where
+instance {-# OVERLAPPING #-} Show ValMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
 
 instance {-# OVERLAPPING #-} Show Span where

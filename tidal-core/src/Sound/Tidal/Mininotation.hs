@@ -46,7 +46,7 @@ import           Sound.Tidal.Signal.Input
 import           Sound.Tidal.Signal.Random              (_degradeByUsing,
                                                          chooseBy, rand)
 import           Sound.Tidal.Types
-import           Sound.Tidal.Value
+import           Sound.Tidal.Val
 import           Text.Parsec.Error
 import qualified Text.Parsec.Prim
 import           Text.ParserCombinators.Parsec
@@ -397,8 +397,8 @@ naturalOrFloat = P.naturalOrFloat lexer
 pSilence :: MyParser (TPat a)
 pSilence = char '~' >> return TPat_Silence
 
-pValueOrSilenceF :: MyParser (TPat a) -> MyParser (TPat a)
-pValueOrSilenceF f = f <|> pVar <|> pSilence
+pValOrSilenceF :: MyParser (TPat a) -> MyParser (TPat a)
+pValOrSilenceF f = f <|> pVar <|> pSilence
 
 pVar :: MyParser (TPat a)
 pVar = wrapPos $ do char '^'
@@ -666,7 +666,7 @@ pTPatNary :: Parseable a => MyParser (TPat a)
 pTPatNary = pPolyIn <|> pPolyOut
 
 pTPatOnceF :: Parseable a => MyParser (TPat a) -> MyParser (TPat a)
-pTPatOnceF f = (pValueOrSilenceF f >>= (\p -> pTPatUnary p <|> return p)) <|> pTPatNary
+pTPatOnceF f = (pValOrSilenceF f >>= (\p -> pTPatUnary p <|> return p)) <|> pTPatNary
 
 pTPatMany :: TPat a -> MyParser (TPat a)
 pTPatMany p = (do

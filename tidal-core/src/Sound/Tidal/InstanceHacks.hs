@@ -11,15 +11,15 @@ import qualified Data.Map.Strict      as Map
 import           Sound.Tidal.Sequence ()
 import           Sound.Tidal.Signal   ()
 import           Sound.Tidal.Types
-import           Sound.Tidal.Value
+import           Sound.Tidal.Val
 
 noOv :: String -> a
 noOv meth = error $ meth ++ ": not supported for patterns"
 
 -- ************************************************************ --
--- ValueMaps as numbers
+-- ValMaps as numbers
 
-instance Num ValueMap where
+instance Num ValMap where
   negate      = (applyFIRS negate negate negate id <$>)
   (+)         = Map.unionWith (fNum2 (+) (+))
   (*)         = Map.unionWith (fNum2 (*) (*))
@@ -27,7 +27,7 @@ instance Num ValueMap where
   signum      = (applyFIRS signum signum signum id <$>)
   abs         = (applyFIRS abs abs abs id <$>)
 
-instance Fractional ValueMap where
+instance Fractional ValMap where
   recip        = fmap (applyFIRS recip id recip id)
   fromRational r = Map.singleton "speed" $ VF (fromRational r)
 
