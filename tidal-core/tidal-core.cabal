@@ -58,7 +58,7 @@ library
                       Sound.Tidal.Span
                       Sound.Tidal.Types
                       Sound.Tidal.Utils
-                      Sound.Tidal.Value
+                      Sound.Tidal.Val
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

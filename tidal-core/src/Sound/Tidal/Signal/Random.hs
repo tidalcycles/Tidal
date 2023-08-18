@@ -225,16 +225,16 @@ _degradeBy = _degradeByUsing rand
 
 -- Useful for manipulating random stream, e.g. to change 'seed'
 _degradeByUsing :: Signal Double -> Double -> Signal a -> Signal a
-_degradeByUsing prand x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* prand
+_degradeByUsing prand x p = fmap fst $ filterVals ((> x) . snd) $ (,) <$> p <* prand
 
 unDegradeBy :: Signal Double -> Signal a -> Signal a
 unDegradeBy = patternify_p_n _unDegradeBy
 
 _unDegradeBy :: Double -> Signal a -> Signal a
-_unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <* rand
+_unDegradeBy x p = fmap fst $ filterVals ((<= x) . snd) $ (,) <$> p <* rand
 
 degradeOverBy :: Int -> Signal Double -> Signal a -> Signal a
-degradeOverBy i tx p = innerJoin $ (\x -> fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* _fastRepeatCycles i rand) <$> slow (fromIntegral i) tx
+degradeOverBy i tx p = innerJoin $ (\x -> fmap fst $ filterVals ((> x) . snd) $ (,) <$> p <* _fastRepeatCycles i rand) <$> slow (fromIntegral i) tx
 
 {- | Use @sometimesBy@ to apply a given function "sometimes". For example, the
 following code results in `density 2` being applied about 25% of the time:
