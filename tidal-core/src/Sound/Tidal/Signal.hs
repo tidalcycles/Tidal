@@ -73,11 +73,11 @@ splitQueries pat =
 filterEvents :: (Event a -> Bool) -> Signal a -> Signal a
 filterEvents f pat = Signal $ \state -> filter f $ query pat state
 
-filterVals :: (a -> Bool) -> Signal a -> Signal a
-filterVals f = filterEvents (f . value)
+filterValues :: (a -> Bool) -> Signal a -> Signal a
+filterValues f = filterEvents (f . value)
 
 filterJusts :: Signal (Maybe a) -> Signal a
-filterJusts = fmap fromJust . filterVals isJust
+filterJusts = fmap fromJust . filterValues isJust
 
 -- | @withEvents f p@ returns a new @Signal@ with f applied to the
 -- resulting list of events for each query function @f@.
