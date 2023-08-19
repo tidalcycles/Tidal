@@ -85,6 +85,9 @@ test-suite tidal-core-test
     hs-source-dirs:   test
     main-is:          Test.hs
     other-modules:
+        TestUtils
+        Sound.Tidal.ChordsTest
+        Sound.Tidal.EventTest
         Sound.Tidal.SpanTest
     build-depends:
         base
@@ -92,3 +95,4 @@ test-suite tidal-core-test
       , microspec >= 0.2.0.1
       , parsec
       , deepseq
+      , containers

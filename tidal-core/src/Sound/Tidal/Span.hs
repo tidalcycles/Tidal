@@ -37,6 +37,14 @@ mapCycle :: (Time -> Time) -> Span -> Span
 mapCycle f (Span s e) = Span (sam' + f (s - sam')) (sam' + f (e - sam'))
          where sam' = sam s
 
+-- | @isIn a t@ is @True@ if @t@ is inside
+-- the span represented by @a@.
+isIn :: Span -> Time -> Bool
+isIn (Span s e) t = t >= s && t < e
+
 withSpanTime :: (Time -> Time) -> Span -> Span
 withSpanTime timef (Span b e) = Span (timef b) (timef e)
 
+-- | convex hull union
+hull :: Span -> Span -> Span
+hull (Span s e) (Span s' e') = Span (min s s') (max e e')

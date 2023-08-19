@@ -104,6 +104,72 @@ data Value = VS String
            deriving (Typeable, Generic)
 instance NFData Value
 
+instance Eq Value where
+  (VS x) == (VS y) = x == y
+  (VB x) == (VB y) = x == y
+  (VF x) == (VF y) = x == y
+  (VI x) == (VI y) = x == y
+  (VN x) == (VN y) = x == y
+  (VR x) == (VR y) = x == y
+  (VX x) == (VX y) = x == y
+
+  (VF x) == (VI y) = x == fromIntegral y
+  (VI y) == (VF x) = x == fromIntegral y
+
+  (VF x) == (VR y) = toRational x == y
+  (VR y) == (VF x) = toRational x == y
+  (VI x) == (VR y) = toRational x == y
+  (VR y) == (VI x) = toRational x == y
+
+  _ == _           = False
+
+instance Ord Value where
+  compare (VS x) (VS y)           = compare x y
+  compare (VB x) (VB y)           = compare x y
+  compare (VF x) (VF y)           = compare x y
+  compare (VN x) (VN y)           = compare (unNote x) (unNote y)
+  compare (VI x) (VI y)           = compare x y
+  compare (VR x) (VR y)           = compare x y
+  compare (VX x) (VX y)           = compare x y
+
+  compare (VS _) _                = LT
+  compare _ (VS _)                = GT
+  compare (VB _) _                = LT
+  compare _ (VB _)                = GT
+  compare (VX _) _                = LT
+  compare _ (VX _)                = GT
+
+  compare (VF x) (VI y)           = compare x (fromIntegral y)
+  compare (VI x) (VF y)           = compare (fromIntegral x) y
+
+  compare (VR x) (VI y)           = compare x (fromIntegral y)
+  compare (VI x) (VR y)           = compare (fromIntegral x) y
+
+  compare (VF x) (VR y)           = compare x (fromRational y)
+  compare (VR x) (VF y)           = compare (fromRational x) y
+
+  compare (VN x) (VI y)           = compare x (fromIntegral y)
+  compare (VI x) (VN y)           = compare (fromIntegral x) y
+
+  compare (VN x) (VR y)           = compare (unNote x) (fromRational y)
+  compare (VR x) (VN y)           = compare (fromRational x) (unNote y)
+
+  compare (VF x) (VN y)           = compare x (unNote y)
+  compare (VN x) (VF y)           = compare (unNote x) y
+
+  -- you can't really compare patterns, state or lists..
+  compare (VSignal _) (VSignal _) = EQ
+  compare (VSignal _) _           = GT
+  compare _ (VSignal _)           = LT
+
+  compare (VState _) (VState _)   = EQ
+  compare (VState _) _            = GT
+  compare _ (VState _)            = LT
+
+  compare (VList _) (VList _)     = EQ
+  compare (VList _) _             = GT
+  compare _ (VList _)             = LT
+
 -- | Maps of values, used for representing synth control
 -- messages, and state
 type ValueMap = (Map.Map String Value)
