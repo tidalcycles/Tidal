@@ -5,25 +5,25 @@ import           Data.Maybe         (fromMaybe)
 
 import           Sound.Tidal.Signal
 import           Sound.Tidal.Types
-import           Sound.Tidal.Val
+import           Sound.Tidal.Value
 
 -- ************************************************************ --
 -- Functions for getting control input/state as signals
 
-valueToSignal :: Val -> Signal Val
+valueToSignal :: Value -> Signal Value
 valueToSignal (VSignal pat) = pat
 valueToSignal v             = pure v
 
-_getP_ :: (Val -> Maybe a) -> Signal Val -> Signal a
+_getP_ :: (Value -> Maybe a) -> Signal Value -> Signal a
 _getP_ f pat = filterJusts $ f <$> pat
 
-_getP :: a -> (Val -> Maybe a) -> Signal Val -> Signal a
+_getP :: a -> (Value -> Maybe a) -> Signal Value -> Signal a
 _getP d f pat = fromMaybe d . f <$> pat
 
-_cX :: a -> (Val -> Maybe a) -> String -> Signal a
+_cX :: a -> (Value -> Maybe a) -> String -> Signal a
 _cX d f s = Signal $ \(State a m) -> querySpan (maybe (pure d) (_getP d f . valueToSignal) $ Map.lookup s m) a
 
-_cX_ :: (Val -> Maybe a) -> String -> Signal a
+_cX_ :: (Value -> Maybe a) -> String -> Signal a
 _cX_ f s = Signal $ \(State a m) -> querySpan (maybe silence (_getP_ f . valueToSignal) $ Map.lookup s m) a
 
 cF :: Double -> String -> Signal Double

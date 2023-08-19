@@ -16,4 +16,4 @@ import           Sound.Tidal.Span            as T
 import           Sound.Tidal.Time            as T
 import           Sound.Tidal.Types           as T
 import           Sound.Tidal.Utils           as T
-import           Sound.Tidal.Val             as T
+import           Sound.Tidal.Value           as T
