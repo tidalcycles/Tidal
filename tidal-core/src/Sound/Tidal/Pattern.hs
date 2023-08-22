@@ -9,30 +9,35 @@ import           Sound.Tidal.Types
 
 -- Patternification
 
--- Turns functions with non-patterned parameters into fully patternified ones
+-- -- Turns functions with non-patterned parameters into fully patternified ones
 
--- patternify the first of two parameters
+patternify_p :: Pattern p => (a -> p b) -> (p a -> p b)
+patternify_p f apat = apat `bind` f
+  where bind = patBind apat
+
 patternify_p_n :: Pattern p => (a -> b -> p c) -> (p a -> b -> p c)
-patternify_p_n f apat pat = apat `innerBind` \a -> f a pat
+patternify_p_n f apat b = apat `bind` \a -> f a b
+  where bind = patBind apat
 
--- patternify two parameters
-patternify_p_p :: (Pattern p) => (a -> b -> p c) -> (p a -> p b -> p c)
-patternify_p_p f apat bpat = apat `innerBind` \a -> bpat `innerBind` \b -> f a b
+patternify_p_n_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> b -> c -> p d)
+patternify_p_n_n f apat b c = apat `bind` \a -> f a b c
+  where bind = patBind apat
 
--- patternify the first two of three parameters
-patternify_p_p_n :: (Pattern p) => (a -> b -> c -> p d) -> p a -> p b -> c -> p d
-patternify_p_p_n f apat bpat pat = apat `innerBind` \a -> bpat `innerBind` \b -> f a b pat
+patternify_p_n_n_n :: Pattern p => (a -> b -> c -> d -> p e) -> (p a -> b -> c -> d -> p e)
+patternify_p_n_n_n f apat b c d = apat `bind` \a -> f a b c d
+  where bind = patBind apat
 
--- patternify three parameters
-patternify_p_p_p :: (Pattern p) => (a -> b -> c -> p d) -> (p a -> p b -> p c -> p d)
-patternify_p_p_p f apat bpat cpat = apat `innerBind` \a -> bpat `innerBind` \b -> cpat `innerBind` \c -> f a b c
+patternify_p_p :: Pattern p => (a -> b -> p c) -> (p a -> p b -> p c)
+patternify_p_p f = patternify_p_n $ patternify_p <$> f
 
--- and so on
-patternify_p_n_n :: Pattern p => (a -> b -> c -> p d) -> p a -> b -> c -> p d
-patternify_p_n_n f apat b pat = apat `innerBind` \a -> f a b pat
+patternify_p_p_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> p b -> c -> p d)
+patternify_p_p_n f = patternify_p_n_n $ patternify_p_n <$> f
+
+patternify_p_p_p :: Pattern p => (a -> b -> c -> p d) -> (p a -> p b -> p c -> p d)
+patternify_p_p_p f  = patternify_p_n_n $ patternify_p_p <$> f
 
 patternify_p_p_p_n :: Pattern p => (a -> b -> c -> d -> p e) -> p a -> p b -> p c -> d -> p e
-patternify_p_p_p_n f apat bpat cpat pat = apat `innerBind` \a -> (bpat `innerBind` \b -> (cpat `innerBind` \c -> f a b c pat))
+patternify_p_p_p_n f  = patternify_p_n_n_n $ patternify_p_p_n <$> f
 
 (<*), (*>) :: Pattern p => p (t -> b) -> p t -> p b
 pf <* px = pf `innerBind` \f -> px `innerBind` \x -> pure $ f x

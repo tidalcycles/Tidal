@@ -19,7 +19,7 @@ instance Monad Signal where
 
 -- Define applicative from monad
 instance Applicative Signal where
-  pure v = Signal $ \state -> map (\span -> Event mempty (Just $ timeToCycle $ aBegin span) span v) $ splitSpans $ sSpan state
+  pure v = Signal mempty $ \state -> map (\span -> Event mempty (Just $ timeToCycle $ aBegin span) span v) $ splitSpans $ sSpan state
   pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
 
 instance Pattern Signal where
@@ -31,8 +31,11 @@ instance Pattern Signal where
   innerBind = sigBindWith $ flip const
   outerBind = sigBindWith const
   squeezeJoin = sigSqueezeJoin
+
+  patBind = sigBind
+
   -- | Concatenate a list of signals, interleaving cycles.
-  cat pats = splitQueries $ Signal $ \state -> query (_late (offset $ sSpan state) (pat $ sSpan state)) state
+  cat pats = splitQueries $ Signal mempty $ \state -> query (_late (offset $ sSpan state) (pat $ sSpan state)) state
     where pat span = pats !! mod (floor $ aBegin span) n
           offset span = sam (aBegin span) - sam (aBegin span / toRational n)
           n = length pats
@@ -41,20 +44,30 @@ instance Pattern Signal where
           arrange :: Time -> [(Time, Signal a)] -> [(Time, Time, Signal a)]
           arrange _ []            = []
           arrange t ((t',p):tps') = (t,t+t',p) : arrange (t+t') tps'
-  stack pats = Signal $ \a -> concatMap (`query` a) pats
+  stack pats = Signal mempty $ \a -> concatMap (`query` a) pats
   _early t = withTime (subtract t) (+ t)
-  rev pat = splitQueries $ Signal f
+  rev pat = splitQueries $ Signal mempty f
     where f state = eventWithSpan reflect <$> (query pat $ state {sSpan = reflect $ sSpan state})
             where cyc = sam $ aBegin $ sSpan state
                   next_cyc = nextSam cyc
                   reflect (Span b e) = Span (cyc + (next_cyc - e)) (cyc + (next_cyc - b))
   toSignal = id
   withMetadata f pat = withEvents (map (\e -> e {eventMetadata = f $ eventMetadata e})) pat
-  silence = Signal $ const []
+  silence = Signal mempty $ const []
   _zoomSpan (Span s e) p = splitQueries
                            $ withEventSpan (mapCycle ((/d) . subtract s))
                            $ withQuerySpan (mapCycle ((+s) . (*d))) p
     where d = e-s
+
+sigBind :: Pattern p => Signal a1 -> p a2 -> (a2 -> p b) -> p b
+sigBind pat = case (signalBind pat) of
+                InnerBind   -> innerBind
+                OuterBind   -> outerBind
+                SqueezeBind -> squeezeBind
+                MixBind     -> (>>=)
+  where signalBind :: Signal a -> SignalBind
+        signalBind (Signal {sigMetadata = SignalMetadata (Just bind)}) = bind
+        signalBind _                                                   = InnerBind
 
 -- instance Signalable (Signal a) a where toSig = id
 -- instance Signalable a a where toSig = pure
@@ -67,11 +80,11 @@ querySpan pat span = query pat $ State span Map.empty
 -- boundaries don't need to be considered then.
 splitQueries :: Signal a -> Signal a
 splitQueries pat =
-  Signal $ \state -> concatMap (\span -> query pat (state {sSpan = span}))
-                     $ splitSpans $ sSpan state
+  Signal mempty $ \state -> concatMap (\span -> query pat (state {sSpan = span}))
+                            $ splitSpans $ sSpan state
 
 filterEvents :: (Event a -> Bool) -> Signal a -> Signal a
-filterEvents f pat = Signal $ \state -> filter f $ query pat state
+filterEvents f pat = Signal mempty $ \state -> filter f $ query pat state
 
 filterValues :: (a -> Bool) -> Signal a -> Signal a
 filterValues f = filterEvents (f . value)
@@ -100,12 +113,12 @@ withEventSpan spanf = withEvent $ \e -> e {active = spanf $ active e,
                                           }
 
 withQuery :: (State -> State) -> Signal a -> Signal a
-withQuery statef sig = Signal $ \state -> query sig $ statef state
+withQuery statef sig = Signal mempty $ \state -> query sig $ statef state
 
 withQueryMaybe :: (State -> Maybe State) -> Signal a -> Signal a
-withQueryMaybe statef sig = Signal $ \state -> fromMaybe [] $
-                                               do state' <- statef state
-                                                  return $ query sig state'
+withQueryMaybe statef sig = Signal mempty $ \state -> fromMaybe [] $
+                                                      do state' <- statef state
+                                                         return $ query sig state'
 
 withQuerySpan :: (Span -> Span) -> Signal a -> Signal a
 withQuerySpan spanf = withQuery (\state -> state {sSpan = spanf $ sSpan state})
@@ -120,7 +133,7 @@ withQueryTime timef = withQuerySpan $ withSpanTime timef
 
 -- Makes a signal bind, given a function of how to calculate the 'whole' timespan
 sigBindWith :: (Maybe Span -> Maybe Span -> Maybe Span) -> Signal a -> (a -> Signal b) -> Signal b
-sigBindWith chooseWhole pv f = Signal $ \state -> concatMap (match (sControls state)) $ query pv state
+sigBindWith chooseWhole pv f = Signal mempty $ \state -> concatMap (match (sControls state)) $ query pv state
   where match controls event = map (withWhole event)
                                $ query (f $ value event)
                                $ State {sSpan = active event,
@@ -265,4 +278,3 @@ _collectBy f = withEvents (_collectEventsBy f)
 -- list. See also 'uncollect' defined in the Pattern module.
 collect :: Eq a => Signal a -> Signal [a]
 collect = _collectBy _sameDur
-

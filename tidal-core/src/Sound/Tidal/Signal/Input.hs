@@ -21,10 +21,10 @@ _getP :: a -> (Value -> Maybe a) -> Signal Value -> Signal a
 _getP d f pat = fromMaybe d . f <$> pat
 
 _cX :: a -> (Value -> Maybe a) -> String -> Signal a
-_cX d f s = Signal $ \(State a m) -> querySpan (maybe (pure d) (_getP d f . valueToSignal) $ Map.lookup s m) a
+_cX d f s = Signal mempty $ \(State a m) -> querySpan (maybe (pure d) (_getP d f . valueToSignal) $ Map.lookup s m) a
 
 _cX_ :: (Value -> Maybe a) -> String -> Signal a
-_cX_ f s = Signal $ \(State a m) -> querySpan (maybe silence (_getP_ f . valueToSignal) $ Map.lookup s m) a
+_cX_ f s = Signal mempty $ \(State a m) -> querySpan (maybe silence (_getP_ f . valueToSignal) $ Map.lookup s m) a
 
 cF :: Double -> String -> Signal Double
 cF d = _cX d getF

@@ -12,28 +12,10 @@ import           Sound.Tidal.Time
 import           Sound.Tidal.Types
 
 instance Functor Sequence where
-  fmap f (Atom m d i o v) = Atom m d i o (f <$> v)
-  fmap f (Cat xs)         = Cat $ map (fmap f) xs
-  fmap f (Stack xs)       = Stack $ map (fmap f) xs
-
--- instance Sequenceable (Sequence a) a where toSeq = id
--- instance Sequenceable a a where toSeq = pure
-
--- new approach to patternify - allows strategy and bind to be set per parameter
-alignify :: Alignment x => (a -> Sequence b -> Sequence c) -> x a -> Sequence b -> Sequence c
-alignify f alignSeq seqb = seqa' `aBind` \a -> f a seqb'
-  where SeqStrategy strat dir seqa = toSeqStrategy alignSeq
-        (seqa', seqb') = align strat seqa seqb
-        aBind | dir == Inner = innerBind
-              | dir == Outer = outerBind
-              | otherwise = (>>=)
-
--- alignify parameters
-afast, aslow, aearly, alate :: Alignment x => x Time -> Sequence a -> Sequence a
-afast  = alignify _fast
-aslow  = alignify _slow
-aearly = alignify _early
-alate  = alignify _late
+  fmap f (Atom m d i o v)  = Atom m d i o (f <$> v)
+  fmap f (Cat xs)          = Cat $ map (fmap f) xs
+  fmap f (Stack xs)        = Stack $ map (fmap f) xs
+  fmap f (SeqMetadata _ x) = fmap f x
 
 gap :: Time -> Sequence a
 gap t = Atom mempty t 0 0 Nothing
@@ -69,6 +51,7 @@ seqJoinWith f (Atom m d i o (Just s)) = addMetadata m $ f d i o s
 seqJoinWith _ (Atom m d i o Nothing)  = Atom m d i o Nothing
 seqJoinWith f (Cat xs)                = Cat $ map (seqJoinWith f) xs
 seqJoinWith f (Stack xs)              = Stack $ map (seqJoinWith f) xs
+seqJoinWith f (SeqMetadata _ x)       = seqJoinWith f x
 
 seqJoinWithTime :: (Time -> Sequence a -> Sequence a) -> Sequence (Sequence a) -> Sequence a
 seqJoinWithTime f = seqJoinWith $ \d i o s -> f (d + i + o) s
@@ -83,6 +66,7 @@ seqJoinWithSpan f pat = loop 0 pat
         loop pos (Cat xs)                = Cat $ loop' pos xs
           where loop' _ []         = []
                 loop' pos' (x:xs') = (loop pos' x):(loop' (pos' + duration x) xs')
+        loop pos (SeqMetadata _ x)       = loop pos x
 
 -- Flatten, using outer duration as relative duration for inner
 seqJoin :: Sequence (Sequence a) -> Sequence a
@@ -126,6 +110,7 @@ seqTakeLoop t (Cat ss) = Cat $ loop t $ cycle ss
                         | t' <= stepDur = [seqTakeLoop t' s]
                         | otherwise = seqTakeLoop stepDur s : loop (t' - stepDur) ss'
           where stepDur = duration s
+seqTakeLoop t (SeqMetadata _ x) = seqTakeLoop t x
 
 seqDrop :: Time -> Sequence a -> Sequence a
 seqDrop 0 s = s
@@ -144,14 +129,16 @@ seqDrop t s | t > duration s = seqDrop' (t `mod'` duration s) s
                                   | t'' <= stepDur = seqDrop' t'' s' : ss'
                                   | otherwise = loop (t'' - stepDur) ss'
                   where stepDur = duration s'
+        seqDrop' t' (SeqMetadata _ x) = seqDrop' t' x
 
 seqSplitAt :: Time -> Sequence a -> (Sequence a, Sequence a)
 seqSplitAt t s = (seqTakeLoop t s, seqDrop t s)
 
 withAtom :: (Metadata -> Time -> Time -> Time -> Maybe a -> Sequence a) -> Sequence a -> Sequence a
-withAtom f (Atom m d i o v) = f m d i o v
-withAtom f (Cat xs)         = Cat $ map (withAtom f) xs
-withAtom f (Stack xs)       = Stack $ map (withAtom f) xs
+withAtom f (Atom m d i o v)  = f m d i o v
+withAtom f (Cat xs)          = Cat $ map (withAtom f) xs
+withAtom f (Stack xs)        = Stack $ map (withAtom f) xs
+withAtom f (SeqMetadata _ x) = withAtom f x
 
 withAtomTime :: (Time -> Time) -> Sequence a -> Sequence a
 withAtomTime f = withAtom $ \m d i o v -> Atom m (f d) (f i) (f o) v
@@ -169,10 +156,11 @@ instance Pattern Sequence where
   cat = Cat   -- TODO - shallow cat?
   stack = expands
   -- duration of 'part', not whole
-  duration (Atom _ d _ _ _) = d
-  duration (Cat xs)         = sum $ map duration xs
-  duration (Stack [])       = 0
-  duration (Stack (x:_))    = duration x
+  duration (Atom _ d _ _ _)  = d
+  duration (Cat xs)          = sum $ map duration xs
+  duration (Stack [])        = 0
+  duration (Stack (x:_))     = duration x
+  duration (SeqMetadata _ x) = duration x
   timeCat seqs = seqJoin $ Cat $ map (uncurry step) seqs
   outerJoin = seqOuterJoin
   innerJoin = seqInnerJoin
@@ -193,6 +181,7 @@ instance Pattern Sequence where
       toSignal' (Cat xs) = timeCat timeseqs
         where timeseqs = map (\x -> (duration x, toSignal' x)) xs
       toSignal' (Stack xs) = stack $ map toSignal' xs
+      toSignal' (SeqMetadata _ x) = toSignal' x
   withMetadata f = withAtom $ \m d i o v -> Atom (f m) d i o v
   silence = gap 1
   _zoomSpan (Span s e) pat = _slow (d/(d * frac))
@@ -200,38 +189,41 @@ instance Pattern Sequence where
     where d = duration pat
           frac = e-s
 
--- class Pattern p => Patternable p a b where toP :: a -> p b
-
 -- **********************
 -- | Sequence alignment *
 -- **********************
 
-instance Alignment Sequence where
-  -- default strategy and direction
-  toSeqStrategy a = SeqStrategy Expand Inner a
+bindStrategy :: Sequence a -> SeqBindStrategy
+bindStrategy (SeqMetadata m _) = sBindStrategy m
+-- default strategy and direction
+bindStrategy _                 = SeqBindStrategy Expand Inner
 
-instance Alignment SeqStrategy where
-  toSeqStrategy = id
+-- instance Alignment Sequence where
+--   -- default strategy and direction
+--   toSeqStrategy a = SeqStrategy Expand Inner a
 
-setStrategy :: Alignment x => Strategy -> x a -> SeqStrategy a
-setStrategy strat a = (toSeqStrategy a) {sStrategy = strat}
+-- instance Alignment SeqStrategy where
+--   toSeqStrategy = id
 
-setDirection :: Alignment x => Direction -> x a -> SeqStrategy a
-setDirection dir a = (toSeqStrategy a) {sDirection = dir}
+-- setStrategy :: Alignment x => Strategy -> x a -> SeqStrategy a
+-- setStrategy strat a = (toSeqStrategy a) {sStrategy = strat}
 
-justifyleft, justifyright, justifyboth, expand, truncateleft, truncateright, truncaterepeat, rep, centre, squeezein, squeezeout :: Alignment x => x a -> SeqStrategy a
-justifyleft    = setStrategy JustifyLeft
-justifyright   = setStrategy JustifyRight
-justifyboth    = setStrategy JustifyBoth
-expand         = setStrategy Expand
-truncateleft   = setStrategy TruncateLeft
-truncateright  = setStrategy TruncateRight
-truncaterepeat = setStrategy TruncateRepeat
--- repeat is already taken by prelude
-rep            = setStrategy Repeat
-centre         = setStrategy Centre
-squeezein      = setStrategy SqueezeIn
-squeezeout     = setStrategy SqueezeOut
+-- setDirection :: Alignment x => Direction -> x a -> SeqStrategy a
+-- setDirection dir a = (toSeqStrategy a) {sDirection = dir}
+
+-- justifyleft, justifyright, justifyboth, expand, truncateleft, truncateright, truncaterepeat, rep, centre, squeezein, squeezeout :: Alignment x => x a -> SeqStrategy a
+-- justifyleft    = setStrategy JustifyLeft
+-- justifyright   = setStrategy JustifyRight
+-- justifyboth    = setStrategy JustifyBoth
+-- expand         = setStrategy Expand
+-- truncateleft   = setStrategy TruncateLeft
+-- truncateright  = setStrategy TruncateRight
+-- truncaterepeat = setStrategy TruncateRepeat
+-- -- repeat is already taken by prelude
+-- rep            = setStrategy Repeat
+-- centre         = setStrategy Centre
+-- squeezein      = setStrategy SqueezeIn
+-- squeezeout     = setStrategy SqueezeOut
 
 seqPadBy :: ([Sequence a] -> Sequence a -> [Sequence a]) -> Time -> Sequence a -> Sequence a
 seqPadBy by t x = f x
@@ -324,6 +316,8 @@ pairAligned :: Direction -> (Sequence a, Sequence b) -> Sequence (a, b)
 -- TODO - 'Mixed' direction
 pairAligned Mix _ = error "TODO !!"
 
+pairAligned direction (SeqMetadata _ a, b) = pairAligned direction (a, b)
+pairAligned direction (a, SeqMetadata _ b) = pairAligned direction (a, b)
 pairAligned direction (Stack as, b) = Stack $ map (\a -> pairAligned direction (a, b)) as
 pairAligned direction (a, Stack bs) = Stack $ map (\b -> pairAligned direction (a, b)) bs
 

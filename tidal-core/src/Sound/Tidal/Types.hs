@@ -1,9 +1,11 @@
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 module Sound.Tidal.Types where
 
@@ -42,12 +44,13 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   {-# MINIMAL (innerBind | innerJoin),
               (outerBind | outerJoin),
               (squeezeBind | squeezeJoin),
+              patBind,
               duration, withTime, cat, timeCat, stack, _early, rev, toSignal,
               withMetadata, silence, _zoomSpan
     #-}
   duration :: p a -> Time
   withTime :: (Time -> Time) -> (Time -> Time) -> p a -> p a
-
+  -- powerbind :: (a -> p b -> c) -> (p a -> p b -> p c)
   innerBind, outerBind, squeezeBind :: p a -> (a -> p b) -> p b
   innerBind pat f = innerJoin $ fmap f pat
   outerBind pat f = outerJoin $ fmap f pat
@@ -57,6 +60,8 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   innerJoin pat = innerBind pat id
   outerJoin pat = outerBind pat id
   squeezeJoin pat = squeezeBind pat id
+
+  patBind :: p a -> p b -> (b -> p c) -> p c
 
   cat :: [p a] -> p a
   timeCat :: [(Time, p a)] -> p a
@@ -89,6 +94,22 @@ instance Semigroup Metadata where
 
 instance Monoid Metadata where
   mempty = Metadata []
+
+data SequenceMetadata
+  = SequenceMetadata {sBindStrategy :: SeqBindStrategy}
+  deriving (Eq, Ord, Generic)
+instance NFData SequenceMetadata
+
+data SignalMetadata
+  = SignalMetadata {sBind :: Maybe SignalBind}
+  deriving (Eq, Ord, Generic)
+instance NFData SignalMetadata
+
+instance Semigroup SignalMetadata where
+  (<>) _ _ = SignalMetadata Nothing
+
+instance Monoid SignalMetadata where
+  mempty = SignalMetadata Nothing
 
 -- | A polymorphic event value
 data Value = VS String
@@ -195,7 +216,9 @@ data State = State {sSpan     :: Span,
 -- A pattern that's a function from a timespan (along with other
 -- state) to events active during that timespan. A continuous signal,
 -- that can nonetheless contain discrete events.
-data Signal a = Signal {query :: State -> [Event a]}
+data Signal a = Signal {sigMetadata :: SignalMetadata,
+                        query       :: State -> [Event a]
+                       }
   deriving (Functor, Generic)
 
 instance NFData a => NFData (Signal a)
@@ -214,6 +237,7 @@ data Sequence a = Atom {atomMetadata :: Metadata,
                        }
                 | Cat [Sequence a]
                 | Stack [Sequence a]
+                | SeqMetadata {seqMetadata :: SequenceMetadata, seqData :: Sequence a}
                 deriving (Eq, Ord, Generic)
 
 -- | Strategies for aligning two sequences or patterns over time (horizontally)
@@ -228,20 +252,35 @@ data Strategy = JustifyLeft
               | Centre
               | SqueezeIn
               | SqueezeOut
-              deriving (Eq, Ord, Show)
+              deriving (Eq, Ord, Show, Generic)
+instance NFData Strategy
 
 -- | Once we've aligned two patterns, where does the structure come from?
 data Direction = Inner
                | Outer
                | Mix
-               deriving (Eq, Ord, Show)
+               deriving (Eq, Ord, Show, Generic)
+instance NFData Direction
 
-class Alignment a where
-  toSeqStrategy :: a b -> SeqStrategy b
+data SignalBind = InnerBind
+                | OuterBind
+                | MixBind
+                | SqueezeBind
+  deriving (Eq, Ord, Generic)
+instance NFData SignalBind
 
--- A wrapper for a sequence that specifies how it should be combined
--- with another sequence.
-data SeqStrategy a = SeqStrategy {sStrategy  :: Strategy,
-                                  sDirection :: Direction,
-                                  sSequence  :: Sequence a
-                                 }
+data SeqBindStrategy = SeqBindStrategy {sStrategy  :: Strategy,
+                                        sDirection :: Direction
+                                       }
+  deriving (Eq, Ord, Show, Generic)
+instance NFData SeqBindStrategy
+
+-- class Alignment a where
+--   toSeqStrategy :: a b -> SeqStrategy b
+
+-- -- A wrapper for a sequence that specifies how it should be combined
+-- -- with another sequence.
+-- data SeqStrategy a = SeqStrategy {sStrategy  :: Strategy,
+--                                   sDirection :: Direction,
+--                                   sSequence  :: Sequence a
+--                                  }

@@ -17,7 +17,7 @@ import           Sound.Tidal.Types
 -- | A continuous signal as a function from time to values. Takes the
 -- midpoint of the given query as the time value.
 waveform :: (Time -> a) -> Signal a
-waveform timeF = Signal $ \(State (Span b e) _) ->
+waveform timeF = Signal mempty $ \(State (Span b e) _) ->
   [Event {eventMetadata = mempty,
           whole = Nothing,
           active = Span b e,

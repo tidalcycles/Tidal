@@ -47,6 +47,7 @@ library
                       Sound.Tidal.Event
                       Sound.Tidal.InstanceHacks
                       Sound.Tidal.Mininotation
+--                       Sound.Tidal.Params
                       Sound.Tidal.Pattern
                       Sound.Tidal.Sequence
                       Sound.Tidal.Show
@@ -88,6 +89,7 @@ test-suite tidal-core-test
         TestUtils
         Sound.Tidal.ChordsTest
         Sound.Tidal.EventTest
+        Sound.Tidal.ParamsTest
         Sound.Tidal.SpanTest
     build-depends:
         base
