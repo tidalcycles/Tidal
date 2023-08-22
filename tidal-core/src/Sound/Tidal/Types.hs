@@ -238,7 +238,9 @@ data Sequence a = Atom {atomMetadata :: Metadata,
                        }
                 | Cat [Sequence a]
                 | Stack [Sequence a]
-                | SeqMetadata {seqMetadata :: SequenceMetadata, seqData :: Sequence a}
+                | SeqMetadata {seqBindStrategy :: SeqBindStrategy,
+                               seqData         :: Sequence a
+                              }
                 deriving (Eq, Ord, Generic)
 
 -- | Strategies for aligning two sequences or patterns over time (horizontally)

@@ -198,9 +198,9 @@ withAtomTime f = withAtom $ \m d i o v -> Atom m (f d) (f i) (f o) v
 -- **********************
 
 bindStrategy :: Sequence a -> SeqBindStrategy
-bindStrategy (SeqMetadata m _) = sBindStrategy m
+bindStrategy (SeqMetadata strat _) = strat
 -- default strategy and direction
-bindStrategy _                 = SeqBindStrategy Expand Inner
+bindStrategy _                     = SeqBindStrategy Expand Inner
 
 seqBind :: Pattern p => Sequence a1 -> p a2 -> (a2 -> p b) -> p b
 seqBind pat = case (seqDirection $ bindStrategy pat) of
@@ -211,15 +211,17 @@ seqBind pat = case (seqDirection $ bindStrategy pat) of
 seqAlign :: Sequence a -> Sequence b -> (Sequence a, Sequence b)
 seqAlign a b = align (seqStrategy $ bindStrategy a) a b
 
--- instance Alignment Sequence where
---   -- default strategy and direction
---   toSeqStrategy a = SeqStrategy Expand Inner a
+setBindStrategy :: SeqBindStrategy -> Sequence a -> Sequence a
+setBindStrategy strat (SeqMetadata _ pat) = SeqMetadata strat pat
+setBindStrategy strat pat                 = SeqMetadata strat pat
 
--- instance Alignment SeqStrategy where
---   toSeqStrategy = id
+setStrategy :: Strategy -> Sequence a -> Sequence a
+setStrategy strat pat
+  = setBindStrategy ((bindStrategy pat) {seqStrategy = strat}) pat
 
--- setStrategy :: Alignment x => Strategy -> x a -> SeqStrategy a
--- setStrategy strat a = (toSeqStrategy a) {sStrategy = strat}
+setDirection :: Direction -> Sequence a -> Sequence a
+setDirection dir pat
+  = setBindStrategy ((bindStrategy pat) {seqDirection = dir}) pat
 
 -- setDirection :: Alignment x => Direction -> x a -> SeqStrategy a
 -- setDirection dir a = (toSeqStrategy a) {sDirection = dir}

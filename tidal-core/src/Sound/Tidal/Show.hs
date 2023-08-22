@@ -52,6 +52,7 @@ instance (Show a) => Show (Sequence a) where
                  | otherwise = "(" ++ prettyRatio i ++ "," ++ prettyRatio o ++ ")"
   show (Cat xs) = "[" ++ unwords (map show xs) ++ "]"
   show (Stack xs) = "[\n" ++ intercalate ", \n" (map show xs) ++ "\n]"
+  show (SeqMetadata _ pat) = show pat
 
 instance (Show a) => Show (Signal a) where
   show = showSignal (Span 0 1)

@@ -11,6 +11,10 @@ import           Sound.Tidal.Types
 
 -- -- Turns functions with non-patterned parameters into fully patternified ones
 
+-- uppercase P = turn a non-patterned parameter into a patterned one
+-- lowercase p = a patterned parameter to be preserved, but aligned
+-- with other parameters
+
 patternify_P :: Pattern p => (a -> p b) -> (p a -> p b)
 patternify_P f apat = apat `bind` f
   where bind = patBind apat
