@@ -218,7 +218,7 @@ d1 $ slow 2 $ degradeBy 0.9 $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
 
 -}
 degradeBy :: Signal Double -> Signal a -> Signal a
-degradeBy = patternify_p_n _degradeBy
+degradeBy = patternify_P_n _degradeBy
 
 _degradeBy :: Double -> Signal a -> Signal a
 _degradeBy = _degradeByUsing rand
@@ -228,7 +228,7 @@ _degradeByUsing :: Signal Double -> Double -> Signal a -> Signal a
 _degradeByUsing prand x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* prand
 
 unDegradeBy :: Signal Double -> Signal a -> Signal a
-unDegradeBy = patternify_p_n _unDegradeBy
+unDegradeBy = patternify_P_n _unDegradeBy
 
 _unDegradeBy :: Double -> Signal a -> Signal a
 _unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <* rand

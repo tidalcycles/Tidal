@@ -44,7 +44,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   {-# MINIMAL (innerBind | innerJoin),
               (outerBind | outerJoin),
               (squeezeBind | squeezeJoin),
-              patBind,
+              patBind, patAlign,
               duration, withTime, cat, timeCat, stack, _early, rev, toSignal,
               withMetadata, silence, _zoomSpan
     #-}
@@ -62,6 +62,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   squeezeJoin pat = squeezeBind pat id
 
   patBind :: p a -> p b -> (b -> p c) -> p c
+  patAlign :: p a -> p b -> (p a, p b)
 
   cat :: [p a] -> p a
   timeCat :: [(Time, p a)] -> p a
@@ -266,11 +267,11 @@ data SignalBind = InnerBind
                 | OuterBind
                 | MixBind
                 | SqueezeBind
-  deriving (Eq, Ord, Generic)
+  deriving (Eq, Ord, Show, Generic)
 instance NFData SignalBind
 
-data SeqBindStrategy = SeqBindStrategy {sStrategy  :: Strategy,
-                                        sDirection :: Direction
+data SeqBindStrategy = SeqBindStrategy {seqStrategy  :: Strategy,
+                                        seqDirection :: Direction
                                        }
   deriving (Eq, Ord, Show, Generic)
 instance NFData SeqBindStrategy

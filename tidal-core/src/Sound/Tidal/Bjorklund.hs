@@ -66,19 +66,19 @@ _euclid :: Pattern p => Int -> Int -> p Bool
 _euclid n k = cat $ map pure $ bjorklundNeg (n,k)
 
 euclid :: Pattern p => p Int -> p Int -> p Bool
-euclid = patternify_p_p _euclid
+euclid = patternify_P_P _euclid
 
 _euclidTo :: Pattern p => Int -> Int -> p a -> p a
 _euclidTo n k pat = fastcat $ map (bool pat silence) $ bjorklundNeg (n,k)
 
 euclidTo :: Pattern p => p Int -> p Int -> p a -> p a
-euclidTo = patternify_p_p_n _euclidTo
+euclidTo = patternify_P_P_n _euclidTo
 
 _euclidOff :: Pattern p => Int -> Int -> Int -> p Bool
 _euclidOff i j k = cat $ map pure $ bjorklundOff (i,j,k)
 
 euclidOff :: Pattern p => p Int -> p Int -> p Int -> p Bool
-euclidOff = patternify_p_p_p _euclidOff
+euclidOff = patternify_P_P_P _euclidOff
 
 eoff :: Pattern p => p Int -> p Int -> p Int -> p Bool
 eoff = euclidOff
@@ -87,20 +87,20 @@ _euclidOffTo :: Pattern p => Int -> Int -> Int -> p a -> p a
 _euclidOffTo i j k pat = fastcat $ map (bool pat silence) $ bjorklundOff (i,j,k)
 
 euclidOffTo :: Pattern p => p Int -> p Int -> p Int -> p a -> p a
-euclidOffTo = patternify_p_p_p_n _euclidOffTo
+euclidOffTo = patternify_P_P_P_n _euclidOffTo
 
 _euclidOffToBool :: Pattern p => Int -> Int -> Int -> p Bool -> p Bool
 _euclidOffToBool _ 0 _ _ = silence
 _euclidOffToBool n k s pat = ((fromIntegral s % fromIntegral k) `_early`) ((\a b -> if b then a else not a) <$> _euclid n k <*> pat)
 
 euclidOffToBool :: Pattern p => p Int -> p Int -> p Int -> p Bool -> p Bool
-euclidOffToBool = patternify_p_p_p_n _euclidOffToBool
+euclidOffToBool = patternify_P_P_P_n _euclidOffToBool
 
 _euclidOpen :: Pattern p => Int -> Int -> p Bool
 _euclidOpen n k = timeCat $ map (\(l, v) -> (toRational l, pure v)) $ rle $ bjorklundNeg (n,k)
 
 euclidOpen :: Pattern p => p Int -> p Int -> p Bool
-euclidOpen = patternify_p_p _euclidOpen
+euclidOpen = patternify_P_P _euclidOpen
 
 -- TODO - euclidOpenOff..
 
@@ -114,7 +114,7 @@ _euclidInv n k = _euclid (-n) k
  @euclidInv 3 8 "x"@ -> @"~ x x ~ x x ~ x"@
 -}
 euclidInv :: Pattern p => p Int -> p Int -> p Bool
-euclidInv = patternify_p_p _euclidInv
+euclidInv = patternify_P_P _euclidInv
 
 -- {- | `euclidfull n k pa pb` stacks @e n k pa@ with @einv n k pb@ -}
 -- euclidFull :: Pattern p => p Int -> p Int -> p a -> p a -> p a

@@ -17,6 +17,56 @@ instance Functor Sequence where
   fmap f (Stack xs)        = Stack $ map (fmap f) xs
   fmap f (SeqMetadata _ x) = fmap f x
 
+instance Monad Sequence where
+  return = pure
+  seqv >>= f = seqJoin $ fmap f seqv
+
+instance Applicative Sequence where
+  pure = step 1
+  pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
+
+instance Pattern Sequence where
+  withTime f _ pat = withAtomTime f pat
+  cat = Cat   -- TODO - shallow cat?
+  stack = expands
+  -- duration of 'part', not whole
+  duration (Atom _ d _ _ _)  = d
+  duration (Cat xs)          = sum $ map duration xs
+  duration (Stack [])        = 0
+  duration (Stack (x:_))     = duration x
+  duration (SeqMetadata _ x) = duration x
+  timeCat seqs = seqJoin $ Cat $ map (uncurry step) seqs
+  outerJoin = seqOuterJoin
+  innerJoin = seqInnerJoin
+  squeezeJoin = seqSqueezeJoin
+
+  patBind = seqBind
+  patAlign = seqAlign
+
+  _early t = (\(a, b) -> cat [a,b]) . seqSplitAt t
+  rev (Stack xs) = Stack $ map rev xs
+  rev (Cat xs)   = withAtom swapio $ Cat $ reverse $ map rev xs
+    where swapio m d i o v = Atom m d o i v
+  rev x          = x
+  -- One beat per cycle..
+  toSignal pat = _slow (duration pat) $ toSignal' pat
+    where
+      -- One sequence per cycle
+      toSignal' (Atom m d i o (Just v)) | d == 0 = error "whoops"
+                                        | otherwise = addMetadata m $ _zoomSpan (Span (i/t) (1-(o/t))) $ pure v
+        where t = d + i + o
+      toSignal' (Atom _ _ _ _ Nothing) = silence
+      toSignal' (Cat xs) = timeCat timeseqs
+        where timeseqs = map (\x -> (duration x, toSignal' x)) xs
+      toSignal' (Stack xs) = stack $ map toSignal' xs
+      toSignal' (SeqMetadata _ x) = toSignal' x
+  withMetadata f = withAtom $ \m d i o v -> Atom (f m) d i o v
+  silence = gap 1
+  _zoomSpan (Span s e) pat = _slow (d/(d * frac))
+                           $ seqTakeLoop (d*frac) $ seqDrop (d*s) pat
+    where d = duration pat
+          frac = e-s
+
 gap :: Time -> Sequence a
 gap t = Atom mempty t 0 0 Nothing
 
@@ -143,52 +193,6 @@ withAtom f (SeqMetadata _ x) = withAtom f x
 withAtomTime :: (Time -> Time) -> Sequence a -> Sequence a
 withAtomTime f = withAtom $ \m d i o v -> Atom m (f d) (f i) (f o) v
 
-instance Monad Sequence where
-  return = pure
-  seqv >>= f = seqJoin $ fmap f seqv
-
-instance Applicative Sequence where
-  pure = step 1
-  pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
-
-instance Pattern Sequence where
-  withTime f _ pat = withAtomTime f pat
-  cat = Cat   -- TODO - shallow cat?
-  stack = expands
-  -- duration of 'part', not whole
-  duration (Atom _ d _ _ _)  = d
-  duration (Cat xs)          = sum $ map duration xs
-  duration (Stack [])        = 0
-  duration (Stack (x:_))     = duration x
-  duration (SeqMetadata _ x) = duration x
-  timeCat seqs = seqJoin $ Cat $ map (uncurry step) seqs
-  outerJoin = seqOuterJoin
-  innerJoin = seqInnerJoin
-  squeezeJoin = seqSqueezeJoin
-  _early t = (\(a, b) -> cat [a,b]) . seqSplitAt t
-  rev (Stack xs) = Stack $ map rev xs
-  rev (Cat xs)   = withAtom swapio $ Cat $ reverse $ map rev xs
-    where swapio m d i o v = Atom m d o i v
-  rev x          = x
-  -- One beat per cycle..
-  toSignal pat = _slow (duration pat) $ toSignal' pat
-    where
-      -- One sequence per cycle
-      toSignal' (Atom m d i o (Just v)) | d == 0 = error "whoops"
-                                        | otherwise = addMetadata m $ _zoomSpan (Span (i/t) (1-(o/t))) $ pure v
-        where t = d + i + o
-      toSignal' (Atom _ _ _ _ Nothing) = silence
-      toSignal' (Cat xs) = timeCat timeseqs
-        where timeseqs = map (\x -> (duration x, toSignal' x)) xs
-      toSignal' (Stack xs) = stack $ map toSignal' xs
-      toSignal' (SeqMetadata _ x) = toSignal' x
-  withMetadata f = withAtom $ \m d i o v -> Atom (f m) d i o v
-  silence = gap 1
-  _zoomSpan (Span s e) pat = _slow (d/(d * frac))
-                           $ seqTakeLoop (d*frac) $ seqDrop (d*s) pat
-    where d = duration pat
-          frac = e-s
-
 -- **********************
 -- | Sequence alignment *
 -- **********************
@@ -197,6 +201,15 @@ bindStrategy :: Sequence a -> SeqBindStrategy
 bindStrategy (SeqMetadata m _) = sBindStrategy m
 -- default strategy and direction
 bindStrategy _                 = SeqBindStrategy Expand Inner
+
+seqBind :: Pattern p => Sequence a1 -> p a2 -> (a2 -> p b) -> p b
+seqBind pat = case (seqDirection $ bindStrategy pat) of
+                Inner -> innerBind
+                Outer -> outerBind
+                Mix   -> (>>=)
+
+seqAlign :: Sequence a -> Sequence b -> (Sequence a, Sequence b)
+seqAlign a b = align (seqStrategy $ bindStrategy a) a b
 
 -- instance Alignment Sequence where
 --   -- default strategy and direction

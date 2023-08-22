@@ -33,6 +33,8 @@ instance Pattern Signal where
   squeezeJoin = sigSqueezeJoin
 
   patBind = sigBind
+  -- Signals are always aligned cycle-by-cycle
+  patAlign a b = (a,b)
 
   -- | Concatenate a list of signals, interleaving cycles.
   cat pats = splitQueries $ Signal mempty $ \state -> query (_late (offset $ sSpan state) (pat $ sSpan state)) state
@@ -198,7 +200,7 @@ _fastGap factor pat = splitQueries $ withEvent ef $ withQuerySpanMaybe qf pat
 -- | Like @fast@, but only plays one cycle of the original signal
 -- once per cycle, leaving a gap at the end
 fastGap :: Signal Time -> Signal a -> Signal a
-fastGap = patternify_p_n _fastGap
+fastGap = patternify_P_n _fastGap
 
 _compressSpan :: Span -> Signal a -> Signal a
 _compressSpan (Span b e) pat | b > e || b > 1 || e > 1 || b < 0 || e < 0 = silence

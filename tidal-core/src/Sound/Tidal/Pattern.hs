@@ -11,33 +11,37 @@ import           Sound.Tidal.Types
 
 -- -- Turns functions with non-patterned parameters into fully patternified ones
 
-patternify_p :: Pattern p => (a -> p b) -> (p a -> p b)
-patternify_p f apat = apat `bind` f
+patternify_P :: Pattern p => (a -> p b) -> (p a -> p b)
+patternify_P f apat = apat `bind` f
   where bind = patBind apat
 
-patternify_p_n :: Pattern p => (a -> b -> p c) -> (p a -> b -> p c)
-patternify_p_n f apat b = apat `bind` \a -> f a b
+patternify_P_n :: Pattern p => (a -> b -> p c) -> (p a -> b -> p c)
+patternify_P_n f apat b = apat `bind` \a -> f a b
   where bind = patBind apat
 
-patternify_p_n_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> b -> c -> p d)
-patternify_p_n_n f apat b c = apat `bind` \a -> f a b c
+patternify_P_p :: Pattern p => (a -> p b -> p c) -> (p a -> p b -> p c)
+patternify_P_p f apat bpat = patternify_P_n f apat' bpat'
+  where (apat', bpat') = patAlign apat bpat
+
+patternify_P_n_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> b -> c -> p d)
+patternify_P_n_n f apat b c = apat `bind` \a -> f a b c
   where bind = patBind apat
 
-patternify_p_n_n_n :: Pattern p => (a -> b -> c -> d -> p e) -> (p a -> b -> c -> d -> p e)
-patternify_p_n_n_n f apat b c d = apat `bind` \a -> f a b c d
+patternify_P_n_n_n :: Pattern p => (a -> b -> c -> d -> p e) -> (p a -> b -> c -> d -> p e)
+patternify_P_n_n_n f apat b c d = apat `bind` \a -> f a b c d
   where bind = patBind apat
 
-patternify_p_p :: Pattern p => (a -> b -> p c) -> (p a -> p b -> p c)
-patternify_p_p f = patternify_p_n $ patternify_p <$> f
+patternify_P_P :: Pattern p => (a -> b -> p c) -> (p a -> p b -> p c)
+patternify_P_P f = patternify_P_n $ patternify_P <$> f
 
-patternify_p_p_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> p b -> c -> p d)
-patternify_p_p_n f = patternify_p_n_n $ patternify_p_n <$> f
+patternify_P_P_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> p b -> c -> p d)
+patternify_P_P_n f = patternify_P_n_n $ patternify_P_n <$> f
 
-patternify_p_p_p :: Pattern p => (a -> b -> c -> p d) -> (p a -> p b -> p c -> p d)
-patternify_p_p_p f  = patternify_p_n_n $ patternify_p_p <$> f
+patternify_P_P_P :: Pattern p => (a -> b -> c -> p d) -> (p a -> p b -> p c -> p d)
+patternify_P_P_P f  = patternify_P_n_n $ patternify_P_P <$> f
 
-patternify_p_p_p_n :: Pattern p => (a -> b -> c -> d -> p e) -> p a -> p b -> p c -> d -> p e
-patternify_p_p_p_n f  = patternify_p_n_n_n $ patternify_p_p_n <$> f
+patternify_P_P_P_n :: Pattern p => (a -> b -> c -> d -> p e) -> p a -> p b -> p c -> d -> p e
+patternify_P_P_P_n f  = patternify_P_n_n_n $ patternify_P_P_n <$> f
 
 (<*), (*>) :: Pattern p => p (t -> b) -> p t -> p b
 pf <* px = pf `innerBind` \f -> px `innerBind` \x -> pure $ f x
@@ -66,12 +70,12 @@ _late = _early . (0-)
 
 -- patternify parameters
 fast, density, slow, sparsity, early, late, (<~), (~>) :: Pattern p => p Time -> p a -> p a
-fast  = patternify_p_n _fast
+fast  = patternify_P_n _fast
 density = fast
-slow  = patternify_p_n _slow
+slow  = patternify_P_n _slow
 sparsity = slow
-early = patternify_p_n _early
-late  = patternify_p_n _late
+early = patternify_P_n _early
+late  = patternify_P_n _late
 -- Infix operator for `early`
 (<~) = early
 -- Infix operator for `late`
@@ -82,14 +86,14 @@ _inside n f p = _fast n $ f (_slow n p)
 _outside n = _inside (1/n)
 
 inside, outside :: Pattern p => p Time -> (p a -> p b) -> p a -> p b
-inside = patternify_p_n_n _inside
-outside = patternify_p_n_n _outside
+inside = patternify_P_n_n _inside
+outside = patternify_P_n_n _outside
 
 _superimpose :: Pattern p => (p x -> p x) -> p x -> p x
 _superimpose f pat = cat [pat, f pat]
 
 superimpose :: Pattern p => p (p x -> p x) -> p x -> p x
-superimpose = patternify_p_n _superimpose
+superimpose = patternify_P_n _superimpose
 
 xsuperimpose :: forall x p a. (Pattern p, Applicable p a (p x -> p x)) => a -> p x -> p x
 xsuperimpose pf pat = superimpose (toA pf) pat
@@ -98,7 +102,7 @@ _off :: Pattern p => Time -> (p a -> p a) -> p a -> p a
 _off t f p = _superimpose (f . (t `_late`)) p
 
 off :: Pattern p => p Time -> p (p a -> p a) -> p a -> p a
-off  = patternify_p_p_n _off
+off  = patternify_P_P_n _off
 
 when :: Pattern p => p Bool -> (p b -> p b) -> p b -> p b
 when boolpat f pat = innerJoin $ (\b -> if b then f pat else pat) <$> boolpat
@@ -115,8 +119,8 @@ _lastOf n f pat | n <= 0 = silence
 _every = _lastOf
 
 firstOf, lastOf, every :: Pattern p => p Int -> (p a -> p a) -> p a -> p a
-firstOf = patternify_p_n_n _firstOf
-lastOf = patternify_p_n_n _lastOf
+firstOf = patternify_P_n_n _firstOf
+lastOf = patternify_P_n_n _lastOf
 every = lastOf
 
 -- | @foldEvery ns f p@ applies the function @f@ to @p@, and is
@@ -136,8 +140,8 @@ _iterBack n p | n == 0 = p
               | otherwise = slowcat $ p:map (\t -> _early ((fromIntegral t)%(fromIntegral n)) p) [n .. 1]
 
 iter, iterBack :: Pattern p => p Int -> p a -> p a
-iter = patternify_p_n _iter
-iterBack = patternify_p_n _iterBack
+iter = patternify_P_n _iter
+iterBack = patternify_P_n _iterBack
 
 -- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
 -- the pattern alternates between forwards and backwards.
@@ -146,25 +150,25 @@ palindrome p = slowcat [p, rev p]
 
 -- | Repeats each event @n@ times within its arc
 ply :: Pattern p => p Int -> p a -> p a
-ply = patternify_p_n _ply
+ply = patternify_P_n _Ply
 
-_ply :: Pattern p => Int -> p a -> p a
-_ply n pat = squeezeJoin $ fastcat . replicate n . pure <$> pat
+_Ply :: Pattern p => Int -> p a -> p a
+_Ply n pat = squeezeJoin $ fastcat . replicate n . pure <$> pat
 
 -- | Syncopates a rhythm, shifting each event halfway into its arc (aka timespan), e.g. @"a b [c d] e"@ becomes the equivalent of @"[~ a] [~ b] [[~ c] [~ d]] [~ e]"@
 press :: Pattern p => p a -> p a
-press = _pressBy 0.5
+press = _PressBy 0.5
 
 pressBy :: Pattern p => p Time -> p a -> p a
 -- | Like @press@, but allows you to specify the amount in which each event is shifted. @pressBy 0.5@ is the same as @press@, while @pressBy (1/3)@ shifts each event by a third of its duration.
-pressBy = patternify_p_n _pressBy
+pressBy = patternify_P_n _PressBy
 
-_pressBy :: Pattern p => Time -> p a -> p a
-_pressBy t pat = squeezeJoin $ (\v -> timeCat [(t, silence), (1-t, pure v)]) <$> pat
+_PressBy :: Pattern p => Time -> p a -> p a
+_PressBy t pat = squeezeJoin $ (\v -> timeCat [(t, silence), (1-t, pure v)]) <$> pat
 
 -- | chooses between a list of patterns, using a pattern of floats (from 0-1)
 select :: Pattern p => p Double -> [p a] -> p a
-select = patternify_p_n _select
+select = patternify_P_n _select
 
 _select :: Pattern p => Double -> [p a] -> p a
 _select f ps =  ps !! floor (max 0 (min 1 f) * fromIntegral (length ps - 1))
@@ -184,8 +188,8 @@ _slowRepeatCycles = _repeatCycles
 
 repeatCycles, fastRepeatCycles, slowRepeatCycles
   :: Pattern p => p Int -> p a -> p a
-repeatCycles = patternify_p_n _repeatCycles
-fastRepeatCycles = patternify_p_n _fastRepeatCycles
+repeatCycles = patternify_P_n _repeatCycles
+fastRepeatCycles = patternify_P_n _fastRepeatCycles
 slowRepeatCycles = repeatCycles
 
 -- ************************************************************ --
@@ -202,7 +206,7 @@ d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
 @
 -}
 range :: (Pattern p, Num a) => p a -> p a -> p a -> p a
-range = patternify_p_p_n _range
+range = patternify_P_P_n _range
 
 _range :: (Functor f, Num b) => b -> b -> f b -> f b
 _range from to pat = (+ from) . (* (to-from)) <$> pat
@@ -254,7 +258,7 @@ _bite n ipat pat = squeezeJoin $ zoompat <$> ipat
 -- discrete one.
 -- TODO - not working well for sequences
 segment :: Pattern p => p Time -> p a -> p a
-segment = patternify_p_n _segment
+segment = patternify_P_n _segment
 
 _segment :: Pattern p => Time -> p a -> p a
 _segment n p = _fast n (pure id) <* p
