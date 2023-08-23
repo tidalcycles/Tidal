@@ -50,7 +50,6 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
     #-}
   duration :: p a -> Time
   withTime :: (Time -> Time) -> (Time -> Time) -> p a -> p a
-  -- powerbind :: (a -> p b -> c) -> (p a -> p b -> p c)
   innerBind, outerBind, squeezeBind :: p a -> (a -> p b) -> p b
   innerBind pat f = innerJoin $ fmap f pat
   outerBind pat f = outerJoin $ fmap f pat
@@ -270,6 +269,8 @@ data SignalBind = SigIn
                 | SigMix
                 -- Signals allow some alignment at bind time
                 | SigSqueeze
+                | SigTrig
+                | SigTrigzero
   deriving (Eq, Ord, Show, Generic)
 instance NFData SignalBind
 

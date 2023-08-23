@@ -202,7 +202,7 @@ bindAlignment (SeqMetadata strat _) = strat
 -- default strategy and alignment
 bindAlignment _                     = SeqBindAlignment Expand SeqIn
 
-getSeqBind :: Pattern p => Sequence a1 -> p a2 -> (a2 -> p b) -> p b
+getSeqBind :: Pattern p => Sequence a -> p b -> (b -> p c) -> p c
 getSeqBind pat = case (seqBind $ bindAlignment pat) of
                    SeqIn  -> innerBind
                    SeqOut -> outerBind

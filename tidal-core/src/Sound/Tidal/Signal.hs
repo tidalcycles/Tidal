@@ -32,7 +32,7 @@ instance Pattern Signal where
   outerBind = sigBindWith const
   squeezeJoin = sigSqueezeJoin
 
-  patBind = sigBind
+  patBind = getSigBind
   -- Signals are always aligned cycle-by-cycle
   patAlign a b = (a,b)
 
@@ -61,12 +61,14 @@ instance Pattern Signal where
                            $ withQuerySpan (mapCycle ((+s) . (*d))) p
     where d = e-s
 
-sigBind :: Pattern p => Signal a1 -> p a2 -> (a2 -> p b) -> p b
-sigBind pat = case (signalBind pat) of
-                SigIn      -> innerBind
-                SigOut     -> outerBind
-                SigSqueeze -> squeezeBind
-                SigMix     -> (>>=)
+getSigBind :: Signal a -> Signal b -> (b -> Signal c) -> Signal c
+getSigBind pat = case (signalBind pat) of
+                   SigIn       -> innerBind
+                   SigOut      -> outerBind
+                   SigSqueeze  -> squeezeBind
+                   SigTrig     -> trigBind
+                   SigTrigzero -> trigzeroBind
+                   SigMix      -> (>>=)
   where signalBind :: Signal a -> SignalBind
         signalBind (Signal {sigMetadata = SignalMetadata (Just bind)}) = bind
         signalBind _                                                   = SigIn
@@ -93,6 +95,9 @@ filterValues f = filterEvents (f . value)
 
 filterJusts :: Signal (Maybe a) -> Signal a
 filterJusts = fmap fromJust . filterValues isJust
+
+discreteOnly :: Signal a -> Signal a
+discreteOnly = filterEvents $ isJust . whole
 
 -- | @withEvents f p@ returns a new @Signal@ with f applied to the
 -- resulting list of events for each query function @f@.
@@ -157,6 +162,32 @@ sigSqueezeJoin pp = pp {query = q}
           do w' <- maybeSect <$> oWhole <*> iWhole
              p' <- maybeSect oPart iPart
              return (Event (iMetadata <> oMetadata) w' p' v)
+
+
+-- Flatterns patterns of patterns, by retriggering/resetting inner
+-- patterns at onsets of outer pattern events
+_trigTimeJoin :: (Time -> Time) -> Signal (Signal a) -> Signal a
+_trigTimeJoin timeF patOfPats = Signal mempty $ \state -> concatMap (queryInner state) $ query (discreteOnly patOfPats) state
+  where queryInner state outerEvent
+          = mapMaybe (\innerEvent -> do a <- maybeSect (active innerEvent) (active outerEvent)
+                                        return $ Event {eventMetadata = eventMetadata innerEvent <> eventMetadata outerEvent,
+                                                        whole = sect <$> whole innerEvent <*> whole outerEvent,
+                                                        active = a,
+                                                        value = value innerEvent
+                                                       }
+                ) $ query (_late (timeF $ aBegin $ wholeOrActive outerEvent) (value outerEvent)) state
+
+trigJoin :: Signal (Signal a) -> Signal a
+trigJoin = _trigTimeJoin cyclePos
+
+trigBind :: Signal a -> (a -> Signal b) -> Signal b
+trigBind pat f = trigJoin $ fmap f pat
+
+trigzeroJoin :: Signal (Signal a) -> Signal a
+trigzeroJoin = _trigTimeJoin id
+
+trigzeroBind :: Signal a -> (a -> Signal b) -> Signal b
+trigzeroBind pat f = trigzeroJoin $ fmap f pat
 
 {- | Plays a portion of a signal, specified by start and duration
 The new resulting signal is played over the time period of the original signal:
