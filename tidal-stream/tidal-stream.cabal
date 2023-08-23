@@ -41,11 +41,12 @@ library
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules:  Sound.Tidal.Stream
-                      Sound.Tidal.Tempo
-                      Sound.Tidal.ID
+    exposed-modules:  Sound.Tidal.Boot
                       Sound.Tidal.Config
+                      Sound.Tidal.ID
+                      Sound.Tidal.Stream
                       Sound.Tidal.StreamTypes
+                      Sound.Tidal.Tempo
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
