@@ -197,48 +197,48 @@ withAtomTime f = withAtom $ \m d i o v -> Atom m (f d) (f i) (f o) v
 -- | Sequence alignment *
 -- **********************
 
-bindStrategy :: Sequence a -> SeqBindStrategy
-bindStrategy (SeqMetadata strat _) = strat
+bindAlignment :: Sequence a -> SeqBindAlignment
+bindAlignment (SeqMetadata strat _) = strat
 -- default strategy and direction
-bindStrategy _                     = SeqBindStrategy Expand Inner
+bindAlignment _                     = SeqBindAlignment Expand SeqIn
 
 seqBind :: Pattern p => Sequence a1 -> p a2 -> (a2 -> p b) -> p b
-seqBind pat = case (seqDirection $ bindStrategy pat) of
-                Inner -> innerBind
-                Outer -> outerBind
-                Mix   -> (>>=)
+seqBind pat = case (seqDirection $ bindAlignment pat) of
+                SeqIn  -> innerBind
+                SeqOut -> outerBind
+                SeqMix -> (>>=)
 
 seqAlign :: Sequence a -> Sequence b -> (Sequence a, Sequence b)
-seqAlign a b = align (seqStrategy $ bindStrategy a) a b
+seqAlign a b = align (seqAlignment $ bindAlignment a) a b
 
-setBindStrategy :: SeqBindStrategy -> Sequence a -> Sequence a
-setBindStrategy strat (SeqMetadata _ pat) = SeqMetadata strat pat
-setBindStrategy strat pat                 = SeqMetadata strat pat
+setBindAlignment :: SeqBindAlignment -> Sequence a -> Sequence a
+setBindAlignment strat (SeqMetadata _ pat) = SeqMetadata strat pat
+setBindAlignment strat pat                 = SeqMetadata strat pat
 
-setStrategy :: Strategy -> Sequence a -> Sequence a
-setStrategy strat pat
-  = setBindStrategy ((bindStrategy pat) {seqStrategy = strat}) pat
+setAlignment :: Alignment -> Sequence a -> Sequence a
+setAlignment strat pat
+  = setBindAlignment ((bindAlignment pat) {seqAlignment = strat}) pat
 
-setDirection :: Direction -> Sequence a -> Sequence a
+setDirection :: SequenceBind -> Sequence a -> Sequence a
 setDirection dir pat
-  = setBindStrategy ((bindStrategy pat) {seqDirection = dir}) pat
+  = setBindAlignment ((bindAlignment pat) {seqDirection = dir}) pat
 
--- setDirection :: Alignment x => Direction -> x a -> SeqStrategy a
--- setDirection dir a = (toSeqStrategy a) {sDirection = dir}
+-- setDirection :: Alignment x => Direction -> x a -> SeqAlignment a
+-- setDirection dir a = (toSeqAlignment a) {sDirection = dir}
 
--- justifyleft, justifyright, justifyboth, expand, truncateleft, truncateright, truncaterepeat, rep, centre, squeezein, squeezeout :: Alignment x => x a -> SeqStrategy a
--- justifyleft    = setStrategy JustifyLeft
--- justifyright   = setStrategy JustifyRight
--- justifyboth    = setStrategy JustifyBoth
--- expand         = setStrategy Expand
--- truncateleft   = setStrategy TruncateLeft
--- truncateright  = setStrategy TruncateRight
--- truncaterepeat = setStrategy TruncateRepeat
+-- justifyleft, justifyright, justifyboth, expand, truncateleft, truncateright, truncaterepeat, rep, centre, squeezein, squeezeout :: Alignment x => x a -> SeqAlignment a
+-- justifyleft    = setAlignment JustifyLeft
+-- justifyright   = setAlignment JustifyRight
+-- justifyboth    = setAlignment JustifyBoth
+-- expand         = setAlignment Expand
+-- truncateleft   = setAlignment TruncateLeft
+-- truncateright  = setAlignment TruncateRight
+-- truncaterepeat = setAlignment TruncateRepeat
 -- -- repeat is already taken by prelude
--- rep            = setStrategy Repeat
--- centre         = setStrategy Centre
--- squeezein      = setStrategy SqueezeIn
--- squeezeout     = setStrategy SqueezeOut
+-- rep            = setAlignment Repeat
+-- centre         = setAlignment Centre
+-- squeezein      = setAlignment SqueezeIn
+-- squeezeout     = setAlignment SqueezeOut
 
 seqPadBy :: ([Sequence a] -> Sequence a -> [Sequence a]) -> Time -> Sequence a -> Sequence a
 seqPadBy by t x = f x
@@ -281,7 +281,7 @@ withLargest f a b | o == LT = (a, f b)
                   | otherwise = (a, b)
   where o = compare (duration a) (duration b)
 
-align :: Strategy -> Sequence a -> Sequence b -> (Sequence a, Sequence b)
+align :: Alignment -> Sequence a -> Sequence b -> (Sequence a, Sequence b)
 align Repeat a b = (replic a, replic b)
   where d = lcmTime (duration a) (duration b)
         replic x = seqReplicate (floor $ d / duration x) x
@@ -326,10 +326,10 @@ align strategy _ _ = error $ show strategy ++ " not implemented for sequences."
 -- | Sequence combining *
 -- **********************
 
-pairAligned :: Direction -> (Sequence a, Sequence b) -> Sequence (a, b)
+pairAligned :: SequenceBind -> (Sequence a, Sequence b) -> Sequence (a, b)
 -- TODO - vertical alignments
 -- TODO - 'Mixed' direction
-pairAligned Mix _ = error "TODO !!"
+pairAligned SeqMix _ = error "TODO !!"
 
 pairAligned direction (SeqMetadata _ a, b) = pairAligned direction (a, b)
 pairAligned direction (a, SeqMetadata _ b) = pairAligned direction (a, b)
@@ -337,21 +337,21 @@ pairAligned direction (Stack as, b) = Stack $ map (\a -> pairAligned direction (
 pairAligned direction (a, Stack bs) = Stack $ map (\b -> pairAligned direction (a, b)) bs
 
 -- TODO - should the value be Nothing if one/both are nothings?
-pairAligned Inner (Atom m d i o v, Atom m' _ _ _ v')
+pairAligned SeqIn (Atom m d i o v, Atom m' _ _ _ v')
   = Atom (m <> m') d i o $ do a <- v
                               b <- v'
                               return (a,b)
 
-pairAligned Inner (Cat xs, Cat ys) = Cat $ loop xs ys
+pairAligned SeqIn (Cat xs, Cat ys) = Cat $ loop xs ys
   where loop :: [Sequence a] -> [Sequence b] -> [Sequence (a, b)]
         loop [] _ = []
         loop _ [] = []
         loop (a:as) (b:bs) = case cmp of
-                               LT -> pairAligned Inner (a, b')
+                               LT -> pairAligned SeqIn (a, b')
                                      : loop as (b'':bs)
-                               GT -> pairAligned Inner (a', b)
+                               GT -> pairAligned SeqIn (a', b)
                                      : loop (a'':as) bs
-                               EQ -> pairAligned Inner (a, b)
+                               EQ -> pairAligned SeqIn (a, b)
                                      : loop as bs
           where adur = duration a
                 bdur = duration b
@@ -359,32 +359,32 @@ pairAligned Inner (Cat xs, Cat ys) = Cat $ loop xs ys
                 (a', a'') = seqSplitAt bdur a
                 (b', b'') = seqSplitAt adur b
 
-pairAligned Inner (Cat xs, y) = loop 0 xs y
+pairAligned SeqIn (Cat xs, y) = loop 0 xs y
   where loop _ [] _     = gap 0
-        loop _ [a] b    = pairAligned Inner (a, b)
-        loop t (a:as) b = cat [pairAligned Inner (a, b'), loop t' as b'']
+        loop _ [a] b    = pairAligned SeqIn (a, b)
+        loop t (a:as) b = cat [pairAligned SeqIn (a, b'), loop t' as b'']
           where t' = t + duration a
                 (b', b'') = seqSplitAt t' b
 
-pairAligned Inner (x, Cat ys) = loop 0 x ys
+pairAligned SeqIn (x, Cat ys) = loop 0 x ys
   where loop :: Time -> Sequence a -> [Sequence b] -> Sequence (a,b)
         loop _ _ []     = gap 0
-        loop _ a [b]    = pairAligned Inner (a, b)
-        loop t a (b:bs) = cat [pairAligned Inner (a', b), loop t' a'' bs]
+        loop _ a [b]    = pairAligned SeqIn (a, b)
+        loop t a (b:bs) = cat [pairAligned SeqIn (a', b), loop t' a'' bs]
           where t' = t + duration b
                 (a', a'') = seqSplitAt t' a
 
-pairAligned Outer (a, b) = swap <$> pairAligned Inner (b, a)
+pairAligned SeqOut (a, b) = swap <$> pairAligned SeqIn (b, a)
 
-pairAlign :: Strategy -> Direction -> Sequence a -> Sequence b -> Sequence (a, b)
+pairAlign :: Alignment -> SequenceBind -> Sequence a -> Sequence b -> Sequence (a, b)
 pairAlign s d a b = pairAligned d $ align s a b
 
-alignF :: Strategy -> Direction -> (a -> b -> c) -> Sequence a -> Sequence b -> Sequence c
+alignF :: Alignment -> SequenceBind -> (a -> b -> c) -> Sequence a -> Sequence b -> Sequence c
 alignF s d f a b = uncurry f <$> pairAlign s d a b
 
 -- | Stacks
 
-alignStack :: Strategy -> [Sequence a] -> Sequence a
+alignStack :: Alignment -> [Sequence a] -> Sequence a
 alignStack strat xs = normalise $ loop xs
   where loop []      = silence
         loop [x]     = x

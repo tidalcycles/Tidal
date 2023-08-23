@@ -63,13 +63,13 @@ instance Pattern Signal where
 
 sigBind :: Pattern p => Signal a1 -> p a2 -> (a2 -> p b) -> p b
 sigBind pat = case (signalBind pat) of
-                InnerBind   -> innerBind
-                OuterBind   -> outerBind
-                SqueezeBind -> squeezeBind
-                MixBind     -> (>>=)
+                SigIn      -> innerBind
+                SigOut     -> outerBind
+                SigSqueeze -> squeezeBind
+                SigMix     -> (>>=)
   where signalBind :: Signal a -> SignalBind
         signalBind (Signal {sigMetadata = SignalMetadata (Just bind)}) = bind
-        signalBind _                                                   = InnerBind
+        signalBind _                                                   = SigIn
 
 -- instance Signalable (Signal a) a where toSig = id
 -- instance Signalable a a where toSig = pure

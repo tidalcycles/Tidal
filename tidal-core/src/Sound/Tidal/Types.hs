@@ -97,7 +97,7 @@ instance Monoid Metadata where
   mempty = Metadata []
 
 data SequenceMetadata
-  = SequenceMetadata {sBindStrategy :: SeqBindStrategy}
+  = SequenceMetadata {sBindAlignment :: SeqBindAlignment}
   deriving (Eq, Ord, Generic)
 instance NFData SequenceMetadata
 
@@ -238,52 +238,43 @@ data Sequence a = Atom {atomMetadata :: Metadata,
                        }
                 | Cat [Sequence a]
                 | Stack [Sequence a]
-                | SeqMetadata {seqBindStrategy :: SeqBindStrategy,
-                               seqData         :: Sequence a
+                | SeqMetadata {seqBindAlignment :: SeqBindAlignment,
+                               seqData          :: Sequence a
                               }
                 deriving (Eq, Ord, Generic)
 
 -- | Strategies for aligning two sequences or patterns over time (horizontally)
-data Strategy = JustifyLeft
-              | JustifyRight
-              | JustifyBoth
-              | Expand
-              | TruncateLeft
-              | TruncateRight
-              | TruncateRepeat
-              | Repeat
-              | Centre
-              | SqueezeIn
-              | SqueezeOut
-              deriving (Eq, Ord, Show, Generic)
-instance NFData Strategy
+data Alignment = JustifyLeft
+               | JustifyRight
+               | JustifyBoth
+               | Expand
+               | TruncateLeft
+               | TruncateRight
+               | TruncateRepeat
+               | Repeat
+               | Centre
+               | SqueezeIn
+               | SqueezeOut
+               deriving (Eq, Ord, Show, Generic)
+instance NFData Alignment
 
 -- | Once we've aligned two patterns, where does the structure come from?
-data Direction = Inner
-               | Outer
-               | Mix
-               deriving (Eq, Ord, Show, Generic)
-instance NFData Direction
+data SequenceBind = SeqIn
+                  | SeqOut
+                  | SeqMix
+                  deriving (Eq, Ord, Show, Generic)
+instance NFData SequenceBind
 
-data SignalBind = InnerBind
-                | OuterBind
-                | MixBind
-                | SqueezeBind
+data SignalBind = SigIn
+                | SigOut
+                | SigMix
+                -- Signals allow some alignment at bind time
+                | SigSqueeze
   deriving (Eq, Ord, Show, Generic)
 instance NFData SignalBind
 
-data SeqBindStrategy = SeqBindStrategy {seqStrategy  :: Strategy,
-                                        seqDirection :: Direction
-                                       }
+data SeqBindAlignment = SeqBindAlignment {seqAlignment :: Alignment,
+                                          seqDirection :: SequenceBind
+                                         }
   deriving (Eq, Ord, Show, Generic)
-instance NFData SeqBindStrategy
-
--- class Alignment a where
---   toSeqStrategy :: a b -> SeqStrategy b
-
--- -- A wrapper for a sequence that specifies how it should be combined
--- -- with another sequence.
--- data SeqStrategy a = SeqStrategy {sStrategy  :: Strategy,
---                                   sDirection :: Direction,
---                                   sSequence  :: Sequence a
---                                  }
+instance NFData SeqBindAlignment
