@@ -138,6 +138,10 @@ withQuerySpanMaybe spanf = withQueryMaybe (\state -> do a <- spanf $ sSpan state
 withQueryTime :: (Time -> Time) -> Signal a -> Signal a
 withQueryTime timef = withQuerySpan $ withSpanTime timef
 
+-- | Apply a function to the control values of the query
+withQueryControls :: (ValueMap -> ValueMap) -> Signal a -> Signal a
+withQueryControls f pat = pat { query = query pat . (\(State a m) -> State a (f m))}
+
 -- Makes a signal bind, given a function of how to calculate the 'whole' timespan
 sigBindWith :: (Maybe Span -> Maybe Span -> Maybe Span) -> Signal a -> (a -> Signal b) -> Signal b
 sigBindWith chooseWhole pv f = Signal mempty $ \state -> concatMap (match (sControls state)) $ query pv state

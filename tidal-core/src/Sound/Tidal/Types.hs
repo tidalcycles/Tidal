@@ -191,6 +191,28 @@ instance Ord Value where
   compare (VList _) _             = GT
   compare _ (VList _)             = LT
 
+
+-- Class of types able to be turned into a Value
+class Valuable a where
+  toValue :: a -> Value
+
+instance Valuable String where
+  toValue a = VS a
+instance Valuable Double where
+  toValue a = VF a
+instance Valuable Rational where
+  toValue a = VR a
+instance Valuable Int where
+  toValue a = VI a
+instance Valuable Bool where
+  toValue a = VB a
+instance Valuable Note where
+  toValue a = VN a
+instance Valuable [Word8] where
+  toValue a = VX a
+instance Valuable [Value] where
+  toValue a = VList a
+
 -- | Maps of values, used for representing synth control
 -- messages, and state
 type ValueMap = (Map.Map String Value)

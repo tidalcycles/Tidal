@@ -40,14 +40,17 @@ library
     -- Import common warning flags.
     import:           warnings
 
+    autogen-modules:     Paths_tidal_core
+  
     -- Modules exported by the library.
     exposed-modules:  Sound.Tidal
                       Sound.Tidal.Bjorklund
                       Sound.Tidal.Chords
+                      Sound.Tidal.Compose
                       Sound.Tidal.Event
                       Sound.Tidal.InstanceHacks
                       Sound.Tidal.Mininotation
---                       Sound.Tidal.Params
+                      Sound.Tidal.Params
                       Sound.Tidal.Pattern
                       Sound.Tidal.Sequence
                       Sound.Tidal.Show
@@ -60,6 +63,7 @@ library
                       Sound.Tidal.Types
                       Sound.Tidal.Utils
                       Sound.Tidal.Value
+                      Paths_tidal_core
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

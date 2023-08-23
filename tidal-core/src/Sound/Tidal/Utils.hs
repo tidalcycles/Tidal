@@ -1,5 +1,10 @@
 module Sound.Tidal.Utils where
 
+import           System.IO (hPutStrLn, stderr)
+
+writeError :: String -> IO ()
+writeError = hPutStrLn stderr
+
 rle :: Eq a => [a] -> [(Int, a)]
 rle [] = []
 rle (a:as) = loop (1,a) as
@@ -14,3 +19,19 @@ rle (a:as) = loop (1,a) as
 -}
 (!!!) :: [a] -> Int -> a
 (!!!) xs n = xs !! (n `mod` length xs)
+
+{- | split given list of @a@ by given single a, e.g.
+
+>>> wordsBy (== ':') "bd:3"
+["bd", "3"]
+-}
+wordsBy :: (a -> Bool) -> [a] -> [[a]]
+wordsBy p s = case dropWhile p s of
+   []      -> []
+   s':rest -> (s':w) : wordsBy p (drop 1 s'')
+          where (w, s'') = break p rest
+
+readMaybe :: (Read a) => String -> Maybe a
+readMaybe s = case [x | (x,t) <- reads s, ("","") <- lex t] of
+                   [x] -> Just x
+                   _   -> Nothing
