@@ -40,8 +40,8 @@ instance Pattern Sequence where
   innerJoin = seqInnerJoin
   squeezeJoin = seqSqueezeJoin
 
-  patBind = seqBind
-  patAlign = seqAlign
+  patBind = getSeqBind
+  patAlign = getSeqAlign
 
   _early t = (\(a, b) -> cat [a,b]) . seqSplitAt t
   rev (Stack xs) = Stack $ map rev xs
@@ -199,17 +199,17 @@ withAtomTime f = withAtom $ \m d i o v -> Atom m (f d) (f i) (f o) v
 
 bindAlignment :: Sequence a -> SeqBindAlignment
 bindAlignment (SeqMetadata strat _) = strat
--- default strategy and direction
+-- default strategy and alignment
 bindAlignment _                     = SeqBindAlignment Expand SeqIn
 
-seqBind :: Pattern p => Sequence a1 -> p a2 -> (a2 -> p b) -> p b
-seqBind pat = case (seqDirection $ bindAlignment pat) of
-                SeqIn  -> innerBind
-                SeqOut -> outerBind
-                SeqMix -> (>>=)
+getSeqBind :: Pattern p => Sequence a1 -> p a2 -> (a2 -> p b) -> p b
+getSeqBind pat = case (seqBind $ bindAlignment pat) of
+                   SeqIn  -> innerBind
+                   SeqOut -> outerBind
+                   SeqMix -> (>>=)
 
-seqAlign :: Sequence a -> Sequence b -> (Sequence a, Sequence b)
-seqAlign a b = align (seqAlignment $ bindAlignment a) a b
+getSeqAlign :: Sequence a -> Sequence b -> (Sequence a, Sequence b)
+getSeqAlign a b = align (seqAlignment $ bindAlignment a) a b
 
 setBindAlignment :: SeqBindAlignment -> Sequence a -> Sequence a
 setBindAlignment strat (SeqMetadata _ pat) = SeqMetadata strat pat
@@ -219,9 +219,8 @@ setAlignment :: Alignment -> Sequence a -> Sequence a
 setAlignment strat pat
   = setBindAlignment ((bindAlignment pat) {seqAlignment = strat}) pat
 
-setDirection :: SequenceBind -> Sequence a -> Sequence a
-setDirection dir pat
-  = setBindAlignment ((bindAlignment pat) {seqDirection = dir}) pat
+setSeqBind :: SequenceBind -> Sequence a -> Sequence a
+setSeqBind bind pat = setBindAlignment ((bindAlignment pat) {seqBind = bind}) pat
 
 -- setDirection :: Alignment x => Direction -> x a -> SeqAlignment a
 -- setDirection dir a = (toSeqAlignment a) {sDirection = dir}
@@ -328,13 +327,13 @@ align strategy _ _ = error $ show strategy ++ " not implemented for sequences."
 
 pairAligned :: SequenceBind -> (Sequence a, Sequence b) -> Sequence (a, b)
 -- TODO - vertical alignments
--- TODO - 'Mixed' direction
+-- TODO - 'Mixed' bind
 pairAligned SeqMix _ = error "TODO !!"
 
-pairAligned direction (SeqMetadata _ a, b) = pairAligned direction (a, b)
-pairAligned direction (a, SeqMetadata _ b) = pairAligned direction (a, b)
-pairAligned direction (Stack as, b) = Stack $ map (\a -> pairAligned direction (a, b)) as
-pairAligned direction (a, Stack bs) = Stack $ map (\b -> pairAligned direction (a, b)) bs
+pairAligned bind (SeqMetadata _ a, b) = pairAligned bind (a, b)
+pairAligned bind (a, SeqMetadata _ b) = pairAligned bind (a, b)
+pairAligned bind (Stack as, b) = Stack $ map (\a -> pairAligned bind (a, b)) as
+pairAligned bind (a, Stack bs) = Stack $ map (\b -> pairAligned bind (a, b)) bs
 
 -- TODO - should the value be Nothing if one/both are nothings?
 pairAligned SeqIn (Atom m d i o v, Atom m' _ _ _ v')

@@ -274,7 +274,7 @@ data SignalBind = SigIn
 instance NFData SignalBind
 
 data SeqBindAlignment = SeqBindAlignment {seqAlignment :: Alignment,
-                                          seqDirection :: SequenceBind
+                                          seqBind      :: SequenceBind
                                          }
   deriving (Eq, Ord, Show, Generic)
 instance NFData SeqBindAlignment
