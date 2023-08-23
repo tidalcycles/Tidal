@@ -8,7 +8,7 @@ import           Sound.Tidal.Compose         as T
 import           Sound.Tidal.Event           as T
 import           Sound.Tidal.InstanceHacks   as T
 import           Sound.Tidal.Mininotation    as T
--- import           Sound.Tidal.Params          as T
+import           Sound.Tidal.Params          as T
 import           Sound.Tidal.Pattern         as T
 import           Sound.Tidal.Sequence        as T
 import           Sound.Tidal.Show            as T
