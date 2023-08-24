@@ -5,6 +5,7 @@
 
 module Sound.Tidal.Compose where
 
+import           Control.Applicative (liftA2)
 import qualified Data.Map.Strict     as Map
 import           Sound.Tidal.Pattern (flexBind)
 import           Sound.Tidal.Types
