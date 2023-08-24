@@ -41,24 +41,38 @@ instance forall a t. Applicative t => Applicable t (t a) (a) where toA = id
 
 -- | A type class for patterns
 class (Functor p, Applicative p, Monad p) => Pattern p where
-  {-# MINIMAL (innerBind | innerJoin),
+  {-# MINIMAL (mixBind | mixJoin),
+              (innerBind | innerJoin),
               (outerBind | outerJoin),
               (squeezeBind | squeezeJoin),
+              (squeezeOutBind | squeezeOutJoin),
               patBind, patAlign,
+              out, mix, trig, trig0, squeeze, squeezeOut,
               duration, withTime, cat, timeCat, stack, _early, rev, toSignal,
               withMetadata, silence, _zoomSpan
     #-}
   duration :: p a -> Time
   withTime :: (Time -> Time) -> (Time -> Time) -> p a -> p a
-  innerBind, outerBind, squeezeBind :: p a -> (a -> p b) -> p b
+  mixBind, innerBind, outerBind, squeezeBind, squeezeOutBind :: p a -> (a -> p b) -> p b
+  mixBind pat f = mixJoin $ fmap f pat
   innerBind pat f = innerJoin $ fmap f pat
   outerBind pat f = outerJoin $ fmap f pat
   squeezeBind pat f = squeezeJoin $ fmap f pat
+  squeezeOutBind pat f = squeezeOutJoin $ fmap f pat
 
-  innerJoin, outerJoin, squeezeJoin :: p (p a) -> p a
+  mixJoin, innerJoin, outerJoin, squeezeJoin, squeezeOutJoin :: p (p a) -> p a
+  mixJoin pat = innerBind pat id
   innerJoin pat = innerBind pat id
   outerJoin pat = outerBind pat id
   squeezeJoin pat = squeezeBind pat id
+  squeezeOutJoin pat = squeezeOutBind pat id
+
+  out :: p a -> p a
+  mix :: p a -> p a
+  trig :: p a -> p a
+  trig0 :: p a -> p a
+  squeeze :: p a -> p a
+  squeezeOut :: p a -> p a
 
   patBind :: p a -> p b -> (b -> p c) -> p c
   patAlign :: p a -> p b -> (p a, p b)
@@ -291,8 +305,9 @@ data SignalBind = SigIn
                 | SigMix
                 -- Signals allow some alignment at bind time
                 | SigSqueeze
+                | SigSqueezeOut
                 | SigTrig
-                | SigTrigzero
+                | SigTrig0
   deriving (Eq, Ord, Show, Generic)
 instance NFData SignalBind
 

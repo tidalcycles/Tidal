@@ -5,7 +5,8 @@
 
 module Sound.Tidal.Compose where
 
-import qualified Data.Map.Strict   as Map
+import qualified Data.Map.Strict     as Map
+import           Sound.Tidal.Pattern (flexBind)
 import           Sound.Tidal.Types
 
 -- ************************************************************ --
@@ -22,6 +23,8 @@ instance Unionable a where
 instance {-# OVERLAPPING #-} Unionable ValueMap where
   union = Map.union
 
+liftP2 :: Pattern p => (a -> b -> c) -> (p a -> p b -> p c)
+liftP2 op apat bpat = apat `flexBind` \a -> op a <$> bpat
+
 (#) :: (Pattern p, Unionable a) => p a -> p a -> p a
-(#) apat bpat = apat `bind` \a -> bpat `bind` \b -> return (union b a)
-  where bind = patBind apat
+(#) = liftP2 union

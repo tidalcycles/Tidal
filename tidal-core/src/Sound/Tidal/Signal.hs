@@ -14,13 +14,15 @@ import           Sound.Tidal.Time
 import           Sound.Tidal.Types
 
 instance Monad Signal where
-  (>>=) = sigBindWith $ liftA2 sect
+  -- (>>=) a b = (getSigBind a) a b
+  (>>=) = mixBind
   return = pure
 
 -- Define applicative from monad
 instance Applicative Signal where
   pure v = Signal mempty $ \state -> map (\span -> Event mempty (Just $ timeToCycle $ aBegin span) span v) $ splitSpans $ sSpan state
-  pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
+--   pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
+  pf <*> px = pf >>= (<$> px)
 
 instance Pattern Signal where
   -- We always work with signals as if they have a duration of 1
@@ -28,9 +30,17 @@ instance Pattern Signal where
   duration _ = 1
   withTime fa fb pat = withEventTime fa $ withQueryTime fb pat
   -- | Alternative binds/joins
-  innerBind = sigBindWith $ flip const
-  outerBind = sigBindWith const
+  mixBind = sigBindWith $ liftA2 sect
+  innerBind = sigBindWith const
+  outerBind = sigBindWith $ flip const
   squeezeJoin = sigSqueezeJoin
+
+  out = setSigBind SigOut
+  mix = setSigBind SigMix
+  trig = setSigBind SigTrig
+  trig0 = setSigBind SigTrig0
+  squeeze = setSigBind SigSqueeze
+  squeezeOut = setSigBind SigSqueezeOut
 
   patBind = getSigBind
   -- Signals are always aligned cycle-by-cycle
@@ -63,15 +73,19 @@ instance Pattern Signal where
 
 getSigBind :: Signal a -> Signal b -> (b -> Signal c) -> Signal c
 getSigBind pat = case (signalBind pat) of
-                   SigIn       -> innerBind
-                   SigOut      -> outerBind
-                   SigSqueeze  -> squeezeBind
-                   SigTrig     -> trigBind
-                   SigTrigzero -> trigzeroBind
-                   SigMix      -> (>>=)
+                   SigIn         -> innerBind
+                   SigOut        -> outerBind
+                   SigSqueeze    -> squeezeBind
+                   SigSqueezeOut -> squeezeOutBind
+                   SigTrig       -> trigBind
+                   SigTrig0      -> trig0Bind
+                   SigMix        -> mixBind
   where signalBind :: Signal a -> SignalBind
         signalBind (Signal {sigMetadata = SignalMetadata (Just bind)}) = bind
         signalBind _                                                   = SigIn
+
+setSigBind :: SignalBind -> Signal a -> Signal a
+setSigBind bind pat = pat {sigMetadata = SignalMetadata (Just bind)}
 
 -- instance Signalable (Signal a) a where toSig = id
 -- instance Signalable a a where toSig = pure
@@ -168,6 +182,12 @@ sigSqueezeJoin pp = pp {query = q}
              return (Event (iMetadata <> oMetadata) w' p' v)
 
 
+-- | Like @sigSqueezeJoin@, but outer cycles of the outer patterns are
+-- compressed to fit the timespan of the inner whole
+
+-- TODO!
+-- sigSqueezeOutJoin :: Signal (Signal a) -> Signal a
+
 -- Flatterns patterns of patterns, by retriggering/resetting inner
 -- patterns at onsets of outer pattern events
 _trigTimeJoin :: (Time -> Time) -> Signal (Signal a) -> Signal a
@@ -187,11 +207,12 @@ trigJoin = _trigTimeJoin cyclePos
 trigBind :: Signal a -> (a -> Signal b) -> Signal b
 trigBind pat f = trigJoin $ fmap f pat
 
-trigzeroJoin :: Signal (Signal a) -> Signal a
-trigzeroJoin = _trigTimeJoin id
+trig0Join :: Signal (Signal a) -> Signal a
+trig0Join = _trigTimeJoin id
 
-trigzeroBind :: Signal a -> (a -> Signal b) -> Signal b
-trigzeroBind pat f = trigzeroJoin $ fmap f pat
+trig0Bind :: Signal a -> (a -> Signal b) -> Signal b
+trig0Bind pat f = trig0Join $ fmap f pat
+
 
 {- | Plays a portion of a signal, specified by start and duration
 The new resulting signal is played over the time period of the original signal:

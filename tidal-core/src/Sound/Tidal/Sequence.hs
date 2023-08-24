@@ -23,7 +23,8 @@ instance Monad Sequence where
 
 instance Applicative Sequence where
   pure = step 1
-  pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
+  -- pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
+  pf <*> px = pf >>= (<$> px)
 
 instance Pattern Sequence where
   withTime f _ pat = withAtomTime f pat
@@ -39,6 +40,13 @@ instance Pattern Sequence where
   outerJoin = seqOuterJoin
   innerJoin = seqInnerJoin
   squeezeJoin = seqSqueezeJoin
+
+  out = setSeqBind SeqOut
+  mix = setSeqBind SeqMix
+  -- trig = setAlignment
+  -- trig0 = setAlignment
+  squeeze = setAlignment SqueezeIn
+  squeezeOut = setAlignment SqueezeOut
 
   patBind = getSeqBind
   patAlign = getSeqAlign

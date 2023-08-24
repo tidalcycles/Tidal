@@ -52,6 +52,9 @@ pf <* px = pf `innerBind` \f -> px `innerBind` \x -> pure $ f x
 pf *> px = pf `outerBind` \f -> px `outerBind` \x -> pure $ f x
 infixl 4 <*, *>
 
+flexBind :: Pattern p => p b -> (b -> p c) -> p c
+flexBind a b = (patBind a) a b
+
 -- ************************************************************ --
 -- Transformations common to Signals and Sequences
 
