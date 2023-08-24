@@ -14,8 +14,8 @@ import           Sound.Tidal.Time
 import           Sound.Tidal.Types
 
 instance Monad Signal where
-  -- (>>=) a b = (getSigBind a) a b
-  (>>=) = mixBind
+  (>>=) a b = (patBind a) a b
+  -- (>>=) = mixBind
   return = pure
 
 -- Define applicative from monad

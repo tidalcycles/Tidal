@@ -19,7 +19,8 @@ instance Functor Sequence where
 
 instance Monad Sequence where
   return = pure
-  seqv >>= f = seqJoin $ fmap f seqv
+  -- seqv >>= f = seqJoin $ fmap f seqv
+  (>>=) a b = (patBind a) a b
 
 instance Applicative Sequence where
   pure = step 1

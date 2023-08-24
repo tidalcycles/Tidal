@@ -27,4 +27,4 @@ liftP2 :: Pattern p => (a -> b -> c) -> (p a -> p b -> p c)
 liftP2 op apat bpat = apat `flexBind` \a -> op a <$> bpat
 
 (#) :: (Pattern p, Unionable a) => p a -> p a -> p a
-(#) = liftP2 union
+(#) = liftA2 union

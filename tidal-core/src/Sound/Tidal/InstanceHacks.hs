@@ -8,7 +8,7 @@ import           Control.Applicative  (Applicative (..))
 import           Prelude              hiding (Applicative (..))
 
 import qualified Data.Map.Strict      as Map
-import           Sound.Tidal.Compose  (liftP2)
+-- import           Sound.Tidal.Compose  (liftA2)
 import           Sound.Tidal.Sequence ()
 import           Sound.Tidal.Signal   ()
 import           Sound.Tidal.Types
@@ -39,15 +39,15 @@ instance Eq (Signal a) where
   (==) = noOv "(==)"
 
 instance Ord a => Ord (Signal a) where
-  min = liftP2 min
-  max = liftP2 max
+  min = liftA2 min
+  max = liftA2 max
   compare = noOv "compare"
   (<=) = noOv "(<=)"
 
 instance Num a => Num (Signal a) where
   negate      = fmap negate
-  (+)         = liftP2 (+)
-  (*)         = liftP2 (*)
+  (+)         = liftA2 (+)
+  (*)         = liftA2 (*)
   fromInteger = pure . fromInteger
   abs         = fmap abs
   signum      = fmap signum
@@ -66,10 +66,10 @@ instance (Num a, Ord a) => Real (Signal a) where
   toRational = noOv "toRational"
 
 instance (Integral a) => Integral (Signal a) where
-  quot          = liftP2 quot
-  rem           = liftP2 rem
-  div           = liftP2 div
-  mod           = liftP2 mod
+  quot          = liftA2 quot
+  rem           = liftA2 rem
+  div           = liftA2 div
+  mod           = liftA2 mod
   toInteger     = noOv "toInteger"
   x `quotRem` y = (x `quot` y, x `rem` y)
   x `divMod`  y = (x `div`  y, x `mod` y)
@@ -115,15 +115,15 @@ instance (RealFloat a) => RealFloat (Signal a) where
   isDenormalized = noOv "isDenormalized"
   isNegativeZero = noOv "isNegativeZero"
   isIEEE         = noOv "isIEEE"
-  atan2          = liftP2 atan2
+  atan2          = liftA2 atan2
 
 -- ************************************************************ --
 -- Sequences as numbers
 
 instance Num a => Num (Sequence a) where
   negate      = fmap negate
-  (+)         = liftP2 (+)
-  (*)         = liftP2 (*)
+  (+)         = liftA2 (+)
+  (*)         = liftA2 (*)
   fromInteger = pure . fromInteger
   abs         = fmap abs
   signum      = fmap signum
@@ -142,10 +142,10 @@ instance (Num a, Ord a) => Real (Sequence a) where
   toRational = noOv "toRational"
 
 instance (Integral a) => Integral (Sequence a) where
-  quot          = liftP2 quot
-  rem           = liftP2 rem
-  div           = liftP2 div
-  mod           = liftP2 mod
+  quot          = liftA2 quot
+  rem           = liftA2 rem
+  div           = liftA2 div
+  mod           = liftA2 mod
   toInteger     = noOv "toInteger"
   x `quotRem` y = (x `quot` y, x `rem` y)
   x `divMod`  y = (x `div`  y, x `mod` y)
@@ -191,5 +191,5 @@ instance (RealFloat a) => RealFloat (Sequence a) where
   isDenormalized = noOv "isDenormalized"
   isNegativeZero = noOv "isNegativeZero"
   isIEEE         = noOv "isIEEE"
-  atan2          = liftP2 atan2
+  atan2          = liftA2 atan2
 
