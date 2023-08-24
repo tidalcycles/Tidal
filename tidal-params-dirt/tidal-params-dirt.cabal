@@ -1,10 +1,10 @@
 cabal-version:      3.0
-name:               tidal-stream
+name:               tidal-params-dirt
 
 version:            2.0.0.0
 
 -- A short (one-line) description of the package.
-synopsis: Scheduler and OSC transport for TidalCycles
+synopsis: A collection of Tidal parameter definitions for SuperDirt and similar OSC endpoints
 
 -- description:
 
@@ -23,7 +23,7 @@ author:             Alex McLean
 -- An email address to which users can send suggestions, bug reports, and patches.
 maintainer:         alex@slab.org
 
-copyright: (c) Alex McLean, Pierre Krafft and contributors
+copyright: (c) Alex McLean
 category:           Sound
 build-type:         Simple
 
@@ -41,12 +41,7 @@ library
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules:  Sound.Tidal.Boot
-                      Sound.Tidal.Config
-                      Sound.Tidal.ID
-                      Sound.Tidal.Stream
-                      Sound.Tidal.StreamTypes
-                      Sound.Tidal.Tempo
+    exposed-modules:  Sound.Tidal.Params.Dirt
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -54,12 +49,6 @@ library
     -- Other library packages from which modules are imported.
     build-depends:    base
                     , tidal-core
-                    , tidal-params-dirt
-                    , tidal-link
-                    , random
-                    , hosc
-                    , containers
-                    , network
 
     -- Directories containing source files.
     hs-source-dirs:   src

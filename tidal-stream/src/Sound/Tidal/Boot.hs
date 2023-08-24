@@ -52,6 +52,7 @@ module Sound.Tidal.Boot
   , setR
   , setB
   , module Sound.Tidal
+  , module Sound.Tidal.Params.Dirt
   )
 where
 
@@ -73,12 +74,13 @@ where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Prelude            hiding (all, (*>), (<*))
+import           Prelude                 hiding (all, (*>), (<*))
 import           Sound.Tidal
 import           Sound.Tidal.Config
-import           Sound.Tidal.ID     (ID)
-import           Sound.Tidal.Stream hiding (mute, solo)
-import           System.IO          (hSetEncoding, stdout, utf8)
+import           Sound.Tidal.ID          (ID)
+import           Sound.Tidal.Params.Dirt
+import           Sound.Tidal.Stream      hiding (mute, solo)
+import           System.IO               (hSetEncoding, stdout, utf8)
 
 -- | Functions using this constraint can access the in-scope Tidal instance.
 -- You must implement an instance of this in 'BootTidal.hs'. Note that GHC
