@@ -156,14 +156,18 @@ chordTable = [("major", major),
               ("6by9", sixNine),
               ("major7", major7),
               ("maj7", major7),
+              ("M7", major7),
               ("major9", major9),
               ("maj9", major9),
+              ("M9", major9),
               ("add9", add9),
               ("major11", major11),
               ("maj11", major11),
+              ("M11", major11),
               ("add11", add11),
               ("major13", major13),
               ("maj13", major13),
+              ("M13", major13),
               ("add13", add13),
               ("dom7", dom7),
               ("dom9", dom9),
@@ -289,7 +293,7 @@ instance Show Modifier where
   show Open      = "Open"
 
 applyModifier :: (Enum a, Num a) => Modifier -> [a] -> [a]
-applyModifier (Range i) ds = take i $ concatMap (\x -> map (+ x) ds) [0,12 ..]
+applyModifier (Range i) ds = take i $ concatMap (\x -> map (+ x) ds) [0,12..]
 applyModifier Invert [] = []
 applyModifier Invert (d:ds) = ds ++ [d+12]
 applyModifier Open ds = if length ds > 2 then

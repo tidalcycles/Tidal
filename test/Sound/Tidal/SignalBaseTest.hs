@@ -2,13 +2,16 @@
 
 module Sound.Tidal.SignalBaseTest where
 
-import           Test.Microspec
-import           TestUtils
+import           Test.Microspec              (MTestable (describe), Microspec,
+                                              Testable (property), it, shouldBe,
+                                              (===))
+import           TestUtils                   (compareP, comparePD,
+                                              stripMetadata, toEvent)
 
 import           Prelude                     hiding ((*>), (<*))
 
 import           Data.List                   (sort)
-import           Data.Ratio
+import           Data.Ratio                  ((%))
 
 import           Sound.Tidal.Compose         (struct, (|+), (|=|))
 import           Sound.Tidal.Params          (n, s)

@@ -16,4 +16,4 @@ euclidB =
     columns 
     func "euclid" (euclid (head ecA1) (head $ drop 1 ecA1)) ecA2
     func "euclidFull" (euclidFull (head ecA1) (head $ drop 1 ecA1) ecA2) ecA2
-    func "euclidBool" (_euclidBool 1) 100000
+    func "euclidBool" (_euclidBool 1 :: Int -> Signal Bool) 100000

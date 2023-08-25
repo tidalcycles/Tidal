@@ -2,15 +2,24 @@
 
 module Sound.Tidal.SequenceTest where
 
-import           Test.Microspec
-import           TestUtils
+import           Test.Microspec          (MTestable (describe), Microspec,
+                                          Property, it, shouldBe)
+import           TestUtils               (stripSequenceMetadata)
 
 import           Prelude                 hiding ((*>), (<*))
 
-import           Sound.Tidal.Pattern
 import           Sound.Tidal.Sequence
 import           Sound.Tidal.Signal.Base (queryArc)
-import           Sound.Tidal.Types
+import           Sound.Tidal.Types       (ArcF (Arc), Direction (In, Out),
+                                          Event (Event), Metadata (Metadata),
+                                          Sequence (Atom, Cat), Signal,
+                                          Strategy (Centre, Expand), Time)
+
+shouldMatch :: (Eq a, Show a) => Sequence a -> Sequence a -> Property
+shouldMatch seq1 seq2 = shouldBe (stripSequenceMetadata seq1) (stripSequenceMetadata seq2)
+
+tAtom :: Time -> Time -> Time -> Maybe a -> Sequence a
+tAtom = Atom mempty
 
 a :: Time -> Time -> Time -> Maybe a -> Sequence a
 a = Atom mempty
