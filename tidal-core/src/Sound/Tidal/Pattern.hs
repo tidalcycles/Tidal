@@ -15,6 +15,9 @@ import           Sound.Tidal.Types
 -- lowercase p = a patterned parameter to be preserved, but aligned
 -- with other parameters
 
+alignify :: Pattern p => (p a -> p b -> c) -> (p a -> p b -> c)
+alignify f = \apat bpat -> uncurry f (patAlign apat bpat)
+
 patternify_P :: Pattern p => (a -> p b) -> (p a -> p b)
 patternify_P f apat = apat `bind` f
   where bind = patBind apat
@@ -24,8 +27,7 @@ patternify_P_n f apat b = apat `bind` \a -> f a b
   where bind = patBind apat
 
 patternify_P_p :: Pattern p => (a -> p b -> p c) -> (p a -> p b -> p c)
-patternify_P_p f apat bpat = patternify_P_n f apat' bpat'
-  where (apat', bpat') = patAlign apat bpat
+patternify_P_p = alignify . patternify_P_n
 
 patternify_P_n_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> b -> c -> p d)
 patternify_P_n_n f apat b c = apat `bind` \a -> f a b c
@@ -36,16 +38,16 @@ patternify_P_n_n_n f apat b c d = apat `bind` \a -> f a b c d
   where bind = patBind apat
 
 patternify_P_P :: Pattern p => (a -> b -> p c) -> (p a -> p b -> p c)
-patternify_P_P f = patternify_P_n $ patternify_P <$> f
+patternify_P_P f = alignify $ patternify_P_n $ patternify_P <$> f
 
 patternify_P_P_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> p b -> c -> p d)
-patternify_P_P_n f = patternify_P_n_n $ patternify_P_n <$> f
+patternify_P_P_n f = alignify $ patternify_P_n_n $ patternify_P_n <$> f
 
 patternify_P_P_P :: Pattern p => (a -> b -> c -> p d) -> (p a -> p b -> p c -> p d)
-patternify_P_P_P f  = patternify_P_n_n $ patternify_P_P <$> f
+patternify_P_P_P f  = alignify $ patternify_P_n_n $ patternify_P_P <$> f
 
 patternify_P_P_P_n :: Pattern p => (a -> b -> c -> d -> p e) -> p a -> p b -> p c -> d -> p e
-patternify_P_P_P_n f  = patternify_P_n_n_n $ patternify_P_P_n <$> f
+patternify_P_P_P_n f  = alignify $ patternify_P_n_n_n $ patternify_P_P_n <$> f
 
 (<*), (*>) :: Pattern p => p (t -> b) -> p t -> p b
 pf <* px = pf `innerBind` \f -> px `innerBind` \x -> pure $ f x

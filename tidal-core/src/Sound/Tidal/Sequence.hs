@@ -15,7 +15,7 @@ instance Functor Sequence where
   fmap f (Atom m d i o v)  = Atom m d i o (f <$> v)
   fmap f (Cat xs)          = Cat $ map (fmap f) xs
   fmap f (Stack xs)        = Stack $ map (fmap f) xs
-  fmap f (SeqMetadata _ x) = fmap f x
+  fmap f (SeqMetadata m x) = SeqMetadata m $ fmap f x
 
 instance Monad Sequence where
   return = pure
@@ -25,7 +25,8 @@ instance Monad Sequence where
 instance Applicative Sequence where
   pure = step 1
   -- pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
-  pf <*> px = pf >>= (<$> px)
+  pf <*> px = pf' >>= (<$> px')
+    where (pf', px') = patAlign pf px
 
 instance Pattern Sequence where
   withTime f _ pat = withAtomTime f pat
@@ -218,7 +219,9 @@ getSeqBind pat = case (seqBind $ bindAlignment pat) of
                    SeqMix -> (>>=)
 
 getSeqAlign :: Sequence a -> Sequence b -> (Sequence a, Sequence b)
-getSeqAlign a b = align (seqAlignment $ bindAlignment a) a b
+-- HACK - preserves the bind
+getSeqAlign a b = (setSeqBind (seqBind $ bindAlignment a) a', b')
+  where (a', b') = align (seqAlignment $ bindAlignment a) a b
 
 setBindAlignment :: SeqBindAlignment -> Sequence a -> Sequence a
 setBindAlignment strat (SeqMetadata _ pat) = SeqMetadata strat pat
@@ -231,22 +234,19 @@ setAlignment strat pat
 setSeqBind :: SequenceBind -> Sequence a -> Sequence a
 setSeqBind bind pat = setBindAlignment ((bindAlignment pat) {seqBind = bind}) pat
 
--- setDirection :: Alignment x => Direction -> x a -> SeqAlignment a
--- setDirection dir a = (toSeqAlignment a) {sDirection = dir}
-
--- justifyleft, justifyright, justifyboth, expand, truncateleft, truncateright, truncaterepeat, rep, centre, squeezein, squeezeout :: Alignment x => x a -> SeqAlignment a
--- justifyleft    = setAlignment JustifyLeft
--- justifyright   = setAlignment JustifyRight
--- justifyboth    = setAlignment JustifyBoth
--- expand         = setAlignment Expand
--- truncateleft   = setAlignment TruncateLeft
--- truncateright  = setAlignment TruncateRight
--- truncaterepeat = setAlignment TruncateRepeat
--- -- repeat is already taken by prelude
--- rep            = setAlignment Repeat
--- centre         = setAlignment Centre
--- squeezein      = setAlignment SqueezeIn
--- squeezeout     = setAlignment SqueezeOut
+justifyleft, justifyright, justifyboth, expand, truncateleft, truncateright, truncaterepeat, rep, centre, squeezein, squeezeout :: Sequence a -> Sequence a
+justifyleft    = setAlignment JustifyLeft
+justifyright   = setAlignment JustifyRight
+justifyboth    = setAlignment JustifyBoth
+expand         = setAlignment Expand
+truncateleft   = setAlignment TruncateLeft
+truncateright  = setAlignment TruncateRight
+truncaterepeat = setAlignment TruncateRepeat
+-- repeat is already taken by prelude
+rep            = setAlignment Repeat
+centre         = setAlignment Centre
+squeezein      = setAlignment SqueezeIn
+squeezeout     = setAlignment SqueezeOut
 
 seqPadBy :: ([Sequence a] -> Sequence a -> [Sequence a]) -> Time -> Sequence a -> Sequence a
 seqPadBy by t x = f x
