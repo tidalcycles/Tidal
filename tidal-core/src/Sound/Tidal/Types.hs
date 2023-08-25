@@ -47,7 +47,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
               (squeezeBind | squeezeJoin),
               (squeezeOutBind | squeezeOutJoin),
               patBind, patAlign,
-              out, mix, trig, trig0, squeeze, squeezeOut,
+              inner, outer, mix, trig, trig0, squeeze, squeezeOut,
               duration, withTime, cat, timeCat, stack, _early, rev, toSignal,
               withMetadata, silence, _zoomSpan
     #-}
@@ -67,7 +67,8 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   squeezeJoin pat = squeezeBind pat id
   squeezeOutJoin pat = squeezeOutBind pat id
 
-  out :: p a -> p a
+  inner :: p a -> p a
+  outer :: p a -> p a
   mix :: p a -> p a
   trig :: p a -> p a
   trig0 :: p a -> p a

@@ -35,7 +35,8 @@ instance Pattern Signal where
   outerBind = sigBindWith $ flip const
   squeezeJoin = sigSqueezeJoin
 
-  out = setSigBind SigOut
+  inner = setSigBind SigIn
+  outer = setSigBind SigOut
   mix = setSigBind SigMix
   trig = setSigBind SigTrig
   trig0 = setSigBind SigTrig0
