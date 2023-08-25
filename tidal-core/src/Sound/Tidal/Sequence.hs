@@ -42,7 +42,8 @@ instance Pattern Sequence where
   innerJoin = seqInnerJoin
   squeezeJoin = seqSqueezeJoin
 
-  out = setSeqBind SeqOut
+  inner = setSeqBind SeqIn
+  outer = setSeqBind SeqOut
   mix = setSeqBind SeqMix
   -- trig = setAlignment
   -- trig0 = setAlignment
