@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="600pt" height="40pt" viewBox="0 0 600 40" version="1.1" shape-rendering="crispEdges">
+<g id="surface1">
+<rect x="0" y="0" width="600" height="40" style="fill:rgb(0%,0%,0%);fill-opacity:1;stroke:none;"/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,100%);fill-opacity:1;" d="M 0 0 L 37.5 0 L 37.5 40 L 0 40 Z M 0 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,50.196078%,0%);fill-opacity:1;" d="M 37.5 0 L 75 0 L 75 40 L 37.5 40 Z M 37.5 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(50.196078%,0%,50.196078%);fill-opacity:1;" d="M 75 0 L 112.5 0 L 112.5 40 L 75 40 Z M 75 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(100%,64.705882%,0%);fill-opacity:1;" d="M 112.5 0 L 150 0 L 150 40 L 112.5 40 Z M 112.5 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,50.196078%,0%);fill-opacity:1;" d="M 150 0 L 187.5 0 L 187.5 40 L 150 40 Z M 150 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(50.196078%,0%,50.196078%);fill-opacity:1;" d="M 187.5 0 L 225 0 L 225 40 L 187.5 40 Z M 187.5 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(100%,64.705882%,0%);fill-opacity:1;" d="M 225 0 L 262.5 0 L 262.5 40 L 225 40 Z M 225 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,100%);fill-opacity:1;" d="M 262.5 0 L 300 0 L 300 40 L 262.5 40 Z M 262.5 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(50.196078%,0%,50.196078%);fill-opacity:1;" d="M 300 0 L 337.5 0 L 337.5 40 L 300 40 Z M 300 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(100%,64.705882%,0%);fill-opacity:1;" d="M 337.5 0 L 375 0 L 375 40 L 337.5 40 Z M 337.5 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,100%);fill-opacity:1;" d="M 375 0 L 412.5 0 L 412.5 40 L 375 40 Z M 375 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,50.196078%,0%);fill-opacity:1;" d="M 412.5 0 L 450 0 L 450 40 L 412.5 40 Z M 412.5 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(100%,64.705882%,0%);fill-opacity:1;" d="M 450 0 L 487.5 0 L 487.5 40 L 450 40 Z M 450 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,100%);fill-opacity:1;" d="M 487.5 0 L 525 0 L 525 40 L 487.5 40 Z M 487.5 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,50.196078%,0%);fill-opacity:1;" d="M 525 0 L 562.5 0 L 562.5 40 L 525 40 Z M 525 0 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(50.196078%,0%,50.196078%);fill-opacity:1;" d="M 562.5 0 L 600 0 L 600 40 L 562.5 40 Z M 562.5 0 "/>
+</g>
+</svg>
