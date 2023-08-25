@@ -18,5 +18,5 @@ euclidB =
   [ bgroup "euclid" [
       bench "euclid" $ whnf (euclid (head ecA1) (head $ drop 1 ecA1)) ecA2 
     , bench "euclidFull" $ whnf (euclidFull (head ecA1) (head $ drop 1 ecA1) ecA2) ecA2
-   , bench "euclidBool" $ whnf (_euclidBool 1) 100000]
+   , bench "euclidBool" $ whnf (_euclidBool 1 :: Int -> Signal Bool) 100000]
   ]

@@ -3,7 +3,6 @@
 module Tidal.Inputs where
 
 import Sound.Tidal.Context hiding (Live)
-import Sound.Tidal.Signal.Compose ((#), (|*|))
 import Weigh
 
 columns :: Weigh ()
