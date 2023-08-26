@@ -58,6 +58,7 @@ library
                       Sound.Tidal.Signal.Input
                       Sound.Tidal.Signal.Random
                       Sound.Tidal.Signal.Waveform
+                      Sound.Tidal.TestUtils
                       Sound.Tidal.Time
                       Sound.Tidal.Span
                       Sound.Tidal.Types
@@ -74,6 +75,7 @@ library
                     , containers
                     , colour
                     , parsec
+                    , microspec
                     
 
     -- Directories containing source files.
@@ -90,10 +92,8 @@ test-suite tidal-core-test
     hs-source-dirs:   test
     main-is:          Test.hs
     other-modules:
-        TestUtils
         Sound.Tidal.ChordsTest
         Sound.Tidal.EventTest
-        Sound.Tidal.ParamsTest
         Sound.Tidal.SpanTest
     build-depends:
         base

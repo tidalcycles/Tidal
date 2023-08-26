@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module TestUtils where
+module Sound.Tidal.TestUtils where
 
 import           Data.List       (sort)
 import qualified Data.Map.Strict as Map
