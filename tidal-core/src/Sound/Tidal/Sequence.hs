@@ -24,7 +24,7 @@ instance Monad Sequence where
 instance Applicative Sequence where
   pure = step 1
   -- pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
-  pf <*> px = pf' >>= (<$> px')
+  pf <*> px = pf >>= (<$> px)
     where (pf', px') = patAlign pf px
 
 instance Pattern Sequence where
