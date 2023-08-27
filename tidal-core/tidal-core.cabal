@@ -94,6 +94,8 @@ test-suite tidal-core-test
     other-modules:
         Sound.Tidal.ChordsTest
         Sound.Tidal.EventTest
+        Sound.Tidal.ExceptionsTest
+        Sound.Tidal.MininotationTest
         Sound.Tidal.SpanTest
     build-depends:
         base
