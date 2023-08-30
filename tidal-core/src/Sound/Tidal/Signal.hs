@@ -35,6 +35,8 @@ instance Pattern Signal where
   outerBind = sigBindWith $ flip const
   squeezeJoin = sigSqueezeJoin
 
+  filterValues f = filterEvents (f . value)
+
   inner = setSigBind SigIn
   outer = setSigBind SigOut
   mix = setSigBind SigMix
@@ -104,12 +106,6 @@ splitQueries pat =
 
 filterEvents :: (Event a -> Bool) -> Signal a -> Signal a
 filterEvents f pat = Signal mempty $ \state -> filter f $ query pat state
-
-filterValues :: (a -> Bool) -> Signal a -> Signal a
-filterValues f = filterEvents (f . value)
-
-filterJusts :: Signal (Maybe a) -> Signal a
-filterJusts = fmap fromJust . filterValues isJust
 
 discreteOnly :: Signal a -> Signal a
 discreteOnly = filterEvents $ isJust . whole
@@ -181,7 +177,6 @@ sigSqueezeJoin pp = pp {query = q}
           do w' <- maybeSect <$> oWhole <*> iWhole
              p' <- maybeSect oPart iPart
              return (Event (iMetadata <> oMetadata) w' p' v)
-
 
 -- | Like @sigSqueezeJoin@, but outer cycles of the outer patterns are
 -- compressed to fit the timespan of the inner whole
@@ -337,3 +332,13 @@ _collectBy f = withEvents (_collectEventsBy f)
 -- list. See also 'uncollect' defined in the Pattern module.
 collect :: Eq a => Signal a -> Signal [a]
 collect = _collectBy _sameDur
+
+
+-- | Repeats the first cycle forever
+loopFirst :: Signal a -> Signal a
+loopFirst pat = trig0Join $ pure pat
+
+-- | Repeats the first given number of cycles forever. Previously known as `timeLoop`.
+loopCycles :: Signal Time -> Signal a -> Signal a
+loopCycles n = outside n loopFirst
+

@@ -3,6 +3,9 @@
 
 module Sound.Tidal.Pattern where
 
+import qualified Data.Bits
+import           Data.Char         (ord)
+import           Data.Maybe        (fromJust, isJust)
 import           Data.Ratio
 import           Prelude           hiding ((*>), (<*))
 import           Sound.Tidal.Types
@@ -56,6 +59,9 @@ infixl 4 <*, *>
 
 flexBind :: Pattern p => p b -> (b -> p c) -> p c
 flexBind a b = (patBind a) a b
+
+filterJusts :: Pattern p => p (Maybe a) -> p a
+filterJusts = fmap fromJust . filterValues isJust
 
 -- ************************************************************ --
 -- Transformations common to Signals and Sequences
@@ -310,6 +316,34 @@ _scan n = slowcat $ map _run [1 .. n]
 -- gets up to @n@
 scan :: (Pattern p, Enum a, Num a) => p a -> p a
 scan = (>>= _run)
+
+__binary :: Data.Bits.Bits b => Int -> b -> [Bool]
+__binary n num = map (Data.Bits.testBit num) $ reverse [0 .. n-1]
+
+_binary :: (Pattern p, Data.Bits.Bits b) => Int -> b -> p Bool
+_binary n num = fastFromList $ __binary n num
+
+_binaryN :: Pattern p => Int -> p Int -> p Bool
+_binaryN n p = squeezeJoin $ _binary n <$> p
+
+binaryN :: Pattern p => p Int -> p Int -> p Bool
+binaryN n p = patternify_P_n _binaryN n p
+
+binary :: Pattern p => p Int -> p Bool
+binary = binaryN (pure 8)
+
+ascii :: Pattern p => p String -> p Bool
+ascii p = squeezeJoin $ fastFromList . concatMap (__binary 8 . ord) <$> p
+
+-- | For specifying a boolean pattern according to a list of offsets
+-- (aka inter-onset intervals).  For example `necklace 12 [4,2]` is
+-- the same as "t f f f t f t f f f t f". That is, 12 steps per cycle,
+-- with true values alternating between every 4 and every 2 steps.
+necklace :: Pattern p => Rational -> [Int] -> p Bool
+necklace perCycle xs = _slow (toRational (sum xs) / perCycle) $ fastFromList $ list xs
+  where list :: [Int] -> [Bool]
+        list []      = []
+        list (x:xs') = (True : replicate (x-1) False) ++ list xs'
 
 -- ************************************************************ --
 -- Metadata utils

@@ -203,6 +203,26 @@ withAtom f (SeqMetadata _ x) = withAtom f x
 withAtomTime :: (Time -> Time) -> Sequence a -> Sequence a
 withAtomTime f = withAtom $ \m d i o v -> Atom m (f d) (f i) (f o) v
 
+-- One beat per cycle
+seqToSignal :: Sequence a -> Signal a
+seqToSignal seq = _slow (duration seq) $ seqToSignal' seq
+
+-- One sequence per cycle
+seqToSignal' :: Sequence a -> Signal a
+seqToSignal' (Atom m d i o (Just v)) | d == 0 = error "whoops"
+                                     | otherwise = setMetadata m $ _zoomSpan (Span (i/t) (1-(o/t))) $ pure v
+  where t = d + i + o
+seqToSignal' (Atom _ _ _ _ Nothing) = silence
+seqToSignal' (Cat xs) = timeCat timeseqs
+  where timeseqs = map (\x -> (duration x, seqToSignal' x)) xs
+seqToSignal' (Stack xs) = stack $ map seqToSignal' xs
+
+toCycle :: Rational -> Sequence a -> Signal a
+toCycle beats seq = _fast beats $ seqToSignal seq
+
+beatMode :: Rational -> Sequence a -> Signal a
+beatMode = toCycle
+
 -- **********************
 -- | Sequence alignment *
 -- **********************
