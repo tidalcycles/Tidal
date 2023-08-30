@@ -35,3 +35,11 @@ readMaybe :: (Read a) => String -> Maybe a
 readMaybe s = case [x | (x,t) <- reads s, ("","") <- lex t] of
                    [x] -> Just x
                    _   -> Nothing
+
+{- | enumerate a list of things
+
+>>> enumerate ["foo","bar","baz"]
+[(1,"foo"), (2,"bar"), (3,"baz")]
+-}
+enumerate :: [a] -> [(Int, a)]
+enumerate = zip [0..]

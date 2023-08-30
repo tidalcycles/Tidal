@@ -52,13 +52,13 @@ library
                       Sound.Tidal.Mininotation
                       Sound.Tidal.Params
                       Sound.Tidal.Pattern
+                      Sound.Tidal.Scales
                       Sound.Tidal.Sequence
                       Sound.Tidal.Show
                       Sound.Tidal.Signal
                       Sound.Tidal.Signal.Input
                       Sound.Tidal.Signal.Random
                       Sound.Tidal.Signal.Waveform
-                      Sound.Tidal.TestUtils
                       Sound.Tidal.Time
                       Sound.Tidal.Span
                       Sound.Tidal.Types
@@ -75,7 +75,6 @@ library
                     , containers
                     , colour
                     , parsec
-                    , microspec
                     
 
     -- Directories containing source files.
@@ -92,15 +91,21 @@ test-suite tidal-core-test
     hs-source-dirs:   test
     main-is:          Test.hs
     other-modules:
+        Sound.Tidal.TestUtils
+        Sound.Tidal.BjorklundTest
         Sound.Tidal.ChordsTest
         Sound.Tidal.EventTest
         Sound.Tidal.ExceptionsTest
         Sound.Tidal.MininotationTest
-        Sound.Tidal.SpanTest
+        Sound.Tidal.PatternTest
+        Sound.Tidal.ScalesTest
+        Sound.Tidal.SequenceTest
+        Sound.Tidal.SignalTest
     build-depends:
         base
       , tidal-core
-      , microspec >= 0.2.0.1
+      -- , tidal-params-dirt
+      , microspec
       , parsec
       , deepseq
       , containers

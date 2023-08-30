@@ -8,8 +8,7 @@ import           Sound.Tidal.ExceptionsTest (anyException, shouldThrow)
 import           Sound.Tidal.TestUtils
 import           Test.Microspec
 -- import           Sound.Tidal.ParseBP
-import           Sound.Tidal                (_degradeBy, cat, fast, fastcat,
-                                             silence, slow, stack, timeCat)
+import           Sound.Tidal                (_degradeBy, fast, fastcat, slow)
 import           Sound.Tidal.Types
 
 run :: Microspec ()

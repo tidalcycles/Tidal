@@ -11,6 +11,7 @@ import qualified Data.Map.Strict      as Map
 -- import           Sound.Tidal.Compose  (liftA2)
 import           Sound.Tidal.Sequence ()
 import           Sound.Tidal.Signal   ()
+import           Sound.Tidal.Span     (withSpanTime)
 import           Sound.Tidal.Types
 import           Sound.Tidal.Value
 

@@ -63,19 +63,19 @@ bjorklundOff :: (Int, Int, Int) -> [Bool]
 bjorklundOff (i,j,k) = take j $ drop (k `mod` j) $ cycle $ bjorklundNeg (i,j)
 
 _euclid :: Pattern p => Int -> Int -> p Bool
-_euclid n k = cat $ map pure $ bjorklundNeg (n,k)
+_euclid n k = unitcat $ map pure $ bjorklundNeg (n,k)
 
 euclid :: Pattern p => p Int -> p Int -> p Bool
-euclid = patternify_P_P _euclid
+euclid a b = patternify_P_P _euclid (outer a) (outer b)
 
 _euclidTo :: Pattern p => Int -> Int -> p a -> p a
-_euclidTo n k pat = fastcat $ map (bool pat silence) $ bjorklundNeg (n,k)
+_euclidTo n k pat = unitcat $ map (bool pat silence) $ bjorklundNeg (n,k)
 
 euclidTo :: Pattern p => p Int -> p Int -> p a -> p a
 euclidTo = patternify_P_P_n _euclidTo
 
 _euclidOff :: Pattern p => Int -> Int -> Int -> p Bool
-_euclidOff i j k = cat $ map pure $ bjorklundOff (i,j,k)
+_euclidOff i j k = unitcat $ map pure $ bjorklundOff (i,j,k)
 
 euclidOff :: Pattern p => p Int -> p Int -> p Int -> p Bool
 euclidOff = patternify_P_P_P _euclidOff
@@ -84,7 +84,7 @@ eoff :: Pattern p => p Int -> p Int -> p Int -> p Bool
 eoff = euclidOff
 
 _euclidOffTo :: Pattern p => Int -> Int -> Int -> p a -> p a
-_euclidOffTo i j k pat = fastcat $ map (bool pat silence) $ bjorklundOff (i,j,k)
+_euclidOffTo i j k pat = unitcat $ map (bool pat silence) $ bjorklundOff (i,j,k)
 
 euclidOffTo :: Pattern p => p Int -> p Int -> p Int -> p a -> p a
 euclidOffTo = patternify_P_P_P_n _euclidOffTo

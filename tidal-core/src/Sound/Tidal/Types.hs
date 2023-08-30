@@ -79,6 +79,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   patAlign :: p a -> p b -> (p a, p b)
 
   cat :: [p a] -> p a
+  unitcat :: [p a] -> p a
   timeCat :: [(Time, p a)] -> p a
   stack :: [p a] -> p a
   _early :: Time -> p a -> p a

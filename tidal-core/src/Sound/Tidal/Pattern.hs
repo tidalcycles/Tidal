@@ -345,6 +345,48 @@ necklace perCycle xs = _slow (toRational (sum xs) / perCycle) $ fastFromList $ l
         list []      = []
         list (x:xs') = (True : replicate (x-1) False) ++ list xs'
 
+
+{-|
+  Treats the given signal @p@ as having @n@ chunks, and applies the function @f@ to one of those sections per cycle.
+  Running:
+   - from left to right if chunk number is positive
+   - from right to left if chunk number is negative
+
+  @
+  d1 $ chunk 4 (fast 4) $ sound "cp sn arpy [mt lt]"
+  @
+-}
+chunk :: Pattern p => p Int -> (p b -> p b) -> p b -> p b
+chunk npat f p = innerJoin $ (\n -> _chunk n f p) <$> npat
+
+_chunk :: Pattern p => Int -> (p b -> p b) -> p b -> p b
+_chunk n f p | n == 0 = p
+             | n > 0 = when (_iterBack n $ fastcat (map pure $ True:replicate (n-1) False)) f p
+             | otherwise = when (_iter (abs n) $ fastcat (map pure $ replicate (abs n-1) False ++ [True])) f p
+
+{-
+  snowball |
+  snowball takes a function that can combine patterns (like '+'),
+  a function that transforms a pattern (like 'slow'),
+  a depth, and a starting pattern,
+  it will then transform the pattern and combine it with the last transformation until the depth is reached
+  this is like putting an effect (like a filter) in the feedback of a delay line
+  each echo is more effected
+  d1 $ note (scale "hexDorian" $ snowball (+) (slow 2 . rev) 8 "0 ~ . -1 . 5 3 4 . ~ -2") # s "gtr"
+-}
+snowball :: Pattern p => Int -> (p a -> p a -> p a) -> (p a -> p a) -> p a -> p a
+snowball depth combinationFunction f signal = cat $ take depth $ scanl combinationFunction signal $ drop 1 $ iterate f signal
+
+{- @soak@ |
+    applies a function to a signal and cats the resulting signal,
+    then continues applying the function until the depth is reached
+    this can be used to create a signal that wanders away from
+    the original signal by continually adding random numbers
+    d1 $ note (scale "hexDorian" mutateBy (+ (range -1 1 $ irand 2)) 8 $ "0 1 . 2 3 4") # s "gtr"
+-}
+soak ::  Pattern p => Int -> (p a -> p a) -> p a -> p a
+soak depth f signal = cat $ take depth $ iterate f signal
+
 -- ************************************************************ --
 -- Metadata utils
 

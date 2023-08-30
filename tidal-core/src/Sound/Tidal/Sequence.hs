@@ -25,11 +25,13 @@ instance Applicative Sequence where
   pure = step 1
   -- pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
   pf <*> px = pf >>= (<$> px)
-    where (pf', px') = patAlign pf px
+    -- where (pf', px') = patAlign pf px
 
 instance Pattern Sequence where
   withTime f _ pat = withAtomTime f pat
   cat = Cat   -- TODO - shallow cat?
+  -- maintain unit (beats)
+  unitcat = cat
   stack = expands
   -- duration of 'part', not whole
   duration (Atom _ d _ _ _)  = d
@@ -149,8 +151,8 @@ seqInnerJoin pat = seqJoinWithSpan f pat
 
 -- Flatten, changing duration of inner to fit outer
 seqOuterJoin :: Sequence (Sequence a) -> Sequence a
-seqOuterJoin pat = _fast (duration inner / duration pat) inner
-  where inner = seqInnerJoin pat
+seqOuterJoin pat = _fast (duration innerpat / duration pat) innerpat
+  where innerpat = seqInnerJoin pat
 
 -- Flatten, set duration of inner sequence to fit outer atom durations
 seqSqueezeJoin :: Sequence (Sequence a) -> Sequence a
@@ -205,7 +207,7 @@ withAtomTime f = withAtom $ \m d i o v -> Atom m (f d) (f i) (f o) v
 
 -- One beat per cycle
 seqToSignal :: Sequence a -> Signal a
-seqToSignal seq = _slow (duration seq) $ seqToSignal' seq
+seqToSignal pat = _slow (duration pat) $ seqToSignal' pat
 
 -- One sequence per cycle
 seqToSignal' :: Sequence a -> Signal a
@@ -216,9 +218,10 @@ seqToSignal' (Atom _ _ _ _ Nothing) = silence
 seqToSignal' (Cat xs) = timeCat timeseqs
   where timeseqs = map (\x -> (duration x, seqToSignal' x)) xs
 seqToSignal' (Stack xs) = stack $ map seqToSignal' xs
+seqToSignal' (SeqMetadata _ x) = seqToSignal' x
 
 toCycle :: Rational -> Sequence a -> Signal a
-toCycle beats seq = _fast beats $ seqToSignal seq
+toCycle beats pat = _fast beats $ seqToSignal pat
 
 beatMode :: Rational -> Sequence a -> Signal a
 beatMode = toCycle
