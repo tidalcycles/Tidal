@@ -178,6 +178,7 @@ genericParams = [
   ("f", "loop", "loops the sample (from `begin` to `end`) the specified number of times."),
   ("f", "lophat", ""),
   ("f", "lsnare", ""),
+  ("f", "metatune", "A pattern of numbers. Specifies whether the pitch of played samples should be tuned relative to their pitch metadata, if it exists. When set to 1, pitch metadata is applied. When set to 0, pitch metadata is ignored."),
   ("note", "n", "The note or sample number to choose for a synth or sampleset"),
   ("note", "note", "The note or pitch to play a sound or synth with"),
   ("f", "degree", ""),
