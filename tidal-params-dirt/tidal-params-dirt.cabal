@@ -56,3 +56,20 @@ library
     -- Base language which the package is written in.
     default-language: Haskell2010
 
+test-suite tidal-core-test
+--    import:           warnings
+    ghc-options: -Wall 
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Test.hs
+    -- other-modules:
+    --     TestUtils
+    build-depends:
+        base
+      , tidal-core
+      , tidal-params-dirt
+      , microspec >= 0.2.0.1
+      , parsec
+      , deepseq
+      , containers

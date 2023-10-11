@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module TestUtils where
+module Sound.Tidal.TestUtils where
 
 import           Data.List       (sort)
 import qualified Data.Map.Strict as Map
@@ -56,3 +56,8 @@ stringPat = parseBP_E
 
 toEvent :: (((Time, Time), (Time, Time)), a) -> Event a
 toEvent (((ws, we), (ps, pe)), v) = Event mempty (Just $ Span ws we) (Span ps pe) v
+
+stripSequenceMetadata :: Sequence a -> Sequence a
+stripSequenceMetadata = withAtom f
+  where f _ d i o v = Atom mempty d i o v
+        f m d i o v = Atom m d i o v

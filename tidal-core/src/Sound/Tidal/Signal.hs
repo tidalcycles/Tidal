@@ -4,14 +4,16 @@ module Sound.Tidal.Signal where
 import           Control.Applicative (Applicative (..))
 import           Prelude             hiding (Applicative (..), span)
 
-import           Data.List           ((\\))
+import           Data.List           (groupBy, sort, (\\))
 import qualified Data.Map.Strict     as Map
 import           Data.Maybe          (fromJust, fromMaybe, isJust, mapMaybe)
+import           Data.Ratio
 import           Sound.Tidal.Event
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Span
 import           Sound.Tidal.Time
 import           Sound.Tidal.Types
+import           Sound.Tidal.Utils   (enumerate)
 
 instance Monad Signal where
   (>>=) a b = (patBind a) a b
@@ -35,6 +37,8 @@ instance Pattern Signal where
   outerBind = sigBindWith $ flip const
   squeezeJoin = sigSqueezeJoin
 
+  filterValues f = filterEvents (f . value)
+
   inner = setSigBind SigIn
   outer = setSigBind SigOut
   mix = setSigBind SigMix
@@ -52,6 +56,8 @@ instance Pattern Signal where
     where pat span = pats !! mod (floor $ aBegin span) n
           offset span = sam (aBegin span) - sam (aBegin span / toRational n)
           n = length pats
+  -- squash into unit (a cycle)
+  unitcat = fastcat
   timeCat tps = stack $ map (\(s,e,p) -> _compressSpan (Span (s/total) (e/total)) p) $ arrange 0 tps
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Signal a)] -> [(Time, Time, Signal a)]
@@ -105,11 +111,8 @@ splitQueries pat =
 filterEvents :: (Event a -> Bool) -> Signal a -> Signal a
 filterEvents f pat = Signal mempty $ \state -> filter f $ query pat state
 
-filterValues :: (a -> Bool) -> Signal a -> Signal a
-filterValues f = filterEvents (f . value)
-
-filterJusts :: Signal (Maybe a) -> Signal a
-filterJusts = fmap fromJust . filterValues isJust
+filterTime :: (Time -> Bool) -> Signal a -> Signal a
+filterTime test p = p {query = filter (test . aBegin . wholeOrActive) . query p}
 
 discreteOnly :: Signal a -> Signal a
 discreteOnly = filterEvents $ isJust . whole
@@ -181,7 +184,6 @@ sigSqueezeJoin pp = pp {query = q}
           do w' <- maybeSect <$> oWhole <*> iWhole
              p' <- maybeSect oPart iPart
              return (Event (iMetadata <> oMetadata) w' p' v)
-
 
 -- | Like @sigSqueezeJoin@, but outer cycles of the outer patterns are
 -- compressed to fit the timespan of the inner whole
@@ -337,3 +339,73 @@ _collectBy f = withEvents (_collectEventsBy f)
 -- list. See also 'uncollect' defined in the Pattern module.
 collect :: Eq a => Signal a -> Signal [a]
 collect = _collectBy _sameDur
+
+
+-- | Repeats the first cycle forever
+loopFirst :: Signal a -> Signal a
+loopFirst pat = trig0Join $ pure pat
+
+-- | Repeats the first given number of cycles forever. Previously known as `timeLoop`.
+loopCycles :: Signal Time -> Signal a -> Signal a
+loopCycles n = outside n loopFirst
+
+{- | `rolled` plays each note of a chord quickly in order, as opposed to simultaneously; to give a chord a harp-like effect.
+This will played from the lowest note to the highest note of the chord
+@
+rolled $ n "c'maj'4" # s "superpiano"
+@
+
+And you can use `rolledBy` or `rolledBy'` to specify the length of the roll. The value in the passed pattern
+is the divisor of the cycle length. A negative value will play the arpeggio in reverse order.
+
+@
+rolledBy "<1 -0.5 0.25 -0.125>" $ note "c'maj9" # s "superpiano"
+@
+-}
+
+-- TODO - promote to pattern
+rolledWith :: Time -> Signal a -> Signal a
+rolledWith t = withEvents aux
+         where aux es = concatMap steppityIn (groupBy (\a b -> whole a == whole b) $ isRev t es)
+               isRev b = (\x -> if x > 0 then id else reverse ) b
+               steppityIn xs = mapMaybe (\(n, ev) -> timeguard n xs ev t) $ enumerate xs
+               timeguard _ _ ev 0  = return ev
+               timeguard n xs ev _ = shiftIt n (length xs) ev
+               shiftIt n d (Event c (Just (Span s e)) a' v) = do
+                         a'' <- maybeSect (Span newS e) a'
+                         return (Event c (Just $ Span newS e) a'' v)
+                      where newS = s + (dur * fromIntegral n)
+                            dur = (e - s) / ((1 / abs t)*fromIntegral d)
+               shiftIt _ _ ev =  return ev
+
+rolledBy :: Signal Time -> Signal a -> Signal a
+rolledBy pt = patternify_P_n rolledWith $ _segment 1 pt
+
+rolled :: Signal a -> Signal a
+rolled = rolledBy $ pure (1%4)
+
+-- | @rot n p@ rotates the values in a signal @p@ by @n@ beats to the left.
+-- Example: @d1 $ every 4 (rot 2) $ slow 2 $ sound "bd hh hh hh"@
+rot :: Ord a => Signal Int -> Signal a -> Signal a
+rot = patternify_P_n _rot
+
+-- Calculates a whole cycle, rotates it, then constrains events to the original query span
+_rot :: Ord a => Int -> Signal a -> Signal a
+_rot i pat = splitQueries $ pat {query = \st -> f st (query pat (st {sSpan = wholeCycle (sSpan st)}))}
+  where -- TODO maybe events with the same span (active+whole) should be
+        -- grouped together in the rotation?
+        f st es = constrainEvents (sSpan st) $ shiftValues $ sort $ defragActives es
+        shiftValues es | i >= 0 =
+                         zipWith (\e s -> e {value = s}) es
+                         (drop i $ cycle $ map value es)
+                       | otherwise =
+                         zipWith (\e s -> e{value = s}) es
+                         (drop (length es - abs i) $ cycle $ map value es)
+        wholeCycle (Span s _) = Span (sam s) (nextSam s)
+        constrainEvents :: Span -> [Event a] -> [Event a]
+        constrainEvents a es = mapMaybe (constrainEvent a) es
+        constrainEvent :: Span -> Event a -> Maybe (Event a)
+        constrainEvent a e =
+          do
+            p' <- maybeSect (active e) a
+            return e {active = p'}

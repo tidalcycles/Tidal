@@ -1,8 +1,9 @@
 module Sound.Tidal.Signal.Input where
 
-import qualified Data.Map.Strict    as Map
-import           Data.Maybe         (fromMaybe)
+import qualified Data.Map.Strict     as Map
+import           Data.Maybe          (fromMaybe)
 
+import           Sound.Tidal.Pattern (filterJusts)
 import           Sound.Tidal.Signal
 import           Sound.Tidal.Types
 import           Sound.Tidal.Value

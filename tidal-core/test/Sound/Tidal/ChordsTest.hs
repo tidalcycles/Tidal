@@ -2,10 +2,10 @@
 
 module Sound.Tidal.ChordsTest where
 
+import           Sound.Tidal.TestUtils
 import           Test.Microspec
-import           TestUtils
 
-import           Prelude           hiding ((*>), (<*))
+import           Prelude               hiding ((*>), (<*))
 
 import           Sound.Tidal.Types
 

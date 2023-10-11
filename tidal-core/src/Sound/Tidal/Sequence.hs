@@ -19,18 +19,19 @@ instance Functor Sequence where
 
 instance Monad Sequence where
   return = pure
-  -- seqv >>= f = seqJoin $ fmap f seqv
   (>>=) a b = (patBind a) a b
 
 instance Applicative Sequence where
   pure = step 1
   -- pf <*> px = pf >>= \f -> px >>= \x -> pure $ f x
-  pf <*> px = pf' >>= (<$> px')
-    where (pf', px') = patAlign pf px
+  pf <*> px = pf >>= (<$> px)
+    -- where (pf', px') = patAlign pf px
 
 instance Pattern Sequence where
   withTime f _ pat = withAtomTime f pat
   cat = Cat   -- TODO - shallow cat?
+  -- maintain unit (beats)
+  unitcat = cat
   stack = expands
   -- duration of 'part', not whole
   duration (Atom _ d _ _ _)  = d
@@ -150,8 +151,8 @@ seqInnerJoin pat = seqJoinWithSpan f pat
 
 -- Flatten, changing duration of inner to fit outer
 seqOuterJoin :: Sequence (Sequence a) -> Sequence a
-seqOuterJoin pat = _fast (duration inner / duration pat) inner
-  where inner = seqInnerJoin pat
+seqOuterJoin pat = _fast (duration innerpat / duration pat) innerpat
+  where innerpat = seqInnerJoin pat
 
 -- Flatten, set duration of inner sequence to fit outer atom durations
 seqSqueezeJoin :: Sequence (Sequence a) -> Sequence a
@@ -203,6 +204,27 @@ withAtom f (SeqMetadata _ x) = withAtom f x
 
 withAtomTime :: (Time -> Time) -> Sequence a -> Sequence a
 withAtomTime f = withAtom $ \m d i o v -> Atom m (f d) (f i) (f o) v
+
+-- One beat per cycle
+seqToSignal :: Sequence a -> Signal a
+seqToSignal pat = _slow (duration pat) $ seqToSignal' pat
+
+-- One sequence per cycle
+seqToSignal' :: Sequence a -> Signal a
+seqToSignal' (Atom m d i o (Just v)) | d == 0 = error "whoops"
+                                     | otherwise = setMetadata m $ _zoomSpan (Span (i/t) (1-(o/t))) $ pure v
+  where t = d + i + o
+seqToSignal' (Atom _ _ _ _ Nothing) = silence
+seqToSignal' (Cat xs) = timeCat timeseqs
+  where timeseqs = map (\x -> (duration x, seqToSignal' x)) xs
+seqToSignal' (Stack xs) = stack $ map seqToSignal' xs
+seqToSignal' (SeqMetadata _ x) = seqToSignal' x
+
+toCycle :: Rational -> Sequence a -> Signal a
+toCycle beats pat = _fast beats $ seqToSignal pat
+
+beatMode :: Rational -> Sequence a -> Signal a
+beatMode = toCycle
 
 -- **********************
 -- | Sequence alignment *

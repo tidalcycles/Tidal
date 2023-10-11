@@ -79,6 +79,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   patAlign :: p a -> p b -> (p a, p b)
 
   cat :: [p a] -> p a
+  unitcat :: [p a] -> p a
   timeCat :: [(Time, p a)] -> p a
   stack :: [p a] -> p a
   _early :: Time -> p a -> p a
@@ -88,6 +89,7 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   silence :: p a
   -- | Return part of a pattern, zoomed to the same (cycle) duration
   _zoomSpan :: Span -> p a -> p a
+  filterValues :: (a -> Bool) -> p a -> p a
 
 instance Pattern p => Semigroup (p a)
   where a <> b = cat [a,b]
