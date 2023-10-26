@@ -1630,6 +1630,21 @@ lsnarebus busid pat = (pF "lsnare" pat) # (pI "^lsnare" busid)
 lsnarerecv :: Pattern Int -> ControlPattern
 lsnarerecv busid = pI "^lsnare" busid
 
+-- | A pattern of numbers. Specifies whether the pitch of played samples should be tuned relative to their pitch metadata, if it exists. When set to 1, pitch metadata is applied. When set to 0, pitch metadata is ignored.
+metatune :: Pattern Double -> ControlPattern
+metatune = pF "metatune"
+metatuneTake :: String -> [Double] -> ControlPattern
+metatuneTake name xs = pStateListF "metatune" name xs
+metatuneCount :: String -> ControlPattern
+metatuneCount name = pStateF "metatune" name (maybe 0 (+1))
+metatuneCountTo :: String -> Pattern Double -> Pattern ValueMap
+metatuneCountTo name ipat = innerJoin $ (\i -> pStateF "metatune" name (maybe 0 ((`mod'` i) . (+1)))) <$> ipat
+
+metatunebus :: Pattern Int -> Pattern Double -> ControlPattern
+metatunebus busid pat = (pF "metatune" pat) # (pI "^metatune" busid)
+metatunerecv :: Pattern Int -> ControlPattern
+metatunerecv busid = pI "^metatune" busid
+
 -- | 
 midibend :: Pattern Double -> ControlPattern
 midibend = pF "midibend"
