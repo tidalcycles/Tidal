@@ -39,18 +39,33 @@ class Applicative t => Applicable t a b where toA :: a -> t b
 instance forall a t. Applicative t => Applicable t (a) (a) where toA = pure
 instance forall a t. Applicative t => Applicable t (t a) (a) where toA = id
 
+data BindDir = Inner | Outer | Both
+  deriving Eq
+
+-- data family BindSpec a
+-- data instance BindSpec (Signal b) = SignalBindSpec BindDir
+-- data instance BindSpec (Sequence b) = SequenceBindSpec BindDir Alignment
+
+specToBind :: (Pattern p1, Pattern p2) => BindSpec p1 -> p2 a -> (a -> p2 b) -> p2 b
+specToBind spec | bindDir == Inner = innerBind
+                | bindDir == Outer = outerBind
+                | bindDir == Both = mixBind
+  where bindDir = specToBindDir spec
+
 -- | A type class for patterns
 class (Functor p, Applicative p, Monad p) => Pattern p where
+  data BindSpec p :: *
   {-# MINIMAL (mixBind | mixJoin),
               (innerBind | innerJoin),
               (outerBind | outerJoin),
               (squeezeBind | squeezeJoin),
               (squeezeOutBind | squeezeOutJoin),
-              patBind, patAlign,
+              patBindIn, patBindOut, patBindMix, patAlign,
               inner, outer, mix, trig, trig0, squeeze, squeezeOut,
               duration, withTime, cat, timeCat, stack, _early, rev, toSignal,
               withMetadata, silence, _zoomSpan
     #-}
+  specToBindDir :: BindSpec p -> BindDir
   duration :: p a -> Time
   withTime :: (Time -> Time) -> (Time -> Time) -> p a -> p a
   mixBind, innerBind, outerBind, squeezeBind, squeezeOutBind :: p a -> (a -> p b) -> p b
@@ -75,7 +90,9 @@ class (Functor p, Applicative p, Monad p) => Pattern p where
   squeeze :: p a -> p a
   squeezeOut :: p a -> p a
 
-  patBind :: p a -> p b -> (b -> p c) -> p c
+  patBindIn :: p a -> p b -> (b -> p c) -> p c
+  patBindOut :: p a -> p b -> (b -> p c) -> p c
+  patBindMix :: p a -> p b -> (b -> p c) -> p c
   patAlign :: p a -> p b -> (p a, p b)
 
   cat :: [p a] -> p a

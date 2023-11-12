@@ -23,25 +23,34 @@ alignify f = \apat bpat -> uncurry f (patAlign apat bpat)
 
 patternify_P :: Pattern p => (a -> p b) -> (p a -> p b)
 patternify_P f apat = apat `bind` f
-  where bind = patBind apat
+  where bind = patBindMix apat
+
+patternify' :: Pattern p => BindSpec p -> (a -> p b) -> (p a -> p b)
+patternify' spec f apat = apat `bind` f
+  where bind = specToBind spec
+
+
+-- patternify_P' :: (Pattern p) => BindSpec (p a) -> (a -> p b) -> (p a -> p b)
+-- patternify_P' spec f apat = apat `bind` f
+--   where bind = patBindMix apat
 
 patternify_P_n :: Pattern p => (a -> b -> p c) -> (p a -> b -> p c)
 patternify_P_n f apat b = apat `bind` \a -> f a b
-  where bind = patBind apat
+  where bind = patBindMix apat
 
 patternify_P_p :: Pattern p => (a -> p b -> p c) -> (p a -> p b -> p c)
 patternify_P_p = alignify . patternify_P_n
 
+patternify_P_P :: Pattern p => (a -> b -> p c) -> (p a -> p b -> p c)
+patternify_P_P f = alignify $ patternify_P_n $ patternify_P <$> f
+
 patternify_P_n_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> b -> c -> p d)
 patternify_P_n_n f apat b c = apat `bind` \a -> f a b c
-  where bind = patBind apat
+  where bind = patBindMix apat
 
 patternify_P_n_n_n :: Pattern p => (a -> b -> c -> d -> p e) -> (p a -> b -> c -> d -> p e)
 patternify_P_n_n_n f apat b c d = apat `bind` \a -> f a b c d
-  where bind = patBind apat
-
-patternify_P_P :: Pattern p => (a -> b -> p c) -> (p a -> p b -> p c)
-patternify_P_P f = alignify $ patternify_P_n $ patternify_P <$> f
+  where bind = patBindMix apat
 
 patternify_P_P_n :: Pattern p => (a -> b -> c -> p d) -> (p a -> p b -> c -> p d)
 patternify_P_P_n f = alignify $ patternify_P_n_n $ patternify_P_n <$> f
@@ -53,12 +62,15 @@ patternify_P_P_P_n :: Pattern p => (a -> b -> c -> d -> p e) -> p a -> p b -> p 
 patternify_P_P_P_n f  = alignify $ patternify_P_n_n_n $ patternify_P_P_n <$> f
 
 (<*), (*>) :: Pattern p => p (t -> b) -> p t -> p b
-pf <* px = pf `innerBind` \f -> px `innerBind` \x -> pure $ f x
-pf *> px = pf `outerBind` \f -> px `outerBind` \x -> pure $ f x
+pf <* px = pf `innerBind` (<$> px)
+pf *> px = pf `outerBind` (<$> px)
 infixl 4 <*, *>
 
-flexBind :: Pattern p => p b -> (b -> p c) -> p c
-flexBind a b = (patBind a) a b
+(|>>=), (>>=|), (|>>=|) :: Pattern p => p a -> (a -> p b) -> p b
+(|>>=) = innerBind
+(>>=|) = outerBind
+(|>>=|) = (>>=) -- mixBind
+infixl 4 |>>=, >>=|, |>>=|
 
 filterJusts :: Pattern p => p (Maybe a) -> p a
 filterJusts = fmap fromJust . filterValues isJust

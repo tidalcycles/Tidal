@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilies #-}
+
 module Sound.Tidal.Signal where
 
 -- To get liftA2.. avoids import warning
@@ -16,8 +18,8 @@ import           Sound.Tidal.Types
 import           Sound.Tidal.Utils   (enumerate)
 
 instance Monad Signal where
-  (>>=) a b = (patBind a) a b
-  -- (>>=) = mixBind
+  -- (>>=) a b = (patBind a) a b
+  (>>=) = mixBind
   return = pure
 
 -- Define applicative from monad
@@ -27,8 +29,10 @@ instance Applicative Signal where
   pf <*> px = pf >>= (<$> px)
 
 instance Pattern Signal where
+  data BindSpec Signal = BindDir
   -- We always work with signals as if they have a duration of 1
   -- cycle, even though successive cycles very often differ
+  -- specToBindDir (SignalBindSpec dir) = dir
   duration _ = 1
   withTime fa fb pat = withEventTime fa $ withQueryTime fb pat
   -- | Alternative binds/joins
@@ -47,7 +51,9 @@ instance Pattern Signal where
   squeeze = setSigBind SigSqueeze
   squeezeOut = setSigBind SigSqueezeOut
 
-  patBind = getSigBind
+  patBindIn = getSigBind SigIn
+  patBindOut = getSigBind SigOut
+  patBindMix = getSigBind SigMix
   -- Signals are always aligned cycle-by-cycle
   patAlign a b = (a,b)
 
@@ -78,8 +84,8 @@ instance Pattern Signal where
                            $ withQuerySpan (mapCycle ((+s) . (*d))) p
     where d = e-s
 
-getSigBind :: Signal a -> Signal b -> (b -> Signal c) -> Signal c
-getSigBind pat = case (signalBind pat) of
+getSigBind :: SignalBind -> Signal a -> Signal b -> (b -> Signal c) -> Signal c
+getSigBind defaultBind pat = case (signalBind pat) of
                    SigIn         -> innerBind
                    SigOut        -> outerBind
                    SigSqueeze    -> squeezeBind
@@ -89,7 +95,7 @@ getSigBind pat = case (signalBind pat) of
                    SigMix        -> mixBind
   where signalBind :: Signal a -> SignalBind
         signalBind (Signal {sigMetadata = SignalMetadata (Just bind)}) = bind
-        signalBind _                                                   = SigIn
+        signalBind _                                                   = defaultBind
 
 setSigBind :: SignalBind -> Signal a -> Signal a
 setSigBind bind pat = pat {sigMetadata = SignalMetadata (Just bind)}

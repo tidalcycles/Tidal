@@ -1,4 +1,5 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes   #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Sound.Tidal.Sequence where
 
@@ -19,7 +20,8 @@ instance Functor Sequence where
 
 instance Monad Sequence where
   return = pure
-  (>>=) a b = (patBind a) a b
+  -- (>>=) a b = (patBind a) a b
+  (>>=) = mixBind
 
 instance Applicative Sequence where
   pure = step 1
@@ -28,6 +30,8 @@ instance Applicative Sequence where
     -- where (pf', px') = patAlign pf px
 
 instance Pattern Sequence where
+  data BindSpec Sequence = Strat BindDir Alignment
+  -- specToBindDir (SequenceBindSpec dir _) = dir
   withTime f _ pat = withAtomTime f pat
   cat = Cat   -- TODO - shallow cat?
   -- maintain unit (beats)
@@ -52,7 +56,9 @@ instance Pattern Sequence where
   squeeze = setAlignment SqueezeIn
   squeezeOut = setAlignment SqueezeOut
 
-  patBind = getSeqBind
+  patBindIn = getSeqBind SeqIn
+  patBindOut = getSeqBind SeqOut
+  patBindMix = getSeqBind SeqMix
   patAlign = getSeqAlign
 
   _early t = (\(a, b) -> cat [a,b]) . seqSplitAt t
@@ -174,6 +180,23 @@ seqTakeLoop t (Cat ss) = Cat $ loop t $ cycle ss
           where stepDur = duration s
 seqTakeLoop t (SeqMetadata _ x) = seqTakeLoop t x
 
+-- If you ask for too much, the result gets right padded with silence
+seqTake :: Time -> Sequence a -> Sequence a
+seqTake 0 _ = gap 0
+seqTake t pat@(Atom m d i _ v) | t > d = seqTake t $ Cat $ repeat pat
+                               | otherwise = Atom m t i (max 0 $ d - t) v
+seqTake t (Stack ss) = Stack $ map (seqTake t) ss
+seqTake t (Cat []) = gap t
+seqTake t (Cat ss) = Cat $ loop t ss
+  where loop :: Time -> [Sequence a] -> [Sequence a]
+        loop t [] = [gap t]
+        loop t' (s:ss') | t' <= 0 = []
+                        | t' <= stepDur = [seqTake t' s]
+                        | otherwise = seqTake stepDur s : loop (t' - stepDur) ss'
+          where stepDur = duration s
+seqTake t (SeqMetadata _ x) = seqTake t x
+
+
 seqDrop :: Time -> Sequence a -> Sequence a
 seqDrop 0 s = s
 -- The mod makes this 'safe' but is probably a bad idea..
@@ -205,6 +228,17 @@ withAtom f (SeqMetadata _ x) = withAtom f x
 withAtomTime :: (Time -> Time) -> Sequence a -> Sequence a
 withAtomTime f = withAtom $ \m d i o v -> Atom m (f d) (f i) (f o) v
 
+withAtomContext :: (Time -> Time -> Metadata -> Time -> Time -> Time ->
+                    Maybe a -> Sequence a) -> Sequence a -> Sequence a
+withAtomContext f pat = withAtomContext' 0 pat
+  where withAtomContext' pos (Atom m d i o v)  = f pos patdur m d i o v
+        withAtomContext' pos (Cat xs) = Cat $ loop pos xs
+          where loop pos' [] = []
+                loop pos' (x:xs) = withAtomContext' pos' x : loop (pos' + duration x) xs
+        withAtomContext' pos (Stack xs) = Stack $ map (withAtomContext' pos) xs
+        withAtomContext' pos (SeqMetadata _ x) = withAtomContext' pos x
+        patdur = duration pat
+
 -- One beat per cycle
 seqToSignal :: Sequence a -> Signal a
 seqToSignal pat = _slow (duration pat) $ seqToSignal' pat
@@ -235,8 +269,8 @@ bindAlignment (SeqMetadata strat _) = strat
 -- default strategy and alignment
 bindAlignment _                     = SeqBindAlignment Expand SeqIn
 
-getSeqBind :: Pattern p => Sequence a -> p b -> (b -> p c) -> p c
-getSeqBind pat = case (seqBind $ bindAlignment pat) of
+getSeqBind :: SequenceBind -> Pattern p => Sequence a -> p b -> (b -> p c) -> p c
+getSeqBind defaultBind pat = case (seqBind $ bindAlignment pat) of
                    SeqIn  -> innerBind
                    SeqOut -> outerBind
                    SeqMix -> (>>=)
@@ -313,9 +347,10 @@ withLargest f a b | o == LT = (a, f b)
   where o = compare (duration a) (duration b)
 
 align :: Alignment -> Sequence a -> Sequence b -> (Sequence a, Sequence b)
-align Repeat a b = (replic a, replic b)
+align Repeat a b = (seqReplicate (floor $ d / duration a) a,
+                    seqReplicate (floor $ d / duration b) b
+                   )
   where d = lcmTime (duration a) (duration b)
-        replic x = seqReplicate (floor $ d / duration x) x
         seqReplicate :: Int -> Sequence a -> Sequence a
         seqReplicate n (Cat xs) = Cat $ concat $ replicate n xs
         seqReplicate n x        = Cat $ replicate n x

@@ -12,7 +12,7 @@ import           Data.Bits
 import           Data.Bool           (bool)
 import qualified Data.Map.Strict     as Map
 import           Prelude             hiding (Applicative (..))
-import           Sound.Tidal.Pattern (filterJusts, flexBind)
+import           Sound.Tidal.Pattern (filterJusts)
 import           Sound.Tidal.Types
 
 -- ************************************************************ --
@@ -30,7 +30,7 @@ instance {-# OVERLAPPING #-} Unionable ValueMap where
   union = Map.union
 
 liftP2 :: Pattern p => (a -> b -> c) -> (p a -> p b -> p c)
-liftP2 op apat bpat = apat `flexBind` \a -> op a <$> bpat
+liftP2 op apat bpat = apat `mixBind` \a -> op a <$> bpat
 
 set, keep :: Pattern p => p a -> p a -> p a
 set = liftA2 (flip union)
