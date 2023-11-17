@@ -36,6 +36,7 @@ let only = (hush >>)
     histpan i t = transition tidal True (Sound.Tidal.Transition.histpan t) i
     wait i t = transition tidal True (Sound.Tidal.Transition.wait t) i
     waitT i f t = transition tidal True (Sound.Tidal.Transition.waitT f t) i
+    sched i s = transition tidal True (Sound.Tidal.Transition.sched s) i
     jump i = transition tidal True (Sound.Tidal.Transition.jump) i
     jumpIn i t = transition tidal True (Sound.Tidal.Transition.jumpIn t) i
     jumpIn' i t = transition tidal True (Sound.Tidal.Transition.jumpIn' t) i
