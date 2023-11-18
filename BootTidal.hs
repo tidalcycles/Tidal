@@ -3,7 +3,6 @@
 
 import Sound.Tidal.Context
 
-import Data.List (sortOn)
 import System.IO (hSetEncoding, stdout, utf8)
 hSetEncoding stdout utf8
 
@@ -32,42 +31,6 @@ let only = (hush >>)
     setcps = asap . cps
     getcps = streamGetcps tidal
     getnow = streamGetnow tidal
-
-    {- An example of `sched`:
-    do setcps 1
-       d1 $ s "[bd,numbers]" |* n (slow 8 $ run 8)
-       sched 2 [ (2, s "[lt*5]"),
-                 (4, s "[ht*4]"),
-                 (6, s "[hc*3]") ] -}
-    sched i s = do
-      now <- getnow
-      let t = fst $ head s
-          p = absScheduleToPat
-              $ sortOn fst -- earlier patterns closer to head
-              ( delaySchedule_toAbsoluteSchedule
-                (toTime now) s )
-      transition tidal True (Sound.Tidal.Transition.jumpFrac t) i p
-
-    {- an example of `schod`:
-    do setcps 1
-       d1 $ s "[bd,numbers]" |* n (slow 8 $ run 8)
-       schod 2 8 [ (2, s "[lt*5]"),
-		   (4, s "[ht*4]"),
-		   (6, s "[hc*3]"),
-		   (8, s "~ sn:1" ),
-		   (12, s "~ ~ sn:1" ),
-		   (16, silence) ]-}
-    schod :: ID -> Time -> [ (Time, ControlPattern) ] -> IO ()
-    schod i divisor sRel = do -- like `sched` but modulo a divisor
-      now <- getnow
-      let sAbs :: [ (Time, ControlPattern) ] =
-            sortOn fst -- earlier patterns closer to head
-            ( delayModSchedules_toAbsoluteSchedule
-              (toTime now) divisor sRel )
-          d :: Time = fst $ head sAbs
-          p :: ControlPattern = absScheduleToPat sAbs
-      transition tidal True (Sound.Tidal.Transition.jumpFracAbs d) i p
-
     xfade i = transition tidal True (Sound.Tidal.Transition.xfadeIn 4) i
     xfadeIn i t = transition tidal True (Sound.Tidal.Transition.xfadeIn t) i
     histpan i t = transition tidal True (Sound.Tidal.Transition.histpan t) i
@@ -78,6 +41,8 @@ let only = (hush >>)
     jumpIn' i t = transition tidal True (Sound.Tidal.Transition.jumpIn' t) i
     jumpMod i t = transition tidal True (Sound.Tidal.Transition.jumpMod t) i
     jumpMod' i t p = transition tidal True (Sound.Tidal.Transition.jumpMod' t p) i
+    sched = Sound.Tidal.Transition.sched tidal getnow
+    schod = Sound.Tidal.Transition.schod tidal getnow
     mortal i lifespan release = transition tidal True (Sound.Tidal.Transition.mortal lifespan release) i
     interpolate i = transition tidal True (Sound.Tidal.Transition.interpolate) i
     interpolateIn i t = transition tidal True (Sound.Tidal.Transition.interpolateIn t) i

@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
 
 module Sound.Tidal.Transition where
 
@@ -6,6 +6,7 @@ import Prelude hiding ((<*), (*>))
 
 import Control.Concurrent.MVar (modifyMVar_)
 import Data.Fixed (mod', div')
+import Data.List (sortOn)
 
 import qualified Data.Map.Strict as Map
 -- import Data.Maybe (fromJust)
@@ -50,6 +51,58 @@ mortalOverlay t now (pat:ps) = overlay (pop ps) (playFor s (s+t) pat) where
   pop [] = silence
   pop (x:_) = x
   s = sam (now - fromIntegral (floor now `mod` floor t :: Int)) + sam t
+
+{- | Schedule a pattern, relative to the current cycle.
+@
+do setcps 1
+   d1 $ s "[bd,numbers]" |* n (slow 8 $ run 8)
+   sched 2 [ (2, s "[lt*5]"),
+             (4, s "[ht*4]"),
+             (6, s "[hc*3]") ]
+@
+-}
+sched :: Stream                   -- ^ PITFALL: Not provided by user!
+      -> IO Double                -- ^ PITFALL: Not provided by user!
+      -> ID                       -- ^ voice to affect
+      -> [(Time, ControlPattern)] -- ^ schedule
+      -> IO ()
+sched tidal getnow i s = do
+  now <- getnow
+  let t = fst $ head s
+      p = absScheduleToPat
+          $ sortOn fst -- earlier patterns closer to head
+          ( delaySchedule_toAbsoluteSchedule
+            (toTime now) s )
+  transition tidal True (Sound.Tidal.Transition.jumpFrac t) i p
+
+{- | Schedule a pattern, relative to the most recent time
+that was divisible by the divisor.
+@
+do setcps 1
+   d1 $ s "[bd,numbers]" |* n (slow 8 $ run 8)
+   schod 2 8 [ (2, s "[lt*5]"),
+              (4, s "[ht*4]"),
+              (6, s "[hc*3]"),
+              (8, s "~ sn:1" ),
+              (12, s "~ ~ sn:1" ),
+              (16, silence) ]
+@
+-}
+schod :: Stream                   -- ^ PITFALL: Not provided by user!
+      -> IO Double                -- ^ PITFALL: Not provided by user!
+      -> ID                       -- ^ voice to affect
+      -> Time                     -- ^ divisor
+      -> [(Time, ControlPattern)] -- ^ schedule
+      -> IO ()
+schod tidal getnow i divisor sRel = do
+  now <- getnow
+  let sAbs :: [ (Time, ControlPattern) ] =
+        sortOn fst -- earlier patterns closer to head
+        ( delayModSchedules_toAbsoluteSchedule
+          (toTime now) divisor sRel )
+      d :: Time = fst $ head sAbs
+      p :: ControlPattern = absScheduleToPat sAbs
+  transition tidal True (Sound.Tidal.Transition.jumpFracAbs d) i p
 
 absScheduleToPat ::
   [ ( -- ^ A schedule, with offsets relative to the current time.
