@@ -5,6 +5,7 @@ module Sound.Tidal.Transition where
 import Prelude hiding ((<*), (*>))
 
 import Control.Concurrent.MVar (modifyMVar_)
+import Data.Fixed (mod', div')
 
 import qualified Data.Map.Strict as Map
 -- import Data.Maybe (fromJust)
@@ -76,6 +77,31 @@ delaySchedule_toAbsoluteSchedule ::
 delaySchedule_toAbsoluteSchedule now s =
   [ (t + now, p)
   | (t,p) <- s ]
+
+delayModSchedules_toAbsoluteSchedule ::
+  Time ->                  -- ^ now
+  Time ->                  -- ^ A divisor. Probably an integer.
+  [ (Time, Pattern a) ] -> {- ^ A schedule defined by times relative to the most recent time divisible by the divisor. Note that these `Time` values can be greater than the divisor -- indeed they can be arbitrarily high, and order and measure among them will be respected. -}
+  [ (Time, Pattern a) ] -- ^ a schedule defined by absolute times
+delayModSchedules_toAbsoluteSchedule now divisor s =
+  -- PITFALL: If, for some t in the schedule, rem is greater than t,
+  -- then the pattern associated with t will play immediately.
+  let rem = mod' now divisor
+  in [ (now - rem + t, p)
+     | (t,p) <- s ]
+
+-- | Unlike `jumpIn`, `jumpFrac` accepts fractional start times.
+-- Unlike `jumpFrac`, this takes an absolute time,
+-- not a delay to be added to the current time.
+jumpFracAbs :: Time        -- ^ when to transition
+            -> Time        -- ^ not supplied by user!
+            -> [Pattern a] -- ^ not supplied by user!
+            -> Pattern a
+jumpFracAbs _ _ [] = silence
+jumpFracAbs _ _ (pat:[]) = pat
+jumpFracAbs wait _ (pat':pat:_) =
+  stack [ filterWhen (<  wait) pat
+        , filterWhen (>= wait) pat' ]
 
 -- | Unlike `jumpIn`, `jumpFrac` accepts fractional delays.
 jumpFrac :: Time        -- ^ how long to wait
