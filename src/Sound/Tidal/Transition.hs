@@ -64,7 +64,7 @@ do setcps 1
 
 sched 2 [ (2, s "[bd,hc*4]"),
           (4, s "[bd,hc*3]"),
-          (6, s p0) ]
+          (6, p0) ]
   p0 -- TODO : This is the pattern that gets pushed onto the front
      -- of Tidal's global list of ControlPatterns.
      -- Rather than requiring the user to supply it,
@@ -72,6 +72,7 @@ sched 2 [ (2, s "[bd,hc*4]"),
      -- computed by sched.
 @
 -}
+
 sched :: [       -- ^ the schedule
   ( Time,        -- ^ Each of these is like the `delay` argument to `wash`.
                  -- PITFALL: Each delay should be distinct.
