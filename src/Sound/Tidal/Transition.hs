@@ -51,56 +51,41 @@ mortalOverlay t now (pat:ps) = overlay (pop ps) (playFor s (s+t) pat) where
   pop (x:_) = x
   s = sam (now - fromIntegral (floor now `mod` floor t :: Int)) + sam t
 
-{- | This lets a user schedule a number of transitions at once.
-It still needs some work -- see the TODO statement below.
-
-Demonstration:
-@
-let p0 = s "bd sn:1"
-
-do setcps 1
-   d1 $ s "numbers" |* n (slow 8 $ run 8)
-   d2 p0
-
-sched 2 [ (2, s "[bd,hc*4]"),
-          (4, s "[bd,hc*3]"),
-          (6, p0) ]
-  p0 -- TODO : This is the pattern that gets pushed onto the front
-     -- of Tidal's global list of ControlPatterns.
-     -- Rather than requiring the user to supply it,
-     -- this should be the result of the stack of filterWhen statements
-     -- computed by sched.
-@
--}
-
-sched :: [       -- ^ the schedule
-  ( Time,        -- ^ Each of these is like the `delay` argument to `wash`.
-                 -- PITFALL: Each delay should be distinct.
-    Pattern a) ]
-  -> Time        -- ^ just like the `now` argumnt to `wash`
-  -> [Pattern a] -- ^ just like `[Pattern a]` argumnt to `wash`
+scheduleToPat ::
+  [ ( -- ^ A schedule, with offsets relative to the current time.
+    Time, -- ^ Absolute time, not time relative to now.
+          -- It is when the new pattern starts, not when the old one ends.
+          -- PITFALL: Each should be distinct.
+    Pattern a -- ^ What starts when the associated `Time` is reached.
+  ) ]
   -> Pattern a
-sched _ _ [] = silence
-sched _ _ (pat:[]) = pat
-sched
-  s0 now (_:pat:_) =
-  -- Unlike `wash`, `sched` ignores the head of the [Pattern a] it is passed.
-  -- That's because it's not transitioning between two patterns,
-  -- as in `wash`, but rather through all the patterns specified in `s0`.
+scheduleToPat s =
   let
-    -- The first pattern to play is `pat`.
     between lo hi x = (x >= lo) && (x < hi)
-    s = L.sortOn fst s0 -- earlier patterns are earlier in s,
-                        -- whereas they could be anywhere in s0
-    firstPat = filterWhen (< (now + t)) pat
-      where (t,_) = head s
-    lastPat = filterWhen (>= (now + t)) p
+    lastPat = filterWhen (>= t) p
       where (t, p) = last s
-    middle = [ filterWhen (between (now + t0) $ now + t1) p
-             | ( (t0,p),
-                 (t1,_) ) <- zip s $ tail s ]
+    patternsBeforeLast = [ filterWhen (between t0 t1) p
+                         | ( (t0,p),
+                             (t1,_) ) <- zip s $ tail s ]
   in stack $
-     firstPat : lastPat : middle -- order doesn't matter to `stack`
+     lastPat : patternsBeforeLast -- order doesn't matter to `stack`
+
+delaySchedule_toAbsoluteSchedule ::
+  Time ->                  -- ^ now
+  [ (Time, Pattern a) ] -> -- ^ a schedule defined by times relative to now
+  [ (Time, Pattern a) ]    -- ^ a schedule defined by absolute times
+delaySchedule_toAbsoluteSchedule now s =
+  [ (t + now, p) | (t,p) <- s ]
+
+jumpFrac :: Time        -- ^ how long to wait
+         -> Time        -- ^ not supplied by user!
+         -> [Pattern a] -- ^ not supplied by user!
+         -> Pattern a
+jumpFrac _ _ [] = silence
+jumpFrac _ _ (pat:[]) = pat
+jumpFrac wait now (pat':pat:_) =
+  stack [ filterWhen (<  (now + wait)) pat
+        , filterWhen (>= (now + wait)) pat' ]
 
 {-| Washes away the current pattern after a certain delay by applying a
     function to it over time, then switching over to the next pattern to
