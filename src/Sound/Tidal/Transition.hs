@@ -143,6 +143,17 @@ delayModSchedules_toAbsoluteSchedule now divisor s =
   in [ (now - rem + t, p)
      | (t,p) <- s ]
 
+-- | Unlike `jumpIn`, `jumpFrac` accepts fractional delays.
+jumpFrac :: Time        -- ^ how long to wait
+         -> Time        -- ^ not supplied by user!
+         -> [Pattern a] -- ^ not supplied by user!
+         -> Pattern a
+jumpFrac _ _ [] = silence
+jumpFrac _ _ (pat:[]) = pat
+jumpFrac wait now (pat':pat:_) =
+  stack [ filterWhen (<  (now + wait)) pat
+        , filterWhen (>= (now + wait)) pat' ]
+
 -- | Unlike `jumpIn`, `jumpFrac` accepts fractional start times.
 -- Unlike `jumpFrac`, this takes an absolute time,
 -- not a delay to be added to the current time.
@@ -155,17 +166,6 @@ jumpFracAbs _ _ (pat:[]) = pat
 jumpFracAbs wait _ (pat':pat:_) =
   stack [ filterWhen (<  wait) pat
         , filterWhen (>= wait) pat' ]
-
--- | Unlike `jumpIn`, `jumpFrac` accepts fractional delays.
-jumpFrac :: Time        -- ^ how long to wait
-         -> Time        -- ^ not supplied by user!
-         -> [Pattern a] -- ^ not supplied by user!
-         -> Pattern a
-jumpFrac _ _ [] = silence
-jumpFrac _ _ (pat:[]) = pat
-jumpFrac wait now (pat':pat:_) =
-  stack [ filterWhen (<  (now + wait)) pat
-        , filterWhen (>= (now + wait)) pat' ]
 
 {-| Washes away the current pattern after a certain delay by applying a
     function to it over time, then switching over to the next pattern to
