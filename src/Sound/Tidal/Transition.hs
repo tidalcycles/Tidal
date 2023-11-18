@@ -52,7 +52,8 @@ mortalOverlay t now (pat:ps) = overlay (pop ps) (playFor s (s+t) pat) where
   pop (x:_) = x
   s = sam (now - fromIntegral (floor now `mod` floor t :: Int)) + sam t
 
-{- | Schedule a pattern, relative to the current cycle.
+{- | Schedule some patterns (all for the same voice, e.g. `d1`),
+relative to the current cycle.
 @
 do setcps 1
    d1 $ s "[bd,numbers]" |* n (slow 8 $ run 8)
@@ -61,8 +62,8 @@ do setcps 1
              (6, s "[hc*3]") ]
 @
 -}
-sched :: Stream                   -- ^ PITFALL: Not provided by user!
-      -> IO Double                -- ^ PITFALL: Not provided by user!
+sched :: Stream                   -- ^ PITFALL: Not provided by user.
+      -> IO Double                -- ^ PITFALL: Not provided by user.
       -> ID                       -- ^ voice to affect
       -> [(Time, ControlPattern)] -- ^ schedule
       -> IO ()
@@ -75,8 +76,8 @@ sched tidal getnow i s = do
             (toTime now) s )
   transition tidal True (Sound.Tidal.Transition.jumpFrac t) i p
 
-{- | Schedule a pattern, relative to the most recent time
-that was divisible by the divisor.
+{- | Schedule some patterns (all for the same voice, e.g. `d1`),
+relative to the most recent time that was divisible by the divisor.
 @
 do setcps 1
    d1 $ s "[bd,numbers]" |* n (slow 8 $ run 8)
@@ -88,8 +89,8 @@ do setcps 1
               (16, silence) ]
 @
 -}
-schod :: Stream                   -- ^ PITFALL: Not provided by user!
-      -> IO Double                -- ^ PITFALL: Not provided by user!
+schod :: Stream                   -- ^ PITFALL: Not provided by user.
+      -> IO Double                -- ^ PITFALL: Not provided by user.
       -> ID                       -- ^ voice to affect
       -> Time                     -- ^ divisor
       -> [(Time, ControlPattern)] -- ^ schedule
@@ -105,10 +106,12 @@ schod tidal getnow i divisor sRel = do
   transition tidal True (Sound.Tidal.Transition.jumpFracAbs d) i p
 
 absScheduleToPat ::
-  [ ( -- ^ A schedule, with offsets relative to the current time.
+  [ ( -- ^ A schedule in terms of absolute times
+      -- (as opposed to delays relative to the current time).
     Time, -- ^ Absolute time, not time relative to now.
           -- It is when the new pattern starts, not when the old one ends.
-          -- PITFALL: Each should be distinct.
+          -- PITFALL: Each of the `Time`s in these tuples should be distinct.
+          -- Otherwise one pattern will clobber another.
     Pattern a -- ^ What starts when the associated `Time` is reached.
   ) ]
   -> Pattern a
@@ -145,8 +148,8 @@ delayModSchedule_toAbsoluteSchedule now divisor s =
 
 -- | Unlike `jumpIn`, `jumpFrac` accepts fractional delays.
 jumpFrac :: Time        -- ^ how long to wait
-         -> Time        -- ^ not supplied by user!
-         -> [Pattern a] -- ^ not supplied by user!
+         -> Time        -- ^ PITFALL: Not provided by the user.
+         -> [Pattern a] -- ^ PITFALL: Not provided by the user.
          -> Pattern a
 jumpFrac _ _ [] = silence
 jumpFrac _ _ (pat:[]) = pat
@@ -154,12 +157,12 @@ jumpFrac wait now (pat':pat:_) =
   stack [ filterWhen (<  (now + wait)) pat
         , filterWhen (>= (now + wait)) pat' ]
 
--- | Unlike `jumpIn`, `jumpFrac` accepts fractional start times.
--- Unlike `jumpFrac`, this takes an absolute time,
--- not a delay to be added to the current time.
+-- | Unlike `jumpIn`, `jumpFracAbs` accepts fractional start times.
+-- Unlike `jumpFrac`, `jumpFracAbs` takes an absolute time,
+-- rather than a delay to be added to the current time.
 jumpFracAbs :: Time        -- ^ when to transition
-            -> Time        -- ^ not supplied by user!
-            -> [Pattern a] -- ^ not supplied by user!
+            -> Time        -- ^ PITFALL: Not provided by the user.
+            -> [Pattern a] -- ^ PITFALL: Not provided by the user.
             -> Pattern a
 jumpFracAbs _ _ [] = silence
 jumpFracAbs _ _ (pat:[]) = pat

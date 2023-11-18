@@ -1,4 +1,4 @@
-:set -XOverloadedStrings -XScopedTypeVariables
+:set -XOverloadedStrings
 :set prompt ""
 
 import Sound.Tidal.Context
