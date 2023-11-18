@@ -98,7 +98,7 @@ schod tidal getnow i divisor sRel = do
   now <- getnow
   let sAbs :: [ (Time, ControlPattern) ] =
         sortOn fst -- earlier patterns closer to head
-        ( delayModSchedules_toAbsoluteSchedule
+        ( delayModSchedule_toAbsoluteSchedule
           (toTime now) divisor sRel )
       d :: Time = fst $ head sAbs
       p :: ControlPattern = absScheduleToPat sAbs
@@ -131,12 +131,12 @@ delaySchedule_toAbsoluteSchedule now s =
   [ (t + now, p)
   | (t,p) <- s ]
 
-delayModSchedules_toAbsoluteSchedule ::
+delayModSchedule_toAbsoluteSchedule ::
   Time ->                  -- ^ now
   Time ->                  -- ^ A divisor. Probably an integer.
   [ (Time, Pattern a) ] -> {- ^ A schedule defined by times relative to the most recent time divisible by the divisor. Note that these `Time` values can be greater than the divisor -- indeed they can be arbitrarily high, and order and measure among them will be respected. -}
   [ (Time, Pattern a) ] -- ^ a schedule defined by absolute times
-delayModSchedules_toAbsoluteSchedule now divisor s =
+delayModSchedule_toAbsoluteSchedule now divisor s =
   -- PITFALL: If, for some t in the schedule, rem is greater than t,
   -- then the pattern associated with t will play immediately.
   let rem = mod' now divisor
