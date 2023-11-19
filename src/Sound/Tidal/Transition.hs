@@ -63,12 +63,11 @@ do setcps 1
 @
 -}
 sched :: Stream                   -- ^ PITFALL: Not provided by user.
-      -> IO Double                -- ^ PITFALL: Not provided by user.
       -> ID                       -- ^ voice to affect
       -> [(Time, ControlPattern)] -- ^ schedule
       -> IO ()
-sched tidal getnow i s = do
-  now <- getnow
+sched tidal i s = do
+  now <- streamGetnow tidal
   let t = fst $ head s
       p = absScheduleToPat
           $ sortOn fst -- earlier patterns closer to head
@@ -90,13 +89,12 @@ do setcps 1
 @
 -}
 schod :: Stream                   -- ^ PITFALL: Not provided by user.
-      -> IO Double                -- ^ PITFALL: Not provided by user.
       -> ID                       -- ^ voice to affect
       -> Time                     -- ^ divisor
       -> [(Time, ControlPattern)] -- ^ schedule
       -> IO ()
-schod tidal getnow i divisor sRel = do
-  now <- getnow
+schod tidal i divisor sRel = do
+  now <- streamGetnow tidal
   let sAbs :: [ (Time, ControlPattern) ] =
         sortOn fst -- earlier patterns closer to head
         ( delayModSchedule_toAbsoluteSchedule
