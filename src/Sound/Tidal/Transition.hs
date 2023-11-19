@@ -57,9 +57,9 @@ relative to the current cycle.
 @
 do setcps 1
    d1 $ s "[bd,numbers]" |* n (slow 8 $ run 8)
-   sched 2 [ (2, s "[lt*5]"),
-             (4, s "[ht*4]"),
-             (6, s "[hc*3]") ]
+   sched 2 [ (2, s "lt*5"),
+             (4, s "ht*4"),
+             (6, s "hc*3") ]
 @
 -}
 sched :: Stream                   -- ^ PITFALL: Not provided by user.
@@ -80,12 +80,12 @@ relative to the most recent time that was divisible by the divisor.
 @
 do setcps 1
    d1 $ s "[bd,numbers]" |* n (slow 8 $ run 8)
-   schod 2 8 [ (2, s "[lt*5]"),
-              (4, s "[ht*4]"),
-              (6, s "[hc*3]"),
-              (8, s "~ sn:1" ),
-              (12, s "~ ~ sn:1" ),
-              (16, silence) ]
+   schod 2 8 [ (2, s "lt*5"),
+               (4, s "ht*4"),
+               (6, s "hc*3"),
+               (8, s "~ sn:1" ),
+               (12, s "~ ~ sn:1" ),
+               (16, silence) ]
 @
 -}
 schod :: Stream                   -- ^ PITFALL: Not provided by user.
