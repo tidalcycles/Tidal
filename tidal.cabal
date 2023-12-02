@@ -116,7 +116,7 @@ benchmark bench-speed
                  Tidal.Inputs
   build-depends:
                 base == 4.*
-              , criterion
+              , criterion >= 1.6.3.0
               , tidal
   ghc-options: -Wall
 
