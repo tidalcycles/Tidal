@@ -3,6 +3,7 @@ resolver: lts-20.5
 packages:
   - '.'
   - 'tidal-parse'
+  - 'tidal-listener'
   - 'tidal-link'
 
 extra-deps:
