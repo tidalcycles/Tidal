@@ -160,6 +160,27 @@ perlin2With x y = (/2) . (+1) $ interp2 <$> xfrac <*> yfrac <*> dota <*> dotb <*
 perlin2 :: Signal Double -> Signal Double
 perlin2 = perlin2With (waveform fromRational)
 
+{- | Generates values in [0,1] that follows a normal (bell-curve) distribution.
+
+One possible application is to "humanize" drums with a slight random delay:
+@
+d1
+  $ s "bd sn bd sn"
+  # nudge (segment 4 (scale (negate 0.03) 0.01 random))
+@
+
+Implemented with the Box-Muller transform.
+-}
+normal :: (Floating a, Ord a) => Signal a
+normal = do
+  -- the max ensures we don't calculate log 0
+  u1 <- max 0.0000001 <$> rand
+  -- the rotate ensures we don't just get the same value as u1
+  u2 <- rot 1 rand
+  let r1 = sqrt (-2 * log u1)
+  let r2 = cos (2 * pi * u2)
+  -- this comes out in [-1, 1], so scale to [0, 1]
+  pure ((r1 * r2) + 1) / 2
 
 {- | Randomly picks an element from the given list
 
