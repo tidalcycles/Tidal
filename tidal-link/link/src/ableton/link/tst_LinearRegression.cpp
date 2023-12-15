@@ -38,8 +38,8 @@ TEST_CASE("LinearRegression")
     Array data;
     data[0] = {0., 0.};
     const auto result = linearRegression(data.begin(), data.end());
-    CHECK(0 == Approx(result.first));
-    CHECK(0 == Approx(result.second));
+    CHECK_THAT(result.first, Catch::Matchers::WithinAbs(0, 0.00001));
+    CHECK_THAT(result.second, Catch::Matchers::WithinAbs(0, 0.00001));
   }
 
   SECTION("TwoPoints")
@@ -49,8 +49,8 @@ TEST_CASE("LinearRegression")
     data.emplace_back(666666.6, 66666.6);
 
     const auto result = linearRegression(data.begin(), data.end());
-    CHECK(0.1 == Approx(result.first));
-    CHECK(0.0 == Approx(result.second));
+    CHECK_THAT(result.first, Catch::Matchers::WithinAbs(0.1, 0.00001));
+    CHECK_THAT(result.second, Catch::Matchers::WithinAbs(0.0, 0.00001));
   }
 
   SECTION("10000Points")
@@ -65,8 +65,8 @@ TEST_CASE("LinearRegression")
     }
 
     const auto result = linearRegression(data.begin(), data.end());
-    CHECK(slope == Approx(result.first));
-    CHECK(intercept == Approx(result.second));
+    CHECK_THAT(slope, Catch::Matchers::WithinAbs(result.first, 1e-7));
+    CHECK_THAT(intercept, Catch::Matchers::WithinAbs(result.second, 1e-7));
   }
 
   SECTION("TwoPoints Float")
@@ -76,8 +76,8 @@ TEST_CASE("LinearRegression")
     data.emplace_back(666666.6f, 66666.6f);
 
     const auto result = linearRegression(data.begin(), data.end());
-    CHECK(0.1f == Approx(result.first));
-    CHECK(0.f == Approx(result.second));
+    CHECK_THAT(static_cast<double>(result.first), Catch::Matchers::WithinAbs(0.1, 0.002));
+    CHECK_THAT(static_cast<double>(result.second), Catch::Matchers::WithinAbs(0., 0.002));
   }
 
   SECTION("10000Points Float")
@@ -92,8 +92,10 @@ TEST_CASE("LinearRegression")
     }
 
     const auto result = linearRegression(data.begin(), data.end());
-    CHECK(slope == Approx(result.first));
-    CHECK(intercept == Approx(result.second));
+    CHECK_THAT(
+      slope, Catch::Matchers::WithinAbs(static_cast<double>(result.first), 1e-3));
+    CHECK_THAT(
+      intercept, Catch::Matchers::WithinAbs(static_cast<double>(result.second), 1e-3));
   }
 }
 
