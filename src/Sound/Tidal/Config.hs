@@ -1,7 +1,6 @@
 module Sound.Tidal.Config where
 
-import Data.Int(Int64)
-import Foreign.C.Types (CDouble)
+import qualified Sound.Tidal.Clock as Clock
 
 {-
     Config.hs - For default Tidal configuration values.
@@ -25,16 +24,11 @@ data Config = Config {cCtrlListen :: Bool,
                       cCtrlAddr :: String,
                       cCtrlPort :: Int,
                       cCtrlBroadcast :: Bool,
-                      cFrameTimespan :: Double,
-                      cEnableLink :: Bool,
-                      cProcessAhead :: Double,
                       cTempoAddr :: String,
                       cTempoPort :: Int,
                       cTempoClientPort :: Int,
-                      cSkipTicks :: Int64,
                       cVerbose :: Bool,
-                      cQuantum :: CDouble,
-                      cBeatsPerCycle :: CDouble
+                      cClockConfig :: Clock.ClockConfig
                      }
 
 defaultConfig :: Config
@@ -42,14 +36,9 @@ defaultConfig = Config {cCtrlListen = True,
                         cCtrlAddr ="127.0.0.1",
                         cCtrlPort = 6010,
                         cCtrlBroadcast = False,
-                        cFrameTimespan = 1/20,
-                        cEnableLink = True,
-                        cProcessAhead = 3/10,
                         cTempoAddr = "127.0.0.1",
                         cTempoPort = 9160,
                         cTempoClientPort = 0, -- choose at random
-                        cSkipTicks = 10,
                         cVerbose = True,
-                        cQuantum = 4,
-                        cBeatsPerCycle = 4
+                        cClockConfig = Clock.defaultConfig
                        }

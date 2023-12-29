@@ -42,9 +42,9 @@ import           Sound.Tidal.Config
 import           Sound.Tidal.Core (stack, (#))
 import           Sound.Tidal.ID
 import qualified Sound.Tidal.Link as Link
+import qualified Sound.Tidal.Clock as Clock
 import           Sound.Tidal.Params (pS)
 import           Sound.Tidal.Pattern
-import qualified Sound.Tidal.Tempo as T
 import           Sound.Tidal.Utils ((!!!))
 import           Data.List (sortOn)
 import           System.Random (getStdRandom, randomR)
@@ -58,10 +58,9 @@ data Stream = Stream {sConfig :: Config,
                       sBusses :: MVar [Int],
                       sStateMV :: MVar ValueMap,
                       -- sOutput :: MVar ControlPattern,
-                      sLink :: Link.AbletonLink,
+                      sClockRef :: Clock.ClockRef,
                       sListen :: Maybe O.Udp,
                       sPMapMV :: MVar PlayMap,
-                      sActionsMV :: MVar [T.TempoAction],
                       sGlobalFMV :: MVar (ControlPattern -> ControlPattern),
                       sCxs :: [Cx]
                      }
@@ -72,7 +71,6 @@ data Cx = Cx {cxTarget :: Target,
               cxAddr :: N.AddrInfo,
               cxBusAddr :: Maybe N.AddrInfo
              }
-  deriving (Show)
 
 data StampStyle = BundleStamp
                 | MessageStamp
@@ -205,7 +203,6 @@ startStream config oscmap
        pMapMV <- newMVar Map.empty
        bussesMV <- newMVar []
        globalFMV <- newMVar id
-       actionsMV <- newEmptyMVar
 
        tidal_status_string >>= verbose config
        verbose config $ "Listening for external controls on " ++ cCtrlAddr config ++ ":" ++ show (cCtrlPort config)
@@ -221,26 +218,23 @@ startStream config oscmap
                                                           ) (oAddress target) (oPort target)
                                         return $ Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}
                    ) oscmap
-       let bpm = (coerce defaultCps) * 60 * (cBeatsPerCycle config)
-       abletonLink <- Link.create bpm
+
+       clockRef <- Clock.clocked ((cClockConfig config) {Clock.cTickAction = doTick sMapMV bussesMV pMapMV globalFMV cxs listen})
+
        let stream = Stream {sConfig = config,
                             sBusses = bussesMV,
                             sStateMV  = sMapMV,
-                            sLink = abletonLink,
+                            sClockRef = clockRef,
+                            -- sLink = abletonLink,
                             sListen = listen,
                             sPMapMV = pMapMV,
-                            sActionsMV = actionsMV,
+                            -- sActionsMV = actionsMV,
                             sGlobalFMV = globalFMV,
                             sCxs = cxs
                            }
+
        sendHandshakes stream
-       let ac = T.ActionHandler {
-         T.onTick = onTick stream,
-         T.onSingleTick = onSingleTick stream,
-         T.updatePattern = updatePattern stream
-         }
-       -- Spawn a thread that acts as the clock
-       _ <- T.clocked config sMapMV pMapMV actionsMV ac abletonLink
+
        -- Spawn a thread to handle OSC control messages
        _ <- forkIO $ ctrlResponder 0 config stream
        return stream
@@ -361,7 +355,7 @@ toOSC busses pe osc@(OSC _ _)
         playmsg | peHasOnset pe = do
                   -- If there is already cps in the event, the union will preserve that.
                   let extra = Map.fromList [("cps", (VF (coerce $! peCps pe))),
-                                          ("delta", VF (T.addMicrosToOsc (peDelta pe) 0)),
+                                          ("delta", VF (Clock.addMicrosToOsc (peDelta pe) 0)),
                                           ("cycle", VF (fromRational (peCycle pe)))
                                         ]
                       addExtra = Map.union playmap' extra
@@ -400,40 +394,27 @@ toOSC _ pe (OSCContext oscpath)
         ts = (peOnWholeOrPartOsc pe) + nudge -- + latency
 
 
--- Used for Tempo callback
-updatePattern :: Stream -> ID -> Time -> ControlPattern -> IO ()
-updatePattern stream k !t pat = do
-  let x = queryArc pat (Arc 0 0)
-  pMap <- seq x $ takeMVar (sPMapMV stream)
-  let playState = updatePS $ Map.lookup (fromID k) pMap
-  putMVar (sPMapMV stream) $ Map.insert (fromID k) playState pMap
-  where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
-        updatePS Nothing = PlayState pat' False False [pat']
-        patControls = Map.singleton patternTimeID (VR t)
-        pat' = withQueryControls (Map.union patControls)
-                 $ pat # pS "_id_" (pure $ fromID k)
-
-processCps :: T.LinkOperations -> [Event ValueMap] -> IO [ProcessedEvent]
+processCps :: Clock.LinkOperations -> [Event ValueMap] -> IO [ProcessedEvent]
 processCps ops = mapM processEvent
   where
     processEvent ::  Event ValueMap  -> IO ProcessedEvent
     processEvent e = do
       let wope = wholeOrPart e
           partStartCycle = start $ part e
-          partStartBeat = (T.cyclesToBeat ops) (realToFrac partStartCycle)
+          partStartBeat = (Clock.cyclesToBeat ops) (realToFrac partStartCycle)
           onCycle = start wope
-          onBeat = (T.cyclesToBeat ops) (realToFrac onCycle)
+          onBeat = (Clock.cyclesToBeat ops) (realToFrac onCycle)
           offCycle = stop wope
-          offBeat = (T.cyclesToBeat ops) (realToFrac offCycle)
-      on <- (T.timeAtBeat ops) onBeat
-      onPart <- (T.timeAtBeat ops) partStartBeat
+          offBeat = (Clock.cyclesToBeat ops) (realToFrac offCycle)
+      on <- (Clock.timeAtBeat ops) onBeat
+      onPart <- (Clock.timeAtBeat ops) partStartBeat
       when (eventHasOnset e) (do
         let cps' = Map.lookup "cps" (value e) >>= getF
-        maybe (return ()) (\newCps -> (T.setTempo ops) ((T.cyclesToBeat ops) (newCps * 60)) on) $ coerce cps'
+        maybe (return ()) (\newCps -> (Clock.setTempo ops) ((Clock.cyclesToBeat ops) (newCps * 60)) on) $ coerce cps'
         )
-      off <- (T.timeAtBeat ops) offBeat
-      bpm <- (T.getTempo ops)
-      let cps = ((T.beatToCycles ops) bpm) / 60
+      off <- (Clock.timeAtBeat ops) offBeat
+      bpm <- (Clock.getTempo ops)
+      let cps = ((Clock.beatToCycles ops) bpm) / 60
       let delta = off - on
       return $! ProcessedEvent {
           peHasOnset = eventHasOnset e,
@@ -442,9 +423,9 @@ processCps ops = mapM processEvent
           peDelta = delta,
           peCycle = onCycle,
           peOnWholeOrPart = on,
-          peOnWholeOrPartOsc = (T.linkToOscTime ops) on,
+          peOnWholeOrPartOsc = (Clock.linkToOscTime ops) on,
           peOnPart = onPart,
-          peOnPartOsc = (T.linkToOscTime ops) onPart
+          peOnPartOsc = (Clock.linkToOscTime ops) onPart
         }
 
 
@@ -453,22 +434,17 @@ streamOnce :: Stream -> ControlPattern -> IO ()
 streamOnce st p = do i <- getStdRandom $ randomR (0, 8192)
                      streamFirst st $ rotL (toRational (i :: Int)) p
 
--- here let's do modifyMVar_ on actions
 streamFirst :: Stream -> ControlPattern -> IO ()
-streamFirst stream pat = modifyMVar_ (sActionsMV stream) (\actions -> return $ (T.SingleTick pat) : actions)
-
--- Used for Tempo callback
-onTick :: Stream -> TickState -> T.LinkOperations -> ValueMap -> IO ValueMap
-onTick stream st ops s
-  = doTick stream st ops s
+streamFirst stream pat = onSingleTick (sConfig stream) (sClockRef stream) (sStateMV stream) (sBusses stream) (sPMapMV stream) (sGlobalFMV stream) (sCxs stream) (sListen stream) pat
 
 -- Used for Tempo callback
 -- Tempo changes will be applied.
 -- However, since the full arc is processed at once and since Link does not support
 -- scheduling, tempo change may affect scheduling of events that happen earlier
 -- in the normal stream (the one handled by onTick).
-onSingleTick :: Stream -> T.LinkOperations -> ValueMap -> ControlPattern -> IO ValueMap
-onSingleTick stream ops s pat = do
+onSingleTick :: Config -> Clock.ClockRef -> MVar ValueMap -> MVar [Int] -> MVar PlayMap -> MVar (ControlPattern -> ControlPattern) -> [Cx] -> Maybe O.Udp -> ControlPattern -> IO ()
+onSingleTick config clockRef stateMV busMV _ globalFMV cxs listen pat = do
+  ops <- Clock.getZeroedLinkOperations (cClockConfig config) clockRef
   pMapMV <- newMVar $ Map.singleton "fake"
           (PlayState {pattern = pat,
                       mute = False,
@@ -476,10 +452,8 @@ onSingleTick stream ops s pat = do
                       history = []
                       }
           )
-
   -- The nowArc is a full cycle
-  let state = TickState {tickArc = (Arc 0 1), tickNudge = 0}
-  doTick (stream {sPMapMV = pMapMV}) state ops s
+  doTick stateMV busMV pMapMV globalFMV cxs listen (0,1) 0 ops
 
 
 -- | Query the current pattern (contained in argument @stream :: Stream@)
@@ -495,25 +469,24 @@ onSingleTick stream ops s pat = do
 -- this function prints a warning and resets the current pattern
 -- to the previous one (or to silence if there isn't one) and continues,
 -- because the likely reason is that something is wrong with the current pattern.
-doTick :: Stream -> TickState -> T.LinkOperations -> ValueMap -> IO ValueMap
-doTick stream st ops sMap =
+doTick :: MVar ValueMap -> MVar [Int] -> MVar PlayMap -> MVar (ControlPattern -> ControlPattern) -> [Cx] -> Maybe O.Udp -> (Time,Time) -> Double -> Clock.LinkOperations -> IO ()
+doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge ops =
   E.handle (\ (e :: E.SomeException) -> do
     hPutStrLn stderr $ "Failed to Stream.doTick: " ++ show e
     hPutStrLn stderr $ "Return to previous pattern."
-    setPreviousPatternOrSilence stream
-    return sMap) (do
-      pMap <- readMVar (sPMapMV stream)
-      busses <- readMVar (sBusses stream)
-      sGlobalF <- readMVar (sGlobalFMV stream)
-      bpm <- (T.getTempo ops)
+    setPreviousPatternOrSilence playMV) (do
+      sMap <- takeMVar stateMV
+      pMap <- readMVar playMV
+      busses <- readMVar busMV
+      sGlobalF <- readMVar globalFMV
+      bpm <- (Clock.getTempo ops)
       let
-        cxs = sCxs stream
         patstack = sGlobalF $ playStack pMap
-        cps = ((T.beatToCycles ops) bpm) / 60
+        cps = ((Clock.beatToCycles ops) bpm) / 60
         sMap' = Map.insert "_cps" (VF $ coerce cps) sMap
-        extraLatency = tickNudge st
+        extraLatency = nudge
         -- First the state is used to query the pattern
-        es = sortOn (start . part) $ query patstack (State {arc = tickArc st,
+        es = sortOn (start . part) $ query patstack (State {arc = Arc st end,
                                                         controls = sMap'
                                                       }
                                                 )
@@ -528,13 +501,14 @@ doTick stream st ops sMap =
             ms = concatMap (\e ->  concatMap (toOSC busses e) oscs) tes
         -- send the events to the OSC target
         forM_ ms $ \ m -> (do
-          send (sListen stream) cx latency extraLatency m) `E.catch` \ (e :: E.SomeException) -> do
+          send listen cx latency extraLatency m) `E.catch` \ (e :: E.SomeException) -> do
           hPutStrLn stderr $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
-      sMap'' `seq` return sMap'')
+      putMVar stateMV sMap'')
 
-setPreviousPatternOrSilence :: Stream -> IO ()
-setPreviousPatternOrSilence stream =
-  modifyMVar_ (sPMapMV stream) $ return
+
+setPreviousPatternOrSilence :: MVar PlayMap -> IO ()
+setPreviousPatternOrSilence playMV =
+  modifyMVar_ playMV $ return
     . Map.map ( \ pMap -> case history pMap of
       _:p:ps -> pMap { pattern = p, history = p:ps }
       _ -> pMap { pattern = silence, history = [silence] }
@@ -564,13 +538,28 @@ send listen cx latency extraLatency (time, isBusMsg, m)
 -- Interaction
 
 streamNudgeAll :: Stream -> Double -> IO ()
-streamNudgeAll s nudge = T.setNudge (sActionsMV s) nudge
+streamNudgeAll s = Clock.setNudge (sClockRef s)
 
 streamResetCycles :: Stream -> IO ()
 streamResetCycles s = streamSetCycle s 0
 
 streamSetCycle :: Stream -> Time -> IO ()
-streamSetCycle s cyc = T.setCycle cyc (sActionsMV s)
+streamSetCycle s = Clock.setClock (sClockRef s)
+
+streamSetBPM :: Stream -> Time -> IO ()
+streamSetBPM s = Clock.setBPM (sClockRef s)
+
+streamSetCPS :: Stream -> Time -> IO ()
+streamSetCPS s = Clock.setCPS (cClockConfig $ sConfig s) (sClockRef s)
+
+streamGetCPS :: Stream -> IO Time
+streamGetCPS s = Clock.getCPS (cClockConfig $ sConfig s)(sClockRef s)
+
+streamGetBPM :: Stream -> IO Time
+streamGetBPM s = Clock.getBPM (sClockRef s)
+
+streamGetNow :: Stream -> IO Time
+streamGetNow s = Clock.getCycleTime (cClockConfig $ sConfig s)(sClockRef s)
 
 hasSolo :: Map.Map k PlayState -> Bool
 hasSolo = (>= 1) . length . filter solo . Map.elems
@@ -585,11 +574,26 @@ streamList s = do pMap <- readMVar (sPMapMV s)
         showKV False (k, (PlayState {solo = False})) = k ++ "\n"
         showKV False (k, _) = "(" ++ k ++ ") - muted\n"
 
--- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
+-- Used for Tempo callback
+updatePattern :: Stream -> ID -> Time -> ControlPattern -> IO ()
+updatePattern stream k !t pat = do
+  let x = queryArc pat (Arc 0 0)
+  pMap <- seq x $ takeMVar (sPMapMV stream)
+  let playState = updatePS $ Map.lookup (fromID k) pMap
+  putMVar (sPMapMV stream) $ Map.insert (fromID k) playState pMap
+  where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
+        updatePS Nothing = PlayState pat' False False [pat']
+        patControls = Map.singleton patternTimeID (VR t)
+        pat' = withQueryControls (Map.union patControls)
+                 $ pat # pS "_id_" (pure $ fromID k)
 
+-- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 streamReplace :: Stream -> ID -> ControlPattern -> IO ()
-streamReplace s k !pat
-  = modifyMVar_ (sActionsMV s) (\actions -> return $ (T.StreamReplace k pat) : actions)
+streamReplace stream k !pat = do
+                  t <- Clock.getCycleTime (cClockConfig $ sConfig stream) (sClockRef stream)
+                  updatePattern stream k t pat
+
+  -- = modifyMVar_ (sActionsMV s) (\actions -> return $ (T.StreamReplace k pat) : actions)
 
 streamMute :: Stream -> ID -> IO ()
 streamMute s k = withPatIds s [k] (\x -> x {mute = True})
@@ -737,31 +741,3 @@ verbose c s = when (cVerbose c) $ putStrLn s
 
 recvMessagesTimeout :: (O.Transport t) => Double -> t -> IO [O.Message]
 recvMessagesTimeout n sock = fmap (maybe [] O.packetMessages) $ O.recvPacketTimeout n sock
-
-streamGetcps :: Stream -> IO Double
-streamGetcps s = do
-  let config = sConfig s
-  ss <- Link.createAndCaptureAppSessionState (sLink s)
-  bpm <- Link.getTempo ss
-  Link.destroySessionState ss
-  return $! coerce $ bpm / (cBeatsPerCycle config) / 60
-
-streamGetnow :: Stream -> IO Double
-streamGetnow s = do
-  let config = sConfig s
-  ss <- Link.createAndCaptureAppSessionState (sLink s)
-  now <- Link.clock (sLink s)
-  beat <- Link.beatAtTime ss now (cQuantum config)
-  Link.destroySessionState ss
-  return $! coerce $ beat / (cBeatsPerCycle config)
-
-getProcessAhead :: Stream -> Link.Micros
-getProcessAhead str = round $ (cProcessAhead $ sConfig str) * 100000
-
-streamGetAhead :: Stream -> IO Double
-streamGetAhead str = do
-  ss <- Link.createAndCaptureAppSessionState (sLink str)
-  now <- Link.clock (sLink str)
-  beat <- Link.beatAtTime ss (now + (getProcessAhead str)) (cQuantum $! sConfig str)
-  Link.destroySessionState ss
-  return $ coerce $! beat / (cBeatsPerCycle $! sConfig str)
