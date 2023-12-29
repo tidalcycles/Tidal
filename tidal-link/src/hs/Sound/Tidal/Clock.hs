@@ -278,7 +278,7 @@ getBPM :: ClockRef -> IO Time
 getBPM (ClockRef _ abletonLink) = do
                             ss <- Link.createAndCaptureAppSessionState abletonLink
                             bpm <- Link.getTempo ss
-                            Link.commitAndDestroyAppSessionState abletonLink ss
+                            Link.destroySessionState ss
                             return $! toRational bpm
 
 getCPS :: ClockConfig -> ClockRef -> IO Time
@@ -289,26 +289,40 @@ getCycleTime config (ClockRef _ abletonLink) = do
                             now <- Link.clock abletonLink
                             ss <- Link.createAndCaptureAppSessionState abletonLink
                             c <- timeToCycles' config ss now
-                            Link.commitAndDestroyAppSessionState abletonLink ss
+                            Link.destroySessionState ss
                             return $! c
 
-getLinkOperations :: ClockConfig -> ClockRef -> IO LinkOperations
-getLinkOperations config (ClockRef _ abletonLink) = do
-  sessionState <- Link.createAndCaptureAppSessionState abletonLink
+-- onSingleTick assumes it runs at beat 0.
+-- The best way to achieve that is to use forceBeatAtTime.
+-- But using forceBeatAtTime means we can not commit its session state.
+-- Another session state, which we will commit,
+-- is introduced to keep track of tempo changes.
+getZeroedLinkOperations :: ClockConfig -> ClockRef -> IO LinkOperations
+getZeroedLinkOperations config (ClockRef _ abletonLink) = do
+              sessionState <- Link.createAndCaptureAppSessionState abletonLink
+              zeroedSessionState <- Link.createAndCaptureAppSessionState abletonLink
 
-  nowOsc <- O.time
-  nowLink <- Link.clock abletonLink
-  Link.commitAndDestroyAppSessionState abletonLink sessionState
+              nowOsc <- O.time
+              nowLink <- Link.clock abletonLink
 
-  return $ LinkOperations {
-    timeAtBeat = \beat -> Link.timeAtBeat sessionState beat (cQuantum config) ,
-    timeToCycles = timeToCycles' config sessionState,
-    getTempo = Link.getTempo sessionState,
-    setTempo = Link.setTempo sessionState,
-    linkToOscTime = \lt -> addMicrosToOsc (lt - nowLink) nowOsc,
-    beatToCycles = \beat -> beat / (cBeatsPerCycle config),
-    cyclesToBeat = \cyc -> cyc * (cBeatsPerCycle config)
-  }
+              Link.forceBeatAtTime zeroedSessionState 0 (nowLink + processAhead) (cQuantum config)
+
+              Link.commitAndDestroyAppSessionState abletonLink sessionState
+              Link.destroySessionState zeroedSessionState
+
+              return $ LinkOperations {
+                  timeAtBeat = \beat -> Link.timeAtBeat zeroedSessionState beat (cQuantum config),
+                  timeToCycles = timeToCycles' config zeroedSessionState,
+                  getTempo = Link.getTempo zeroedSessionState,
+                  setTempo = \bpm micros ->
+                                Link.setTempo zeroedSessionState bpm micros >>
+                                Link.setTempo sessionState bpm micros,
+                  linkToOscTime = \lt -> addMicrosToOsc (lt - nowLink) nowOsc,
+                  beatToCycles = \beat -> beat / (cBeatsPerCycle config),
+                  cyclesToBeat = \cyc -> cyc * (cBeatsPerCycle config)
+                  }
+      where processAhead = round $ (cProcessAhead config) * 1000000
+
 
 resetClock :: ClockRef -> IO ()
 resetClock clock = setClock clock 0
@@ -318,6 +332,10 @@ setClock (ClockRef clock _) t = modifyMVar_ clock (const $ return $ SetCycle t)
 
 setBPM :: ClockRef -> Time -> IO ()
 setBPM (ClockRef clock _) t = modifyMVar_ clock (const $ return $ SetTempo t)
+
+setCPS :: ClockConfig -> ClockRef -> Time -> IO ()
+setCPS config ref cps = setBPM ref bpm
+                       where bpm = cps * 60 * (toRational $ cBeatsPerCycle config)
 
 setNudge :: ClockRef -> Double -> IO ()
 setNudge (ClockRef clock _) n = modifyMVar_ clock (const $ return $ SetNudge n)
