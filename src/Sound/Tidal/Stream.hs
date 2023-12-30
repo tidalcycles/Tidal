@@ -219,7 +219,7 @@ startStream config oscmap
                                         return $ Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}
                    ) oscmap
 
-       clockRef <- Clock.clocked ((cClockConfig config) {Clock.cTickAction = doTick sMapMV bussesMV pMapMV globalFMV cxs listen})
+       clockRef <- Clock.clocked (cClockConfig config) (doTick sMapMV bussesMV pMapMV globalFMV cxs listen)
 
        let stream = Stream {sConfig = config,
                             sBusses = bussesMV,

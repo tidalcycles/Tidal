@@ -24,6 +24,7 @@ data ClockMemory
   = ClockMemory
   {clockConfig :: ClockConfig
   ,clockRef :: ClockRef
+  ,clockAction :: TickAction
   }
 
 -- | internal mutable state of the clock
@@ -51,7 +52,6 @@ data ClockConfig
   ,cEnableLink :: Bool
   ,cSkipTicks :: Int64
   ,cProcessAhead :: Double
-  ,cTickAction :: TickAction
   }
 
 -- | action to be executed on a tick,
@@ -90,26 +90,25 @@ defaultConfig = ClockConfig
               ,cSkipTicks = 10
               ,cQuantum = 4
               ,cBeatsPerCycle = 4
-              ,cTickAction = \_ _ _ -> return ()
               }
 
 -- | creates a clock according to the config and runs it
 -- | in a seperate thread
-clocked :: ClockConfig -> IO ClockRef
-clocked config = runClock config clockCheck
+clocked :: ClockConfig -> TickAction -> IO ClockRef
+clocked config ac = runClock config ac clockCheck
 
 -- | runs the clock on the initial state and memory as given
 -- | by initClock, hands the ClockRef for interaction from outside
-runClock :: ClockConfig -> Clock () -> IO ClockRef
-runClock config clock = do
-              (mem, st) <- initClock config
+runClock :: ClockConfig -> TickAction -> Clock () -> IO ClockRef
+runClock config ac clock = do
+              (mem, st) <- initClock config ac
               _ <- forkIO $ evalStateT (runReaderT clock mem) st
               return (clockRef mem)
 
 -- | creates a ableton link instance and an MVar for interacting
 -- | with the clock from outside and computes the initial clock state
-initClock :: ClockConfig -> IO (ClockMemory, ClockState)
-initClock config = do
+initClock :: ClockConfig -> TickAction -> IO (ClockMemory, ClockState)
+initClock config ac = do
       abletonLink <- Link.create bpm
       when (cEnableLink config) $ Link.enable abletonLink
       sessionState <- Link.createAndCaptureAppSessionState abletonLink
@@ -123,7 +122,7 @@ initClock config = do
                  nowArc = (0,0),
                  nudged = 0
                 }
-      return (ClockMemory config (ClockRef clockMV abletonLink), st)
+      return (ClockMemory config (ClockRef clockMV abletonLink) ac, st)
   where processAhead = round $ (cProcessAhead config) * 1000000
         bpm = (coerce defaultCps) * 60 * (cBeatsPerCycle config)
 
@@ -138,7 +137,7 @@ initClock config = do
 -- previously called checkArc
 clockCheck :: Clock ()
 clockCheck = do
-    (ClockMemory config (ClockRef clockMV abletonLink)) <- ask
+    (ClockMemory config (ClockRef clockMV abletonLink) _) <- ask
 
     action <- liftIO $ swapMVar clockMV NoAction
     processAction action
@@ -161,7 +160,7 @@ clockCheck = do
 -- tick delays the thread when logical time is ahead of Link time.
 tick :: Clock ()
 tick = do
-  (ClockMemory config (ClockRef _ abletonLink)) <- ask
+  (ClockMemory config (ClockRef _ abletonLink) _) <- ask
   st <- get
   now <- liftIO $ Link.clock abletonLink
   let processAhead = round $ (cProcessAhead config) * 1000000
@@ -187,7 +186,7 @@ tick = do
 -- hands the current link operations to the TickAction
 clockProcess :: Clock ()
 clockProcess = do
-    (ClockMemory config (ClockRef _ abletonLink)) <- ask
+    (ClockMemory config (ClockRef _ abletonLink) action) <- ask
     st <- get
     let logicalEnd = logicalTime config (start st) $ ticks st + 1
         startCycle = arcEnd $ nowArc st
@@ -210,7 +209,7 @@ clockProcess = do
       cyclesToBeat = \cyc -> cyc * (cBeatsPerCycle config)
     }
 
-    liftIO $ (cTickAction config) (nowArc st') (nudged st') ops
+    liftIO $ action (nowArc st') (nudged st') ops
 
     liftIO $ Link.commitAndDestroyAppSessionState abletonLink sessionState
 
@@ -221,13 +220,13 @@ processAction :: ClockAction -> Clock ()
 processAction NoAction = return ()
 processAction (SetNudge n) = modify (\st  -> st {nudged = n})
 processAction (SetTempo bpm) = do
-            (ClockMemory _ (ClockRef _ abletonLink)) <- ask
+            (ClockMemory _ (ClockRef _ abletonLink) _) <- ask
             sessionState <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
             now <- liftIO $ Link.clock abletonLink
             liftIO $ Link.setTempo sessionState (fromRational bpm) now
             liftIO $ Link.commitAndDestroyAppSessionState abletonLink sessionState
 processAction (SetCycle cyc) = do
-            (ClockMemory config (ClockRef _ abletonLink)) <- ask
+            (ClockMemory config (ClockRef _ abletonLink) _) <- ask
             sessionState <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
 
             now <- liftIO $ Link.clock abletonLink
