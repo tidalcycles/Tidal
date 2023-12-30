@@ -593,11 +593,13 @@ updatePattern stream k !t pat = do
         pat' = withQueryControls (Map.union patControls)
                  $ pat # pS "_id_" (pure $ fromID k)
 
--- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 streamReplace :: Stream -> ID -> ControlPattern -> IO ()
 streamReplace stream k !pat = do
                   t <- Clock.getCycleTime (cClockConfig $ sConfig stream) (sClockRef stream)
-                  updatePattern stream k t pat
+                  E.handle (\ (e :: E.SomeException) -> do
+                    hPutStrLn stderr $ "Failed to Stream.streamReplace: " ++ show e
+                    hPutStrLn stderr $ "Return to previous pattern."
+                    setPreviousPatternOrSilence (sPMapMV stream)) (updatePattern stream k t pat)
 
   -- = modifyMVar_ (sActionsMV s) (\actions -> return $ (T.StreamReplace k pat) : actions)
 
