@@ -85,7 +85,7 @@ defaultCps = 0.575
 defaultConfig :: ClockConfig
 defaultConfig = ClockConfig
               {cFrameTimespan = 1/20
-              ,cEnableLink = True
+              ,cEnableLink = False
               ,cProcessAhead = 3/10
               ,cSkipTicks = 10
               ,cQuantum = 4
@@ -338,3 +338,9 @@ setCPS config ref cps = setBPM ref bpm
 
 setNudge :: ClockRef -> Double -> IO ()
 setNudge (ClockRef clock _) n = modifyMVar_ clock (const $ return $ SetNudge n)
+
+disableLink :: ClockRef -> IO ()
+disableLink (ClockRef _ abletonLink) = Link.disable abletonLink
+
+enableLink :: ClockRef -> IO ()
+enableLink (ClockRef _ abletonLink) = Link.enable abletonLink

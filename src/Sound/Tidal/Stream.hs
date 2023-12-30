@@ -561,6 +561,12 @@ streamGetBPM s = Clock.getBPM (sClockRef s)
 streamGetNow :: Stream -> IO Time
 streamGetNow s = Clock.getCycleTime (cClockConfig $ sConfig s)(sClockRef s)
 
+streamEnableLink :: Stream -> IO ()
+streamEnableLink s = Clock.enableLink (sClockRef s)
+
+streamDisableLink :: Stream -> IO ()
+streamDisableLink s = Clock.disableLink (sClockRef s)
+
 hasSolo :: Map.Map k PlayState -> Bool
 hasSolo = (>= 1) . length . filter solo . Map.elems
 
