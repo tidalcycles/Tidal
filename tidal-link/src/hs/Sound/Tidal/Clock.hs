@@ -79,7 +79,7 @@ data ClockAction
   | SetNudge Double
   deriving Show
 
-defaultCps :: O.Time
+defaultCps :: Double
 defaultCps = 0.575
 
 defaultConfig :: ClockConfig
