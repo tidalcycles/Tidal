@@ -3,15 +3,16 @@ module Sound.Tidal.Clock where
 import qualified Sound.Tidal.Link as Link
 import qualified Sound.Osc.Fd as O
 
-import Control.Concurrent
-import Control.Monad         (when)
-import Control.Monad.Reader  (ReaderT, runReaderT, ask)
-import Control.Monad.State   (StateT, liftIO, evalStateT, get, put, modify)
+import Control.Concurrent     (forkIO, threadDelay)
+import Control.Concurrent.STM (TVar, atomically, readTVar, newTVar, modifyTVar', swapTVar, retry)
+import Control.Monad          (when)
+import Control.Monad.Reader   (ReaderT, runReaderT, ask)
+import Control.Monad.State    (StateT, liftIO, evalStateT, get, put, modify)
 
-import Foreign.C.Types (CDouble (..))
-import Data.Int (Int64)
-import Data.Coerce (coerce)
-import System.IO (hPutStrLn, stderr)
+import Foreign.C.Types        (CDouble (..))
+import Data.Int               (Int64)
+import Data.Coerce            (coerce)
+import System.IO              (hPutStrLn, stderr)
 
 type Time = Rational
 
@@ -39,7 +40,7 @@ data ClockState
 -- | reference to interact with the clock, while it is running
 data ClockRef
   = ClockRef
-  {rAction :: MVar ClockAction
+  {rAction :: TVar ClockAction
   ,rAbletonLink :: Link.AbletonLink
   }
 
@@ -116,7 +117,7 @@ initClock config ac = do
       let startAt = now + processAhead
       Link.requestBeatAtTime sessionState 0 startAt (cQuantum config)
       Link.commitAndDestroyAppSessionState abletonLink sessionState
-      clockMV <- newMVar NoAction
+      clockMV <- atomically $ newTVar NoAction
       let st = ClockState {ticks = 0,
                  start = now,
                  nowArc = (0,0),
@@ -139,7 +140,7 @@ clockCheck :: Clock ()
 clockCheck = do
     (ClockMemory config (ClockRef clockMV abletonLink) _) <- ask
 
-    action <- liftIO $ swapMVar clockMV NoAction
+    action <- liftIO $ atomically $ swapTVar clockMV NoAction
     processAction action
 
     st <- get
@@ -327,17 +328,29 @@ resetClock :: ClockRef -> IO ()
 resetClock clock = setClock clock 0
 
 setClock :: ClockRef -> Time -> IO ()
-setClock (ClockRef clock _) t = modifyMVar_ clock (const $ return $ SetCycle t)
+setClock (ClockRef clock _) t = atomically $ do
+                                      action <- readTVar clock
+                                      case action of
+                                        NoAction -> modifyTVar' clock (const $ SetCycle t)
+                                        _ -> retry
 
 setBPM :: ClockRef -> Time -> IO ()
-setBPM (ClockRef clock _) t = modifyMVar_ clock (const $ return $ SetTempo t)
+setBPM (ClockRef clock _) t = atomically $ do
+                                      action <- readTVar clock
+                                      case action of
+                                        NoAction -> modifyTVar' clock (const $ SetTempo t)
+                                        _ -> retry
 
 setCPS :: ClockConfig -> ClockRef -> Time -> IO ()
 setCPS config ref cps = setBPM ref bpm
                        where bpm = cps * 60 * (toRational $ cBeatsPerCycle config)
 
 setNudge :: ClockRef -> Double -> IO ()
-setNudge (ClockRef clock _) n = modifyMVar_ clock (const $ return $ SetNudge n)
+setNudge (ClockRef clock _) n = atomically $ do
+                                      action <- readTVar clock
+                                      case action of
+                                        NoAction -> modifyTVar' clock (const $ SetNudge n)
+                                        _ -> retry
 
 disableLink :: ClockRef -> IO ()
 disableLink (ClockRef _ abletonLink) = Link.disable abletonLink
