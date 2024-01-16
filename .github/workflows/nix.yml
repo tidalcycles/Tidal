@@ -1,12 +1,13 @@
 # A set of CI jobs for checking the Nix flake.
 
 name: "nix"
-
 on:
-  pull_request:
   push:
-    branches:
-      - master
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "**.md"
 
 jobs:
   cancel-previous-runs:

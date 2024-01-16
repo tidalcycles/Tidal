@@ -1,6 +1,11 @@
 name: build-listener-windows
-
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "**.md"
 
 jobs:
   build:
