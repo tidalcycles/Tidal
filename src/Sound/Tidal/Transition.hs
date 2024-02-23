@@ -11,11 +11,12 @@ import qualified Data.Map.Strict as Map
 
 import Sound.Tidal.Control
 import Sound.Tidal.Core
-import Sound.Tidal.Config
+import Sound.Tidal.Stream.Config
 import Sound.Tidal.ID
 import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
-import Sound.Tidal.Stream
+import Sound.Tidal.Stream.Stream
+import Sound.Tidal.Stream.Types
 import qualified Sound.Tidal.Clock as Clock
 -- import Sound.Tidal.Tempo as T
 import Sound.Tidal.UI (fadeOutFrom, fadeInFrom)

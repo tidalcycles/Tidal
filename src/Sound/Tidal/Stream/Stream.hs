@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
 {-# language DeriveGeneric, StandaloneDeriving #-}
 
-module Sound.Tidal.Stream (module Sound.Tidal.Stream) where
+module Sound.Tidal.Stream.Stream (module Sound.Tidal.Stream.Stream) where
 
 {-
     Stream.hs - Tidal's thingie for turning patterns into OSC streams
@@ -38,7 +38,7 @@ import qualified Sound.Osc.Fd as O
 import qualified Sound.Osc.Time.Timeout as O
 import qualified Network.Socket          as N
 
-import           Sound.Tidal.Config
+import           Sound.Tidal.Stream.Config
 import           Sound.Tidal.Core (stack, (#))
 import           Sound.Tidal.ID
 import qualified Sound.Tidal.Link as Link
@@ -52,7 +52,7 @@ import           Sound.Tidal.Show ()
 
 import           Sound.Tidal.Version
 
-import Sound.Tidal.StreamTypes as Sound.Tidal.Stream
+import Sound.Tidal.Stream.Types as Sound.Tidal.Stream
 
 data Stream = Stream {sConfig :: Config,
                       sBusses :: MVar [Int],

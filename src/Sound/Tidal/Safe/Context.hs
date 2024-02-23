@@ -53,7 +53,7 @@ module Sound.Tidal.Safe.Context
 where
 
 import Data.Ratio as C
-import Sound.Tidal.Config as C
+import Sound.Tidal.Stream.Config as C
 import Sound.Tidal.Control as C
 import Sound.Tidal.Core as C
 import Sound.Tidal.Params as C
@@ -61,7 +61,7 @@ import Sound.Tidal.ParseBP as C
 import Sound.Tidal.Pattern as C
 import Sound.Tidal.Scales as C
 import Sound.Tidal.Simple as C
-import Sound.Tidal.Stream
+import Sound.Tidal.Stream.Stream
   (startTidal, superdirtTarget, Target(..))
 -- import Sound.Tidal.Transition as C
 import Sound.Tidal.UI as C
@@ -79,7 +79,7 @@ exec :: Stream -> Op r -> IO r
 exec stream (Op m) = runReaderT m stream
 
 op1 f         = Op $ do a <- ask; lift $ f a
-op2 f b       = Op $ do a <- ask; lift $ f a b 
+op2 f b       = Op $ do a <- ask; lift $ f a b
 op3 f b c     = Op $ do a <- ask; lift $ f a b c
 op4 f b c d   = Op $ do a <- ask; lift $ f a b c d
 op5 f b c d e = Op $ do a <- ask; lift $ f a b c d e

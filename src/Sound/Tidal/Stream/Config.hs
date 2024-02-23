@@ -1,4 +1,4 @@
-module Sound.Tidal.Config where
+module Sound.Tidal.Stream.Config where
 
 import qualified Sound.Tidal.Clock as Clock
 

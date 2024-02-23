@@ -1,4 +1,4 @@
-module Sound.Tidal.StreamTypes where
+module Sound.Tidal.Stream.Types where
 
 import qualified Data.Map.Strict as Map
 import Sound.Tidal.Pattern
