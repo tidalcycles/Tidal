@@ -15,7 +15,6 @@ import Sound.Tidal.Stream.Config
 import Sound.Tidal.ID
 import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
-import Sound.Tidal.Stream.Stream
 import Sound.Tidal.Stream.Types
 import qualified Sound.Tidal.Clock as Clock
 -- import Sound.Tidal.Tempo as T

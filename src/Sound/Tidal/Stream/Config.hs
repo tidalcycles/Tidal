@@ -24,9 +24,9 @@ data Config = Config {cCtrlListen :: Bool,
                       cCtrlAddr :: String,
                       cCtrlPort :: Int,
                       cCtrlBroadcast :: Bool,
-                      cTempoAddr :: String,
-                      cTempoPort :: Int,
-                      cTempoClientPort :: Int,
+                      -- cTempoAddr :: String,
+                      -- cTempoPort :: Int,
+                      -- cTempoClientPort :: Int,
                       cVerbose :: Bool,
                       cClockConfig :: Clock.ClockConfig
                      }
@@ -36,9 +36,9 @@ defaultConfig = Config {cCtrlListen = True,
                         cCtrlAddr ="127.0.0.1",
                         cCtrlPort = 6010,
                         cCtrlBroadcast = False,
-                        cTempoAddr = "127.0.0.1",
-                        cTempoPort = 9160,
-                        cTempoClientPort = 0, -- choose at random
+                        -- cTempoAddr = "127.0.0.1",
+                        -- cTempoPort = 9160,
+                        -- cTempoClientPort = 0, -- choose at random
                         cVerbose = True,
                         cClockConfig = Clock.defaultConfig
                        }

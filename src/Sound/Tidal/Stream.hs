@@ -1,7 +1,23 @@
-module Sound.Tidal.Context (module C) where
+module Sound.Tidal.Stream
+  (module Sound.Tidal.Stream.Config
+  ,module Sound.Tidal.Stream.Types
+  ,module Sound.Tidal.Stream.Process
+  ,module Sound.Tidal.Stream.Target
+  ,module Sound.Tidal.Stream.UI
+  ,module Sound.Tidal.Stream.Listen
+  ,module Sound.Tidal.Stream.Main
+  ) where
+
+import Sound.Tidal.Stream.Config
+import Sound.Tidal.Stream.Types
+import Sound.Tidal.Stream.Process
+import Sound.Tidal.Stream.Target
+import Sound.Tidal.Stream.UI
+import Sound.Tidal.Stream.Listen
+import Sound.Tidal.Stream.Main
 
 {-
-    Context.hs - For exposing the core TidalCycles libraries
+    Stream.hs - re-exports of all stream modules
     Copyright (C) 2020, Alex McLean and contributors
 
     This library is free software: you can redistribute it and/or modify
@@ -17,20 +33,3 @@ module Sound.Tidal.Context (module C) where
     You should have received a copy of the GNU General Public License
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
-
-import Prelude hiding ((<*), (*>))
-
-import Data.Ratio as C
-
-import Sound.Tidal.Stream as C
-import Sound.Tidal.Control as C
-import Sound.Tidal.Core as C
-import Sound.Tidal.Params as C
-import Sound.Tidal.ParseBP as C
-import Sound.Tidal.Pattern as C
-import Sound.Tidal.Scales as C
-import Sound.Tidal.Show as C
-import Sound.Tidal.Simple as C
-import Sound.Tidal.Transition as C
-import Sound.Tidal.UI as C
-import Sound.Tidal.Version as C
