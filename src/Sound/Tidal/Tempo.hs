@@ -76,6 +76,12 @@ data LinkOperations =
     cyclesToBeat :: CDouble -> CDouble
   }
 
+{-|
+  Start cycles from the given cycle number.
+
+  > setCycle 5
+  > d1 $ n "6 2 0 8" # s "east"
+-}
 setCycle :: P.Time -> MVar [TempoAction] -> IO ()
 setCycle cyc actionsMV = modifyMVar_ actionsMV (\actions -> return $ SetCycle cyc : actions)
 

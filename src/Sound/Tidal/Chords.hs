@@ -22,7 +22,10 @@ import Data.Maybe
 
 import Sound.Tidal.Pattern
 
--- major chords
+-- * Chord definitions
+
+-- ** Major chords
+
 major :: Num a => [a]
 major = [0,4,7]
 aug :: Num a => [a]
@@ -45,7 +48,9 @@ major13 :: Num a => [a]
 major13 = [0,4,7,11,14,21]
 add13 :: Num a => [a]
 add13 = [0,4,7,21]
--- dominant chords
+
+-- ** Dominant chords
+
 dom7 :: Num a => [a]
 dom7 = [0,4,7,10]
 dom9 :: Num a => [a]
@@ -66,7 +71,9 @@ eleven :: Num a => [a]
 eleven = [0,4,7,10,14,17]
 thirteen :: Num a => [a]
 thirteen = [0,4,7,10,14,17,21]
--- minor chords
+
+-- ** Minor chords
+
 minor :: Num a => [a]
 minor = [0,3,7]
 diminished :: Num a => [a]
@@ -97,7 +104,9 @@ minor13 :: Num a => [a]
 minor13 = [0,3,7,10,14,17,21]
 minorMajor7 :: Num a => [a]
 minorMajor7 = [0,3,7,11]
--- other chords
+
+-- ** Other chords
+
 one :: Num a => [a]
 one = [0]
 five :: Num a => [a]
@@ -112,7 +121,9 @@ sevenSus4 :: Num a => [a]
 sevenSus4 = [0,5,7,10]
 nineSus4 :: Num a => [a]
 nineSus4 = [0,5,7,10,14]
--- questionable chords
+
+-- ** Questionable chords
+
 sevenFlat10 :: Num a => [a]
 sevenFlat10 = [0,4,7,10,15]
 nineSharp5 :: Num a => [a]
@@ -128,6 +139,8 @@ elevenSharp = [0,4,7,10,14,18]
 minor11sharp :: Num a => [a]
 minor11sharp = [0,3,7,10,14,18]
 
+-- * Chord functions
+
 -- | @chordate cs m n@ selects the @n@th "chord" (a chord is a list of Ints)
 -- from a list of chords @cs@ and transposes it by @m@
 -- chordate :: Num b => [[b]] -> b -> Int -> [b]
@@ -140,6 +153,22 @@ minor11sharp = [0,3,7,10,14,18]
 -- enchord :: Num a => [[a]] -> Pattern a -> Pattern Int -> Pattern a
 -- enchord chords pn pc = flatpat $ (chordate chords) <$> pn <*> pc
 
+{-|
+  The @chordTable@ function outputs a list of all available chords and their
+  corresponding notes. For example, its first entry is @("major",[0,4,7])@ which
+  means that a major triad is formed by the root (0), the major third (4 semitones
+  above the root), and the perfect fifth (7 semitones above the root).
+
+  As the list is big, you can use the function 'chordL'.
+
+  If you know the notes from a chord, but can’t find the name of it, you can use this Haskell code to do a reverse look up into the table:
+
+  > filter (\(_,x)->x==[0,4,7,10]) chordTable
+
+  This will output @[("dom7",[0,4,7,10])]@
+
+  (You’ll need to run @import Sound.Tidal.Chords@ before using this function.)
+-}
 chordTable :: Num a => [(String, [a])]
 chordTable = [("major", major),
               ("maj", major),
@@ -273,9 +302,31 @@ chordTable = [("major", major),
               ("m11s", minor11sharp)
              ]
 
+-- | Look up a specific chord: @chordL "minor7"@ returns @(0>1)|[0,3,7,10]@.
 chordL :: Num a => Pattern String -> Pattern [a]
 chordL p = (\name -> fromMaybe [] $ lookup name chordTable) <$> p
 
+{-|
+Outputs all the available chords:
+
+@
+major maj M aug plus sharp5 six 6 sixNine six9 sixby9 6by9 major7 maj7
+major9 maj9 add9 major11 maj11 add11 major13 maj13 add13 dom7 dom9 dom11
+dom13 sevenFlat5 7f5 sevenSharp5 7s5 sevenFlat9 7f9 nine eleven 11 thirteen 13
+minor min m diminished dim minorSharp5 msharp5 mS5 minor6 min6 m6 minorSixNine
+minor69 min69 minSixNine m69 mSixNine m6by9 minor7flat5 minor7f5 min7flat5
+min7f5 m7flat5 m7f5 minor7 min7 m7 minor7sharp5 minor7s5 min7sharp5 min7s5
+m7sharp5 m7s5 minor7flat9 minor7f9 min7flat9 min7f9 m7flat9 m7f9 minor7sharp9
+minor7s9 min7sharp9 min7s9 m7sharp9 m7s9 diminished7 dim7 minor9 min9 m9
+minor11 min11 m11 minor13 min13 m13 minorMajor7 minMaj7 mmaj7 one 1 five 5
+sus2 sus4 sevenSus2 7sus2 sevenSus4 7sus4 nineSus4 ninesus4 9sus4 sevenFlat10
+7f10 nineSharp5 9sharp5 9s5 minor9sharp5 minor9s5 min9sharp5 min9s5 m9sharp5
+m9s5 sevenSharp5flat9 7s5f9 minor7sharp5flat9 m7sharp5flat9 elevenSharp 11s
+minor11sharp m11sharp m11s
+@
+
+(You’ll need to run @import Sound.Tidal.Chords@ before using this function.)
+-}
 chordList :: String
 chordList = unwords $ map fst (chordTable :: [(String, [Int])])
 
@@ -317,6 +368,7 @@ chordToPatSeq f noteP nameP modsP = uncollect $ do
                     let ch = map (+ n) (fromMaybe [0] $ lookup name chordTable)
                     applyModifierPatSeq f (return ch) modsP
 
--- | turns a given pattern of some Num type, a pattern of chord names and a list of patterns of modifiers into a chord pattern
+-- | Turns a given pattern of some 'Num' type, a pattern of chord names, and a
+-- list of patterns of modifiers into a chord pattern
 chord :: (Num a, Enum a) =>  Pattern a -> Pattern String -> [Pattern [Modifier]] -> Pattern a
 chord = chordToPatSeq id
