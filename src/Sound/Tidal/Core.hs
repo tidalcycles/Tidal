@@ -29,7 +29,13 @@ import           Sound.Tidal.Pattern
 
 -- ** Elemental patterns
 
--- | Takes a function from time to values, and turns it into a 'Pattern'.
+{-| Takes a function of time to values, and turns it into a 'Pattern'.
+  Useful for creating continuous patterns such as 'sine' or 'perlin'.
+
+  For example, 'saw' is defined as
+
+  > saw = sig $ \t -> mod' (fromRational t) 1
+-}
 sig :: (Time -> a) -> Pattern a
 sig f = Pattern q
   where q (State (Arc s e) _)
@@ -50,13 +56,13 @@ sine2 = sig $ \t -> sin_rat ((pi :: Double) * 2 * fromRational t)
 
 -- | @cosine@ - unipolar cosine wave. A pattern of continuous values
 -- following a cosine with frequency of one cycle, and amplitude from
--- 0 to 1. Equivalent to `0.25 ~> sine`.
+-- 0 to 1. Equivalent to @0.25 ~> sine@.
 cosine :: Fractional a => Pattern a
 cosine = 0.25 `rotR` sine
 
 -- | @cosine2@ - bipolar cosine wave. A pattern of continuous values
 -- following a cosine with frequency of one cycle, and amplitude from
--- -1 to 1. Equivalent to `0.25 ~> sine2`.
+-- -1 to 1. Equivalent to @0.25 ~> sine2@.
 cosine2 :: Fractional a => Pattern a
 cosine2 = 0.25 `rotR` sine2
 
@@ -230,11 +236,21 @@ a ||< b = union <$> a <<* b
 
 -- ** Constructing patterns
 
--- | Turns a list of values into a pattern, playing one of them per cycle.
+{-| Turns a list of values into a pattern, playing one of them per cycle.
+  The following are equivalent:
+
+  > d1 $ n (fromList [0, 1, 2]) # s "superpiano"
+  > d1 $ n "<0 1 2>" # s "superpiano"
+-}
 fromList :: [a] -> Pattern a
 fromList = cat . map pure
 
--- | Turns a list of values into a pattern, playing all of them per cycle.
+{-| Turns a list of values into a pattern, playing /all/ of them per cycle.
+  The following are equivalent:
+
+  > d1 $ n (fastFromList [0, 1, 2]) # s "superpiano"
+  > d1 $ n "[0 1 2]" # s "superpiano"
+-}
 fastFromList :: [a] -> Pattern a
 fastFromList = fastcat . map pure
 
@@ -245,19 +261,32 @@ listToPat = fastFromList
 -- | 'fromMaybes; is similar to 'fromList', but allows values to
 -- be optional using the 'Maybe' type, so that 'Nothing' results in
 -- gaps in the pattern.
+-- The following are equivalent:
+-- > d1 $ n (fromMaybes [Just 0, Nothing, Just 2]) # s "superpiano"
+-- > d1 $ n "0 ~ 2" # s "superpiano"
 fromMaybes :: [Maybe a] -> Pattern a
 fromMaybes = fastcat . map f
   where f Nothing = silence
         f (Just x) = pure x
 
--- | A pattern of whole numbers from 0 to the given number, in a single cycle.
+{-| A pattern of whole numbers from 0 to the given number, in a single cycle.
+  Can be used used to @run@ through a folder of samples in order:
+
+  > d1 $ n (run 8) # sound "amencutup"
+
+  The first parameter to run can be given as a pattern:
+
+  > d1 $ n (run "<4 8 4 6>") # sound "amencutup"
+-}
 run :: (Enum a, Num a) => Pattern a -> Pattern a
 run = (>>= _run)
 
 _run :: (Enum a, Num a) => a -> Pattern a
 _run n = fastFromList [0 .. n-1]
 
--- | From @1@ for the first cycle, successively adds a number until it gets up to @n@
+-- | Similar to 'run', but starts from @1@ for the first cycle, successively
+-- adds a number until it gets up to @n@.
+-- > d1 $ n (scan 8) # sound "amencutup"
 scan :: (Enum a, Num a) => Pattern a -> Pattern a
 scan = (>>= _scan)
 
@@ -267,11 +296,20 @@ _scan n = slowcat $ map _run [1 .. n]
 -- ** Combining patterns
 
 -- | Alternate between cycles of the two given patterns
+-- > d1 $ append (sound "bd*2 sn") (sound "arpy jvbass*2")
 append :: Pattern a -> Pattern a -> Pattern a
 append a b = cat [a,b]
 
--- | Like 'append', but for a list of patterns. Interlaces them, playing the first cycle from each
--- in turn, then the second cycle from each, and so on.
+{- |
+  Like 'append', but for a list of patterns. Interlaces them, playing the
+  first cycle from each in turn, then the second cycle from each, and so on. It
+  concatenates a list of patterns into a new pattern; each pattern in the list
+  will maintain its original duration. For example:
+
+  > d1 $ cat [sound "bd*2 sn", sound "arpy jvbass*2"]
+  > d1 $ cat [sound "bd*2 sn", sound "arpy jvbass*2", sound "drum*2"]
+  > d1 $ cat [sound "bd*2 sn", sound "jvbass*3", sound "drum*2", sound "ht mt"]
+-}
 cat :: [Pattern a] -> Pattern a
 cat [] = silence
 cat ps = Pattern q
@@ -296,14 +334,20 @@ slowappend :: Pattern a -> Pattern a -> Pattern a
 slowappend = append
 
 -- | Like 'append', but twice as fast
+-- > d1 $ fastAppend (sound "bd*2 sn") (sound "arpy jvbass*2")
 fastAppend :: Pattern a -> Pattern a -> Pattern a
 fastAppend a b = _fast 2 $ append a b
 fastappend :: Pattern a -> Pattern a -> Pattern a
 fastappend = fastAppend
 
--- | The same as 'cat', but speeds up the result by the number of
--- patterns there are, so the cycles from each are squashed to fit a
--- single cycle.
+{-| The same as 'cat', but speeds up the result by the number of
+  patterns there are, so the cycles from each are squashed to fit a
+  single cycle.
+
+  > d1 $ fastcat [sound "bd*2 sn", sound "arpy jvbass*2"]
+  > d1 $ fastcat [sound "bd*2 sn", sound "arpy jvbass*2", sound "drum*2"]
+  > d1 $ fastcat [sound "bd*2 sn", sound "jvbass*3", sound "drum*2", sound "ht mt"]
+-}
 fastCat :: [Pattern a] -> Pattern a
 fastCat ps = _fast (toTime $ length ps) $ cat ps
 
@@ -311,7 +355,21 @@ fastCat ps = _fast (toTime $ length ps) $ cat ps
 fastcat :: [Pattern a] -> Pattern a
 fastcat = fastCat
 
--- | Similar to @fastCat@, but each pattern is given a relative duration
+{- | Similar to @fastCat@, but each pattern is given a relative duration.
+  You provide proportionate sizes of the patterns to each other for when they’re
+  concatenated into one cycle. The larger the value in the list, the larger
+  relative size the pattern takes in the final loop. If all values are equal
+  then this is equivalent to fastcat (e.g. the following two code fragments are
+  equivalent).
+
+  > d1 $ fastcat [s "bd*4", s "hh27*8", s "superpiano" # n 0]
+
+  > d1 $ timeCat [ (1, s "bd*4")
+  >              , (1, s "hh27*8")
+  >              , (1, s "superpiano" # n 0)
+  >              ]
+
+-}
 timeCat :: [(Time, Pattern a)] -> Pattern a
 timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 tps
     where total = sum $ map fst tps
@@ -323,13 +381,42 @@ timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) 
 timecat :: [(Time, Pattern a)] -> Pattern a
 timecat = timeCat
 
--- | 'overlay' combines two 'Pattern's into a new pattern, so that
--- their events are combined over time. 
+{- | @overlay@ combines two 'Pattern's into a new pattern, so that their events
+are combined over time. For example, the following two lines are equivalent:
+
+> d1 $ sound (overlay "bd sn:2" "cp*3")
+> d1 $ sound "[bd sn:2, cp*3]"
+
+@overlay@ is equal to '<>',
+
+> (<>) :: Semigroup a => a -> a -> a
+
+which can thus be used as an infix operator equivalent of 'overlay':
+
+> d1 $ sound ("bd sn:2" <> "cp*3")
+-}
 overlay :: Pattern a -> Pattern a -> Pattern a
 overlay = (<>)
 
--- | 'stack' combines a list of 'Pattern's into a new pattern, so that
--- their events are combined over time.
+{- | 'stack' combines a list of 'Pattern's into a new pattern, so that their
+events are combined over time, i.e., all of the patterns in the list are played
+simultaneously.
+
+> d1 $ stack [
+>  sound "bd bd*2",
+>  sound "hh*2 [sn cp] cp future*4",
+>  sound "arpy" +| n "0 .. 15"
+> ]
+
+This is particularly useful if you want to apply a function or synth control
+pattern to multiple patterns at once:
+
+> d1 $ whenmod 5 3 (striate 3) $ stack [
+>  sound "bd bd*2",
+>  sound "hh*2 [sn cp] cp future*4",
+>  sound "arpy" +| n "0 .. 15"
+> ] # speed "[[1 0.8], [1.5 2]*2]/3"
+-}
 stack :: [Pattern a] -> Pattern a
 stack = foldr overlay silence
 
@@ -343,8 +430,28 @@ stack = foldr overlay silence
 (~>) :: Pattern Time -> Pattern a -> Pattern a
 (~>) = tParam rotR
 
--- | Slow down a pattern by the factors in the given time pattern, 'squeezing'
--- the pattern to fit the slot given in the time pattern
+{-| Slow down a pattern by the factors in the given time pattern, "squeezing"
+  the pattern to fit the slot given in the time pattern. It is the slow analogue
+  to 'fastSqueeze'.
+
+  If the time pattern only has a single value in a cycle, @slowSqueeze@ becomes equivalent to slow. These are equivalent:
+
+  > d1 $ slow "<2 4>" $ s "bd*8"
+  > d1 $ slowSqueeze "<2 4>" $ s "bd*8"
+
+  When the time pattern has multiple values, however, the behavior is a little
+  different. Instead, a slowed version of the pattern will be made for each value
+  in the time pattern, and they’re all combined together in a cycle according to
+  the structure of the time pattern. For example, these are equivalent:
+
+  > d1 $ slowSqueeze "2 4 8 16" $ s "bd*8"
+  > d1 $ s "bd*4 bd*2 bd bd/2"
+
+  as are these:
+
+  > d1 $ slowSqueeze "2 4 [8 16]" $ s "bd*8"
+  > d1 $ s "bd*4 bd*2 [bd bd/2]"
+-}
 slowSqueeze :: Pattern Time -> Pattern a -> Pattern a
 slowSqueeze = tParamSqueeze _slow
 
@@ -353,17 +460,18 @@ sparsity :: Pattern Time -> Pattern a -> Pattern a
 sparsity = slow
 
 {- | Plays a portion of a pattern, specified by a time arc (start and end time).
-The new resulting pattern is played over the time period of the original pattern:
+  The new resulting pattern is played over the time period of the original pattern.
 
-@
-d1 $ zoom (0.25, 0.75) $ sound "bd*2 hh*3 [sn bd]*2 drum"
-@
+  > d1 $ zoom (0.25, 0.75) $ sound "bd*2 hh*3 [sn bd]*2 drum"
 
-In the pattern above, `zoom` is used with an arc from 25% to 75%. It is equivalent to this pattern:
+  In the pattern above, @zoom@ is used with an arc from 25% to 75%. It is
+  equivalent to:
 
-@
-d1 $ sound "hh*3 [sn bd]*2"
-@
+  > d1 $ sound "hh*3 [sn bd]*2"
+
+  Here’s an example of it being used with a conditional:
+
+  > d1 $ every 4 (zoom (0.25, 0.75)) $ sound "bd*2 hh*3 [sn bd]*2 drum"
 -}
 zoom :: (Time, Time) -> Pattern a -> Pattern a
 zoom (s,e) = zoomArc (Arc s e)
@@ -373,10 +481,12 @@ zoomArc (Arc s e) p = splitQueries $
   withResultArc (mapCycle ((/d) . subtract s)) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 
--- | @fastGap@ is similar to 'fast' but maintains its cyclic
--- alignment. For example, @fastGap 2 p@ would squash the events in
--- pattern @p@ into the first half of each cycle (and the second
--- halves would be empty). The factor should be at least 1
+{-| @fastGap@ is similar to 'fast' but maintains its cyclic alignment, i.e.,
+  rather than playing the pattern multiple times, it instead leaves a gap in
+  the remaining space of the cycle. For example, @fastGap 2 p@ would squash the
+  events in pattern @p@ into the first half of each cycle (and the second halves
+  would be empty). The factor should be at least 1.
+-}
 fastGap :: Pattern Time -> Pattern a -> Pattern a
 fastGap = tParam _fastGap
 
@@ -384,6 +494,24 @@ fastGap = tParam _fastGap
 densityGap :: Pattern Time -> Pattern a -> Pattern a
 densityGap = fastGap
 
+{-|
+  @compress@ takes a pattern and squeezes it within the specified time span (i.e.
+  the ‘arc’). The new resulting pattern is a sped up version of the original.
+
+  > d1 $ compress (1/4, 3/4) $ s "[bd sn]!"
+
+  In the above example, the pattern will play in an arc spanning from 25% to 75%
+  of the duration of a cycle. It is equivalent to:
+
+  > d1 $ s "~ [bd sn]! ~"
+
+  Another example, where all events are different:
+
+  > d1 $ compress (1/4, 3/4) $ n (run 4) # s "arpy"
+
+  It differs from 'zoom' in that it preserves the original pattern but it speeds
+  up its events so to match with the new time period.
+-}
 compress :: (Time,Time) -> Pattern a -> Pattern a
 compress (s,e) = compressArc (Arc s e)
 
@@ -403,8 +531,24 @@ fastRepeatCycles n p = cat (replicate n p)
 
 -- | Functions which work on other functions (higher order functions)
 
--- | @every n f p@ applies the function @f@ to @p@, but only affects
--- every @n@ cycles.
+{- | @every n f p@ applies the function @f@ to @p@, but only affects
+  every @n@ cycles.
+
+  It takes three inputs: how often the function should be applied (e.g. 3 to
+  apply it every 3 cycles), the function to be applied, and the pattern you are
+  applying it to. For example: to reverse a pattern every three cycles (and for
+  the other two play it normally)
+
+  > d1 $ every 3 rev $ n "0 1 [~ 2] 3" # sound "arpy"
+
+  Note that if the function you’re applying requires additional parameters
+  itself (such as fast 2 to make a pattern twice as fast), then you’ll need to
+  wrap it in parenthesis, like so:
+
+  > d1 $ every 3 (fast 2) $ n "0 1 [~ 2] 3" # sound "arpy"
+
+  Otherwise, the every function will think it is being passed too many parameters.
+-}
 every :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 every tp f p = innerJoin $ (\t -> _every t f p) <$> tp
 
@@ -412,30 +556,55 @@ _every :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _every 0 _ p = p
 _every n f p = when ((== 0) . (`mod` n)) f p
 
--- | @every n o f'@ is like @every n f@ with an offset of @o@ cycles
+{-| @every' n o f p@ is like @every n f p@ but with an offset of @o@ cycles.
+
+  For example, @every' 3 0 (fast 2)@ will speed up the cycle on cycles 0,3,6,…
+  whereas @every' 3 1 (fast 2)@ will transform the pattern on cycles 1,4,7,….
+
+  With this in mind, setting the second argument of @every'@ to 0 gives the
+  equivalent every function. For example, every 3 is equivalent to every' 3 0.
+
+  The @every@ functions can be used to silence a full cycle or part of a cycle
+  by using silent or mask "~". Mask provides additional flexibility to turn on/off
+  individual steps.
+
+  > d1 $ every 3 silent $ n "2 9 11 2" # s "hh27"
+  > d1 $ every 3 (mask "~") $ n "2 9 10 2" # s "hh27"
+  > d1 $ every 3 (mask "0 0 0 0") $ n "2 9 11 2" # s "hh27"
+-}
 every' :: Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 every' np op f p = do { n <- np; o <- op; _every' n o f p }
 
 _every' :: Int -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _every' n o = when ((== o) . (`mod` n))
 
--- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
--- each cycle in @ns@.
+{- | @foldEvery ns f p@ applies the function @f@ to @p@, and is applied for
+  each cycle in @ns@.
+
+  It is similar to chaining multiple @every@ functions together. It transforms
+  a pattern with a function, once per any of the given number of cycles. If a
+  particular cycle is the start of more than one of the given cycle periods, then
+  it it applied more than once.
+
+  > d1 $ foldEvery [5,3] (|+ n 1) $ s "moog" # legato 1
+
+  The first moog samples are tuned to C2, C3 and C4. Note how on cycles that are
+  multiples of 3 or 5 the pitch is an octave higher, and on multiples of 15 the
+  pitch is two octaves higher, as the transformation is applied twice.
+-}
 foldEvery :: [Int] -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 foldEvery ns f p = foldr (`_every` f) p ns
 
 {-|
-Only `when` the given test function returns `True` the given pattern
-transformation is applied. The test function will be called with the
-current cycle as a number.
+The given pattern transformation is applied only @when@ the given test function
+returns @True@. The test function will be called with the current cycle as
+a number.
 
-@
-d1 $ when ((elem '4').show)
-  (striate 4)
-  $ sound "hh hc"
-@
+> d1 $ when (elem '4' . show)
+>           (striate 4)
+>    $ sound "hh hc"
 
-The above will only apply `striate 4` to the pattern if the current
+The above will only apply @striate 4@ to the pattern if the current
 cycle number contains the number 4. So the fourth cycle will be
 striated and the fourteenth and so on. Expect lots of striates after
 cycle number 399.
@@ -445,7 +614,14 @@ when test f p = splitQueries $ p {query = apply}
   where apply st | test (floor $ start $ arc st) = query (f p) st
                  | otherwise = query p st
 
--- | Like 'when', but works on continuous time values rather than cycle numbers.
+{- | Like 'when', but works on continuous time values rather than cycle numbers.
+  The following will apply @# speed 2@ only when the remainder of the current
+  @Time@ divided by 2 is less than 0.5:
+
+  > d1 $ whenT ((< 0.5) . (flip Data.Fixed.mod' 2))
+  >            (# speed 2)
+  >    $ sound "hh(4,8) hc(3,8)"
+-}
 whenT :: (Time -> Bool) -> (Pattern a -> Pattern a) ->  Pattern a -> Pattern a
 whenT test f p = splitQueries $ p {query = apply}
   where apply st | test (start $ arc st) = query (f p) st
