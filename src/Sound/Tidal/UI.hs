@@ -939,7 +939,8 @@ euclidFull n k pa pb = stack [ euclid n k pa, euclidInv n k pb ]
 
 -- | Less expressive than 'euclid' due to its constrained types, but may be more efficient.
 _euclidBool :: Int -> Int -> Pattern Bool -- TODO: add 'euclidBool'?
-_euclidBool n k = fastFromList $ bjorklund (n,k)
+_euclidBool n k | n >= 0 = fastFromList $ bjorklund (n,k)
+                | otherwise = fastFromList $ fmap (not) $ bjorklund (-n,k)
 
 _euclid' :: Int -> Int -> Pattern a -> Pattern a
 _euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
