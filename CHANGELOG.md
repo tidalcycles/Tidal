@@ -1,5 +1,23 @@
 # TidalCycles log of changes
 
+## 1.9.5 - Sashiko
+
+### What's Changed
+* avoid loading stream module in other modules, so hint wont crash by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/1019
+* change streamGetnow to factor in the processAhead and also destroy the sessionstate by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/1025
+* fix minor7sharp9 chord (the 9th wasn't sharp) by @cleary in https://github.com/tidalcycles/Tidal/pull/1036
+* add metatune param, now against 1.9-dev by @ahihi in https://github.com/tidalcycles/Tidal/pull/1046
+* Build fixes for Tidal 1.9 by @mindofmatthew in https://github.com/tidalcycles/Tidal/pull/1052
+* Update link 1.9 dev by @yaxu in https://github.com/tidalcycles/Tidal/pull/1058
+* More build fixes by @mindofmatthew in https://github.com/tidalcycles/Tidal/pull/1062
+* Consolidate site docs into source docs, and some docs editing by @trespaul in https://github.com/tidalcycles/Tidal/pull/1070
+
+### New Contributors
+* @ahihi made their first contribution in https://github.com/tidalcycles/Tidal/pull/1046
+* @trespaul made their first contribution in https://github.com/tidalcycles/Tidal/pull/1070
+
+**Full Changelog**: https://github.com/tidalcycles/Tidal/compare/v1.9.4...v1.9.5
+
 ## 1.9.4 - Stitch
 
 ### What's Changed
@@ -17,7 +35,7 @@
 
 **Full Changelog**: https://github.com/tidalcycles/Tidal/compare/v1.9.3...v1.9.4
 
-### 1.9.3 - Kolam
+## 1.9.3 - Kolam
 
 ### What's Changed
 * fix for squeezejoin  by @yaxu in https://github.com/tidalcycles/Tidal/pull/950

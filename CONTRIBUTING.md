@@ -20,7 +20,7 @@ compiler/interpreter. Some resources for learning Haskell can be found here:
 The main repository is maintained on github:
   https://github.com/tidalcycles/tidal
 
-**At the time of writing, current work should target the '1.9-dev' branch. The 2.0-dev branch is for experiments towards version 2.0.**
+**At the time of writing, current work should target the '1.10-dev' branch. The 2.0-dev branch is for experiments towards version 2.0.**
 
 The SuperDirt repository is here:
   https://github.com/musikinformatik/SuperDirt
@@ -83,11 +83,38 @@ firefox dist/hpc/prof/html/tests/hpc_index.html
 
 To run up your changes locally, install Tidal with `cabal install`. To remove them again and revert to the latest release, run `ghc-pkg unregister tidal-1.0.0` being sure to match up the version numbers. (note that ghc packaging is in a state of flux at the moment - this command might not actually work..)
 
-# A process for making a release
+# Making a Release
 
-We haven't documented a clear process for this, but we'd like to
-describe how to..
+*Note: This may be incomplete&mdash;before making a release, it's a good idea to reach out to an existing project maintainer to double-check the process.*
 
-* Share with others for testing
-* Tag a release
-* Distribute via hackage / stackage
+## Get Permission
+First, you need to do the following:
+
+* Make sure that you have been given Owner permissions on the tidalcycles GitHub organization or the Tidal repository
+* If you don't have one, [create a user account on Hackage](https://hackage.haskell.org/users/register-request). You'll also need to send an email to the Hackage Trustees mailing list to get upload permissions (the email you receive when you create your account will have details about this process).
+* Make sure that you've been added to the maintainers group for the tidal package on Hackage
+
+## Create a Draft Release in GitHub
+
+* Draft a [new Tidal release](https://github.com/tidalcycles/Tidal/releases)
+* The name of the release will be the human-readable nickname (some traditional form of pattern making or something else that strikes your fancy)
+* For the tag, you can specify the next version in the form `v0.0.0` and GitHub will automatically tag the most recent commit whenever you publish the release
+* The "Generate Release Notes" is an easy way to list all the relevant updates and new contributors. Feel free to edit this further as needed
+* **Save this as a draft for now**
+
+## Update the Repository
+
+Push any final changes to the code, updating the following files:
+* **[tidal.cabal](https://github.com/tidalcycles/Tidal/blob/1.10-dev/tidal.cabal)**: Changing the version field
+* **[CHANGELOG.md](https://github.com/tidalcycles/Tidal/blob/1.10-dev/CHANGELOG.md)**: Adding your new version at the top (you can copy the release notes from your draft GitHub release)
+* **[src/Sound/Tidal/Version.hs](https://github.com/tidalcycles/Tidal/blob/1.10-dev/src/Sound/Tidal/Version.hs)**: Update the version string here too. This is the version that's printed to the console when someone starts Tidal.
+* **If any of the other packages (e.g. tidal-link) have changed**: Update the respective **.cabal** files for these packages, and then update dependency information in **tidal.cabal** as needed.
+
+## Test and Package the Repository
+
+* Run `cabal test` to make sure all the tests pass (see above for details).
+* Run `cabal haddock` and watch for errors to test that Cabal can generate the documentation for the package.
+* Run `cabal check` to check for any errors with the package metadata.
+* Run `cabal sdist` to generate an archive for distribution.
+
+## Upload releases
