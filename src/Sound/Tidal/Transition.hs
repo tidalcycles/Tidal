@@ -4,18 +4,20 @@ module Sound.Tidal.Transition where
 
 import Prelude hiding ((<*), (*>))
 
-import Control.Concurrent.MVar (modifyMVar_)
+import Control.Concurrent.MVar (readMVar, swapMVar)
 
 import qualified Data.Map.Strict as Map
 -- import Data.Maybe (fromJust)
 
 import Sound.Tidal.Control
 import Sound.Tidal.Core
+import Sound.Tidal.Stream.Config
 import Sound.Tidal.ID
 import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
-import Sound.Tidal.Stream
-import Sound.Tidal.Tempo as T
+import Sound.Tidal.Stream.Types
+import qualified Sound.Tidal.Clock as Clock
+-- import Sound.Tidal.Tempo as T
 import Sound.Tidal.UI (fadeOutFrom, fadeInFrom)
 import Sound.Tidal.Utils (enumerate)
 
@@ -37,11 +39,30 @@ import Sound.Tidal.Utils (enumerate)
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
+type TransitionMapper = Time -> [ControlPattern] -> ControlPattern
+
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 -- the "historyFlag" determines if the new pattern should be placed on the history stack or not
-transition :: Stream -> Bool -> (Time -> [ControlPattern] -> ControlPattern) -> ID -> ControlPattern -> IO ()
-transition stream historyFlag f patId !pat =
-  modifyMVar_ (sActionsMV stream) (\actions -> return $! (T.Transition historyFlag f patId pat) : actions)
+transition :: Stream -> Bool -> TransitionMapper -> ID -> ControlPattern -> IO ()
+transition stream historyFlag mapper patId !pat = do
+            let
+              appendPat flag = if flag then (pat:) else id
+              updatePS (Just playState) = playState {history = (appendPat historyFlag) (history playState)}
+              updatePS Nothing = PlayState {pattern = silence,
+                                            mute = False,
+                                            solo = False,
+                                            history = (appendPat historyFlag) (silence:[])
+                                          }
+              transition' pat' = do
+                            t <- Clock.getCycleTime (cClockConfig $ sConfig stream) (sClockRef stream)
+                            return $! mapper t pat'
+            pMap <- readMVar (sPMapMV stream)
+            let playState = updatePS $ Map.lookup (fromID patId) pMap
+            pat' <- transition' $ appendPat (not historyFlag) (history playState)
+            let pMap' = Map.insert (fromID patId) (playState {pattern = pat'}) pMap
+            _ <- swapMVar (sPMapMV stream) pMap'
+            return ()
+
 
 mortalOverlay :: Time -> Time -> [Pattern a] -> Pattern a
 mortalOverlay _ _ [] = silence
