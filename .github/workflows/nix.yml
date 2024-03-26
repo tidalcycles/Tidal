@@ -1,12 +1,13 @@
 # A set of CI jobs for checking the Nix flake.
 
 name: "nix"
-
 on:
-  pull_request:
   push:
-    branches:
-      - master
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "**.md"
 
 jobs:
   cancel-previous-runs:
@@ -31,7 +32,7 @@ jobs:
     needs: cancel-previous-runs
     strategy:
       matrix:
-        package: [tidal, tidal-link, tidal-listener, tidal-parse]
+        package: [tidal, tidal-link, tidal-parse]
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:

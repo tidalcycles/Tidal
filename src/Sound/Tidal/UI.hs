@@ -64,7 +64,7 @@ Given a seed number, generates a reasonably random number out of it.
 This is an efficient algorithm suitable for use in tight loops and used
 to implement the below functions, which are used to implement 'rand'.
 
-See George Marsaglia (2003). ["Xorshift RNGs"](@https://www.jstatsoft.org/article/view/v008i14@),
+See George Marsaglia (2003). ["Xorshift RNGs"](https://www.jstatsoft.org/article/view/v008i14),
 in Journal of Statistical Software, pages 8–14.
 
 -}
@@ -94,19 +94,20 @@ timeToRands' seed n
 
 {-|
 
-`rand` generates a continuous pattern of (pseudo-)random numbers between @0@ and @1@.
+@rand@ is an oscillator that generates a continuous pattern of (pseudo-)random
+numbers between 0 and 1.
 
-@
-sound "bd*8" # pan rand
-@
+For example, to randomly pan around the stereo field:
 
-pans bass drums randomly, and
+> d1 $ sound "bd*8" # pan rand
 
-@
-sound "sn sn ~ sn" # gain rand
-@
+Or to enjoy a randomised speed from 0.5 to 1.5, add 0.5 to it:
 
-makes the snares randomly loud and quiet.
+> d1 $ sound "arpy*4" # speed (rand + 0.5)
+
+To make the snares randomly loud and quiet:
+
+> sound "sn sn ~ sn" # gain rand
 
 Numbers coming from this pattern are \'seeded\' by time. So if you reset time
 (using 'resetCycles', 'setCycle', or 'cps') the random pattern will emit the
@@ -116,15 +117,11 @@ In cases where you need two different random patterns, you can shift
 one of them around to change the time from which the _random_ pattern
 is read, note the difference:
 
-@
-jux (# gain rand) $ sound "sn sn ~ sn" # gain rand
-@
+> jux (# gain rand) $ sound "sn sn ~ sn" # gain rand
 
 and with the juxed version shifted backwards for 1024 cycles:
 
-@
-jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
-@
+> jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 -}
 rand :: Fractional a => Pattern a
 rand = Pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ (timeToRand ((e + s)/2) :: Double))])
@@ -153,14 +150,15 @@ irand = (>>= _irand)
 _irand :: Num a => Int -> Pattern a
 _irand i = fromIntegral . (floor :: Double -> Int) . (* fromIntegral i) <$> rand
 
-{- | 1D Perlin (smooth) noise, works like rand but smoothly moves between random
-values each cycle. `perlinWith` takes a pattern as the RNG's "input" instead
-of automatically using the cycle count.
-@
-d1 $ s "arpy*32" # cutoff (perlinWith (saw * 4) * 2000)
-@
+{- | 1D Perlin (smooth) noise, works like 'rand' but smoothly moves between random
+values each cycle. @perlinWith@ takes a pattern as the random number generator's
+"input" instead of automatically using the cycle count.
+
+> d1 $ s "arpy*32" # cutoff (perlinWith (saw * 4) * 2000)
+
 will generate a smooth random pattern for the cutoff frequency which will
-repeat every cycle (because the saw does)
+repeat every cycle (because the saw does).
+
 The `perlin` function uses the cycle count as input and can be used much like @rand@.
 -}
 perlinWith :: Fractional a => Pattern Double -> Pattern a
@@ -170,23 +168,33 @@ perlinWith p = fmap realToFrac $ (interp) <$> (p-pa) <*> (timeToRand <$> pa) <*>
   interp x a b = a + smootherStep x * (b-a)
   smootherStep x = 6.0 * x**5 - 15.0 * x**4 + 10.0 * x**3
 
--- | As 'perlin' with a suitable choice of input pattern (@'sig' 'fromRational'@).
+{- | As 'perlin' with a suitable choice of input pattern (@'sig' 'fromRational'@).
+
+  The @perlin@ function produces a new random value to move to every cycle. If
+  you want a new random value to be generated more or less frequently, you can use
+  fast or slow, respectively:
+
+  > d1 $ sound "bd*32" # speed (fast 4 $ perlin + 0.5)
+  > d1 $ sound "bd*32" # speed (slow 4 $ perlin + 0.5)
+-}
 perlin :: Fractional a => Pattern a
 perlin = perlinWith (sig fromRational)
 
-{-| `perlin2With` is Perlin noise with a 2-dimensional input. This can be
+{-| @perlin2With@ is Perlin noise with a 2-dimensional input. This can be
 useful for more control over how the randomness repeats (or doesn't).
 
 @
 d1
- $ s "[supersaw:-12*32]"
- # lpf (rangex 60 5000 $ perlin2With (cosine*2) (sine*2))
- # lpq 0.3
+  $ s "[supersaw:-12*32]"
+  # lpf (rangex 60 5000 $ perlin2With (cosine*2) (sine*2))
+  # lpq 0.3
 @
-will generate a smooth random cutoff pattern that repeats every cycle without
-any reversals or discontinuities (because the 2D path is a circle).
-`perlin2` only needs one input because it uses the cycle count as the
-second input.
+
+The above will generate a smooth random cutoff pattern that repeats every cycle
+without any reversals or discontinuities (because the 2D path is a circle).
+
+See also: `perlin2`, which only needs one input because it uses the cycle count
+as the second input.
 -}
 perlin2With :: Pattern Double -> Pattern Double -> Pattern Double
 perlin2With x y = (/2) . (+1) $ interp2 <$> xfrac <*> yfrac <*> dota <*> dotb <*> dotc <*> dotd where
@@ -209,23 +217,34 @@ perlin2With x y = (/2) . (+1) $ interp2 <$> xfrac <*> yfrac <*> dota <*> dotb <*
 perlin2 :: Pattern Double -> Pattern Double
 perlin2 = perlin2With (sig fromRational)
 
-{- | Randomly picks an element from the given list
+{- | Randomly picks an element from the given list.
 
 @
 sound "superpiano(3,8)" # note (choose ["a", "e", "g", "c"])
 @
 
 plays a melody randomly choosing one of the four notes \"a\", \"e\", \"g\", \"c\".
+
+As with all continuous patterns, you have to be careful to give them structure; in this case choose gives you an infinitely detailed stream of random choices.
+
+> choose = 'chooseBy' 'rand'
 -}
 choose :: [a] -> Pattern a
 choose = chooseBy rand
 
 
-{- | Given a pattern of doubles, 'chooseBy' normalizes them so that each
+{- | Given a pattern of doubles, @chooseBy@ normalizes them so that each
 corresponds to an index in the provided list. The returned pattern
 contains the corresponding elements in the list.
 
+It is like choose, but instead of selecting elements of the list randomly, it
+uses the given pattern to select elements.
+
 @'choose' = chooseBy 'rand'@
+
+The following results in the pattern @"a b c"@:
+
+> chooseBy "0 0.25 0.5" ["a","b","c","d"]
 -}
 chooseBy :: Pattern Double -> [a] -> Pattern a
 chooseBy _ [] = silence
@@ -240,16 +259,14 @@ sound "superpiano(3,8)" # note (wchoose [("a",1), ("e",0.5), ("g",2), ("c",1)])
 In the above example, the "a" and "c" notes are twice as likely to
 play as the "e" note, and half as likely to play as the "g" note.
 
+> wchoose = 'wchooseBy' 'rand'
 -}
 wchoose :: [(a,Double)] -> Pattern a
 wchoose = wchooseBy rand
 
-{- | Given a pattern of probabilities and an list of @(value, weight)@ pairs,
-'wchooseBy' creates a @'Pattern' value@ by choosing values based on those
-probabilities and, weighted appropriately by the weights in the list of pairs.
-
-@'wchoose' = wchooseBy 'rand'@
-
+{- | Given a pattern of probabilities and a list of @(value, weight)@ pairs,
+@wchooseBy@ creates a @'Pattern' value@ by choosing values based on those
+probabilities and weighted appropriately by the weights in the list of pairs.
 -}
 wchooseBy :: Pattern Double -> [(a,Double)] -> Pattern a
 wchooseBy pat pairs = match <$> pat
@@ -259,41 +276,45 @@ wchooseBy pat pairs = match <$> pat
     values = map fst pairs
     total = sum $ map snd pairs
 
--- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
--- randomises the order in which they are played.
+{-| @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
+  randomises the order in which they are played.
+
+  > d1 $ sound (randcat ["bd*2 sn", "jvbass*3", "drum*2", "ht mt"])
+-}
 randcat :: [Pattern a] -> Pattern a
 randcat ps = spread' rotL (_segment 1 $ (% 1) . fromIntegral <$> (_irand (length ps) :: Pattern Int)) (slowcat ps)
 
--- | As 'randcat', but allowing weighted choice.
+{-| As 'randcat', but allowing weighted choice.
+
+  In the following, the first pattern is the most likely and will play about half the time, and the last pattern is the less likely, with only a 10% probability.
+
+  > d1 $ sound
+  >    $ wrandcat
+  >        [ ("bd*2 sn", 5), ("jvbass*3", 2), ("drum*2", 2), ("ht mt", 1) ]
+-}
 wrandcat :: [(Pattern a, Double)] -> Pattern a
 wrandcat ps = unwrap $ wchooseBy (segment 1 rand) ps
 
-{- | `degrade` randomly removes events from a pattern 50% of the time:
+{- | @degrade@ randomly removes events from a pattern 50% of the time:
 
-@
-d1 $ slow 2 $ degrade $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
-   # accelerate "-6"
-   # speed "2"
-@
+> d1 $ slow 2 $ degrade $ sound "[[[feel:5*8,feel*3] feel:3*8], feel*4]"
+>    # accelerate "-6"
+>    # speed "2"
 
-The shorthand syntax for `degrade` is a question mark: `?`. Using `?`
+The shorthand syntax for @degrade@ is a question mark: @?@. Using @?@
 will allow you to randomly remove events from a portion of a pattern:
 
-@
-d1 $ slow 2 $ sound "bd ~ sn bd ~ bd? [sn bd?] ~"
-@
+> d1 $ slow 2 $ sound "bd ~ sn bd ~ bd? [sn bd?] ~"
 
-You can also use `?` to randomly remove events from entire sub-patterns:
+You can also use @?@ to randomly remove events from entire sub-patterns:
 
-@
-d1 $ slow 2 $ sound "[[[feel:5*8,feel*3] feel:3*8]?, feel*4]"
-@
+> d1 $ slow 2 $ sound "[[[feel:5*8,feel*3] feel:3*8]?, feel*4]"
 -}
 degrade :: Pattern a -> Pattern a
 degrade = _degradeBy 0.5
 
 {- |
-Similar to `degrade`, `degradeBy` allows you to control the percentage of events that
+Similar to `degrade`, @degradeBy@ allows you to control the percentage of events that
 are removed. For example, to remove events 90% of the time:
 
 @
@@ -369,38 +390,43 @@ pattern before probabilities are taken into account.
 sometimesBy' :: Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 sometimesBy' x f pat = overlay (degradeBy x pat) (unDegradeBy x $ f pat)
 
--- | @sometimes@ is an alias for @sometimesBy 0.5@.
+-- | @sometimes@ is an alias for @'sometimesBy' 0.5@.
 sometimes :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 sometimes = sometimesBy 0.5
 
+-- | @sometimes'@ is an alias for @'sometimesBy'' 0.5@.
 sometimes' :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 sometimes' = sometimesBy' 0.5
 
--- | @often@ is an alias for @sometimesBy 0.75@.
+-- | @often@ is an alias for @'sometimesBy' 0.75@.
 often :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 often = sometimesBy 0.75
 
+-- | @often'@ is an alias for @'sometimesBy'' 0.75@.
 often' :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 often' = sometimesBy' 0.75
 
--- | @rarely@ is an alias for @sometimesBy 0.25@.
+-- | @rarely@ is an alias for @'sometimesBy' 0.25@.
 rarely :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 rarely = sometimesBy 0.25
 
+-- | @rarely'@ is an alias for @'sometimesBy'' 0.25@.
 rarely' :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 rarely' = sometimesBy' 0.25
 
--- | @almostNever@ is an alias for @sometimesBy 0.1@.
+-- | @almostNever@ is an alias for @'sometimesBy' 0.1@.
 almostNever :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 almostNever = sometimesBy 0.1
 
+-- | @almostNever'@ is an alias for @'sometimesBy'' 0.1@.
 almostNever' :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 almostNever' = sometimesBy 0.1
 
--- | @almostAlways@ is an alias for @sometimesBy 0.9@.
+-- | @almostAlways@ is an alias for @'sometimesBy' 0.9@.
 almostAlways :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 almostAlways = sometimesBy 0.9
 
+-- | @almostAlways'@ is an alias for @'sometimesBy'' 0.9@.
 almostAlways' :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 almostAlways' = sometimesBy' 0.9
 
@@ -423,7 +449,10 @@ always = id
 
 {- | @someCyclesBy@ is a cycle-by-cycle version of @'sometimesBy'@.
 
-@someCycles = someCyclesBy 0.5@
+  For example the following will either distort all of the events in a cycle, or
+  none of them:
+
+  > d1 $ someCyclesBy 0.5 (# crush 2) $ n "0 1 [~ 2] 3" # sound "arpy"
 -}
 someCyclesBy :: Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 someCyclesBy pd f pat = innerJoin $ (\d -> _someCyclesBy d f pat) <$> pd
@@ -432,29 +461,34 @@ _someCyclesBy :: Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _someCyclesBy x = when test
   where test c = timeToRand (fromIntegral c :: Double) < x
 
+-- | Alias of 'someCyclesBy'.
 somecyclesBy :: Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 somecyclesBy = someCyclesBy
 
--- | @someCycles = someCyclesBy 0.5@
+-- | @someCycles = 'someCyclesBy' 0.5@
 someCycles :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 someCycles = someCyclesBy 0.5
 
+-- | Alias of 'someCycles'.
 somecycles :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 somecycles = someCycles
 
 -- ** Pattern transformations
+--
+-- $patternTransformations
+--
+-- Pattern transformations are functions generally of type
+-- @'Pattern' a -> 'Pattern' a@. This means they take a pattern of any type
+-- and return a pattern of that type.
 
-{- |
-Pattern transformations are functions generally of type @'Pattern' a -> 'Pattern' a@.
-This means they take a pattern of any type and return a pattern of that type.
-
-
-This transformation makes a pattern sound a bit like a breakbeat.
-
-Example:
+{-|
+@brak@ makes a pattern sound a bit like a breakbeat. It does this by, every
+other cycle, squashing the pattern to fit half a cycle, and offsetting it by a
+quarter of a cycle.
 
 @
 d1 $ sound (brak "bd sn kurt")
+d1 $ brak $ sound "[feel feel:3, hc:3 hc:2 hc:4 ho:1]"
 @
 -}
 brak :: Pattern a -> Pattern a
@@ -488,16 +522,37 @@ iter = tParam _iter
 _iter :: Int -> Pattern a -> Pattern a
 _iter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n-1)]
 
--- | @iter'@ is the same as @iter@, but decrements the starting
--- subdivision instead of incrementing it.
+{- | @iter'@ is the same as @iter@, but decrements the starting
+subdivision instead of incrementing it. For example,
+
+@
+d1 $ iter' 4 $ sound "bd hh sn cp"
+@
+
+produces
+
+@
+bd hh sn cp
+cp bd hh sn
+sn cp bd hh
+hh sn cp bd
+@
+-}
 iter' :: Pattern Int -> Pattern c -> Pattern c
 iter' = tParam _iter'
 
 _iter' :: Int -> Pattern a -> Pattern a
 _iter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
 
--- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that
--- the pattern alternates between forwards and backwards.
+{- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that the pattern
+alternates between forwards and backwards. For example, these are equivalent:
+
+@
+d1 $ palindrome $ sound "arpy:0 arpy:1 arpy:2 arpy:3"
+d1 $ slow 2 $ sound "arpy:0 arpy:1 arpy:2 arpy:3 arpy:3 arpy:2 arpy:1 arpy:0"
+d1 $ every 2 rev $ sound "arpy:0 arpy:1 arpy:2 arpy:3"
+@
+-}
 palindrome :: Pattern a -> Pattern a
 palindrome p = slowAppend p (rev p)
 
@@ -520,43 +575,33 @@ fadeInFrom from dur p = innerJoin $ (`_degradeBy` p) <$> (from `rotR` _slow dur 
 
 {- | The 'spread' function allows you to take a pattern transformation
 which takes a parameter, such as `slow`, and provide several
-parameters which are switched between. In other words it 'spreads' a
+parameters which are switched between. In other words it "spreads" a
 function across several values.
 
 Taking a simple high hat loop as an example:
 
-@
-d1 $ sound "ho ho:2 ho:3 hc"
-@
+> d1 $ sound "ho ho:2 ho:3 hc"
 
 We can slow it down by different amounts, such as by a half:
 
-@
-d1 $ slow 2 $ sound "ho ho:2 ho:3 hc"
-@
+> d1 $ slow 2 $ sound "ho ho:2 ho:3 hc"
 
 Or by four thirds (i.e. speeding it up by a third; @4%3@ means four over
 three):
 
-@
-d1 $ slow (4%3) $ sound "ho ho:2 ho:3 hc"
-@
+> d1 $ slow (4%3) $ sound "ho ho:2 ho:3 hc"
 
 But if we use `spread`, we can make a pattern which alternates between
 the two speeds:
 
-@
-d1 $ spread slow [2,4%3] $ sound "ho ho:2 ho:3 hc"
-@
+> d1 $ spread slow [2,4%3] $ sound "ho ho:2 ho:3 hc"
 
 Note that if you pass @($)@ as the function to spread values over, you
 can put functions as the list of values. ('spreadf' is an alias for @spread ($)@.)
 For example:
 
-@
-d1 $ spread ($) [density 2, rev, slow 2, striate 3, (# speed "0.8")]
-    $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4"
-@
+> d1 $ spread ($) [density 2, rev, slow 2, striate 3, (# speed "0.8")]
+>    $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4"
 
 Above, the pattern will have these transforms applied to it, one at a time, per cycle:
 
@@ -577,11 +622,8 @@ slowspread = spread
 
 {- | @fastspread@ works the same as `spread`, but the result is squashed into a single cycle. If you gave four values to @spread@, then the result would seem to speed up by a factor of four. Compare these two:
 
-@
-  d1 $ spread chop [4,64,32,16] $ sound "ho ho:2 ho:3 hc"
-
-  d1 $ fastspread chop [4,64,32,16] $ sound "ho ho:2 ho:3 hc"
-@
+> d1 $ spread chop [4,64,32,16] $ sound "ho ho:2 ho:3 hc"
+> d1 $ fastspread chop [4,64,32,16] $ sound "ho ho:2 ho:3 hc"
 
 There is also `slowspread`, which is an alias of @spread@.
 -}
@@ -590,23 +632,21 @@ fastspread f xs p = fastcat $ map (`f` p) xs
 
 {- | There's a version of this function, `spread'` (pronounced "spread prime"), which takes a /pattern/ of parameters, instead of a list:
 
-@
-d1 $ spread' slow "2 4%3" $ sound "ho ho:2 ho:3 hc"
-@
+> d1 $ spread' slow "2 4%3" $ sound "ho ho:2 ho:3 hc"
 
 This is quite a messy area of Tidal—due to a slight difference of
 implementation this sounds completely different! One advantage of
 using `spread'` though is that you can provide polyphonic parameters, e.g.:
 
-@
-d1 $ spread' slow "[2 4%3, 3]" $ sound "ho ho:2 ho:3 hc"
-@
+> d1 $ spread' slow "[2 4%3, 3]" $ sound "ho ho:2 ho:3 hc"
 -}
 spread' :: Monad m => (a -> b -> m c) -> m a -> b -> m c
 spread' f vpat pat = vpat >>= \v -> f v pat
 
 {- | @spreadChoose f xs p@ is similar to `slowspread` but picks values from
-`xs` at random, rather than cycling through them in order.
+@xs@ at random, rather than cycling through them in order.
+
+> d1 $ spreadChoose ($) [gap 4, striate 4] $ sound "ho ho:2 ho:3 hc"
 -}
 spreadChoose :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
 spreadChoose f vs p = do v <- _segment 1 (choose vs)
@@ -616,18 +656,24 @@ spreadChoose f vs p = do v <- _segment 1 (choose vs)
 spreadr :: (t -> t1 -> Pattern b) -> [t] -> t1 -> Pattern b
 spreadr = spreadChoose
 
-{-| Decide whether to apply one or another function depending on the result of a test function that is passed the current cycle as a number.
+{-| Decide whether to apply one or another function depending on the result of a test function, which is passed the current cycle as a number.
 
 @
-d1 $ ifp ((== 0).(flip mod 2))
-  (striate 4)
-  (# coarse "24 48") $
-  sound "hh hc"
+d1 $ ifp ((== 0) . flip mod 2)
+         (striate 4)
+         (# coarse "24 48")
+   $ sound "hh hc"
 @
 
-This will apply @'striate' 4@ for every _even_ cycle and apply @# coarse "24 48"@ for every _odd_.
+This will apply @'striate' 4@ for every /even/ cycle and apply @# coarse "24 48"@ for every /odd/.
 
-Detail: As you can see the test function is arbitrary and does not rely on anything tidal specific. In fact it uses only plain haskell functionality, that is: it calculates the modulo of 2 of the current cycle which is either 0 (for even cycles) or 1. It then compares this value against 0 and returns the result, which is either `True` or `False`. This is what the `ifp` signature's first part signifies `(Int -> Bool)`, a function that takes a whole number and returns either `True` or `False`.
+Detail: As you can see the test function is arbitrary and does not rely on
+anything Tidal specific. In fact it uses only plain Haskell functionality, that
+is: it calculates the modulo of 2 of the current cycle which is either 0 (for
+even cycles) or 1. It then compares this value against 0 and returns the result,
+which is either @True@ or @False@. This is what the @ifp@ signature's first part
+signifies: @(Int -> Bool)@, a function that takes a whole number and returns
+either @True@ or @False@.
 -}
 ifp :: (Int -> Bool) -> (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ifp test f1 f2 p = splitQueries $ p {query = q}
@@ -637,6 +683,7 @@ ifp test f1 f2 p = splitQueries $ p {query = q}
 -- | @wedge t p p'@ combines patterns @p@ and @p'@ by squashing the
 -- @p@ into the portion of each cycle given by @t@, and @p'@ into the
 -- remainer of each cycle.
+-- > d1 $ wedge (1/4) (sound "bd*2 arpy*3 cp sn*2") (sound "odx [feel future]*2 hh hh")
 wedge :: Pattern Time -> Pattern a -> Pattern a -> Pattern a
 wedge pt pa pb = innerJoin $ (\t -> _wedge t pa pb) <$> pt
 
@@ -647,16 +694,14 @@ _wedge t p p' = overlay (_fastGap (1/t) p) (t `rotR` _fastGap (1/(1-t)) p')
 
 
 {- | @whenmod@ has a similar form and behavior to `every`, but requires an
-additional number. Applies the function to the pattern, when the
-remainder of the current loop number divided by the first parameter,
+additional number. It applies the function to the pattern when the
+remainder of the current loop number divided by the first parameter
 is greater or equal than the second parameter.
 
-For example the following makes every other block of four loops twice
+For example, the following makes every other block of four loops twice
 as dense:
 
-@
-d1 $ whenmod 8 4 (density 2) (sound "bd sn kurt")
-@
+> d1 $ whenmod 8 4 (density 2) (sound "bd sn kurt")
 -}
 whenmod :: Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 whenmod a b f pat = innerJoin $ (\a' b' -> _whenmod a' b' f pat) <$> a <*> b
@@ -666,17 +711,21 @@ _whenmod a b = whenT (\t -> ((t `mod'` a) >= b ))
 
 
 {- |
-@
-superimpose f p = stack [p, f p]
-@
+> superimpose f p = stack [p, f p]
 
-`superimpose` plays a modified version of a pattern at the same time as the original pattern,
-resulting in two patterns being played at the same time.
+@superimpose@ plays a modified version of a pattern at the same time as the
+original pattern, resulting in two patterns being played at the same time. The
+following are equivalent:
 
-@
-d1 $ superimpose (density 2) $ sound "bd sn [cp ht] hh"
-d1 $ superimpose ((# speed "2") . (0.125 <~)) $ sound "bd sn cp hh"
-@
+> d1 $ superimpose (fast 2) $ sound "bd sn [cp ht] hh"
+> d1 $ stack [sound "bd sn [cp ht] hh",
+>             fast 2 $ sound "bd sn [cp ht] hh"
+>            ]
+
+More examples:
+
+> d1 $ superimpose (density 2) $ sound "bd sn [cp ht] hh"
+> d1 $ superimpose ((# speed "2") . (0.125 <~)) $ sound "bd sn cp hh"
 
 -}
 superimpose :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
@@ -685,9 +734,11 @@ superimpose f p = stack [p, f p]
 {- | @trunc@ truncates a pattern so that only a fraction of the pattern is played.
 The following example plays only the first quarter of the pattern:
 
-@
-d1 $ trunc 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
-@
+> d1 $ trunc 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
+
+You can also pattern the first parameter, for example to cycle through three values, one per cycle:
+
+> d1 $ trunc "<0.75 0.25 1>" $ sound "bd sn:2 [mt rs] hc"
 -}
 trunc :: Pattern Time -> Pattern a -> Pattern a
 trunc = tParam _trunc
@@ -695,19 +746,35 @@ trunc = tParam _trunc
 _trunc :: Time -> Pattern a -> Pattern a
 _trunc t = compress (0, t) . zoomArc (Arc 0 t)
 
-{- | @linger@ is similar to `trunc` but the truncated part of the pattern loops until the end of the cycle.
+{- | @linger@ is similar to `trunc`, in that it truncates a pattern so that
+only the first fraction of the pattern is played, but the truncated part of the
+pattern loops to fill the remainder of the cycle.
 
-@
-d1 $ linger 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
-@
+> d1 $ linger 0.25 $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
+
+For example this repeats the first quarter, so you only hear a single repeating note:
+
+> d1 $ linger 0.25 $ n "0 2 [3 4] 2" # sound "arpy"
+
+or slightly more interesting, applied only every fourth cycle:
+
+> d1 $ every 4 (linger 0.25) $ n "0 2 [3 4] 2" # sound "arpy"
+
+or to a chopped-up sample:
+
+> d1 $ every 2 (linger 0.25) $ loopAt 2 $ chop 8 $ sound "breaks125"
+
+You can also pattern the first parameter, for example to cycle through three
+values, one per cycle:
+
+> d1 $ linger "<0.75 0.25 1>" $ sound "bd sn:2 [mt rs] hc"
+> d1 $ linger "<0.25 0.5 1>" $ loopAt 2 $ chop 8 $ sound "breaks125"
 
 If you give it a negative number, it will linger on the last part of
 the pattern, instead of the start of it. E.g. to linger on the last
 quarter:
 
-@
-d1 $ linger (-0.25) $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
-@
+> d1 $ linger (-0.25) $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
 -}
 linger :: Pattern Time -> Pattern a -> Pattern a
 linger = tParam _linger
@@ -717,18 +784,18 @@ _linger n p | n < 0 = _fast (1/n) $ zoomArc (Arc (1 + n) 1) p
             | otherwise = _fast (1/n) $ zoomArc (Arc 0 n) p
 
 {- |
-Use `within` to apply a function to only a part of a pattern. For example, to
-apply `density 2` to only the first half of a pattern:
+Use @within@ to apply a function to only a part of a pattern. It takes two
+arguments: a start time and an end time, specified as floats between 0 and 1,
+which are applied to the relevant pattern. Note that the second argument must be
+greater than the first for the function to have any effect.
 
-@
-d1 $ within (0, 0.5) (density 2) $ sound "bd*2 sn lt mt hh hh hh hh"
-@
+For example, to apply @'fast' 2@ to only the first half of a pattern:
 
-Or, to apply `(# speed "0.5") to only the last quarter of a pattern:
+> d1 $ within (0, 0.5) (fast 2) $ sound "bd*2 sn lt mt hh hh hh hh"
 
-@
-d1 $ within (0.75, 1) (# speed "0.5") $ sound "bd*2 sn lt mt hh hh hh hh"
-@
+Or, to apply @(# 'speed' "0.5")@ to only the last quarter of a pattern:
+
+> d1 $ within (0.75, 1) (# speed "0.5") $ sound "bd*2 sn lt mt hh hh hh hh"
 -}
 within :: (Time, Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 within (s, e) f p = stack [filterWhen (\t -> cyclePos t >= s && cyclePos t < e) $ f p,
@@ -744,30 +811,21 @@ The difference between the two occurs when applying functions that change the ti
 within first applies the function to all notes in the cycle, then keeps the results in the specified interval, and then combines it with the old cycle (an "apply split combine" paradigm).
 within' first keeps notes in the specified interval, then applies the function to these notes, and then combines it with the old cycle (a "split apply combine" paradigm).
 
-
 For example, whereas using the standard version of within
 
-@
-d1 $ within (0, 0.25) (fast 2) $ sound "bd hh cp sd"
-@
+> d1 $ within (0, 0.25) (fast 2) $ sound "bd hh cp sd"
 
 sounds like:
 
-@
-d1 $ sound "[bd hh] hh cp sd"
-@
+> d1 $ sound "[bd hh] hh cp sd"
 
 using this alternative version, within'
 
-@
-d1 $ within' (0, 0.25) (fast 2) $ sound "bd hh cp sd"
-@
+> d1 $ within' (0, 0.25) (fast 2) $ sound "bd hh cp sd"
 
 sounds like:
 
-@
-d1 $ sound "[bd bd] hh cp sd"
-@
+> d1 $ sound "[bd bd] hh cp sd"
 
 -}
 within' :: (Time, Time) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
@@ -787,9 +845,7 @@ revArc a = within a rev
 {- | You can use the @euclid@ function to apply a Euclidean algorithm over a
 complex pattern, although the structure of that pattern will be lost:
 
-@
-d1 $ euclid 3 8 $ sound "bd*2 [sn cp]"
-@
+> d1 $ euclid 3 8 $ sound "bd*2 [sn cp]"
 
 In the above, three sounds are picked from the pattern on the right according
 to the structure given by the @euclid 3 8@. It ends up picking two @bd@ sounds, a
@@ -806,29 +862,55 @@ more about this in the paper
 by Toussaint. Some examples from this paper are included below,
 including rotation as a third parameter in some cases (see 'euclidOff').
 
-@
-- (2,5) : A thirteenth century Persian rhythm called Khafif-e-ramal.
-- (3,4) : The archetypal pattern of the Cumbia from Colombia, as well as a Calypso rhythm from Trinidad.
-- (3,5,2) : Another thirteenth century Persian rhythm by the name of Khafif-e-ramal, as well as a Rumanian folk-dance rhythm.
-- (3,7) : A Ruchenitza rhythm used in a Bulgarian folk-dance.
-- (3,8) : The Cuban tresillo pattern.
-- (4,7) : Another Ruchenitza Bulgarian folk-dance rhythm.
-- (4,9) : The Aksak rhythm of Turkey.
-- (4,11) : The metric pattern used by Frank Zappa in his piece titled Outside Now.
-- (5,6) : Yields the York-Samai pattern, a popular Arab rhythm.
-- (5,7) : The Nawakhat pattern, another popular Arab rhythm.
-- (5,8) : The Cuban cinquillo pattern.
-- (5,9) : A popular Arab rhythm called Agsag-Samai.
-- (5,11) : The metric pattern used by Moussorgsky in Pictures at an Exhibition.
-- (5,12) : The Venda clapping pattern of a South African children’s song.
-- (5,16) : The Bossa-Nova rhythm necklace of Brazil.
-- (7,8) : A typical rhythm played on the Bendir (frame drum).
-- (7,12) : A common West African bell pattern.
-- (7,16,14) : A Samba rhythm necklace from Brazil.
-- (9,16) : A rhythm necklace used in the Central African Republic.
-- (11,24,14) : A rhythm necklace of the Aka Pygmies of Central Africa.
-- (13,24,5) : Another rhythm necklace of the Aka Pygmies of the upper Sangha.
-@
++------------+-----------------------------------------------------------------+
+| Pattern    | Example                                                         |
++============+=================================================================+
+| (2,5)      | A thirteenth century Persian rhythm called Khafif-e-ramal.      |
++------------+-----------------------------------------------------------------+
+| (3,4)      | The archetypal pattern of the Cumbia from Colombia, as well as  |
+|            | a Calypso rhythm from Trinidad.                                 |
++------------+-----------------------------------------------------------------+
+| (3,5,2)    | Another thirteenth century Persian rhythm by the name of        |
+|            | Khafif-e-ramal, as well as a Rumanian folk-dance rhythm.        |
++------------+-----------------------------------------------------------------+
+| (3,7)      | A Ruchenitza rhythm used in a Bulgarian folk-dance.             |
++------------+-----------------------------------------------------------------+
+| (3,8)      | The Cuban tresillo pattern.                                     |
++------------+-----------------------------------------------------------------+
+| (4,7)      | Another Ruchenitza Bulgarian folk-dance rhythm.                 |
++------------+-----------------------------------------------------------------+
+| (4,9)      | The Aksak rhythm of Turkey.                                     |
++------------+-----------------------------------------------------------------+
+| (4,11)     | The metric pattern used by Frank Zappa in his piece titled      |
+|            | Outside Now.                                                    |
++------------+-----------------------------------------------------------------+
+| (5,6)      | Yields the York-Samai pattern, a popular Arab rhythm.           |
++------------+-----------------------------------------------------------------+
+| (5,7)      | The Nawakhat pattern, another popular Arab rhythm.              |
++------------+-----------------------------------------------------------------+
+| (5,8)      | The Cuban cinquillo pattern.                                    |
++------------+-----------------------------------------------------------------+
+| (5,9)      | A popular Arab rhythm called Agsag-Samai.                       |
++------------+-----------------------------------------------------------------+
+| (5,11)     | The metric pattern used by Moussorgsky in                       |
+|            | Pictures at an Exhibition.                                      |
++------------+-----------------------------------------------------------------+
+| (5,12)     | The Venda clapping pattern of a South African children’s song.  |
++------------+-----------------------------------------------------------------+
+| (5,16)     | The Bossa-Nova rhythm necklace of Brazil.                       |
++------------+-----------------------------------------------------------------+
+| (7,8)      | A typical rhythm played on the Bendir (frame drum).             |
++------------+-----------------------------------------------------------------+
+| (7,12)     | A common West African bell pattern.                             |
++------------+-----------------------------------------------------------------+
+| (7,16,14)  | A Samba rhythm necklace from Brazil.                            |
++------------+-----------------------------------------------------------------+
+| (9,16)     | A rhythm necklace used in the Central African Republic.         |
++------------+-----------------------------------------------------------------+
+| (11,24,14) | A rhythm necklace of the Aka Pygmies of Central Africa.         |
++------------+-----------------------------------------------------------------+
+| (13,24,5)  | Another rhythm necklace of the Aka Pygmies of the upper Sangha. |
++------------+-----------------------------------------------------------------+
 
 There was once a shorter alias @e@ for this function. It has been removed, but you
 may see references to it in older Tidal code.
@@ -842,11 +924,14 @@ _euclid n k a | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
 
 {- |
 
-@euclidFull n k pa pb@ stacks @'euclid' n k pa@ with @'euclidInv' n k pb@. For example,
-to implement the traditional flamenco rhythm, you could use hard claps for the former
-and soft claps for the latter:
+@euclidFull n k pa pb@ stacks @'euclid' n k pa@ with @'euclidInv' n k pb@. That
+is, it plays one pattern on the euclidean rhythm and a different pattern on
+the off-beat.
 
-@d1 $ euclidFull 3 7 "realclaps" ("realclaps" # gain 0.8)@
+For example, to implement the traditional flamenco rhythm, you could use hard
+claps for the former and soft claps for the latter:
+
+> d1 $ euclidFull 3 7 "realclaps" ("realclaps" # gain 0.8)
 
 -}
 euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
@@ -860,10 +945,8 @@ _euclid' :: Int -> Int -> Pattern a -> Pattern a
 _euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n,k))
 
 {- |
-
 As 'euclid', but taking a third rotational parameter corresponding to the onset
 at which to start the rhythm.
-
 -}
 euclidOff :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclidOff = tParam3 _euclidOff
@@ -899,9 +982,25 @@ _distrib xs p = boolsToPat (foldr distrib' (replicate (last xs) True) (reverse $
     layers = map bjorklund . (zip<*>tail)
     boolsToPat a b' = flip const <$> filterValues (== True) (fastFromList a) <* b'
 
-{- | `euclidInv` fills in the blanks left by `euclid`.
+{-| @euclidInv@ fills in the blanks left by `euclid`, i.e., it inverts the
+pattern.
 
-Whereas @euclid 3 8 "x"@ produces @"x ~ ~ x ~ ~ x ~"@, @euclidInv 3 8 "x"@ produces @"~ x x ~ x x ~ x"@.
+For example, whereas @euclid 3 8 "x"@ produces
+
+> "x ~ ~ x ~ ~ x ~"
+
+@euclidInv 3 8 "x"@ produces
+
+> "~ x x ~ x x ~ x"
+
+As another example, in
+
+> d1 $ stack [ euclid 5 8 $ s "bd"
+>            , euclidInv 5 8 $ s "hh27"
+>            ]
+
+the hi-hat event fires on every one of the eight even beats that the bass drum
+does not.
 -}
 euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclidInv = tParam2 _euclidInv
@@ -1016,8 +1115,28 @@ pequal :: Ord a => Time -> Pattern a -> Pattern a -> Bool
 pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -}
 
--- | @rot n p@ rotates the values in a pattern @p@ by @n@ beats to the left.
--- Example: @d1 $ every 4 (rot 2) $ slow 2 $ sound "bd hh hh hh"@
+{- | @rot n p@ "rotates" the values in a pattern @p@ by @n@ beats to the left,
+preserving its structure. For example, in the following, each value will shift
+to its neighbour's position one step to the left, so that @b@ takes the place of
+@a@, @a@ of @c@, and @c@ of @b@:
+
+> rot 1 "a ~ b c"
+
+The result is equivalent of:
+
+> "b ~ c a"
+
+The first parameter is the number of steps, and may be given as a pattern. For example, in
+
+> d1 $ rot "<0 0 1 3>" $ n "0 ~ 1 2 0 2 ~ 3*2" # sound "drum"
+
+the pattern will not be rotated for the first two cycles, but will rotate it
+by one the third cycle, and by three the fourth cycle.
+
+Additional example:
+
+> d1 $ every 4 (rot 2) $ slow 2 $ sound "bd hh hh hh"
+-}
 rot :: Ord a => Pattern Int -> Pattern a -> Pattern a
 rot = tParam _rot
 
@@ -1042,9 +1161,15 @@ _rot i pat = splitQueries $ pat {query = \st -> f st (query pat (st {arc = whole
             p' <- subArc (part e) a
             return e {part = p'}
 
--- | @segment n p@: ’samples’ the pattern @p@ at a rate of @n@
--- events per cycle. Useful for turning a continuous pattern into a
--- discrete one.
+{-| @segment n p@ ’samples’ the pattern @p@ at a rate of @n@ events per cycle.
+Useful for turning a continuous pattern into a discrete one.
+
+In the following example, the pattern originates from the shape of a sine
+wave, a continuous pattern. Without @segment@, the samples will get triggered
+at an undefined frequency which may be very high.
+
+> d1 $ n (slow 2 $ segment 16 $ range 0 32 $ sine) # sound "amencutup"
+-}
 segment :: Pattern Time -> Pattern a -> Pattern a
 segment = tParam _segment
 
@@ -1093,11 +1218,14 @@ toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
 
 {- | The `fit` function takes a pattern of integer numbers, which are used to select values from the given list. What makes this a bit strange is that only a given number of values are selected each cycle. For example:
 
-@
-d1 $ sound (fit 3 ["bd", "sn", "arpy", "arpy:1", "casio"] "0 [~ 1] 2 1")
-@
+> d1 $ sound (fit 3 ["bd", "sn", "arpy", "arpy:1", "casio"] "0 [~ 1] 2 1")
 
-The above fits three samples into the pattern, i.e. for the first cycle this will be `"bd"`, `"sn"` and `"arpy"`, giving the result `"bd [~ sn] arpy sn"` (note that we start counting at zero, so that `0` picks the first value). The following cycle the *next* three values in the list will be picked, i.e. `"arpy:1"`, `"casio"` and `"bd"`, giving the pattern `"arpy:1 [~ casio] bd casio"` (note that the list wraps round here).
+The above fits three samples into the pattern, i.e. for the first cycle this
+will be @"bd"@, @"sn"@ and @"arpy"@, giving the result @"bd [~ sn] arpy sn"@
+(note that we start counting at zero, so that 0 picks the first value). The
+following cycle the /next/ three values in the list will be picked, i.e.
+@"arpy:1"@, @"casio"@ and @"bd"@, giving the pattern
+@"arpy:1 [~ casio] bd casio"@ (note that the list wraps round here).
 
 -}
 fit :: Pattern Int -> [a] -> Pattern Int -> Pattern a
@@ -1118,9 +1246,37 @@ permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> repli
             perms 1 n = [[n]]
             perms n total = concatMap (\x -> map (x:) $ perms (n-1) (total-x)) [1 .. (total-(n-1))]
 
--- | @struct a b@: structures pattern @b@ in terms of the pattern of
--- boolean values @a@. Only @True@ values in the boolean pattern are
--- used.
+{-|
+  @struct a b@ structures pattern @b@ in terms of the pattern of boolean
+  values @a@. Only @True@ values in the boolean pattern are used.
+
+  The following are equivalent:
+
+  > d1 $ struct ("t ~ t*2 ~") $ sound "cp"
+  > d1 $ sound "cp ~ cp*2 ~"
+
+  The structure comes from a boolean pattern, i.e. a binary pattern containing
+  true or false values. Above we only used true values, denoted by @t@. It’s also
+  possible to include false values with @f@, which @struct@ will simply treat as
+  silence. For example, this would have the same outcome as the above:
+
+  > d1 $ struct ("t f t*2 f") $ sound "cp"
+
+  These true / false binary patterns become useful when you conditionally
+  manipulate them, for example, ‘inverting’ the values using 'every' and 'inv':
+
+  > d1 $ struct (every 3 inv "t f t*2 f") $ sound "cp"
+
+  In the above, the boolean values will be ‘inverted’ every third cycle, so that
+  the structure comes from the @f@s rather than @t@. Note that euclidean patterns
+  also create true/false values, for example:
+
+  > d1 $ struct (every 3 inv "t(3,8)") $ sound "cp"
+
+  In the above, the euclidean pattern creates @"t f t f t f f t"@ which gets
+  inverted to @"f t f t f t t f"@ every third cycle. Note that if you prefer you
+  can use 1 and 0 instead of @t@ and @f@.
+-}
 struct :: Pattern Bool -> Pattern a -> Pattern a
 struct ps pv = filterJust $ (\a b -> if a then Just b else Nothing ) <$> ps <* pv
 
@@ -1163,11 +1319,21 @@ substruct' s p = p {query = \st -> concatMap (f st) (query s st)}
         -- Ignore analog events (ones without wholes)
         f _ _ = []
 
--- | @stripe n p@: repeats pattern @p@, @n@ times per cycle. So
--- similar to @fast@, but with random durations. The repetitions will
--- be continguous (touching, but not overlapping) and the durations
--- will add up to a single cycle. @n@ can be supplied as a pattern of
--- integers.
+{- | @stripe n p@: repeats pattern @p@ @n@ times per cycle, i.e., the first
+parameter gives the number of cycles to operate over. So, it is similar to
+@fast@, but with random durations. For example @stripe 2@ will repeat a pattern
+twice, over two cycles
+
+In the following example, the start of every third repetition of the @d1@
+pattern will match with the clap on the @d2@ pattern.
+
+> d1 $ stripe 3 $ sound "bd sd ~ [mt ht]"
+> d2 $ sound "cp"
+
+The repetitions will be contiguous (touching, but not overlapping) and the
+durations will add up to a single cycle. @n@ can be supplied as a pattern of
+integers.
+-}
 stripe :: Pattern Int -> Pattern a -> Pattern a
 stripe = tParam _stripe
 
@@ -1195,13 +1361,27 @@ parseLMRule' :: String -> [(Char, String)]
 parseLMRule' str = map fixer $ parseLMRule str
   where fixer (c,r) = (head c, r)
 
-{- | Returns the `n`th iteration of a [Lindenmayer System](https://en.wikipedia.org/wiki/L-system) with given start sequence.
+{- | Returns the @n@th iteration of a
+  [Lindenmayer System](https://en.wikipedia.org/wiki/L-system)
+  with given start sequence.
 
-An example
+  It takes an integer @b@, a Lindenmayer system rule set, and an initiating
+  string as input in order to generate an L-system tree string of @b@ iterations.
+  It can be used in conjunction with a step function to convert the generated
+  string into a playable pattern. For example,
 
-@
-lindenmayer 1 "a:b,b:ab" "ab" -> "bab"
-@
+  > d1 $ slow 16
+  >    $ sound
+  >    $ step' ["feel:0", "sn:1", "bd:0"]
+  >        ( take 512
+  >        $ lindenmayer 5 "0:1~~~,1:0~~~2~~~~~0~~~2~,2:2~1~,~:~~1~" "0"
+  >        )
+
+  generates an L-system with initiating string @"0"@ and maps it onto a list
+  of samples.
+
+  Complex L-system trees with many rules and iterations can sometimes result in unwieldy strings. Using @take n@ to only use the first @n@ elements of the string, along with a 'slow' function, can make the generated values more manageable.
+
 -}
 lindenmayer :: Int -> String -> String -> String
 lindenmayer _ _ [] = []
@@ -1232,12 +1412,11 @@ runMarkov n tp xi seed = reverse $ (iterate (markovStep $ renorm) [xi])!! (n-1) 
     r = timeToRand $ seed + (fromIntegral . length) xs / fromIntegral n
   renorm = [ map (/ sum x) x | x <- tp ]
 
-{- @markovPat n xi tp@ generates a one-cycle pattern of @n@ steps in a Markov
+{- | @markovPat n xi tp@ generates a one-cycle pattern of @n@ steps in a Markov
 chain starting from state @xi@ with transition matrix @tp@. Each row of the
 transition matrix is automatically normalized.  For example:
-@
-tidal> markovPat 8 1 [[3,5,2], [4,4,2], [0,1,0]]
 
+>>> markovPat 8 1 [[3,5,2], [4,4,2], [0,1,0]]
 (0>⅛)|1
 (⅛>¼)|2
 (¼>⅜)|1
@@ -1246,7 +1425,7 @@ tidal> markovPat 8 1 [[3,5,2], [4,4,2], [0,1,0]]
 (⅝>¾)|1
 (¾>⅞)|1
 (⅞>1)|0
-@ -}
+-}
 markovPat :: Pattern Int -> Pattern Int -> [[Double]] -> Pattern Int
 markovPat = tParam2 _markovPat
 
@@ -1255,62 +1434,84 @@ _markovPat n xi tp = splitQueries $ Pattern (\(State a@(Arc s _) _) ->
   queryArc (listToPat $ runMarkov n tp xi (sam s)) a)
 
 {-|
-Removes events from second pattern that don't start during an event from first.
+@mask@ takes a boolean pattern and ‘masks’ another pattern with it. That is,
+events are only carried over if they match within a ‘true’ event in the binary
+pattern, i.e., it removes events from the second pattern that don't start during
+an event from the first.
 
-Consider this, kind of messy rhythm without any rests.
+For example, consider this kind of messy rhythm without any rests.
 
-@
-d1 $ sound (slowcat ["sn*8", "[cp*4 bd*4, hc*5]"]) # n (run 8)
-@
+> d1 $ sound (slowcat ["sn*8", "[cp*4 bd*4, hc*5]"]) # n (run 8)
 
 If we apply a mask to it
 
 @
-d1 $ s (mask ("1 1 1 ~ 1 1 ~ 1" :: Pattern Bool)
-  (slowcat ["sn*8", "[cp*4 bd*4, bass*5]"] ))
+d1 $ s ( mask ("1 1 1 ~ 1 1 ~ 1" :: Pattern Bool)
+         ( slowcat ["sn*8", "[cp*4 bd*4, bass*5]"] )
+       )
   # n (run 8)
 @
 
-Due to the use of `slowcat` here, the same mask is first applied to `"sn*8"` and in the next cycle to `"[cp*4 bd*4, hc*5]".
+Due to the use of `slowcat` here, the same mask is first applied to @"sn*8"@ and
+in the next cycle to @"[cp*4 bd*4, hc*5]"@.
 
-You could achieve the same effect by adding rests within the `slowcat` patterns, but mask allows you to do this more easily. It kind of keeps the rhythmic structure and you can change the used samples independently, e.g.
+You could achieve the same effect by adding rests within the `slowcat` patterns,
+but mask allows you to do this more easily. It kind of keeps the rhythmic
+structure and you can change the used samples independently, e.g.,
 
 @
-d1 $ s (mask ("1 ~ 1 ~ 1 1 ~ 1")
-  (slowcat ["can*8", "[cp*4 sn*4, jvbass*16]"] ))
+d1 $ s ( mask ("1 ~ 1 ~ 1 1 ~ 1")
+         ( slowcat ["can*8", "[cp*4 sn*4, jvbass*16]"] )
+       )
   # n (run 8)
 @
 -}
 mask :: Pattern Bool -> Pattern a -> Pattern a
 mask b p = const <$> p <* (filterValues id b)
 
--- | TODO: refactor towards union
+-- TODO: refactor towards union
 enclosingArc :: [Arc] -> Arc
 enclosingArc [] = Arc 0 1
 enclosingArc as = Arc (minimum (map start as)) (maximum (map stop as))
 
+{-|
+  @stretch@ takes a pattern, and if there’s silences at the start or end of the
+  current cycle, it will zoom in to avoid them. The following are equivalent:
+
+  > d1 $ note (stretch "~ 0 1 5 8*4 ~") # s "superpiano"
+  > d1 $ note "0 1 5 8*4" # s "superpiano"
+
+  You can pattern silences on the extremes of a cycle to make changes to the rhythm:
+
+  > d1 $ note (stretch "~ <0 ~> 1 5 8*4 ~") # s "superpiano"
+-}
 stretch :: Pattern a -> Pattern a
 -- TODO - should that be whole or part?
 stretch p = splitQueries $ p {query = q}
   where q st = query (zoomArc (cycleArc $ enclosingArc $ map wholeOrPart $ query p (st {arc = Arc (sam s) (nextSam s)})) p) st
           where s = start $ arc st
 
-{- | `fit'` is a generalization of `fit`, where the list is instead constructed by using another integer pattern to slice up a given pattern.  The first argument is the number of cycles of that latter pattern to use when slicing.  It's easier to understand this with a few examples:
+{- | @fit'@ is a generalization of `fit`, where the list is instead constructed
+by using another integer pattern to slice up a given pattern. The first argument
+is the number of cycles of that latter pattern to use when slicing. It's easier
+to understand this with a few examples:
 
-@
-d1 $ sound (fit' 1 2 "0 1" "1 0" "bd sn")
-@
+> d1 $ sound (fit' 1 2 "0 1" "1 0" "bd sn")
 
-So what does this do?  The first `1` just tells it to slice up a single cycle of `"bd sn"`. The `2` tells it to select two values each cycle, just like the first argument to `fit`.  The next pattern `"0 1"` is the "from" pattern which tells it how to slice, which in this case means `"0"` maps to `"bd"`, and `"1"` maps to `"sn"`.  The next pattern `"1 0"` is the "to" pattern, which tells it how to rearrange those slices.  So the final result is the pattern `"sn bd"`.
+So what does this do? The first @1@ just tells it to slice up a single cycle of
+@"bd sn"@. The @2@ tells it to select two values each cycle, just like the first
+argument to @fit@. The next pattern @"0 1"@ is the "from" pattern which tells
+it how to slice, which in this case means @"0"@ maps to @"bd"@, and @"1"@ maps
+to @"sn"@. The next pattern @"1 0"@ is the "to" pattern, which tells it how to
+rearrange those slices. So the final result is the pattern @"sn bd"@.
 
 A more useful example might be something like
 
-@
-d1 $ fit' 1 4 (run 4) "[0 3*2 2 1 0 3*2 2 [1*8 ~]]/2" $ chop 4 $ (sound "breaks152" # unit "c")
-@
+> d1 $ fit' 1 4 (run 4) "[0 3*2 2 1 0 3*2 2 [1*8 ~]]/2"
+>    $ chop 4
+>    $ (sound "breaks152" # unit "c")
 
-which uses `chop` to break a single sample into individual pieces, which `fit'` then puts into a list (using the `run 4` pattern) and reassembles according to the complicated integer pattern.
-
+which uses @chop@ to break a single sample into individual pieces, which @fit'@ then puts into a list (using the @run 4@ pattern) and reassembles according to the complicated integer pattern.
 -}
 fit' :: Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
@@ -1325,9 +1526,18 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
    - from left to right if chunk number is positive
    - from right to left if chunk number is negative
 
-  @
-  d1 $ chunk 4 (fast 4) $ sound "cp sn arpy [mt lt]"
-  @
+  > d1 $ chunk 4 (fast 4) $ sound "cp sn arpy [mt lt]"
+
+  The following:
+
+  > d1 $ chunk 4 (# speed 2) $ sound "bd hh sn cp"
+
+  applies @(# speed 2)@ to the uppercased part of the cycle below:
+
+  > BD hh sn cp
+  > bd HH sn cp
+  > bd hh SN cp
+  > bd hh sn CP
 -}
 chunk :: Pattern Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 chunk npat f p = innerJoin $ (\n -> _chunk n f p) <$> npat
@@ -1349,6 +1559,18 @@ _chunk' n f p = _chunk (-n) f p
 @inside@ carries out an operation /inside/ a cycle.
 For example, while @rev "0 1 2 3 4 5 6 7"@ is the same as @"7 6 5 4 3 2 1 0"@,
 @inside 2 rev "0 1 2 3 4 5 6 7"@ gives @"3 2 1 0 7 6 5 4"@.
+
+What this function is really doing is ‘slowing down’ the pattern by a given
+factor, applying the given function to it, and then ‘speeding it up’ by the same
+factor. In other words, this:
+
+> inside 2 rev "0 1 2 3 4 5 6 7"
+
+Is doing this:
+
+> fast 2 $ rev $ slow 2 "0 1 2 3 4 5 6 7"
+
+so rather than whole cycles, each half of a cycle is reversed.
 -}
 inside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 inside np f p = innerJoin $ (\n -> _inside n f p) <$> np
@@ -1360,28 +1582,28 @@ _inside n f p = _fast n $ f (_slow n p)
 @outside@ is the inverse of the 'inside' function. @outside@ applies its function /outside/ the cycle.
 Say you have a pattern that takes 4 cycles to repeat and apply the rev function:
 
-@
-d1 $ rev $ cat [s "bd bd sn",s "sn sn bd", s"lt lt sd", s "sd sd bd"]
-@
+> d1 $ rev $ cat [s "bd bd sn",s "sn sn bd", s"lt lt sd", s "sd sd bd"]
 
 The above generates:
 
-@
-d1 $ rev $ cat [s "sn bd bd",s "bd sn sn", s "sd lt lt", s "bd sd sd"]
-@
+> d1 $ rev $ cat [s "sn bd bd",s "bd sn sn", s "sd lt lt", s "bd sd sd"]
 
 However if you apply @outside@:
 
-@
-d1 $ outside 4 (rev) $ cat [s "bd bd sn",s "sn sn bd", s"lt lt sd", s "sd sd bd"]
-@
+> d1 $ outside 4 (rev) $ cat [s "bd bd sn",s "sn sn bd", s"lt lt sd", s "sd sd bd"]
 
 The result is:
 
-@
-d1 $ rev $ cat [s "bd sd sd", s "sd lt lt", s "sn sn bd", s "bd bd sn"]
-@
+> d1 $ rev $ cat [s "bd sd sd", s "sd lt lt", s "sn sn bd", s "bd bd sn"]
 
+Notice that the whole idea has been reversed. What this function is really doing
+is ‘speeding up’ the pattern by a given factor, applying the given function to
+it, and then ‘slowing it down’ by the same factor. In other words, this:
+
+> d1 $ slow 4 $ rev $ fast 4
+>    $ cat [s "bd bd sn",s "sn sn bd", s"lt lt sd", s "sd sd bd"]
+
+This compresses the idea into a single cycle before rev operates and then slows it back to the original speed.
 -}
 outside :: Pattern Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 outside np f p = innerJoin $ (\n -> _outside n f p) <$> np
@@ -1389,6 +1611,15 @@ outside np f p = innerJoin $ (\n -> _outside n f p) <$> np
 _outside :: Time -> (Pattern a1 -> Pattern a) -> Pattern a1 -> Pattern a
 _outside n = _inside (1/n)
 
+{-|
+  Takes a pattern and loops only the first cycle of the pattern. For example, the following code will only play the bass drum sample:
+
+  > d1 $ loopFirst $ s "<<bd*4 ht*8> cp*4>"
+
+  This function combines with 'sometimes' to insert events from the first cycle randomly into subsequent cycles of the pattern:
+
+  > d1 $ sometimes loopFirst $ s "<<bd*4 ht*8> cp*4>"
+-}
 loopFirst :: Pattern a -> Pattern a
 loopFirst p = splitQueries $ p {query = f}
   where f st = map
@@ -1402,6 +1633,15 @@ loopFirst p = splitQueries $ p {query = f}
 timeLoop :: Pattern Time -> Pattern a -> Pattern a
 timeLoop n = outside n loopFirst
 
+{-|
+  @seqPLoop@ will keep looping the sequence when it gets to the end:
+
+  > d1 $ qtrigger $ seqPLoop
+  >   [ (0, 12, sound "bd bd*2")
+  >   , (4, 12, sound "hh*2 [sn cp] cp future*4")
+  >   , (8, 12, sound (samples "arpy*8" (run 16)))
+  >   ]
+-}
 seqPLoop :: [(Time, Time, Pattern a)] -> Pattern a
 seqPLoop ps = timeLoop (pure $ maxT - minT) $ minT `rotL` seqP ps
   where minT = minimum $ map (\(x,_,_) -> x) ps
@@ -1411,11 +1651,18 @@ seqPLoop ps = timeLoop (pure $ maxT - minT) $ minT `rotL` seqP ps
 @toScale@ lets you turn a pattern of notes within a scale (expressed as a
 list) to note numbers.
 
-For example: @toScale [0, 4, 7] "0 1 2 3"@ will turn
-into the pattern @"0 4 7 12"@.
+For example:
 
-This function assumes your scale fits within an
-octave; if that's not true, use 'toScale''.
+> toScale [0, 4, 7] "0 1 2 3"
+
+will turn into the pattern @"0 4 7 12"@.
+
+@toScale@ is handy for quickly applying a scale without naming it:
+
+> d1 $ n (toScale [0,2,3,5,7,8,10] "0 1 2 3 4 5 6 7") # sound "superpiano"
+
+This function assumes your scale fits within an octave; if that's not true,
+use 'toScale''.
 
 @toScale = toScale' 12@
 -}
@@ -1433,8 +1680,14 @@ toScale' o s = fmap noteInScale
         noteInScale x = (s !!! x) + fromIntegral (o * octave x)
 
 
-{- | `swingBy x n` divides a cycle into `n` slices and delays the notes in
-the second half of each slice by `x` fraction of a slice.
+{- | @swingBy x n@ divides a cycle into @n@ slices and delays the notes in the
+  second half of each slice by @x@ fraction of a slice. So if @x@ is 0 it does
+  nothing, 0.5 delays for half the note duration, and 1 will wrap around to
+  doing nothing again. The end result is a shuffle or swing-like rhythm. For
+  example, the following will delay every other @"hh"@ 1/3 of the way to the
+  next @"hh"@:
+
+  > d1 $ swingBy (1/3) 4 $ sound "hh*8"
 -}
 swingBy :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
 swingBy x n = inside n (withinArc (Arc 0.5 1) (x ~>))
@@ -1445,8 +1698,11 @@ As 'swingBy', with the cycle division set to ⅓.
 swing :: Pattern Time -> Pattern a -> Pattern a
 swing = swingBy (pure $ 1%3)
 
-{- | `cycleChoose` is like `choose` but only picks a new item from the list
-once each cycle -}
+{- | @cycleChoose@ is like `choose` but only picks a new item from the list
+  once each cycle.
+
+  > d1 $ sound "drum ~ drum drum" # n (cycleChoose [0,2,3])
+-}
 cycleChoose :: [a] -> Pattern a
 cycleChoose = segment 1 . choose
 
@@ -1461,8 +1717,10 @@ _rearrangeWith ipat n pat = innerJoin $ (\i -> _fast nT $ _repeatCycles n $ pats
 {- | @shuffle n p@ evenly divides one cycle of the pattern @p@ into @n@ parts,
 and returns a random permutation of the parts each cycle.  For example,
 @shuffle 3 "a b c"@ could return @"a b c"@, @"a c b"@, @"b a c"@, @"b c a"@,
-@"c a b"@, or @"c b a"@.  But it will **never** return @"a a a"@, because that
+@"c a b"@, or @"c b a"@.  But it will /never/ return @"a a a"@, because that
 is not a permutation of the parts.
+
+This could also be called “sampling without replacement”.
 -}
 shuffle :: Pattern Int -> Pattern a -> Pattern a
 shuffle = tParam _shuffle
@@ -1474,6 +1732,8 @@ _shuffle n = _rearrangeWith (randrun n) n
 of @p@ instead of making permutations.
 For example, @scramble 3 "a b c"@ will randomly select 3 parts from
 @"a"@ @"b"@ and @"c"@, possibly repeating a single part.
+
+This could also be called “sampling with replacement”.
 -}
 scramble :: Pattern Int -> Pattern a -> Pattern a
 scramble = tParam _scramble
@@ -1524,7 +1784,7 @@ seqP ps = stack $ map (\(s, e, p) -> playFor s e (sam s `rotR` p)) ps
 
 {-|
 The @ur@ function is designed for longer form composition, by allowing you to
-create ’patterns of patterns’ in a repeating loop. It takes four parameters:
+create ‘patterns of patterns’ in a repeating loop. It takes four parameters:
 how long the loop will take, a pattern giving the structure of the composition,
 a lookup table for named patterns to feed into that structure, and a second
 lookup table for named transformations\/effects.
@@ -1539,24 +1799,50 @@ do it:
 
 @
 let pats =
-      [
-        ("a", stack [n "c4 c5 g4 f4 f5 g4 e5 g4" # s "superpiano" # gain "0.7",
-                     n "[c3,g4,c4]" # s "superpiano"# gain "0.7"
-                    ]
-        ),
-        ("b", stack [n "d4 c5 g4 f4 f5 g4 e5 g4" # s "superpiano" # gain "0.7",
-                     n "[d3,a4,d4]" # s "superpiano"# gain "0.7"
-                    ]
-        ),
-        ("c", stack [n "f4 c5 g4 f4 f5 g4 e5 g4" # s "superpiano" # gain "0.7",
-                     n "[f4,c5,f4]" # s "superpiano"# gain "0.7"
-                    ]
-        )
-      ]
+  [ ( "a", stack [ n "c4 c5 g4 f4 f5 g4 e5 g4" # s "superpiano" # gain "0.7"
+                 , n "[c3,g4,c4]" # s "superpiano"# gain "0.7"
+                 ]
+    )
+  , ( "b", stack [ n "d4 c5 g4 f4 f5 g4 e5 g4" # s "superpiano" # gain "0.7"
+                 , n "[d3,a4,d4]" # s "superpiano"# gain "0.7"
+                 ]
+    )
+  , ( "c", stack [ n "f4 c5 g4 f4 f5 g4 e5 g4" # s "superpiano" # gain "0.7"
+                 , n "[f4,c5,f4]" # s "superpiano"# gain "0.7"
+                 ]
+    )
+  ]
 in
 d1 $ ur 12 "a b c" pats []
 @
 
+In the above, the fourth parameter is given as an empty list, but that is where
+you can put another lookup table, of functions rather than patterns this time.
+For example:
+
+@
+let
+  pats = ...
+  fx   = [ ("reverb", ( # (room 0.8 # sz 0.99 # orbit 1)))
+         , ("faster", fast 2)
+         ]
+in
+d1 $ ur 12 "a b:reverb c:faster" pats fx
+@
+
+In this example, @b@ has the function applied that’s named as reverb, while @c@
+is made to go faster. It’s also possible to schedule multiple patterns at once,
+like in the following:
+
+@
+let pats = [ ("drums", s "drum cp*2")
+           , ("melody", s "arpy:2 arpy:3 arpy:5")
+           , ("craziness", s "cp:4*8" # speed ( sine + 0.5 ))
+           ]
+    fx = [("higher", ( # speed 2))]
+in
+d1 $ ur 8 "[drums, melody] [drums,craziness,melody] melody:higher" pats fx
+@
 -}
 ur :: Time -> Pattern String -> [(String, Pattern a)] -> [(String, Pattern a -> Pattern a)] -> Pattern a
 ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <$> outer_p)
@@ -1573,7 +1859,25 @@ ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <
         matchF str = fromMaybe id $ lookup str fs
         timedValues = withEvent (\(Event c (Just a) a' v) -> Event c (Just a) a' (a,v)) . filterDigital
 
--- | A simpler version of 'ur' that just provides name-value bindings that are reflected in the provided pattern.
+{- | A simpler version of 'ur' that just provides name-value bindings that are
+  reflected in the provided pattern.
+
+  @inhabit@ allows you to link patterns to some @String@, or in other words,
+  to give patterns a name and then call them from within another pattern of
+  @String@s.
+
+  For example, we can make our own bassdrum, hi-hat and snaredrum kit:
+
+  > do
+  >   let drum = inhabit [ ("bd", s "sine" |- accelerate 1.5)
+  >                      , ("hh", s "alphabet:7" # begin 0.7 # hpf 7000)
+  >                      , ("sd", s "invaders:3" # speed 12)
+  >                      ]
+  >   d1 $ drum "[bd*8?, [~hh]*4, sd(6,16)]"
+
+  @inhabit@ can be very useful when using MIDI controlled drum machines, since you
+  can give understandable drum names to patterns of notes.
+-}
 inhabit :: [(String, Pattern a)] -> Pattern String -> Pattern a
 inhabit ps p = squeezeJoin $ (\s -> fromMaybe silence $ lookup s ps) <$> p
 
@@ -1586,13 +1890,32 @@ spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (`compressArc` p) spac
         spaceArcs = map (\(Arc a b) -> Arc (a/s) (b/s)) $ markOut 0 xs
         s = sum xs
 
--- | @flatpat@ takes a 'Pattern' of lists and pulls the list elements as
--- separate 'Event's.
+{-| @flatpat@ takes a 'Pattern' of lists and pulls the list elements as
+  separate 'Event's. For example, the following code uses @flatpat@ in combination with @listToPat@ to create an alternating pattern of chords:
+
+  > d1 $ n (flatpat $ listToPat [[0,4,7],[(-12),(-8),(-5)]])
+  >    # s "superpiano" # sustain 2
+
+  This code is equivalent to:
+
+  > d1 $ n ("[0,4,7] [-12,-8,-5]") # s "superpiano" # sustain 2
+-}
 flatpat :: Pattern [a] -> Pattern a
 flatpat p = p {query = concatMap (\(Event c b b' xs) -> map (Event c b b') xs) . query p}
 
--- | @layer@ takes a list of 'Pattern'-returning functions and a seed element,
--- stacking the result of applying the seed element to each function in the list.
+{- | @layer@ takes a list of 'Pattern'-returning functions and a seed element,
+stacking the result of applying the seed element to each function in the list.
+
+It allows you to layer up multiple functions on one pattern. For example, the following
+will play two versions of the pattern at the same time, one reversed and one at twice
+the speed:
+
+> d1 $ layer [rev, fast 2] $ sound "arpy [~ arpy:4]"
+
+The original version of the pattern can be included by using the @id@ function:
+
+> d1 $ layer [id, rev, fast 2] $ sound "arpy [~ arpy:4]"
+-}
 layer :: [a -> Pattern b] -> a -> Pattern b
 layer fs p = stack $ map ($ p) fs
 
@@ -1631,7 +1954,7 @@ The different arpeggiate modes are:
 @
 up down updown downup up&down down&up converge
 diverge disconverge pinkyup pinkyupdown
-thumbup thumbupdown-
+thumbup thumbupdown
 @
 -}
 arp :: Pattern String -> Pattern a -> Pattern a
@@ -1664,8 +1987,11 @@ _arp name p = arpWith f p
         thumbup xs = concatMap (\x -> [thumb,x]) $ tail xs
           where thumb = head xs
 
-{- | `rolled` plays each note of a chord quickly in order, as opposed to simultaneously; to give a chord a harp-like effect.
-This will played from the lowest note to the highest note of the chord:
+{- | @rolled@ plays each note of a chord quickly in order, as opposed to
+simultaneously; to give a chord a harp-like or strum effect.
+
+Notes are played low to high, and are evenly distributed within (1/4) of the chord event length, as opposed to arp/arpeggiate that spread the notes over the whole event.
+
 @
 rolled $ n "c'maj'4" # s "superpiano"
 @
@@ -1676,8 +2002,10 @@ rolled :: Pattern a -> Pattern a
 rolled = rolledBy (1/4)
 
 {-
-As 'rolled', but allowing you to specify the length of the roll. The value in the passed pattern
-is the divisor of the cycle length. A negative value will play the arpeggio in reverse order.
+As 'rolled', but allows you to specify the length of the roll, i.e., the
+fraction of the event that the notes will be spread over. The value in the
+passed pattern is the divisor of the cycle length. A negative value will play
+the arpeggio in reverse order.
 
 @
 rolledBy "<1 -0.5 0.25 -0.125>" $ note "c'maj9" # s "superpiano"
@@ -1722,7 +2050,28 @@ fill p' p = struct (splitQueries $ p {query = q}) p'
     tolerance = 0.01
 -}
 
--- | @ply n@ repeats each event @n@ times within its arc.
+{- | @ply n@ repeats each event @n@ times within its arc.
+
+For example, the following are equivalent:
+
+@
+d1 $ ply 3 $ s "bd ~ sn cp"
+d1 $ s "[bd bd bd] ~ [sn sn sn] [cp cp cp]"
+@
+
+The first parameter may be given as a pattern, so that the following are equivalent:
+
+@
+d1 $ ply "2 3" $ s "bd ~ sn cp"
+d1 $ s "[bd bd] ~ [sn sn sn] [cp cp cp]"
+@
+
+Here is an example of it being used conditionally:
+
+@
+d1 $ every 3 (ply 4) $ s "bd ~ sn cp"
+@
+-}
 ply :: Pattern Rational -> Pattern a -> Pattern a
 ply = tParam _ply
 
@@ -1738,26 +2087,99 @@ _plyWith numPat f p = arpeggiate $ compound numPat
   where compound n | n <= 1 = p
                    | otherwise = overlay p (f $ compound $ n-1)
 
--- | Syncopates a rhythm, shifting each event halfway into its arc (aka timespan), e.g. @"a b [c d] e"@ becomes the equivalent of @"[~ a] [~ b] [[~ c] [~ d]] [~ e]"@
+{-| Syncopates a rhythm, shifting (delaying) each event halfway into its arc
+  (timespan).
+
+  In mini-notation terms, it basically turns every instance of a into @[~ a]@,
+  e.g., @"a b [c d] e"@ becomes the equivalent of
+  @"[~ a] [~ b] [[~ c] [~ d]] [~ e]"@.
+  Every beat then becomes an offbeat, and so the overall effect is to
+  syncopate a pattern.
+
+  In the following example, you can hear that the piano chords play between the
+  snare and the bass drum. In 4/4 time, they are playing in the 2 and a half,
+  and 4 and a half beats:
+
+  > do
+  >   resetCycles
+  >   d1 $ stack [
+  >     press $ n "~ c'maj ~ c'maj" # s "superpiano" # gain 0.9 # pan 0.6,
+  >     s "[bd,clap sd bd sd]" # pan 0.4
+  >     ] # cps (90/60/4)
+
+  In the next example, the C major chord plays before the G major. As the slot
+  that occupies the C chord is that of one eighth note, it is displaced by press
+  only a sixteenth note:
+
+  > do
+  >   resetCycles
+  >   d1 $ stack [
+  >     press $ n "~ [c'maj ~] ~ ~" # s "superpiano" # gain 0.9 # pan 0.6,
+  >     press $ n "~ g'maj ~ ~" # s "superpiano" # gain 0.9 # pan 0.4,
+  >     s "[bd,clap sd bd sd]"
+  >    ] # cps (90/60/4)
+-}
 press :: Pattern a -> Pattern a
 press = _pressBy 0.5
 
--- | Like @press@, but allows you to specify the amount in which each event is shifted. @pressBy 0.5@ is the same as @press@, while @pressBy (1/3)@ shifts each event by a third of its arc.
+{-| Like @press@, but allows you to specify the amount in which each event is
+  shifted as a float from 0 to 1 (exclusive).
+
+  @pressBy 0.5@ is the same as @press@, while @pressBy (1/3)@ shifts each event
+  by a third of its arc.
+
+  You can pattern the displacement to create interesting rhythmic effects:
+
+  > d1 $ stack [
+  >   s "bd sd bd sd",
+  >   pressBy "<0 0.5>" $ s "co:2*4"
+  > ]
+
+  > d1 $ stack [
+  >   s "[bd,co sd bd sd]",
+  >   pressBy "<0 0.25 0.5 0.75>" $ s "cp"
+  > ]
+-}
 pressBy :: Pattern Time -> Pattern a -> Pattern a
 pressBy = tParam _pressBy
 
 _pressBy :: Time -> Pattern a -> Pattern a
 _pressBy r pat = squeezeJoin $ (compressTo (r,1) . pure) <$> pat
 
--- | Uses the first (binary) pattern to switch between the following
--- two patterns. The resulting structure comes from the source patterns, not the
--- binary pattern. See also @stitch@.
+{-
+  Uses the first (binary) pattern to switch between the following
+  two patterns. The resulting structure comes from the source patterns, not the
+  binary pattern. See also `stitch`.
+
+  The following will play the first pattern for the first half of a cycle, and
+  the second pattern for the other half; it combines two patterns of strings and
+  passes the result to the sound function:
+
+  > d1 $ sound (sew "t f" "bd*8" "cp*8")
+
+  It’s possible to sew together two control patterns:
+
+  > d1 $ sew "t <f t> <f [f t] t>"
+  >          (n "0 .. 15" # s "future")
+  >          (s "cp:3*16" # speed saw + 1.2)
+
+  You can also use Euclidean rhythm syntax in the boolean sequence:
+
+  > d1 $ sew "t(11,16)"
+  >          (n "0 .. 15" # s "future")
+  >          (s "cp:3*16" # speed sine + 1.5)
+-}
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 sew pb a b = overlay (mask pb a) (mask (inv pb) b)
 
--- | Uses the first (binary) pattern to switch between the following
--- two patterns. The resulting structure comes from the binary
--- pattern, not the source patterns. See also @sew@.
+{-| Uses the first (binary) pattern to switch between the following
+  two patterns. The resulting structure comes from the binary
+  pattern, not the source patterns. (In 'sew', by contrast, the resulting structure comes from the source patterns.)
+
+  The following uses a euclidean pattern to control CC0:
+
+  > d1 $ ccv (stitch "t(7,16)" 127 0) # ccn 0  # "midi"
+-}
 stitch :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 stitch pb a b = overlay (struct pb a)  (struct (inv pb) b)
 
@@ -1773,34 +2195,27 @@ while b f pat = sew b (f pat) pat
 @stutter n t pat@ repeats each event in @pat@ @n@ times, separated by @t@ time (in fractions of a cycle).
 It is like 'Sound.Tidal.Control.echo' that doesn't reduce the volume, or 'ply' if you controlled the timing.
 
-@
-d1 $ stutter 4 (1/16) $ s "bd cp"
-@
+> d1 $ stutter 4 (1/16) $ s "bd cp"
 
 is functionally equivalent to
-@
-d1 $ stut 4 1 (1/16) $ s "bd cp"
-@
+
+> d1 $ stut 4 1 (1/16) $ s "bd cp"
 -}
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n-1)]
 
-{- | The `jux` function creates strange stereo effects, by applying a
-function to a pattern, but only in the right-hand channel. For
-example, the following reverses the pattern on the righthand side:
+{- | The @jux@ function creates strange stereo effects by applying a
+  function to a pattern, but only in the right-hand channel. For
+  example, the following reverses the pattern on the righthand side:
 
-@
-d1 $ slow 32 $ jux (rev) $ striateBy 32 (1/16) $ sound "bev"
-@
+  > d1 $ slow 32 $ jux (rev) $ striateBy 32 (1/16) $ sound "bev"
 
-When passing pattern transforms to functions like [jux](#jux) and [every](#every),
-it's possible to chain multiple transforms together with `.`, for
-example this both reverses and halves the playback speed of the
-pattern in the righthand channel:
+  When passing pattern transforms to functions like @jux@ and 'every',
+  it's possible to chain multiple transforms together with `.` (function
+  composition). For example this both reverses and halves the playback speed of
+  the pattern in the righthand channel:
 
-@
-d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striateBy 32 (1/16) $ sound "bev"
-@
+  > d1 $ slow 32 $ jux ((# speed "0.5") . rev) $ striateBy 32 (1/16) $ sound "bev"
 -}
 jux
   :: (Pattern ValueMap -> Pattern ValueMap)
@@ -1817,26 +2232,27 @@ juxcut' :: [t -> Pattern ValueMap] -> t -> Pattern ValueMap
 juxcut' fs p = stack $ map (\n -> ((fs !! n) p |+ P.cut (pure $ 1-n)) # P.pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
   where l = length fs
 
-{- | In addition to `jux`, `jux'` allows using a list of pattern transform. resulting patterns from each transformation will be spread via pan from left to right.
+{- | In addition to `jux`, `jux'` allows using a list of pattern
+  transformations. Resulting patterns from each transformation will be spread via
+  pan from left to right.
 
-For example:
+  For example, the following will put @iter 4@ of the pattern to the far left
+  and `palindrome` to the far right. In the center, the original pattern will
+  play and the chopped and the reversed version will appear mid left and mid
+  right respectively.
 
-@
-d1 $ jux' [iter 4, chop 16, id, rev, palindrome] $ sound "bd sn"
-@
-
-will put `iter 4` of the pattern to the far left and `palindrome` to the far right. In the center the original pattern will play and mid left mid right the chopped and the reversed version will appear.
+  > d1 $ jux' [iter 4, chop 16, id, rev, palindrome] $ sound "bd sn"
 
 One could also write:
 
 @
-d1 $ stack [
-    iter 4 $ sound "bd sn" # pan "0",
-    chop 16 $ sound "bd sn" # pan "0.25",
-    sound "bd sn" # pan "0.5",
-    rev $ sound "bd sn" # pan "0.75",
-    palindrome $ sound "bd sn" # pan "1",
-    ]
+d1 $ stack
+      [ iter 4 $ sound "bd sn" # pan "0"
+      , chop 16 $ sound "bd sn" # pan "0.25"
+      , sound "bd sn" # pan "0.5"
+      , rev $ sound "bd sn" # pan "0.75"
+      , palindrome $ sound "bd sn" # pan "1"
+      ]
 @
 
 -}
@@ -1844,7 +2260,7 @@ jux' :: [t -> Pattern ValueMap] -> t -> Pattern ValueMap
 jux' fs p = stack $ map (\n -> (fs !! n) p |+ P.pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l-1]
   where l = length fs
 
--- | Multichannel variant of `jux`, _not sure what it does_
+-- | Multichannel variant of `jux`, /not sure what it does/
 jux4
   :: (Pattern ValueMap -> Pattern ValueMap)
      -> Pattern ValueMap -> Pattern ValueMap
@@ -1853,13 +2269,11 @@ jux4 f p = stack [p # P.pan (pure (5/8)), f $ p # P.pan (pure (1/8))]
 {- |
 With `jux`, the original and effected versions of the pattern are
 panned hard left and right (i.e., panned at 0 and 1). This can be a
-bit much, especially when listening on headphones. The variant `juxBy`
+bit much, especially when listening on headphones. The variant @juxBy@
 has an additional parameter, which brings the channel closer to the
 centre. For example:
 
-@
-d1 $ juxBy 0.5 (density 2) $ sound "bd sn:1"
-@
+> d1 $ juxBy 0.5 (fast 2) $ sound "bd sn:1"
 
 In the above, the two versions of the pattern would be panned at 0.25
 and 0.75, rather than 0 and 1.
@@ -1887,10 +2301,12 @@ create a pattern of strings corresponding to the sample at each
 name-index pair.
 
 An example:
-@samples "jvbass [~ latibro] [jvbass [latibro jvbass]]" ((1%2) `rotL` slow 6 "[1 6 8 7 3]")@
+
+> samples "jvbass [~ latibro] [jvbass [latibro jvbass]]"
+>         ((1%2) `rotL` slow 6 "[1 6 8 7 3]")
 
 The type signature is more general here, but you can consider this
-to be a function of type @Pattern String -> Pattern Int -> Pattern String.
+to be a function of type @Pattern String -> Pattern Int -> Pattern String@.
 
 @samples = liftA2 pick@
 -}
@@ -1939,10 +2355,13 @@ cross f p p' = Pattern $ \t -> concat [filter flt $ arc p t,
 
 {- | `range` will take a pattern which goes from 0 to 1 (like `sine`), and range it to a different range - between the first and second arguments. In the below example, `range 1 1.5` shifts the range of `sine1` from 0 - 1 to 1 - 1.5.
 
-@
-d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
-  |+ speed (slow 4 $ range 1 1.5 sine1)
-@
+> d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
+>   |+ speed (slow 4 $ range 1 1.5 sine1)
+
+The above is equivalent to:
+
+> d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
+>   |+ speed (slow 4 $ sine1 * 0.5 + 1)
 -}
 range :: Num a => Pattern a -> Pattern a -> Pattern a -> Pattern a
 range fromP toP p = (\from to v -> ((v * (to-from)) + from)) <$> fromP *> toP *> p
@@ -1951,10 +2370,35 @@ _range :: (Functor f, Num b) => b -> b -> f b -> f b
 _range from to p = (+ from) . (* (to-from)) <$> p
 
 {- | `rangex` is an exponential version of `range`, good for using with
-frequencies.  Do *not* use negative numbers or zero as arguments! -}
+frequencies. For example, @range 20 2000 "0.5"@ will give @1010@ - halfway
+between @20@ and @2000@. But @rangex 20 2000 0.5@ will give @200@ - halfway
+between on a logarithmic scale. This usually sounds better if you’re using the
+numbers as pitch frequencies. Since rangex uses logarithms, don’t try to scale
+things to zero or less.
+-}
 rangex :: (Functor f, Floating b) => b -> b -> f b -> f b
 rangex from to p = exp <$> _range (log from) (log to) p
 
+{-|
+  @off@ is similar to 'superimpose', in that it applies a function to a pattern
+  and layers up the results on top of the original pattern. The difference
+  is that @off@ takes an extra pattern being a time (in cycles) to shift the
+  transformed version of the pattern by.
+
+  The following plays a pattern on top of itself, but offset by an eighth of a
+  cycle, with a distorting bitcrush effect applied:
+
+  > d1 $ off 0.125 (# crush 2) $ sound "bd [~ sn:2] mt lt*2"
+
+  The following makes arpeggios by adding offset patterns that are shifted up
+  the scale:
+
+  > d1 $ slow 2
+  >    $ n (off 0.25 (+12)
+  >    $ off 0.125 (+7)
+  >    $ slow 2 "c(3,8) a(3,8,2) f(3,8) e(3,8,4)")
+  >    # sound "superpiano"
+-}
 off :: Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 off tp f p = innerJoin $ (\tv -> _off tv f p) <$> tp
 
@@ -1964,17 +2408,42 @@ _off t f p = superimpose (f . (t `rotR`)) p
 offadd :: Num a => Pattern Time -> Pattern a -> Pattern a -> Pattern a
 offadd tp pn p = off tp (+pn) p
 
--- | Step sequencing
+{- |
+  @step@ acts as a kind of simple step-sequencer using strings. For example,
+  @step "sn" "x x 12"@ is equivalent to the pattern of strings given by @"sn ~
+  sn ~ sn:1 sn:2 ~"@. @step@ substitutes the given string for each @x@, for each number
+  it substitutes the string followed by a colon and the number, and for everything
+  else it puts in a rest.
+
+  In other words, @step@ generates a pattern of strings in exactly the syntax you’d want for selecting samples and that can be fed directly into the 's' function.
+
+  > d1 $ s (step "sn" "x x 12 ")
+-}
 step :: String -> String -> Pattern String
 step s cs = fastcat $ map f cs
     where f c | c == 'x' = pure s
               | isDigit c = pure $ s ++ ":" ++ [c]
               | otherwise = silence
 
+{- | @steps@ is like @step@ but it takes a list of pairs, like step would, and
+  it plays them all simultaneously.
+
+  > d1 $ s (steps [("cp","x  x x  x x  x"),("bd", "xxxx")])
+-}
 steps :: [(String, String)] -> Pattern String
 steps = stack . map (uncurry step)
 
--- | like `step`, but allows you to specify an array of strings to use for 0,1,2...
+{- | like `step`, but allows you to specify an array of strings to use for @0,1,2...@
+  For example,
+
+  > d1 $ s (step' ["superpiano","supermandolin"] "0 1 000 1")
+  >    # sustain 4 # n 0
+
+  is equivalent to
+
+  > d1 $ s "superpiano ~ supermandolin ~ superpiano!3 ~ supermandolin"
+  >    # sustain 4 # n 0
+-}
 step' :: [String] -> String -> Pattern String
 step' ss cs = fastcat $ map f cs
     where f c | c == 'x' = pure $ head ss
@@ -1986,19 +2455,36 @@ step' ss cs = fastcat $ map f cs
 ghost'' :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ghost'' = ghostWith
 
--- | Like 'ghost'', but a user-supplied function describes how to alter the pattern.
+{-| Like 'ghost'', but a user-supplied function describes how to alter the pattern.
+
+  In this example, ghost notes are applied to the snare hit, but these notes will
+  be louder, not quieter, and the sample will have its beginning slightly cut:
+
+  > d1 $ slow 2
+  >    $ ghostWith (1/16) ((|*| gain 1.1) . (|> begin 0.05))
+  >    $ sound "sn"
+
+-}
 ghostWith :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 ghostWith a f p = superimpose (((a*2.5) `rotR`) . f) $ superimpose (((a*1.5) `rotR`) . f) p
 
 {-
 @ghost' t pat@ Adds quieter, pitch-shifted, copies of an event @t@ cycles after events in @pat@, emulating ghost notes that are common in drumming patterns.
+
+The following creates a kick snare pattern with ghost notes applied to the snare hit:
+
+> d1 $ stack [ ghost' 0.125 $ sound "~ sn", sound "bd*2 [~ bd]" ]
 -}
 ghost' :: Time -> Pattern ValueMap -> Pattern ValueMap
 ghost' a p = ghostWith a ((|*| P.gain (pure 0.7)) . (|> P.end (pure 0.2)) . (|*| P.speed (pure 1.25))) p
 
-{-| As 'ghost', but with the copies set to appear one-eighth of a cycle afterwards.
+{-| As 'ghost'', but with the copies set to appear one-eighth of a cycle afterwards.
 
 @ghost = ghost' 0.125@
+
+The following creates a kick snare pattern with ghost notes applied to the snare hit:
+
+> d1 $ stack [ ghost $ sound "~ sn", sound "bd*2 [~ bd]" ]
 -}
 ghost :: Pattern ValueMap -> Pattern ValueMap
 ghost = ghost' 0.125
@@ -2022,37 +2508,68 @@ tabby nInt p p' = stack [maskedWarp,
     maskedWeft = mask (every 2 rev $ _fast (n % 2) $ fastCat [silence, pure True]) weftP
     maskedWarp = mask (every 2 rev $ _fast (n % 2) $ fastCat [pure True, silence]) warpP
 
--- | chooses between a list of patterns, using a pattern of floats (from 0-1)
+-- | Chooses from a list of patterns, using a pattern of floats (from 0 to 1).
 select :: Pattern Double -> [Pattern a] -> Pattern a
 select = tParam _select
 
 _select :: Double -> [Pattern a] -> Pattern a
 _select f ps =  ps !! floor (max 0 (min 1 f) * fromIntegral (length ps - 1))
 
--- | chooses between a list of functions, using a pattern of floats (from 0-1)
+-- | Chooses from a list of functions, using a pattern of floats (from 0 to 1).
 selectF :: Pattern Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
 selectF pf ps p = innerJoin $ (\f -> _selectF f ps p) <$> pf
 
 _selectF :: Double -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
 _selectF f ps p =  (ps !! floor (max 0 (min 0.999999 f) * fromIntegral (length ps))) p
 
--- | chooses between a list of functions, using a pattern of integers
+-- | Chooses from a list of functions, using a pattern of integers.
 pickF :: Pattern Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
 pickF pInt fs pat = innerJoin $ (\i -> _pickF i fs pat) <$> pInt
 
 _pickF :: Int -> [Pattern a -> Pattern a] -> Pattern a -> Pattern a
 _pickF i fs p =  (fs !!! i) p
 
--- | @contrast p f f' p'@ splits the control pattern @p'@ in two, applying
--- the function @f@ to one and @f'@ to the other. This depends on
--- whether events in it contains values matching with those in @p@.
--- For example in @contrast (# crush 3) (# vowel "a") (n "1") $ n "0 1" # s "bd sn" # speed 3@,
--- the first event will have the vowel effect applied and the second
--- will have the crush applied.
+{- | @contrast f f' p p'@ splits the control pattern @p'@ in two, applying
+  the function @f@ to one and @f'@ to the other. This depends on
+  whether events in @p'@ contain values matching with those in @p@.
+  For example, in
+
+  > contrast (# crush 3) (# vowel "a") (n "1") $ n "0 1" # s "bd sn" # speed 3
+
+  the first event will have the vowel effect applied and the second will have
+  the crush applied.
+
+  @contrast@ is like an if-else-statement over patterns. For @contrast t f p@
+  you can think of @t@ as the true branch, @f@ as the false branch, and @p@ as
+  the test.
+
+  You can use any control pattern as a test of equality, e.g., @n "<0 1>", speed
+  "0.5"@, or things like that. This lets you choose specific properties of the
+  pattern you’re transforming for testing, like in the following example,
+
+  > d1 $ contrast (|+ n 12) (|- n 12) (n "c") $ n (run 4) # s "superpiano"
+
+  where every note that isn’t middle-c will be shifted down an octave but
+  middle-c will be shifted up to c5.
+
+  Since the test given to contrast is also a pattern, you can do things like have
+  it alternate between options:
+
+  > d1 $ contrast (|+ n 12) (|- n 12) (s "<superpiano superchip>")
+  >    $ s "superpiano superchip" # n 0
+
+  If you listen to this you’ll hear that which instrument is shifted up and which
+  instrument is shifted down alternates between cycles.
+-}
 contrast :: (ControlPattern -> ControlPattern) -> (ControlPattern -> ControlPattern)
             -> ControlPattern -> ControlPattern -> ControlPattern
 contrast = contrastBy (==)
 
+{-|
+  @contrastBy@ is contrastBy is the general version of 'contrast', in which you can specify an abritrary boolean function that will be used to compare the control patterns.
+
+  > d2 $ contrastBy (>=) (|+ n 12) (|- n 12) (n "2") $ n "0 1 2 [3 4]" # s "superpiano"
+-}
 contrastBy :: (a -> Value -> Bool)
               -> (ControlPattern -> Pattern b)
               -> (ControlPattern -> Pattern b)
@@ -2079,15 +2596,45 @@ contrastRange = contrastBy f
             f (VS s, VS e) (VS v) = v == s && v == e
             f _ _ = False
 
--- | Like @contrast@, but one function is given, and applied to events with matching controls.
+{- |
+  The @fix@ function applies another function to matching events in a pattern of
+  controls. @fix@ is 'contrast' where the false-branching function is set to the
+  identity 'id'. It is like 'contrast', but one function is given and applied to
+  events with matching controls.
+
+  For example, the following only adds the 'crush' control when the @n@ control
+  is set to either 1 or 4:
+
+  > d1 $ slow 2
+  >    $ fix (# crush 3) (n "[1,4]")
+  >    $ n "0 1 2 3 4 5 6"
+  >    # sound "arpy"
+
+  You can be quite specific; for example, the following applies the function
+  @'hurry' 2@ to sample 1 of the drum sample set, and leaves the rest as they are:
+
+  > fix (hurry 2) (s "drum" # n "1")
+-}
 fix :: (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern
 fix f = contrast f id
 
--- | Like @contrast@, but one function is given, and applied to events
--- with controls which don't match.
+-- | Like 'contrast', but one function is given, and applied to events with
+-- controls which don't match. @unfix@ is 'fix' but only applies when the
+-- testing pattern is /not/ a match.
 unfix :: (ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern -> ControlPattern
 unfix = contrast id
 
+{-|
+  The @fixRange@ function isn’t very user-friendly at the moment, but you can
+  create a @fix@ variant with a range condition. Any value of a 'ControlPattern'
+  wich matches the values will apply the passed function.
+
+  > d1 $ ( fixRange ( (# distort 1) . (# gain 0.8) )
+  >                 ( pure $ Map.singleton "note" ((VN 0, VN 7)) )
+  >      )
+  >    $ s "superpiano"
+  >   <| note "1 12 7 11"
+-}
 fixRange :: (ControlPattern -> Pattern ValueMap)
             -> Pattern (Map.Map String (Value, Value))
             -> ControlPattern
@@ -2100,8 +2647,27 @@ unfixRange :: (ControlPattern -> Pattern ValueMap)
               -> ControlPattern
 unfixRange = contrastRange id
 
--- | Limits values in a Pattern (or other Functor) to n equally spaced
--- divisions of 1.
+{- | @quantise@ limits values in a Pattern (or other Functor) to @n@ equally spaced
+divisions of 1.
+
+It is useful for rounding a collection of numbers to some particular base
+fraction. For example,
+
+> quantise 5 [0, 1.3 ,2.6,3.2,4.7,5]
+
+It will round all the values to the nearest @(1/5)=0.2@ and thus will output
+the list @[0.0,1.2,2.6,3.2,4.8,5.0]@. You can use this function to force a
+continuous pattern like sine into specific values. In the following example:
+
+> d1 $ s "superchip*8" # n (quantise 1 $ range (-10) (10) $ slow 8 $ cosine)
+>                      # release (quantise 5 $ slow 8 $ sine + 0.1)
+
+all the releases selected be rounded to the nearest @0.1@ and the notes selected
+to the nearest @1@.
+
+@quantise@ with fractional inputs does the consistent thing: @quantise 0.5@
+rounds values to the nearest @2@, @quantise 0.25@ rounds the nearest @4@, etc.
+-}
 quantise :: (Functor f, RealFrac b) => b -> f b -> f b
 quantise n = fmap ((/n) . (fromIntegral :: RealFrac b => Int -> b) . round . (*n))
 
@@ -2140,12 +2706,9 @@ mono p = Pattern $ \(State a cm) -> flatten $ query p (State a cm) where
 {-|
 @smooth@ receives a pattern of numbers and linearly goes from one to the next, passing through all of them. As time is cycle-based, after reaching the last number in the pattern, it will smoothly go to the first one again.
 
-@
-  d1 $ sound "bd*4" # pan (slow 4 $ smooth "0 1 0.5 1")
-@
+> d1 $ sound "bd*4" # pan (slow 4 $ smooth "0 1 0.5 1")
 
 This sound will pan gradually from left to right, then to the center, then to the right again, and finally comes back to the left.
-
 -}
 
 -- serialize the given pattern
@@ -2190,17 +2753,24 @@ swap things p = filterJust $ (`lookup` things) <$> p
   it will then transform the pattern and combine it with the last transformation until the depth is reached.
   This is like putting an effect (like a filter) in the feedback of a delay line; each echo is more affected.
 
-  @d1 $ note (scale "hexDorian" $ snowball 8 (+) (slow 2 . rev) "0 ~ . -1 . 5 3 4 . ~ -2") # s "gtr"@
+  > d1 $ note ( scale "hexDorian"
+  >           $ snowball 8 (+) (slow 2 . rev) "0 ~ . -1 . 5 3 4 . ~ -2"
+  >           )
+  >    # s "gtr"
 -}
 snowball :: Int -> (Pattern a -> Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 snowball depth combinationFunction f pattern = cat $ take depth $ scanl combinationFunction pattern $ drop 1 $ iterate f pattern
 
-{- @soak@ |
-    applies a function to a pattern and cats the resulting pattern,
-    then continues applying the function until the depth is reached
-    this can be used to create a pattern that wanders away from
-    the original pattern by continually adding random numbers
-    d1 $ note (scale "hexDorian" mutateBy (+ (range -1 1 $ irand 2)) 8 $ "0 1 . 2 3 4") # s "gtr"
+{- |
+  Applies a function to a pattern and cats the resulting pattern, then continues
+  applying the function until the depth is reached this can be used to create
+  a pattern that wanders away from the original pattern by continually adding
+  random numbers.
+
+  > d1 $ note ( scale "hexDorian" mutateBy (+ (range -1 1 $ irand 2)) 8
+  >           $ "0 1 . 2 3 4"
+  >           )
+  >    # s "gtr"
 -}
 soak ::  Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 soak depth f pattern = cat $ take depth $ iterate f pattern
@@ -2223,6 +2793,21 @@ deconstruct n p = intercalate " " $ map showStep $ toList p
 {- | @bite n ipat pat@ slices a pattern @pat@ into @n@ pieces, then uses the
   @ipat@ pattern of integers to index into those slices. So @bite 4 "0 2*2" (run
   8)@ is the same as @"[0 1] [4 5]*2"@.
+
+  I.e., it allows you to slice each cycle into a given number of equal sized
+  bits, and then pattern those bits by number. It’s similar to @slice@, but is
+  for slicing up patterns, rather than samples. The following slices the pattern
+  into four bits, and then plays those bits in turn:
+
+  > d1 $ bite 4 "0 1 2 3" $ n "0 .. 7" # sound "arpy"
+
+  Of course that doesn’t actually change anything, but then you can reorder those bits:
+
+  > d1 $ bite 4 "2 0 1 3" $ n "0 .. 7" # sound "arpy"
+
+  The slices bits of pattern will be squeezed or contracted to fit:
+
+  > d1 $ bite 4 "2 [0 3] 1*4 1" $ n "0 .. 7" # sound "arpy"
 -}
 bite :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 bite npat ipat pat = innerJoin $ (\n -> _bite n ipat pat) <$> npat
@@ -2232,8 +2817,7 @@ _bite n ipat pat = squeezeJoin $ zoompat <$> ipat
   where zoompat i = zoom (i'/(fromIntegral n), (i'+1)/(fromIntegral n)) pat
            where i' = fromIntegral $ i `mod` n
 
-{- | @squeeze@ uses a pattern of integers to index into a list of patterns.
--}
+-- | Chooses from a list of patterns, using a pattern of integers.
 squeeze :: Pattern Int -> [Pattern a] -> Pattern a
 squeeze _ [] = silence
 squeeze ipat pats = squeezeJoin $ (pats !!!) <$> ipat
@@ -2257,7 +2841,11 @@ _chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromInt
            where i' = fromIntegral $ i `mod` n
 
 {-|
-@chew@ works the same as 'bite', but speeds up\/slows down playback of sounds as well as squeezing/contracting the slices of the provided pattern.
+  @chew@ works the same as 'bite', but speeds up\/slows down playback of sounds as
+  well as squeezing\/contracting the slices of the provided pattern. Compare:
+
+  > d1 $ 'bite' 4 "0 1*2 2*2 [~ 3]" $ n "0 .. 7" # sound "drum"
+  > d1 $ chew 4 "0 1*2 2*2 [~ 3]" $ n "0 .. 7" # sound "drum"
 -}
 
 -- TODO maybe _chew could pattern the first parameter directly..
@@ -2282,18 +2870,26 @@ binary = binaryN 8
 ascii :: Pattern String -> Pattern Bool
 ascii p = squeezeJoin $ (listToPat . concatMap (__binary 8 . ord)) <$> p
 
--- | Given a start point and a duration (both specified in cycles), this
--- generates a control pattern that makes a sound begin at the start
--- point and last the duration.
---
--- @grain s d = 'Sound.Tidal.Params.begin' s # 'Sound.Tidal.Params.end' (s+d)@
+{- | Given a start point and a duration (both specified in cycles), this
+  generates a control pattern that makes a sound begin at the start
+  point and last the duration.
+
+  The following are equivalent:
+
+  > d1 $ slow 2 $ s "bev" # grain 0.2 0.1 # legato 1
+  > d1 $ slow 2 $ s "bev" # begin 0.2 # end 0.3 # legato 1
+
+  @grain@ is defined as:
+
+  > grain s d = 'Sound.Tidal.Params.begin' s # 'Sound.Tidal.Params.end' (s+d)
+-}
 grain :: Pattern Double -> Pattern Double -> ControlPattern
 grain s w = P.begin b # P.end e
   where b = s
         e = s + w
 
 -- | For specifying a boolean pattern according to a list of offsets
--- (aka inter-onset intervals).  For example `necklace 12 [4,2]` is
+-- (aka inter-onset intervals). For example @necklace 12 [4,2]@ is
 -- the same as "t f f f t f t f f f t f". That is, 12 steps per cycle,
 -- with true values alternating between every 4 and every 2 steps.
 necklace :: Rational -> [Int] -> Pattern Bool
