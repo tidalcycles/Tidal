@@ -2,7 +2,7 @@
 
 ## 1.9.5 - Sashiko
 
-### What's Changed
+## What's Changed
 * avoid loading stream module in other modules, so hint wont crash by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/1019
 * change streamGetnow to factor in the processAhead and also destroy the sessionstate by @polymorphicengine in https://github.com/tidalcycles/Tidal/pull/1025
 * fix minor7sharp9 chord (the 9th wasn't sharp) by @cleary in https://github.com/tidalcycles/Tidal/pull/1036
@@ -11,10 +11,12 @@
 * Update link 1.9 dev by @yaxu in https://github.com/tidalcycles/Tidal/pull/1058
 * More build fixes by @mindofmatthew in https://github.com/tidalcycles/Tidal/pull/1062
 * Consolidate site docs into source docs, and some docs editing by @trespaul in https://github.com/tidalcycles/Tidal/pull/1070
+* Fix negative numbers not working for boolean euclids  by @geikha in https://github.com/tidalcycles/Tidal/pull/1063
 
-### New Contributors
+## New Contributors
 * @ahihi made their first contribution in https://github.com/tidalcycles/Tidal/pull/1046
 * @trespaul made their first contribution in https://github.com/tidalcycles/Tidal/pull/1070
+* @geikha made their first contribution in https://github.com/tidalcycles/Tidal/pull/1063
 
 **Full Changelog**: https://github.com/tidalcycles/Tidal/compare/v1.9.4...v1.9.5
 
