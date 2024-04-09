@@ -65,6 +65,9 @@ pattern f = Pattern f Nothing Nothing
 setTactus :: Rational -> Pattern a -> Pattern a
 setTactus r p = p {tactus = Just r}
 
+keepMeta :: Pattern a -> Pattern a -> Pattern a
+keepMeta from to = to {tactus = tactus from, pureValue = pureValue from}
+
 -- type StateMap = Map.Map String (Pattern Value)
 type ControlPattern = Pattern ValueMap
 
@@ -731,10 +734,10 @@ combineContexts :: [Context] -> Context
 combineContexts = Context . concatMap contextPosition
 
 setContext :: Context -> Pattern a -> Pattern a
-setContext c pat = withEvents (map (\e -> e {context = c})) pat
+setContext c pat = keepMeta pat $ withEvents (map (\e -> e {context = c})) pat
 
 withContext :: (Context -> Context) -> Pattern a -> Pattern a
-withContext f pat = withEvents (map (\e -> e {context = f $ context e})) pat
+withContext f pat = keepMeta pat $ withEvents (map (\e -> e {context = f $ context e})) pat
 
 -- A hack to add to manipulate source code to add calls to
 -- 'deltaContext' around strings, so events from mininotation know

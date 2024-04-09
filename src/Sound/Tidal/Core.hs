@@ -312,6 +312,7 @@ append a b = cat [a,b]
 -}
 cat :: [Pattern a] -> Pattern a
 cat [] = silence
+cat (p:[]) = p
 cat ps = pattern q
   where n = length ps
         q st = concatMap (f st) $ arcCyclesZW (arc st)
@@ -349,7 +350,8 @@ fastappend = fastAppend
   > d1 $ fastcat [sound "bd*2 sn", sound "jvbass*3", sound "drum*2", sound "ht mt"]
 -}
 fastCat :: [Pattern a] -> Pattern a
-fastCat ps = _fast (toTime $ length ps) $ cat ps
+fastCat (p:[]) = p
+fastCat ps     = _fast (toTime $ length ps) $ cat ps
 
 -- | Alias for @fastCat@
 fastcat :: [Pattern a] -> Pattern a
@@ -371,7 +373,8 @@ fastcat = fastCat
 
 -}
 timeCat :: [(Time, Pattern a)] -> Pattern a
-timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 tps
+timeCat ((_,p):[]) = p
+timeCat tps = setTactus total $ stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 tps
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
           arrange _ []            = []
