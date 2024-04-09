@@ -423,6 +423,11 @@ pattern to multiple patterns at once:
 stack :: [Pattern a] -> Pattern a
 stack = foldr overlay silence
 
+-- ** stepwise things
+
+stepcat :: [Pattern a] -> Pattern a
+stepcat pats = timecat $ map (\pat -> (fromMaybe 1 $ tactus pat, pat)) pats
+
 -- ** Manipulating time
 
 -- | Shifts a pattern back in time by the given amount, expressed in cycles
