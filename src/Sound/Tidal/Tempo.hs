@@ -1,25 +1,28 @@
-{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, BangPatterns #-}
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns -fno-warn-orphans #-}
 
 
 module Sound.Tidal.Tempo where
 
-import Control.Concurrent.MVar
-import qualified Sound.Tidal.Pattern as P
-import qualified Sound.Osc.Fd as O
-import Control.Concurrent (forkIO, ThreadId, threadDelay)
-import Control.Monad (when)
-import qualified Data.Map.Strict as Map
-import qualified Control.Exception as E
-import Sound.Tidal.ID
-import Sound.Tidal.Config
-import Sound.Tidal.Utils (writeError)
-import qualified Sound.Tidal.Link as Link
-import Foreign.C.Types (CDouble(..))
-import System.IO (hPutStrLn, stderr)
-import Data.Int(Int64)
+import           Control.Concurrent      (ThreadId, forkIO, threadDelay)
+import           Control.Concurrent.MVar
+import qualified Control.Exception       as E
+import           Control.Monad           (when)
+import           Data.Int                (Int64)
+import qualified Data.Map.Strict         as Map
+import           Foreign.C.Types         (CDouble (..))
+import qualified Sound.Osc.Fd            as O
+import           Sound.Tidal.Config
+import           Sound.Tidal.ID
+import qualified Sound.Tidal.Link        as Link
+import qualified Sound.Tidal.Pattern     as P
+import           Sound.Tidal.Utils       (writeError)
+import           System.IO               (hPutStrLn, stderr)
 
-import Sound.Tidal.StreamTypes
+import           Sound.Tidal.StreamTypes
 
 {-
     Tempo.hs - Tidal's scheduler
@@ -51,10 +54,10 @@ data TempoAction =
   | StreamReplace ID P.ControlPattern
   | Transition Bool TransitionMapper ID P.ControlPattern
 
-data State = State {ticks    :: Int64,
-                    start    :: Link.Micros,
-                    nowArc   :: P.Arc,
-                    nudged   :: Double
+data State = State {ticks  :: Int64,
+                    start  :: Link.Micros,
+                    nowArc :: P.Arc,
+                    nudged :: Double
                    }
   deriving Show
 
@@ -67,13 +70,13 @@ data ActionHandler =
 
 data LinkOperations =
   LinkOperations {
-    timeAtBeat :: Link.Beat -> IO Link.Micros,
-    timeToCycles :: Link.Micros -> IO P.Time,
-    getTempo :: IO Link.BPM,
-    setTempo :: Link.BPM -> Link.Micros -> IO (),
+    timeAtBeat    :: Link.Beat -> IO Link.Micros,
+    timeToCycles  :: Link.Micros -> IO P.Time,
+    getTempo      :: IO Link.BPM,
+    setTempo      :: Link.BPM -> Link.Micros -> IO (),
     linkToOscTime :: Link.Micros -> O.Time,
-    beatToCycles :: CDouble -> CDouble,
-    cyclesToBeat :: CDouble -> CDouble
+    beatToCycles  :: CDouble -> CDouble,
+    cyclesToBeat  :: CDouble -> CDouble
   }
 
 {-|
@@ -164,7 +167,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
         processAhead = round $ (cProcessAhead config) * 1000000
         checkArc :: State -> IO a
         checkArc st = do
-          actions <- swapMVar actionsMV [] 
+          actions <- swapMVar actionsMV []
           st' <- processActions st actions
           let logicalEnd = logicalTime (start st') $ ticks st' + 1
               nextArcStartCycle = P.stop $ nowArc st'
@@ -174,7 +177,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
           if (arcStartTime < logicalEnd)
             then processArc st'
             else tick st'
-        processArc :: State -> IO a 
+        processArc :: State -> IO a
         processArc st =
           do
             streamState <- takeMVar stateMV
@@ -226,7 +229,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
             Link.requestBeatAtTime sessionState beat startAt quantum
             Link.commitAndDestroyAppSessionState abletonLink sessionState
 
-                  
+
             let st'' = st' {
                   ticks = 0,
                   start = now,
@@ -288,11 +291,11 @@ clocked config stateMV mapMV actionsMV ac abletonLink
             (st', streamState') <- handleActions st otherActions streamState
             let
               appendPat flag = if flag then (pat:) else id
-              updatePS (Just playState) = playState {history = (appendPat historyFlag) (history playState)}
-              updatePS Nothing = PlayState {pattern = P.silence,
-                                            mute = False,
-                                            solo = False,
-                                            history = (appendPat historyFlag) (P.silence:[])
+              updatePS (Just playState) = playState {psHistory = (appendPat historyFlag) (psHistory playState)}
+              updatePS Nothing = PlayState {psPattern = P.silence,
+                                            psMute = False,
+                                            psSolo = False,
+                                            psHistory = (appendPat historyFlag) (P.silence:[])
                                           }
               transition' pat' = do now <- Link.clock abletonLink
                                     ss <- Link.createAndCaptureAppSessionState abletonLink
@@ -300,7 +303,7 @@ clocked config stateMV mapMV actionsMV ac abletonLink
                                     return $! f c pat'
             pMap <- readMVar mapMV
             let playState = updatePS $ Map.lookup (fromID patId) pMap
-            pat' <- transition' $ appendPat (not historyFlag) (history playState)
-            let pMap' = Map.insert (fromID patId) (playState {pattern = pat'}) pMap
+            pat' <- transition' $ appendPat (not historyFlag) (psHistory playState)
+            let pMap' = Map.insert (fromID patId) (playState {psPattern = pat'}) pMap
             _ <- swapMVar mapMV pMap'
             return (st', streamState')

@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, BangPatterns #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {-
     Core.hs - For functions judged to be 'core' to tidal functionality.
@@ -20,11 +20,11 @@
 
 module Sound.Tidal.Core where
 
-import           Prelude hiding ((<*), (*>))
+import           Prelude             hiding ((*>), (<*))
 
-import           Data.Fixed (mod')
-import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromMaybe)
+import           Data.Fixed          (mod')
+import qualified Data.Map.Strict     as Map
+import           Data.Maybe          (fromMaybe)
 import           Sound.Tidal.Pattern
 
 -- ** Elemental patterns
@@ -37,7 +37,7 @@ import           Sound.Tidal.Pattern
   > saw = sig $ \t -> mod' (fromRational t) 1
 -}
 sig :: (Time -> a) -> Pattern a
-sig f = Pattern q
+sig f = pattern q
   where q (State (Arc s e) _)
           | s > e = []
           | otherwise = [Event (Context []) Nothing (Arc s e) (f (s+((e-s)/2)))]
@@ -266,7 +266,7 @@ listToPat = fastFromList
 -- > d1 $ n "0 ~ 2" # s "superpiano"
 fromMaybes :: [Maybe a] -> Pattern a
 fromMaybes = fastcat . map f
-  where f Nothing = silence
+  where f Nothing  = silence
         f (Just x) = pure x
 
 {-| A pattern of whole numbers from 0 to the given number, in a single cycle.
@@ -312,7 +312,7 @@ append a b = cat [a,b]
 -}
 cat :: [Pattern a] -> Pattern a
 cat [] = silence
-cat ps = Pattern q
+cat ps = pattern q
   where n = length ps
         q st = concatMap (f st) $ arcCyclesZW (arc st)
         f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (stop a))}
@@ -374,7 +374,7 @@ timeCat :: [(Time, Pattern a)] -> Pattern a
 timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 tps
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
-          arrange _ [] = []
+          arrange _ []            = []
           arrange t ((t',p):tps') = (t,t+t',p) : arrange (t+t') tps'
 
 -- | Alias for @timeCat@
@@ -634,10 +634,10 @@ _getP :: a -> (Value -> Maybe a) -> Pattern Value -> Pattern a
 _getP d f pat = fromMaybe d . f <$> pat
 
 _cX :: a -> (Value -> Maybe a) -> String -> Pattern a
-_cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f . valueToPattern) $ Map.lookup s m) a
+_cX d f s = pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f . valueToPattern) $ Map.lookup s m) a
 
 _cX_ :: (Value -> Maybe a) -> String -> Pattern a
-_cX_ f s = Pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f . valueToPattern) $ Map.lookup s m) a
+_cX_ f s = pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f . valueToPattern) $ Map.lookup s m) a
 
 cF :: Double -> String -> Pattern Double
 cF d = _cX d getF

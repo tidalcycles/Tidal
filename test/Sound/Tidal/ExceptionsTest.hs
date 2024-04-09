@@ -1,21 +1,22 @@
-{-# LANGUAGE OverloadedStrings, CPP #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Sound.Tidal.ExceptionsTest where
 
-import Test.Microspec
-import Control.Exception
-import Control.DeepSeq
-import Data.Typeable ()
-import Prelude hiding ((<*), (*>))
+import           Control.DeepSeq
+import           Control.Exception
+import           Data.Typeable       ()
+import           Prelude             hiding ((*>), (<*))
+import           Test.Microspec
 
-import Sound.Tidal.Pattern
+import           Sound.Tidal.Pattern
 
 run :: Microspec ()
 run =
   describe "NFData, forcing and catching exceptions" $ do
     describe "instance NFData (Pattern a)" $ do
       it "rnf forces argument" $ do
-        evaluate (rnf (Pattern undefined :: Pattern ()))
+        evaluate (rnf (Pattern undefined Nothing :: Pattern ()))
           `shouldThrow` anyException
 
 
@@ -56,7 +57,7 @@ errorCall :: String -> Selector ErrorCall
 #if MIN_VERSION_base(4,9,0)
 errorCall s (ErrorCallWithLocation msg _) = s == msg
 #else
-errorCall s (ErrorCall msg) = s == msg
+errorCall s (ErrorCall msg)               = s == msg
 #endif
 
 anyIOException :: Selector IOException

@@ -1,13 +1,13 @@
 module Sound.Tidal.StreamTypes where
 
-import qualified Data.Map.Strict as Map
-import Sound.Tidal.Pattern
-import Sound.Tidal.Show ()
+import qualified Data.Map.Strict     as Map
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Show    ()
 
-data PlayState = PlayState {pattern :: ControlPattern,
-                            mute :: Bool,
-                            solo :: Bool,
-                            history :: [ControlPattern]
+data PlayState = PlayState {psPattern :: ControlPattern,
+                            psMute    :: Bool,
+                            psSolo    :: Bool,
+                            psHistory :: [ControlPattern]
                            }
                deriving Show
 

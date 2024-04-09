@@ -1,6 +1,11 @@
-{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, BangPatterns #-}
+{-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
-{-# language DeriveGeneric, StandaloneDeriving #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 
 module Sound.Tidal.Stream (module Sound.Tidal.Stream) where
 
@@ -22,54 +27,55 @@ module Sound.Tidal.Stream (module Sound.Tidal.Stream) where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Control.Applicative ((<|>))
-import           Control.Concurrent.MVar
+import           Control.Applicative     ((<|>))
 import           Control.Concurrent
-import           Control.Monad (forM_, when)
-import Data.Coerce (coerce)
-import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust, fromMaybe, catMaybes, isJust)
-import qualified Control.Exception as E
-import Foreign
-import Foreign.C.Types
-import           System.IO (hPutStrLn, stderr)
+import           Control.Concurrent.MVar
+import qualified Control.Exception       as E
+import           Control.Monad           (forM_, when)
+import           Data.Coerce             (coerce)
+import qualified Data.Map.Strict         as Map
+import           Data.Maybe              (catMaybes, fromJust, fromMaybe,
+                                          isJust)
+import           Foreign
+import           Foreign.C.Types
+import           System.IO               (hPutStrLn, stderr)
 
-import qualified Sound.Osc.Fd as O
-import qualified Sound.Osc.Time.Timeout as O
 import qualified Network.Socket          as N
+import qualified Sound.Osc.Fd            as O
+import qualified Sound.Osc.Time.Timeout  as O
 
+import           Data.List               (sortOn)
 import           Sound.Tidal.Config
-import           Sound.Tidal.Core (stack, (#))
+import           Sound.Tidal.Core        (stack, (#))
 import           Sound.Tidal.ID
-import qualified Sound.Tidal.Link as Link
-import           Sound.Tidal.Params (pS)
+import qualified Sound.Tidal.Link        as Link
+import           Sound.Tidal.Params      (pS)
 import           Sound.Tidal.Pattern
-import qualified Sound.Tidal.Tempo as T
-import           Sound.Tidal.Utils ((!!!))
-import           Data.List (sortOn)
-import           System.Random (getStdRandom, randomR)
-import           Sound.Tidal.Show ()
+import           Sound.Tidal.Show        ()
+import qualified Sound.Tidal.Tempo       as T
+import           Sound.Tidal.Utils       ((!!!))
+import           System.Random           (getStdRandom, randomR)
 
 import           Sound.Tidal.Version
 
-import Sound.Tidal.StreamTypes as Sound.Tidal.Stream
+import           Sound.Tidal.StreamTypes as Sound.Tidal.Stream
 
-data Stream = Stream {sConfig :: Config,
-                      sBusses :: MVar [Int],
-                      sStateMV :: MVar ValueMap,
+data Stream = Stream {sConfig    :: Config,
+                      sBusses    :: MVar [Int],
+                      sStateMV   :: MVar ValueMap,
                       -- sOutput :: MVar ControlPattern,
-                      sLink :: Link.AbletonLink,
-                      sListen :: Maybe O.Udp,
-                      sPMapMV :: MVar PlayMap,
+                      sLink      :: Link.AbletonLink,
+                      sListen    :: Maybe O.Udp,
+                      sPMapMV    :: MVar PlayMap,
                       sActionsMV :: MVar [T.TempoAction],
                       sGlobalFMV :: MVar (ControlPattern -> ControlPattern),
-                      sCxs :: [Cx]
+                      sCxs       :: [Cx]
                      }
 
-data Cx = Cx {cxTarget :: Target,
-              cxUDP :: O.Udp,
-              cxOSCs :: [OSC],
-              cxAddr :: N.AddrInfo,
+data Cx = Cx {cxTarget  :: Target,
+              cxUDP     :: O.Udp,
+              cxOSCs    :: [OSC],
+              cxAddr    :: N.AddrInfo,
               cxBusAddr :: Maybe N.AddrInfo
              }
   deriving (Show)
@@ -82,13 +88,13 @@ data Schedule = Pre StampStyle
               | Live
   deriving (Eq, Show)
 
-data Target = Target {oName :: String,
-                      oAddress :: String,
-                      oPort :: Int,
-                      oBusPort :: Maybe Int,
-                      oLatency :: Double,
-                      oWindow :: Maybe Arc,
-                      oSchedule :: Schedule,
+data Target = Target {oName      :: String,
+                      oAddress   :: String,
+                      oPort      :: Int,
+                      oBusPort   :: Maybe Int,
+                      oLatency   :: Double,
+                      oWindow    :: Maybe Arc,
+                      oSchedule  :: Schedule,
                       oHandshake :: Bool
                      }
                  deriving Show
@@ -105,15 +111,15 @@ data OSC = OSC {path :: String,
 
 data ProcessedEvent =
   ProcessedEvent {
-    peHasOnset :: Bool,
-    peEvent :: Event ValueMap,
-    peCps :: Link.BPM,
-    peDelta :: Link.Micros,
-    peCycle :: Time,
-    peOnWholeOrPart :: Link.Micros,
+    peHasOnset         :: Bool,
+    peEvent            :: Event ValueMap,
+    peCps              :: Link.BPM,
+    peDelta            :: Link.Micros,
+    peCycle            :: Time,
+    peOnWholeOrPart    :: Link.Micros,
     peOnWholeOrPartOsc :: O.Time,
-    peOnPart :: Link.Micros,
-    peOnPartOsc :: O.Time
+    peOnPart           :: Link.Micros,
+    peOnPartOsc        :: O.Time
   }
 
 sDefault :: String -> Maybe Value
@@ -281,15 +287,15 @@ startMulti :: [Target] -> Config -> IO ()
 startMulti _ _ = hPutStrLn stderr $ "startMulti has been removed, please check the latest documentation on tidalcycles.org"
 
 toDatum :: Value -> O.Datum
-toDatum (VF x) = O.float x
-toDatum (VN x) = O.float x
-toDatum (VI x) = O.int32 x
-toDatum (VS x) = O.string x
-toDatum (VR x) = O.float $ ((fromRational x) :: Double)
-toDatum (VB True) = O.int32 (1 :: Int)
+toDatum (VF x)     = O.float x
+toDatum (VN x)     = O.float x
+toDatum (VI x)     = O.int32 x
+toDatum (VS x)     = O.string x
+toDatum (VR x)     = O.float $ ((fromRational x) :: Double)
+toDatum (VB True)  = O.int32 (1 :: Int)
 toDatum (VB False) = O.int32 (0 :: Int)
-toDatum (VX xs) = O.Blob $ O.blob_pack xs
-toDatum _ = error "toDatum: unhandled value"
+toDatum (VX xs)    = O.Blob $ O.blob_pack xs
+toDatum _          = error "toDatum: unhandled value"
 
 toData :: OSC -> Event ValueMap -> Maybe [O.Datum]
 toData (OSC {args = ArgList as}) e = fmap (fmap (toDatum)) $ sequence $ map (\(n,v) -> Map.lookup n (value e) <|> v) as
@@ -317,25 +323,25 @@ getString :: ValueMap -> String -> Maybe String
 getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
                       where (param, dflt) = break (== '=') s
                             simpleShow :: Value -> String
-                            simpleShow (VS str) = str
-                            simpleShow (VI i) = show i
-                            simpleShow (VF f) = show f
-                            simpleShow (VN n) = show n
-                            simpleShow (VR r) = show r
-                            simpleShow (VB b) = show b
-                            simpleShow (VX xs) = show xs
-                            simpleShow (VState _) = show "<stateful>"
+                            simpleShow (VS str)     = str
+                            simpleShow (VI i)       = show i
+                            simpleShow (VF f)       = show f
+                            simpleShow (VN n)       = show n
+                            simpleShow (VR r)       = show r
+                            simpleShow (VB b)       = show b
+                            simpleShow (VX xs)      = show xs
+                            simpleShow (VState _)   = show "<stateful>"
                             simpleShow (VPattern _) = show "<pattern>"
-                            simpleShow (VList _) = show "<list>"
+                            simpleShow (VList _)    = show "<list>"
                             defaultValue :: String -> Maybe String
                             defaultValue ('=':dfltVal) = Just dfltVal
-                            defaultValue _ = Nothing
+                            defaultValue _             = Nothing
 
 playStack :: PlayMap -> ControlPattern
-playStack pMap = stack . (map pattern) . (filter active) . Map.elems $ pMap
+playStack pMap = stack . (map psPattern) . (filter active) . Map.elems $ pMap
   where active pState = if hasSolo pMap
-                        then solo pState
-                        else not (mute pState)
+                        then psSolo pState
+                        else not (psMute pState)
 
 toOSC :: [Int] -> ProcessedEvent -> OSC -> [(Double, Bool, O.Message)]
 toOSC busses pe osc@(OSC _ _)
@@ -407,7 +413,7 @@ updatePattern stream k !t pat = do
   pMap <- seq x $ takeMVar (sPMapMV stream)
   let playState = updatePS $ Map.lookup (fromID k) pMap
   putMVar (sPMapMV stream) $ Map.insert (fromID k) playState pMap
-  where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
+  where updatePS (Just playState) = do playState {psPattern = pat', psHistory = pat:(psHistory playState)}
         updatePS Nothing = PlayState pat' False False [pat']
         patControls = Map.singleton patternTimeID (VR t)
         pat' = withQueryControls (Map.union patControls)
@@ -470,11 +476,11 @@ onTick stream st ops s
 onSingleTick :: Stream -> T.LinkOperations -> ValueMap -> ControlPattern -> IO ValueMap
 onSingleTick stream ops s pat = do
   pMapMV <- newMVar $ Map.singleton "fake"
-          (PlayState {pattern = pat,
-                      mute = False,
-                      solo = False,
-                      history = []
-                      }
+          (PlayState {psPattern = pat,
+                      psMute = False,
+                      psSolo = False,
+                      psHistory = []
+                     }
           )
 
   -- The nowArc is a full cycle
@@ -535,9 +541,9 @@ doTick stream st ops sMap =
 setPreviousPatternOrSilence :: Stream -> IO ()
 setPreviousPatternOrSilence stream =
   modifyMVar_ (sPMapMV stream) $ return
-    . Map.map ( \ pMap -> case history pMap of
-      _:p:ps -> pMap { pattern = p, history = p:ps }
-      _ -> pMap { pattern = silence, history = [silence] }
+    . Map.map ( \ pMap -> case psHistory pMap of
+      _:p:ps -> pMap { psPattern = p, psHistory = p:ps }
+      _      -> pMap { psPattern = silence, psHistory = [silence] }
               )
 
 -- send has three modes:
@@ -573,17 +579,17 @@ streamSetCycle :: Stream -> Time -> IO ()
 streamSetCycle s cyc = T.setCycle cyc (sActionsMV s)
 
 hasSolo :: Map.Map k PlayState -> Bool
-hasSolo = (>= 1) . length . filter solo . Map.elems
+hasSolo = (>= 1) . length . filter psSolo . Map.elems
 
 streamList :: Stream -> IO ()
 streamList s = do pMap <- readMVar (sPMapMV s)
                   let hs = hasSolo pMap
                   putStrLn $ concatMap (showKV hs) $ Map.toList pMap
   where showKV :: Bool -> (PatId, PlayState) -> String
-        showKV True  (k, (PlayState {solo = True})) = k ++ " - solo\n"
-        showKV True  (k, _) = "(" ++ k ++ ")\n"
-        showKV False (k, (PlayState {solo = False})) = k ++ "\n"
-        showKV False (k, _) = "(" ++ k ++ ") - muted\n"
+        showKV True  (k, (PlayState {psSolo = True}))  = k ++ " - solo\n"
+        showKV True  (k, _)                            = "(" ++ k ++ ")\n"
+        showKV False (k, (PlayState {psSolo = False})) = k ++ "\n"
+        showKV False (k, _)                            = "(" ++ k ++ ") - muted\n"
 
 -- Evaluation of pat is forced so exceptions are picked up here, before replacing the existing pattern.
 
@@ -592,19 +598,19 @@ streamReplace s k !pat
   = modifyMVar_ (sActionsMV s) (\actions -> return $ (T.StreamReplace k pat) : actions)
 
 streamMute :: Stream -> ID -> IO ()
-streamMute s k = withPatIds s [k] (\x -> x {mute = True})
+streamMute s k = withPatIds s [k] (\x -> x {psMute = True})
 
 streamMutes :: Stream -> [ID] -> IO ()
-streamMutes s ks = withPatIds s ks (\x -> x {mute = True})
+streamMutes s ks = withPatIds s ks (\x -> x {psMute = True})
 
 streamUnmute :: Stream -> ID -> IO ()
-streamUnmute s k = withPatIds s [k] (\x -> x {mute = False})
+streamUnmute s k = withPatIds s [k] (\x -> x {psMute = False})
 
 streamSolo :: Stream -> ID -> IO ()
-streamSolo s k = withPatIds s [k] (\x -> x {solo = True})
+streamSolo s k = withPatIds s [k] (\x -> x {psSolo = True})
 
 streamUnsolo :: Stream -> ID -> IO ()
-streamUnsolo s k = withPatIds s [k] (\x -> x {solo = False})
+streamUnsolo s k = withPatIds s [k] (\x -> x {psSolo = False})
 
 withPatIds :: Stream -> [ID] -> (PlayState -> PlayState) -> IO ()
 withPatIds s ks f
@@ -615,19 +621,19 @@ withPatIds s ks f
 
 -- TODO - is there a race condition here?
 streamMuteAll :: Stream -> IO ()
-streamMuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = True})
+streamMuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {psMute = True})
 
 streamHush :: Stream -> IO ()
-streamHush s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {pattern = silence, history = silence:history x})
+streamHush s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {psPattern = silence, psHistory = silence:psHistory x})
 
 streamUnmuteAll :: Stream -> IO ()
-streamUnmuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = False})
+streamUnmuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {psMute = False})
 
 streamUnsoloAll :: Stream -> IO ()
-streamUnsoloAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {solo = False})
+streamUnsoloAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {psSolo = False})
 
 streamSilence :: Stream -> ID -> IO ()
-streamSilence s k = withPatIds s [k] (\x -> x {pattern = silence, history = silence:history x})
+streamSilence s k = withPatIds s [k] (\x -> x {psPattern = silence, psHistory = silence:psHistory x})
 
 streamAll :: Stream -> (ControlPattern -> ControlPattern) -> IO ()
 streamAll s f = do _ <- swapMVar (sGlobalFMV s) f
@@ -728,8 +734,8 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
                      return ()
         withID :: O.Datum -> (ID -> IO ()) -> IO ()
         withID (O.AsciiString k) func = func $ (ID . O.ascii_to_string) k
-        withID (O.Int32 k) func = func $ (ID . show) k
-        withID _ _ = return ()
+        withID (O.Int32 k) func       = func $ (ID . show) k
+        withID _ _                    = return ()
 ctrlResponder _ _ _ = return ()
 
 verbose :: Config -> String -> IO ()
