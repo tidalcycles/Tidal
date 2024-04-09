@@ -1,10 +1,12 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
 
 module Sound.Tidal.Transition where
 
 import Prelude hiding ((<*), (*>))
 
 import Control.Concurrent.MVar (modifyMVar_)
+import Data.Fixed (mod', div')
+import Data.List (sortOn)
 
 import qualified Data.Map.Strict as Map
 -- import Data.Maybe (fromJust)
@@ -49,6 +51,122 @@ mortalOverlay t now (pat:ps) = overlay (pop ps) (playFor s (s+t) pat) where
   pop [] = silence
   pop (x:_) = x
   s = sam (now - fromIntegral (floor now `mod` floor t :: Int)) + sam t
+
+{- | Schedule some patterns (all for the same voice, e.g. `d1`),
+relative to the current cycle.
+@
+do setcps 1
+   d1 $ s "[bd,numbers]" |* n (slow 8 $ run 8)
+   sched 2 [ (2, s "lt*5"),
+             (4, s "ht*4"),
+             (6, s "hc*3") ]
+@
+-}
+sched :: Stream                   -- ^ PITFALL: Not provided by user.
+      -> ID                       -- ^ voice to affect
+      -> [(Time, ControlPattern)] -- ^ schedule
+      -> IO ()
+sched tidal i s = do
+  now <- streamGetnow tidal
+  let t = fst $ head s
+      p = absScheduleToPat
+          $ sortOn fst -- earlier patterns closer to head
+          ( delaySchedule_toAbsoluteSchedule
+            (toTime now) s )
+  transition tidal True (Sound.Tidal.Transition.jumpFrac t) i p
+
+{- | Schedule some patterns (all for the same voice, e.g. `d1`),
+relative to the most recent time that was divisible by the divisor.
+@
+do setcps 1
+   d1 $ s "[bd,numbers]" |* n (slow 8 $ run 8)
+   schod 2 8 [ (2, s "lt*5"),
+               (4, s "ht*4"),
+               (6, s "hc*3"),
+               (8, s "~ sn:1" ),
+               (12, s "~ ~ sn:1" ),
+               (16, silence) ]
+@
+-}
+schod :: Stream                   -- ^ PITFALL: Not provided by user.
+      -> ID                       -- ^ voice to affect
+      -> Time                     -- ^ divisor
+      -> [(Time, ControlPattern)] -- ^ schedule
+      -> IO ()
+schod tidal i divisor sRel = do
+  now <- streamGetnow tidal
+  let sAbs :: [ (Time, ControlPattern) ] =
+        sortOn fst -- earlier patterns closer to head
+        ( delayModSchedule_toAbsoluteSchedule
+          (toTime now) divisor sRel )
+      d :: Time = fst $ head sAbs
+      p :: ControlPattern = absScheduleToPat sAbs
+  transition tidal True (Sound.Tidal.Transition.jumpFracAbs d) i p
+
+absScheduleToPat ::
+  [ ( -- ^ A schedule in terms of absolute times
+      -- (as opposed to delays relative to the current time).
+    Time, -- ^ Absolute time, not time relative to now.
+          -- It is when the new pattern starts, not when the old one ends.
+          -- PITFALL: Each of the `Time`s in these tuples should be distinct.
+          -- Otherwise one pattern will clobber another.
+    Pattern a -- ^ What starts when the associated `Time` is reached.
+  ) ]
+  -> Pattern a
+absScheduleToPat s =
+  let
+    between lo hi x = (x >= lo) && (x < hi)
+    lastPat = filterWhen (>= t) p
+      where (t, p) = last s
+    patternsBeforeLast = [ filterWhen (between t0 t1) p
+                         | ( (t0,p),
+                             (t1,_) ) <- zip s $ tail s ]
+  in stack $
+     lastPat : patternsBeforeLast -- order doesn't matter to `stack`
+
+delaySchedule_toAbsoluteSchedule ::
+  Time ->                  -- ^ now
+  [ (Time, Pattern a) ] -> -- ^ a schedule defined by times relative to now
+  [ (Time, Pattern a) ]    -- ^ a schedule defined by absolute times
+delaySchedule_toAbsoluteSchedule now s =
+  [ (t + now, p)
+  | (t,p) <- s ]
+
+delayModSchedule_toAbsoluteSchedule ::
+  Time ->                  -- ^ now
+  Time ->                  -- ^ A divisor. Probably an integer.
+  [ (Time, Pattern a) ] -> {- ^ A schedule defined by times relative to the most recent time divisible by the divisor. Note that these `Time` values can be greater than the divisor -- indeed they can be arbitrarily high, and order and measure among them will be respected. -}
+  [ (Time, Pattern a) ] -- ^ a schedule defined by absolute times
+delayModSchedule_toAbsoluteSchedule now divisor s =
+  -- PITFALL: If, for some t in the schedule, rem is greater than t,
+  -- then the pattern associated with t will play immediately.
+  let rem = mod' now divisor
+  in [ (now - rem + t, p)
+     | (t,p) <- s ]
+
+-- | Unlike `jumpIn`, `jumpFrac` accepts fractional delays.
+jumpFrac :: Time        -- ^ how long to wait
+         -> Time        -- ^ PITFALL: Not provided by the user.
+         -> [Pattern a] -- ^ PITFALL: Not provided by the user.
+         -> Pattern a
+jumpFrac _ _ [] = silence
+jumpFrac _ _ (pat:[]) = pat
+jumpFrac wait now (pat':pat:_) =
+  stack [ filterWhen (<  (now + wait)) pat
+        , filterWhen (>= (now + wait)) pat' ]
+
+-- | Unlike `jumpIn`, `jumpFracAbs` accepts fractional start times.
+-- Unlike `jumpFrac`, `jumpFracAbs` takes an absolute time,
+-- rather than a delay to be added to the current time.
+jumpFracAbs :: Time        -- ^ when to transition
+            -> Time        -- ^ PITFALL: Not provided by the user.
+            -> [Pattern a] -- ^ PITFALL: Not provided by the user.
+            -> Pattern a
+jumpFracAbs _ _ [] = silence
+jumpFracAbs _ _ (pat:[]) = pat
+jumpFracAbs wait _ (pat':pat:_) =
+  stack [ filterWhen (<  wait) pat
+        , filterWhen (>= wait) pat' ]
 
 {-| Washes away the current pattern after a certain delay by applying a
     function to it over time, then switching over to the next pattern to
