@@ -680,7 +680,7 @@ signifies: @(Int -> Bool)@, a function that takes a whole number and returns
 either @True@ or @False@.
 -}
 ifp :: (Int -> Bool) -> (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-ifp test f1 f2 p = splitQueries $ p {query = q}
+ifp test f1 f2 p = splitQueries $ p {query = q, pureValue = Nothing}
   where q a | test (floor $ start $ arc a) = query (f1 p) a
             | otherwise = query (f2 p) a
 
@@ -1492,7 +1492,7 @@ enclosingArc as = Arc (minimum (map start as)) (maximum (map stop as))
 -}
 stretch :: Pattern a -> Pattern a
 -- TODO - should that be whole or part?
-stretch p = splitQueries $ p {query = q}
+stretch p = splitQueries $ p {query = q, pureValue = Nothing}
   where q st = query (zoomArc (cycleArc $ enclosingArc $ map wholeOrPart $ query p (st {arc = Arc (sam s) (nextSam s)})) p) st
           where s = start $ arc st
 
@@ -1906,7 +1906,7 @@ spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (`compressArc` p) spac
   > d1 $ n ("[0,4,7] [-12,-8,-5]") # s "superpiano" # sustain 2
 -}
 flatpat :: Pattern [a] -> Pattern a
-flatpat p = p {query = concatMap (\(Event c b b' xs) -> map (Event c b b') xs) . query p}
+flatpat p = p {query = concatMap (\(Event c b b' xs) -> map (Event c b b') xs) . query p, pureValue = Nothing}
 
 {- | @layer@ takes a list of 'Pattern'-returning functions and a seed element,
 stacking the result of applying the seed element to each function in the list.
@@ -2037,7 +2037,7 @@ rolledWith t = withEvents aux
 
 -- | @fill@ 'fills in' gaps in one pattern with events from another. For example @fill "bd" "cp ~ cp"@ would result in the equivalent of `"~ bd ~"`. This only finds gaps in a resulting pattern, in other words @"[bd ~, sn]"@ doesn't contain any gaps (because @sn@ covers it all), and @"bd ~ ~ sn"@ only contains a single gap that bridges two steps.
 fill :: Pattern a -> Pattern a -> Pattern a
-fill p' p = struct (splitQueries $ p {query = q}) p'
+fill p' p = struct (splitQueries $ p {query = q, pureValue = Nothing}) p'
   where
     q st = removeTolerance (s,e) $ invert (s-tolerance, e+tolerance) $ query p (st {arc = (s-tolerance, e+tolerance)})
       where (s,e) = arc st
@@ -2764,7 +2764,7 @@ swap things p = filterJust $ (`lookup` things) <$> p
   >    # s "gtr"
 -}
 snowball :: Int -> (Pattern a -> Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-snowball depth combinationFunction f pattern = cat $ take depth $ scanl combinationFunction pattern $ drop 1 $ iterate f pattern
+snowball depth combinationFunction f pat = cat $ take depth $ scanl combinationFunction pat $ drop 1 $ iterate f pat
 
 {- |
   Applies a function to a pattern and cats the resulting pattern, then continues
@@ -2778,7 +2778,7 @@ snowball depth combinationFunction f pattern = cat $ take depth $ scanl combinat
   >    # s "gtr"
 -}
 soak ::  Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-soak depth f pattern = cat $ take depth $ iterate f pattern
+soak depth f pat = cat $ take depth $ iterate f pat
 
 -- | @construct n p@ breaks @p@ into pieces and then reassembles them
 -- so that it fits into @n@ steps.
@@ -2828,7 +2828,7 @@ squeeze _ []      = silence
 squeeze ipat pats = squeezeJoin $ (pats !!!) <$> ipat
 
 squeezeJoinUp :: Pattern (ControlPattern) -> ControlPattern
-squeezeJoinUp pp = pp {query = q}
+squeezeJoinUp pp = pp {query = q, pureValue = Nothing}
   where q st = concatMap (f st) (query (filterDigital pp) st)
         f st (Event c (Just w) p v) =
           mapMaybe (munge c w p) $ query (compressArc (cycleArc w) (v |* P.speed (pure $ fromRational $ 1/(stop w - start w)))) st {arc = p}

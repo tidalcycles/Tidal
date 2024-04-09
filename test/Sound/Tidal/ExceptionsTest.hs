@@ -16,7 +16,7 @@ run =
   describe "NFData, forcing and catching exceptions" $ do
     describe "instance NFData (Pattern a)" $ do
       it "rnf forces argument" $ do
-        evaluate (rnf (Pattern undefined Nothing :: Pattern ()))
+        evaluate (rnf (Pattern undefined Nothing Nothing :: Pattern ()))
           `shouldThrow` anyException
 
 

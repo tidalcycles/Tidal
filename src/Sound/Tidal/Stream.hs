@@ -29,7 +29,7 @@ module Sound.Tidal.Stream (module Sound.Tidal.Stream) where
 
 import           Control.Applicative     ((<|>))
 import           Control.Concurrent
-import           Control.Concurrent.MVar
+import           Control.Concurrent.MVar ()
 import qualified Control.Exception       as E
 import           Control.Monad           (forM_, when)
 import           Data.Coerce             (coerce)

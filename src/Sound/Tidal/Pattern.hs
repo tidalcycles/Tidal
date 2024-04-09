@@ -54,13 +54,16 @@ data State = State {arc      :: Arc,
                    }
 
 -- | A datatype representing events taking place over time
-data Pattern a = Pattern {query :: State -> [Event a], tactus :: Maybe Rational}
+data Pattern a = Pattern {query :: State -> [Event a], tactus :: Maybe Rational, pureValue :: Maybe a}
   deriving (Generic, Functor)
 
 instance NFData a => NFData (Pattern a)
 
 pattern :: (State -> [Event a]) -> Pattern a
-pattern f = Pattern f Nothing
+pattern f = Pattern f Nothing Nothing
+
+setTactus :: Rational -> Pattern a -> Pattern a
+setTactus r p = p {tactus = Just r}
 
 -- type StateMap = Map.Map String (Pattern Value)
 type ControlPattern = Pattern ValueMap
@@ -69,13 +72,14 @@ type ControlPattern = Pattern ValueMap
 
 instance Applicative Pattern where
   -- | Repeat the given value once per cycle, forever
-  pure v = pattern $ \(State a _) ->
-    map (\a' -> Event
-                (Context [])
-                (Just a')
-                (sect a a')
-                v)
-    $ cycleArcsInArc a
+  pure v = Pattern q (Just 1) (Just v)
+    where q (State a _) =
+            map (\a' -> Event
+                        (Context [])
+                        (Just a')
+                        (sect a a')
+                        v)
+            $ cycleArcsInArc a
 
   -- | In each of @a <*> b@, @a <* b@ and @a *> b@
   -- (using the definitions from this module, not the Prelude),
@@ -186,7 +190,7 @@ instance Monad Pattern where
 --
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 unwrap :: Pattern (Pattern a) -> Pattern a
-unwrap pp = pp {query = q}
+unwrap pp = pp {query = q, pureValue = Nothing}
   where q st = concatMap
           (\(Event c w p v) ->
              mapMaybe (munge c w p) $ query v st {arc = p})
@@ -200,7 +204,7 @@ unwrap pp = pp {query = q}
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the inner pattern.
 innerJoin :: Pattern (Pattern a) -> Pattern a
-innerJoin pp = pp {query = q}
+innerJoin pp = pp {query = q, pureValue = Nothing}
   where q st = concatMap
                (\(Event oc _ op v) -> mapMaybe (munge oc) $ query v st {arc = op}
           )
@@ -214,7 +218,7 @@ innerJoin pp = pp {query = q}
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the outer pattern.
 outerJoin :: Pattern (Pattern a) -> Pattern a
-outerJoin pp = pp {query = q}
+outerJoin pp = pp {query = q, pureValue = Nothing}
   where q st = concatMap
           (\e ->
              mapMaybe (munge (context e) (whole e) (part e)) $ query (value e) st {arc = pure (start $ wholeOrPart e)}
@@ -229,7 +233,7 @@ outerJoin pp = pp {query = q}
 -- timespan of the outer whole (or the original query if it's a continuous pattern?)
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 squeezeJoin :: Pattern (Pattern a) -> Pattern a
-squeezeJoin pp = pp {query = q}
+squeezeJoin pp = pp {query = q, pureValue = Nothing}
   where q st = concatMap
           (\e@(Event c w p v) ->
              mapMaybe (munge c w p) $ query (focusArc (wholeOrPart e) v) st {arc = p}
@@ -246,8 +250,8 @@ _trigJoin cycleZero pat_of_pats = pattern q
   where q st =
           catMaybes $
           concatMap
-          (\oe@(Event oc (Just jow) op ov) ->
-             map (\oe@(Event ic (iw) ip iv) ->
+          (\(Event oc (Just jow) op ov) ->
+             map (\(Event ic (iw) ip iv) ->
                     do w <- subMaybeArc (Just jow) iw
                        p <- subArc op ip
                        return $ Event (combineContexts [ic, oc]) w p iv
@@ -412,7 +416,7 @@ instance Floating ValueMap
 -- * Internal/fundamental functions
 
 empty :: Pattern a
-empty = Pattern {query = const []}
+empty = Pattern {query = const [], tactus = Just 1, pureValue = Nothing}
 
 silence :: Pattern a
 silence = empty
@@ -452,7 +456,7 @@ withQueryControls f pat = pat { query = query pat . (\(State a m) -> State a (f 
 -- | @withEvent f p@ returns a new @Pattern@ with each event mapped over
 -- function @f@.
 withEvent :: (Event a -> Event b) -> Pattern a -> Pattern b
-withEvent f p = p {query = map f . query p}
+withEvent f p = p {query = map f . query p, pureValue = Nothing}
 
 -- | @withEvent f p@ returns a new @Pattern@ with each value mapped over
 -- function @f@.
@@ -462,7 +466,7 @@ withValue f pat = withEvent (fmap f) pat
 -- | @withEvent f p@ returns a new @Pattern@ with f applied to the resulting list of events for each query
 -- function @f@.
 withEvents :: ([Event a] -> [Event b]) -> Pattern a -> Pattern b
-withEvents f p = p {query = f . query p}
+withEvents f p = p {query = f . query p, pureValue = Nothing}
 
 -- | @withPart f p@ returns a new @Pattern@ with function @f@ applied
 -- to the part.
@@ -669,7 +673,7 @@ rev p =
 -- | Mark values in the first pattern which match with at least one
 -- value in the second pattern.
 matchManyToOne :: (b -> a -> Bool) -> Pattern a -> Pattern b -> Pattern (Bool, b)
-matchManyToOne f pa pb = pa {query = q}
+matchManyToOne f pa pb = pa {query = q, pureValue = Nothing}
   where q st = map match $ query pb st
           where
             match ex@(Event xContext xWhole xPart x) =
