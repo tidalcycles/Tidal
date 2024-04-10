@@ -361,7 +361,7 @@ toOSC busses pe osc@(OSC _ _)
         -- (but perhaps we should explicitly crash with an error message if it contains something else?).
         -- Map.mapKeys tail is used to remove ^ from the keys.
         -- In case (value e) has the key "", we will get a crash here.
-        playmap' = Map.union (Map.mapKeys tail $ Map.map (\(VI i) -> VS ('c':(show $ toBus i))) busmap) playmap
+        playmap' = Map.union (Map.mapKeys tail $ Map.map (\v -> VS ('c':(show $ toBus $ fromMaybe 0 $ getI v))) busmap) playmap
         val = value . peEvent
         -- Only events that start within the current nowArc are included
         playmsg | peHasOnset pe = do
@@ -382,11 +382,13 @@ toOSC busses pe osc@(OSC _ _)
         toBus n | null busses = n
                 | otherwise = busses !!! n
         busmsgs = map
-                    (\(('^':k), (VI b)) -> do v <- Map.lookup k playmap
-                                              return $ (tsPart,
-                                                        True, -- bus message ?
-                                                        O.Message "/c_set" [O.int32 b, toDatum v]
-                                                      )
+                    (\(k, b) -> do k' <- if (not $ null k) && head k == '^' then Just (tail k) else Nothing
+                                   v <- Map.lookup k' playmap
+                                   bi <- getI b
+                                   return $ (tsPart,
+                                             True, -- bus message ?
+                                             O.Message "/c_set" [O.int32 bi, toDatum v]
+                                            )
                     )
                     (Map.toList busmap)
           where

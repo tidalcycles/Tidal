@@ -1308,7 +1308,7 @@ randArcs n =
 
 -- TODO - what does this do? Something for @stripe@ ..
 randStruct :: Int -> Pattern Int
-randStruct n = splitQueries $ Pattern {query = f}
+randStruct n = splitQueries $ Pattern f Nothing Nothing
   where f st = map (\(a,b,c) -> Event (Context []) (Just a) (fromJust b) c) $ filter (\(_,x,_) -> isJust x) as
           where as = map (\(i, Arc s' e') ->
                     (Arc (s' + sam s) (e' + sam s),
@@ -1862,7 +1862,8 @@ ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <
         transform _ _     = id
         transform' str (Arc s e) p = s `rotR` inside (pure $ 1/(e-s)) (matchF str) p
         matchF str = fromMaybe id $ lookup str fs
-        timedValues = withEvent (\(Event c (Just a) a' v) -> Event c (Just a) a' (a,v)) . filterDigital
+        timedValues = filterJust . withEvent (\(Event c ma a' v) -> Event c ma a' (ma >>= \a -> Just (a,v))
+                                             ) . filterDigital
 
 {- | A simpler version of 'ur' that just provides name-value bindings that are
   reflected in the provided pattern.

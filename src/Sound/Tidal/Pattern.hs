@@ -41,7 +41,7 @@ import qualified Data.Map.Strict     as Map
 import           Data.Maybe          (catMaybes, fromJust, isJust, mapMaybe)
 import           Data.Typeable       (Typeable)
 import           Data.Word           (Word8)
-import           GHC.Generics
+import           GHC.Generics        (Generic)
 
 import           Sound.Tidal.Time
 
@@ -267,13 +267,13 @@ _trigJoin cycleZero pat_of_pats = pattern q
   where q st =
           catMaybes $
           concatMap
-          (\(Event oc (Just jow) op ov) ->
+          (\(Event oc jow op ov) ->
              map (\(Event ic (iw) ip iv) ->
-                    do w <- subMaybeArc (Just jow) iw
+                    do w <- subMaybeArc jow iw
                        p <- subArc op ip
                        return $ Event (combineContexts [ic, oc]) w p iv
                  )
-               $ query (((if cycleZero then id else cyclePos) $ start jow) `rotR` ov) st
+               $ query (((if cycleZero then id else cyclePos) $ start (fromJust jow)) `rotR` ov) st
           )
           (query (filterDigital pat_of_pats) st)
 
