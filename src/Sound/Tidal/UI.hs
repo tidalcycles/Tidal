@@ -2415,29 +2415,29 @@ offadd :: Num a => Pattern Time -> Pattern a -> Pattern a -> Pattern a
 offadd tp pn p = off tp (+pn) p
 
 {- |
-  @steppify@ acts as a kind of simple step-sequencer using strings. For example,
-  @steppify "sn" "x x 12"@ is equivalent to the pattern of strings given by @"sn ~
-  sn ~ sn:1 sn:2 ~"@. @steppify@ substitutes the given string for each @x@, for each number
+  @stepify@ acts as a kind of simple step-sequencer using strings. For example,
+  @stepify "sn" "x x 12"@ is equivalent to the pattern of strings given by @"sn ~
+  sn ~ sn:1 sn:2 ~"@. @stepify@ substitutes the given string for each @x@, for each number
   it substitutes the string followed by a colon and the number, and for everything
   else it puts in a rest.
 
-  In other words, @steppify@ generates a pattern of strings in exactly the syntax you’d want for selecting samples and that can be fed directly into the 's' function.
+  In other words, @stepify@ generates a pattern of strings in exactly the syntax you’d want for selecting samples and that can be fed directly into the 's' function.
 
-  > d1 $ s (steppify "sn" "x x 12 ")
+  > d1 $ s (stepify "sn" "x x 12 ")
 -}
-steppify :: String -> String -> Pattern String
-steppify s cs = fastcat $ map f cs
+stepify :: String -> String -> Pattern String
+stepify s cs = fastcat $ map f cs
     where f c | c == 'x' = pure s
               | isDigit c = pure $ s ++ ":" ++ [c]
               | otherwise = silence
 
-{- | @stepifies@ is like @steppify@ but it takes a list of pairs, like steppify would, and
+{- | @stepifies@ is like @stepify@ but it takes a list of pairs, like stepify would, and
   it plays them all simultaneously.
 
   > d1 $ s (stepifies [("cp","x  x x  x x  x"),("bd", "xxxx")])
 -}
 stepifies :: [(String, String)] -> Pattern String
-stepifies = stack . map (uncurry steppify)
+stepifies = stack . map (uncurry stepify)
 
 {- | like `stepify`, but allows you to specify an array of strings to use for @0,1,2...@
   For example,
