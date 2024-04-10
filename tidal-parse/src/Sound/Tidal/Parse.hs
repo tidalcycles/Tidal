@@ -1,18 +1,23 @@
-{-# LANGUAGE TemplateHaskell, FlexibleInstances, FlexibleContexts, ScopedTypeVariables, OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
 module Sound.Tidal.Parse (parseTidal) where
 
-import           Language.Haskellish as Haskellish
 import           Control.Applicative
-import           Data.Bifunctor
 import           Control.Monad.Except
+import           Data.Bifunctor
 import           Data.Char
-import           Data.List (dropWhileEnd)
+import           Data.List            (dropWhileEnd)
 import qualified Data.Text
+import           Language.Haskellish  as Haskellish
 
-import           Sound.Tidal.Context (Pattern,ValueMap,ControlPattern,Enumerable,Time)
-import qualified Sound.Tidal.Context as T
-import qualified Sound.Tidal.Chords as T
+import qualified Sound.Tidal.Chords   as T
+import           Sound.Tidal.Context  (ControlPattern, Enumerable, Pattern,
+                                       Time, ValueMap)
+import qualified Sound.Tidal.Context  as T
 import           Sound.Tidal.Parse.TH
 
 type H = Haskellish ()
@@ -443,7 +448,7 @@ instance Parse (String -> Pattern String) where
     (parser :: H ([String] -> String -> Pattern String )) <*> parser
 
 instance Parse ([(String, String)] -> Pattern String) where
-  parser = $(fromTidal "steps")
+  parser = $(fromTidal "stepifies")
 
 instance Parse (String -> String) where
   parser = (parser :: H (String -> String -> String)) <*!> parser
@@ -828,10 +833,10 @@ pDouble_tupleADouble_p :: Parse a => H (Pattern Double -> [(a,Double)] -> Patter
 pDouble_tupleADouble_p = $(fromTidal "wchooseBy")
 
 instance Parse (String -> String -> Pattern String) where
-  parser = $(fromTidal "step")
+  parser = $(fromTidal "stepify")
 
 instance Parse ([String] -> String -> Pattern String) where
-  parser = $(fromTidal "step'")
+  parser = $(fromTidal "stepify'")
 
 instance Parse (String -> String -> String) where
   parser = (parser :: H (Int -> String -> String -> String)) <*!> parser
