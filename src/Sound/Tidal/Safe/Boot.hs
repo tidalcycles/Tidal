@@ -42,8 +42,50 @@ first = streamFirst
 asap = once
 nudgeAll = streamNudgeAll
 all = streamAll
+
+{-|
+  Resets the cycle count back to 0.
+  Useful to make sure a pattern or set of patterns start from the beginning:
+
+  > do
+  >   resetCycles
+  >   d1 $ s "bd hh hh hh"
+  >   d2 $ s "ade" # cut 1
+
+  Cycle count affects all patterns, so if there are any active, all of them will immediately jump to the beginning.
+  @resetCycles@ is also userful in multi-user Tidal.
+
+  Also see 'setCycle', 'getnow'.
+-}
 resetCycles = streamResetCycles
+
+{-|
+  Adjusts the number of cycles per second, i.e., tempo.
+  Accepts integers, decimals, and fractions.
+
+  The default number of cycles per second is 0.5625, equivalent to 135\/60\/4, i.e.,
+  135 beats per minute if there are 4 beats per cycle.
+
+  Representing cycles per second using fractions has the advantage of being more
+  human-readable and more closely aligned with how tempo is commonly represented
+  in music as beats per minute (bpm). For example, techno has a typical range of
+  120-140 bpm and house has a range of 115-130 bpm. To set the tempo in Tidal to
+  fast house, e.g.,: @setcps (130\/60\/4)@.
+
+  The following sound the same:
+
+  > setcps (130/60/4)
+  > d1 $ n "1" # s "kick kick kick kick"
+
+  and
+
+  > setcps (130/60/1)
+  > d1 $ n "1" # s "kick"
+-}
 setcps = asap . cps
+
+-- * Transitions
+
 xfade i = transition True (Sound.Tidal.Transition.xfadeIn 4) i
 xfadeIn i t = transition True (Sound.Tidal.Transition.xfadeIn t) i
 histpan i t = transition True (Sound.Tidal.Transition.histpan t) i

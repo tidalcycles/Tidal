@@ -1,6 +1,6 @@
 cabal-version:       2.4
 name:                tidal-link
-version:             1.0.1
+version:             1.0.3
 synopsis:            Ableton Link integration for Tidal
 -- description:
 homepage:            http://tidalcycles.org/
@@ -29,9 +29,13 @@ library
   default-language:    Haskell2010
 
   exposed-modules:     Sound.Tidal.Link
+                       Sound.Tidal.Clock
 
   build-depends:
-      base >=4.8 && <5
+      base >=4.8 && <5,
+      hosc,
+      mtl,
+      stm
 
   if os(windows)
     extra-libraries:
@@ -46,7 +50,7 @@ library
   else
     cxx-options:
       -DLINK_PLATFORM_LINUX=1 -std=c++14 -Wno-multichar -Wno-subobject-linkage
-  
+
   if impl(ghc >= 9.4)
     build-depends: system-cxx-std-lib
   else

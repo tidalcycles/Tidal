@@ -31,7 +31,7 @@ import Data.Maybe (fromMaybe)
 import Data.Word (Word8)
 import Data.Fixed (mod')
 
--- | group multiple params into one
+-- | Group multiple params into one.
 grp :: [String -> ValueMap] -> Pattern String -> ControlPattern
 grp [] _ = empty
 grp fs p = splitby <$> p
@@ -50,7 +50,7 @@ mI name v = fromMaybe Map.empty $ do i <- readMaybe v
 mS :: String -> String -> ValueMap
 mS name v = Map.singleton name (VS v)
 
--- | Param makers
+-- * Param makers
 
 pF :: String -> Pattern Double -> ControlPattern
 pF name = fmap (Map.singleton name . VF)
@@ -119,7 +119,7 @@ pStateListF name sName = pStateList name sName . map VF
 pStateListS :: String -> String -> [String] -> ControlPattern
 pStateListS name sName = pStateList name sName . map VS
 
--- | Grouped params
+-- * Grouped params
 
 sound :: Pattern String -> ControlPattern
 sound = grp [mS "s", mF "n"]
@@ -139,6 +139,13 @@ nrpnn = pI "nrpn"
 nrpnv :: Pattern Int -> ControlPattern
 nrpnv = pI "val"
 
+{-| @grain'@ is a shortcut to join a @begin@ and @end@
+
+  These are equivalent:
+
+  > d1 $ slow 2 $ s "bev" # grain' "0.2:0.3" # legato 1
+  > d1 $ slow 2 $ s "bev" # begin 0.2 # end 0.3 # legato 1
+-}
 grain' :: Pattern String -> ControlPattern
 grain' = grp [mF "begin", mF "end"]
 
@@ -212,11 +219,23 @@ drumN "ms" = 86
 drumN "os" = 87
 drumN _ = 0
 
--- Generated params
+-- * Generated params
 
--- | a pattern of numbers that speed up (or slow down) samples while they play.
+{- | A pattern of numbers that speed up (or slow down) samples while they play.
+
+  In the following example, the sound starts at the original pitch and gets
+  higher as it plays:
+
+  > d1 $ s "arpy" # accelerate 2
+
+  You can use a negative number to make the sound get lower. In this example, a
+  different acceleration is applied to each played note using state values:
+
+  > d1 $ arp "up" $ note "c'maj'4" # s "arpy" # accelerateTake "susan" [0.2,1,-1]
+-}
 accelerate :: Pattern Double -> ControlPattern
 accelerate = pF "accelerate"
+
 accelerateTake :: String -> [Double] -> ControlPattern
 accelerateTake name xs = pStateListF "accelerate" name xs
 accelerateCount :: String -> ControlPattern
@@ -227,7 +246,11 @@ accelerateCountTo name ipat = innerJoin $ (\i -> pStateF "accelerate" name (mayb
 acceleratebus :: Pattern Int -> Pattern Double -> ControlPattern
 acceleratebus _ _ = error $ "Control parameter 'accelerate' can't be sent to a bus."
 
--- | like @gain@, but linear.
+{-| Controls the amplitude (volume) of the sound. Like 'gain', but linear.
+  Default value is 0.4.
+
+  > d1 $ s "arpy" # amp "<0.4 0.8 0.2>"
+-}
 amp :: Pattern Double -> ControlPattern
 amp = pF "amp"
 ampTake :: String -> [Double] -> ControlPattern
@@ -295,7 +318,16 @@ bandqbus busid pat = (pF "bandq" pat) # (pI "^bandq" busid)
 bandqrecv :: Pattern Int -> ControlPattern
 bandqrecv busid = pI "^bandq" busid
 
--- | a pattern of numbers from 0 to 1. Skips the beginning of each sample, e.g. `0.25` to cut off the first quarter from each sample.
+{- | @begin@ receives a pattern of numbers from 0 to 1 and skips the beginning
+of each sample by the indicated proportion. I.e., 0 would play the sample from
+the start, 1 would skip the whole sample, and 0.25 would cut off the first
+quarter.
+
+In this example, the first 3 @ade@ samples are played on every cycle, but the
+start point from which they are played changes on each cycle:
+
+> d1 $ n "0 1 2" # s "ade" # begin "<0 0.25 0.5 0.75>" # legato 1
+-}
 begin :: Pattern Double -> ControlPattern
 begin = pF "begin"
 beginTake :: String -> [Double] -> ControlPattern
@@ -660,7 +692,13 @@ controlCountTo name ipat = innerJoin $ (\i -> pStateF "control" name (maybe 0 ((
 controlbus :: Pattern Int -> Pattern Double -> ControlPattern
 controlbus _ _ = error $ "Control parameter 'control' can't be sent to a bus."
 
--- | 
+{-| A control pattern; 'setcps' is the standalone function.
+
+  Patterns don’t (yet) have independent tempos though, if you change it on one
+  pattern, it changes on all of them.
+
+  > p "cpsfun" $ s "bd sd(3,8)" # cps (slow 8 $ 0.5 + saw)
+-}
 cps :: Pattern Double -> ControlPattern
 cps = pF "cps"
 cpsTake :: String -> [Double] -> ControlPattern
@@ -913,7 +951,14 @@ durbus busid pat = (pF "dur" pat) # (pI "^dur" busid)
 durrecv :: Pattern Int -> ControlPattern
 durrecv busid = pI "^dur" busid
 
--- | the same as `begin`, but cuts the end off samples, shortening them; e.g. `0.75` to cut off the last quarter of each sample.
+{- | Similar to `begin`, but cuts the end off samples, shortening them; e.g.
+  0.75 to cut off the last quarter of each sample.
+
+  > d1 $ s "bev" >| begin 0.5 >| end "[0.65 0.55]"
+
+  The example above will play the sample two times for cycle, but the second time
+  will play a shorter segment than the first time, creating a kind of canon effect.
+-}
 end :: Pattern Double -> ControlPattern
 end = pF "end"
 endTake :: String -> [Double] -> ControlPattern
@@ -1098,7 +1143,24 @@ fshiftphasebus busid pat = (pF "fshiftphase" pat) # (pI "^fshiftphase" busid)
 fshiftphaserecv :: Pattern Int -> ControlPattern
 fshiftphaserecv busid = pI "^fshiftphase" busid
 
--- | a pattern of numbers that specify volume. Values less than 1 make the sound quieter. Values greater than 1 make the sound louder. For the linear equivalent, see @amp@.
+{- | Used to control the amplitude (volume) of the sound. Values less than 1
+make the sound quieter and values greater than 1 make the sound louder.
+
+@gain@ uses a power function, so the volume change around 1 is subtle, but it
+gets more noticeable as it increases or decreases. Typical values for @gain@ are
+between 0 and 1.5.
+
+For the linear equivalent, see 'amp'.
+
+> d1 $ s "arpy" # gain 0.8
+
+This plays the first arpy sample at a quieter level than the default.
+
+> d1 $ s "ab*16" # gain (range 0.8 1.3 $ sine)
+
+This plays a hihat sound, 16 times per cycle, with a @gain@ moving from 0.8 to 1.3
+following a sine wave.
+-}
 gain :: Pattern Double -> ControlPattern
 gain = pF "gain"
 gainTake :: String -> [Double] -> ControlPattern
@@ -1877,7 +1939,7 @@ ophatdecaybus busid pat = (pF "ophatdecay" pat) # (pI "^ophatdecay" busid)
 ophatdecayrecv :: Pattern Int -> ControlPattern
 ophatdecayrecv busid = pI "^ophatdecay" busid
 
--- | a pattern of numbers. An `orbit` is a global parameter context for patterns. Patterns with the same orbit will share hardware output bus offset and global effects, e.g. reverb and delay. The maximum number of orbits is specified in the superdirt startup, numbers higher than maximum will wrap around.
+-- | a pattern of numbers. An "orbit" is a global parameter context for patterns. Patterns with the same orbit will share hardware output bus offset and global effects, e.g. reverb and delay. The maximum number of orbits is specified in the superdirt startup, numbers higher than maximum will wrap around.
 orbit :: Pattern Int -> ControlPattern
 orbit = pI "orbit"
 orbitTake :: String -> [Double] -> ControlPattern
@@ -2126,7 +2188,7 @@ progNumCountTo name ipat = innerJoin $ (\i -> pStateF "progNum" name (maybe 0 ((
 progNumbus :: Pattern Int -> Pattern Double -> ControlPattern
 progNumbus _ _ = error $ "Control parameter 'progNum' can't be sent to a bus."
 
--- | used in SuperDirt softsynths as a control rate or 'speed'
+-- | used in SuperDirt softsynths as a control rate or "speed"
 rate :: Pattern Double -> ControlPattern
 rate = pF "rate"
 rateTake :: String -> [Double] -> ControlPattern
@@ -2662,7 +2724,20 @@ songPtrCountTo name ipat = innerJoin $ (\i -> pStateF "songPtr" name (maybe 0 ((
 songPtrbus :: Pattern Int -> Pattern Double -> ControlPattern
 songPtrbus _ _ = error $ "Control parameter 'songPtr' can't be sent to a bus."
 
--- | a pattern of numbers which changes the speed of sample playback, i.e. a cheap way of changing pitch. Negative values will play the sample backwards!
+{-|
+  A pattern of numbers which changes the speed of sample playback which also
+  changes pitch. Negative values will play the sample backwards.
+
+  > d1 $ slow 5 $ s "sax:5" # legato 1 # speed 0.5
+
+  This will play the @sax:5@ sample at half its rate. As a result, the sample will
+  last twice the normal time, and will be pitched a whole octave lower. This is
+  equivalent to @d1 $ slow 5 $ s "sax:5" # legato 1 |- note 12@.
+
+  > d1 $ fast 2 $ s "breaks125:1" # cps (125/60/4) # speed (-2)
+
+  In the above example, the break (which lasts for exactly one bar at 125 BPM), will be played backwards, and at double speed (so, we use @fast 2@ to fill the whole cycle).
+-}
 speed :: Pattern Double -> ControlPattern
 speed = pF "speed"
 speedTake :: String -> [Double] -> ControlPattern
@@ -2735,7 +2810,22 @@ stuttertimebus busid pat = (pF "stuttertime" pat) # (pI "^stuttertime" busid)
 stuttertimerecv :: Pattern Int -> ControlPattern
 stuttertimerecv busid = pI "^stuttertime" busid
 
--- | 
+{-|
+  A pattern of numbers that indicates the total duration of sample playback in seconds.
+
+  This @sustain@ refers to the whole playback duration and is not to be confused with the sustain level of a typical ADSR envelope.
+
+  > d1 $ fast 2 $ s "breaks125:1" # cps (120/60/4) # sustain 1
+
+  At 120 BPM, a cycle lasts for two seconds. In the above example, we cut the
+  sample so it plays just for one second, and repeat this part two times, so we
+  fill the whole cycle. Note that sample pitch isn’t modified.
+
+  > d1 $ s "breaks125:2!3" # cps (120/60/4) # sustain "0.4 0.2 0.4" # begin "0 0 0.4"
+
+  Here, we take advantage that sustain receives a pattern to build a different
+  break from the original sample.
+-}
 sustain :: Pattern Double -> ControlPattern
 sustain = pF "sustain"
 sustainTake :: String -> [Double] -> ControlPattern
@@ -2763,9 +2853,25 @@ sustainpedalbus busid pat = (pF "sustainpedal" pat) # (pI "^sustainpedal" busid)
 sustainpedalrecv :: Pattern Int -> ControlPattern
 sustainpedalrecv busid = pI "^sustainpedal" busid
 
--- | time stretch amount
+{- |
+  @timescale@ is the main function used to activate time-stretching, and usually
+  the only one you need. It receives a single parameter which is the stretching
+  rate to apply.
+
+  You can use any positive number as the ratio, but the particular method used is
+  designed for ratios greater than 1, and work reasonably well for values between
+  0.1 and 3.
+
+  > d1 $ slow 2 $ s "breaks152" # legato 1 # timescale (152/130) # cps (130/60/4)
+
+  In the example above, we set tempo at 130 beats per minute. But we want to play
+  one of the @breaks152@ samples, which are, as indicated, at 152 BPM. So, the
+  ratio we want is 152 over 130. This will slow down the sample to fit in our 130
+  BPM tempo.
+-}
 timescale :: Pattern Double -> ControlPattern
 timescale = pF "timescale"
+
 timescaleTake :: String -> [Double] -> ControlPattern
 timescaleTake name xs = pStateListF "timescale" name xs
 timescaleCount :: String -> ControlPattern
@@ -2776,9 +2882,39 @@ timescaleCountTo name ipat = innerJoin $ (\i -> pStateF "timescale" name (maybe 
 timescalebus :: Pattern Int -> Pattern Double -> ControlPattern
 timescalebus _ _ = error $ "Control parameter 'timescale' can't be sent to a bus."
 
--- | time stretch window size
+{- | Time stretch window size.
+
+The algorithm used to time-stretch a sample divides a sample in many little parts, modifies them, and puts them all together again. It uses one particular parameter, called @windowSize@, which is the length of each sample part.
+
+The @windowSize@ value is automatically calculated, but can be changed with @timescalewin@. The @windowSize@ value is multiplied by the number provided.
+
+@timescalewin@ can be used to improve the quality of time-stretching for some samples, or simply as an effect.
+
+Consider the following two examples. In the first one, @timescalewin 0.01@ makes
+the window size a lot smaller, and the extreme chopping of the sample causes
+a rougher sound.  In the second one, @timescalewin 10@ makes the chunks a lot
+bigger. The method used overlaps the treated chunks when recomposing the sample,
+and, with the bigger window size, this overlap is noticeable and causes a kind
+of delay effect.
+
+> d1 $ slow 2
+>    $ s "breaks152"
+>    # legato 1
+>    # timescale (152/130)
+>    # timescalewin 0.01
+>    # cps (130/60/4)
+
+> d1 $ slow 2
+>    $ s "breaks152"
+>    # legato 1
+>    # timescale (152/130)
+>    # timescalewin 10
+>    # cps (130/60/4)
+
+-}
 timescalewin :: Pattern Double -> ControlPattern
 timescalewin = pF "timescalewin"
+
 timescalewinTake :: String -> [Double] -> ControlPattern
 timescalewinTake name xs = pStateListF "timescalewin" name xs
 timescalewinCount :: String -> ControlPattern
@@ -2902,7 +3038,21 @@ uidCountTo name ipat = innerJoin $ (\i -> pStateF "uid" name (maybe 0 ((`mod'` i
 uidbus :: Pattern Int -> Pattern Double -> ControlPattern
 uidbus _ _ = error $ "Control parameter 'uid' can't be sent to a bus."
 
--- | used in conjunction with `speed`, accepts values of "r" (rate, default behavior), "c" (cycles), or "s" (seconds). Using `unit "c"` means `speed` will be interpreted in units of cycles, e.g. `speed "1"` means samples will be stretched to fill a cycle. Using `unit "s"` means the playback speed will be adjusted so that the duration is the number of seconds specified by `speed`.
+{- |
+  Used in conjunction with `speed`. It accepts values of @r@ (rate, default
+  behavior), @c@ (cycles), or @s@ (seconds). Using @unit "c"@ means `speed`
+  will be interpreted in units of cycles, e.g. @speed "1"@ means samples will be
+  stretched to fill a cycle. Using @unit "s"@ means the playback speed will be
+  adjusted so that the duration is the number of seconds specified by `speed`.
+
+  In the following example, @speed 2@ means that samples will be stretched to fill
+  half a cycle:
+
+  > d1 $ stack [
+  >   s "sax:5" # legato 1 # speed 2 # unit "c",
+  >   s "bd*2"
+  > ]
+-}
 unit :: Pattern String -> ControlPattern
 unit = pS "unit"
 unitTake :: String -> [Double] -> ControlPattern
@@ -3025,7 +3175,7 @@ xsdelayrecv busid = pI "^xsdelay" busid
 
 
 
--- aliases
+-- * Aliases
 
 voi :: Pattern Double -> ControlPattern
 voi = voice

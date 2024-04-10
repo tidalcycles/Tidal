@@ -74,40 +74,40 @@ instance Applicative Pattern where
                 v)
     $ cycleArcsInArc a
 
-  -- | In each of `a <*> b`, `a <* b` and `a *> b`
+  -- | In each of @a <*> b@, @a <* b@ and @a *> b@
   -- (using the definitions from this module, not the Prelude),
   -- the time structure of the result
-  -- depends on the structures of both `a` and `b`.
-  -- They all result in `Event`s with identical `part`s and `value`s.
-  -- However, their `whole`s are different.
+  -- depends on the structures of both @a@ and @b@.
+  -- They all result in @Event@s with identical @part@s and @value@s.
+  -- However, their @whole@s are different.
   --
-  -- For instance, `listToPat [(+1), (+2)] <*> "0 10 100"`
-  -- gives the following 4-`Event` cycle:
+  -- For instance, @listToPat [(+1), (+2)] <*> "0 10 100"@
+  -- gives the following 4-@Event@ cycle:
   -- > (0>⅓)|1
   -- > (⅓>½)|11
   -- > (½>⅔)|12
   -- > (⅔>1)|102
-  -- If we use `<*` instead, we get this:
+  -- If we use @<*@ instead, we get this:
   -- > (0>⅓)-½|1
   -- > 0-(⅓>½)|11
   -- > (½>⅔)-1|12
   -- > ½-(⅔>1)|102
-  -- And if we use `*>`, we get this:
+  -- And if we use @*>@, we get this:
   -- >   (0>⅓)|1
   -- > (⅓>½)-⅔|11
   -- > ⅓-(½>⅔)|12
   -- >   (⅔>1)|102
   (<*>) = applyPatToPatBoth
 
--- | Like <*>, but the 'wholes' come from the left
+-- | Like @<*>@, but the "wholes" come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
 (<*) = applyPatToPatLeft
 
--- | Like <*>, but the 'wholes' come from the right
+-- | Like @<*>@, but the "wholes" come from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
 (*>) = applyPatToPatRight
 
--- | Like <*>, but the 'wholes' come from the left
+-- | Like @<*>@, but the "wholes" come from the left
 (<<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
 (<<*) = applyPatToPatSqueeze
 
@@ -162,9 +162,11 @@ applyPatToPatSqueeze :: Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPatSqueeze pf px = squeezeJoin $ (\f -> f <$> px) <$> pf
 
 -- * Monad and friends
-
+--
+-- $monadAndFriends
+--
 -- Note there are four ways of joining - the default 'unwrap' used by @>>=@, as well
--- as innerJoin, innerJoin and squeezeJoin.
+-- as @innerJoin@, @innerJoin@ and @squeezeJoin@.
 
 instance Monad Pattern where
   return = pure
@@ -504,12 +506,56 @@ focusArc :: Arc -> Pattern a -> Pattern a
 focusArc (Arc s e) p = (cyclePos s) `rotR` (_fast (1/(e-s)) p)
 
 
--- | Speed up a pattern by the given time pattern
+{-| Speed up a pattern by the given time pattern.
+
+For example, the following will play the sound pattern @"bd sn kurt"@ twice as
+fast (i.e., so it repeats twice per cycle), and the vowel pattern three times
+as fast:
+
+> d1 $ sound (fast 2 "bd sn kurt")
+>    # fast 3 (vowel "a e o")
+
+The first parameter can be patterned to, for example, play the pattern at twice
+the speed for the first half of each cycle and then four times the speed for the
+second half:
+
+> d1 $ fast "2 4" $ sound "bd sn kurt cp"
+-}
 fast :: Pattern Time -> Pattern a -> Pattern a
 fast = tParam _fast
 
--- | Slow down a pattern by the factors in the given time pattern, 'squeezing'
--- the pattern to fit the slot given in the time pattern
+{-| @fastSqueeze@ speeds up a pattern by a time pattern given as input,
+  squeezing the resulting pattern inside one cycle and playing the original
+  pattern at every repetition.
+
+  To better understand how it works, compare it with 'fast':
+
+  >>> print $ fast "1 2" $ s "bd sn"
+  (0>½)|s: "bd"
+  (½>¾)|s: "bd"
+  (¾>1)|s: "sn"
+
+  This will give @bd@ played in the first half cycle, and @bd sn@ in the second
+  half. On the other hand, using fastSqueeze;
+
+  >>> print $ fastSqueeze "1 2" $ s "bd sn"
+  (0>¼)|s: "bd"
+  (¼>½)|s: "sn"
+  (½>⅝)|s: "bd"
+  (⅝>¾)|s: "sn"
+  (¾>⅞)|s: "bd"
+  (⅞>1)|s: "sn"
+
+  The original pattern will play in the first half, and two repetitions of the
+  original pattern will play in the second half. That is, every repetition
+  contains the whole pattern.
+
+  If the time pattern has a single value, it becomes equivalent to 'fast':
+
+  > d1 $ fastSqueeze 2 $ s "bd sn"
+  > d1 $ fast 2 $ s "bd sn"
+  > d1 $ s "[bd sn]*2"
+-}
 fastSqueeze :: Pattern Time -> Pattern a -> Pattern a
 fastSqueeze = tParamSqueeze _fast
 
@@ -522,7 +568,15 @@ _fast rate pat | rate == 0 = silence
                | rate < 0 = rev $ _fast (negate rate) pat
                | otherwise = withResultTime (/ rate) $ withQueryTime (* rate) pat
 
--- | Slow down a pattern by the given time pattern
+{-| Slow down a pattern by the given time pattern.
+
+  For example, the following will play the sound pattern @"bd sn kurt"@ twice as
+  slow (i.e., so it repeats once every two cycles), and the vowel pattern three
+  times as slow:
+
+  > d1 $ sound (slow 2 "bd sn kurt")
+  >    # slow 3 (vowel "a e o")
+-}
 slow :: Pattern Time -> Pattern a -> Pattern a
 slow = tParam _slow
 _slow :: Time -> Pattern a -> Pattern a
@@ -542,16 +596,47 @@ _fastGap r p = splitQueries $
           where mungeQuery t = sam t + min 1 (r' * cyclePos t)
                 a' = (\(Arc s e) -> Arc (mungeQuery s) (mungeQuery e)) a
 
--- | Shifts a pattern back in time by the given amount, expressed in cycles
+{-| Shifts a pattern back in time by the given amount, expressed in cycles.
+
+  This will skip to the fourth cycle:
+
+  > do
+  >   resetCycles
+  >   d1 $ rotL 4 $ seqP
+  >     [ (0, 12, sound "bd bd*2")
+  >     , (4, 12, sound "hh*2 [sn cp] cp future*4")
+  >     , (8, 12, sound (samples "arpy*8" (run 16)))
+  >     ]
+
+  Useful when building and testing out longer sequences.
+-}
 rotL :: Time -> Pattern a -> Pattern a
 rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 
--- | Shifts a pattern forward in time by the given amount, expressed in cycles
+{-| Shifts a pattern forward in time by the given amount, expressed in cycles.
+  Opposite of 'rotL'.
+-}
 rotR :: Time -> Pattern a -> Pattern a
 rotR t = rotL (negate t)
 
--- | @rev p@ returns @p@ with the event positions in each cycle
--- reversed (or mirrored).
+{- | @rev p@ returns @p@ with the event positions in each cycle reversed (or
+  mirrored).
+
+  For example rev @"1 [~ 2] ~ 3"@ is equivalent to rev @"3 ~ [2 ~] 1"@.
+
+  Note that @rev@ reverses on a cycle-by-cycle basis. This means that @rev (slow
+  2 "1 2 3 4")@ would actually result in @(slow 2 "2 1 4 3")@. This is because the
+  @slow 2@ makes the repeating pattern last two cycles, each of which is reversed
+  independently.
+
+  In practice rev is generally used with conditionals, for example with every:
+
+  > d1 $ every 3 rev $ n "0 1 [~ 2] 3" # sound "arpy"
+
+  or 'jux':
+
+  > d1 $ jux rev $ n (iter 4 "0 1 [~ 2] 3") # sound "arpy"
+-}
 rev :: Pattern a -> Pattern a
 rev p =
   splitQueries $ p {

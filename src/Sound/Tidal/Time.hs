@@ -36,7 +36,7 @@ instance (Fractional a) => Fractional (ArcF a) where
   recip        = fmap recip
   fromRational = pure . fromRational
 
--- Utility functions - Time
+-- * Utility functions - Time
 
 -- | The @sam@ (start of cycle) for the given time value.
 -- Cycles have duration 1, so every integer Time value divides two cycles.
@@ -59,7 +59,7 @@ nextSam = (1+) . sam
 cyclePos :: Time -> Time
 cyclePos t = t - sam t
 
--- Utility functions - Arc
+-- * Utility functions - Arc
 
 -- | convex hull union
 hull :: Arc -> Arc -> Arc
@@ -109,9 +109,9 @@ cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e-s))
 -- Thus, for instance, @cyclesInArc (Arc 0 1.5) == [0,1]@.)
 --
 -- Edge cases:
--- >  cyclesInArc $ Arc 0 1.0001 == [0,1]
--- >  cyclesInArc $ Arc 0 1      == [0] -- the endpoint is excluded
--- >  cyclesInArc $ Arc 1 1      == [1] -- unless the Arc has duration 0
+-- > cyclesInArc $ Arc 0 1.0001 == [0,1]
+-- > cyclesInArc $ Arc 0 1      == [0] -- the endpoint is excluded
+-- > cyclesInArc $ Arc 1 1      == [1] -- unless the Arc has duration 0
 --
 -- PITFALL: Don't be fooled by the name. The output cycles
 -- are not necessarily completely contained in the input @Arc@,
