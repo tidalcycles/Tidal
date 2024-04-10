@@ -79,7 +79,7 @@ steps = tParam _steps
 keepMeta :: Pattern a -> Pattern a -> Pattern a
 keepMeta from to = to {tactus = tactus from, pureValue = pureValue from}
 
-keepTactus :: Pattern a -> Pattern a -> Pattern a
+keepTactus :: Pattern a -> Pattern b -> Pattern b
 keepTactus from to = to {tactus = tactus from}
 
 -- type StateMap = Map.Map String (Pattern Value)
@@ -121,19 +121,19 @@ instance Applicative Pattern where
   -- > (⅓>½)-⅔|11
   -- > ⅓-(½>⅔)|12
   -- >   (⅔>1)|102
-  (<*>) = applyPatToPatBoth
+  (<*>) a b = (applyPatToPatBoth a b) {tactus = lcmr <$> tactus a <*> tactus b }
 
 -- | Like @<*>@, but the "wholes" come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<*) = applyPatToPatLeft
+(<*) a b = keepTactus a $ applyPatToPatLeft a b
 
 -- | Like @<*>@, but the "wholes" come from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(*>) = applyPatToPatRight
+(*>) a b = keepTactus b $ applyPatToPatRight a b
 
 -- | Like @<*>@, but the "wholes" come from the left
 (<<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<<*) = applyPatToPatSqueeze
+(<<*) a b = (applyPatToPatSqueeze a b) {tactus = (*) <$> tactus a <*> tactus b }
 
 infixl 4 <*, *>, <<*
 applyPatToPat :: (Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)) -> Pattern (a -> b) -> Pattern a -> Pattern b

@@ -521,7 +521,7 @@ There is also `iter'`, which shifts the pattern in the opposite direction.
 
 -}
 iter :: Pattern Int -> Pattern c -> Pattern c
-iter = tParam _iter
+iter a pat = keepTactus pat $ tParam _iter a pat
 
 _iter :: Int -> Pattern a -> Pattern a
 _iter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n-1)]
