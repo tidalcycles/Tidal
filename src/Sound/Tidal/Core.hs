@@ -428,6 +428,27 @@ stack = foldr overlay silence
 stepcat :: [Pattern a] -> Pattern a
 stepcat pats = timecat $ map (\pat -> (fromMaybe 1 $ tactus pat, pat)) pats
 
+_stepadd :: Rational -> Pattern a -> Pattern a
+-- raise error?
+_stepadd _ pat@(Pattern _ Nothing _) = pat
+_stepadd r pat@(Pattern _ (Just t) _)
+  | r == 0 = nothing
+  | (abs r) >= t = pat
+  | r < 0 = zoom (1-((abs r)/t),1) pat
+  | otherwise = zoom (0, (r/t)) pat
+
+stepadd :: Pattern Rational -> Pattern a -> Pattern a
+stepadd = tParam _stepadd
+
+_stepsub :: Rational -> Pattern a -> Pattern a
+_stepsub _ pat@(Pattern _ Nothing _)  = pat
+_stepsub r pat@(Pattern _ (Just t) _) | r >= t = nothing
+                                      | r < 0 = _stepadd (0- (t+r)) pat
+                                      | otherwise = _stepadd (t-r) pat
+
+stepsub :: Pattern Rational -> Pattern a -> Pattern a
+stepsub = tParam _stepsub
+
 -- ** Manipulating time
 
 -- | Shifts a pattern back in time by the given amount, expressed in cycles
@@ -485,7 +506,7 @@ zoom :: (Time, Time) -> Pattern a -> Pattern a
 zoom (s,e) = zoomArc (Arc s e)
 
 zoomArc :: Arc -> Pattern a -> Pattern a
-zoomArc (Arc s e) p = splitQueries $
+zoomArc (Arc s e) p = withTactus (*d) $ splitQueries $
   withResultArc (mapCycle ((/d) . subtract s)) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 

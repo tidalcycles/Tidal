@@ -65,6 +65,9 @@ pattern f = Pattern f Nothing Nothing
 setTactus :: Rational -> Pattern a -> Pattern a
 setTactus r p = p {tactus = Just r}
 
+withTactus :: (Rational -> Rational) -> Pattern a -> Pattern a
+withTactus f p = p {tactus = f <$> tactus p}
+
 keepMeta :: Pattern a -> Pattern a -> Pattern a
 keepMeta from to = to {tactus = tactus from, pureValue = pureValue from}
 
@@ -424,6 +427,9 @@ empty = Pattern {query = const [], tactus = Just 1, pureValue = Nothing}
 silence :: Pattern a
 silence = empty
 
+nothing :: Pattern a
+nothing = empty {tactus = Just 0}
+
 queryArc :: Pattern a -> Arc -> [Event a]
 queryArc p a = query p $ State a Map.empty
 
@@ -717,12 +723,15 @@ playFor s e pat = pattern $ \st -> maybe [] (\a -> query pat (st {arc = a})) $ s
 -- ** Temporal parameter helpers
 
 tParam :: (t1 -> t2 -> Pattern a) -> Pattern t1 -> t2 -> Pattern a
-tParam f tv p = innerJoin $ (`f` p) <$> tv
+tParam f (Pattern _ _ (Just a)) b = f a b
+tParam f pa p                     = innerJoin $ (`f` p) <$> pa
 
 tParam2 :: (a -> b -> c -> Pattern d) -> Pattern a -> Pattern b -> c -> Pattern d
+tParam2 f (Pattern _ _ (Just a)) (Pattern _ _ (Just b)) c = f a b c
 tParam2 f a b p = innerJoin $ (\x y -> f x y p) <$> a <*> b
 
 tParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
+tParam3 f (Pattern _ _ (Just a)) (Pattern _ _ (Just b)) (Pattern _ _ (Just c)) d = f a b c d
 tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
