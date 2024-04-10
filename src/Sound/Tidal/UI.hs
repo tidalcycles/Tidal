@@ -2414,29 +2414,29 @@ offadd :: Num a => Pattern Time -> Pattern a -> Pattern a -> Pattern a
 offadd tp pn p = off tp (+pn) p
 
 {- |
-  @step@ acts as a kind of simple step-sequencer using strings. For example,
-  @step "sn" "x x 12"@ is equivalent to the pattern of strings given by @"sn ~
-  sn ~ sn:1 sn:2 ~"@. @step@ substitutes the given string for each @x@, for each number
+  @steppify@ acts as a kind of simple step-sequencer using strings. For example,
+  @steppify "sn" "x x 12"@ is equivalent to the pattern of strings given by @"sn ~
+  sn ~ sn:1 sn:2 ~"@. @steppify@ substitutes the given string for each @x@, for each number
   it substitutes the string followed by a colon and the number, and for everything
   else it puts in a rest.
 
-  In other words, @step@ generates a pattern of strings in exactly the syntax you’d want for selecting samples and that can be fed directly into the 's' function.
+  In other words, @steppify@ generates a pattern of strings in exactly the syntax you’d want for selecting samples and that can be fed directly into the 's' function.
 
-  > d1 $ s (step "sn" "x x 12 ")
+  > d1 $ s (steppify "sn" "x x 12 ")
 -}
-step :: String -> String -> Pattern String
-step s cs = fastcat $ map f cs
+steppify :: String -> String -> Pattern String
+steppify s cs = fastcat $ map f cs
     where f c | c == 'x' = pure s
               | isDigit c = pure $ s ++ ":" ++ [c]
               | otherwise = silence
 
-{- | @steps@ is like @step@ but it takes a list of pairs, like step would, and
+{- | @stepifies@ is like @steppify@ but it takes a list of pairs, like steppify would, and
   it plays them all simultaneously.
 
-  > d1 $ s (steps [("cp","x  x x  x x  x"),("bd", "xxxx")])
+  > d1 $ s (stepifies [("cp","x  x x  x x  x"),("bd", "xxxx")])
 -}
-steps :: [(String, String)] -> Pattern String
-steps = stack . map (uncurry step)
+stepifies :: [(String, String)] -> Pattern String
+stepifies = stack . map (uncurry steppify)
 
 {- | like `step`, but allows you to specify an array of strings to use for @0,1,2...@
   For example,

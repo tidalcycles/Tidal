@@ -68,8 +68,19 @@ setTactus r p = p {tactus = Just r}
 withTactus :: (Rational -> Rational) -> Pattern a -> Pattern a
 withTactus f p = p {tactus = f <$> tactus p}
 
+_steps :: Rational -> Pattern a -> Pattern a
+_steps target p@(Pattern _ (Just t) _) = setTactus target $ _fast (target / t) p
+-- raise error?
+_steps  _ p                            =  p
+
+steps :: Pattern Rational -> Pattern a -> Pattern a
+steps = tParam _steps
+
 keepMeta :: Pattern a -> Pattern a -> Pattern a
 keepMeta from to = to {tactus = tactus from, pureValue = pureValue from}
+
+keepTactus :: Pattern a -> Pattern a -> Pattern a
+keepTactus from to = to {tactus = tactus from}
 
 -- type StateMap = Map.Map String (Pattern Value)
 type ControlPattern = Pattern ValueMap
@@ -538,7 +549,7 @@ second half:
 > d1 $ fast "2 4" $ sound "bd sn kurt cp"
 -}
 fast :: Pattern Time -> Pattern a -> Pattern a
-fast = tParam _fast
+fast t pat = keepTactus pat $ tParam _fast t pat
 
 {-| @fastSqueeze@ speeds up a pattern by a time pattern given as input,
   squeezing the resulting pattern inside one cycle and playing the original
@@ -582,7 +593,7 @@ density = fast
 _fast :: Time -> Pattern a -> Pattern a
 _fast rate pat | rate == 0 = silence
                | rate < 0 = rev $ _fast (negate rate) pat
-               | otherwise = withResultTime (/ rate) $ withQueryTime (* rate) pat
+               | otherwise = keepTactus pat $ withResultTime (/ rate) $ withQueryTime (* rate) pat
 
 {-| Slow down a pattern by the given time pattern.
 
@@ -655,7 +666,7 @@ rotR t = rotL (negate t)
 -}
 rev :: Pattern a -> Pattern a
 rev p =
-  splitQueries $ p {
+  keepMeta p $ splitQueries $ p {
     query = \st -> map makeWholeAbsolute $
       mapParts (mirrorArc (midCycle $ arc st)) $
       map makeWholeRelative

@@ -449,6 +449,14 @@ _stepsub r pat@(Pattern _ (Just t) _) | r >= t = nothing
 stepsub :: Pattern Rational -> Pattern a -> Pattern a
 stepsub = tParam _stepsub
 
+_steplastof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_steplastof i f pat | i <= 1 = pat
+                    | otherwise = stepcat $ (take (i-1) $ repeat pat) ++ [f pat]
+
+steplastof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+steplastof (Pattern _ _ (Just i)) f pat = _steplastof i f pat
+steplastof tp f p = innerJoin $ (\t -> _steplastof t f p) <$> tp
+
 -- ** Manipulating time
 
 -- | Shifts a pattern back in time by the given amount, expressed in cycles
