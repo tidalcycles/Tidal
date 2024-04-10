@@ -2438,10 +2438,10 @@ steppify s cs = fastcat $ map f cs
 stepifies :: [(String, String)] -> Pattern String
 stepifies = stack . map (uncurry steppify)
 
-{- | like `step`, but allows you to specify an array of strings to use for @0,1,2...@
+{- | like `stepify`, but allows you to specify an array of strings to use for @0,1,2...@
   For example,
 
-  > d1 $ s (step' ["superpiano","supermandolin"] "0 1 000 1")
+  > d1 $ s (stepify' ["superpiano","supermandolin"] "0 1 000 1")
   >    # sustain 4 # n 0
 
   is equivalent to
@@ -2449,8 +2449,8 @@ stepifies = stack . map (uncurry steppify)
   > d1 $ s "superpiano ~ supermandolin ~ superpiano!3 ~ supermandolin"
   >    # sustain 4 # n 0
 -}
-step' :: [String] -> String -> Pattern String
-step' ss cs = fastcat $ map f cs
+stepify' :: [String] -> String -> Pattern String
+stepify' ss cs = fastcat $ map f cs
     where f c | c == 'x' = pure $ head ss
               | isDigit c = pure $ ss !! digitToInt c
               | otherwise = silence
