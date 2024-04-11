@@ -2,24 +2,24 @@
 
 module Sound.Tidal.Transition where
 
-import Prelude hiding ((<*), (*>))
+import           Prelude                   hiding ((*>), (<*))
 
-import Control.Concurrent.MVar (readMVar, swapMVar)
+import           Control.Concurrent.MVar   (readMVar, swapMVar)
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict           as Map
 -- import Data.Maybe (fromJust)
 
-import Sound.Tidal.Control
-import Sound.Tidal.Core
-import Sound.Tidal.Stream.Config
-import Sound.Tidal.ID
-import Sound.Tidal.Params (gain, pan)
-import Sound.Tidal.Pattern
-import Sound.Tidal.Stream.Types
-import qualified Sound.Tidal.Clock as Clock
+import qualified Sound.Tidal.Clock         as Clock
+import           Sound.Tidal.Control
+import           Sound.Tidal.Core
+import           Sound.Tidal.ID
+import           Sound.Tidal.Params        (gain, pan)
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Stream.Config
+import           Sound.Tidal.Stream.Types
 -- import Sound.Tidal.Tempo as T
-import Sound.Tidal.UI (fadeOutFrom, fadeInFrom)
-import Sound.Tidal.Utils (enumerate)
+import           Sound.Tidal.UI            (fadeInFrom, fadeOutFrom)
+import           Sound.Tidal.Utils         (enumerate)
 
 {-
     Transition.hs - A library for handling transitions between patterns
@@ -47,19 +47,19 @@ transition :: Stream -> Bool -> TransitionMapper -> ID -> ControlPattern -> IO (
 transition stream historyFlag mapper patId !pat = do
             let
               appendPat flag = if flag then (pat:) else id
-              updatePS (Just playState) = playState {history = (appendPat historyFlag) (history playState)}
-              updatePS Nothing = PlayState {pattern = silence,
-                                            mute = False,
-                                            solo = False,
-                                            history = (appendPat historyFlag) (silence:[])
+              updatePS (Just playState) = playState {psHistory = (appendPat historyFlag) (psHistory playState)}
+              updatePS Nothing = PlayState {psPattern = silence,
+                                            psMute = False,
+                                            psSolo = False,
+                                            psHistory = (appendPat historyFlag) (silence:[])
                                           }
               transition' pat' = do
                             t <- Clock.getCycleTime (cClockConfig $ sConfig stream) (sClockRef stream)
                             return $! mapper t pat'
             pMap <- readMVar (sPMapMV stream)
             let playState = updatePS $ Map.lookup (fromID patId) pMap
-            pat' <- transition' $ appendPat (not historyFlag) (history playState)
-            let pMap' = Map.insert (fromID patId) (playState {pattern = pat'}) pMap
+            pat' <- transition' $ appendPat (not historyFlag) (psHistory playState)
+            let pMap' = Map.insert (fromID patId) (playState {psPattern = pat'}) pMap
             _ <- swapMVar (sPMapMV stream) pMap'
             return ()
 
@@ -67,7 +67,7 @@ transition stream historyFlag mapper patId !pat = do
 mortalOverlay :: Time -> Time -> [Pattern a] -> Pattern a
 mortalOverlay _ _ [] = silence
 mortalOverlay t now (pat:ps) = overlay (pop ps) (playFor s (s+t) pat) where
-  pop [] = silence
+  pop []    = silence
   pop (x:_) = x
   s = sam (now - fromIntegral (floor now `mod` floor t :: Int)) + sam t
 
@@ -105,7 +105,7 @@ histpan n _ ps = stack $ map (\(i,pat) -> pat # pan (pure $ (fromIntegral i) / (
 
 -- | Just stop for a bit before playing new pattern
 wait :: Time -> Time -> [ControlPattern] -> ControlPattern
-wait _ _ [] = silence
+wait _ _ []        = silence
 wait t now (pat:_) = filterWhen (>= (nextSam (now+t-1))) pat
 
 {- | Just as `wait`, `waitT` stops for a bit and then applies the given transition to the playing pattern
@@ -117,7 +117,7 @@ t1 (waitT (xfadeIn 8) 4) $ sound "hh*8"
 @
 -}
 waitT :: (Time -> [ControlPattern] -> ControlPattern) -> Time -> Time -> [ControlPattern] -> ControlPattern
-waitT _ _ _ [] = silence
+waitT _ _ _ []     = silence
 waitT f t now pats = filterWhen (>= (nextSam (now+t-1))) (f (now + t) pats)
 
 {- |
@@ -199,8 +199,8 @@ t1 (clutchIn 8) $ sound "[hh*4, odx(3,8)]"
 will take 8 cycles for the transition.
 -}
 clutchIn :: Time -> Time -> [Pattern a] -> Pattern a
-clutchIn _ _ [] = silence
-clutchIn _ _ (p:[]) = p
+clutchIn _ _ []         = silence
+clutchIn _ _ (p:[])     = p
 clutchIn t now (p:p':_) = overlay (fadeOutFrom now t p') (fadeInFrom now t p)
 
 {-| same as `anticipate` though it allows you to specify the number of cycles until dropping to the new pattern, e.g.:

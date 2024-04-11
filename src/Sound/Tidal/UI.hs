@@ -2415,34 +2415,34 @@ offadd :: Num a => Pattern Time -> Pattern a -> Pattern a -> Pattern a
 offadd tp pn p = off tp (+pn) p
 
 {- |
-  @stepify@ acts as a kind of simple step-sequencer using strings. For example,
-  @stepify "sn" "x x 12"@ is equivalent to the pattern of strings given by @"sn ~
-  sn ~ sn:1 sn:2 ~"@. @stepify@ substitutes the given string for each @x@, for each number
+  @sseq@ acts as a kind of simple step-sequencer using strings. For example,
+  @sseq "sn" "x x 12"@ is equivalent to the pattern of strings given by @"sn ~
+  sn ~ sn:1 sn:2 ~"@. @sseq@ substitutes the given string for each @x@, for each number
   it substitutes the string followed by a colon and the number, and for everything
   else it puts in a rest.
 
-  In other words, @stepify@ generates a pattern of strings in exactly the syntax you’d want for selecting samples and that can be fed directly into the 's' function.
+  In other words, @sseq@ generates a pattern of strings in exactly the syntax you’d want for selecting samples and that can be fed directly into the 's' function.
 
-  > d1 $ s (stepify "sn" "x x 12 ")
+  > d1 $ s (sseq "sn" "x x 12 ")
 -}
-stepify :: String -> String -> Pattern String
-stepify s cs = fastcat $ map f cs
+sseq :: String -> String -> Pattern String
+sseq s cs = fastcat $ map f cs
     where f c | c == 'x' = pure s
               | isDigit c = pure $ s ++ ":" ++ [c]
               | otherwise = silence
 
-{- | @stepifies@ is like @stepify@ but it takes a list of pairs, like stepify would, and
+{- | @sseqs@ is like @sseq@ but it takes a list of pairs, like sseq would, and
   it plays them all simultaneously.
 
-  > d1 $ s (stepifies [("cp","x  x x  x x  x"),("bd", "xxxx")])
+  > d1 $ s (sseqs [("cp","x  x x  x x  x"),("bd", "xxxx")])
 -}
-stepifies :: [(String, String)] -> Pattern String
-stepifies = stack . map (uncurry stepify)
+sseqs :: [(String, String)] -> Pattern String
+sseqs = stack . map (uncurry sseq)
 
-{- | like `stepify`, but allows you to specify an array of strings to use for @0,1,2...@
+{- | like `sseq`, but allows you to specify an array of strings to use for @0,1,2...@
   For example,
 
-  > d1 $ s (stepify' ["superpiano","supermandolin"] "0 1 000 1")
+  > d1 $ s (sseq' ["superpiano","supermandolin"] "0 1 000 1")
   >    # sustain 4 # n 0
 
   is equivalent to
@@ -2450,8 +2450,8 @@ stepifies = stack . map (uncurry stepify)
   > d1 $ s "superpiano ~ supermandolin ~ superpiano!3 ~ supermandolin"
   >    # sustain 4 # n 0
 -}
-stepify' :: [String] -> String -> Pattern String
-stepify' ss cs = fastcat $ map f cs
+sseq' :: [String] -> String -> Pattern String
+sseq' ss cs = fastcat $ map f cs
     where f c | c == 'x' = pure $ head ss
               | isDigit c = pure $ ss !! digitToInt c
               | otherwise = silence

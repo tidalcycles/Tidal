@@ -2,12 +2,12 @@
 
 module Sound.Tidal.TidalParseTest where
 
-import Test.Microspec hiding (run)
-import Sound.Tidal.Parse
-import Sound.Tidal.Context as Tidal
-import Sound.Tidal.Chords as Tidal
-import Data.Either
-import qualified Data.Map.Strict as Map
+import           Data.Either
+import qualified Data.Map.Strict     as Map
+import           Sound.Tidal.Chords  as Tidal
+import           Sound.Tidal.Context as Tidal
+import           Sound.Tidal.Parse
+import           Test.Microspec      hiding (run)
 
 stripContext :: Pattern a -> Pattern a
 stripContext = setContext $ Context []
@@ -284,14 +284,14 @@ run =
        "s \"bd*4\" <> s \"cp*5\"" `parsesTo`
        (s "bd*4" <> s "cp*5")
 
-    it "parses an example with step" $
-       "s (step \"tink\" \"xx x\")" `parsesTo`
-       (s (step "tink" "xx x"))
+    it "parses an example with sseq" $
+       "s (sseq \"tink\" \"xx x\")" `parsesTo`
+       (s (sseq "tink" "xx x"))
 
-    it "parses an example with step'" $
-       "s (step' [\"tink\",\"feel\"] \"01 0\")" `parsesTo`
-       (s (step' ["tink","feel"] "01 0"))
+    it "parses an example with sseq'" $
+       "s (sseq' [\"tink\",\"feel\"] \"01 0\")" `parsesTo`
+       (s (sseq' ["tink","feel"] "01 0"))
 
-    it "parses an example with steps" $
-       "s (steps [(\"tink\",\" x x\"),(\"feel\", \"x x \")])" `parsesTo`
-       (s (steps [("tink"," x x"),("feel", "x x ")]))
+    it "parses an example with sseqs" $
+       "s (sseqs [(\"tink\",\" x x\"),(\"feel\", \"x x \")])" `parsesTo`
+       (s (sseqs [("tink"," x x"),("feel", "x x ")]))

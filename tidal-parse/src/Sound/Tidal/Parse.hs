@@ -448,7 +448,7 @@ instance Parse (String -> Pattern String) where
     (parser :: H ([String] -> String -> Pattern String )) <*> parser
 
 instance Parse ([(String, String)] -> Pattern String) where
-  parser = $(fromTidal "stepifies")
+  parser = $(fromTidal "sseqs")
 
 instance Parse (String -> String) where
   parser = (parser :: H (String -> String -> String)) <*!> parser
@@ -833,10 +833,10 @@ pDouble_tupleADouble_p :: Parse a => H (Pattern Double -> [(a,Double)] -> Patter
 pDouble_tupleADouble_p = $(fromTidal "wchooseBy")
 
 instance Parse (String -> String -> Pattern String) where
-  parser = $(fromTidal "stepify")
+  parser = $(fromTidal "sseq")
 
 instance Parse ([String] -> String -> Pattern String) where
-  parser = $(fromTidal "stepify'")
+  parser = $(fromTidal "sseq'")
 
 instance Parse (String -> String -> String) where
   parser = (parser :: H (Int -> String -> String -> String)) <*!> parser
