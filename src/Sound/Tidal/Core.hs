@@ -375,7 +375,7 @@ fastcat = fastCat
 -}
 timeCat :: [(Time, Pattern a)] -> Pattern a
 timeCat ((_,p):[]) = p
-timeCat tps = setTactus total $ stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 tps
+timeCat tps = setTactus total $ stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 $ filter (\(t, _) -> t > 0) $ tps
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
           arrange _ []            = []
