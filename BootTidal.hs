@@ -8,6 +8,8 @@ hSetEncoding stdout utf8
 
 tidal <- startTidal (superdirtTarget {oLatency = 0.05, oAddress = "127.0.0.1", oPort = 57120}) (defaultConfig {cVerbose = True})
 
+:set -Wno-name-shadowing
+
 :{
 let only = (hush >>)
     p = streamReplace tidal
@@ -66,6 +68,8 @@ let only = (hush >>)
     d15 = p 15
     d16 = p 16
 :}
+
+:set -Wname-shadowing
 
 :{
 let getState = streamGet tidal
