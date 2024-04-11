@@ -23,7 +23,6 @@ module Sound.Tidal.Core where
 import           Prelude             hiding ((*>), (<*))
 
 import           Data.Fixed          (mod')
-import           Data.List           (transpose)
 import qualified Data.Map.Strict     as Map
 import           Data.Maybe          (fromMaybe)
 import           Sound.Tidal.Pattern
@@ -352,7 +351,8 @@ fastappend = fastAppend
 -}
 fastCat :: [Pattern a] -> Pattern a
 fastCat (p:[]) = p
-fastCat ps     = _fast (toTime $ length ps) $ cat ps
+fastCat ps     = setTactus t $ _fast (toTime $ length ps) $ cat ps
+  where t = fromMaybe (toRational $ length ps) $ ((* (toRational $ length ps)) . foldl1 lcmr) <$> (sequence $ map tactus ps)
 
 -- | Alias for @fastCat@
 fastcat :: [Pattern a] -> Pattern a
@@ -423,67 +423,6 @@ pattern to multiple patterns at once:
 -}
 stack :: [Pattern a] -> Pattern a
 stack = foldr overlay silence
-
--- ** stepwise things
-
-stepcat :: [Pattern a] -> Pattern a
-stepcat pats = timecat $ map (\pat -> (fromMaybe 1 $ tactus pat, pat)) pats
-
-_stepadd :: Rational -> Pattern a -> Pattern a
--- raise error?
-_stepadd _ pat@(Pattern _ Nothing _) = pat
-_stepadd r pat@(Pattern _ (Just t) _)
-  | r == 0 = nothing
-  | (abs r) >= t = pat
-  | r < 0 = zoom (1-((abs r)/t),1) pat
-  | otherwise = zoom (0, (r/t)) pat
-
-stepadd :: Pattern Rational -> Pattern a -> Pattern a
-stepadd = tParam _stepadd
-
-_stepsub :: Rational -> Pattern a -> Pattern a
-_stepsub _ pat@(Pattern _ Nothing _)  = pat
-_stepsub r pat@(Pattern _ (Just t) _) | r >= t = nothing
-                                      | r < 0 = _stepadd (0- (t+r)) pat
-                                      | otherwise = _stepadd (t-r) pat
-
-stepsub :: Pattern Rational -> Pattern a -> Pattern a
-stepsub = tParam _stepsub
-
-_steplastof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_steplastof i f pat | i <= 1 = pat
-                    | otherwise = stepcat $ (take (i-1) $ repeat pat) ++ [f pat]
-
-steplastof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-steplastof (Pattern _ _ (Just i)) f pat = _steplastof i f pat
-steplastof tp f p = innerJoin $ (\t -> _steplastof t f p) <$> tp
-
-_stepfirstof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_stepfirstof i f pat | i <= 1 = pat
-                     | otherwise = stepcat $ f pat : (take (i-1) $ repeat pat)
-
-stepfirstof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stepfirstof (Pattern _ _ (Just i)) f pat = _stepfirstof i f pat
-stepfirstof tp f p = innerJoin $ (\t -> _steplastof t f p) <$> tp
-
-stepevery :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stepevery = stepfirstof
-
--- | Like @steptaper@, but returns a list of repetitions
-steptaperlist :: Pattern a -> [Pattern a]
-steptaperlist pat@(Pattern _ (Just t) _) = pat : map (\r -> _stepsub r pat) [1 .. t]
--- TODO exception?
-steptaperlist pat                        = [pat]
-
--- | Plays one fewer step from the pattern each repetition, down to nothing
-steptaper :: Pattern a -> Pattern a
-steptaper = stepcat . steptaperlist
-
--- | Successively plays a pattern from each group in turn
-stepalt :: [[Pattern a]] -> Pattern a
-stepalt groups = stepcat $ concat $ take (c * length groups) $ transpose $ map cycle groups
-  where c = foldl1 lcm $ map length groups
-
 
 -- ** Manipulating time
 

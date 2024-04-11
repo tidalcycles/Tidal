@@ -2195,7 +2195,7 @@ stitch pb a b = overlay (struct pb a)  (struct (inv pb) b)
 -- value is active. No events are let through where no binary values
 -- are active.
 while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-while b f pat = sew b (f pat) pat
+while b f pat = keepTactus pat $ sew b (f pat) pat
 
 {-|
 @stutter n t pat@ repeats each event in @pat@ @n@ times, separated by @t@ time (in fractions of a cycle).
@@ -2903,3 +2903,68 @@ necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ listToPat $ li
   where list :: [Int] -> [Bool]
         list []      = []
         list (x:xs') = (True:(replicate (x-1) False)) ++ list xs'
+
+-- ** stepwise things
+
+stepcat :: [Pattern a] -> Pattern a
+stepcat pats = timecat $ map (\pat -> (fromMaybe 1 $ tactus pat, pat)) pats
+
+_stepadd :: Rational -> Pattern a -> Pattern a
+-- raise error?
+_stepadd _ pat@(Pattern _ Nothing _) = pat
+_stepadd r pat@(Pattern _ (Just t) _)
+  | r == 0 = nothing
+  | (abs r) >= t = pat
+  | r < 0 = zoom (1-((abs r)/t),1) pat
+  | otherwise = zoom (0, (r/t)) pat
+
+stepadd :: Pattern Rational -> Pattern a -> Pattern a
+stepadd = tParam _stepadd
+
+_stepsub :: Rational -> Pattern a -> Pattern a
+_stepsub _ pat@(Pattern _ Nothing _)  = pat
+_stepsub r pat@(Pattern _ (Just t) _) | r >= t = nothing
+                                      | r < 0 = _stepadd (0- (t+r)) pat
+                                      | otherwise = _stepadd (t-r) pat
+
+stepsub :: Pattern Rational -> Pattern a -> Pattern a
+stepsub = tParam _stepsub
+
+stepwhen :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stepwhen patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
+-- TODO raise exception?
+stepwhen _ _ pat                           = pat
+
+_steplastof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_steplastof i f pat | i <= 1 = pat
+                    | otherwise = stepwhen (fastcat $ map pure $ (replicate (i-1) False) ++ [True]) f pat
+
+steplastof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+steplastof (Pattern _ _ (Just i)) f pat = _steplastof i f pat
+steplastof tp f p = innerJoin $ (\t -> _steplastof t f p) <$> tp
+
+_stepfirstof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_stepfirstof i f pat | i <= 1 = pat
+                     | otherwise = stepwhen (fastcat $ map pure $ True:replicate (i-1) False) f pat
+
+stepfirstof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stepfirstof (Pattern _ _ (Just i)) f pat = _stepfirstof i f pat
+stepfirstof tp f p = innerJoin $ (\t -> _stepfirstof t f p) <$> tp
+
+stepevery :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stepevery = stepfirstof
+
+-- | Like @steptaper@, but returns a list of repetitions
+steptaperlist :: Pattern a -> [Pattern a]
+steptaperlist pat@(Pattern _ (Just t) _) = pat : map (\r -> _stepsub r pat) [1 .. t]
+-- TODO exception?
+steptaperlist pat                        = [pat]
+
+-- | Plays one fewer step from the pattern each repetition, down to nothing
+steptaper :: Pattern a -> Pattern a
+steptaper = stepcat . steptaperlist
+
+-- | Successively plays a pattern from each group in turn
+stepalt :: [[Pattern a]] -> Pattern a
+stepalt groups = stepcat $ concat $ take (c * length groups) $ transpose $ map cycle groups
+  where c = foldl1 lcm $ map length groups
