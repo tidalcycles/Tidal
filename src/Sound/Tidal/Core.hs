@@ -23,6 +23,7 @@ module Sound.Tidal.Core where
 import           Prelude             hiding ((*>), (<*))
 
 import           Data.Fixed          (mod')
+import           Data.List           (transpose)
 import qualified Data.Map.Strict     as Map
 import           Data.Maybe          (fromMaybe)
 import           Sound.Tidal.Pattern
@@ -456,6 +457,33 @@ _steplastof i f pat | i <= 1 = pat
 steplastof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 steplastof (Pattern _ _ (Just i)) f pat = _steplastof i f pat
 steplastof tp f p = innerJoin $ (\t -> _steplastof t f p) <$> tp
+
+_stepfirstof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_stepfirstof i f pat | i <= 1 = pat
+                     | otherwise = stepcat $ f pat : (take (i-1) $ repeat pat)
+
+stepfirstof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stepfirstof (Pattern _ _ (Just i)) f pat = _stepfirstof i f pat
+stepfirstof tp f p = innerJoin $ (\t -> _steplastof t f p) <$> tp
+
+stepevery :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stepevery = stepfirstof
+
+-- | Like @steptaper@, but returns a list of repetitions
+steptaperlist :: Pattern a -> [Pattern a]
+steptaperlist pat@(Pattern _ (Just t) _) = pat : map (\r -> _stepsub r pat) [1 .. t]
+-- TODO exception?
+steptaperlist pat                        = [pat]
+
+-- | Plays one fewer step from the pattern each repetition, down to nothing
+steptaper :: Pattern a -> Pattern a
+steptaper = stepcat . steptaperlist
+
+-- | Successively plays a pattern from each group in turn
+stepalt :: [[Pattern a]] -> Pattern a
+stepalt groups = stepcat $ concat $ take (c * length groups) $ transpose $ map cycle groups
+  where c = foldl1 lcm $ map length groups
+
 
 -- ** Manipulating time
 
