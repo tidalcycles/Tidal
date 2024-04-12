@@ -181,11 +181,11 @@ setcps = once . cps
 
 -- | See 'Sound.Tidal.Stream.streamGetcps'.
 getcps :: Tidally => IO Double
-getcps = streamGetcps tidal
+getcps = streamGetCPS tidal
 
 -- | See 'Sound.Tidal.Stream.streamGetnow'.
 getnow :: Tidally => IO Double
-getnow = streamGetnow tidal
+getnow = streamGetNow tidal
 
 -- | Replace what's playing on the given orbit.
 d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16 :: Tidally => ControlSignal -> IO ()
