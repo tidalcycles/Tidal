@@ -41,13 +41,14 @@ library
                        Sound.Tidal.Safe.Boot
                        Sound.Tidal.Show
                        Sound.Tidal.Simple
+                       Sound.Tidal.Stepwise
                        Sound.Tidal.Stream
                        Sound.Tidal.Stream.Config
                        Sound.Tidal.Stream.Listen
                        Sound.Tidal.Stream.Main
                        Sound.Tidal.Stream.Process
-                       Sound.Tidal.Stream.Types
                        Sound.Tidal.Stream.Target
+                       Sound.Tidal.Stream.Types
                        Sound.Tidal.Stream.UI
                        Sound.Tidal.Time
                        Sound.Tidal.Transition
