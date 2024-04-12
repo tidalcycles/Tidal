@@ -737,6 +737,14 @@ filterAnalog = filterEvents isAnalog
 playFor :: Time -> Time -> Pattern a -> Pattern a
 playFor s e pat = pattern $ \st -> maybe [] (\a -> query pat (st {arc = a})) $ subArc (Arc s e) (arc st)
 
+-- | Splits a pattern into a list containing the given 'n' number of
+-- patterns. Each one plays every 'n'th cycle, successfully offset by
+-- a cycle.
+separateCycles :: Int -> Pattern a -> [Pattern a]
+separateCycles n pat = map (\i -> skip $ rotL (toRational i) pat) [0 .. n-1]
+  where n' = toRational n
+        skip pat' = splitQueries $ withResultStart (\t -> ((sam t) / n') + cyclePos t) $ withQueryStart (\t -> (sam t * n') + cyclePos t) $ pat'
+
 -- ** Temporal parameter helpers
 
 tParam :: (t1 -> t2 -> Pattern a) -> Pattern t1 -> t2 -> Pattern a

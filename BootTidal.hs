@@ -2,6 +2,7 @@
 :set prompt ""
 
 import Sound.Tidal.Context
+import qualified Sound.Tidal.Stepwise as S
 
 import System.IO (hSetEncoding, stdout, utf8)
 hSetEncoding stdout utf8
