@@ -1,5 +1,7 @@
 module Sound.Tidal.Stream.Config where
 
+import           Control.Monad (when)
+
 import qualified Sound.Tidal.Clock as Clock
 
 {-
@@ -42,3 +44,6 @@ defaultConfig = Config {cCtrlListen = True,
                         cVerbose = True,
                         cClockConfig = Clock.defaultConfig
                        }
+
+verbose :: Config -> String -> IO ()
+verbose c s = when (cVerbose c) $ putStrLn s

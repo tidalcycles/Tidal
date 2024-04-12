@@ -1,9 +1,11 @@
 module Sound.Tidal.Stream.Target where
 
 import qualified Sound.Osc.Fd           as O
+import qualified Sound.Osc.Time.Timeout as O
 import qualified Network.Socket         as N
-import           Data.Maybe             (fromJust, isJust)
-import           Control.Concurrent     (forkOS, threadDelay)
+import           Data.Maybe             (fromJust, isJust, catMaybes)
+import           Control.Concurrent     (newMVar, readMVar, swapMVar, forkIO, forkOS, threadDelay)
+import           Control.Monad          (when)
 import           Foreign                (Word8)
 
 import           Sound.Tidal.Pattern
@@ -31,33 +33,65 @@ import           Sound.Tidal.Stream.Config
 
 getCXs :: Config -> [(Target, [OSC])] -> IO [Cx]
 getCXs config oscmap = mapM (\(target, os) -> do
-                                          remote_addr <- resolve (oAddress target) (show $ oPort target)
-                                          remote_bus_addr <- if isJust $ oBusPort target
-                                                              then Just <$> resolve (oAddress target) (show $ fromJust $ oBusPort target)
-                                                              else return Nothing
+                                          remote_addr <- resolve (oAddress target) (oPort target)
+                                          remote_bus_addr <- mapM (resolve (oAddress target)) (oBusPort target)
+                                          remote_busses <- sequence (oBusPort target >> Just (newMVar []))
+
                                           let broadcast = if cCtrlBroadcast config then 1 else 0
-                                          u <- O.udp_socket (\sock sockaddr -> do N.setSocketOption sock N.Broadcast broadcast
-                                                                                  N.connect sock sockaddr
+                                          u <- O.udp_socket (\sock _ -> do N.setSocketOption sock N.Broadcast broadcast
                                                              ) (oAddress target) (oPort target)
-                                          return $ Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxTarget = target, cxOSCs = os}
+                                          let cx = Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxBusses = remote_busses, cxTarget = target, cxOSCs = os}
+                                          _ <- forkIO $ handshake cx config
+                                          return cx
             ) oscmap
 
-resolve :: String -> String -> IO N.AddrInfo
+resolve :: String -> Int -> IO N.AddrInfo
 resolve host port = do let hints = N.defaultHints { N.addrSocketType = N.Stream }
-                       addr:_ <- N.getAddrInfo (Just hints) (Just host) (Just port)
+                       addr:_ <- N.getAddrInfo (Just hints) (Just host) (Just $ show port)
                        return addr
+
+handshake :: Cx -> Config -> IO ()
+handshake Cx { cxUDP = udp, cxBusses = Just bussesMV, cxAddr = addr } c = sendHandshake >> listen 0
+  where
+    sendHandshake :: IO ()
+    sendHandshake = O.sendTo udp (O.Packet_Message $ O.Message "/dirt/handshake" []) (N.addrAddress addr)
+    listen :: Int -> IO ()
+    listen waits = do ms <- recvMessagesTimeout 2 udp
+                      if null ms
+                      then do checkHandshake waits -- there was a timeout, check handshake
+                              listen (waits+1)
+                      else do mapM_ respond ms
+                              listen 0
+    checkHandshake :: Int -> IO ()
+    checkHandshake waits = do busses <- readMVar bussesMV
+                              when (null busses) $ do when (waits == 0) $ verbose c $ "Waiting for SuperDirt (v.1.7.2 or higher).."
+                                                      sendHandshake
+    respond :: O.Message -> IO ()
+    respond (O.Message "/dirt/hello" _) = sendHandshake
+    respond (O.Message "/dirt/handshake/reply" xs) = do prev <- swapMVar bussesMV $ bufferIndices xs
+                                                        -- Only report the first time..
+                                                        when (null prev) $ verbose c $ "Connected to SuperDirt."
+    respond _ = return ()
+    bufferIndices :: [O.Datum] -> [Int]
+    bufferIndices [] = []
+    bufferIndices (x:xs') | x == O.AsciiString (O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
+                          | otherwise = bufferIndices xs'
+handshake _ _ = return ()
+
+recvMessagesTimeout :: (O.Transport t) => Double -> t -> IO [O.Message]
+recvMessagesTimeout n sock = fmap (maybe [] O.packetMessages) $ O.recvPacketTimeout n sock
 
 -- send has three modes:
 -- Send events early using timestamp in the OSC bundle - used by Superdirt
 -- Send events early by adding timestamp to the OSC message - used by Dirt
 -- Send events live by delaying the thread
-send :: Maybe O.Udp -> Cx -> Double -> Double -> (Double, Bool, O.Message) -> IO ()
-send listen cx latency extraLatency (time, isBusMsg, m)
-  | oSchedule target == Pre BundleStamp = sendBndl isBusMsg listen cx $ O.Bundle timeWithLatency [m]
-  | oSchedule target == Pre MessageStamp = sendO isBusMsg listen cx $ addtime m
+send :: Cx -> Double -> Double -> (Double, Bool, O.Message) -> IO ()
+send cx latency extraLatency (time, isBusMsg, m)
+  | oSchedule target == Pre BundleStamp = sendBndl isBusMsg cx $ O.Bundle timeWithLatency [m]
+  | oSchedule target == Pre MessageStamp = sendO isBusMsg cx $ addtime m
   | otherwise = do _ <- forkOS $ do now <- O.time
                                     threadDelay $ floor $ (timeWithLatency - now) * 1000000
-                                    sendO isBusMsg listen cx m
+                                    sendO isBusMsg cx m
                    return ()
     where addtime (O.Message mpath params) = O.Message mpath ((O.int32 sec):((O.int32 usec):params))
           ut = O.ntpr_to_posix timeWithLatency
@@ -68,18 +102,15 @@ send listen cx latency extraLatency (time, isBusMsg, m)
           target = cxTarget cx
           timeWithLatency = time - latency + extraLatency
 
-sendBndl :: Bool -> (Maybe O.Udp) -> Cx -> O.Bundle -> IO ()
-sendBndl isBusMsg (Just listen) cx bndl = O.sendTo listen (O.Packet_Bundle bndl) (N.addrAddress addr)
+sendBndl :: Bool -> Cx -> O.Bundle -> IO ()
+sendBndl isBusMsg cx bndl = O.sendTo (cxUDP cx) (O.Packet_Bundle bndl) (N.addrAddress addr)
   where addr | isBusMsg && isJust (cxBusAddr cx) = fromJust $ cxBusAddr cx
              | otherwise = cxAddr cx
-sendBndl _ Nothing cx bndl = O.sendBundle (cxUDP cx) bndl
 
-sendO :: Bool -> (Maybe O.Udp) -> Cx -> O.Message -> IO ()
-sendO isBusMsg (Just listen) cx msg = O.sendTo listen (O.Packet_Message msg) (N.addrAddress addr)
- where addr | isBusMsg && isJust (cxBusAddr cx) = fromJust $ cxBusAddr cx
-            | otherwise = cxAddr cx
-sendO _ Nothing cx msg = O.sendMessage (cxUDP cx) msg
-
+sendO :: Bool -> Cx -> O.Message -> IO ()
+sendO isBusMsg cx msg = O.sendTo (cxUDP cx) (O.Packet_Message msg) (N.addrAddress addr)
+  where addr | isBusMsg && isJust (cxBusAddr cx) = fromJust $ cxBusAddr cx
+             | otherwise = cxAddr cx
 
 superdirtTarget :: Target
 superdirtTarget = Target {oName = "SuperDirt",

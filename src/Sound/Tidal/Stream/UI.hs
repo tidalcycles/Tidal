@@ -1,19 +1,16 @@
 {-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
 module Sound.Tidal.Stream.UI where
 
-import           Data.Maybe (isJust)
 import qualified Data.Map as Map
 import qualified Control.Exception as E
 import           Control.Concurrent.MVar
 import           System.IO (hPutStrLn, stderr)
 import           System.Random (getStdRandom, randomR)
-import qualified Sound.Osc.Fd as O
 
 import qualified Sound.Tidal.Clock as Clock
 import           Sound.Tidal.Stream.Types
 import           Sound.Tidal.Stream.Config
 import           Sound.Tidal.Stream.Process
-import           Sound.Tidal.Stream.Target
 
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.ID
@@ -74,7 +71,7 @@ streamOnce st p = do i <- getStdRandom $ randomR (0, 8192)
                      streamFirst st $ rotL (toRational (i :: Int)) p
 
 streamFirst :: Stream -> ControlPattern -> IO ()
-streamFirst stream pat = onSingleTick (sConfig stream) (sClockRef stream) (sStateMV stream) (sBusses stream) (sPMapMV stream) (sGlobalFMV stream) (sCxs stream) (sListen stream) pat
+streamFirst stream pat = onSingleTick (sConfig stream) (sClockRef stream) (sStateMV stream) (sPMapMV stream) (sGlobalFMV stream) (sCxs stream) pat
 
 streamMute :: Stream -> ID -> IO ()
 streamMute s k = withPatIds s [k] (\x -> x {mute = True})
@@ -141,14 +138,3 @@ streamSetB = streamSet
 
 streamSetR :: Stream -> String -> Pattern Rational -> IO ()
 streamSetR = streamSet
-
--- It only really works to handshake with one target at the moment..
-sendHandshakes :: Stream -> IO ()
-sendHandshakes stream = mapM_ sendHandshake $ filter (oHandshake . cxTarget) (sCxs stream)
-  where sendHandshake cx = if (isJust $ sListen stream)
-                           then
-                             do -- send it _from_ the udp socket we're listening to, so the
-                                -- replies go back there
-                                sendO False (sListen stream) cx $ O.Message "/dirt/handshake" []
-                           else
-                             hPutStrLn stderr "Can't handshake with SuperCollider without control port."

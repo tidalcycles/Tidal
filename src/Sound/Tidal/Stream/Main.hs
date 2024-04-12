@@ -13,7 +13,6 @@ import           Sound.Tidal.Stream.Types
 import           Sound.Tidal.Stream.Listen
 import           Sound.Tidal.Stream.Target
 import           Sound.Tidal.Stream.Process
-import           Sound.Tidal.Stream.UI
 
 {-
     Main.hs - Start tidals stream, listen and act on incoming messages
@@ -45,7 +44,6 @@ startStream :: Config -> [(Target, [OSC])] -> IO Stream
 startStream config oscmap = do
        sMapMV <- newMVar Map.empty
        pMapMV <- newMVar Map.empty
-       bussesMV <- newMVar []
        globalFMV <- newMVar id
 
        tidal_status_string >>= verbose config
@@ -54,10 +52,9 @@ startStream config oscmap = do
 
        cxs <- getCXs config oscmap
 
-       clockRef <- Clock.clocked (cClockConfig config) (doTick sMapMV bussesMV pMapMV globalFMV cxs listen)
+       clockRef <- Clock.clocked (cClockConfig config) (doTick sMapMV pMapMV globalFMV cxs)
 
        let stream = Stream {sConfig = config,
-                            sBusses = bussesMV,
                             sStateMV  = sMapMV,
                             sClockRef = clockRef,
                             -- sLink = abletonLink,
@@ -68,10 +65,8 @@ startStream config oscmap = do
                             sCxs = cxs
                            }
 
-       sendHandshakes stream
-
        -- Spawn a thread to handle OSC control messages
-       _ <- forkIO $ ctrlResponder 0 config stream
+       _ <- forkIO $ ctrlResponder config stream
        return stream
 
 startMulti :: [Target] -> Config -> IO ()

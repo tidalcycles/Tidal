@@ -1,12 +1,11 @@
 module Sound.Tidal.Stream.Listen where
 
-import           Data.Maybe (fromJust, catMaybes, isJust)
+import           Data.Maybe (fromJust)
 import           Control.Concurrent.MVar
 import           Control.Monad (when)
 import           System.IO (hPutStrLn, stderr)
 import qualified Data.Map as Map
 import qualified Sound.Osc.Fd as O
-import qualified Sound.Osc.Time.Timeout as O
 import qualified Network.Socket         as N
 import qualified Control.Exception as E
 
@@ -50,29 +49,14 @@ openListener c
         catchAny = E.catch
 
 -- Listen to and act on OSC control messages
-ctrlResponder :: Int -> Config -> Stream -> IO ()
-ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
-  = do ms <- recvMessagesTimeout 2 sock
-       if (null ms)
-         then do checkHandshake -- there was a timeout, check handshake
-                 ctrlResponder (waits+1) c stream
-         else do mapM_ act ms
-                 ctrlResponder 0 c stream
-     where
-        checkHandshake = do busses <- readMVar (sBusses stream)
-                            when (null busses) $ do when  (waits == 0) $ verbose c $ "Waiting for SuperDirt (v.1.7.2 or higher).."
-                                                    sendHandshakes stream
-
-        act (O.Message "/dirt/hello" _) = sendHandshakes stream
-        act (O.Message "/dirt/handshake/reply" xs) = do prev <- swapMVar (sBusses stream) $ bufferIndices xs
-                                                        -- Only report the first time..
-                                                        when (null prev) $ verbose c $ "Connected to SuperDirt."
-                                                        return ()
-          where
-            bufferIndices [] = []
-            bufferIndices (x:xs') | x == (O.AsciiString $ O.ascii "&controlBusIndices") = catMaybes $ takeWhile isJust $ map O.datum_integral xs'
-                                  | otherwise = bufferIndices xs'
+ctrlResponder :: Config -> Stream -> IO ()
+ctrlResponder _ (stream@(Stream {sListen = Just sock})) = loop
+      where
+        loop :: IO ()
+        loop = do O.recvMessages sock >>= mapM_ act
+                  loop
         -- External controller commands
+        act :: O.Message -> IO ()
         act (O.Message "/ctrl" (O.Int32 k:v:[]))
           = act (O.Message "/ctrl" [O.string $ show k,v])
         act (O.Message "/ctrl" (O.AsciiString k:v@(O.Float _):[]))
@@ -109,10 +93,4 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
         withID (O.AsciiString k) func = func $ (ID . O.ascii_to_string) k
         withID (O.Int32 k) func = func $ (ID . show) k
         withID _ _ = return ()
-ctrlResponder _ _ _ = return ()
-
-verbose :: Config -> String -> IO ()
-verbose c s = when (cVerbose c) $ putStrLn s
-
-recvMessagesTimeout :: (O.Transport t) => Double -> t -> IO [O.Message]
-recvMessagesTimeout n sock = fmap (maybe [] O.packetMessages) $ O.recvPacketTimeout n sock
+ctrlResponder _ _ = return ()

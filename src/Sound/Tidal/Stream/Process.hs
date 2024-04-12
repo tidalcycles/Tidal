@@ -76,23 +76,20 @@ data ProcessedEvent =
 -- because the likely reason is that something is wrong with the current pattern.
 
 doTick :: MVar ValueMap                           -- pattern state
-       -> MVar [Int]                              -- busses
        -> MVar PlayMap                            -- currently playing
        -> MVar (ControlPattern -> ControlPattern) -- current global fx
        -> [Cx]                                    -- target addresses
-       -> Maybe O.Udp                             -- network socket
        -> (Time,Time)                             -- current arc
        -> Double                                  -- nudge
        -> Clock.LinkOperations                    -- ableton link operations
        -> IO ()
-doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge ops =
+doTick stateMV playMV globalFMV cxs (st,end) nudge ops =
   E.handle (\ (e :: E.SomeException) -> do
     hPutStrLn stderr $ "Failed to Stream.doTick: " ++ show e
     hPutStrLn stderr $ "Return to previous pattern."
     setPreviousPatternOrSilence playMV) (do
       sMap <- takeMVar stateMV
       pMap <- readMVar playMV
-      busses <- readMVar busMV
       sGlobalF <- readMVar globalFMV
       bpm <- (Clock.getTempo ops)
       let
@@ -109,13 +106,14 @@ doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge ops =
         (sMap'', es') = resolveState sMap' es
       tes <- processCps ops es'
       -- For each OSC target
-      forM_ cxs $ \cx@(Cx target _ oscs _ _) -> do
+      forM_ cxs $ \cx@(Cx target _ oscs _ _ bussesMV) -> do
+              busses <- mapM readMVar bussesMV 
               -- Latency is configurable per target.
               -- Latency is only used when sending events live.
               let latency = oLatency target
                   ms = concatMap (\e ->  concatMap (toOSC busses e) oscs) tes
               -- send the events to the OSC target
-              forM_ ms $ \m -> (send listen cx latency extraLatency m) `E.catch` \(e :: E.SomeException) ->
+              forM_ ms $ \m -> (send cx latency extraLatency m) `E.catch` \(e :: E.SomeException) ->
                 hPutStrLn stderr $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
       putMVar stateMV sMap'')
 
@@ -154,8 +152,8 @@ processCps ops = mapM processEvent
         }
 
 
-toOSC :: [Int] -> ProcessedEvent -> OSC -> [(Double, Bool, O.Message)]
-toOSC busses pe osc@(OSC _ _)
+toOSC :: Maybe [Int] -> ProcessedEvent -> OSC -> [(Double, Bool, O.Message)]
+toOSC maybeBusses pe osc@(OSC _ _)
   = catMaybes (playmsg:busmsgs)
       -- playmap is a ValueMap where the keys don't start with ^ and are not ""
       -- busmap is a ValueMap containing the rest of the keys from the event value
@@ -190,8 +188,8 @@ toOSC busses pe osc@(OSC _ _)
                           O.Message mungedPath vs
                           )
                 | otherwise = Nothing
-        toBus n | null busses = n
-                | otherwise = busses !!! n
+        toBus n | Just busses <- maybeBusses, (not . null) busses = busses !!! n
+                | otherwise = n
         busmsgs = map
                     (\(('^':k), (VI b)) -> do v <- Map.lookup k playmap
                                               return $ (tsPart,
@@ -282,8 +280,8 @@ hasSolo = (>= 1) . length . filter solo . Map.elems
 -- However, since the full arc is processed at once and since Link does not support
 -- scheduling, tempo change may affect scheduling of events that happen earlier
 -- in the normal stream (the one handled by onTick).
-onSingleTick :: Config -> Clock.ClockRef -> MVar ValueMap -> MVar [Int] -> MVar PlayMap -> MVar (ControlPattern -> ControlPattern) -> [Cx] -> Maybe O.Udp -> ControlPattern -> IO ()
-onSingleTick config clockRef stateMV busMV _ globalFMV cxs listen pat = do
+onSingleTick :: Config -> Clock.ClockRef -> MVar ValueMap -> MVar PlayMap -> MVar (ControlPattern -> ControlPattern) -> [Cx] -> ControlPattern -> IO ()
+onSingleTick config clockRef stateMV _ globalFMV cxs pat = do
   ops <- Clock.getZeroedLinkOperations (cClockConfig config) clockRef
   pMapMV <- newMVar $ Map.singleton "fake"
           (PlayState {pattern = pat,
@@ -293,7 +291,7 @@ onSingleTick config clockRef stateMV busMV _ globalFMV cxs listen pat = do
                       }
           )
   -- The nowArc is a full cycle
-  doTick stateMV busMV pMapMV globalFMV cxs listen (0,1) 0 ops
+  doTick stateMV pMapMV globalFMV cxs (0,1) 0 ops
 
 
 
