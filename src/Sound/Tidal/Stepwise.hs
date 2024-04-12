@@ -22,77 +22,77 @@ module Sound.Tidal.Stepwise where
 import           Data.List           (transpose)
 import           Data.Maybe          (fromMaybe)
 
-import qualified Sound.Tidal.Core    as T
-import qualified Sound.Tidal.Pattern as T
-import qualified Sound.Tidal.UI      as T
+import           Sound.Tidal.Core
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.UI      (while)
 
-cat :: [T.Pattern a] -> T.Pattern a
-cat pats = T.timecat $ map (\pat -> (fromMaybe 1 $ T.tactus pat, pat)) pats
+stepcat :: [Pattern a] -> Pattern a
+stepcat pats = timecat $ map (\pat -> (fromMaybe 1 $ tactus pat, pat)) pats
 
-_add :: Rational -> T.Pattern a -> T.Pattern a
+_stepadd :: Rational -> Pattern a -> Pattern a
 -- raise error?
-_add _ pat@(T.Pattern _ Nothing _) = pat
-_add r pat@(T.Pattern _ (Just t) _)
-  | r == 0 = T.nothing
+_stepadd _ pat@(Pattern _ Nothing _) = pat
+_stepadd r pat@(Pattern _ (Just t) _)
+  | r == 0 = nothing
   | (abs r) >= t = pat
-  | r < 0 = T.zoom (1-((abs r)/t),1) pat
-  | otherwise = T.zoom (0, (r/t)) pat
+  | r < 0 = zoom (1-((abs r)/t),1) pat
+  | otherwise = zoom (0, (r/t)) pat
 
-add :: T.Pattern Rational -> T.Pattern a -> T.Pattern a
-add = T.tParam _add
+stepadd :: Pattern Rational -> Pattern a -> Pattern a
+stepadd = tParam _stepadd
 
-_sub :: Rational -> T.Pattern a -> T.Pattern a
-_sub _ pat@(T.Pattern _ Nothing _)  = pat
-_sub r pat@(T.Pattern _ (Just t) _) | r >= t = T.nothing
-                                    | r < 0 = _add (0- (t+r)) pat
-                                    | otherwise = _add (t-r) pat
+_stepsub :: Rational -> Pattern a -> Pattern a
+_stepsub _ pat@(Pattern _ Nothing _)  = pat
+_stepsub r pat@(Pattern _ (Just t) _) | r >= t = nothing
+                                      | r < 0 = _stepadd (0- (t+r)) pat
+                                      | otherwise = _stepadd (t-r) pat
 
-sub :: T.Pattern Rational -> T.Pattern a -> T.Pattern a
-sub = T.tParam _sub
+stepsub :: Pattern Rational -> Pattern a -> Pattern a
+stepsub = tParam _stepsub
 
-when :: T.Pattern Bool -> (T.Pattern a -> T.Pattern a) -> T.Pattern a -> T.Pattern a
-when patb f pat@(T.Pattern _ (Just t) _) = T.while (T._steps t patb) f pat
+stepwhen :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stepwhen patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
 -- TODO raise exception?
-when _ _ pat                             = pat
+stepwhen _ _ pat                           = pat
 
--- _lastof :: Int -> (T.Pattern a -> T.Pattern a) -> T.Pattern a -> T.Pattern a
--- _lastof i f pat | i <= 1 = pat
---                     | otherwise = when (fastcat $ map pure $ (replicate (i-1) False) ++ [True]) f pat
+-- _steplastof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+-- _steplastof i f pat | i <= 1 = pat
+--                     | otherwise = stepwhen (fastcat $ map pure $ (replicate (i-1) False) ++ [True]) f pat
 
-_lastof :: Int -> (T.Pattern a -> T.Pattern a) -> T.Pattern a -> T.Pattern a
-_lastof n f pat | n <= 1 = pat
-                    | otherwise = T._fast t $ cat $ reverse $ (f $ head cycles):tail cycles
-  where cycles = reverse $ T.separateCycles n $ T._slow t pat
-        t = fromMaybe 1 $ T.tactus pat
+_steplastof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_steplastof n f pat | n <= 1 = pat
+                    | otherwise = _fast t $ stepcat $ reverse $ (f $ head cycles):tail cycles
+  where cycles = reverse $ separateCycles n $ _slow t pat
+        t = fromMaybe 1 $ tactus pat
 
-lastof :: T.Pattern Int -> (T.Pattern a -> T.Pattern a) -> T.Pattern a -> T.Pattern a
-lastof (T.Pattern _ _ (Just i)) f pat = _lastof i f pat
-lastof tp f p                         = T.innerJoin $ (\t -> _lastof t f p) <$> tp
+steplastof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+steplastof (Pattern _ _ (Just i)) f pat = _steplastof i f pat
+steplastof tp f p = innerJoin $ (\t -> _steplastof t f p) <$> tp
 
-_firstof :: Int -> (T.Pattern a -> T.Pattern a) -> T.Pattern a -> T.Pattern a
-_firstof n f pat | n <= 1 = pat
-                    | otherwise = T._fast t $ cat $ (f $ head cycles):tail cycles
-  where cycles = T.separateCycles n $ T._slow t pat
-        t = fromMaybe 1 $ T.tactus pat
+_stepfirstof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_stepfirstof n f pat | n <= 1 = pat
+                    | otherwise = _fast t $ stepcat $ (f $ head cycles):tail cycles
+  where cycles = separateCycles n $ _slow t pat
+        t = fromMaybe 1 $ tactus pat
 
-firstof :: T.Pattern Int -> (T.Pattern a -> T.Pattern a) -> T.Pattern a -> T.Pattern a
-firstof (T.Pattern _ _ (Just i)) f pat = _firstof i f pat
-firstof tp f p = T.innerJoin $ (\t -> _firstof t f p) <$> tp
+stepfirstof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stepfirstof (Pattern _ _ (Just i)) f pat = _stepfirstof i f pat
+stepfirstof tp f p = innerJoin $ (\t -> _stepfirstof t f p) <$> tp
 
-every :: T.Pattern Int -> (T.Pattern a -> T.Pattern a) -> T.Pattern a -> T.Pattern a
-every = firstof
+stepevery :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+stepevery = stepfirstof
 
--- | Like @taper@, but returns a list of repetitions
-taperlist :: T.Pattern a -> [T.Pattern a]
-taperlist pat@(T.Pattern _ (Just t) _) = pat : map (\r -> _sub r pat) [1 .. t]
+-- | Like @steptaper@, but returns a list of repetitions
+steptaperlist :: Pattern a -> [Pattern a]
+steptaperlist pat@(Pattern _ (Just t) _) = pat : map (\r -> _stepsub r pat) [1 .. t]
 -- TODO exception?
-taperlist pat                          = [pat]
+steptaperlist pat                        = [pat]
 
--- | Plays one fewer  from the pattern each repetition, down to nothing
-taper :: T.Pattern a -> T.Pattern a
-taper = cat . taperlist
+-- | Plays one fewer step from the pattern each repetition, down to nothing
+steptaper :: Pattern a -> Pattern a
+steptaper = stepcat . steptaperlist
 
 -- | Successively plays a pattern from each group in turn
-alt :: [[T.Pattern a]] -> T.Pattern a
-alt groups = cat $ concat $ take (c * length groups) $ transpose $ map cycle groups
+stepalt :: [[Pattern a]] -> Pattern a
+stepalt groups = stepcat $ concat $ take (c * length groups) $ transpose $ map cycle groups
   where c = foldl1 lcm $ map length groups
