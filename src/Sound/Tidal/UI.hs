@@ -2935,17 +2935,32 @@ stepwhen patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
 -- TODO raise exception?
 stepwhen _ _ pat                           = pat
 
+separateCycles :: Int -> Pattern a -> [Pattern a]
+separateCycles n pat = map (\i -> skip $ rotL (toRational i) pat) [0 .. n-1]
+
+  where n' = toRational n
+        skip pat' = splitQueries $ withResultStart (\t -> ((sam t) / n') + cyclePos t) $ withQueryStart (\t -> (sam t * n') + cyclePos t) $ pat'
+
+
+-- _steplastof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+-- _steplastof i f pat | i <= 1 = pat
+--                     | otherwise = stepwhen (fastcat $ map pure $ (replicate (i-1) False) ++ [True]) f pat
+
 _steplastof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_steplastof i f pat | i <= 1 = pat
-                    | otherwise = stepwhen (fastcat $ map pure $ (replicate (i-1) False) ++ [True]) f pat
+_steplastof n f pat | n <= 1 = pat
+                    | otherwise = _fast t $ stepcat $ reverse $ (f $ head cycles):tail cycles
+  where cycles = reverse $ separateCycles n $ _slow t pat
+        t = fromMaybe 1 $ tactus pat
 
 steplastof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 steplastof (Pattern _ _ (Just i)) f pat = _steplastof i f pat
 steplastof tp f p = innerJoin $ (\t -> _steplastof t f p) <$> tp
 
 _stepfirstof :: Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_stepfirstof i f pat | i <= 1 = pat
-                     | otherwise = stepwhen (fastcat $ map pure $ True:replicate (i-1) False) f pat
+_stepfirstof n f pat | n <= 1 = pat
+                    | otherwise = _fast t $ stepcat $ (f $ head cycles):tail cycles
+  where cycles = separateCycles n $ _slow t pat
+        t = fromMaybe 1 $ tactus pat
 
 stepfirstof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 stepfirstof (Pattern _ _ (Just i)) f pat = _stepfirstof i f pat

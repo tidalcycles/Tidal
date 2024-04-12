@@ -461,6 +461,9 @@ withResultArc f pat = pat
 withResultTime :: (Time -> Time) -> Pattern a -> Pattern a
 withResultTime f = withResultArc (\(Arc s e) -> Arc (f s) (f e))
 
+withResultStart :: (Time -> Time) -> Pattern a -> Pattern a
+withResultStart f pat = withResultArc (\(Arc s e) -> Arc (f s) (f s + (e-s))) pat
+
 -- | Apply a function to the timespan of the query
 withQueryArc :: (Arc -> Arc) -> Pattern a -> Pattern a
 withQueryArc f pat = pat {query = query pat . (\(State a m) -> State (f a) m)}
@@ -468,6 +471,9 @@ withQueryArc f pat = pat {query = query pat . (\(State a m) -> State (f a) m)}
 -- | Apply a function to the time (both start and end) of the query
 withQueryTime :: (Time -> Time) -> Pattern a -> Pattern a
 withQueryTime f pat = withQueryArc (\(Arc s e) -> Arc (f s) (f e)) pat
+
+withQueryStart :: (Time -> Time) -> Pattern a -> Pattern a
+withQueryStart f pat = withQueryArc (\(Arc s e) -> Arc (f s) (f s + (e-s))) pat
 
 -- | Apply a function to the control values of the query
 withQueryControls :: (ValueMap -> ValueMap) -> Pattern a -> Pattern a
