@@ -18,8 +18,8 @@ module Sound.Tidal.Utils where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import Data.List (delete)
-import System.IO (hPutStrLn, stderr)
+import           Data.List (delete)
+import           System.IO (hPutStrLn, stderr)
 
 writeError :: String -> IO ()
 writeError = hPutStrLn stderr
@@ -71,7 +71,7 @@ nth 0 (x : _)  = Just x
 nth n (_ : xs) = nth (n - 1) xs
 
 accumulate :: Num t => [t] -> [t]
-accumulate [] = []
+accumulate []     = []
 accumulate (x:xs) = scanl (+) x xs
 
 {- | enumerate a list of things
@@ -101,3 +101,8 @@ matchMaybe x       _ = x
 fromRight :: b -> Either a b -> b
 fromRight _ (Right b) = b
 fromRight b _         = b
+
+-- Available in Data.Function, but only since 4.18
+applyWhen :: Bool -> (a -> a) -> a -> a
+applyWhen True  f x = f x
+applyWhen False _ x = x
