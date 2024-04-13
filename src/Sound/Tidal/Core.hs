@@ -428,11 +428,11 @@ stack = foldr overlay silence
 
 -- | Shifts a pattern back in time by the given amount, expressed in cycles
 (<~) :: Pattern Time -> Pattern a -> Pattern a
-(<~) = tParam rotL
+(<~) = patternify' rotL
 
 -- | Shifts a pattern forward in time by the given amount, expressed in cycles
 (~>) :: Pattern Time -> Pattern a -> Pattern a
-(~>) = tParam rotR
+(~>) = patternify' rotR
 
 {-| Slow down a pattern by the factors in the given time pattern, "squeezing"
   the pattern to fit the slot given in the time pattern. It is the slow analogue
@@ -457,7 +457,7 @@ stack = foldr overlay silence
   > d1 $ s "bd*4 bd*2 [bd bd/2]"
 -}
 slowSqueeze :: Pattern Time -> Pattern a -> Pattern a
-slowSqueeze = tParamSqueeze _slow
+slowSqueeze = patternifySqueeze _slow
 
 -- | An alias for @slow@
 sparsity :: Pattern Time -> Pattern a -> Pattern a
@@ -492,7 +492,7 @@ zoomArc (Arc s e) p = withTactus (*d) $ splitQueries $
   would be empty). The factor should be at least 1.
 -}
 fastGap :: Pattern Time -> Pattern a -> Pattern a
-fastGap = tParam _fastGap
+fastGap = patternify _fastGap
 
 -- | An alias for @fastGap@
 densityGap :: Pattern Time -> Pattern a -> Pattern a
@@ -523,7 +523,7 @@ compressTo :: (Time,Time) -> Pattern a -> Pattern a
 compressTo (s,e) = compressArcTo (Arc s e)
 
 repeatCycles :: Pattern Int -> Pattern a -> Pattern a
-repeatCycles = tParam _repeatCycles
+repeatCycles = patternify _repeatCycles
 
 _repeatCycles :: Int -> Pattern a -> Pattern a
 _repeatCycles n p = cat (replicate n p)

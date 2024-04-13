@@ -74,7 +74,7 @@ _steps target p@(Pattern _ (Just t) _) = setTactus target $ _fast (target / t) p
 _steps  _ p                            =  p
 
 steps :: Pattern Rational -> Pattern a -> Pattern a
-steps = tParam _steps
+steps = patternify _steps
 
 keepMeta :: Pattern a -> Pattern a -> Pattern a
 keepMeta from to = to {tactus = tactus from, pureValue = pureValue from}
@@ -555,7 +555,7 @@ second half:
 > d1 $ fast "2 4" $ sound "bd sn kurt cp"
 -}
 fast :: Pattern Time -> Pattern a -> Pattern a
-fast t pat = keepTactus pat $ tParam _fast t pat
+fast t pat = patternify' _fast t pat
 
 {-| @fastSqueeze@ speeds up a pattern by a time pattern given as input,
   squeezing the resulting pattern inside one cycle and playing the original
@@ -590,7 +590,7 @@ fast t pat = keepTactus pat $ tParam _fast t pat
   > d1 $ s "[bd sn]*2"
 -}
 fastSqueeze :: Pattern Time -> Pattern a -> Pattern a
-fastSqueeze = tParamSqueeze _fast
+fastSqueeze = patternifySqueeze _fast
 
 -- | An alias for @fast@
 density :: Pattern Time -> Pattern a -> Pattern a
@@ -611,7 +611,7 @@ _fast rate pat | rate == 0 = silence
   >    # slow 3 (vowel "a e o")
 -}
 slow :: Pattern Time -> Pattern a -> Pattern a
-slow = tParam _slow
+slow = patternify _slow
 _slow :: Time -> Pattern a -> Pattern a
 _slow 0 _ = silence
 _slow r p = _fast (1/r) p
@@ -747,20 +747,30 @@ separateCycles n pat = map (\i -> skip $ rotL (toRational i) pat) [0 .. n-1]
 
 -- ** Temporal parameter helpers
 
-tParam :: (t1 -> t2 -> Pattern a) -> Pattern t1 -> t2 -> Pattern a
-tParam f (Pattern _ _ (Just a)) b = f a b
-tParam f pa p                     = innerJoin $ (`f` p) <$> pa
+patternify :: (t1 -> t2 -> Pattern a) -> Pattern t1 -> t2 -> Pattern a
+patternify f (Pattern _ _ (Just a)) b = f a b
+patternify f pa p                     = innerJoin $ (`f` p) <$> pa
 
-tParam2 :: (a -> b -> c -> Pattern d) -> Pattern a -> Pattern b -> c -> Pattern d
-tParam2 f (Pattern _ _ (Just a)) (Pattern _ _ (Just b)) c = f a b c
-tParam2 f a b p = innerJoin $ (\x y -> f x y p) <$> a <*> b
+-- versions that preserve the tactus
+patternify' ::(b -> Pattern c -> Pattern a) -> Pattern b -> Pattern c -> Pattern a
+patternify' f pa p = (patternify f pa p) {tactus = tactus p}
 
-tParam3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
-tParam3 f (Pattern _ _ (Just a)) (Pattern _ _ (Just b)) (Pattern _ _ (Just c)) d = f a b c d
-tParam3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
+patternify2 :: (a -> b -> c -> Pattern d) -> Pattern a -> Pattern b -> c -> Pattern d
+patternify2 f (Pattern _ _ (Just a)) (Pattern _ _ (Just b)) c = f a b c
+patternify2 f a b p = innerJoin $ (\x y -> f x y p) <$> a <*> b
 
-tParamSqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
-tParamSqueeze f tv p = squeezeJoin $ (`f` p) <$> tv
+patternify2' :: (a -> b -> Pattern c -> Pattern d) -> Pattern a -> Pattern b -> Pattern c -> Pattern d
+patternify2' f a b p = patternify2 f a b p
+
+patternify3 :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
+patternify3 f (Pattern _ _ (Just a)) (Pattern _ _ (Just b)) (Pattern _ _ (Just c)) d = f a b c d
+patternify3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
+
+patternify3' :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
+patternify3' f a b c p = keepTactus p $ patternify3 f a b c p
+
+patternifySqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
+patternifySqueeze f tv p = squeezeJoin $ (`f` p) <$> tv
 
 -- ** Context
 

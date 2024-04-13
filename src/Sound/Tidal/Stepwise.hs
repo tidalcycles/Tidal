@@ -27,84 +27,84 @@ import           Sound.Tidal.Pattern
 import           Sound.Tidal.UI      (while)
 import           Sound.Tidal.Utils   (applyWhen)
 
-stepcat :: [Pattern a] -> Pattern a
-stepcat pats = timecat $ map (\pat -> (fromMaybe 1 $ tactus pat, pat)) pats
+s_cat :: [Pattern a] -> Pattern a
+s_cat pats = timecat $ map (\pat -> (fromMaybe 1 $ tactus pat, pat)) pats
 
-_stepadd :: Rational -> Pattern a -> Pattern a
+_s_add :: Rational -> Pattern a -> Pattern a
 -- raise error?
-_stepadd _ pat@(Pattern _ Nothing _) = pat
-_stepadd r pat@(Pattern _ (Just t) _)
+_s_add _ pat@(Pattern _ Nothing _) = pat
+_s_add r pat@(Pattern _ (Just t) _)
   | r == 0 = nothing
   | (abs r) >= t = pat
   | r < 0 = zoom (1-((abs r)/t),1) pat
   | otherwise = zoom (0, (r/t)) pat
 
-stepadd :: Pattern Rational -> Pattern a -> Pattern a
-stepadd = tParam _stepadd
+s_add :: Pattern Rational -> Pattern a -> Pattern a
+s_add = patternify _s_add
 
-_stepsub :: Rational -> Pattern a -> Pattern a
-_stepsub _ pat@(Pattern _ Nothing _)  = pat
-_stepsub r pat@(Pattern _ (Just t) _) | r >= t = nothing
-                                      | r < 0 = _stepadd (0- (t+r)) pat
-                                      | otherwise = _stepadd (t-r) pat
+_s_sub :: Rational -> Pattern a -> Pattern a
+_s_sub _ pat@(Pattern _ Nothing _)  = pat
+_s_sub r pat@(Pattern _ (Just t) _) | r >= t = nothing
+                                    | r < 0 = _s_add (0- (t+r)) pat
+                                    | otherwise = _s_add (t-r) pat
 
-stepsub :: Pattern Rational -> Pattern a -> Pattern a
-stepsub = tParam _stepsub
+s_sub :: Pattern Rational -> Pattern a -> Pattern a
+s_sub = patternify _s_sub
 
-stepwhen :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stepwhen patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
+s_when :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_when patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
 -- TODO raise exception?
-stepwhen _ _ pat                           = pat
+s_when _ _ pat                           = pat
 
-_stepevery :: Bool -> Bool -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_stepevery lastone stepwise n f pat
+_s_th :: Bool -> Bool -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_s_th lastone stepwise n f pat
   | n <= 1 = pat
-  | otherwise = applyWhen stepwise (_fast t) $ stepcat $ applyWhen lastone reverse $ (f $ head cycles):tail cycles
+  | otherwise = applyWhen stepwise (_fast t) $ s_cat $ applyWhen lastone reverse $ (f $ head cycles):tail cycles
   where cycles = applyWhen lastone reverse $ separateCycles n $ applyWhen stepwise (_slow t) pat
         t = fromMaybe 1 $ tactus pat
 
-steplastof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-steplastof (Pattern _ _ (Just i)) f pat = _stepevery True False i f pat
-steplastof tp f p = innerJoin $ (\t -> _stepevery True False t f p) <$> tp
+s_cycleth :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_cycleth (Pattern _ _ (Just i)) f pat = _s_th True False i f pat
+s_cycleth tp f p = innerJoin $ (\t -> _s_th True False t f p) <$> tp
 
-stepfirstof :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stepfirstof (Pattern _ _ (Just i)) f pat = _stepevery False False i f pat
-stepfirstof tp f p = innerJoin $ (\t -> _stepevery False False t f p) <$> tp
+s_cycleth' :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_cycleth' (Pattern _ _ (Just i)) f pat = _s_th False False i f pat
+s_cycleth' tp f p = innerJoin $ (\t -> _s_th False False t f p) <$> tp
 
-steplastofstep :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-steplastofstep (Pattern _ _ (Just i)) f pat = _stepevery True True i f pat
-steplastofstep tp f p = innerJoin $ (\t -> _stepevery True True t f p) <$> tp
+s_th :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_th (Pattern _ _ (Just i)) f pat = _s_th True True i f pat
+s_th tp f p = innerJoin $ (\t -> _s_th True True t f p) <$> tp
 
-stepfirstofstep :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stepfirstofstep (Pattern _ _ (Just i)) f pat = _stepevery False True i f pat
-stepfirstofstep tp f p = innerJoin $ (\t -> _stepevery False True t f p) <$> tp
+s_th' :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_th' (Pattern _ _ (Just i)) f pat = _s_th False True i f pat
+s_th' tp f p = innerJoin $ (\t -> _s_th False True t f p) <$> tp
 
-stepevery :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stepevery = stepfirstof
+s_every :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_every = s_th'
 
--- | Like @steptaper@, but returns a list of repetitions
-steptaperlist :: Pattern a -> [Pattern a]
-steptaperlist pat@(Pattern _ (Just t) _) = pat : map (\r -> _stepsub r pat) [1 .. t]
+-- | Like @s_taper@, but returns a list of repetitions
+s_taperlist :: Pattern a -> [Pattern a]
+s_taperlist pat@(Pattern _ (Just t) _) = pat : map (\r -> _s_sub r pat) [1 .. t]
 -- TODO exception?
-steptaperlist pat                        = [pat]
+s_taperlist pat                        = [pat]
 
 -- | Plays one fewer step from the pattern each repetition, down to nothing
-steptaper :: Pattern a -> Pattern a
-steptaper = stepcat . steptaperlist
+s_taper :: Pattern a -> Pattern a
+s_taper = s_cat . s_taperlist
 
 -- | Successively plays a pattern from each group in turn
-stepalt :: [[Pattern a]] -> Pattern a
-stepalt groups = stepcat $ concat $ take (c * length groups) $ transpose $ map cycle groups
+s_alt :: [[Pattern a]] -> Pattern a
+s_alt groups = s_cat $ concat $ take (c * length groups) $ transpose $ map cycle groups
   where c = foldl1 lcm $ map length groups
 
-_stepexpand :: Rational -> Pattern a -> Pattern a
-_stepexpand factor pat = withTactus (* factor) pat
+_s_expand :: Rational -> Pattern a -> Pattern a
+_s_expand factor pat = withTactus (* factor) pat
 
-_stepcontract :: Rational -> Pattern a -> Pattern a
-_stepcontract factor pat = withTactus (/ factor) pat
+_s_contract :: Rational -> Pattern a -> Pattern a
+_s_contract factor pat = withTactus (/ factor) pat
 
-stepexpand :: Pattern Rational -> Pattern a -> Pattern a
-stepexpand = tParam _stepexpand
+s_expand :: Pattern Rational -> Pattern a -> Pattern a
+s_expand = patternify _s_expand
 
-stepcontract :: Pattern Rational -> Pattern a -> Pattern a
-stepcontract = tParam _stepcontract
+s_contract :: Pattern Rational -> Pattern a -> Pattern a
+s_contract = patternify _s_contract
