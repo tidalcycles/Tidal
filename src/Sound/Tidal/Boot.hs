@@ -109,7 +109,7 @@ only :: Tidally => IO () -> IO ()
 only = (hush >>)
 
 -- | See 'Sound.Tidal.Stream.streamReplace'.
-p :: Tidally => ID -> ControlSignal -> IO ()
+p :: Tidally => ID -> ControlPattern -> IO ()
 p = streamReplace tidal
 
 -- | See 'Sound.Tidal.Stream.streamHush'.
@@ -148,15 +148,15 @@ unsolo :: Tidally => ID -> IO ()
 unsolo = streamUnsolo tidal
 
 -- | See 'Sound.Tidal.Stream.streamOnce'.
-once :: Tidally => ControlSignal -> IO ()
+once :: Tidally => ControlPattern -> IO ()
 once = streamOnce tidal
 
 -- | An alias for 'once'.
-asap :: Tidally => ControlSignal -> IO ()
+asap :: Tidally => ControlPattern -> IO ()
 asap = once
 
 -- | See 'Sound.Tidal.Stream.first'.
-first :: Tidally => ControlSignal -> IO ()
+first :: Tidally => ControlPattern -> IO ()
 first = streamFirst tidal
 
 -- | See 'Sound.Tidal.Stream.nudgeAll'.
@@ -164,7 +164,7 @@ nudgeAll :: Tidally => Double -> IO ()
 nudgeAll = streamNudgeAll tidal
 
 -- | See 'Sound.Tidal.Stream.streamAll'.
-all :: Tidally => (ControlSignal -> ControlSignal) -> IO ()
+all :: Tidally => (ControlPattern -> ControlPattern) -> IO ()
 all = streamAll tidal
 
 -- | See 'Sound.Tidal.Stream.resetCycles'.
@@ -176,7 +176,7 @@ setCycle :: Tidally => Time -> IO ()
 setCycle = streamSetCycle tidal
 
 -- | See 'Sound.Tidal.Params.cps'.
-setcps :: Tidally => Signal Double -> IO ()
+setcps :: Tidally => Pattern Double -> IO ()
 setcps = once . cps
 
 -- | See 'Sound.Tidal.Stream.streamGetcps'.
@@ -188,7 +188,7 @@ getnow :: Tidally => IO Double
 getnow = streamGetNow tidal
 
 -- | Replace what's playing on the given orbit.
-d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16 :: Tidally => ControlSignal -> IO ()
+d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16 :: Tidally => ControlPattern -> IO ()
 d1 = p 1 . (|. orbit 0)
 d2 = p 2 . (|. orbit 1)
 d3 = p 3 . (|. orbit 2)
@@ -211,21 +211,21 @@ getState :: Tidally => String -> IO (Maybe Value)
 getState = streamGet tidal
 
 -- | See 'Sound.Tidal.Stream.streamSetI'.
-setI :: Tidally => String -> Signal Int -> IO ()
+setI :: Tidally => String -> Pattern Int -> IO ()
 setI = streamSetI tidal
 
 -- | See 'Sound.Tidal.Stream.streamSetF'.
-setF :: Tidally => String -> Signal Double -> IO ()
+setF :: Tidally => String -> Pattern Double -> IO ()
 setF = streamSetF tidal
 
 -- | See 'Sound.Tidal.Stream.streamSetS'.
-setS :: Tidally => String -> Signal String -> IO ()
+setS :: Tidally => String -> Pattern String -> IO ()
 setS = streamSetS tidal
 
 -- | See 'Sound.Tidal.Stream.streamSetR'.
-setR :: Tidally => String -> Signal Rational -> IO ()
+setR :: Tidally => String -> Pattern Rational -> IO ()
 setR = streamSetR tidal
 
 -- | See 'Sound.Tidal.Stream.streamSetB'.
-setB :: Tidally => String -> Signal Bool -> IO ()
+setB :: Tidally => String -> Pattern Bool -> IO ()
 setB = streamSetB tidal
