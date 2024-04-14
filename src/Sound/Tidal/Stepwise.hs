@@ -56,31 +56,31 @@ s_when patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
 -- TODO raise exception?
 s_when _ _ pat                           = pat
 
-_s_th :: Bool -> Bool -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_s_th lastone stepwise n f pat
+_s_nth :: Bool -> Bool -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_s_nth lastone stepwise n f pat
   | n <= 1 = pat
   | otherwise = applyWhen stepwise (_fast t) $ s_cat $ applyWhen lastone reverse $ (f $ head cycles):tail cycles
   where cycles = applyWhen lastone reverse $ separateCycles n $ applyWhen stepwise (_slow t) pat
         t = fromMaybe 1 $ tactus pat
 
-s_cycleth :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-s_cycleth (Pattern _ _ (Just i)) f pat = _s_th True False i f pat
-s_cycleth tp f p = innerJoin $ (\t -> _s_th True False t f p) <$> tp
+s_nthcycle :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_nthcycle (Pattern _ _ (Just i)) f pat = _s_nth True False i f pat
+s_nthcycle tp f p = innerJoin $ (\t -> _s_nth True False t f p) <$> tp
 
-s_cycleth' :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-s_cycleth' (Pattern _ _ (Just i)) f pat = _s_th False False i f pat
-s_cycleth' tp f p = innerJoin $ (\t -> _s_th False False t f p) <$> tp
+s_nthcycle' :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_nthcycle' (Pattern _ _ (Just i)) f pat = _s_nth False False i f pat
+s_nthcycle' tp f p = innerJoin $ (\t -> _s_nth False False t f p) <$> tp
 
-s_th :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-s_th (Pattern _ _ (Just i)) f pat = _s_th True True i f pat
-s_th tp f p = innerJoin $ (\t -> _s_th True True t f p) <$> tp
+s_nth :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_nth (Pattern _ _ (Just i)) f pat = _s_nth True True i f pat
+s_nth tp f p = innerJoin $ (\t -> _s_nth True True t f p) <$> tp
 
-s_th' :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-s_th' (Pattern _ _ (Just i)) f pat = _s_th False True i f pat
-s_th' tp f p = innerJoin $ (\t -> _s_th False True t f p) <$> tp
+s_nth' :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_nth' (Pattern _ _ (Just i)) f pat = _s_nth False True i f pat
+s_nth' tp f p = innerJoin $ (\t -> _s_nth False True t f p) <$> tp
 
 s_every :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-s_every = s_th'
+s_every = s_nth'
 
 -- | Like @s_taper@, but returns a list of repetitions
 s_taperlist :: Pattern a -> [Pattern a]
