@@ -51,10 +51,10 @@ _s_sub r pat@(Pattern _ (Just t) _) | r >= t = nothing
 s_sub :: Pattern Rational -> Pattern a -> Pattern a
 s_sub = patternify _s_sub
 
-s_when :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-s_when patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
+s_while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_while patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
 -- TODO raise exception?
-s_when _ _ pat                           = pat
+s_while _ _ pat                           = pat
 
 _s_nth :: Bool -> Bool -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _s_nth lastone stepwise n f pat
