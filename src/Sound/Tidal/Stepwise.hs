@@ -82,6 +82,9 @@ s_nth' tp f p = innerJoin $ (\t -> _s_nth False True t f p) <$> tp
 s_every :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 s_every = s_nth'
 
+s_everycycle :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+s_everycycle = s_nthcycle'
+
 -- | Like @s_taper@, but returns a list of repetitions
 s_taperlist :: Pattern a -> [Pattern a]
 s_taperlist pat@(Pattern _ (Just t) _) = pat : map (\r -> _s_sub r pat) [1 .. t]
