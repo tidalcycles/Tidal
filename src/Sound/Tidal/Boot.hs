@@ -4,7 +4,6 @@
 module Sound.Tidal.Boot
   ( Tidally (..)
   , OscMap
-  , mkConfig
   , mkOscMap
   , mkTidal
   , mkTidalWith
@@ -86,17 +85,13 @@ class Tidally where
 
 type OscMap = [(Target, [OSC])]
 
--- | A reasonable config.
-mkConfig :: Config
-mkConfig = defaultConfig {cVerbose = True, cFrameTimespan = 1 / 20}
-
 -- | A reasonable OscMap
 mkOscMap :: OscMap
 mkOscMap = [(superdirtTarget {oLatency = 0.05, oAddress = "127.0.0.1", oPort = 57120}, [superdirtShape])]
 
 -- | Creates a Tidal instance using default config. Use 'mkTidalWith' to customize.
 mkTidal :: IO Stream
-mkTidal = mkTidalWith mkConfig mkOscMap
+mkTidal = mkTidalWith defaultConfig mkOscMap
 
 -- | See 'Sound.Tidal.Stream.startStream'.
 mkTidalWith :: Config -> OscMap -> IO Stream
@@ -180,27 +175,27 @@ setcps :: Tidally => Pattern Double -> IO ()
 setcps = once . cps
 
 -- | See 'Sound.Tidal.Stream.streamGetcps'.
-getcps :: Tidally => IO Double
+getcps :: Tidally => IO Time
 getcps = streamGetCPS tidal
 
 -- | See 'Sound.Tidal.Stream.streamGetnow'.
-getnow :: Tidally => IO Double
+getnow :: Tidally => IO Time
 getnow = streamGetNow tidal
 
 -- | Replace what's playing on the given orbit.
 d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16 :: Tidally => ControlPattern -> IO ()
-d1 = p 1 . (|. orbit 0)
-d2 = p 2 . (|. orbit 1)
-d3 = p 3 . (|. orbit 2)
-d4 = p 4 . (|. orbit 3)
-d5 = p 5 . (|. orbit 4)
-d6 = p 6 . (|. orbit 5)
-d7 = p 7 . (|. orbit 6)
-d8 = p 8 . (|. orbit 7)
-d9 = p 9 . (|. orbit 8)
-d10 = p 10 . (|. orbit 9)
-d11 = p 11 . (|. orbit 10)
-d12 = p 12 . (|. orbit 11)
+d1 = p 1 . (|< orbit 0)
+d2 = p 2 . (|< orbit 1)
+d3 = p 3 . (|< orbit 2)
+d4 = p 4 . (|< orbit 3)
+d5 = p 5 . (|< orbit 4)
+d6 = p 6 . (|< orbit 5)
+d7 = p 7 . (|< orbit 6)
+d8 = p 8 . (|< orbit 7)
+d9 = p 9 . (|< orbit 8)
+d10 = p 10 . (|< orbit 9)
+d11 = p 11 . (|< orbit 10)
+d12 = p 12 . (|< orbit 11)
 d13 = p 13
 d14 = p 14
 d15 = p 15
