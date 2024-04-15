@@ -62,7 +62,7 @@ library
     , hosc >= 0.20 && < 0.21
     , text < 2.2
     , parsec >= 3.1.12 && < 3.2
-    , network < 3.2
+    , network < 3.3
     , transformers >= 0.5 && < 0.7
     , bytestring < 0.13
     , clock < 0.9
