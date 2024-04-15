@@ -1,4 +1,6 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 {-
     UI.hs - Tidal's main 'user interface' functions, for transforming
@@ -33,22 +35,25 @@
 
 module Sound.Tidal.UI where
 
-import           Prelude hiding ((<*), (*>))
+import           Prelude               hiding ((*>), (<*))
 
-import           Data.Char (digitToInt, isDigit, ord)
-import           Data.Bits (testBit, Bits, xor, shiftL, shiftR)
+import           Data.Bits             (Bits, shiftL, shiftR, testBit, xor)
+import           Data.Char             (digitToInt, isDigit, ord)
 
-import           Data.Ratio ((%), Ratio)
-import           Data.Fixed (mod')
-import           Data.List (sort, sortOn, findIndices, elemIndex, groupBy, transpose, intercalate, findIndex)
-import           Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
-import qualified Data.Text as T
-import qualified Data.Map.Strict as Map
-import           Data.Bool (bool)
+import           Data.Bool             (bool)
+import           Data.Fixed            (mod')
+import           Data.List             (elemIndex, findIndex, findIndices,
+                                        groupBy, intercalate, sort, sortOn,
+                                        transpose)
+import qualified Data.Map.Strict       as Map
+import           Data.Maybe            (catMaybes, fromJust, fromMaybe, isJust,
+                                        mapMaybe)
+import           Data.Ratio            (Ratio, (%))
+import qualified Data.Text             as T
 
 import           Sound.Tidal.Bjorklund (bjorklund)
 import           Sound.Tidal.Core
-import qualified Sound.Tidal.Params as P
+import qualified Sound.Tidal.Params    as P
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Utils
 
@@ -689,7 +694,7 @@ wedge pt pa pb = innerJoin $ (\t -> _wedge t pa pb) <$> pt
 
 _wedge :: Time -> Pattern a -> Pattern a -> Pattern a
 _wedge 0 _ p' = p'
-_wedge 1 p _ = p
+_wedge 1 p _  = p
 _wedge t p p' = overlay (_fastGap (1/t) p) (t `rotR` _fastGap (1/(1-t)) p')
 
 
@@ -976,10 +981,10 @@ _distrib :: [Int] -> Pattern a -> Pattern a
 _distrib xs p = boolsToPat (foldr distrib' (replicate (last xs) True) (reverse $ layers xs)) p
   where
     distrib' :: [Bool] -> [Bool] -> [Bool]
-    distrib' [] _ = []
-    distrib' (_:a) [] = False : distrib' a []
+    distrib' [] _           = []
+    distrib' (_:a) []       = False : distrib' a []
     distrib' (True:a) (x:b) = x : distrib' a b
-    distrib' (False:a) b = False : distrib' a b
+    distrib' (False:a) b    = False : distrib' a b
     layers = map bjorklund . (zip<*>tail)
     boolsToPat a b' = flip const <$> filterValues (== True) (fastFromList a) <* b'
 
@@ -1296,9 +1301,9 @@ randArcs n =
      return pairs
        where pairUp [] = []
              pairUp xs = Arc 0 (head xs) : pairUp' xs
-             pairUp' [] = []
-             pairUp' [_] = []
-             pairUp' [a, _] = [Arc a 1]
+             pairUp' []       = []
+             pairUp' [_]      = []
+             pairUp' [a, _]   = [Arc a 1]
              pairUp' (a:b:xs) = Arc a b: pairUp' (b:xs)
 
 
@@ -1850,12 +1855,12 @@ ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <
   where split = wordsBy (==':')
         getPat (s:xs) = (match s, transform xs)
         -- TODO - check this really can't happen..
-        getPat _ = error "can't happen?"
+        getPat _      = error "can't happen?"
         match s = fromMaybe silence $ lookup s ps'
         ps' = map (fmap (_fast t)) ps
         adjust (a, (p, f)) = f a p
         transform (x:_) a = transform' x a
-        transform _ _ = id
+        transform _ _     = id
         transform' str (Arc s e) p = s `rotR` inside (pure $ 1/(e-s)) (matchF str) p
         matchF str = fromMaybe id $ lookup str fs
         timedValues = withEvent (\(Event c (Just a) a' v) -> Event c (Just a) a' (a,v)) . filterDigital
@@ -1886,7 +1891,7 @@ inhabit ps p = squeezeJoin $ (\s -> fromMaybe silence $ lookup s ps) <$> p
 spaceOut :: [Time] -> Pattern a -> Pattern a
 spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (`compressArc` p) spaceArcs
   where markOut :: Time -> [Time] -> [Arc]
-        markOut _ [] = []
+        markOut _ []           = []
         markOut offset (x:xs') = Arc offset (offset+x):markOut (offset+x) xs'
         spaceArcs = map (\(Arc a b) -> Arc (a/s) (b/s)) $ markOut 0 xs
         s = sum xs
@@ -1979,7 +1984,7 @@ _arp name p = arpWith f p
                 ("thumbup", thumbup),
                 ("thumbupdown", \x -> init (thumbup x) ++ init (reverse $ thumbup x))
                ]
-        converge [] = []
+        converge []     = []
         converge (x:xs) = x : converge' xs
         converge' [] = []
         converge' xs = last xs : converge (init xs)
@@ -2020,7 +2025,7 @@ rolledWith t = withEvents aux
          where aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ ((isRev t) es))
                isRev b = (\x -> if x > 0 then id else reverse ) b
                steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
-               timeguard _ _ ev 0 = return ev
+               timeguard _ _ ev 0  = return ev
                timeguard n xs ev _ = (shiftIt n (length xs) ev)
                shiftIt n d (Event c (Just (Arc s e)) a' v) = do
                          a'' <- subArc (Arc newS e) a'
@@ -2171,7 +2176,18 @@ _pressBy r pat = squeezeJoin $ (compressTo (r,1) . pure) <$> pat
   >          (s "cp:3*16" # speed sine + 1.5)
 -}
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
-sew pb a b = overlay (mask pb a) (mask (inv pb) b)
+-- Replaced with more efficient version below
+-- sew pb a b = overlay (mask pb a) (mask (inv pb) b)
+sew pb a b = Pattern $ pf
+  where pf st = concatMap match evs
+          where evs = query pb st
+                parts = map part evs
+                subarc = Arc (minimum $ map start parts) (maximum $ map stop parts)
+                match ev | value ev = find (query a st {arc = subarc}) ev
+                         | otherwise = find (query b st {arc = subarc}) ev
+                find evs' ev = catMaybes $ map (check ev) evs'
+                check bev xev = do newarc <- subArc (part bev) (part xev)
+                                   return $ xev {part = newarc}
 
 {-| Uses the first (binary) pattern to switch between the following
   two patterns. The resulting structure comes from the binary
@@ -2595,7 +2611,7 @@ contrastRange = contrastBy f
             f (VF s, VF e) (VF v) = v >= s && v <= e
             f (VN s, VN e) (VN v) = v >= s && v <= e
             f (VS s, VS e) (VS v) = v == s && v == e
-            f _ _ = False
+            f _ _                 = False
 
 {- |
   The @fix@ function applies another function to matching events in a pattern of
@@ -2694,7 +2710,7 @@ mono :: Pattern a -> Pattern a
 mono p = Pattern $ \(State a cm) -> flatten $ query p (State a cm) where
   flatten :: [Event a] -> [Event a]
   flatten = mapMaybe constrainPart . truncateOverlaps . sortOn whole
-  truncateOverlaps [] = []
+  truncateOverlaps []     = []
   truncateOverlaps (e:es) = e : truncateOverlaps (mapMaybe (snip e) es)
   -- TODO - decide what to do about analog events..
   snip a b | start (wholeOrPart b) >= stop (wholeOrPart a) = Just b
@@ -2782,9 +2798,9 @@ deconstruct :: Int -> Pattern String -> String
 deconstruct n p = intercalate " " $ map showStep $ toList p
   where
     showStep :: [String] -> String
-    showStep [] = "~"
+    showStep []  = "~"
     showStep [x] = x
-    showStep xs = "[" ++ (intercalate ", " xs) ++ "]"
+    showStep xs  = "[" ++ (intercalate ", " xs) ++ "]"
     toList :: Pattern a -> [[a]]
     toList pat = map (\(s,e) -> map value $ queryArc (_segment n' pat) (Arc s e)) arcs
       where breaks = [0, (1/n') ..]
@@ -2820,7 +2836,7 @@ _bite n ipat pat = squeezeJoin $ zoompat <$> ipat
 
 -- | Chooses from a list of patterns, using a pattern of integers.
 squeeze :: Pattern Int -> [Pattern a] -> Pattern a
-squeeze _ [] = silence
+squeeze _ []      = silence
 squeeze ipat pats = squeezeJoin $ (pats !!!) <$> ipat
 
 squeezeJoinUp :: Pattern (ControlPattern) -> ControlPattern
@@ -2896,5 +2912,5 @@ grain s w = P.begin b # P.end e
 necklace :: Rational -> [Int] -> Pattern Bool
 necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ listToPat $ list xs
   where list :: [Int] -> [Bool]
-        list [] = []
+        list []      = []
         list (x:xs') = (True:(replicate (x-1) False)) ++ list xs'
