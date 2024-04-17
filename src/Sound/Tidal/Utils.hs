@@ -106,3 +106,7 @@ fromRight b _         = b
 applyWhen :: Bool -> (a -> a) -> a -> a
 applyWhen True  f x = f x
 applyWhen False _ x = x
+
+-- pair up neighbours in list
+pairs :: [a] -> [(a,a)]
+pairs rs = zip rs (tail rs)

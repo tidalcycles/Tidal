@@ -19,13 +19,17 @@
 
 module Sound.Tidal.Stepwise where
 
-import           Data.List           (transpose)
-import           Data.Maybe          (fromMaybe)
+import           Data.Containers.ListUtils (nubOrd)
+import           Data.List                 (sort, transpose)
+import           Data.Maybe                (catMaybes, fromMaybe, isJust)
 
 import           Sound.Tidal.Core
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.UI      (while)
-import           Sound.Tidal.Utils   (applyWhen)
+import           Sound.Tidal.UI            (while)
+import           Sound.Tidal.Utils         (applyWhen, pairs)
+
+_lcmtactus :: [Pattern a] -> Maybe Time
+_lcmtactus pats = foldl1 lcmr <$> (sequence $ map tactus pats)
 
 s_cat :: [Pattern a] -> Pattern a
 s_cat pats = timecat $ map (\pat -> (fromMaybe 1 $ tactus pat, pat)) pats
@@ -111,3 +115,24 @@ s_expand = patternify _s_expand
 
 s_contract :: Pattern Rational -> Pattern a -> Pattern a
 s_contract = patternify _s_contract
+
+stepJoin :: Pattern (Pattern a) -> Pattern a
+stepJoin pp = Pattern q Nothing Nothing
+  where q st@(State a c) = query (timecat $ retime $ slices $ query (rotL (sam $ start a) pp) (st {arc = Arc 0 1})) st
+        retime :: [(Time, Pattern a)] -> [(Time, Pattern a)]
+        retime xs = map (\(dur, pat) -> adjust dur pat) xs
+          where occupied_perc = sum $ map fst $ filter (isJust . tactus . snd) xs
+                occupied_tactus = sum $ catMaybes $ map (tactus . snd) xs
+                total_tactus = occupied_tactus / occupied_perc
+                adjust dur pat@(Pattern {tactus = Just t}) = (t, pat)
+                adjust dur pat = (dur*total_tactus, pat)
+        -- break up events at all start/end points, into groups, including empty ones.
+        slices :: [Event (Pattern a)] -> [(Time, Pattern a)]
+        slices evs = map (\s -> ((snd s - fst s), stack $ map value $ fit s evs)) $ pairs $ sort $ nubOrd $ 0:1:concatMap (\ev -> start (part ev):stop (part ev):[]) evs
+        -- list of slices of events within the given range
+        fit :: (Rational, Rational) -> [Event (Pattern a)] -> [Event (Pattern a)]
+        fit (b,e) evs = catMaybes $ map (match (b,e)) evs
+        -- slice of event within the given range
+        match :: (Rational, Rational) -> Event (Pattern a) -> Maybe (Event (Pattern a))
+        match (b,e) ev = do a <- subArc (Arc b e) $ part ev
+                            return ev {part = a}

@@ -422,7 +422,9 @@ pattern to multiple patterns at once:
 > ] # speed "[[1 0.8], [1.5 2]*2]/3"
 -}
 stack :: [Pattern a] -> Pattern a
-stack = foldr overlay silence
+stack pats = (foldr overlay silence pats) {tactus = t}
+  where t | length pats == 0 = Nothing
+          | otherwise = foldl1 lcmr <$> (sequence $ map tactus pats)
 
 -- ** Manipulating time
 
