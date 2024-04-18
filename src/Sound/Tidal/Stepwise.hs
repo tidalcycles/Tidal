@@ -19,14 +19,13 @@
 
 module Sound.Tidal.Stepwise where
 
-import           Data.Containers.ListUtils (nubOrd)
-import           Data.List                 (sort, transpose)
-import           Data.Maybe                (catMaybes, fromMaybe, isJust)
+import           Data.List           (sort, transpose)
+import           Data.Maybe          (catMaybes, fromMaybe, isJust)
 
 import           Sound.Tidal.Core
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.UI            (while)
-import           Sound.Tidal.Utils         (applyWhen, pairs)
+import           Sound.Tidal.UI      (while)
+import           Sound.Tidal.Utils   (applyWhen, nubOrd, pairs)
 
 _lcmtactus :: [Pattern a] -> Maybe Time
 _lcmtactus pats = foldl1 lcmr <$> (sequence $ map tactus pats)
