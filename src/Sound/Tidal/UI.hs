@@ -46,7 +46,8 @@ import           Data.List             (elemIndex, findIndex, findIndices,
                                         groupBy, intercalate, sort, sortOn,
                                         transpose)
 import qualified Data.Map.Strict       as Map
-import           Data.Maybe            (fromJust, fromMaybe, isJust, mapMaybe)
+import           Data.Maybe            (catMaybes, fromJust, fromMaybe, isJust,
+                                        mapMaybe)
 import           Data.Ratio            (Ratio, (%))
 import qualified Data.Text             as T
 
@@ -2176,7 +2177,18 @@ _pressBy r pat = squeezeJoin $ (compressTo (r,1) . pure) <$> pat
   >          (s "cp:3*16" # speed sine + 1.5)
 -}
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
-sew pb a b = overlay (mask pb a) (mask (inv pb) b)
+-- Replaced with more efficient version below
+-- sew pb a b = overlay (mask pb a) (mask (inv pb) b)
+sew pb a b = Pattern $ pf
+  where pf st = concatMap match evs
+          where evs = query pb st
+                parts = map part evs
+                subarc = Arc (minimum $ map start parts) (maximum $ map stop parts)
+                match ev | value ev = find (query a st {arc = subarc}) ev
+                         | otherwise = find (query b st {arc = subarc}) ev
+                find evs' ev = catMaybes $ map (check ev) evs'
+                check bev xev = do newarc <- subArc (part bev) (part xev)
+                                   return $ xev {part = newarc}
 
 {-| Uses the first (binary) pattern to switch between the following
   two patterns. The resulting structure comes from the binary
