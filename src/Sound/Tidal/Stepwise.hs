@@ -118,11 +118,13 @@ s_contract = s_patternify _s_contract
 
 s_patternify :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 s_patternify f (Pattern _ _ (Just a)) b = f a b
-s_patternify f pa p                     = keepTactus p $ stepJoin $ (`f` p) <$> pa
+s_patternify f pa p                     = stepJoin $ (`f` p) <$> pa
 
 stepJoin :: Pattern (Pattern a) -> Pattern a
-stepJoin pp = Pattern q Nothing Nothing
+stepJoin pp = Pattern q first_t Nothing
   where q st@(State a c) = query (timecat $ retime $ slices $ query (rotL (sam $ start a) pp) (st {arc = Arc 0 1})) st
+        first_t :: Maybe Rational
+        first_t = tactus $ timecat $ retime $ slices $ queryArc pp (Arc 0 1)
         retime :: [(Time, Pattern a)] -> [(Time, Pattern a)]
         retime xs = map (\(dur, pat) -> adjust dur pat) xs
           where occupied_perc = sum $ map fst $ filter (isJust . tactus . snd) xs
