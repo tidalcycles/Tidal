@@ -35,7 +35,7 @@ library
     , template-haskell
     , haskellish >= 0.3.2 && < 0.4
     , containers < 0.7
-    , mtl >= 2.2.2 && <2.3
+    , mtl >= 2.2.2 && <2.4
     , text < 2.1
 
   if !impl(ghc >= 8.4.1)

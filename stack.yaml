@@ -1,4 +1,4 @@
-resolver: lts-20.5
+resolver: lts-22.8
 
 packages:
   - '.'
@@ -8,6 +8,6 @@ packages:
 
 extra-deps:
   - hosc-0.20
-  - haskellish-0.3.2.1
+  - haskellish-0.3.2.2
 
 

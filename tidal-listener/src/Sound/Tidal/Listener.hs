@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Sound.Tidal.Listener where
 
-import Sound.Tidal.Stream (streamGetcps)
+import Sound.Tidal.Stream (streamGetCPS)
 import qualified Sound.Tidal.Context as T
 import Sound.Tidal.Hint
 import Sound.Tidal.Listener.Config
@@ -92,7 +92,7 @@ act st (Just (Message "/ping" [])) =
 
 -- get the current cps of the running stream
 act st (Just (Message "/cps" [])) =
-  do cps <- streamGetcps (sStream st)
+  do cps <- streamGetCPS (sStream st)
      O.sendTo (sLocal st) (O.p_message "/cps" [float cps]) (sRemote st)
      return st
 
