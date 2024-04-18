@@ -13,7 +13,7 @@ Stability:           Experimental
 Copyright:           (c) Alex McLean and other contributors, 2021
 category:            Sound
 build-type:          Simple
-tested-with:         GHC == 8.6.5, GHC == 8.8.3, GHC == 8.10.1, GHC == 9.0.1, GHC == 9.4.8, GHC == 9.6.5, GHC == 9.8.2
+tested-with:         GHC == 8.6.5, GHC == 8.8.3, GHC == 8.10.1, GHC == 9.0.1, GHC == 9.4.8, GHC == 9.8.2
 data-files:          BootTidal.hs
 
 Extra-source-files: README.md CHANGELOG.md tidal.el
