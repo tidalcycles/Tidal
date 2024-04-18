@@ -9,6 +9,8 @@ module Sound.Tidal.Boot
   , mkTidalWith
   , only
   , p
+  , _p
+  , p_
   , hush
   , panic
   , list
@@ -44,6 +46,38 @@ module Sound.Tidal.Boot
   , d14
   , d15
   , d16
+  , _d1
+  , _d2
+  , _d3
+  , _d4
+  , _d5
+  , _d6
+  , _d7
+  , _d8
+  , _d9
+  , _d10
+  , _d11
+  , _d12
+  , _d13
+  , _d14
+  , _d15
+  , _d16
+  , d1_
+  , d2_
+  , d3_
+  , d4_
+  , d5_
+  , d6_
+  , d7_
+  , d8_
+  , d9_
+  , d10_
+  , d11_
+  , d12_
+  , d13_
+  , d14_
+  , d15_
+  , d16_
   , getState
   , setI
   , setF
