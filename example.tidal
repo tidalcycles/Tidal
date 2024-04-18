@@ -1,0 +1,5 @@
+-- This is an example file you can use to quickly test Tidal editor integration.
+
+d1 $ s "bd sd bd [~ sd] bd sd bd*3 sd"
+
+hush
