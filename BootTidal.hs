@@ -3,10 +3,10 @@
 :set -XOverloadedStrings
 :set prompt ""
 
-default (Signal String, Integer, Double)
-
 -- Import all the boot functions and aliases.
 import Sound.Tidal.Boot
+
+default (Pattern String, Integer, Double)
 
 -- Create a Tidal Stream with the default settings.
 -- Use 'mkTidalWith' to customize these settings.

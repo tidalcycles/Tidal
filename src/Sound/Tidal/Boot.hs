@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 module Sound.Tidal.Boot
   ( Tidally (..)
@@ -72,10 +72,10 @@ where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import Prelude hiding (all, (*>), (<*))
-import Sound.Tidal.Context hiding (mute, solo)
-import Sound.Tidal.ID (ID)
-import System.IO (hSetEncoding, stdout, utf8)
+import           Prelude             hiding (all, (*>), (<*))
+import           Sound.Tidal.Context
+import           Sound.Tidal.ID      (ID)
+import           System.IO           (hSetEncoding, stdout, utf8)
 
 -- | Functions using this constraint can access the in-scope Tidal instance.
 -- You must implement an instance of this in 'BootTidal.hs'. Note that GHC

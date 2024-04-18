@@ -2179,7 +2179,7 @@ _pressBy r pat = squeezeJoin $ (compressTo (r,1) . pure) <$> pat
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 -- Replaced with more efficient version below
 -- sew pb a b = overlay (mask pb a) (mask (inv pb) b)
-sew pb a b = Pattern $ pf
+sew pb a b = Pattern pf Nothing Nothing
   where pf st = concatMap match evs
           where evs = query pb st
                 parts = map part evs
