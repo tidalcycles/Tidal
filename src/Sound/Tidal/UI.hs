@@ -129,7 +129,7 @@ and with the juxed version shifted backwards for 1024 cycles:
 > jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 -}
 rand :: Fractional a => Pattern a
-rand = Pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ (timeToRand ((e + s)/2) :: Double))])
+rand = pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ (timeToRand ((e + s)/2) :: Double))])
 
 -- | Boolean rand - a continuous stream of true\/false values, with a 50\/50 chance.
 brand :: Pattern Bool
@@ -336,7 +336,7 @@ d1 $ s "bd hh?0.8 bd hh?0.4"
 @
 -}
 degradeBy :: Pattern Double -> Pattern a -> Pattern a
-degradeBy = tParam _degradeBy
+degradeBy = patternify' _degradeBy
 
 _degradeBy :: Double -> Pattern a -> Pattern a
 _degradeBy = _degradeByUsing rand
@@ -350,7 +350,7 @@ As 'degradeBy', but the pattern of probabilities represents the chances to retai
 than remove the corresponding element.
 -}
 unDegradeBy :: Pattern Double -> Pattern a -> Pattern a
-unDegradeBy = tParam _unDegradeBy
+unDegradeBy = patternify' _unDegradeBy
 
 _unDegradeBy :: Double -> Pattern a -> Pattern a
 _unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <* rand
@@ -522,7 +522,7 @@ There is also `iter'`, which shifts the pattern in the opposite direction.
 
 -}
 iter :: Pattern Int -> Pattern c -> Pattern c
-iter = tParam _iter
+iter a pat = keepTactus pat $ patternify' _iter a pat
 
 _iter :: Int -> Pattern a -> Pattern a
 _iter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n-1)]
@@ -544,7 +544,7 @@ hh sn cp bd
 @
 -}
 iter' :: Pattern Int -> Pattern c -> Pattern c
-iter' = tParam _iter'
+iter' = patternify' _iter'
 
 _iter' :: Int -> Pattern a -> Pattern a
 _iter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n-1)]
@@ -681,7 +681,7 @@ signifies: @(Int -> Bool)@, a function that takes a whole number and returns
 either @True@ or @False@.
 -}
 ifp :: (Int -> Bool) -> (Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-ifp test f1 f2 p = splitQueries $ p {query = q}
+ifp test f1 f2 p = splitQueries $ p {query = q, pureValue = Nothing}
   where q a | test (floor $ start $ arc a) = query (f1 p) a
             | otherwise = query (f2 p) a
 
@@ -746,7 +746,7 @@ You can also pattern the first parameter, for example to cycle through three val
 > d1 $ trunc "<0.75 0.25 1>" $ sound "bd sn:2 [mt rs] hc"
 -}
 trunc :: Pattern Time -> Pattern a -> Pattern a
-trunc = tParam _trunc
+trunc = patternify' _trunc
 
 _trunc :: Time -> Pattern a -> Pattern a
 _trunc t = compress (0, t) . zoomArc (Arc 0 t)
@@ -782,7 +782,7 @@ quarter:
 > d1 $ linger (-0.25) $ sound "bd sn*2 cp hh*4 arpy bd*2 cp bd*2"
 -}
 linger :: Pattern Time -> Pattern a -> Pattern a
-linger = tParam _linger
+linger = patternify' _linger
 
 _linger :: Time -> Pattern a -> Pattern a
 _linger n p | n < 0 = _fast (1/n) $ zoomArc (Arc (1 + n) 1) p
@@ -921,7 +921,7 @@ There was once a shorter alias @e@ for this function. It has been removed, but y
 may see references to it in older Tidal code.
 -}
 euclid :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-euclid = tParam2 _euclid
+euclid = patternify2 _euclid
 
 _euclid :: Int -> Int -> Pattern a -> Pattern a
 _euclid n k a | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n,k)
@@ -955,7 +955,7 @@ As 'euclid', but taking a third rotational parameter corresponding to the onset
 at which to start the rhythm.
 -}
 euclidOff :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-euclidOff = tParam3 _euclidOff
+euclidOff = patternify3 _euclidOff
 
 -- | A shorter alias for 'euclidOff'.
 eoff :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a
@@ -967,7 +967,7 @@ _euclidOff n k s p = (rotL $ fromIntegral s%fromIntegral k) (_euclid n k p)
 
 -- | As 'euclidOff', but specialized to 'Bool'. May be more efficient than 'euclidOff'.
 euclidOffBool :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern Bool -> Pattern Bool
-euclidOffBool = tParam3 _euclidOffBool
+euclidOffBool = patternify3 _euclidOffBool
 
 _euclidOffBool :: Int -> Int -> Int -> Pattern Bool -> Pattern Bool
 _euclidOffBool _ 0 _ _ = silence
@@ -1009,7 +1009,7 @@ the hi-hat event fires on every one of the eight even beats that the bass drum
 does not.
 -}
 euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
-euclidInv = tParam2 _euclidInv
+euclidInv = patternify2 _euclidInv
 
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
 _euclidInv n k a = _euclid (-n) k a
@@ -1144,7 +1144,7 @@ Additional example:
 > d1 $ every 4 (rot 2) $ slow 2 $ sound "bd hh hh hh"
 -}
 rot :: Ord a => Pattern Int -> Pattern a -> Pattern a
-rot = tParam _rot
+rot = patternify' _rot
 
 -- | Calculates a whole cycle, rotates it, then constrains events to the original query arc.
 _rot :: Ord a => Int -> Pattern a -> Pattern a
@@ -1177,10 +1177,10 @@ at an undefined frequency which may be very high.
 > d1 $ n (slow 2 $ segment 16 $ range 0 32 $ sine) # sound "amencutup"
 -}
 segment :: Pattern Time -> Pattern a -> Pattern a
-segment = tParam _segment
+segment = patternify _segment
 
 _segment :: Time -> Pattern a -> Pattern a
-_segment n p = _fast n (pure id) <* p
+_segment n p = setTactus n $ _fast n (pure id) <* p
 
 -- | @discretise@: the old (deprecated) name for 'segment'
 discretise :: Pattern Time -> Pattern a -> Pattern a
@@ -1235,7 +1235,7 @@ following cycle the /next/ three values in the list will be picked, i.e.
 
 -}
 fit :: Pattern Int -> [a] -> Pattern Int -> Pattern a
-fit pint xs p = (tParam func) pint (xs,p)
+fit pint xs p = (patternify func) pint (xs,p)
   where func i (xs',p') = _fit i xs' p'
 
 _fit :: Int -> [a] -> Pattern Int -> Pattern a
@@ -1309,7 +1309,7 @@ randArcs n =
 
 -- TODO - what does this do? Something for @stripe@ ..
 randStruct :: Int -> Pattern Int
-randStruct n = splitQueries $ Pattern {query = f}
+randStruct n = splitQueries $ Pattern f Nothing Nothing
   where f st = map (\(a,b,c) -> Event (Context []) (Just a) (fromJust b) c) $ filter (\(_,x,_) -> isJust x) as
           where as = map (\(i, Arc s' e') ->
                     (Arc (s' + sam s) (e' + sam s),
@@ -1341,7 +1341,7 @@ durations will add up to a single cycle. @n@ can be supplied as a pattern of
 integers.
 -}
 stripe :: Pattern Int -> Pattern a -> Pattern a
-stripe = tParam _stripe
+stripe = patternify _stripe
 
 _stripe :: Int -> Pattern a -> Pattern a
 _stripe = substruct' . randStruct
@@ -1433,10 +1433,10 @@ transition matrix is automatically normalized.  For example:
 (⅞>1)|0
 -}
 markovPat :: Pattern Int -> Pattern Int -> [[Double]] -> Pattern Int
-markovPat = tParam2 _markovPat
+markovPat = patternify2 _markovPat
 
 _markovPat :: Int -> Int -> [[Double]] -> Pattern Int
-_markovPat n xi tp = splitQueries $ Pattern (\(State a@(Arc s _) _) ->
+_markovPat n xi tp = setTactus (toRational n) $ splitQueries $ pattern (\(State a@(Arc s _) _) ->
   queryArc (listToPat $ runMarkov n tp xi (sam s)) a)
 
 {-|
@@ -1493,7 +1493,7 @@ enclosingArc as = Arc (minimum (map start as)) (maximum (map stop as))
 -}
 stretch :: Pattern a -> Pattern a
 -- TODO - should that be whole or part?
-stretch p = splitQueries $ p {query = q}
+stretch p = splitQueries $ p {query = q, pureValue = Nothing}
   where q st = query (zoomArc (cycleArc $ enclosingArc $ map wholeOrPart $ query p (st {arc = Arc (sam s) (nextSam s)})) p) st
           where s = start $ arc st
 
@@ -1729,7 +1729,7 @@ is not a permutation of the parts.
 This could also be called “sampling without replacement”.
 -}
 shuffle :: Pattern Int -> Pattern a -> Pattern a
-shuffle = tParam _shuffle
+shuffle = patternify' _shuffle
 
 _shuffle :: Int -> Pattern a -> Pattern a
 _shuffle n = _rearrangeWith (randrun n) n
@@ -1742,7 +1742,7 @@ For example, @scramble 3 "a b c"@ will randomly select 3 parts from
 This could also be called “sampling with replacement”.
 -}
 scramble :: Pattern Int -> Pattern a -> Pattern a
-scramble = tParam _scramble
+scramble = patternify' _scramble
 
 _scramble :: Int -> Pattern a -> Pattern a
 _scramble n = _rearrangeWith (_segment (fromIntegral n) $ _irand n) n
@@ -1760,7 +1760,7 @@ d1 $ s "superhammond!12" # n (fromIntegral <$> randrun 13)
 randrun :: Int -> Pattern Int
 randrun 0 = silence
 randrun n' =
-  splitQueries $ Pattern (\(State a@(Arc s _) _) -> events a $ sam s)
+  splitQueries $ pattern (\(State a@(Arc s _) _) -> events a $ sam s)
   where events a seed = mapMaybe toEv $ zip arcs shuffled
           where shuffled = map snd $ sortOn fst $ zip rs [0 .. (n'-1)]
                 rs = timeToRands seed n' :: [Double]
@@ -1863,7 +1863,8 @@ ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <
         transform _ _     = id
         transform' str (Arc s e) p = s `rotR` inside (pure $ 1/(e-s)) (matchF str) p
         matchF str = fromMaybe id $ lookup str fs
-        timedValues = withEvent (\(Event c (Just a) a' v) -> Event c (Just a) a' (a,v)) . filterDigital
+        timedValues = filterJust . withEvent (\(Event c ma a' v) -> Event c ma a' (ma >>= \a -> Just (a,v))
+                                             ) . filterDigital
 
 {- | A simpler version of 'ur' that just provides name-value bindings that are
   reflected in the provided pattern.
@@ -1907,7 +1908,7 @@ spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (`compressArc` p) spac
   > d1 $ n ("[0,4,7] [-12,-8,-5]") # s "superpiano" # sustain 2
 -}
 flatpat :: Pattern [a] -> Pattern a
-flatpat p = p {query = concatMap (\(Event c b b' xs) -> map (Event c b b') xs) . query p}
+flatpat p = p {query = concatMap (\(Event c b b' xs) -> map (Event c b b') xs) . query p, pureValue = Nothing}
 
 {- | @layer@ takes a list of 'Pattern'-returning functions and a seed element,
 stacking the result of applying the seed element to each function in the list.
@@ -1964,7 +1965,7 @@ thumbup thumbupdown
 @
 -}
 arp :: Pattern String -> Pattern a -> Pattern a
-arp = tParam _arp
+arp = patternify _arp
 
 _arp :: String -> Pattern a -> Pattern a
 _arp name p = arpWith f p
@@ -2018,7 +2019,7 @@ rolledBy "<1 -0.5 0.25 -0.125>" $ note "c'maj9" # s "superpiano"
 @
 -}
 rolledBy :: Pattern (Ratio Integer) -> Pattern a -> Pattern a
-rolledBy pt = tParam rolledWith (segment 1 $ pt)
+rolledBy pt = patternify rolledWith (segment 1 $ pt)
 
 rolledWith :: Ratio Integer -> Pattern a -> Pattern a
 rolledWith t = withEvents aux
@@ -2038,7 +2039,7 @@ rolledWith t = withEvents aux
 
 -- | @fill@ 'fills in' gaps in one pattern with events from another. For example @fill "bd" "cp ~ cp"@ would result in the equivalent of `"~ bd ~"`. This only finds gaps in a resulting pattern, in other words @"[bd ~, sn]"@ doesn't contain any gaps (because @sn@ covers it all), and @"bd ~ ~ sn"@ only contains a single gap that bridges two steps.
 fill :: Pattern a -> Pattern a -> Pattern a
-fill p' p = struct (splitQueries $ p {query = q}) p'
+fill p' p = struct (splitQueries $ p {query = q, pureValue = Nothing}) p'
   where
     q st = removeTolerance (s,e) $ invert (s-tolerance, e+tolerance) $ query p (st {arc = (s-tolerance, e+tolerance)})
       where (s,e) = arc st
@@ -2079,7 +2080,7 @@ d1 $ every 3 (ply 4) $ s "bd ~ sn cp"
 @
 -}
 ply :: Pattern Rational -> Pattern a -> Pattern a
-ply = tParam _ply
+ply = patternify' _ply
 
 _ply :: Rational -> Pattern a -> Pattern a
 _ply n pat = squeezeJoin $ (_fast n . pure) <$> pat
@@ -2147,7 +2148,7 @@ press = _pressBy 0.5
   > ]
 -}
 pressBy :: Pattern Time -> Pattern a -> Pattern a
-pressBy = tParam _pressBy
+pressBy = patternify' _pressBy
 
 _pressBy :: Time -> Pattern a -> Pattern a
 _pressBy r pat = squeezeJoin $ (compressTo (r,1) . pure) <$> pat
@@ -2178,7 +2179,7 @@ _pressBy r pat = squeezeJoin $ (compressTo (r,1) . pure) <$> pat
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 -- Replaced with more efficient version below
 -- sew pb a b = overlay (mask pb a) (mask (inv pb) b)
-sew pb a b = Pattern $ pf
+sew pb a b = Pattern pf Nothing Nothing
   where pf st = concatMap match evs
           where evs = query pb st
                 parts = map part evs
@@ -2206,7 +2207,7 @@ stitch pb a b = overlay (struct pb a)  (struct (inv pb) b)
 -- value is active. No events are let through where no binary values
 -- are active.
 while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-while b f pat = sew b (f pat) pat
+while b f pat = keepTactus pat $ sew b (f pat) pat
 
 {-|
 @stutter n t pat@ repeats each event in @pat@ @n@ times, separated by @t@ time (in fractions of a cycle).
@@ -2300,7 +2301,8 @@ juxBy
      -> (Pattern ValueMap -> Pattern ValueMap)
      -> Pattern ValueMap
      -> Pattern ValueMap
-juxBy n f p = stack [p |+ P.pan 0.5 |- P.pan (n/2), f $ p |+ P.pan 0.5 |+ P.pan (n/2)]
+-- TODO: lcm tactus of p and f p?
+juxBy n f p = keepTactus p $ stack [p |+ P.pan 0.5 |- P.pan (n/2), f $ p |+ P.pan 0.5 |+ P.pan (n/2)]
 
 {- |
 Given a sample's directory name and number, this generates a string
@@ -2341,7 +2343,7 @@ samples' p p' = flip pick <$> p' <*> p
 {-
 scrumple :: Time -> Pattern a -> Pattern a -> Pattern a
 scrumple o p p' = p'' -- overlay p (o `rotR` p'')
-  where p'' = Pattern $ \a -> concatMap
+  where p'' = pattern $ \a -> concatMap
                               (\((s,d), vs) -> map (\x -> ((s,d),
                                                            snd x
                                                           )
@@ -2364,7 +2366,7 @@ stackwith p ps | null ps = silence
   where l = fromIntegral $ length ps
 
 {-
-cross f p p' = Pattern $ \t -> concat [filter flt $ arc p t,
+cross f p p' = pattern $ \t -> concat [filter flt $ arc p t,
                                        filter (not . flt) $ arc p' t
                                       ]
 ]  where flt = f . cyclePos . fst . fst
@@ -2426,34 +2428,34 @@ offadd :: Num a => Pattern Time -> Pattern a -> Pattern a -> Pattern a
 offadd tp pn p = off tp (+pn) p
 
 {- |
-  @step@ acts as a kind of simple step-sequencer using strings. For example,
-  @step "sn" "x x 12"@ is equivalent to the pattern of strings given by @"sn ~
-  sn ~ sn:1 sn:2 ~"@. @step@ substitutes the given string for each @x@, for each number
+  @sseq@ acts as a kind of simple step-sequencer using strings. For example,
+  @sseq "sn" "x x 12"@ is equivalent to the pattern of strings given by @"sn ~
+  sn ~ sn:1 sn:2 ~"@. @sseq@ substitutes the given string for each @x@, for each number
   it substitutes the string followed by a colon and the number, and for everything
   else it puts in a rest.
 
-  In other words, @step@ generates a pattern of strings in exactly the syntax you’d want for selecting samples and that can be fed directly into the 's' function.
+  In other words, @sseq@ generates a pattern of strings in exactly the syntax you’d want for selecting samples and that can be fed directly into the 's' function.
 
-  > d1 $ s (step "sn" "x x 12 ")
+  > d1 $ s (sseq "sn" "x x 12 ")
 -}
-step :: String -> String -> Pattern String
-step s cs = fastcat $ map f cs
+sseq :: String -> String -> Pattern String
+sseq s cs = fastcat $ map f cs
     where f c | c == 'x' = pure s
               | isDigit c = pure $ s ++ ":" ++ [c]
               | otherwise = silence
 
-{- | @steps@ is like @step@ but it takes a list of pairs, like step would, and
+{- | @sseqs@ is like @sseq@ but it takes a list of pairs, like sseq would, and
   it plays them all simultaneously.
 
-  > d1 $ s (steps [("cp","x  x x  x x  x"),("bd", "xxxx")])
+  > d1 $ s (sseqs [("cp","x  x x  x x  x"),("bd", "xxxx")])
 -}
-steps :: [(String, String)] -> Pattern String
-steps = stack . map (uncurry step)
+sseqs :: [(String, String)] -> Pattern String
+sseqs = stack . map (uncurry sseq)
 
-{- | like `step`, but allows you to specify an array of strings to use for @0,1,2...@
+{- | like `sseq`, but allows you to specify an array of strings to use for @0,1,2...@
   For example,
 
-  > d1 $ s (step' ["superpiano","supermandolin"] "0 1 000 1")
+  > d1 $ s (sseq' ["superpiano","supermandolin"] "0 1 000 1")
   >    # sustain 4 # n 0
 
   is equivalent to
@@ -2461,8 +2463,8 @@ steps = stack . map (uncurry step)
   > d1 $ s "superpiano ~ supermandolin ~ superpiano!3 ~ supermandolin"
   >    # sustain 4 # n 0
 -}
-step' :: [String] -> String -> Pattern String
-step' ss cs = fastcat $ map f cs
+sseq' :: [String] -> String -> Pattern String
+sseq' ss cs = fastcat $ map f cs
     where f c | c == 'x' = pure $ head ss
               | isDigit c = pure $ ss !! digitToInt c
               | otherwise = silence
@@ -2527,7 +2529,7 @@ tabby nInt p p' = stack [maskedWarp,
 
 -- | Chooses from a list of patterns, using a pattern of floats (from 0 to 1).
 select :: Pattern Double -> [Pattern a] -> Pattern a
-select = tParam _select
+select = patternify _select
 
 _select :: Double -> [Pattern a] -> Pattern a
 _select f ps =  ps !! floor (max 0 (min 1 f) * fromIntegral (length ps - 1))
@@ -2707,7 +2709,7 @@ inv = (not <$>)
 -- | Serialises a pattern so there's only one event playing at any one
 -- time, making it /monophonic/. Events which start/end earlier are given priority.
 mono :: Pattern a -> Pattern a
-mono p = Pattern $ \(State a cm) -> flatten $ query p (State a cm) where
+mono p = pattern $ \(State a cm) -> flatten $ query p (State a cm) where
   flatten :: [Event a] -> [Event a]
   flatten = mapMaybe constrainPart . truncateOverlaps . sortOn whole
   truncateOverlaps []     = []
@@ -2738,7 +2740,7 @@ This sound will pan gradually from left to right, then to the center, then to th
 
 -- TODO - test this with analog events
 smooth :: Fractional a => Pattern a -> Pattern a
-smooth p = Pattern $ \st@(State a cm) -> tween st a $ query monoP (State (midArc a) cm)
+smooth p = pattern $ \st@(State a cm) -> tween st a $ query monoP (State (midArc a) cm)
   where
     midArc a = Arc (mid (start a, stop a)) (mid (start a, stop a))
     tween _ _ [] = []
@@ -2776,7 +2778,7 @@ swap things p = filterJust $ (`lookup` things) <$> p
   >    # s "gtr"
 -}
 snowball :: Int -> (Pattern a -> Pattern a -> Pattern a) -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-snowball depth combinationFunction f pattern = cat $ take depth $ scanl combinationFunction pattern $ drop 1 $ iterate f pattern
+snowball depth combinationFunction f pat = cat $ take depth $ scanl combinationFunction pat $ drop 1 $ iterate f pat
 
 {- |
   Applies a function to a pattern and cats the resulting pattern, then continues
@@ -2790,7 +2792,7 @@ snowball depth combinationFunction f pattern = cat $ take depth $ scanl combinat
   >    # s "gtr"
 -}
 soak ::  Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-soak depth f pattern = cat $ take depth $ iterate f pattern
+soak depth f pat = cat $ take depth $ iterate f pat
 
 -- | @construct n p@ breaks @p@ into pieces and then reassembles them
 -- so that it fits into @n@ steps.
@@ -2840,7 +2842,7 @@ squeeze _ []      = silence
 squeeze ipat pats = squeezeJoin $ (pats !!!) <$> ipat
 
 squeezeJoinUp :: Pattern (ControlPattern) -> ControlPattern
-squeezeJoinUp pp = pp {query = q}
+squeezeJoinUp pp = pp {query = q, pureValue = Nothing}
   where q st = concatMap (f st) (query (filterDigital pp) st)
         f st (Event c (Just w) p v) =
           mapMaybe (munge c w p) $ query (compressArc (cycleArc w) (v |* P.speed (pure $ fromRational $ 1/(stop w - start w)))) st {arc = p}
@@ -2876,10 +2878,10 @@ _binary :: Data.Bits.Bits b => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
 
 _binaryN :: Int -> Pattern Int -> Pattern Bool
-_binaryN n p = squeezeJoin $ _binary n <$> p
+_binaryN n p = setTactus (toRational n) $ squeezeJoin $ _binary n <$> p
 
 binaryN :: Pattern Int -> Pattern Int -> Pattern Bool
-binaryN n p = tParam _binaryN n p
+binaryN n p = patternify _binaryN n p
 
 binary :: Pattern Int -> Pattern Bool
 binary = binaryN 8

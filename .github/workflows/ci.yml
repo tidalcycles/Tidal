@@ -36,9 +36,6 @@ jobs:
           - ghc: 8.6.5
             cabal: 3.4.0.0
             experimental: false
-          - ghc: 8.4.4
-            cabal: 3.4.0.0
-            experimental: false
 
     continue-on-error: ${{ matrix.versions.experimental }}
     name: cabal ${{ matrix.versions.cabal }} - ghc ${{ matrix.versions.ghc }}

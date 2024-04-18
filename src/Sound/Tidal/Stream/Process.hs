@@ -1,6 +1,11 @@
-{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, BangPatterns #-}
+{-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
-{-# language DeriveGeneric, StandaloneDeriving #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 
 module Sound.Tidal.Stream.Process where
 
@@ -22,43 +27,43 @@ module Sound.Tidal.Stream.Process where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Control.Applicative ((<|>))
+import           Control.Applicative       ((<|>))
 import           Control.Concurrent.MVar
-import           Control.Monad (forM_, when)
-import           Data.Coerce (coerce)
-import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust, fromMaybe, catMaybes)
-import qualified Control.Exception as E
+import qualified Control.Exception         as E
+import           Control.Monad             (forM_, when)
+import           Data.Coerce               (coerce)
+import qualified Data.Map.Strict           as Map
+import           Data.Maybe                (catMaybes, fromJust, fromMaybe)
 import           Foreign.C.Types
-import           System.IO (hPutStrLn, stderr)
+import           System.IO                 (hPutStrLn, stderr)
 
-import qualified Sound.Osc.Fd as O
+import qualified Sound.Osc.Fd              as O
 
-import           Sound.Tidal.Stream.Config
-import           Sound.Tidal.Core (stack, (#))
+import           Data.List                 (sortOn)
+import qualified Sound.Tidal.Clock         as Clock
+import           Sound.Tidal.Core          (stack, (#))
 import           Sound.Tidal.ID
-import qualified Sound.Tidal.Link as Link
-import qualified Sound.Tidal.Clock as Clock
-import           Sound.Tidal.Params (pS)
+import qualified Sound.Tidal.Link          as Link
+import           Sound.Tidal.Params        (pS)
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Utils ((!!!))
-import           Data.List (sortOn)
-import           Sound.Tidal.Show ()
+import           Sound.Tidal.Show          ()
+import           Sound.Tidal.Stream.Config
+import           Sound.Tidal.Utils         ((!!!))
 
-import           Sound.Tidal.Stream.Types
 import           Sound.Tidal.Stream.Target
+import           Sound.Tidal.Stream.Types
 
 data ProcessedEvent =
   ProcessedEvent {
-    peHasOnset :: Bool,
-    peEvent :: Event ValueMap,
-    peCps :: Link.BPM,
-    peDelta :: Link.Micros,
-    peCycle :: Time,
-    peOnWholeOrPart :: Link.Micros,
+    peHasOnset         :: Bool,
+    peEvent            :: Event ValueMap,
+    peCps              :: Link.BPM,
+    peDelta            :: Link.Micros,
+    peCycle            :: Time,
+    peOnWholeOrPart    :: Link.Micros,
     peOnWholeOrPartOsc :: O.Time,
-    peOnPart :: Link.Micros,
-    peOnPartOsc :: O.Time
+    peOnPart           :: Link.Micros,
+    peOnPartOsc        :: O.Time
   }
 
 -- | Query the current pattern (contained in argument @stream :: Stream@)
@@ -172,7 +177,7 @@ toOSC busses pe osc@(OSC _ _)
         -- (but perhaps we should explicitly crash with an error message if it contains something else?).
         -- Map.mapKeys tail is used to remove ^ from the keys.
         -- In case (value e) has the key "", we will get a crash here.
-        playmap' = Map.union (Map.mapKeys tail $ Map.map (\(VI i) -> VS ('c':(show $ toBus i))) busmap) playmap
+        playmap' = Map.union (Map.mapKeys tail $ Map.map (\v -> VS ('c':(show $ toBus $ fromMaybe 0 $ getI v))) busmap) playmap
         val = value . peEvent
         -- Only events that start within the current nowArc are included
         playmsg | peHasOnset pe = do
@@ -193,11 +198,13 @@ toOSC busses pe osc@(OSC _ _)
         toBus n | null busses = n
                 | otherwise = busses !!! n
         busmsgs = map
-                    (\(('^':k), (VI b)) -> do v <- Map.lookup k playmap
-                                              return $ (tsPart,
-                                                        True, -- bus message ?
-                                                        O.Message "/c_set" [O.int32 b, toDatum v]
-                                                      )
+                    (\(k, b) -> do k' <- if (not $ null k) && head k == '^' then Just (tail k) else Nothing
+                                   v <- Map.lookup k' playmap
+                                   bi <- getI b
+                                   return $ (tsPart,
+                                             True, -- bus message ?
+                                             O.Message "/c_set" [O.int32 bi, toDatum v]
+                                            )
                     )
                     (Map.toList busmap)
           where
@@ -227,15 +234,15 @@ toData (OSC {args = Named rqrd}) e
 toData _ _ = Nothing
 
 toDatum :: Value -> O.Datum
-toDatum (VF x) = O.float x
-toDatum (VN x) = O.float x
-toDatum (VI x) = O.int32 x
-toDatum (VS x) = O.string x
-toDatum (VR x) = O.float $ ((fromRational x) :: Double)
-toDatum (VB True) = O.int32 (1 :: Int)
+toDatum (VF x)     = O.float x
+toDatum (VN x)     = O.float x
+toDatum (VI x)     = O.int32 x
+toDatum (VS x)     = O.string x
+toDatum (VR x)     = O.float $ ((fromRational x) :: Double)
+toDatum (VB True)  = O.int32 (1 :: Int)
 toDatum (VB False) = O.int32 (0 :: Int)
-toDatum (VX xs) = O.Blob $ O.blob_pack xs
-toDatum _ = error "toDatum: unhandled value"
+toDatum (VX xs)    = O.Blob $ O.blob_pack xs
+toDatum _          = error "toDatum: unhandled value"
 
 substitutePath :: String -> ValueMap -> Maybe String
 substitutePath str cm = parse str
@@ -253,28 +260,28 @@ getString :: ValueMap -> String -> Maybe String
 getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
                       where (param, dflt) = break (== '=') s
                             simpleShow :: Value -> String
-                            simpleShow (VS str) = str
-                            simpleShow (VI i) = show i
-                            simpleShow (VF f) = show f
-                            simpleShow (VN n) = show n
-                            simpleShow (VR r) = show r
-                            simpleShow (VB b) = show b
-                            simpleShow (VX xs) = show xs
-                            simpleShow (VState _) = show "<stateful>"
+                            simpleShow (VS str)     = str
+                            simpleShow (VI i)       = show i
+                            simpleShow (VF f)       = show f
+                            simpleShow (VN n)       = show n
+                            simpleShow (VR r)       = show r
+                            simpleShow (VB b)       = show b
+                            simpleShow (VX xs)      = show xs
+                            simpleShow (VState _)   = show "<stateful>"
                             simpleShow (VPattern _) = show "<pattern>"
-                            simpleShow (VList _) = show "<list>"
+                            simpleShow (VList _)    = show "<list>"
                             defaultValue :: String -> Maybe String
                             defaultValue ('=':dfltVal) = Just dfltVal
-                            defaultValue _ = Nothing
+                            defaultValue _             = Nothing
 
 playStack :: PlayMap -> ControlPattern
-playStack pMap = stack . (map pattern) . (filter active) . Map.elems $ pMap
+playStack pMap = stack . (map psPattern) . (filter active) . Map.elems $ pMap
   where active pState = if hasSolo pMap
-                        then solo pState
-                        else not (mute pState)
+                        then psSolo pState
+                        else not (psMute pState)
 
 hasSolo :: Map.Map k PlayState -> Bool
-hasSolo = (>= 1) . length . filter solo . Map.elems
+hasSolo = (>= 1) . length . filter psSolo . Map.elems
 
 
 -- Used for Tempo callback
@@ -286,10 +293,10 @@ onSingleTick :: Config -> Clock.ClockRef -> MVar ValueMap -> MVar [Int] -> MVar 
 onSingleTick config clockRef stateMV busMV _ globalFMV cxs listen pat = do
   ops <- Clock.getZeroedLinkOperations (cClockConfig config) clockRef
   pMapMV <- newMVar $ Map.singleton "fake"
-          (PlayState {pattern = pat,
-                      mute = False,
-                      solo = False,
-                      history = []
+          (PlayState {psPattern = pat,
+                      psMute = False,
+                      psSolo = False,
+                      psHistory = []
                       }
           )
   -- The nowArc is a full cycle
@@ -304,7 +311,7 @@ updatePattern stream k !t pat = do
   pMap <- seq x $ takeMVar (sPMapMV stream)
   let playState = updatePS $ Map.lookup (fromID k) pMap
   putMVar (sPMapMV stream) $ Map.insert (fromID k) playState pMap
-  where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
+  where updatePS (Just playState) = do playState {psPattern = pat', psHistory = pat:(psHistory playState)}
         updatePS Nothing = PlayState pat' False False [pat']
         patControls = Map.singleton patternTimeID (VR t)
         pat' = withQueryControls (Map.union patControls)
@@ -313,7 +320,7 @@ updatePattern stream k !t pat = do
 setPreviousPatternOrSilence :: MVar PlayMap -> IO ()
 setPreviousPatternOrSilence playMV =
  modifyMVar_ playMV $ return
-   . Map.map ( \ pMap -> case history pMap of
-     _:p:ps -> pMap { pattern = p, history = p:ps }
-     _ -> pMap { pattern = silence, history = [silence] }
+   . Map.map ( \ pMap -> case psHistory pMap of
+     _:p:ps -> pMap { psPattern = p, psHistory = p:ps }
+     _      -> pMap { psPattern = silence, psHistory = [silence] }
              )

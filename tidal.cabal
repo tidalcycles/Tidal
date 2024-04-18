@@ -1,7 +1,7 @@
 cabal-version:       2.0
 
 name:                tidal
-version:             1.9.5
+version:             1.10.0
 synopsis:            Pattern language for improvised music
 description:         Tidal is a domain specific language for live coding patterns.
 homepage:            http://tidalcycles.org/
@@ -13,7 +13,7 @@ Stability:           Experimental
 Copyright:           (c) Alex McLean and other contributors, 2021
 category:            Sound
 build-type:          Simple
-tested-with:         GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.3, GHC == 8.10.1, GHC == 9.0.1
+tested-with:         GHC == 8.6.5, GHC == 8.8.3, GHC == 8.10.1, GHC == 9.0.1, GHC == 9.4.8, GHC == 9.8.2
 data-files:          BootTidal.hs
 
 Extra-source-files: README.md CHANGELOG.md tidal.el
@@ -42,13 +42,14 @@ library
                        Sound.Tidal.Safe.Boot
                        Sound.Tidal.Show
                        Sound.Tidal.Simple
+                       Sound.Tidal.Stepwise
                        Sound.Tidal.Stream
                        Sound.Tidal.Stream.Config
                        Sound.Tidal.Stream.Listen
                        Sound.Tidal.Stream.Main
                        Sound.Tidal.Stream.Process
-                       Sound.Tidal.Stream.Types
                        Sound.Tidal.Stream.Target
+                       Sound.Tidal.Stream.Types
                        Sound.Tidal.Stream.UI
                        Sound.Tidal.Time
                        Sound.Tidal.Transition

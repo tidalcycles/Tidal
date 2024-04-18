@@ -1,4 +1,7 @@
-{-# LANGUAGE FlexibleInstances, OverloadedStrings, FlexibleContexts, BangPatterns #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Sound.Tidal.Control where
 {-
@@ -21,18 +24,18 @@ module Sound.Tidal.Control where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Prelude hiding ((<*), (*>))
+import           Prelude                  hiding ((*>), (<*))
 
-import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe, isJust, fromJust)
-import Data.Ratio
+import qualified Data.Map.Strict          as Map
+import           Data.Maybe               (fromJust, fromMaybe, isJust)
+import           Data.Ratio
 
-import Sound.Tidal.Pattern
-import Sound.Tidal.Core
-import Sound.Tidal.Stream.Types (patternTimeID)
-import Sound.Tidal.UI
-import qualified Sound.Tidal.Params as P
-import Sound.Tidal.Utils
+import           Sound.Tidal.Core
+import qualified Sound.Tidal.Params       as P
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Stream.Types (patternTimeID)
+import           Sound.Tidal.UI
+import           Sound.Tidal.Utils
 
 {- | `spin` will "spin" and layer up a pattern the given number of times,
 with each successive layer offset in time by an additional @1/n@ of a cycle,
@@ -44,7 +47,7 @@ around. This function work well on multichannel systems.
 >    $ sound "drum*3 tabla:4 [arpy:2 ~ arpy] [can:2 can:3]"
 -}
 spin :: Pattern Int -> ControlPattern -> ControlPattern
-spin = tParam _spin
+spin = patternify _spin
 
 _spin :: Int -> ControlPattern -> ControlPattern
 _spin copies p =
@@ -87,13 +90,13 @@ _spin copies p =
   > d1 $ loopAt 8 $ rev $ chop 32 $ sound "bev"
 -}
 chop :: Pattern Int -> ControlPattern -> ControlPattern
-chop = tParam _chop
+chop = patternify _chop
 
 chopArc :: Arc -> Int -> [Arc]
 chopArc (Arc s e) n = map (\i -> Arc (s + (e-s)*(fromIntegral i/fromIntegral n)) (s + (e-s)*(fromIntegral (i+1) / fromIntegral n))) [0 .. n-1]
 
 _chop :: Int -> ControlPattern -> ControlPattern
-_chop n = withEvents (concatMap chopEvent)
+_chop n pat = withTactus (* toRational n) $ withEvents (concatMap chopEvent) pat
   where -- for each part,
         chopEvent :: Event ValueMap -> [Event ValueMap]
         chopEvent (Event c (Just w) p' v) = map (chomp c v (length $ chopArc w n)) $ arcs w p'
@@ -152,10 +155,10 @@ and manipulates those parts by reversing and rotating the loops:
 -}
 
 striate :: Pattern Int -> ControlPattern -> ControlPattern
-striate = tParam _striate
+striate = patternify _striate
 
 _striate :: Int -> ControlPattern -> ControlPattern
-_striate n p = fastcat $ map offset [0 .. n-1]
+_striate n p = keepTactus (withTactus (* toRational n) p) $ fastcat $ map offset [0 .. n-1]
   where offset i = mergePlayRange (fromIntegral i / fromIntegral n, fromIntegral (i+1) / fromIntegral n) <$> p
 
 mergePlayRange :: (Double, Double) -> ValueMap -> ValueMap
@@ -180,7 +183,7 @@ internally. This means that you probably shouldn't also specify `begin` or
 `end`.
 -}
 striateBy :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
-striateBy = tParam2 _striateBy
+striateBy = patternify2 _striateBy
 
 -- | DEPRECATED, use 'striateBy' instead.
 striate' :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
@@ -201,7 +204,7 @@ each sample is chopped into:
 -}
 
 gap :: Pattern Int -> ControlPattern -> ControlPattern
-gap = tParam _gap
+gap = patternify _gap
 
 _gap :: Int -> ControlPattern -> ControlPattern
 _gap n p = _fast (toRational n) (cat [pure 1, silence]) |>| _chop n p
@@ -336,7 +339,7 @@ _slice n i p =
   > d1 $ fast 4 $ randslice 32 $ sound "bev"
 -}
 randslice :: Pattern Int -> ControlPattern -> ControlPattern
-randslice = tParam $ \n p -> innerJoin $ (\i -> _slice n i p) <$> _irand n
+randslice = patternify $ \n p -> keepTactus (withTactus (* (toRational n)) $ p) $ innerJoin $ (\i -> _slice n i p) <$> _irand n
 
 _splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
 _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure "c")
@@ -441,7 +444,7 @@ smash' n xs p = slowcat $ map (`slow` p') xs
     > d1 $ echo 4 (-0.2) 0.5 $ sound "bd sn"
 -}
 echo :: Pattern Integer -> Pattern Rational -> Pattern Double -> ControlPattern -> ControlPattern
-echo = tParam3 _echo
+echo = patternify3' _echo
 
 _echo :: Integer -> Rational -> Double -> ControlPattern -> ControlPattern
 _echo count time feedback p = _echoWith count time (|* P.gain (pure $ feedback)) p
@@ -470,7 +473,7 @@ _echoWith count time f p | count <= 1 = p
 
 -- | DEPRECATED, use 'echo' instead
 stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ControlPattern -> ControlPattern
-stut = tParam3 _stut
+stut = patternify3' _stut
 
 _stut :: Integer -> Double -> Rational -> ControlPattern -> ControlPattern
 _stut count feedback steptime p = stack (p:map (\x -> ((x%1)*steptime) `rotR` (p |* P.gain (pure $ scalegain (fromIntegral x)))) [1..(count-1)])
