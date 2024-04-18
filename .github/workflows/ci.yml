@@ -17,9 +17,6 @@ jobs:
             cabal: latest
             args: --allow-newer=base,template-haskell
             experimental: true
-          - ghc: 9.8.2
-            cabal: 3.10.2.0
-            experimental: false
           - ghc: 9.4.1
             cabal: 3.8.1.0
             args: --allow-newer=base,template-haskell
