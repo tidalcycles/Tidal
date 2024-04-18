@@ -44,7 +44,7 @@ _s_add r pat@(Pattern _ (Just t) _)
   | otherwise = zoom (0, (r/t)) pat
 
 s_add :: Pattern Rational -> Pattern a -> Pattern a
-s_add = patternify _s_add
+s_add = s_patternify _s_add
 
 _s_sub :: Rational -> Pattern a -> Pattern a
 _s_sub _ pat@(Pattern _ Nothing _)  = pat
@@ -53,7 +53,7 @@ _s_sub r pat@(Pattern _ (Just t) _) | r >= t = nothing
                                     | otherwise = _s_add (t-r) pat
 
 s_sub :: Pattern Rational -> Pattern a -> Pattern a
-s_sub = patternify _s_sub
+s_sub = s_patternify _s_sub
 
 s_while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 s_while patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
@@ -111,10 +111,14 @@ _s_contract :: Rational -> Pattern a -> Pattern a
 _s_contract factor pat = withTactus (/ factor) pat
 
 s_expand :: Pattern Rational -> Pattern a -> Pattern a
-s_expand = patternify _s_expand
+s_expand = s_patternify _s_expand
 
 s_contract :: Pattern Rational -> Pattern a -> Pattern a
-s_contract = patternify _s_contract
+s_contract = s_patternify _s_contract
+
+s_patternify :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
+s_patternify f (Pattern _ _ (Just a)) b = f a b
+s_patternify f pa p                     = keepTactus p $ stepJoin $ (`f` p) <$> pa
 
 stepJoin :: Pattern (Pattern a) -> Pattern a
 stepJoin pp = Pattern q Nothing Nothing
