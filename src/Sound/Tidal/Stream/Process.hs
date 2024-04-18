@@ -194,7 +194,7 @@ toOSC maybeBusses pe osc@(OSC _ _)
                     (\(('^':k), (VI b)) -> do v <- Map.lookup k playmap
                                               return $ (tsPart,
                                                         True, -- bus message ?
-                                                        O.Message "/c_set" [O.int32 b, toDatum v]
+                                                        O.Message "/c_set" [O.int32 (toBus b), toDatum v]
                                                       )
                     )
                     (Map.toList busmap)
