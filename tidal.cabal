@@ -58,7 +58,7 @@ library
                        Paths_tidal
   Build-depends:
       base >=4.8 && <5
-    , containers < 0.8
+    , containers >= 0.6 && < 0.8
     , colour < 2.4
     , hosc >= 0.20 && < 0.21
     , text < 2.2
