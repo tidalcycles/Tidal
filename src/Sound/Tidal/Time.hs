@@ -1,11 +1,12 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Sound.Tidal.Time where
 
-import Control.Applicative
-import GHC.Generics
-import Control.DeepSeq (NFData)
+import           Control.Applicative
+import           Control.DeepSeq     (NFData)
+import           Data.Ratio
+import           GHC.Generics
 
 -- | Time is rational
 type Time = Rational
@@ -13,7 +14,7 @@ type Time = Rational
 -- | An arc of time, with a start time (or onset) and a stop time (or offset)
 data ArcF a = Arc
   { start :: a
-  , stop :: a
+  , stop  :: a
   } deriving (Eq, Ord, Functor, Show, Generic)
 
 type Arc = ArcF Time
@@ -152,3 +153,7 @@ mapCycle f (Arc s e) = Arc (sam' + f (s - sam')) (sam' + f (e - sam'))
 -- the arc represented by @a@.
 isIn :: Arc -> Time -> Bool
 isIn (Arc s e) t = t >= s && t < e
+
+-- | Returns the lowest common multiple of two rational numbers
+lcmr :: Rational -> Rational -> Rational
+lcmr a b = lcm (numerator a) (numerator b) % gcd (denominator a) (denominator b)

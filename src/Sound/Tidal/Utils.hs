@@ -1,3 +1,6 @@
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP          #-}
+
 module Sound.Tidal.Utils where
 
 {-
@@ -18,8 +21,17 @@ module Sound.Tidal.Utils where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import Data.List (delete)
-import System.IO (hPutStrLn, stderr)
+import           Data.List (delete)
+import           System.IO (hPutStrLn, stderr)
+
+import           Data.Set  (Set)
+import qualified Data.Set  as Set
+-- import qualified Data.IntSet as IntSet
+-- import Data.IntSet (IntSet)
+#ifdef __GLASGOW_HASKELL__
+import           GHC.Exts  (build)
+#endif
+
 
 writeError :: String -> IO ()
 writeError = hPutStrLn stderr
@@ -71,7 +83,7 @@ nth 0 (x : _)  = Just x
 nth n (_ : xs) = nth (n - 1) xs
 
 accumulate :: Num t => [t] -> [t]
-accumulate [] = []
+accumulate []     = []
 accumulate (x:xs) = scanl (+) x xs
 
 {- | enumerate a list of things
@@ -101,3 +113,65 @@ matchMaybe x       _ = x
 fromRight :: b -> Either a b -> b
 fromRight _ (Right b) = b
 fromRight b _         = b
+
+-- Available in Data.Function, but only since 4.18
+applyWhen :: Bool -> (a -> a) -> a -> a
+applyWhen True  f x = f x
+applyWhen False _ x = x
+
+-- pair up neighbours in list
+pairs :: [a] -> [(a,a)]
+pairs rs = zip rs (tail rs)
+
+-- The following is from Data.Containers.ListUtils, (c) Gershom Bazerman 2018,
+-- Used under a BSD 3-clause license
+-- https://hackage.haskell.org/package/containers
+
+nubOrd :: Ord a => [a] -> [a]
+nubOrd = nubOrdOn id
+
+{-# INLINE nubOrd #-}
+nubOrdOn :: Ord b => (a -> b) -> [a] -> [a]
+nubOrdOn f = \xs -> nubOrdOnExcluding f Set.empty xs
+{-# INLINE nubOrdOn #-}
+
+nubOrdOnExcluding :: Ord b => (a -> b) -> Set b -> [a] -> [a]
+nubOrdOnExcluding f = go
+  where
+    go _ [] = []
+    go s (x:xs)
+      | fx `Set.member` s = go s xs
+      | otherwise = x : go (Set.insert fx s) xs
+      where !fx = f x
+
+#ifdef __GLASGOW_HASKELL__
+{-# INLINABLE [1] nubOrdOnExcluding #-}
+
+{-# RULES
+-- Rewrite to a fusible form.
+"nubOrdOn" [~1] forall f as s. nubOrdOnExcluding  f s as =
+  build (\c n -> foldr (nubOrdOnFB f c) (constNubOn n) as s)
+
+-- Rewrite back to a plain form
+"nubOrdOnList" [1] forall f as s.
+    foldr (nubOrdOnFB f (:)) (constNubOn []) as s =
+       nubOrdOnExcluding f s as
+ #-}
+
+nubOrdOnFB :: Ord b
+           => (a -> b)
+           -> (a -> r -> r)
+           -> a
+           -> (Set b -> r)
+           -> Set b
+           -> r
+nubOrdOnFB f c x r s
+  | fx `Set.member` s = r s
+  | otherwise = x `c` r (Set.insert fx s)
+  where !fx = f x
+{-# INLINABLE [0] nubOrdOnFB #-}
+
+constNubOn :: a -> b -> a
+constNubOn x _ = x
+{-# INLINE [0] constNubOn #-}
+#endif

@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances, RecordWildCards #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz, stepcount, showStateful) where
@@ -22,13 +23,13 @@ module Sound.Tidal.Show (show, showAll, draw, drawLine, drawLineSz, stepcount, s
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import Sound.Tidal.Pattern
+import           Sound.Tidal.Pattern
 
-import Data.List (intercalate, sortOn)
-import Data.Ratio (numerator, denominator)
-import Data.Maybe (fromMaybe, isJust)
+import           Data.List           (intercalate, sortOn)
+import           Data.Maybe          (fromMaybe, isJust)
+import           Data.Ratio          (denominator, numerator)
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict     as Map
 
 instance (Show a) => Show (Pattern a) where
   show = showPattern (Arc 0 1)
@@ -47,6 +48,7 @@ showStateful p = intercalate "\n" evStrings
         evStrings = map evString evs'
 
 showPattern :: Show a => Arc -> Pattern a -> String
+showPattern _ (Pattern _ _ (Just v)) = "(pure " ++ show v ++ ")"
 showPattern a p = intercalate "\n" evStrings
   where evs = map showEvent $ sortOn part $ queryArc p a
         maxPartLength :: Int
@@ -79,16 +81,16 @@ instance Show Context where
   show (Context cs) = show cs
 
 instance Show Value where
-  show (VS s)  = ('"':s) ++ "\""
-  show (VI i)  = show i
-  show (VF f)  = show f ++ "f"
-  show (VN n)  = show n
-  show (VR r)  = prettyRat r ++ "r"
-  show (VB b)  = show b
-  show (VX xs) = show xs
+  show (VS s)         = ('"':s) ++ "\""
+  show (VI i)         = show i
+  show (VF f)         = show f ++ "f"
+  show (VN n)         = show n
+  show (VR r)         = prettyRat r ++ "r"
+  show (VB b)         = show b
+  show (VX xs)        = show xs
   show (VPattern pat) = "(" ++ show pat ++ ")"
-  show (VState f) = show $ f Map.empty
-  show (VList vs) = show $ map show vs
+  show (VState f)     = show $ f Map.empty
+  show (VList vs)     = show $ map show vs
 
 instance {-# OVERLAPPING #-} Show ValueMap where
   show m = intercalate ", " $ map (\(name, v) -> name ++ ": " ++ show v) $ Map.toList m
@@ -195,7 +197,7 @@ draw pat = Render 1 s (intercalate "\n" $ map (('|' :) .drawLevel) ls)
         drawLevel [] = replicate s '.'
         drawLevel (e:es) = map f $ take s $ zip (drawLevel es ++ repeat '.') (drawEvent e ++ repeat '.')
         f ('.', x) = x
-        f (x, _) = x
+        f (x, _)   = x
         drawEvent :: Event Char -> String
         drawEvent ev = replicate (floor $ rs * evStart) '.'
                        ++ (value ev:replicate (floor (rs * (evStop - evStart)) - 1) '-')
