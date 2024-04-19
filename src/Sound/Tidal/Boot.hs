@@ -27,6 +27,8 @@ module Sound.Tidal.Boot
   , setCycle
   , setcps
   , getcps
+  , setbpm
+  , getbpm
   , getnow
   , d1
   , d2
@@ -174,9 +176,17 @@ setCycle = streamSetCycle tidal
 setcps :: Tidally => Pattern Double -> IO ()
 setcps = once . cps
 
--- | See 'Sound.Tidal.Stream.streamGetcps'.
+-- | See 'Sound.Tidal.Stream.streamGetCPS'.
 getcps :: Tidally => IO Time
 getcps = streamGetCPS tidal
+
+-- | See 'Sound.Tidal.Stream.streamGetBPM'.
+setbpm :: Tidally => Time -> IO ()
+setbpm = streamSetBPM tidal
+
+-- | See 'Sound.Tidal.Stream.streamGetBPM'.
+getbpm :: Tidally => IO Time
+getbpm = streamGetBPM tidal
 
 -- | See 'Sound.Tidal.Stream.streamGetnow'.
 getnow :: Tidally => IO Time
