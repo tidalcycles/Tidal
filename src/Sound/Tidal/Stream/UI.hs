@@ -1,19 +1,20 @@
-{-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Sound.Tidal.Stream.UI where
 
-import qualified Data.Map as Map
-import qualified Control.Exception as E
 import           Control.Concurrent.MVar
-import           System.IO (hPutStrLn, stderr)
-import           System.Random (getStdRandom, randomR)
+import qualified Control.Exception          as E
+import qualified Data.Map                   as Map
+import           System.IO                  (hPutStrLn, stderr)
+import           System.Random              (getStdRandom, randomR)
 
-import qualified Sound.Tidal.Clock as Clock
-import           Sound.Tidal.Stream.Types
+import qualified Sound.Tidal.Clock          as Clock
 import           Sound.Tidal.Stream.Config
 import           Sound.Tidal.Stream.Process
+import           Sound.Tidal.Stream.Types
 
-import           Sound.Tidal.Pattern
 import           Sound.Tidal.ID
+import           Sound.Tidal.Pattern
 
 streamNudgeAll :: Stream -> Double -> IO ()
 streamNudgeAll s = Clock.setNudge (sClockRef s)
@@ -50,10 +51,10 @@ streamList s = do pMap <- readMVar (sPMapMV s)
                   let hs = hasSolo pMap
                   putStrLn $ concatMap (showKV hs) $ Map.toList pMap
   where showKV :: Bool -> (PatId, PlayState) -> String
-        showKV True  (k, (PlayState {solo = True})) = k ++ " - solo\n"
-        showKV True  (k, _) = "(" ++ k ++ ")\n"
+        showKV True  (k, (PlayState {solo = True}))  = k ++ " - solo\n"
+        showKV True  (k, _)                          = "(" ++ k ++ ")\n"
         showKV False (k, (PlayState {solo = False})) = k ++ "\n"
-        showKV False (k, _) = "(" ++ k ++ ") - muted\n"
+        showKV False (k, _)                          = "(" ++ k ++ ") - muted\n"
 
 streamReplace :: Stream -> ID -> ControlPattern -> IO ()
 streamReplace stream k !pat = do

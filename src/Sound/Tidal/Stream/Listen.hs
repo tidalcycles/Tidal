@@ -1,13 +1,13 @@
 module Sound.Tidal.Stream.Listen where
 
-import           Data.Maybe (fromJust)
 import           Control.Concurrent.MVar
-import           Control.Monad (when)
-import           System.IO (hPutStrLn, stderr)
-import qualified Data.Map as Map
-import qualified Sound.Osc.Fd as O
-import qualified Network.Socket         as N
-import qualified Control.Exception as E
+import qualified Control.Exception         as E
+import           Control.Monad             (when)
+import qualified Data.Map                  as Map
+import           Data.Maybe                (fromJust)
+import qualified Network.Socket            as N
+import qualified Sound.Osc.Fd              as O
+import           System.IO                 (hPutStrLn, stderr)
 
 import           Sound.Tidal.ID
 import           Sound.Tidal.Pattern
@@ -91,6 +91,6 @@ ctrlResponder _ (stream@(Stream {sListen = Just sock})) = loop
                      return ()
         withID :: O.Datum -> (ID -> IO ()) -> IO ()
         withID (O.AsciiString k) func = func $ (ID . O.ascii_to_string) k
-        withID (O.Int32 k) func = func $ (ID . show) k
-        withID _ _ = return ()
+        withID (O.Int32 k) func       = func $ (ID . show) k
+        withID _ _                    = return ()
 ctrlResponder _ _ = return ()

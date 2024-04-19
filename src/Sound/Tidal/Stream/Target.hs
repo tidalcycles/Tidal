@@ -1,16 +1,17 @@
 module Sound.Tidal.Stream.Target where
 
-import qualified Sound.Osc.Fd           as O
-import qualified Sound.Osc.Time.Timeout as O
-import qualified Network.Socket         as N
-import           Data.Maybe             (fromJust, isJust, catMaybes)
-import           Control.Concurrent     (newMVar, readMVar, swapMVar, forkIO, forkOS, threadDelay)
-import           Control.Monad          (when)
-import           Foreign                (Word8)
+import           Control.Concurrent        (forkIO, forkOS, newMVar, readMVar,
+                                            swapMVar, threadDelay)
+import           Control.Monad             (when)
+import           Data.Maybe                (catMaybes, fromJust, isJust)
+import           Foreign                   (Word8)
+import qualified Network.Socket            as N
+import qualified Sound.Osc.Fd              as O
+import qualified Sound.Osc.Time.Timeout    as O
 
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Stream.Types
 import           Sound.Tidal.Stream.Config
+import           Sound.Tidal.Stream.Types
 
 {-
     Target.hs - Create and send to OSC targets

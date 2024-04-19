@@ -1,33 +1,33 @@
 module Sound.Tidal.Stream.Types where
 
 import           Control.Concurrent.MVar
-import qualified Data.Map.Strict as Map
-import Sound.Tidal.Pattern
-import Sound.Tidal.Show ()
+import qualified Data.Map.Strict           as Map
+import           Sound.Tidal.Pattern
+import           Sound.Tidal.Show          ()
 
-import qualified Sound.Osc.Fd as O
-import qualified Network.Socket          as N
+import qualified Network.Socket            as N
+import qualified Sound.Osc.Fd              as O
 
-import qualified Sound.Tidal.Clock as Clock
+import qualified Sound.Tidal.Clock         as Clock
 
-import Sound.Tidal.Stream.Config
+import           Sound.Tidal.Stream.Config
 
-data Stream = Stream {sConfig :: Config,
-                      sStateMV :: MVar ValueMap,
+data Stream = Stream {sConfig    :: Config,
+                      sStateMV   :: MVar ValueMap,
                       -- sOutput :: MVar ControlPattern,
-                      sClockRef :: Clock.ClockRef,
-                      sListen :: Maybe O.Udp,
-                      sPMapMV :: MVar PlayMap,
+                      sClockRef  :: Clock.ClockRef,
+                      sListen    :: Maybe O.Udp,
+                      sPMapMV    :: MVar PlayMap,
                       sGlobalFMV :: MVar (ControlPattern -> ControlPattern),
-                      sCxs :: [Cx]
+                      sCxs       :: [Cx]
                      }
 
-data Cx = Cx {cxTarget :: Target,
-              cxUDP :: O.Udp,
-              cxOSCs :: [OSC],
-              cxAddr :: N.AddrInfo,
+data Cx = Cx {cxTarget  :: Target,
+              cxUDP     :: O.Udp,
+              cxOSCs    :: [OSC],
+              cxAddr    :: N.AddrInfo,
               cxBusAddr :: Maybe N.AddrInfo,
-              cxBusses :: Maybe (MVar [Int])
+              cxBusses  :: Maybe (MVar [Int])
              }
 
 data StampStyle = BundleStamp
@@ -38,13 +38,13 @@ data Schedule = Pre StampStyle
               | Live
   deriving (Eq, Show)
 
-data Target = Target {oName :: String,
-                      oAddress :: String,
-                      oPort :: Int,
-                      oBusPort :: Maybe Int,
-                      oLatency :: Double,
-                      oWindow :: Maybe Arc,
-                      oSchedule :: Schedule,
+data Target = Target {oName      :: String,
+                      oAddress   :: String,
+                      oPort      :: Int,
+                      oBusPort   :: Maybe Int,
+                      oLatency   :: Double,
+                      oWindow    :: Maybe Arc,
+                      oSchedule  :: Schedule,
                       oHandshake :: Bool
                      }
                  deriving Show
@@ -60,8 +60,8 @@ data OSC = OSC {path :: String,
          deriving Show
 
 data PlayState = PlayState {pattern :: ControlPattern,
-                            mute :: Bool,
-                            solo :: Bool,
+                            mute    :: Bool,
+                            solo    :: Bool,
                             history :: [ControlPattern]
                            }
                deriving Show

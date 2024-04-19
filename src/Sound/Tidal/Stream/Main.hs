@@ -1,18 +1,18 @@
 module Sound.Tidal.Stream.Main where
 
-import qualified Data.Map as Map
-import qualified Sound.Tidal.Clock as Clock
-import           Control.Concurrent.MVar
 import           Control.Concurrent
-import           System.IO (hPutStrLn, stderr)
+import           Control.Concurrent.MVar
+import qualified Data.Map                   as Map
+import qualified Sound.Tidal.Clock          as Clock
+import           System.IO                  (hPutStrLn, stderr)
 
 
-import           Sound.Tidal.Version (tidal_status_string)
 import           Sound.Tidal.Stream.Config
-import           Sound.Tidal.Stream.Types
 import           Sound.Tidal.Stream.Listen
-import           Sound.Tidal.Stream.Target
 import           Sound.Tidal.Stream.Process
+import           Sound.Tidal.Stream.Target
+import           Sound.Tidal.Stream.Types
+import           Sound.Tidal.Version        (tidal_status_string)
 
 {-
     Main.hs - Start tidals stream, listen and act on incoming messages

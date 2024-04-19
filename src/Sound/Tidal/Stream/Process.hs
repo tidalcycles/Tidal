@@ -1,6 +1,11 @@
-{-# LANGUAGE ConstraintKinds, GeneralizedNewtypeDeriving, FlexibleContexts, ScopedTypeVariables, BangPatterns #-}
+{-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
-{-# language DeriveGeneric, StandaloneDeriving #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 
 module Sound.Tidal.Stream.Process where
 
@@ -22,43 +27,43 @@ module Sound.Tidal.Stream.Process where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Control.Applicative ((<|>))
+import           Control.Applicative       ((<|>))
 import           Control.Concurrent.MVar
-import           Control.Monad (forM_, when)
-import           Data.Coerce (coerce)
-import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromJust, fromMaybe, catMaybes)
-import qualified Control.Exception as E
+import qualified Control.Exception         as E
+import           Control.Monad             (forM_, when)
+import           Data.Coerce               (coerce)
+import qualified Data.Map.Strict           as Map
+import           Data.Maybe                (catMaybes, fromJust, fromMaybe)
 import           Foreign.C.Types
-import           System.IO (hPutStrLn, stderr)
+import           System.IO                 (hPutStrLn, stderr)
 
-import qualified Sound.Osc.Fd as O
+import qualified Sound.Osc.Fd              as O
 
-import           Sound.Tidal.Stream.Config
-import           Sound.Tidal.Core (stack, (#))
+import           Data.List                 (sortOn)
+import qualified Sound.Tidal.Clock         as Clock
+import           Sound.Tidal.Core          (stack, (#))
 import           Sound.Tidal.ID
-import qualified Sound.Tidal.Link as Link
-import qualified Sound.Tidal.Clock as Clock
-import           Sound.Tidal.Params (pS)
+import qualified Sound.Tidal.Link          as Link
+import           Sound.Tidal.Params        (pS)
 import           Sound.Tidal.Pattern
-import           Sound.Tidal.Utils ((!!!))
-import           Data.List (sortOn)
-import           Sound.Tidal.Show ()
+import           Sound.Tidal.Show          ()
+import           Sound.Tidal.Stream.Config
+import           Sound.Tidal.Utils         ((!!!))
 
-import           Sound.Tidal.Stream.Types
 import           Sound.Tidal.Stream.Target
+import           Sound.Tidal.Stream.Types
 
 data ProcessedEvent =
   ProcessedEvent {
-    peHasOnset :: Bool,
-    peEvent :: Event ValueMap,
-    peCps :: Link.BPM,
-    peDelta :: Link.Micros,
-    peCycle :: Time,
-    peOnWholeOrPart :: Link.Micros,
+    peHasOnset         :: Bool,
+    peEvent            :: Event ValueMap,
+    peCps              :: Link.BPM,
+    peDelta            :: Link.Micros,
+    peCycle            :: Time,
+    peOnWholeOrPart    :: Link.Micros,
     peOnWholeOrPartOsc :: O.Time,
-    peOnPart :: Link.Micros,
-    peOnPartOsc :: O.Time
+    peOnPart           :: Link.Micros,
+    peOnPartOsc        :: O.Time
   }
 
 -- | Query the current pattern (contained in argument @stream :: Stream@)
@@ -107,7 +112,7 @@ doTick stateMV playMV globalFMV cxs (st,end) nudge ops =
       tes <- processCps ops es'
       -- For each OSC target
       forM_ cxs $ \cx@(Cx target _ oscs _ _ bussesMV) -> do
-              busses <- mapM readMVar bussesMV 
+              busses <- mapM readMVar bussesMV
               -- Latency is configurable per target.
               -- Latency is only used when sending events live.
               let latency = oLatency target
@@ -225,15 +230,15 @@ toData (OSC {args = Named rqrd}) e
 toData _ _ = Nothing
 
 toDatum :: Value -> O.Datum
-toDatum (VF x) = O.float x
-toDatum (VN x) = O.float x
-toDatum (VI x) = O.int32 x
-toDatum (VS x) = O.string x
-toDatum (VR x) = O.float $ ((fromRational x) :: Double)
-toDatum (VB True) = O.int32 (1 :: Int)
+toDatum (VF x)     = O.float x
+toDatum (VN x)     = O.float x
+toDatum (VI x)     = O.int32 x
+toDatum (VS x)     = O.string x
+toDatum (VR x)     = O.float $ ((fromRational x) :: Double)
+toDatum (VB True)  = O.int32 (1 :: Int)
 toDatum (VB False) = O.int32 (0 :: Int)
-toDatum (VX xs) = O.Blob $ O.blob_pack xs
-toDatum _ = error "toDatum: unhandled value"
+toDatum (VX xs)    = O.Blob $ O.blob_pack xs
+toDatum _          = error "toDatum: unhandled value"
 
 substitutePath :: String -> ValueMap -> Maybe String
 substitutePath str cm = parse str
@@ -251,19 +256,19 @@ getString :: ValueMap -> String -> Maybe String
 getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
                       where (param, dflt) = break (== '=') s
                             simpleShow :: Value -> String
-                            simpleShow (VS str) = str
-                            simpleShow (VI i) = show i
-                            simpleShow (VF f) = show f
-                            simpleShow (VN n) = show n
-                            simpleShow (VR r) = show r
-                            simpleShow (VB b) = show b
-                            simpleShow (VX xs) = show xs
-                            simpleShow (VState _) = show "<stateful>"
+                            simpleShow (VS str)     = str
+                            simpleShow (VI i)       = show i
+                            simpleShow (VF f)       = show f
+                            simpleShow (VN n)       = show n
+                            simpleShow (VR r)       = show r
+                            simpleShow (VB b)       = show b
+                            simpleShow (VX xs)      = show xs
+                            simpleShow (VState _)   = show "<stateful>"
                             simpleShow (VPattern _) = show "<pattern>"
-                            simpleShow (VList _) = show "<list>"
+                            simpleShow (VList _)    = show "<list>"
                             defaultValue :: String -> Maybe String
                             defaultValue ('=':dfltVal) = Just dfltVal
-                            defaultValue _ = Nothing
+                            defaultValue _             = Nothing
 
 playStack :: PlayMap -> ControlPattern
 playStack pMap = stack . (map pattern) . (filter active) . Map.elems $ pMap
@@ -313,5 +318,5 @@ setPreviousPatternOrSilence playMV =
  modifyMVar_ playMV $ return
    . Map.map ( \ pMap -> case history pMap of
      _:p:ps -> pMap { pattern = p, history = p:ps }
-     _ -> pMap { pattern = silence, history = [silence] }
+     _      -> pMap { pattern = silence, history = [silence] }
              )
