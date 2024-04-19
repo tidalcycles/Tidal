@@ -175,7 +175,7 @@ toOSC maybeBusses pe osc@(OSC _ _)
         -- (but perhaps we should explicitly crash with an error message if it contains something else?).
         -- Map.mapKeys tail is used to remove ^ from the keys.
         -- In case (value e) has the key "", we will get a crash here.
-        playmap' = Map.union (Map.mapKeys tail $ Map.map (\(VI i) -> VS ('c':(show $ toBus i))) busmap) playmap
+        playmap' = Map.union (Map.mapKeys tail $ Map.map (\v -> VS ('c':(show $ toBus $ fromMaybe 0 $ getI v))) busmap) playmap
         val = value . peEvent
         -- Only events that start within the current nowArc are included
         playmsg | peHasOnset pe = do
@@ -196,11 +196,13 @@ toOSC maybeBusses pe osc@(OSC _ _)
         toBus n | Just busses <- maybeBusses, (not . null) busses = busses !!! n
                 | otherwise = n
         busmsgs = map
-                    (\(('^':k), (VI b)) -> do v <- Map.lookup k playmap
-                                              return $ (tsPart,
-                                                        True, -- bus message ?
-                                                        O.Message "/c_set" [O.int32 (toBus b), toDatum v]
-                                                      )
+                    (\(k, b) -> do k' <- if (not $ null k) && head k == '^' then Just (tail k) else Nothing
+                                   v <- Map.lookup k' playmap
+                                   bi <- getI b
+                                   return $ (tsPart,
+                                             True, -- bus message ?
+                                             O.Message "/c_set" [O.int32 (toBus bi), toDatum v]
+                                            )
                     )
                     (Map.toList busmap)
           where
@@ -271,13 +273,13 @@ getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
                             defaultValue _             = Nothing
 
 playStack :: PlayMap -> ControlPattern
-playStack pMap = stack . (map pattern) . (filter active) . Map.elems $ pMap
+playStack pMap = stack . (map psPattern) . (filter active) . Map.elems $ pMap
   where active pState = if hasSolo pMap
-                        then solo pState
-                        else not (mute pState)
+                        then psSolo pState
+                        else not (psMute pState)
 
 hasSolo :: Map.Map k PlayState -> Bool
-hasSolo = (>= 1) . length . filter solo . Map.elems
+hasSolo = (>= 1) . length . filter psSolo . Map.elems
 
 
 -- Used for Tempo callback
@@ -289,10 +291,10 @@ onSingleTick :: Config -> Clock.ClockRef -> MVar ValueMap -> MVar PlayMap -> MVa
 onSingleTick config clockRef stateMV _ globalFMV cxs pat = do
   ops <- Clock.getZeroedLinkOperations (cClockConfig config) clockRef
   pMapMV <- newMVar $ Map.singleton "fake"
-          (PlayState {pattern = pat,
-                      mute = False,
-                      solo = False,
-                      history = []
+          (PlayState {psPattern = pat,
+                      psMute = False,
+                      psSolo = False,
+                      psHistory = []
                       }
           )
   -- The nowArc is a full cycle
@@ -307,7 +309,7 @@ updatePattern stream k !t pat = do
   pMap <- seq x $ takeMVar (sPMapMV stream)
   let playState = updatePS $ Map.lookup (fromID k) pMap
   putMVar (sPMapMV stream) $ Map.insert (fromID k) playState pMap
-  where updatePS (Just playState) = do playState {pattern = pat', history = pat:(history playState)}
+  where updatePS (Just playState) = do playState {psPattern = pat', psHistory = pat:(psHistory playState)}
         updatePS Nothing = PlayState pat' False False [pat']
         patControls = Map.singleton patternTimeID (VR t)
         pat' = withQueryControls (Map.union patControls)
@@ -316,7 +318,7 @@ updatePattern stream k !t pat = do
 setPreviousPatternOrSilence :: MVar PlayMap -> IO ()
 setPreviousPatternOrSilence playMV =
  modifyMVar_ playMV $ return
-   . Map.map ( \ pMap -> case history pMap of
-     _:p:ps -> pMap { pattern = p, history = p:ps }
-     _      -> pMap { pattern = silence, history = [silence] }
+   . Map.map ( \ pMap -> case psHistory pMap of
+     _:p:ps -> pMap { psPattern = p, psHistory = p:ps }
+     _      -> pMap { psPattern = silence, psHistory = [silence] }
              )

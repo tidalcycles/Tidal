@@ -51,10 +51,10 @@ streamList s = do pMap <- readMVar (sPMapMV s)
                   let hs = hasSolo pMap
                   putStrLn $ concatMap (showKV hs) $ Map.toList pMap
   where showKV :: Bool -> (PatId, PlayState) -> String
-        showKV True  (k, (PlayState {solo = True}))  = k ++ " - solo\n"
-        showKV True  (k, _)                          = "(" ++ k ++ ")\n"
-        showKV False (k, (PlayState {solo = False})) = k ++ "\n"
-        showKV False (k, _)                          = "(" ++ k ++ ") - muted\n"
+        showKV True  (k, (PlayState {psSolo = True})) = k ++ " - solo\n"
+        showKV True  (k, _) = "(" ++ k ++ ")\n"
+        showKV False (k, (PlayState {psSolo = False})) = k ++ "\n"
+        showKV False (k, _) = "(" ++ k ++ ") - muted\n"
 
 streamReplace :: Stream -> ID -> ControlPattern -> IO ()
 streamReplace stream k !pat = do
@@ -75,19 +75,19 @@ streamFirst :: Stream -> ControlPattern -> IO ()
 streamFirst stream pat = onSingleTick (sConfig stream) (sClockRef stream) (sStateMV stream) (sPMapMV stream) (sGlobalFMV stream) (sCxs stream) pat
 
 streamMute :: Stream -> ID -> IO ()
-streamMute s k = withPatIds s [k] (\x -> x {mute = True})
+streamMute s k = withPatIds s [k] (\x -> x {psMute = True})
 
 streamMutes :: Stream -> [ID] -> IO ()
-streamMutes s ks = withPatIds s ks (\x -> x {mute = True})
+streamMutes s ks = withPatIds s ks (\x -> x {psMute = True})
 
 streamUnmute :: Stream -> ID -> IO ()
-streamUnmute s k = withPatIds s [k] (\x -> x {mute = False})
+streamUnmute s k = withPatIds s [k] (\x -> x {psMute = False})
 
 streamSolo :: Stream -> ID -> IO ()
-streamSolo s k = withPatIds s [k] (\x -> x {solo = True})
+streamSolo s k = withPatIds s [k] (\x -> x {psSolo = True})
 
 streamUnsolo :: Stream -> ID -> IO ()
-streamUnsolo s k = withPatIds s [k] (\x -> x {solo = False})
+streamUnsolo s k = withPatIds s [k] (\x -> x {psSolo = False})
 
 withPatIds :: Stream -> [ID] -> (PlayState -> PlayState) -> IO ()
 withPatIds s ks f
@@ -98,19 +98,19 @@ withPatIds s ks f
 
 -- TODO - is there a race condition here?
 streamMuteAll :: Stream -> IO ()
-streamMuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = True})
+streamMuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {psMute = True})
 
 streamHush :: Stream -> IO ()
-streamHush s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {pattern = silence, history = silence:history x})
+streamHush s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {psPattern = silence, psHistory = silence:psHistory x})
 
 streamUnmuteAll :: Stream -> IO ()
-streamUnmuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {mute = False})
+streamUnmuteAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {psMute = False})
 
 streamUnsoloAll :: Stream -> IO ()
-streamUnsoloAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {solo = False})
+streamUnsoloAll s = modifyMVar_ (sPMapMV s) $ return . fmap (\x -> x {psSolo = False})
 
 streamSilence :: Stream -> ID -> IO ()
-streamSilence s k = withPatIds s [k] (\x -> x {pattern = silence, history = silence:history x})
+streamSilence s k = withPatIds s [k] (\x -> x {psPattern = silence, psHistory = silence:psHistory x})
 
 streamAll :: Stream -> (ControlPattern -> ControlPattern) -> IO ()
 streamAll s f = do _ <- swapMVar (sGlobalFMV s) f

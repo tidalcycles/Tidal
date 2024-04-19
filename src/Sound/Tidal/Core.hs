@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, BangPatterns #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {-
     Core.hs - For functions judged to be 'core' to tidal functionality.
@@ -20,11 +20,11 @@
 
 module Sound.Tidal.Core where
 
-import           Prelude hiding ((<*), (*>))
+import           Prelude             hiding ((*>), (<*))
 
-import           Data.Fixed (mod')
-import qualified Data.Map.Strict as Map
-import           Data.Maybe (fromMaybe)
+import           Data.Fixed          (mod')
+import qualified Data.Map.Strict     as Map
+import           Data.Maybe          (fromMaybe)
 import           Sound.Tidal.Pattern
 
 -- ** Elemental patterns
@@ -37,7 +37,7 @@ import           Sound.Tidal.Pattern
   > saw = sig $ \t -> mod' (fromRational t) 1
 -}
 sig :: (Time -> a) -> Pattern a
-sig f = Pattern q
+sig f = pattern q
   where q (State (Arc s e) _)
           | s > e = []
           | otherwise = [Event (Context []) Nothing (Arc s e) (f (s+((e-s)/2)))]
@@ -266,7 +266,7 @@ listToPat = fastFromList
 -- > d1 $ n "0 ~ 2" # s "superpiano"
 fromMaybes :: [Maybe a] -> Pattern a
 fromMaybes = fastcat . map f
-  where f Nothing = silence
+  where f Nothing  = silence
         f (Just x) = pure x
 
 {-| A pattern of whole numbers from 0 to the given number, in a single cycle.
@@ -312,7 +312,8 @@ append a b = cat [a,b]
 -}
 cat :: [Pattern a] -> Pattern a
 cat [] = silence
-cat ps = Pattern q
+cat (p:[]) = p
+cat ps = pattern q
   where n = length ps
         q st = concatMap (f st) $ arcCyclesZW (arc st)
         f st a = query (withResultTime (+offset) p) $ st {arc = Arc (subtract offset (start a)) (subtract offset (stop a))}
@@ -349,7 +350,9 @@ fastappend = fastAppend
   > d1 $ fastcat [sound "bd*2 sn", sound "jvbass*3", sound "drum*2", sound "ht mt"]
 -}
 fastCat :: [Pattern a] -> Pattern a
-fastCat ps = _fast (toTime $ length ps) $ cat ps
+fastCat (p:[]) = p
+fastCat ps     = setTactus t $ _fast (toTime $ length ps) $ cat ps
+  where t = fromMaybe (toRational $ length ps) $ ((* (toRational $ length ps)) . foldl1 lcmr) <$> (sequence $ map tactus ps)
 
 -- | Alias for @fastCat@
 fastcat :: [Pattern a] -> Pattern a
@@ -371,10 +374,11 @@ fastcat = fastCat
 
 -}
 timeCat :: [(Time, Pattern a)] -> Pattern a
-timeCat tps = stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 tps
+timeCat ((_,p):[]) = p
+timeCat tps = setTactus total $ stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 $ filter (\(t, _) -> t > 0) $ tps
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
-          arrange _ [] = []
+          arrange _ []            = []
           arrange t ((t',p):tps') = (t,t+t',p) : arrange (t+t') tps'
 
 -- | Alias for @timeCat@
@@ -418,17 +422,19 @@ pattern to multiple patterns at once:
 > ] # speed "[[1 0.8], [1.5 2]*2]/3"
 -}
 stack :: [Pattern a] -> Pattern a
-stack = foldr overlay silence
+stack pats = (foldr overlay silence pats) {tactus = t}
+  where t | length pats == 0 = Nothing
+          | otherwise = foldl1 lcmr <$> (sequence $ map tactus pats)
 
 -- ** Manipulating time
 
 -- | Shifts a pattern back in time by the given amount, expressed in cycles
 (<~) :: Pattern Time -> Pattern a -> Pattern a
-(<~) = tParam rotL
+(<~) = patternify' rotL
 
 -- | Shifts a pattern forward in time by the given amount, expressed in cycles
 (~>) :: Pattern Time -> Pattern a -> Pattern a
-(~>) = tParam rotR
+(~>) = patternify' rotR
 
 {-| Slow down a pattern by the factors in the given time pattern, "squeezing"
   the pattern to fit the slot given in the time pattern. It is the slow analogue
@@ -453,7 +459,7 @@ stack = foldr overlay silence
   > d1 $ s "bd*4 bd*2 [bd bd/2]"
 -}
 slowSqueeze :: Pattern Time -> Pattern a -> Pattern a
-slowSqueeze = tParamSqueeze _slow
+slowSqueeze = patternifySqueeze _slow
 
 -- | An alias for @slow@
 sparsity :: Pattern Time -> Pattern a -> Pattern a
@@ -477,7 +483,7 @@ zoom :: (Time, Time) -> Pattern a -> Pattern a
 zoom (s,e) = zoomArc (Arc s e)
 
 zoomArc :: Arc -> Pattern a -> Pattern a
-zoomArc (Arc s e) p = splitQueries $
+zoomArc (Arc s e) p = withTactus (*d) $ splitQueries $
   withResultArc (mapCycle ((/d) . subtract s)) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 
@@ -488,7 +494,7 @@ zoomArc (Arc s e) p = splitQueries $
   would be empty). The factor should be at least 1.
 -}
 fastGap :: Pattern Time -> Pattern a -> Pattern a
-fastGap = tParam _fastGap
+fastGap = patternify _fastGap
 
 -- | An alias for @fastGap@
 densityGap :: Pattern Time -> Pattern a -> Pattern a
@@ -519,7 +525,7 @@ compressTo :: (Time,Time) -> Pattern a -> Pattern a
 compressTo (s,e) = compressArcTo (Arc s e)
 
 repeatCycles :: Pattern Int -> Pattern a -> Pattern a
-repeatCycles = tParam _repeatCycles
+repeatCycles = patternify _repeatCycles
 
 _repeatCycles :: Int -> Pattern a -> Pattern a
 _repeatCycles n p = cat (replicate n p)
@@ -634,10 +640,10 @@ _getP :: a -> (Value -> Maybe a) -> Pattern Value -> Pattern a
 _getP d f pat = fromMaybe d . f <$> pat
 
 _cX :: a -> (Value -> Maybe a) -> String -> Pattern a
-_cX d f s = Pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f . valueToPattern) $ Map.lookup s m) a
+_cX d f s = pattern $ \(State a m) -> queryArc (maybe (pure d) (_getP d f . valueToPattern) $ Map.lookup s m) a
 
 _cX_ :: (Value -> Maybe a) -> String -> Pattern a
-_cX_ f s = Pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f . valueToPattern) $ Map.lookup s m) a
+_cX_ f s = pattern $ \(State a m) -> queryArc (maybe silence (_getP_ f . valueToPattern) $ Map.lookup s m) a
 
 cF :: Double -> String -> Pattern Double
 cF d = _cX d getF

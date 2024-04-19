@@ -59,10 +59,10 @@ data OSC = OSC {path :: String,
          | OSCContext {path :: String}
          deriving Show
 
-data PlayState = PlayState {pattern :: ControlPattern,
-                            mute    :: Bool,
-                            solo    :: Bool,
-                            history :: [ControlPattern]
+data PlayState = PlayState {psPattern :: ControlPattern,
+                            psMute    :: Bool,
+                            psSolo    :: Bool,
+                            psHistory :: [ControlPattern]
                            }
                deriving Show
 
