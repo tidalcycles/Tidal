@@ -28,11 +28,11 @@ streamResetCycles s = streamSetCycle s 0
 streamSetCycle :: Stream -> Time -> IO ()
 streamSetCycle s = Clock.setClock (sClockRef s)
 
-streamSetBPM :: Stream -> Time -> IO ()
-streamSetBPM s = Clock.setBPM (sClockRef s)
-
 streamSetCPS :: Stream -> Time -> IO ()
 streamSetCPS s = Clock.setCPS (cClockConfig $ sConfig s) (sClockRef s)
+
+streamSetBPM :: Stream -> Time -> IO ()
+streamSetBPM s = Clock.setBPM (sClockRef s)
 
 streamGetCPS :: Stream -> IO Time
 streamGetCPS s = Clock.getCPS (cClockConfig $ sConfig s)(sClockRef s)
