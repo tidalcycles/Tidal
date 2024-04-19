@@ -143,7 +143,7 @@ p = streamReplace tidal
 
 -- | Silences a specific stream, regardless of ControlPattern input. Useful for rapid muting of streams
 _p :: Tidally => ID -> ControlPattern -> IO ()
-_p n _ = streamReplace tidal n silence
+_p k _ = streamReplace tidal k silence
 
 -- | Silences a specific stream, regardless of ControlPattern input. Useful for rapid muting of streams
 p_ :: Tidally => ID -> ControlPattern -> IO ()
