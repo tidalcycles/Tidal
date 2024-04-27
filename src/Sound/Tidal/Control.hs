@@ -96,42 +96,17 @@ chopArc :: Arc -> Int -> [Arc]
 chopArc (Arc s e) n = map (\i -> Arc (s + (e-s)*(fromIntegral i/fromIntegral n)) (s + (e-s)*(fromIntegral (i+1) / fromIntegral n))) [0 .. n-1]
 
 _chop :: Int -> ControlPattern -> ControlPattern
-_chop n pat = withTactus (* toRational n) $ withEvents (concatMap chopEvent) pat
-  where -- for each part,
-        chopEvent :: Event ValueMap -> [Event ValueMap]
-        chopEvent (Event c (Just w) p' v) = map (chomp c v (length $ chopArc w n)) $ arcs w p'
-        -- ignoring 'analog' events (those without wholes),
-        chopEvent _ = []
-        -- cut whole into n bits, and number them
-        arcs w' p' = numberedArcs p' $ chopArc w' n
-        -- each bit is a new whole, with part that's the intersection of old part and new whole
-        -- (discard new parts that don't intersect with the old part)
-        numberedArcs :: Arc -> [Arc] -> [(Int, (Arc, Arc))]
-        numberedArcs p' as = map ((fromJust <$>) <$>) $ filter (isJust . snd . snd) $ enumerate $ map (\a -> (a, subArc p' a)) as
-        -- begin set to i/n, end set to i+1/n
-        -- if the old event had a begin and end, then multiply the new
-        -- begin and end values by the old difference (end-begin), and
-        -- add the old begin
-        chomp :: Context -> ValueMap -> Int -> (Int, (Arc, Arc)) -> Event ValueMap
-        chomp c v n' (i, (w,p')) = Event c (Just w) p' (Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v)
-          where b = fromMaybe 0 $ do v' <- Map.lookup "begin" v
-                                     getF v'
-                e = fromMaybe 1 $ do v' <- Map.lookup "end" v
-                                     getF v'
-                d = e-b
-                b' = ((fromIntegral i/fromIntegral n') * d) + b
-                e' = ((fromIntegral (i+1) / fromIntegral n') * d) + b
-
-{-
--- A simpler definition than the above, but this version doesn't chop
--- with multiple chops, and only works with a single 'pure' event..
-_chop' :: Int -> ControlPattern -> ControlPattern
-_chop' n p = begin (fromList begins) # end (fromList ends) # p
-  where step = 1/(fromIntegral n)
-        begins = [0,step .. (1-step)]
-        ends = (tail begins) ++ [1]
--}
-
+_chop n pat = squeezeJoin $ f <$> pat
+  where f v = fastcat $ map (pure . rangemap v) slices
+        rangemap v (b, e) = Map.union (fromMaybe (makeMap (b,e)) $ merge v (b,e)) v
+        merge :: ValueMap -> (Double, Double) -> Maybe ValueMap
+        merge v (b, e) = do b' <- Map.lookup "begin" v >>= getF
+                            e' <- Map.lookup "end" v >>= getF
+                            let d = e' - b'
+                            return $ makeMap (b' + b*d, b' + e*d)
+        makeMap (b,e) = Map.fromList [("begin", VF b), ("end", VF $ e)]
+        slices = map (\i -> (frac i, frac $ i + 1)) [0 .. n-1]
+        frac i = fromIntegral i / fromIntegral n
 
 {-| Striate is a kind of granulator, cutting samples into bits in a similar to
 chop, but the resulting bits are organised differently. For example:
