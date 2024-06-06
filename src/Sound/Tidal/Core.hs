@@ -483,7 +483,8 @@ zoom :: (Time, Time) -> Pattern a -> Pattern a
 zoom (s,e) = zoomArc (Arc s e)
 
 zoomArc :: Arc -> Pattern a -> Pattern a
-zoomArc (Arc s e) p = withTactus (*d) $ splitQueries $
+zoomArc (Arc s e) p | s >= e = nothing
+                    | otherwise = withTactus (*d) $ splitQueries $
   withResultArc (mapCycle ((/d) . subtract s)) $ withQueryArc (mapCycle ((+s) . (*d))) p
      where d = e-s
 

@@ -65,6 +65,9 @@ pattern f = Pattern f Nothing Nothing
 setTactus :: Rational -> Pattern a -> Pattern a
 setTactus r p = p {tactus = Just r}
 
+setTactusFrom :: Pattern b -> Pattern a -> Pattern a
+setTactusFrom a b = b {tactus = tactus a}
+
 withTactus :: (Rational -> Rational) -> Pattern a -> Pattern a
 withTactus f p = p {tactus = f <$> tactus p}
 
