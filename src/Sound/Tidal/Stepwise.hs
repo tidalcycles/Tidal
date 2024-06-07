@@ -94,9 +94,30 @@ s_taperlist pat@(Pattern _ (Just t) _) = pat : map (\r -> _s_sub r pat) [1 .. t]
 -- TODO exception?
 s_taperlist pat                        = [pat]
 
+
+s_taperlistBy :: Int -> Int -> Pattern a -> [Pattern a]
+s_taperlistBy amount times pat@(Pattern _ (Just t) _) 
+  | times == 1 = [pat]
+  | times <= 0 = []
+  | amount == 0 = [pat]
+  | backwards = reverse l
+  | otherwise = l
+  where backwards = amount > 0
+        n = toRational $ abs amount
+        start = t - (toRational $ max 0 $ n * (toRational $ times - 1))
+        l = (map (\i -> zoom (0, (start + (n * (toRational i))) / t) pat) [0 .. times-2]) ++ [pat]
+
 -- | Plays one fewer step from the pattern each repetition, down to nothing
 s_taper :: Pattern a -> Pattern a
 s_taper = s_cat . s_taperlist
+
+-- | Plays one fewer step from the pattern each repetition, down to nothing
+_s_taperBy :: Int -> Int -> Pattern a -> Pattern a
+_s_taperBy amount times pat = s_cat $ s_taperlistBy amount times pat
+
+-- | Plays one fewer step from the pattern each repetition, down to nothing
+s_taperBy :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
+s_taperBy = s_patternify2 _s_taperBy
 
 -- | Successively plays a pattern from each group in turn
 s_alt :: [[Pattern a]] -> Pattern a
@@ -119,6 +140,9 @@ s_patternify :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Patt
 s_patternify f (Pattern _ _ (Just a)) b = f a b
 s_patternify f pa p                     = stepJoin $ (`f` p) <$> pa
 
+s_patternify2 :: (a -> b -> c -> Pattern d) -> Pattern a -> Pattern b -> c -> Pattern d
+s_patternify2 f a b p = stepJoin $ (\x y -> f x y p) <$> a <*> b
+
 stepJoin :: Pattern (Pattern a) -> Pattern a
 stepJoin pp = Pattern q first_t Nothing
   where q st@(State a c) = query (timecat $ retime $ slices $ query (rotL (sam $ start a) pp) (st {arc = Arc 0 1})) st
@@ -133,7 +157,7 @@ stepJoin pp = Pattern q first_t Nothing
                 adjust dur pat = (dur*total_tactus, pat)
         -- break up events at all start/end points, into groups, including empty ones.
         slices :: [Event (Pattern a)] -> [(Time, Pattern a)]
-        slices evs = map (\s -> ((snd s - fst s), stack $ map value $ fit s evs)) $ pairs $ sort $ nubOrd $ 0:1:concatMap (\ev -> start (part ev):stop (part ev):[]) evs
+        slices evs = map (\s -> ((snd s - fst s), stack $ map (\x -> withContext (\c -> combineContexts [c, context x])  $ value x) $ fit s evs)) $ pairs $ sort $ nubOrd $ 0:1:concatMap (\ev -> start (part ev):stop (part ev):[]) evs
         -- list of slices of events within the given range
         fit :: (Rational, Rational) -> [Event (Pattern a)] -> [Event (Pattern a)]
         fit (b,e) evs = catMaybes $ map (match (b,e)) evs

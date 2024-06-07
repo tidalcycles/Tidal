@@ -331,7 +331,7 @@ _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure 
   > d1 $ splice 8 "[<0*8 0*2> 3*4 2 4] [4 .. 7]" $ sound "breaks165"
 -}
 splice :: Pattern Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
-splice bitpat ipat pat = innerJoin $ (\bits -> _splice bits ipat pat) <$> bitpat
+splice bitpat ipat pat = setTactusFrom bitpat $ innerJoin $ (\bits -> _splice bits ipat pat) <$> bitpat
 
 {-|
   @loopAt@ makes a sample fit the given number of cycles. Internally, it
