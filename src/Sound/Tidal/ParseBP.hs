@@ -223,7 +223,7 @@ parseBP_E s = toE parsed
 parseTPat :: Parseable a => String -> Either ParseError (TPat a)
 parseTPat = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
   where f' = do tPatParser
-             <|> do symbol "~" <?> "rest"
+             <|> do oneOf "~-" <?> "rest"
                     return TPat_Silence
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
