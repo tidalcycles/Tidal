@@ -293,9 +293,13 @@ en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate 
 -}
 slice :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
 slice pN pI p = P.begin b # P.end e # p
-  where b = div' <$> pI <* pN
-        e = (\i n -> div' i n + div' 1 n) <$> pI <* pN
-        div' num den = fromIntegral (num `mod` den) / fromIntegral den
+  where
+    b = div' <$> pI <* pN
+    e = b + pWidth
+    pWidth = (\x -> 1.0 / fromIntegral x) <$> pN
+    div' :: Int -> Int -> Double
+    div' num den = fromIntegral (num `mod` den) / fromIntegral den
+
 
 _slice :: Int -> Int -> ControlPattern -> ControlPattern
 _slice n i p =
