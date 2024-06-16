@@ -67,15 +67,13 @@ streamReplace stream k !pat = do
                     hPutStrLn stderr $ "Return to previous pattern."
                     setPreviousPatternOrSilence (sPMapMV stream)) (updatePattern stream k t pat)
 
-  -- = modifyMVar_ (sActionsMV s) (\actions -> return $ (T.StreamReplace k pat) : actions)
-
 -- streamFirst but with random cycle instead of always first cicle
 streamOnce :: Stream -> ControlPattern -> IO ()
 streamOnce st p = do i <- getStdRandom $ randomR (0, 8192)
                      streamFirst st $ rotL (toRational (i :: Int)) p
 
 streamFirst :: Stream -> ControlPattern -> IO ()
-streamFirst stream pat = onSingleTick (sConfig stream) (sClockRef stream) (sStateMV stream) (sBusses stream) (sPMapMV stream) (sGlobalFMV stream) (sCxs stream) (sListen stream) pat
+streamFirst stream pat = onSingleTick (cClockConfig $ sConfig stream) (sClockRef stream) (sStateMV stream) (sBusses stream) (sPMapMV stream) (sGlobalFMV stream) (sCxs stream) (sListen stream) pat
 
 streamMute :: Stream -> ID -> IO ()
 streamMute s k = withPatIds s [k] (\x -> x {psMute = True})
