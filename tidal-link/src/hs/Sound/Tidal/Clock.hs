@@ -231,8 +231,6 @@ cyclesToBeat config cyc = cyc * (coerce $ cBeatsPerCycle config)
 -- onSingleTick assumes it runs at beat 0.
 -- The best way to achieve that is to use forceBeatAtTime.
 -- But using forceBeatAtTime means we can not commit its session state.
--- Another session state, which we will commit,
--- is introduced to keep track of tempo changes.
 getZeroedSessionState :: ClockConfig -> ClockRef -> IO Link.SessionState
 getZeroedSessionState config (ClockRef _ abletonLink) = do
                             ss <- Link.createAndCaptureAppSessionState abletonLink
