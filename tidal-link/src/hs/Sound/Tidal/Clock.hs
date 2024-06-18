@@ -243,6 +243,9 @@ getZeroedSessionState config (ClockRef _ abletonLink) = do
 getTempo :: Link.SessionState -> IO Time
 getTempo ss = fmap toRational $ Link.getTempo ss
 
+setTempoCPS :: Time -> Link.Micros -> ClockConfig -> Link.SessionState -> IO ()
+setTempoCPS cps now conf ss = Link.setTempo ss (coerce $ cyclesToBeat conf ((fromRational cps) * 60)) now
+
 timeAtBeat :: ClockConfig -> Link.SessionState  -> Double -> IO Link.Micros
 timeAtBeat config ss beat = Link.timeAtBeat ss (coerce beat) (cQuantum config)
 

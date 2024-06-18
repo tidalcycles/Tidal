@@ -140,7 +140,7 @@ processCps cconf cref ss = mapM processEvent
       onPart <- Clock.timeAtBeat cconf ss partStartBeat
       when (eventHasOnset e) (do
         let cps' = Map.lookup "cps" (value e) >>= getF
-        maybe (return ()) (\newCps -> Clock.setCPS cconf cref newCps) (fmap toRational cps')
+        maybe (return ()) (\newCps -> Clock.setTempoCPS newCps on cconf ss) (fmap toRational cps')
         )
       off <- Clock.timeAtBeat cconf ss offBeat
       bpm <- Clock.getTempo ss
