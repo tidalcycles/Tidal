@@ -88,9 +88,9 @@ doTick :: MVar ValueMap                           -- pattern state
        -> Double                                  -- nudge
        -> Clock.ClockConfig                       -- config of the clock
        -> Clock.ClockRef                          -- reference to the clock
-       -> Link.SessionState
+       -> (Link.SessionState, Link.SessionState)  -- second session state is for keeping track of tempo changes
        -> IO ()
-doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge cconf cref ss =
+doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge cconf cref (ss, temposs) =
   E.handle (\ (e :: E.SomeException) -> do
     hPutStrLn stderr $ "Failed to Stream.doTick: " ++ show e
     hPutStrLn stderr $ "Return to previous pattern."
@@ -112,7 +112,7 @@ doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge cconf cref ss =
                                                 )
          -- Then it's passed through the events
         (sMap'', es') = resolveState sMap' es
-      tes <- processCps cconf cref ss es'
+      tes <- processCps cconf cref (ss, temposs) es'
       -- For each OSC target
       forM_ cxs $ \cx@(Cx target _ oscs _ _) -> do
               -- Latency is configurable per target.
@@ -124,8 +124,8 @@ doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge cconf cref ss =
                 hPutStrLn stderr $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
       putMVar stateMV sMap'')
 
-processCps :: Clock.ClockConfig -> Clock.ClockRef -> Link.SessionState -> [Event ValueMap] -> IO [ProcessedEvent]
-processCps cconf cref ss = mapM processEvent
+processCps :: Clock.ClockConfig -> Clock.ClockRef -> (Link.SessionState, Link.SessionState) -> [Event ValueMap] -> IO [ProcessedEvent]
+processCps cconf cref (ss, temposs) = mapM processEvent
   where
     processEvent ::  Event ValueMap  -> IO ProcessedEvent
     processEvent e = do
@@ -140,7 +140,7 @@ processCps cconf cref ss = mapM processEvent
       onPart <- Clock.timeAtBeat cconf ss partStartBeat
       when (eventHasOnset e) (do
         let cps' = Map.lookup "cps" (value e) >>= getF
-        maybe (return ()) (\newCps -> Clock.setTempoCPS newCps on cconf ss) (fmap toRational cps')
+        maybe (return ()) (\newCps -> Clock.setTempoCPS newCps on cconf temposs) (fmap toRational cps')
         )
       off <- Clock.timeAtBeat cconf ss offBeat
       bpm <- Clock.getTempo ss
@@ -294,6 +294,7 @@ hasSolo = (>= 1) . length . filter psSolo . Map.elems
 onSingleTick :: Clock.ClockConfig -> Clock.ClockRef -> MVar ValueMap -> MVar [Int] -> MVar PlayMap -> MVar (ControlPattern -> ControlPattern) -> [Cx] -> Maybe O.Udp -> ControlPattern -> IO ()
 onSingleTick clockConf clockRef stateMV busMV _ globalFMV cxs listen pat = do
   ss <- Clock.getZeroedSessionState clockConf clockRef
+  temposs <- Clock.getSessionState clockRef
   pMapMV <- newMVar $ Map.singleton "fake"
           (PlayState {psPattern = pat,
                       psMute = False,
@@ -302,8 +303,9 @@ onSingleTick clockConf clockRef stateMV busMV _ globalFMV cxs listen pat = do
                       }
           )
   -- The nowArc is a full cycle
-  doTick stateMV busMV pMapMV globalFMV cxs listen (0,1) 0 clockConf clockRef ss
-
+  doTick stateMV busMV pMapMV globalFMV cxs listen (0,1) 0 clockConf clockRef (ss, temposs)
+  Link.destroySessionState ss
+  Link.commitAndDestroyAppSessionState (Clock.rAbletonLink clockRef) temposs
 
 
 -- Used for Tempo callback

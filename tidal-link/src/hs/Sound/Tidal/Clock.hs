@@ -58,7 +58,7 @@ data ClockConfig
 -- | action to be executed on a tick,
 -- | given the current timespan, nudge and reference to the clock
 type TickAction
-  = (Time,Time) -> Double -> ClockConfig -> ClockRef -> Link.SessionState -> IO ()
+  = (Time,Time) -> Double -> ClockConfig -> ClockRef -> (Link.SessionState, Link.SessionState) -> IO ()
 
 -- | possible actions for interacting with the clock
 data ClockAction
@@ -183,7 +183,7 @@ clockProcess = do
     sessionState <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
     endCycle <- liftIO $ timeToCycles config sessionState logicalEnd
 
-    liftIO $ action (startCycle,endCycle) (nudged st) config ref sessionState
+    liftIO $ action (startCycle,endCycle) (nudged st) config ref (sessionState, sessionState)
 
     liftIO $ Link.commitAndDestroyAppSessionState abletonLink sessionState
 
@@ -228,6 +228,9 @@ beatToCycles config beat = beat / (coerce $ cBeatsPerCycle config)
 cyclesToBeat :: ClockConfig -> Double -> Double
 cyclesToBeat config cyc = cyc * (coerce $ cBeatsPerCycle config)
 
+getSessionState :: ClockRef -> IO Link.SessionState
+getSessionState (ClockRef _ abletonLink) = Link.createAndCaptureAppSessionState abletonLink
+
 -- onSingleTick assumes it runs at beat 0.
 -- The best way to achieve that is to use forceBeatAtTime.
 -- But using forceBeatAtTime means we can not commit its session state.
@@ -236,7 +239,6 @@ getZeroedSessionState config (ClockRef _ abletonLink) = do
                             ss <- Link.createAndCaptureAppSessionState abletonLink
                             nowLink <- liftIO $ Link.clock abletonLink
                             Link.forceBeatAtTime ss 0 (nowLink + processAhead) (cQuantum config)
-                            Link.destroySessionState ss
                             return ss
                         where processAhead = round $ (cProcessAhead config) * 1000000
 
