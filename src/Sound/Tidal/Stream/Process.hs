@@ -285,16 +285,8 @@ playStack pMap = stack . (map psPattern) . (filter active) . Map.elems $ pMap
 hasSolo :: Map.Map k PlayState -> Bool
 hasSolo = (>= 1) . length . filter psSolo . Map.elems
 
-
--- Used for Tempo callback
--- Tempo changes will be applied.
--- However, since the full arc is processed at once and since Link does not support
--- scheduling, tempo change may affect scheduling of events that happen earlier
--- in the normal stream (the one handled by onTick).
 onSingleTick :: Clock.ClockConfig -> Clock.ClockRef -> MVar ValueMap -> MVar [Int] -> MVar PlayMap -> MVar (ControlPattern -> ControlPattern) -> [Cx] -> Maybe O.Udp -> ControlPattern -> IO ()
-onSingleTick clockConf clockRef stateMV busMV _ globalFMV cxs listen pat = do
-  ss <- Clock.getZeroedSessionState clockConf clockRef
-  temposs <- Clock.getSessionState clockRef
+onSingleTick clockConfig clockRef stateMV busMV _ globalFMV cxs listen pat = do
   pMapMV <- newMVar $ Map.singleton "fake"
           (PlayState {psPattern = pat,
                       psMute = False,
@@ -302,10 +294,7 @@ onSingleTick clockConf clockRef stateMV busMV _ globalFMV cxs listen pat = do
                       psHistory = []
                       }
           )
-  -- The nowArc is a full cycle
-  doTick stateMV busMV pMapMV globalFMV cxs listen (0,1) 0 clockConf clockRef (ss, temposs)
-  Link.destroySessionState ss
-  Link.commitAndDestroyAppSessionState (Clock.rAbletonLink clockRef) temposs
+  Clock.clockOnce (doTick stateMV busMV pMapMV globalFMV cxs listen) clockConfig clockRef
 
 
 -- Used for Tempo callback

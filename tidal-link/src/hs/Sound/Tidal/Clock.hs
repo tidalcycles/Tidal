@@ -66,7 +66,6 @@ data ClockAction
   | SetCycle Time
   | SetTempo Time
   | SetNudge Double
-  deriving Show
 
 defaultCps :: Double
 defaultCps = 0.575
@@ -282,7 +281,6 @@ logicalTime config startTime ticks' = startTime + ticks' * frameTimespan
 ----------- functions for interacting with the clock ----------
 ---------------------------------------------------------------
 
-
 getBPM :: ClockRef -> IO Time
 getBPM (ClockRef _ abletonLink) = do
                             ss <- Link.createAndCaptureAppSessionState abletonLink
@@ -328,6 +326,20 @@ setNudge (ClockRef clock _) n = atomically $ do
                                       case action of
                                         NoAction -> modifyTVar' clock (const $ SetNudge n)
                                         _ -> retry
+
+-- Used for Tempo callback
+-- Tempo changes will be applied.
+-- However, since the full arc is processed at once and since Link does not support
+-- scheduling, tempo change may affect scheduling of events that happen earlier
+-- in the normal stream (the one handled by onTick).
+clockOnce :: TickAction -> ClockConfig -> ClockRef -> IO ()
+clockOnce action config ref@(ClockRef _ abletonLink) = do
+        ss <- getZeroedSessionState config ref
+        temposs <- Link.createAndCaptureAppSessionState abletonLink
+        -- The nowArc is a full cycle
+        action (0,1) 0 config ref (ss, temposs)
+        Link.destroySessionState ss
+        Link.commitAndDestroyAppSessionState abletonLink temposs
 
 disableLink :: ClockRef -> IO ()
 disableLink (ClockRef _ abletonLink) = Link.disable abletonLink
