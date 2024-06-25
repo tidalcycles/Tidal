@@ -1,6 +1,6 @@
 cabal-version:       2.4
 name:                tidal-link
-version:             1.0.3
+version:             1.0.4
 synopsis:            Ableton Link integration for Tidal
 -- description:
 homepage:            http://tidalcycles.org/
