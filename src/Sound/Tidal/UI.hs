@@ -2057,6 +2057,48 @@ fill p' p = struct (splitQueries $ p {query = q, pureValue = Nothing}) p'
     tolerance = 0.01
 -}
 
+_quant :: Time -> Pattern a -> Pattern a
+_quant 0 pat = pat
+_quant k pat =
+  withEventOnArc (quantEvent k) (timeToCycleArc . start) pat
+  where
+    quantEvent k ev = ev { whole = (fmap rounding <$> whole ev) }
+    rounding n = toTime $ ((/ k) $ fromIntegral $ round $ (* k) n)
+
+quant :: Pattern Time -> Pattern a -> Pattern a
+quant = patternify _quant
+
+_fill :: Time -> Time -> Pattern a -> Pattern a
+_fill l m pat =
+  withEventsOnArc (map multiplyEvent . updateEvents . sortEvents) (lookahead) pat
+  where lookahead a = a { start = (`subtract` l) $ start a, stop = (+l) $ stop a }
+        sortEvents = Data.List.sortBy (\e0 e1 -> compare (start $ part e0) (start $ part e1))
+        updateEvents es = (zipWith updatePair es (drop 1 es)) ++ safeLast es
+        safeLast [] = []
+        safeLast es = [last es]
+        updatePair ev ev2 = ev { whole = (liftA2 updateArc (whole ev) (whole ev2)) }
+        updateArc (Arc s0 _) (Arc s1 _) = Arc s0 s1
+        multiplyEvent ev = ev { whole = multiplyDuration <$> whole ev }
+        multiplyDuration (Arc s e) = Arc s (s + ((e-s)*m))
+
+fill :: Pattern Time -> Pattern a -> Pattern a
+fill = patternify (_fill 1)
+
+fill' :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
+fill' = patternify2 _fill
+
+alterT :: (Time -> Time) -> Pattern a -> Pattern a
+alter f pat =
+  withEventOnArc (unflipEvent . alterEvent) (timeToCycleArc . start) pat
+  where alterEvent ev = ev { whole = (fmap alterTime <$> whole ev) }
+        alterTime w = (sam $ w) + (f $ cyclePos $ w)
+
+alterF :: (Double -> Double) -> Pattern a -> Pattern a
+alterF f pat =
+  withEventOnArc (unflipEvent . alterEvent) (timeToCycleArc . start) pat
+  where alterEvent ev = ev { whole = (fmap alterTime <$> whole ev) }
+        alterTime t = (sam $ t) + (toRational $ f $ fromRational $ cyclePos $ t)
+
 {- | @ply n@ repeats each event @n@ times within its arc.
 
 For example, the following are equivalent:

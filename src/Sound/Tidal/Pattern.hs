@@ -502,6 +502,16 @@ withEvents f p = p {query = f . query p, pureValue = Nothing}
 withPart :: (Arc -> Arc) -> Pattern a -> Pattern a
 withPart f = withEvent (\(Event c w p v) -> Event c w (f p) v)
 
+-- | @withEventsOnArc ef af p@ returns a new @Pattern@ with ef applied to the events list queried from the query arc modified by af, then enclosed into the original arc
+-- function @f@
+withEventsOnArc :: ([Event a] -> [Event a]) -> (Arc -> Arc) -> Pattern a -> Pattern a
+withEventsOnArc ef af p = splitQueries $ p {query = \st -> mapMaybe (encloseEvent $ arc st) $ ef $ query p st { arc = af $ arc st}}
+
+-- | @withEventOnArc ef af p@ returns a new @Pattern@ with ef applied to the each event queried from the query arc modified by af, then enclosed into the original arc
+-- function @f@
+withEventOnArc :: (Event a -> Event a) -> (Arc -> Arc) -> Pattern a -> Pattern a
+withEventOnArc ef af p = withEventsOnArc (ef <$>) af p
+
 _extract :: (Value -> Maybe a) -> String -> ControlPattern -> Pattern a
 _extract f name pat = filterJust $ withValue (Map.lookup name >=> f) pat
 
@@ -901,6 +911,23 @@ eventValue = value
 eventHasOnset :: Event a -> Bool
 eventHasOnset e | isAnalog e = False
                 | otherwise = start (fromJust $ whole e) == start (part e)
+
+-- | Given any event, return it as if it was queried between the given arc
+encloseEvent :: Arc -> Event a -> Maybe (Event a)
+encloseEvent _ (Event _ Nothing _ _) = Nothing
+encloseEvent (Arc as ae) ev@(Event ctx (Just (Arc ws we)) part val)
+  | we <= as = Nothing
+  | ws >= ae = Nothing
+  | ws >= as && we <= ae = Just ev  -- fully within
+  | ws >= as && we >  ae = Just ev { part = Arc ws ae }  -- starts within, ends outside
+  | ws < as  && we >  ae = Just ev { part = Arc as ae }   -- starts outside, ends outside
+  | ws < as  && we <= ae = Just ev { part = Arc as we }  -- starts outside, ends within
+  | otherwise = Nothing
+
+-- | If an event ends before it starts, switch starts with ends
+unflipEvent :: Event a -> Event a
+unflipEvent ev@(Event _ (Just (Arc ws we)) (Arc ps pe) _) | we >= ws = ev
+                                                          | ws >  we = ev { whole = (Just (Arc we ws)), part = (Arc pe ps) }
 
 -- TODO - Is this used anywhere? Just tests, it seems
 -- TODO - support 'context' field
