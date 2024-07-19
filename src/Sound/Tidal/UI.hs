@@ -44,7 +44,7 @@ import           Data.Bool             (bool)
 import           Data.Fixed            (mod')
 import           Data.List             (elemIndex, findIndex, findIndices,
                                         groupBy, intercalate, sort, sortOn,
-                                        transpose)
+                                        sortBy, transpose)
 import qualified Data.Map.Strict       as Map
 import           Data.Maybe            (catMaybes, fromJust, fromMaybe, isJust,
                                         mapMaybe)
@@ -2072,7 +2072,7 @@ _fill :: Time -> Time -> Pattern a -> Pattern a
 _fill l m pat =
   withEventsOnArc (map multiplyEvent . updateEvents . sortEvents) (lookahead) pat
   where lookahead a = a { start = (`subtract` l) $ start a, stop = (+l) $ stop a }
-        sortEvents = Data.List.sortBy (\e0 e1 -> compare (start $ part e0) (start $ part e1))
+        sortEvents = sortBy (\e0 e1 -> compare (start $ part e0) (start $ part e1))
         updateEvents es = (zipWith updatePair es (drop 1 es)) ++ safeLast es
         safeLast [] = []
         safeLast es = [last es]
@@ -2088,7 +2088,7 @@ fill' :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
 fill' = patternify2 _fill
 
 alterT :: (Time -> Time) -> Pattern a -> Pattern a
-alter f pat =
+alterT f pat =
   withEventOnArc (unflipEvent . alterEvent) (timeToCycleArc . start) pat
   where alterEvent ev = ev { whole = (fmap alterTime <$> whole ev) }
         alterTime w = (sam $ w) + (f $ cyclePos $ w)

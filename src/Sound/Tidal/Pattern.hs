@@ -914,8 +914,8 @@ eventHasOnset e | isAnalog e = False
 
 -- | Given any event, return it as if it was queried between the given arc
 encloseEvent :: Arc -> Event a -> Maybe (Event a)
-encloseEvent _ (Event _ Nothing _ _) = Nothing
-encloseEvent (Arc as ae) ev@(Event ctx (Just (Arc ws we)) part val)
+encloseEvent _ (Event _ Nothing _ _) = Nothing -- TODO how to handle analogs
+encloseEvent (Arc as ae) ev@(Event _ (Just (Arc ws we)) _ _)
   | we <= as = Nothing
   | ws >= ae = Nothing
   | ws >= as && we <= ae = Just ev  -- fully within
@@ -926,8 +926,8 @@ encloseEvent (Arc as ae) ev@(Event ctx (Just (Arc ws we)) part val)
 
 -- | If an event ends before it starts, switch starts with ends
 unflipEvent :: Event a -> Event a
-unflipEvent ev@(Event _ (Just (Arc ws we)) (Arc ps pe) _) | we >= ws = ev
-                                                          | ws >  we = ev { whole = (Just (Arc we ws)), part = (Arc pe ps) }
+unflipEvent ev@(Event _ (Just (Arc ws we)) (Arc ps pe) _) = if we >= ws then ev else ev { whole = (Just (Arc we ws)), part = (Arc pe ps) }
+unflipEvent ev@(Event _ Nothing (Arc ps pe) _) = if pe >= ps then ev else ev { part = (Arc pe ps) }
 
 -- TODO - Is this used anywhere? Just tests, it seems
 -- TODO - support 'context' field
