@@ -34,7 +34,6 @@ import           Control.Monad             (forM_, when)
 import           Data.Coerce               (coerce)
 import qualified Data.Map.Strict           as Map
 import           Data.Maybe                (catMaybes, fromJust, fromMaybe)
-import           Foreign.C.Types
 import           System.IO                 (hPutStrLn, stderr)
 
 import qualified Sound.Osc.Fd              as O
@@ -47,7 +46,6 @@ import qualified Sound.Tidal.Link          as Link
 import           Sound.Tidal.Params        (pS)
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Show          ()
-import           Sound.Tidal.Stream.Config
 import           Sound.Tidal.Utils         ((!!!))
 
 import           Sound.Tidal.Stream.Target
@@ -57,7 +55,7 @@ data ProcessedEvent =
   ProcessedEvent {
     peHasOnset         :: Bool,
     peEvent            :: Event ValueMap,
-    peCps              :: Link.BPM,
+    peCps              :: Double,
     peDelta            :: Link.Micros,
     peCycle            :: Time,
     peOnWholeOrPart    :: Link.Micros,
@@ -88,9 +86,11 @@ doTick :: MVar ValueMap                           -- pattern state
        -> Maybe O.Udp                             -- network socket
        -> (Time,Time)                             -- current arc
        -> Double                                  -- nudge
-       -> Clock.LinkOperations                    -- ableton link operations
+       -> Clock.ClockConfig                       -- config of the clock
+       -> Clock.ClockRef                          -- reference to the clock
+       -> (Link.SessionState, Link.SessionState)  -- second session state is for keeping track of tempo changes
        -> IO ()
-doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge ops =
+doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge cconf cref (ss, temposs) =
   E.handle (\ (e :: E.SomeException) -> do
     hPutStrLn stderr $ "Failed to Stream.doTick: " ++ show e
     hPutStrLn stderr $ "Return to previous pattern."
@@ -99,10 +99,10 @@ doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge ops =
       pMap <- readMVar playMV
       busses <- readMVar busMV
       sGlobalF <- readMVar globalFMV
-      bpm <- (Clock.getTempo ops)
+      bpm <- Clock.getTempo ss
       let
         patstack = sGlobalF $ playStack pMap
-        cps = ((Clock.beatToCycles ops) bpm) / 60
+        cps = ((Clock.beatToCycles cconf) $ fromRational bpm) / 60
         sMap' = Map.insert "_cps" (VF $ coerce cps) sMap
         extraLatency = nudge
         -- First the state is used to query the pattern
@@ -112,7 +112,7 @@ doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge ops =
                                                 )
          -- Then it's passed through the events
         (sMap'', es') = resolveState sMap' es
-      tes <- processCps ops es'
+      tes <- processCps cconf cref (ss, temposs) es'
       -- For each OSC target
       forM_ cxs $ \cx@(Cx target _ oscs _ _) -> do
               -- Latency is configurable per target.
@@ -124,27 +124,29 @@ doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge ops =
                 hPutStrLn stderr $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
       putMVar stateMV sMap'')
 
-processCps :: Clock.LinkOperations -> [Event ValueMap] -> IO [ProcessedEvent]
-processCps ops = mapM processEvent
+processCps :: Clock.ClockConfig -> Clock.ClockRef -> (Link.SessionState, Link.SessionState) -> [Event ValueMap] -> IO [ProcessedEvent]
+processCps cconf cref (ss, temposs) = mapM processEvent
   where
     processEvent ::  Event ValueMap  -> IO ProcessedEvent
     processEvent e = do
       let wope = wholeOrPart e
           partStartCycle = start $ part e
-          partStartBeat = (Clock.cyclesToBeat ops) (realToFrac partStartCycle)
+          partStartBeat = (Clock.cyclesToBeat cconf) (realToFrac partStartCycle)
           onCycle = start wope
-          onBeat = (Clock.cyclesToBeat ops) (realToFrac onCycle)
+          onBeat = (Clock.cyclesToBeat cconf) (realToFrac onCycle)
           offCycle = stop wope
-          offBeat = (Clock.cyclesToBeat ops) (realToFrac offCycle)
-      on <- (Clock.timeAtBeat ops) onBeat
-      onPart <- (Clock.timeAtBeat ops) partStartBeat
+          offBeat = (Clock.cyclesToBeat cconf) (realToFrac offCycle)
+      on <- Clock.timeAtBeat cconf ss onBeat
+      onPart <- Clock.timeAtBeat cconf ss partStartBeat
       when (eventHasOnset e) (do
         let cps' = Map.lookup "cps" (value e) >>= getF
-        maybe (return ()) (\newCps -> (Clock.setTempo ops) ((Clock.cyclesToBeat ops) (newCps * 60)) on) $ coerce cps'
+        maybe (return ()) (\newCps -> Clock.setTempoCPS newCps on cconf temposs) (fmap toRational cps')
         )
-      off <- (Clock.timeAtBeat ops) offBeat
-      bpm <- (Clock.getTempo ops)
-      let cps = ((Clock.beatToCycles ops) bpm) / 60
+      off <- Clock.timeAtBeat cconf ss offBeat
+      bpm <- Clock.getTempo ss
+      wholeOrPartOsc <- Clock.linkToOscTime cref on
+      onPartOsc <- Clock.linkToOscTime cref onPart
+      let cps = ((Clock.beatToCycles cconf) $ fromRational bpm) / 60
       let delta = off - on
       return $! ProcessedEvent {
           peHasOnset = eventHasOnset e,
@@ -153,9 +155,9 @@ processCps ops = mapM processEvent
           peDelta = delta,
           peCycle = onCycle,
           peOnWholeOrPart = on,
-          peOnWholeOrPartOsc = (Clock.linkToOscTime ops) on,
+          peOnWholeOrPartOsc = wholeOrPartOsc,
           peOnPart = onPart,
-          peOnPartOsc = (Clock.linkToOscTime ops) onPart
+          peOnPartOsc = onPartOsc
         }
 
 
@@ -182,7 +184,7 @@ toOSC busses pe osc@(OSC _ _)
         -- Only events that start within the current nowArc are included
         playmsg | peHasOnset pe = do
                   -- If there is already cps in the event, the union will preserve that.
-                  let extra = Map.fromList [("cps", (VF (coerce $! peCps pe))),
+                  let extra = Map.fromList [("cps", (VF (peCps pe))),
                                           ("delta", VF (Clock.addMicrosToOsc (peDelta pe) 0)),
                                           ("cycle", VF (fromRational (peCycle pe)))
                                         ]
@@ -283,15 +285,8 @@ playStack pMap = stack . (map psPattern) . (filter active) . Map.elems $ pMap
 hasSolo :: Map.Map k PlayState -> Bool
 hasSolo = (>= 1) . length . filter psSolo . Map.elems
 
-
--- Used for Tempo callback
--- Tempo changes will be applied.
--- However, since the full arc is processed at once and since Link does not support
--- scheduling, tempo change may affect scheduling of events that happen earlier
--- in the normal stream (the one handled by onTick).
-onSingleTick :: Config -> Clock.ClockRef -> MVar ValueMap -> MVar [Int] -> MVar PlayMap -> MVar (ControlPattern -> ControlPattern) -> [Cx] -> Maybe O.Udp -> ControlPattern -> IO ()
-onSingleTick config clockRef stateMV busMV _ globalFMV cxs listen pat = do
-  ops <- Clock.getZeroedLinkOperations (cClockConfig config) clockRef
+onSingleTick :: Clock.ClockConfig -> Clock.ClockRef -> MVar ValueMap -> MVar [Int] -> MVar PlayMap -> MVar (ControlPattern -> ControlPattern) -> [Cx] -> Maybe O.Udp -> ControlPattern -> IO ()
+onSingleTick clockConfig clockRef stateMV busMV _ globalFMV cxs listen pat = do
   pMapMV <- newMVar $ Map.singleton "fake"
           (PlayState {psPattern = pat,
                       psMute = False,
@@ -299,9 +294,7 @@ onSingleTick config clockRef stateMV busMV _ globalFMV cxs listen pat = do
                       psHistory = []
                       }
           )
-  -- The nowArc is a full cycle
-  doTick stateMV busMV pMapMV globalFMV cxs listen (0,1) 0 ops
-
+  Clock.clockOnce (doTick stateMV busMV pMapMV globalFMV cxs listen) clockConfig clockRef
 
 
 -- Used for Tempo callback

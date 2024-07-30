@@ -56,21 +56,9 @@ data ClockConfig
   }
 
 -- | action to be executed on a tick,
--- | given the current timespan and nudge
+-- | given the current timespan, nudge and reference to the clock
 type TickAction
-  = (Time,Time) -> Double -> LinkOperations -> IO ()
-
--- | link operations for easy interaction with the clock
-data LinkOperations
-  = LinkOperations
-  {timeAtBeat    :: Link.Beat -> IO Link.Micros
-  ,timeToCycles  :: Link.Micros -> IO Time
-  ,getTempo      :: IO Link.BPM
-  ,setTempo      :: Link.BPM -> Link.Micros -> IO ()
-  ,linkToOscTime :: Link.Micros -> O.Time
-  ,beatToCycles  :: CDouble -> CDouble
-  ,cyclesToBeat  :: CDouble -> CDouble
-  }
+  = (Time,Time) -> Double -> ClockConfig -> ClockRef -> (Link.SessionState, Link.SessionState) -> IO ()
 
 -- | possible actions for interacting with the clock
 data ClockAction
@@ -78,7 +66,6 @@ data ClockAction
   | SetCycle Time
   | SetTempo Time
   | SetNudge Double
-  deriving Show
 
 defaultCps :: Double
 defaultCps = 0.575
@@ -187,34 +174,19 @@ tick = do
 -- hands the current link operations to the TickAction
 clockProcess :: Clock ()
 clockProcess = do
-    (ClockMemory config (ClockRef _ abletonLink) action) <- ask
+    (ClockMemory config ref@(ClockRef _ abletonLink) action) <- ask
     st <- get
     let logicalEnd = logicalTime config (start st) $ ticks st + 1
         startCycle = arcEnd $ nowArc st
 
     sessionState <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
-    endCycle <- liftIO $ timeToCycles' config sessionState logicalEnd
+    endCycle <- liftIO $ timeToCycles config sessionState logicalEnd
 
-    let st' = st {nowArc = (startCycle,endCycle)}
-
-    nowOsc <- O.time
-    nowLink <- liftIO $ Link.clock abletonLink
-
-    let ops = LinkOperations {
-      timeAtBeat = \beat -> Link.timeAtBeat sessionState beat (cQuantum config) ,
-      timeToCycles = timeToCycles' config sessionState,
-      getTempo = Link.getTempo sessionState,
-      setTempo = Link.setTempo sessionState,
-      linkToOscTime = \lt -> addMicrosToOsc (lt - nowLink) nowOsc,
-      beatToCycles = \beat -> beat / (cBeatsPerCycle config),
-      cyclesToBeat = \cyc -> cyc * (cBeatsPerCycle config)
-    }
-
-    liftIO $ action (nowArc st') (nudged st') ops
+    liftIO $ action (startCycle,endCycle) (nudged st) config ref (sessionState, sessionState)
 
     liftIO $ Link.commitAndDestroyAppSessionState abletonLink sessionState
 
-    put st'
+    put (st {nowArc = (startCycle,endCycle)})
     tick
 
 processAction :: ClockAction -> Clock ()
@@ -240,7 +212,7 @@ processAction (SetCycle cyc) = do
             modify (\st -> st {ticks = 0, start = now, nowArc = (cyc,cyc)})
 
 ---------------------------------------------------------------
--------------------- helper functions -------------------------
+----------- functions representing link operations ------------
 ---------------------------------------------------------------
 
 arcStart :: (Time, Time) -> Time
@@ -249,8 +221,37 @@ arcStart = fst
 arcEnd :: (Time, Time) -> Time
 arcEnd = snd
 
-timeToCycles' :: ClockConfig -> Link.SessionState -> Link.Micros -> IO Time
-timeToCycles' config ss time = do
+beatToCycles :: ClockConfig -> Double -> Double
+beatToCycles config beat = beat / (coerce $ cBeatsPerCycle config)
+
+cyclesToBeat :: ClockConfig -> Double -> Double
+cyclesToBeat config cyc = cyc * (coerce $ cBeatsPerCycle config)
+
+getSessionState :: ClockRef -> IO Link.SessionState
+getSessionState (ClockRef _ abletonLink) = Link.createAndCaptureAppSessionState abletonLink
+
+-- onSingleTick assumes it runs at beat 0.
+-- The best way to achieve that is to use forceBeatAtTime.
+-- But using forceBeatAtTime means we can not commit its session state.
+getZeroedSessionState :: ClockConfig -> ClockRef -> IO Link.SessionState
+getZeroedSessionState config (ClockRef _ abletonLink) = do
+                            ss <- Link.createAndCaptureAppSessionState abletonLink
+                            nowLink <- liftIO $ Link.clock abletonLink
+                            Link.forceBeatAtTime ss 0 (nowLink + processAhead) (cQuantum config)
+                            return ss
+                        where processAhead = round $ (cProcessAhead config) * 1000000
+
+getTempo :: Link.SessionState -> IO Time
+getTempo ss = fmap toRational $ Link.getTempo ss
+
+setTempoCPS :: Time -> Link.Micros -> ClockConfig -> Link.SessionState -> IO ()
+setTempoCPS cps now conf ss = Link.setTempo ss (coerce $ cyclesToBeat conf ((fromRational cps) * 60)) now
+
+timeAtBeat :: ClockConfig -> Link.SessionState  -> Double -> IO Link.Micros
+timeAtBeat config ss beat = Link.timeAtBeat ss (coerce beat) (cQuantum config)
+
+timeToCycles :: ClockConfig -> Link.SessionState -> Link.Micros -> IO Time
+timeToCycles config ss time = do
   beat <- Link.beatAtTime ss time (cQuantum config)
   return $! (toRational beat) / (toRational (cBeatsPerCycle config))
 
@@ -259,6 +260,12 @@ cyclesToTime :: ClockConfig -> Link.SessionState -> Time -> IO Link.Micros
 cyclesToTime config ss cyc = do
   let beat = (fromRational cyc) * (cBeatsPerCycle config)
   Link.timeAtBeat ss beat (cQuantum config)
+
+linkToOscTime :: ClockRef -> Link.Micros -> IO O.Time
+linkToOscTime (ClockRef _ abletonLink) lt = do
+        nowOsc <- O.time
+        nowLink <- liftIO $ Link.clock abletonLink
+        return $ addMicrosToOsc (lt - nowLink) nowOsc
 
 addMicrosToOsc :: Link.Micros -> O.Time -> O.Time
 addMicrosToOsc m t = ((fromIntegral m) / 1000000) + t
@@ -288,41 +295,9 @@ getCycleTime :: ClockConfig -> ClockRef -> IO Time
 getCycleTime config (ClockRef _ abletonLink) = do
                             now <- Link.clock abletonLink
                             ss <- Link.createAndCaptureAppSessionState abletonLink
-                            c <- timeToCycles' config ss now
+                            c <- timeToCycles config ss now
                             Link.destroySessionState ss
                             return $! c
-
--- onSingleTick assumes it runs at beat 0.
--- The best way to achieve that is to use forceBeatAtTime.
--- But using forceBeatAtTime means we can not commit its session state.
--- Another session state, which we will commit,
--- is introduced to keep track of tempo changes.
-getZeroedLinkOperations :: ClockConfig -> ClockRef -> IO LinkOperations
-getZeroedLinkOperations config (ClockRef _ abletonLink) = do
-              sessionState <- Link.createAndCaptureAppSessionState abletonLink
-              zeroedSessionState <- Link.createAndCaptureAppSessionState abletonLink
-
-              nowOsc <- O.time
-              nowLink <- Link.clock abletonLink
-
-              Link.forceBeatAtTime zeroedSessionState 0 (nowLink + processAhead) (cQuantum config)
-
-              Link.commitAndDestroyAppSessionState abletonLink sessionState
-              Link.destroySessionState zeroedSessionState
-
-              return $ LinkOperations {
-                  timeAtBeat = \beat -> Link.timeAtBeat zeroedSessionState beat (cQuantum config),
-                  timeToCycles = timeToCycles' config zeroedSessionState,
-                  getTempo = Link.getTempo zeroedSessionState,
-                  setTempo = \bpm micros ->
-                                Link.setTempo zeroedSessionState bpm micros >>
-                                Link.setTempo sessionState bpm micros,
-                  linkToOscTime = \lt -> addMicrosToOsc (lt - nowLink) nowOsc,
-                  beatToCycles = \beat -> beat / (cBeatsPerCycle config),
-                  cyclesToBeat = \cyc -> cyc * (cBeatsPerCycle config)
-                  }
-      where processAhead = round $ (cProcessAhead config) * 1000000
-
 
 resetClock :: ClockRef -> IO ()
 resetClock clock = setClock clock 0
@@ -351,6 +326,20 @@ setNudge (ClockRef clock _) n = atomically $ do
                                       case action of
                                         NoAction -> modifyTVar' clock (const $ SetNudge n)
                                         _ -> retry
+
+-- Used for Tempo callback
+-- Tempo changes will be applied.
+-- However, since the full arc is processed at once and since Link does not support
+-- scheduling, tempo change may affect scheduling of events that happen earlier
+-- in the normal stream (the one handled by onTick).
+clockOnce :: TickAction -> ClockConfig -> ClockRef -> IO ()
+clockOnce action config ref@(ClockRef _ abletonLink) = do
+        ss <- getZeroedSessionState config ref
+        temposs <- Link.createAndCaptureAppSessionState abletonLink
+        -- The nowArc is a full cycle
+        action (0,1) 0 config ref (ss, temposs)
+        Link.destroySessionState ss
+        Link.commitAndDestroyAppSessionState abletonLink temposs
 
 disableLink :: ClockRef -> IO ()
 disableLink (ClockRef _ abletonLink) = Link.disable abletonLink
