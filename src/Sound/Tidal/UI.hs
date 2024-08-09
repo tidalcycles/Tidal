@@ -37,6 +37,8 @@ module Sound.Tidal.UI where
 
 import           Prelude               hiding ((*>), (<*))
 
+import           Control.Applicative (liftA2)
+
 import           Data.Bits             (Bits, shiftL, shiftR, testBit, xor)
 import           Data.Char             (digitToInt, isDigit, ord)
 
@@ -2060,10 +2062,16 @@ fill p' p = struct (splitQueries $ p {query = q, pureValue = Nothing}) p'
 _quant :: Time -> Pattern a -> Pattern a
 _quant 0 pat = pat
 _quant k pat =
-  withEventOnArc (quantEvent k) (timeToCycleArc . start) pat
+  withEventOnArc (quantEvent k) (surround) pat
   where
+    surround qa@(Arc qs qe) = Arc (qs - lookahead) (qe + lookahead)
+    lookahead = 1/k
     quantEvent k ev = ev { whole = (fmap rounding <$> whole ev) }
-    rounding n = toTime $ ((/ k) $ fromIntegral $ round $ (* k) n)
+    rounding n = (roundNumerator n) % k'
+    roundNumerator n = (nn * k' + (nd `div` 2)) `div` nd
+      where nn = numerator n
+            nd = denominator n
+    k' = numerator k
 
 quant :: Pattern Time -> Pattern a -> Pattern a
 quant = patternify _quant
@@ -2090,14 +2098,13 @@ fill' = patternify2 _fill
 alterT :: (Time -> Time) -> Pattern a -> Pattern a
 alterT f pat =
   withEventOnArc (unflipEvent . alterEvent) (timeToCycleArc . start) pat
-  where alterEvent ev = ev { whole = (fmap alterTime <$> whole ev) }
-        alterTime w = (sam $ w) + (f $ cyclePos $ w)
+  where alterEvent ev = ev { whole = (fmap (mapCycle f) $ whole ev) }
 
 alterF :: (Double -> Double) -> Pattern a -> Pattern a
 alterF f pat =
   withEventOnArc (unflipEvent . alterEvent) (timeToCycleArc . start) pat
-  where alterEvent ev = ev { whole = (fmap alterTime <$> whole ev) }
-        alterTime t = (sam $ t) + (toRational $ f $ fromRational $ cyclePos $ t)
+  where alterEvent ev = ev { whole = (fmap (mapCycle f') $ whole ev) }
+        f' = toRational . f . fromRational
 
 {- | @ply n@ repeats each event @n@ times within its arc.
 

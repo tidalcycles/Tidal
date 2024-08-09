@@ -915,14 +915,10 @@ eventHasOnset e | isAnalog e = False
 -- | Given any event, return it as if it was queried between the given arc
 encloseEvent :: Arc -> Event a -> Maybe (Event a)
 encloseEvent _ (Event _ Nothing _ _) = Nothing -- TODO how to handle analogs
-encloseEvent (Arc as ae) ev@(Event _ (Just (Arc ws we)) _ _)
-  | we <= as = Nothing
-  | ws >= ae = Nothing
-  | ws >= as && we <= ae = Just ev  -- fully within
-  | ws >= as && we >  ae = Just ev { part = Arc ws ae }  -- starts within, ends outside
-  | ws < as  && we >  ae = Just ev { part = Arc as ae }   -- starts outside, ends outside
-  | ws < as  && we <= ae = Just ev { part = Arc as we }  -- starts outside, ends within
-  | otherwise = Nothing
+encloseEvent a@(Arc as ae) ev@(Event ctx (Just w@(Arc ws we)) part val)
+  | we <= as || ws >= ae = Nothing -- outside
+  | ws >= as && we <= ae = Just ev -- fully within
+  | otherwise = Just ev { part = sect w a } -- intersects
 
 -- | If an event ends before it starts, switch starts with ends
 unflipEvent :: Event a -> Event a
