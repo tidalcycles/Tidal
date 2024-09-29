@@ -2916,3 +2916,21 @@ necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ listToPat $ li
   where list :: [Int] -> [Bool]
         list []      = []
         list (x:xs') = (True:(replicate (x-1) False)) ++ list xs'
+
+{- | Inserts chromatic notes into a pattern.
+
+The first argument indicates the (patternable) number of notes to insert,
+and the second argument is the base pattern of "anchor notes" that gets transformed.
+
+The following are equivalent:
+
+> d1 $ up (chromatiseBy "0 1 2 -1" "[0 2] [3 6] [5 6 8] [3 1 0]") # s "superpiano"
+> d1 $ up "[0 2] [[3 4] [6 7]] [[5 6 7] [6 7 8] [8 9 10] [[3 2] [1 0] [0 -1]]" # s "superpiano"
+-}
+chromatiseBy :: (Num a, Enum a, Ord a) => Pattern a -> Pattern a -> Pattern a
+chromatiseBy n pat = innerJoin $ (\np -> _chromatiseBy np pat) <$> n
+
+_chromatiseBy :: (Num a, Enum a, Ord a) => a -> Pattern a -> Pattern a
+_chromatiseBy n pat = squeezeJoin $ (\value -> fastcat
+                                   $ map pure (if n >=0 then [value .. (value+n)]
+                                               else (reverse $ [(value + n) .. value]))) <$> pat
