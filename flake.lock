@@ -1,29 +1,12 @@
 {
   "nodes": {
-    "hosc": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1669944828,
-        "narHash": "sha256-cHEf0yEiwNnEpDj7SSQWRMUEAT5USHuuUCPuzOXHWrk=",
-        "owner": "rd--",
-        "repo": "hosc",
-        "rev": "e77aa67cd0b99a32498fef246a687ba443c9b4be",
-        "type": "github"
-      },
-      "original": {
-        "owner": "rd--",
-        "repo": "hosc",
-        "rev": "e77aa67cd0b99a32498fef246a687ba443c9b4be",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1687807295,
-        "narHash": "sha256-7TUD0p0m4mZpIi1O+Cyk5NCqpJUnhv/CJOAuHOndjao=",
+        "lastModified": 1730531603,
+        "narHash": "sha256-Dqg6si5CqIzm87sp57j5nTaeBbWhHFaVyG7V6L8k3lY=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "6b3d1b1cf13f407fef5e634b224d575eb7211975",
+        "rev": "7ffd9ae656aec493492b44d0ddfb28e79a1ea25d",
         "type": "github"
       },
       "original": {
@@ -35,7 +18,6 @@
     },
     "root": {
       "inputs": {
-        "hosc": "hosc",
         "nixpkgs": "nixpkgs",
         "utils": "utils"
       }
