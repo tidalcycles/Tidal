@@ -91,11 +91,8 @@ doTick :: MVar ValueMap                           -- pattern state
        -> (Link.SessionState, Link.SessionState)  -- second session state is for keeping track of tempo changes
        -> IO ()
 doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge cconf cref (ss, temposs) =
-  E.handle (\ (e :: E.SomeException) -> do
-    hPutStrLn stderr $ "Failed to Stream.doTick: " ++ show e
-    hPutStrLn stderr $ "Return to previous pattern."
-    setPreviousPatternOrSilence playMV) (do
-      sMap <- takeMVar stateMV
+  E.handle handleException $ do
+    modifyMVar_ stateMV $ \sMap -> do
       pMap <- readMVar playMV
       busses <- readMVar busMV
       sGlobalF <- readMVar globalFMV
@@ -122,7 +119,13 @@ doTick stateMV busMV playMV globalFMV cxs listen (st,end) nudge cconf cref (ss, 
               -- send the events to the OSC target
               forM_ ms $ \m -> (send listen cx latency extraLatency m) `E.catch` \(e :: E.SomeException) ->
                 hPutStrLn stderr $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
-      putMVar stateMV sMap'')
+      return sMap''
+  where
+    handleException :: E.SomeException -> IO ()
+    handleException e = do
+      hPutStrLn stderr $ "Failed to Stream.doTick: " ++ show e
+      hPutStrLn stderr $ "Return to previous pattern."
+      setPreviousPatternOrSilence playMV
 
 processCps :: Clock.ClockConfig -> Clock.ClockRef -> (Link.SessionState, Link.SessionState) -> [Event ValueMap] -> IO [ProcessedEvent]
 processCps cconf cref (ss, temposs) = mapM processEvent
