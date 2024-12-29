@@ -1,6 +1,7 @@
 module Sound.Tidal.Stream.Target where
 
 import qualified Sound.Osc.Fd           as O
+import qualified Sound.Osc.Transport.Fd.Udp as O
 import qualified Network.Socket         as N
 import           Data.Maybe             (fromJust, isJust)
 import           Control.Concurrent     (forkOS, threadDelay)

@@ -6,7 +6,7 @@ import           Sound.Tidal.Pattern
 import           Sound.Tidal.Show          ()
 
 import qualified Network.Socket            as N
-import qualified Sound.Osc.Fd              as O
+import qualified Sound.Osc.Transport.Fd.Udp as O
 
 import qualified Sound.Tidal.Clock         as Clock
 

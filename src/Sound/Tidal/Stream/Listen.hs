@@ -7,6 +7,7 @@ import           System.IO (hPutStrLn, stderr)
 import qualified Data.Map as Map
 import qualified Sound.Osc.Fd as O
 import qualified Sound.Osc.Time.Timeout as O
+import qualified Sound.Osc.Transport.Fd.Udp as O
 import qualified Network.Socket         as N
 import qualified Control.Exception as E
 

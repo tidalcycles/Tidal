@@ -37,6 +37,7 @@ import           Data.Maybe                (catMaybes, fromJust, fromMaybe)
 import           System.IO                 (hPutStrLn, stderr)
 
 import qualified Sound.Osc.Fd              as O
+import qualified Sound.Osc.Transport.Fd.Udp as O
 
 import           Data.List                 (sortOn)
 import qualified Sound.Tidal.Clock         as Clock
