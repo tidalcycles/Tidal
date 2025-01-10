@@ -139,6 +139,18 @@ run =
             Event (Context [((1,1),(3,1))]) Nothing (Arc 0 0.5) (6 :: Int), Event (Context [((4,1),(5,1))]) Nothing (Arc 0.5 1) (0 :: Int)
           ]
 
+    describe "normal" $ do
+      it "produces values within [0,1] in a bell curve" $ do
+        it "at the start of a cycle" $
+          queryArc normal (Arc 0 0) `shouldBe` 
+            [Event (Context []) Nothing (Arc 0 0) (0.3370977:: Float)]
+        it "at 1/4 of a cycle" $
+          queryArc normal (Arc 0.25 0.25) `shouldBe`
+            [Event (Context []) Nothing (Arc 0.25 0.25) (0.4723987:: Float)]
+        it "at 3/4 of a cycle" $
+          queryArc normal (Arc 0.75 0.75) `shouldBe`
+          [Event (Context []) Nothing (Arc 0.75 0.75) (0.44856572:: Float)]
+
     describe "range" $ do
       describe "scales a pattern to the supplied range" $ do
         describe "from 3 to 4" $ do

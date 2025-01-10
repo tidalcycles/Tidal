@@ -222,6 +222,25 @@ perlin2With x y = (/2) . (+1) $ interp2 <$> xfrac <*> yfrac <*> dota <*> dotb <*
 perlin2 :: Pattern Double -> Pattern Double
 perlin2 = perlin2With (sig fromRational)
 
+{- | Generates values in [0,1] that follows a normal (bell-curve) distribution.
+One possible application is to "humanize" drums with a slight random delay:
+@
+d1 $ 
+  s "bd sn bd sn" 
+  # nudge (segment 4 (0.01 * normal))
+@
+Implemented with the Box-Muller transform.
+  * the max ensures we don't calculate log 0
+  * the rot in u2 ensures we don't just get the same value as u1
+-}
+normal :: (Floating a, Ord a) => Pattern a
+normal = do
+  u1 <- max 0.0000001 <$> rand
+  u2 <- rot 1 rand
+  let r1 = sqrt (-2 * log u1)
+      r2 = cos (2 * pi * u2)
+  pure ((r1 * r2) + 1) / 2
+
 {- | Randomly picks an element from the given list.
 
 @
