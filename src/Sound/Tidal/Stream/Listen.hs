@@ -101,6 +101,18 @@ ctrlResponder waits c (stream@(Stream {sListen = Just sock}))
           = streamHush stream
         act (O.Message "/silence" (k:[]))
           = withID k $ streamSilence stream
+        -- Cycle properties commands
+        act (O.Message "/setcps" [O.Float k])
+          = streamSetCPS stream $ toTime k
+        act (O.Message "/setbpm" [O.Float k])
+          = streamSetBPM stream $ toTime k
+        act (O.Message "/setCycle" [O.Float k])
+          = streamSetCycle stream $ toTime k
+        act (O.Message "/resetCycles" _)
+          = streamResetCycles stream
+        -- Nudge all command
+        act (O.Message "/nudgeAll" [O.Double k])
+          = streamNudgeAll stream k
         act m = hPutStrLn stderr $ "Unhandled OSC: " ++ show m
         add :: String -> Value -> IO ()
         add k v = do sMap <- takeMVar (sStateMV stream)
