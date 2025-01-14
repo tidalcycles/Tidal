@@ -1,16 +1,14 @@
 
-Tidal [![Build Status](https://github.com/tidalcycles/Tidal/workflows/ci/badge.svg)](https://github.com/tidalcycles/Tidal/actions)
-=====
+# Tidal <a href="https://github.com/tidalcycles/Tidal/LICENSE"><img alt="License" src="https://img.shields.io/github/license/tidalcycles/Tidal"></a>
 
+<a href="https://github.com/tidalcycles/Tidal/actions/workflows/ci.yml"><img alt="Cabal" src="https://img.shields.io/github/actions/workflow/status/tidalcycles/Tidal/ci.yml?label=Cabal&logo=githubactions&logoColor=white"></a>
+<a href="https://github.com/tidalcycles/Tidal/actions/workflows/stack.yml"><img alt="Stack" src="https://img.shields.io/github/actions/workflow/status/tidalcycles/Tidal/stack.yml?label=Stack&logo=githubactions&logoColor=white"></a>
+<a href="https://github.com/tidalcycles/Tidal/actions/workflows/nix.yml"><img alt="Nix" src="https://img.shields.io/github/actions/workflow/status/tidalcycles/Tidal/nix.yml?label=Nix&logo=githubactions&logoColor=white"></a>
+<a href="https://github.com/tidalcycles/Tidal/actions/workflows/windows.yml"><img alt="Windows" src="https://img.shields.io/github/actions/workflow/status/tidalcycles/Tidal/windows.yml?label=Windows&logo=githubactions&logoColor=white"></a>
+ 
 Language for live coding algorithmic patterns
 
-For documentation, mailing list and more info see here:  
-  https://tidalcycles.org/
+For documentation, mailing list and more info see [here](https://tidalcycles.org/).  
+You can help speed up Tidal development by [contributing to the collective fund](https://opencollective.com/tidalcycles)!
 
-You can help speed up Tidal development by contributing to the collective fund here:  
-  https://opencollective.com/tidalcycles
-
-(c) Alex McLean and contributors, 2022
-
-Distributed under the terms of the GNU Public license version 3 (or later).
-
+(c) Alex McLean and contributors, 2025

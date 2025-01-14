@@ -1,4 +1,4 @@
-name: Linux
+name: Windows
 on:
   push:
     paths-ignore:
@@ -9,41 +9,13 @@ on:
 
 jobs:
   cabal:
-    runs-on: ubuntu-24.04
+    runs-on: windows-latest
     strategy:
       matrix:
         versions:
-          # latest
-          - ghc: latest
-            cabal: latest
-            args: --allow-newer=base,template-haskell
-            experimental: true
-          # a bit newer
-          - ghc: 9.8.2
-            cabal: 3.12.1.0
-            args: --allow-newer=base,template-haskell
-            experimental: false
           # ghcup recommended
           - ghc: 9.4.8
             cabal: 3.12.1.0
-            args: --allow-newer=base,template-haskell
-            experimental: false
-          # debian stable
-          - ghc: 9.0.2
-            cabal: 3.4.1.0
-            args: --allow-newer=base,template-haskell
-            experimental: false
-          ## 8.x
-          - ghc: 8.10.7
-            cabal: 3.6.2.0-p1
-            args: --allow-newer=base,template-haskell
-            experimental: false
-          - ghc: 8.8.4
-            cabal: 3.6.2.0-p1
-            args: --allow-newer=base,template-haskell
-            experimental: false
-          - ghc: 8.6.5
-            cabal: 3.6.2.0-p1
             args: --allow-newer=base,template-haskell
             experimental: false
 
