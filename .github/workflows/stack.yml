@@ -1,0 +1,63 @@
+# partly taken from xmonad stack CI
+name: Stack
+
+on:
+  push:
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "**.md"
+
+jobs:
+  stack:
+    name: stack resolver
+    runs-on: ubuntu-24.04
+    strategy: 
+      matrix:
+        include:
+          - resolver: lts-22
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: cache ~/.stack
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.stack
+          key: stack-${{ runner.os }}-${{ matrix.resolver }}
+
+      - name: install stack and ghc
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          ghc-version: latest
+
+      - name: Cache Haskell package metadata
+        uses: actions/cache@v4
+        with:
+          path: ~/.stack/pantry
+          key: stack-pantry-${{ runner.os }}-${{ steps.cache-date.outputs.date }}
+
+      - name: Cache Haskell dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.stack/*
+            !~/.stack/pantry
+            !~/.stack/programs
+          key: stack-${{ runner.os }}-${{ matrix.resolver }}-${{ steps.cache-date.outputs.date }}-${{ hashFiles('stack.yaml') }}-${{ hashFiles('*.cabal') }}
+          restore-keys: |
+            stack-${{ runner.os }}-${{ matrix.resolver }}-${{ steps.cache-date.outputs.date }}-${{ hashFiles('stack.yaml') }}-
+            stack-${{ runner.os }}-${{ matrix.resolver }}-${{ steps.cache-date.outputs.date }}-
+
+      - name: Update hackage index
+        run: stack update
+
+      - name: test
+        run: |
+            stack test \
+               --fast --no-terminal \
+               --resolver ${{ matrix.resolver }} --system-ghc \
+               --haddock --no-haddock-deps
