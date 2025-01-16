@@ -54,7 +54,7 @@ data State = State {arc      :: Arc,
                    }
 
 -- | A datatype representing events taking place over time
-data Pattern a = Pattern {query :: State -> [Event a], tactus :: Pattern Rational, pureValue :: Maybe a}
+data Pattern a = Pattern {query :: State -> [Event a], tactus :: Maybe (Pattern Rational), pureValue :: Maybe a}
   deriving (Generic, Functor)
 
 instance NFData a => NFData (Pattern a)
@@ -62,22 +62,22 @@ instance NFData a => NFData (Pattern a)
 pattern :: (State -> [Event a]) -> Pattern a
 pattern f = Pattern f Nothing Nothing
 
-setTactus :: Rational -> Pattern a -> Pattern a
-setTactus r p = p {tactus = Just r}
+setTactus :: Pattern Rational -> Pattern a -> Pattern a
+setTactus r p = p {tactus = Just $ r}
 
 setTactusFrom :: Pattern b -> Pattern a -> Pattern a
 setTactusFrom a b = b {tactus = tactus a}
 
 withTactus :: (Rational -> Rational) -> Pattern a -> Pattern a
-withTactus f p = p {tactus = f <$> tactus p}
-
-_steps :: Rational -> Pattern a -> Pattern a
-_steps target p@(Pattern _ (Just t) _) = setTactus target $ _fast (target / t) p
--- raise error?
-_steps  _ p                            =  p
+withTactus f p = p {tactus = fmap (fmap f) $ tactus p}
 
 steps :: Pattern Rational -> Pattern a -> Pattern a
-steps = patternify _steps
+steps target p@(Pattern _ (Just t) _) = setTactus target $ fast (target / t) p
+-- raise error?
+steps  _ p                            =  p
+
+-- _steps :: Pattern Rational -> Pattern a -> Pattern a
+-- _steps = patternify _steps
 
 keepMeta :: Pattern a -> Pattern a -> Pattern a
 keepMeta from to = to {tactus = tactus from, pureValue = pureValue from}
@@ -124,7 +124,7 @@ instance Applicative Pattern where
   -- > (⅓>½)-⅔|11
   -- > ⅓-(½>⅔)|12
   -- >   (⅔>1)|102
-  (<*>) a b = (applyPatToPatBoth a b) {tactus = lcmr <$> tactus a <*> tactus b }
+  (<*>) a b = (applyPatToPatBoth a b) {tactus = (\a' b' -> lcmr <$> a' <*> b') <$> tactus a <*> tactus b }
 
 -- | Like @<*>@, but the "wholes" come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
