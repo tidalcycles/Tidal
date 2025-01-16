@@ -62,8 +62,8 @@ instance NFData a => NFData (Pattern a)
 pattern :: (State -> [Event a]) -> Pattern a
 pattern f = Pattern f Nothing Nothing
 
-setTactus :: Pattern Rational -> Pattern a -> Pattern a
-setTactus r p = p {tactus = Just $ r}
+setTactus :: Maybe (Pattern Rational) -> Pattern a -> Pattern a
+setTactus r p = p {tactus = r}
 
 setTactusFrom :: Pattern b -> Pattern a -> Pattern a
 setTactusFrom a b = b {tactus = tactus a}
@@ -72,7 +72,7 @@ withTactus :: (Rational -> Rational) -> Pattern a -> Pattern a
 withTactus f p = p {tactus = fmap (fmap f) $ tactus p}
 
 steps :: Pattern Rational -> Pattern a -> Pattern a
-steps target p@(Pattern _ (Just t) _) = setTactus target $ fast (target / t) p
+steps target p@(Pattern _ (Just t) _) = setTactus (Just target) $ fast (target / t) p
 -- raise error?
 steps  _ p                            =  p
 
