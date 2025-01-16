@@ -1201,7 +1201,7 @@ segment :: Pattern Time -> Pattern a -> Pattern a
 segment = patternify _segment
 
 _segment :: Time -> Pattern a -> Pattern a
-_segment n p = setTactus n $ _fast n (pure id) <* p
+_segment n p = setTactus (Just $ pure n) $ _fast n (pure id) <* p
 
 -- | @discretise@: the old (deprecated) name for 'segment'
 discretise :: Pattern Time -> Pattern a -> Pattern a
@@ -1457,7 +1457,7 @@ markovPat :: Pattern Int -> Pattern Int -> [[Double]] -> Pattern Int
 markovPat = patternify2 _markovPat
 
 _markovPat :: Int -> Int -> [[Double]] -> Pattern Int
-_markovPat n xi tp = setTactus (toRational n) $ splitQueries $ pattern (\(State a@(Arc s _) _) ->
+_markovPat n xi tp = setTactus (Just $ pure $ toRational n) $ splitQueries $ pattern (\(State a@(Arc s _) _) ->
   queryArc (listToPat $ runMarkov n tp xi (sam s)) a)
 
 {-|
@@ -2727,22 +2727,6 @@ qround = quantise
 inv :: Functor f => f Bool -> f Bool
 inv = (not <$>)
 
--- | Serialises a pattern so there's only one event playing at any one
--- time, making it /monophonic/. Events which start/end earlier are given priority.
-mono :: Pattern a -> Pattern a
-mono p = pattern $ \(State a cm) -> flatten $ query p (State a cm) where
-  flatten :: [Event a] -> [Event a]
-  flatten = mapMaybe constrainPart . truncateOverlaps . sortOn whole
-  truncateOverlaps []     = []
-  truncateOverlaps (e:es) = e : truncateOverlaps (mapMaybe (snip e) es)
-  -- TODO - decide what to do about analog events..
-  snip a b | start (wholeOrPart b) >= stop (wholeOrPart a) = Just b
-           | stop (wholeOrPart b) <= stop (wholeOrPart a) = Nothing
-           | otherwise = Just b {whole = Just $ Arc (stop $ wholeOrPart a) (stop $ wholeOrPart b)}
-  constrainPart :: Event a -> Maybe (Event a)
-  constrainPart e = do a <- subArc (wholeOrPart e) (part e)
-                       return $ e {part = a}
-
 {-|
 @smooth@ receives a pattern of numbers and linearly goes from one to the next, passing through all of them. As time is cycle-based, after reaching the last number in the pattern, it will smoothly go to the first one again.
 
@@ -2899,7 +2883,7 @@ _binary :: Data.Bits.Bits b => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
 
 _binaryN :: Int -> Pattern Int -> Pattern Bool
-_binaryN n p = setTactus (toRational n) $ squeezeJoin $ _binary n <$> p
+_binaryN n p = setTactus (Just $ pure $ toRational n) $ squeezeJoin $ _binary n <$> p
 
 binaryN :: Pattern Int -> Pattern Int -> Pattern Bool
 binaryN n p = patternify _binaryN n p
