@@ -232,14 +232,16 @@ d1 $
 Implemented with the Box-Muller transform.
   * the max ensures we don't calculate log 0
   * the rot in u2 ensures we don't just get the same value as u1
+  * clamp the Box-Muller generated values in a [-3,3] range
 -}
 normal :: (Floating a, Ord a) => Pattern a
 normal = do
-  u1 <- max 0.0000001 <$> rand
-  u2 <- rot 1 rand
-  let r1 = sqrt (-2 * log u1)
+  u1 <- max 0.001 <$> rand
+  u2 <- rotL 1 rand
+  let r1 = sqrt $ - (2 * log u1)
       r2 = cos (2 * pi * u2)
-  pure ((r1 * r2) + 1) / 2
+      clamp n = max (-3) (min 3 n)
+  pure $ clamp (r1 * r2 + 3) / 6
 
 {- | Randomly picks an element from the given list.
 
