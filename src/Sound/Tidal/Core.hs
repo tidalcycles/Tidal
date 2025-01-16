@@ -24,8 +24,9 @@ import           Prelude             hiding ((*>), (<*))
 
 import           Data.Fixed          (mod')
 import qualified Data.Map.Strict     as Map
-import           Data.Maybe          (fromMaybe)
+import           Data.Maybe          (fromMaybe, mapMaybe)
 import           Sound.Tidal.Pattern
+import           Data.List           (sortOn)
 
 -- ** Elemental patterns
 
@@ -352,7 +353,8 @@ fastappend = fastAppend
 fastCat :: [Pattern a] -> Pattern a
 fastCat (p:[]) = p
 fastCat ps     = setTactus t $ _fast (toTime $ length ps) $ cat ps
-  where t = fromMaybe (toRational $ length ps) $ ((* (toRational $ length ps)) . foldl1 lcmr) <$> (sequence $ map tactus ps)
+    where t = fastCat <$> (sequence $ map tactus ps)
+--  where t = fromMaybe (toRational $ length ps) $ ((* (toRational $ length ps)) . foldl1 lcmr) <$> (sequence $ map tactus ps)
 
 -- | Alias for @fastCat@
 fastcat :: [Pattern a] -> Pattern a
@@ -375,7 +377,7 @@ fastcat = fastCat
 -}
 timeCat :: [(Time, Pattern a)] -> Pattern a
 timeCat ((_,p):[]) = p
-timeCat tps = setTactus total $ stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 $ filter (\(t, _) -> t > 0) $ tps
+timeCat tps = setTactus (Just $ pure total) $ stack $ map (\(s,e,p) -> compressArc (Arc (s/total) (e/total)) p) $ arrange 0 $ filter (\(t, _) -> t > 0) $ tps
     where total = sum $ map fst tps
           arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
           arrange _ []            = []
@@ -402,6 +404,22 @@ which can thus be used as an infix operator equivalent of 'overlay':
 overlay :: Pattern a -> Pattern a -> Pattern a
 overlay = (<>)
 
+-- | Serialises a pattern so there's only one event playing at any one
+-- time, making it /monophonic/. Events which start/end earlier are given priority.
+mono :: Pattern a -> Pattern a
+mono p = pattern $ \(State a cm) -> flatten $ query p (State a cm) where
+  flatten :: [Event a] -> [Event a]
+  flatten = mapMaybe constrainPart . truncateOverlaps . sortOn whole
+  truncateOverlaps []     = []
+  truncateOverlaps (e:es) = e : truncateOverlaps (mapMaybe (snip e) es)
+  -- TODO - decide what to do about analog events..
+  snip a b | start (wholeOrPart b) >= stop (wholeOrPart a) = Just b
+           | stop (wholeOrPart b) <= stop (wholeOrPart a) = Nothing
+           | otherwise = Just b {whole = Just $ Arc (stop $ wholeOrPart a) (stop $ wholeOrPart b)}
+  constrainPart :: Event a -> Maybe (Event a)
+  constrainPart e = do a <- subArc (wholeOrPart e) (part e)
+                       return $ e {part = a}
+
 {- | 'stack' combines a list of 'Pattern's into a new pattern, so that their
 events are combined over time, i.e., all of the patterns in the list are played
 simultaneously.
@@ -424,7 +442,9 @@ pattern to multiple patterns at once:
 stack :: [Pattern a] -> Pattern a
 stack pats = (foldr overlay silence pats) {tactus = t}
   where t | length pats == 0 = Nothing
-          | otherwise = foldl1 lcmr <$> (sequence $ map tactus pats)
+          -- TODO - something cleverer..
+          | otherwise = (mono . stack) <$> (sequence $ map tactus pats)
+--          | otherwise = foldl1 lcmr <$> (sequence $ map tactus pats)
 
 -- ** Manipulating time
 
