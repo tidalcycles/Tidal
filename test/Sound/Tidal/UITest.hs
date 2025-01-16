@@ -143,10 +143,10 @@ run =
       it "produces values within [0,1] in a bell curve" $ do
         it "at the start of a cycle" $
           queryArc normal (Arc 0 0.1) `shouldBe` 
-            [Event (Context []) Nothing (Arc 0 0.1) (0.5 :: Double)]
+            [Event (Context []) Nothing (Arc 0 0.1) (0.4614205864457064 :: Double)]
         it "at 1/4 of a cycle" $
           queryArc normal (Arc 0.25 0.25) `shouldBe`
-            [Event (Context []) Nothing (Arc 0.25 0.25) (0.47110511611574907 :: Double)]
+            [Event (Context []) Nothing (Arc 0.25 0.25) (0.5 :: Double)]
         it "at 3/4 of a cycle" $
           queryArc normal (Arc 0.75 0.75) `shouldBe`
           [Event (Context []) Nothing (Arc 0.75 0.75) (0.5 :: Double)]

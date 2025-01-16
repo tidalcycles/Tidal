@@ -237,7 +237,7 @@ Implemented with the Box-Muller transform.
 normal :: (Floating a, Ord a) => Pattern a
 normal = do
   u1 <- max 0.001 <$> rand
-  u2 <- rotL 1 rand
+  u2 <- rotL 1000 rand
   let r1 = sqrt $ - (2 * log u1)
       r2 = cos (2 * pi * u2)
       clamp n = max (-3) (min 3 n)
