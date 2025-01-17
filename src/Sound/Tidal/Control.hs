@@ -165,9 +165,16 @@ striate' :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
 striate' = striateBy
 
 _striateBy :: Int -> Double -> ControlPattern -> ControlPattern
-_striateBy n f p = fastcat $ map (offset . fromIntegral) [0 .. n-1]
-  where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.end (pure ((slot * i) + f) :: Pattern Double)
-        slot = (1 - f) / fromIntegral n
+-- _striateBy n f p = fastcat $ map (offset . fromIntegral) [0 .. n-1]
+--   where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.end (pure ((slot * i) + f) :: Pattern Double)
+--         slot = (1 - f) / fromIntegral n
+-- _striateBy :: Int -> Double -> ControlPattern -> ControlPattern
+-- _striateBy n f p = fastcat $ map (offset) [0 .. n-1]
+--   where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.end (pure ((slot * i) + f) :: Pattern Double)
+--         slot = (1 - f) / fromIntegral (n-1)
+_striateBy n f p = keepTactus (withTactus (* toRational n) p) $ fastcat $ map (offset . fromIntegral) [0 .. n-1]
+  where offset i = mergePlayRange (slot*i, (slot*i)+f) <$> p
+        slot = (1 - f) / fromIntegral (n-1)
 
 
 {- | `gap` is similar to `chop` in that it granualizes every sample in place as it is played,
