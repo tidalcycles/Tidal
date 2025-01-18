@@ -19,20 +19,57 @@
 
 module Sound.Tidal.Stepwise where
 
-import           Data.List           (sort, transpose)
-import           Data.Maybe          (catMaybes, fromMaybe, isJust)
+import           Data.List           (sort, transpose, sortOn)
+import           Data.Maybe          (catMaybes, fromMaybe, isJust, fromJust)
 
 import           Sound.Tidal.Core
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.UI      (while)
-import           Sound.Tidal.Utils   (applyWhen, nubOrd, pairs)
+import           Sound.Tidal.Utils   (applyWhen, nubOrd, pairs, enumerate)
 
-_lcmtactus :: [Pattern a] -> Maybe Time
-_lcmtactus pats = foldl1 lcmr <$> (sequence $ map tactus pats)
+-- _lcmtactus :: [Pattern a] -> Maybe Time
+-- _lcmtactus pats = foldl1 lcmr <$> (sequence $ map tactus pats)
+
+
+
+s_patternify :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
+s_patternify f (Pattern _ _ (Just a)) b = f a b
+s_patternify f pa p                     = stepJoin $ (`f` p) <$> pa
+
+s_patternify2 :: (a -> b -> c -> Pattern d) -> Pattern a -> Pattern b -> c -> Pattern d
+s_patternify2 f a b p = stepJoin $ (\x y -> f x y p) <$> a <*> b
+
+stepJoin :: Pattern (Pattern a) -> Pattern a
+stepJoin pp = Pattern q first_t Nothing
+  where q st@(State a c) = query (timecat $ retime $ slices $ query (rotL (sam $ start a) pp) (st {arc = Arc 0 1})) st
+        first_t :: Maybe Rational
+        first_t = tactus $ timecat $ retime $ slices $ queryArc pp (Arc 0 1)
+        retime :: [(Time, Pattern a)] -> [(Time, Pattern a)]
+        retime xs = map (\(dur, pat) -> adjust dur pat) xs
+          where occupied_perc = sum $ map fst $ filter (isJust . tactus . snd) xs
+                occupied_tactus = sum $ catMaybes $ map (tactus . snd) xs
+                total_tactus = occupied_tactus / occupied_perc
+                adjust dur pat@(Pattern {tactus = Just t}) = (t, pat)
+                adjust dur pat = (dur*total_tactus, pat)
+        -- break up events at all start/end points, into groups, including empty ones.
+        slices :: [Event (Pattern a)] -> [(Time, Pattern a)]
+        slices evs = map (\s -> ((snd s - fst s), stack $ map (\x -> withContext (\c -> combineContexts [c, context x])  $ value x) $ fit s evs)) $ pairs $ sort $ nubOrd $ 0:1:concatMap (\ev -> start (part ev):stop (part ev):[]) evs
+        -- list of slices of events within the given range
+        fit :: (Rational, Rational) -> [Event (Pattern a)] -> [Event (Pattern a)]
+        fit (b,e) evs = catMaybes $ map (match (b,e)) evs
+        -- slice of event within the given range
+        match :: (Rational, Rational) -> Event (Pattern a) -> Maybe (Event (Pattern a))
+        match (b,e) ev = do a <- subArc (Arc b e) $ part ev
+                            return ev {part = a}
 
 s_cat :: [Pattern a] -> Pattern a
-s_cat pats = timecat $ map (\pat -> (fromMaybe 1 $ tactus pat, pat)) pats
+s_cat pats = innerJoin $ (timecat . map snd . sortOn fst) <$> (tpat $ epats pats)
+    where epats :: [Pattern a] -> [(Int, Pattern a)]
+          epats pats = enumerate $ filter (isJust . tactus) pats
+          tpat :: [(Int, Pattern a)] -> Pattern [(Int, (Time, Pattern a))]
+          tpat pats = sequence $ map (\(i, pat) -> (\t -> (i, (t, pat))) <$> (fromJust $ tactus pat) ) pats
 
+{-
 _s_add :: Rational -> Pattern a -> Pattern a
 -- raise error?
 _s_add _ pat@(Pattern _ Nothing _) = pat
@@ -136,32 +173,4 @@ s_expand = s_patternify _s_expand
 s_contract :: Pattern Rational -> Pattern a -> Pattern a
 s_contract = s_patternify _s_contract
 
-s_patternify :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
-s_patternify f (Pattern _ _ (Just a)) b = f a b
-s_patternify f pa p                     = stepJoin $ (`f` p) <$> pa
-
-s_patternify2 :: (a -> b -> c -> Pattern d) -> Pattern a -> Pattern b -> c -> Pattern d
-s_patternify2 f a b p = stepJoin $ (\x y -> f x y p) <$> a <*> b
-
-stepJoin :: Pattern (Pattern a) -> Pattern a
-stepJoin pp = Pattern q first_t Nothing
-  where q st@(State a c) = query (timecat $ retime $ slices $ query (rotL (sam $ start a) pp) (st {arc = Arc 0 1})) st
-        first_t :: Maybe Rational
-        first_t = tactus $ timecat $ retime $ slices $ queryArc pp (Arc 0 1)
-        retime :: [(Time, Pattern a)] -> [(Time, Pattern a)]
-        retime xs = map (\(dur, pat) -> adjust dur pat) xs
-          where occupied_perc = sum $ map fst $ filter (isJust . tactus . snd) xs
-                occupied_tactus = sum $ catMaybes $ map (tactus . snd) xs
-                total_tactus = occupied_tactus / occupied_perc
-                adjust dur pat@(Pattern {tactus = Just t}) = (t, pat)
-                adjust dur pat = (dur*total_tactus, pat)
-        -- break up events at all start/end points, into groups, including empty ones.
-        slices :: [Event (Pattern a)] -> [(Time, Pattern a)]
-        slices evs = map (\s -> ((snd s - fst s), stack $ map (\x -> withContext (\c -> combineContexts [c, context x])  $ value x) $ fit s evs)) $ pairs $ sort $ nubOrd $ 0:1:concatMap (\ev -> start (part ev):stop (part ev):[]) evs
-        -- list of slices of events within the given range
-        fit :: (Rational, Rational) -> [Event (Pattern a)] -> [Event (Pattern a)]
-        fit (b,e) evs = catMaybes $ map (match (b,e)) evs
-        -- slice of event within the given range
-        match :: (Rational, Rational) -> Event (Pattern a) -> Maybe (Event (Pattern a))
-        match (b,e) ev = do a <- subArc (Arc b e) $ part ev
-                            return ev {part = a}
+-}
