@@ -69,7 +69,7 @@ source-repository head
   type:     git
   location: https://github.com/tidalcycles/Tidal
 
-executable linktest
+executable tidal-linktest
   ghc-options: -Wall
   hs-source-dirs:
                  src/hs
