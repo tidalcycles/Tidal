@@ -33,7 +33,7 @@ library
 
   build-depends:
       base >=4.8 && <5,
-      hosc,
+      hosc >= 0.21 && <0.22,
       mtl,
       stm
 
