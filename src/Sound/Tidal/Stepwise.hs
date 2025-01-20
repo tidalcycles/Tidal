@@ -39,19 +39,25 @@ s_patternify f pa p                     = stepJoin $ (`f` p) <$> pa
 s_patternify2 :: (a -> b -> c -> Pattern d) -> Pattern a -> Pattern b -> c -> Pattern d
 s_patternify2 f a b p = stepJoin $ (\x y -> f x y p) <$> a <*> b
 
+-- Breaks up pattern of patterns at event boundaries, then timecats them all together
 stepJoin :: Pattern (Pattern a) -> Pattern a
 stepJoin pp = Pattern q first_t Nothing
-  where q st@(State a c) = query (timecat $ retime $ slices $ query (rotL (sam $ start a) pp) (st {arc = Arc 0 1})) st
-        first_t :: Maybe Rational
-        first_t = tactus $ timecat $ retime $ slices $ queryArc pp (Arc 0 1)
-        retime :: [(Time, Pattern a)] -> [(Time, Pattern a)]
+  where q st@(State a c) = query (s_cat $ retime $ slices $
+                                  -- query whole, single cycle of pp (should there be a splitCycles here???)
+                                  query (rotL (sam $ start a) pp) (st {arc = Arc 0 1})) st
+        first_t :: Maybe (Pattern Rational)
+        first_t = tactus $ s_cat $ retime $ slices $ queryArc pp (Arc 0 1)
+        -- retime each pattern slice
+        retime :: [(Time, Pattern a)] -> [Pattern a]
         retime xs = map (\(dur, pat) -> adjust dur pat) xs
           where occupied_perc = sum $ map fst $ filter (isJust . tactus . snd) xs
                 occupied_tactus = sum $ catMaybes $ map (tactus . snd) xs
-                total_tactus = occupied_tactus / occupied_perc
-                adjust dur pat@(Pattern {tactus = Just t}) = (t, pat)
-                adjust dur pat = (dur*total_tactus, pat)
-        -- break up events at all start/end points, into groups, including empty ones.
+                total_tactus = (/ occupied_perc) <$> occupied_tactus 
+                adjust _ pat@(Pattern {tactus = Just _}) = pat
+                adjust dur pat = setTactus (Just $ (* dur) <$> total_tactus) pat
+        -- break up events at all start/end points, into groups
+        -- stacked into single patterns, with duration. Some patterns
+        -- will be have no events.
         slices :: [Event (Pattern a)] -> [(Time, Pattern a)]
         slices evs = map (\s -> ((snd s - fst s), stack $ map (\x -> withContext (\c -> combineContexts [c, context x])  $ value x) $ fit s evs)) $ pairs $ sort $ nubOrd $ 0:1:concatMap (\ev -> start (part ev):stop (part ev):[]) evs
         -- list of slices of events within the given range
