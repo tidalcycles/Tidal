@@ -1461,6 +1461,23 @@ _markovPat n xi tp = setTactus (toRational n) $ splitQueries $ pattern (\(State 
   queryArc (listToPat $ runMarkov n tp xi (sam s)) a)
 
 {-|
+@beat@ structures a pattern by picking subdivisions of a cycle.
+Takes in a pattern that tells it which parts to play (polyphony is recommeded here),
+and the number of parts by which to subdivide the cycle (also pattern-able).
+For example:
+> d1 $ beat "[3,4.2,9,11,14]" 16 $ s "sd"
+-}
+beat :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
+beat = patternify2 $ __beat innerJoin
+
+__beat :: (Pattern (Pattern a) -> Pattern a) -> Time -> Time -> Pattern a -> Pattern a
+__beat join t d p = join $ (compress (s,e) . pure) <$> p
+                      where s = t' / d
+                            e  = (t'+1) / d
+                            t' = t `mod'` d
+
+
+{-|
 @mask@ takes a boolean pattern and ‘masks’ another pattern with it. That is,
 events are only carried over if they match within a ‘true’ event in the binary
 pattern, i.e., it removes events from the second pattern that don't start during
