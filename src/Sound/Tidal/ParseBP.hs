@@ -41,7 +41,7 @@ import           Data.Typeable                          (Typeable)
 import           GHC.Exts                               (IsString (..))
 import           Sound.Tidal.Chords
 import           Sound.Tidal.Core
-import           Sound.Tidal.Pattern
+import           Sound.Tidal.Pattern hiding             ((*>), (<*))
 import           Sound.Tidal.UI
 import           Sound.Tidal.Utils                      (fromRight)
 import           Text.Parsec.Error
@@ -221,10 +221,20 @@ parseBP_E s = toE parsed
     toE (Right tp) = toPat tp
 
 parseTPat :: Parseable a => String -> Either ParseError (TPat a)
-parseTPat = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
-  where f' = do tPatParser
-             <|> do oneOf "~-" <?> "rest"
-                    return TPat_Silence
+parseTPat = runParser (pSequence parseRest <* eof) (0 :: Int) ""
+
+-- | a '-' is a negative sign if followed by a digit.
+-- otherwise, it's treated as rest
+parseRest :: Parseable a => MyParser (TPat a)
+parseRest = 
+  try (do 
+        lookAhead $ do
+          char '-'
+          digit
+        tPatParser)
+  <|> char '-' *> pure TPat_Silence
+  <|> tPatParser
+  <|> char '~' *> pure TPat_Silence
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
 cP s = innerJoin $ parseBP_E <$> _cX_ getS s
@@ -334,11 +344,12 @@ instance (Enumerable a, Parseable a) => IsString (Pattern a) where
 lexer :: P.GenTokenParser String u Data.Functor.Identity.Identity
 lexer   = P.makeTokenParser haskellDef
 
+
 braces, brackets, parens, angles:: MyParser a -> MyParser a
 braces  = P.braces lexer
-brackets = P.brackets lexer
+brackets p = char '[' *> p <* char ']'
 parens = P.parens lexer
-angles = P.angles lexer
+angles p = char '<' *> p <* char '>'
 
 symbol :: String -> MyParser String
 symbol  = P.symbol lexer
