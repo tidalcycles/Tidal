@@ -255,6 +255,10 @@ run =
         compareP (Arc 0 1)
           ("- 2" :: Pattern String)
           ("~ 2" :: Pattern String)
+      it "does the same for '-' and '~' in complex patterns parsed as Rational" $ do
+        compareP (Arc 0 1)
+          ("[-- 2 <-- 2@7 3> 4%2 3? 4 9|8 -- [-- <2 9q> -]] 2!4" :: Pattern Rational)
+          ("[~~ 2 <~~ 2@7 3> 4%2 3? 4 9|8 ~~ [~~ <2 9q> ~]] 2!4" :: Pattern Rational)
       it "does the same for '-' and '~' in complex patterns" $ do
         compareP (Arc 0 1)
           ("[-- 2 <-- 2@7 3> 1*4%2 3? 4 9|8 -- [-- <2 9q> -]] 2!4" :: Pattern String)
