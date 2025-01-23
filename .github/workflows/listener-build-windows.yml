@@ -1,11 +1,11 @@
 name: build-listener-windows
 on:
   push:
-    paths-ignore:
-      - "**.md"
+    paths:
+      - "tidal-listener/**"
   pull_request:
-    paths-ignore:
-      - "**.md"
+    paths:
+      - "tidal-listener/**"
 
 jobs:
   build:
