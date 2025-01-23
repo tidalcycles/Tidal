@@ -257,8 +257,8 @@ run =
           ("~ 2" :: Pattern String)
       it "does the same for '-' and '~' in complex patterns" $ do
         compareP (Arc 0 1)
-          ("[-- 2 <-- 2@7 3> 3%4 9|8 -- [-- <2 9q> -]] 2!4" :: Pattern String)
-          ("[~~ 2 <~~ 2@7 3> 3%4 9|8 ~~ [~~ <2 9q> ~]] 2!4" :: Pattern String)
+          ("[-- 2 <-- 2@7 3> 1*4%2 3? 4 9|8 -- [-- <2 9q> -]] 2!4" :: Pattern String)
+          ("[~~ 2 <~~ 2@7 3> 1*4%2 3? 4 9|8 ~~ [~~ <2 9q> ~]] 2!4" :: Pattern String)
       it "does the same for '-' and '~' using rational numbers" $ do
         compareP (Arc 0 1)
           ("- 2q -3.999-9" :: Pattern String)
@@ -269,6 +269,6 @@ run =
           ("[~~ 2 ~~ ~]" :: Pattern String)
       it "does the same for '-' and '~' alternating patterns" $ do
         compareP (Arc 0 1)
-          ("<-- 2 -- ->" :: Pattern String)
-          ("<~~ 2 ~~ ~>" :: Pattern String)
+          ("<-- 2 -- - 8>" :: Pattern String)
+          ("<~~ 2 ~~ ~ 8>" :: Pattern String)
     where degradeByDefault = _degradeBy 0.5
