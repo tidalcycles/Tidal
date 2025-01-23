@@ -99,7 +99,7 @@ timeToRands t n = timeToRands' (timeToIntSeed t) n
 timeToRands' :: Fractional a => Int -> Int -> [a]
 timeToRands' seed n
   | n <= 0 = []
-  | otherwise = (intSeedToRand seed) : (timeToRands' (xorwise seed) (n -1))
+  | otherwise = (intSeedToRand seed) : (timeToRands' (xorwise seed) (n - 1))
 
 -- |
 --
@@ -240,7 +240,7 @@ normal :: (Floating a, Ord a) => Pattern a
 normal = do
   u1 <- max 0.001 <$> rand
   u2 <- rotL 1000 rand
-  let r1 = sqrt $ - (2 * log u1)
+  let r1 = sqrt $ -(2 * log u1)
       r2 = cos (2 * pi * u2)
       clamp n = max (-3) (min 3 n)
   pure $ clamp (r1 * r2 + 3) / 6
@@ -531,7 +531,7 @@ iter :: Pattern Int -> Pattern c -> Pattern c
 iter a pat = keepTactus pat $ patternify' _iter a pat
 
 _iter :: Int -> Pattern a -> Pattern a
-_iter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n -1)]
+_iter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n - 1)]
 
 -- | @iter'@ is the same as @iter@, but decrements the starting
 -- subdivision instead of incrementing it. For example,
@@ -552,7 +552,7 @@ iter' :: Pattern Int -> Pattern c -> Pattern c
 iter' = patternify' _iter'
 
 _iter' :: Int -> Pattern a -> Pattern a
-_iter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n -1)]
+_iter' n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotR` p) [0 .. (n - 1)]
 
 -- | @palindrome p@ applies @rev@ to @p@ every other cycle, so that the pattern
 -- alternates between forwards and backwards. For example, these are equivalent:
@@ -920,7 +920,7 @@ euclid = patternify2 _euclid
 _euclid :: Int -> Int -> Pattern a -> Pattern a
 _euclid n k a
   | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n, k)
-  | otherwise = fastcat $ fmap (bool a silence) $ bjorklund (- n, k)
+  | otherwise = fastcat $ fmap (bool a silence) $ bjorklund (-n, k)
 
 -- |
 --
@@ -939,7 +939,7 @@ euclidFull n k pa pb = stack [euclid n k pa, euclidInv n k pb]
 _euclidBool :: Int -> Int -> Pattern Bool -- TODO: add 'euclidBool'?
 _euclidBool n k
   | n >= 0 = fastFromList $ bjorklund (n, k)
-  | otherwise = fastFromList $ fmap (not) $ bjorklund (- n, k)
+  | otherwise = fastFromList $ fmap (not) $ bjorklund (-n, k)
 
 _euclid' :: Int -> Int -> Pattern a -> Pattern a
 _euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n, k))
@@ -1005,7 +1005,7 @@ euclidInv :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 euclidInv = patternify2 _euclidInv
 
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
-_euclidInv n k a = _euclid (- n) k a
+_euclidInv n k a = _euclid (-n) k a
 
 index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
@@ -1246,7 +1246,7 @@ permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> repli
     permsort n total = map fst $ sortOn snd $ map (\x -> (x, deviance (fromIntegral total / (fromIntegral n :: Double)) x)) $ perms n total
     perms 0 _ = []
     perms 1 n = [[n]]
-    perms n total = concatMap (\x -> map (x :) $ perms (n -1) (total - x)) [1 .. (total - (n -1))]
+    perms n total = concatMap (\x -> map (x :) $ perms (n - 1) (total - x)) [1 .. (total - (n - 1))]
 
 -- |
 --  @struct a b@ structures pattern @b@ in terms of the pattern of boolean
@@ -1291,7 +1291,7 @@ substruct s p = p {query = f}
 randArcs :: Int -> Pattern [Arc]
 randArcs n =
   do
-    rs <- mapM (\x -> pure (toRational x / toRational n) <~ choose [1 :: Int, 2, 3]) [0 .. (n -1)]
+    rs <- mapM (\x -> pure (toRational x / toRational n) <~ choose [1 :: Int, 2, 3]) [0 .. (n - 1)]
     let rats = map toRational rs
         total = sum rats
         pairs = pairUp $ accumulate $ map (/ total) rats
@@ -1421,7 +1421,7 @@ lindenmayerI n r s = fmap (fromIntegral . digitToInt) $ lindenmayer n r s
 -- transition probability from state 0->0 is 2/5, 0->1 is 3/5, 1->0 is 1/4, and
 -- 1->1 is 3/4.
 runMarkov :: Int -> [[Double]] -> Int -> Time -> [Int]
-runMarkov n tp xi seed = reverse $ (iterate (markovStep $ renorm) [xi]) !! (n -1)
+runMarkov n tp xi seed = reverse $ (iterate (markovStep $ renorm) [xi]) !! (n - 1)
   where
     markovStep tp' xs = (fromJust $ findIndex (r <=) $ scanl1 (+) (tp' !! (head xs))) : xs
       where
@@ -1553,7 +1553,7 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
   where
     mapMasks =
       [ stretch $ mask (const True <$> filterValues (== i) from') p'
-        | i <- [0 .. n -1]
+        | i <- [0 .. n - 1]
       ]
     p' = density cyc p
     from' = density cyc from
@@ -1583,8 +1583,8 @@ _chunk :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 _chunk n f p
   | n >= 0 = cat [withinArc (Arc (i % fromIntegral n) ((i + 1) % fromIntegral n)) f p | i <- [0 .. fromIntegral n - 1]]
   | otherwise = do
-    i <- _slow (toRational (- n)) $ rev $ run (fromIntegral (- n))
-    withinArc (Arc (i % fromIntegral (- n)) ((i + 1) % fromIntegral (- n))) f p
+    i <- _slow (toRational (-n)) $ rev $ run (fromIntegral (-n))
+    withinArc (Arc (i % fromIntegral (-n)) ((i + 1) % fromIntegral (-n))) f p
 
 -- | DEPRECATED, use 'chunk' with negative numbers instead
 chunk' :: Integral a1 => Pattern a1 -> (Pattern a2 -> Pattern a2) -> Pattern a2 -> Pattern a2
@@ -1592,7 +1592,7 @@ chunk' npat f p = innerJoin $ (\n -> _chunk' n f p) <$> npat
 
 -- | DEPRECATED, use '_chunk' with negative numbers instead
 _chunk' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-_chunk' n f p = _chunk (- n) f p
+_chunk' n f p = _chunk (-n) f p
 
 -- |
 -- @inside@ carries out an operation /inside/ a cycle.
@@ -1745,7 +1745,7 @@ cycleChoose = segment 1 . choose
 _rearrangeWith :: Pattern Int -> Int -> Pattern a -> Pattern a
 _rearrangeWith ipat n pat = innerJoin $ (\i -> _fast nT $ _repeatCycles n $ pats !! i) <$> ipat
   where
-    pats = map (\i -> zoom (fromIntegral i / nT, fromIntegral (i + 1) / nT) pat) [0 .. (n -1)]
+    pats = map (\i -> zoom (fromIntegral i / nT, fromIntegral (i + 1) / nT) pat) [0 .. (n - 1)]
     nT :: Time
     nT = fromIntegral n
 
@@ -1789,7 +1789,7 @@ randrun n' =
   where
     events a seed = mapMaybe toEv $ zip arcs shuffled
       where
-        shuffled = map snd $ sortOn fst $ zip rs [0 .. (n' -1)]
+        shuffled = map snd $ sortOn fst $ zip rs [0 .. (n' - 1)]
         rs = timeToRands seed n' :: [Double]
         arcs = zipWith Arc fractions (tail fractions)
         fractions = map (+ (sam $ start a)) [0, 1 / fromIntegral n' .. 1]
@@ -2127,7 +2127,7 @@ _plyWith numPat f p = arpeggiate $ compound numPat
   where
     compound n
       | n <= 1 = p
-      | otherwise = overlay p (f $ compound $ n -1)
+      | otherwise = overlay p (f $ compound $ n - 1)
 
 -- | Syncopates a rhythm, shifting (delaying) each event halfway into its arc
 --  (timespan).
@@ -2255,7 +2255,7 @@ while b f pat = keepTactus pat $ sew b (f pat) pat
 --
 -- > d1 $ stut 4 1 (1/16) $ s "bd cp"
 stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
-stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n -1)]
+stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n - 1)]
 
 -- | The @jux@ function creates strange stereo effects by applying a
 --  function to a pattern, but only in the right-hand channel. For
@@ -2286,7 +2286,7 @@ juxcut f p =
     ]
 
 juxcut' :: [t -> Pattern ValueMap] -> t -> Pattern ValueMap
-juxcut' fs p = stack $ map (\n -> ((fs !! n) p |+ P.cut (pure $ 1 - n)) # P.pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l -1]
+juxcut' fs p = stack $ map (\n -> ((fs !! n) p |+ P.cut (pure $ 1 - n)) # P.pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l - 1]
   where
     l = length fs
 
@@ -2313,7 +2313,7 @@ juxcut' fs p = stack $ map (\n -> ((fs !! n) p |+ P.cut (pure $ 1 - n)) # P.pan 
 --      ]
 -- @
 jux' :: [t -> Pattern ValueMap] -> t -> Pattern ValueMap
-jux' fs p = stack $ map (\n -> (fs !! n) p |+ P.pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l -1]
+jux' fs p = stack $ map (\n -> (fs !! n) p |+ P.pan (pure $ fromIntegral n / fromIntegral l)) [0 .. l - 1]
   where
     l = length fs
 
@@ -2552,7 +2552,7 @@ tabby nInt p p' =
     ]
   where
     n = fromIntegral nInt
-    weft = concatMap (const [[0 .. n -1], reverse [0 .. n -1]]) [0 .. (n `div` 2) - 1]
+    weft = concatMap (const [[0 .. n - 1], reverse [0 .. n - 1]]) [0 .. (n `div` 2) - 1]
     warp = transpose weft
     thread xs p'' = _slow (n % 1) $ fastcat $ map (\i -> zoomArc (Arc (i % n) ((i + 1) % n)) p'') (concat xs)
     weftP = thread weft p'
@@ -2918,7 +2918,7 @@ chew :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
 chew npat ipat pat = innerJoin $ (\n -> _chew n ipat pat) <$> npat
 
 __binary :: Data.Bits.Bits b => Int -> b -> [Bool]
-__binary n num = map (testBit num) $ reverse [0 .. n -1]
+__binary n num = map (testBit num) $ reverse [0 .. n - 1]
 
 _binary :: Data.Bits.Bits b => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
@@ -2962,4 +2962,4 @@ necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ listToPat $ li
   where
     list :: [Int] -> [Bool]
     list [] = []
-    list (x : xs') = (True : (replicate (x -1) False)) ++ list xs'
+    list (x : xs') = (True : (replicate (x - 1) False)) ++ list xs'

@@ -105,7 +105,7 @@ s_taperlistBy amount times pat@(Pattern _ (Just t) _)
     backwards = amount > 0
     n = toRational $ abs amount
     start = t - (toRational $ max 0 $ n * (toRational $ times - 1))
-    l = (map (\i -> zoom (0, (start + (n * (toRational i))) / t) pat) [0 .. times -2]) ++ [pat]
+    l = (map (\i -> zoom (0, (start + (n * (toRational i))) / t) pat) [0 .. times - 2]) ++ [pat]
 
 -- | Plays one fewer step from the pattern each repetition, down to nothing
 s_taper :: Pattern a -> Pattern a

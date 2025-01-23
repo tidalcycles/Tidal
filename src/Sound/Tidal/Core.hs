@@ -305,7 +305,7 @@ run :: (Enum a, Num a) => Pattern a -> Pattern a
 run = (>>= _run)
 
 _run :: (Enum a, Num a) => a -> Pattern a
-_run n = fastFromList [0 .. n -1]
+_run n = fastFromList [0 .. n - 1]
 
 -- | Similar to 'run', but starts from @1@ for the first cycle, successively
 -- adds a number until it gets up to @n@.

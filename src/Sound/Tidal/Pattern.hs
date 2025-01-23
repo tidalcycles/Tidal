@@ -796,7 +796,7 @@ playFor s e pat = pattern $ \st -> maybe [] (\a -> query pat (st {arc = a})) $ s
 -- patterns. Each one plays every 'n'th cycle, successfully offset by
 -- a cycle.
 separateCycles :: Int -> Pattern a -> [Pattern a]
-separateCycles n pat = map (\i -> skip $ rotL (toRational i) pat) [0 .. n -1]
+separateCycles n pat = map (\i -> skip $ rotL (toRational i) pat) [0 .. n - 1]
   where
     n' = toRational n
     skip pat' = splitQueries $ withResultStart (\t -> ((sam t) / n') + cyclePos t) $ withQueryStart (\t -> (sam t * n') + cyclePos t) $ pat'
