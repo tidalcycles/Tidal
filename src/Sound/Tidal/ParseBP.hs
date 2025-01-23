@@ -345,7 +345,6 @@ instance (Enumerable a, Parseable a) => IsString (Pattern a) where
 lexer :: P.GenTokenParser String u Data.Functor.Identity.Identity
 lexer   = P.makeTokenParser haskellDef
 
-
 braces, brackets, parens, angles:: MyParser a -> MyParser a
 braces p = char '{' Prelude.*> p Prelude.<* char '}'
 brackets p = char '[' Prelude.*> p Prelude.<* char ']'
