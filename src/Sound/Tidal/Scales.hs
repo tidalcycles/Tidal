@@ -244,19 +244,19 @@ getScale table sp p = (\n scaleName
 
 These are equivalent:
 
-> d1 $ up (scaleMod "major" (insert 1) $ run 8) # s "superpiano"
+> d1 $ up (scaleWith "major" (insert 1) $ run 8) # s "superpiano"
 > d1 $ up "0 1 2 4 5 7 9 11" # s "superpiano"
 
 -}
-scaleMod :: (Eq a, Fractional a) => Pattern String -> ([a] -> [a]) -> Pattern Int -> Pattern a
-scaleMod = getScaleMod scaleTable
+scaleWith :: (Eq a, Fractional a) => Pattern String -> ([a] -> [a]) -> Pattern Int -> Pattern a
+scaleWith = getScaleMod scaleTable
 
-{- Variant of @scaleMod@ providing a list of modifier functions instead of a single function
+{- Variant of @scaleWith@ providing a list of modifier functions instead of a single function
 -}
-scaleMods :: (Eq a, Fractional a) => Pattern String -> ([[a] -> [a]]) -> Pattern Int -> Pattern a
-scaleMods sp fs p = slowcat $ map (\f -> scaleMod sp f p) fs
+scaleWithList :: (Eq a, Fractional a) => Pattern String -> ([[a] -> [a]]) -> Pattern Int -> Pattern a
+scaleWithList sp fs p = slowcat $ map (\f -> scaleWith sp f p) fs
 
-{- Variant of @getScale@ used to build the @scaleMod@ function
+{- Variant of @getScale@ used to build the @scaleWith@ function
 -}
 getScaleMod :: (Eq a, Fractional a) => [(String, [a])] -> Pattern String -> ([a] -> [a]) -> Pattern Int -> Pattern a
 getScaleMod table sp f p = (\n scaleName
@@ -271,7 +271,7 @@ uniq (h1:h2:tl) = if (h1 == h2) then h1:(uniq tl) else h1:(uniq (h2:tl))
 uniq l = l
 
 {- Raises a specified degree of a scale, provided as a numbers list.
-Meant to be passed as an argument to @scaleMod@
+Meant to be passed as an argument to @scaleWith@
 -}
 raiseDegree :: Fractional a => Int -> [a] -> [a]
 raiseDegree n (hd:[]) = (hd+1):[]
@@ -280,7 +280,7 @@ raiseDegree n (hd:tl) = hd:(raiseDegree (n-1) tl)
 raiseDegree _ [] = error "Degree is not present in the scale"
 
 {- Lowers a specified degree of a scale, provided as a numbers list.
-Meant to be passed as an argument to @scaleMod@
+Meant to be passed as an argument to @scaleWith@
 -}
 lowerDegree :: Fractional a => Int -> [a] -> [a]
 lowerDegree n (hd:[]) = (hd-1):[] 
