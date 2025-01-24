@@ -51,6 +51,8 @@ jobs:
     name: cabal ${{ matrix.versions.cabal }} - ghc ${{ matrix.versions.ghc }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: cache ~/.cabal/packages, ~/.cabal/store and dist-newstyle
         uses: actions/cache@v4
