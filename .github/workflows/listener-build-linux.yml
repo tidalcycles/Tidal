@@ -125,7 +125,7 @@ jobs:
         mv binary tidal
         tar cvfj linux.tar tidal/*
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
         path: tidal-listener/linux.tar
 

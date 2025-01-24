@@ -92,7 +92,7 @@ jobs:
       - name: zip files
         run: Compress-Archive -LiteralPath 'tidal-listener\binary\' -DestinationPath 'tidal-listener\windows.zip'
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           path: tidal-listener\windows.zip
 
