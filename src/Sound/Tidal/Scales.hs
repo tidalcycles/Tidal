@@ -22,6 +22,7 @@ import Prelude hiding ((<*), (*>))
 import Data.Maybe
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
+import Sound.Tidal.Core
 
 -- * Scale definitions
 
