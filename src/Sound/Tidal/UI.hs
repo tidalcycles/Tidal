@@ -1461,6 +1461,23 @@ _markovPat n xi tp = setTactus (Just $ pure $ toRational n) $ splitQueries $ pat
   queryArc (listToPat $ runMarkov n tp xi (sam s)) a)
 
 {-|
+@beat@ structures a pattern by picking subdivisions of a cycle.
+Takes in a pattern that tells it which parts to play (polyphony is recommeded here),
+and the number of parts by which to subdivide the cycle (also pattern-able).
+For example:
+> d1 $ beat "[3,4.2,9,11,14]" 16 $ s "sd"
+-}
+beat :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
+beat = patternify2 $ __beat innerJoin
+
+__beat :: (Pattern (Pattern a) -> Pattern a) -> Time -> Time -> Pattern a -> Pattern a
+__beat join t d p = join $ (compress (s,e) . pure) <$> p
+                      where s = t' / d
+                            e  = (t'+1) / d
+                            t' = t `mod'` d
+
+
+{-|
 @mask@ takes a boolean pattern and ‘masks’ another pattern with it. That is,
 events are only carried over if they match within a ‘true’ event in the binary
 pattern, i.e., it removes events from the second pattern that don't start during
@@ -2921,3 +2938,25 @@ necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ listToPat $ li
   where list :: [Int] -> [Bool]
         list []      = []
         list (x:xs') = (True:(replicate (x-1) False)) ++ list xs'
+
+{- | Inserts chromatic notes into a pattern.
+
+The first argument indicates the (patternable) number of notes to insert,
+and the second argument is the base pattern of "anchor notes" that gets transformed.
+
+The following are equivalent:
+
+> d1 $ up (chromaticiseBy "0 1 2 -1" "[0 2] [3 6] [5 6 8] [3 1 0]") # s "superpiano"
+> d1 $ up "[0 2] [[3 4] [6 7]] [[5 6 7] [6 7 8] [8 9 10] [[3 2] [1 0] [0 -1]]" # s "superpiano"
+-}
+chromaticiseBy :: (Num a, Enum a, Ord a) => Pattern a -> Pattern a -> Pattern a
+chromaticiseBy n pat = innerJoin $ (\np -> _chromaticiseBy np pat) <$> n
+
+_chromaticiseBy :: (Num a, Enum a, Ord a) => a -> Pattern a -> Pattern a
+_chromaticiseBy n pat = squeezeJoin $ (\value -> fastcat
+                                   $ map pure (if n >=0 then [value .. (value+n)]
+                                               else (reverse $ [(value + n) .. value]))) <$> pat
+
+-- | Alias for chromaticiseBy
+chromaticizeBy :: (Num a, Enum a, Ord a) => Pattern a -> Pattern a -> Pattern a
+chromaticizeBy = chromaticiseBy

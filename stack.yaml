@@ -7,7 +7,7 @@ packages:
   - 'tidal-link'
 
 extra-deps:
-  - hosc-0.20
+  - hosc-0.21
   - haskellish-0.3.2.2
 
 

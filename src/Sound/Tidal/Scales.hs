@@ -22,6 +22,7 @@ import Prelude hiding ((<*), (*>))
 import Data.Maybe
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
+import Sound.Tidal.Core
 
 -- * Scale definitions
 
@@ -239,6 +240,73 @@ getScale table sp p = (\n scaleName
               -> noteInScale (fromMaybe [0] $ lookup scaleName table) n) <$> p <* sp
   where octave s x = x `div` length s
         noteInScale s x = (s !!! x) + fromIntegral (12 * octave s x)
+
+{- Variant of @scale@ allowing to modify the current scale (seen as a list) with an [a] -> [a] function.
+
+These are equivalent:
+
+> d1 $ up (scaleWith "major" (insert 1) $ run 8) # s "superpiano"
+> d1 $ up "0 1 2 4 5 7 9 11" # s "superpiano"
+
+-}
+scaleWith :: (Eq a, Fractional a) => Pattern String -> ([a] -> [a]) -> Pattern Int -> Pattern a
+scaleWith = getScaleMod scaleTable
+
+{- Variant of @scaleWith@ providing a list of modifier functions instead of a single function
+-}
+scaleWithList :: (Eq a, Fractional a) => Pattern String -> ([[a] -> [a]]) -> Pattern Int -> Pattern a
+scaleWithList sp fs p = slowcat $ map (\f -> scaleWith sp f p) fs
+
+{- Variant of @getScale@ used to build the @scaleWith@ function
+-}
+getScaleMod :: (Eq a, Fractional a) => [(String, [a])] -> Pattern String -> ([a] -> [a]) -> Pattern Int -> Pattern a
+getScaleMod table sp f p = (\n scaleName
+                             -> noteInScale (uniq $ f $ fromMaybe [0] $ lookup scaleName table) n) <$> p <* sp
+  where octave s x = x `div` length s
+        noteInScale s x = (s !!! x) + fromIntegral (12 * octave s x)
+
+{- Eliminates duplicates in a sorted list
+-}
+uniq :: (Eq a) => [a] -> [a]
+uniq (h1:h2:tl) = if (h1 == h2) then h1:(uniq tl) else h1:(uniq (h2:tl))
+uniq l = l
+
+{- Raises a specified degree of a scale, provided as a numbers list.
+Meant to be passed as an argument to @scaleWith@
+-}
+raiseDegree :: Fractional a => Int -> [a] -> [a]
+raiseDegree n (hd:[]) = (hd+1):[]
+raiseDegree 0 (hd:tl) = (hd+1):tl
+raiseDegree n (hd:tl) = hd:(raiseDegree (n-1) tl)
+raiseDegree _ [] = error "Degree is not present in the scale"
+
+{- Lowers a specified degree of a scale, provided as a numbers list.
+Meant to be passed as an argument to @scaleWith@
+-}
+lowerDegree :: Fractional a => Int -> [a] -> [a]
+lowerDegree n (hd:[]) = (hd-1):[] 
+lowerDegree 0 (hd:tl) = (hd-1):tl
+lowerDegree n (hd:tl) = hd:(lowerDegree (n-1) tl)
+lowerDegree _ [] = error "Degree is not present in the scale"
+
+{- Like @raiseDegree@, but raises a range of degrees instead of a single one
+-}
+raiseDegrees :: Fractional a => Int -> Int -> [a] -> [a]
+raiseDegrees n m (hd:[]) = (hd+1):[]
+raiseDegrees 0 0 (hd:tl) = (hd+1):tl
+raiseDegrees 0 m (hd:tl) = (hd+1):(raiseDegrees 0 (m-1) tl)
+raiseDegrees n m (hd:tl) = hd:(raiseDegrees (n-1) (m-1) tl)
+raiseDegrees _ _ [] = error "Degrees are out of the scale"
+
+{- Like @lowerDegree@, but lowers a range of degrees instead of a single one
+-}
+lowerDegrees :: Fractional a => Int -> Int -> [a] -> [a]
+lowerDegrees n m (hd:[]) = (hd-1):[]
+lowerDegrees 0 0 (hd:tl) = (hd-1):tl
+lowerDegrees 0 m (hd:tl) = (hd-1):(lowerDegrees 0 (m-1) tl)
+lowerDegrees n m (hd:tl) = hd:(lowerDegrees (n-1) (m-1) tl)
+lowerDegrees _ _ [] = error "Degrees are out of the scale"
+
 
 {-|
   Outputs this list of all the available scales:
