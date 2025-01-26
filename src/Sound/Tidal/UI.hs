@@ -37,6 +37,8 @@ module Sound.Tidal.UI where
 
 import           Prelude               hiding ((*>), (<*))
 
+import           Control.Applicative (liftA2)
+
 import           Data.Bits             (Bits, shiftL, shiftR, testBit, xor)
 import           Data.Char             (digitToInt, isDigit, ord)
 
@@ -44,7 +46,7 @@ import           Data.Bool             (bool)
 import           Data.Fixed            (mod')
 import           Data.List             (elemIndex, findIndex, findIndices,
                                         groupBy, intercalate, sort, sortOn,
-                                        transpose)
+                                        sortBy, transpose)
 import qualified Data.Map.Strict       as Map
 import           Data.Maybe            (catMaybes, fromJust, fromMaybe, isJust,
                                         mapMaybe)
@@ -2094,6 +2096,53 @@ fill p' p = struct (splitQueries $ p {query = q, pureValue = Nothing}) p'
             expand ((a,xs),c) = map (\x -> ((a,x),c)) xs
     tolerance = 0.01
 -}
+
+_quant :: Time -> Pattern a -> Pattern a
+_quant 0 pat = pat
+_quant k pat =
+  withEventOnArc (quantEvent k) (surround) pat
+  where
+    surround qa@(Arc qs qe) = Arc (qs - lookahead) (qe + lookahead)
+    lookahead = 1/k
+    quantEvent k ev = ev { whole = (fmap rounding <$> whole ev) }
+    rounding n = (roundNumerator n) % k'
+    roundNumerator n = (nn * k' + (nd `div` 2)) `div` nd
+      where nn = numerator n
+            nd = denominator n
+    k' = numerator k
+
+quant :: Pattern Time -> Pattern a -> Pattern a
+quant = patternify _quant
+
+_fill :: Time -> Time -> Pattern a -> Pattern a
+_fill l m pat =
+  withEventsOnArc (map multiplyEvent . updateEvents . sortEvents) (lookahead) pat
+  where lookahead a = a { start = (`subtract` l) $ start a, stop = (+l) $ stop a }
+        sortEvents = sortBy (\e0 e1 -> compare (start $ part e0) (start $ part e1))
+        updateEvents es = (zipWith updatePair es (drop 1 es)) ++ safeLast es
+        safeLast [] = []
+        safeLast es = [last es]
+        updatePair ev ev2 = ev { whole = (liftA2 updateArc (whole ev) (whole ev2)) }
+        updateArc (Arc s0 _) (Arc s1 _) = Arc s0 s1
+        multiplyEvent ev = ev { whole = multiplyDuration <$> whole ev }
+        multiplyDuration (Arc s e) = Arc s (s + ((e-s)*m))
+
+fill :: Pattern Time -> Pattern a -> Pattern a
+fill = patternify (_fill 1)
+
+fill' :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
+fill' = patternify2 _fill
+
+alterT :: (Time -> Time) -> Pattern a -> Pattern a
+alterT f pat =
+  withEventOnArc (unflipEvent . alterEvent) (timeToCycleArc . start) pat
+  where alterEvent ev = ev { whole = (fmap (mapCycle f) $ whole ev) }
+
+alterF :: (Double -> Double) -> Pattern a -> Pattern a
+alterF f pat =
+  withEventOnArc (unflipEvent . alterEvent) (timeToCycleArc . start) pat
+  where alterEvent ev = ev { whole = (fmap (mapCycle f') $ whole ev) }
+        f' = toRational . f . fromRational
 
 {- | @ply n@ repeats each event @n@ times within its arc.
 
