@@ -80,4 +80,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: haskell-actions/run-ormolu@v17
-
+      	with:
+	  pattern:
+	    src/**/*.hs
+	    tidal-link/src/**/*.hs
+	    tidal-parse/src/**/*.hs
+	    tidal-listener/src/**/*.hs
+	    
+        
