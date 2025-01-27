@@ -25,162 +25,162 @@ import Sound.Tidal.Pattern
 
 -- ** Major chords
 
-major :: Num a => [a]
+major :: (Num a) => [a]
 major = [0, 4, 7]
 
-aug :: Num a => [a]
+aug :: (Num a) => [a]
 aug = [0, 4, 8]
 
-six :: Num a => [a]
+six :: (Num a) => [a]
 six = [0, 4, 7, 9]
 
-sixNine :: Num a => [a]
+sixNine :: (Num a) => [a]
 sixNine = [0, 4, 7, 9, 14]
 
-major7 :: Num a => [a]
+major7 :: (Num a) => [a]
 major7 = [0, 4, 7, 11]
 
-major9 :: Num a => [a]
+major9 :: (Num a) => [a]
 major9 = [0, 4, 7, 11, 14]
 
-add9 :: Num a => [a]
+add9 :: (Num a) => [a]
 add9 = [0, 4, 7, 14]
 
-major11 :: Num a => [a]
+major11 :: (Num a) => [a]
 major11 = [0, 4, 7, 11, 14, 17]
 
-add11 :: Num a => [a]
+add11 :: (Num a) => [a]
 add11 = [0, 4, 7, 17]
 
-major13 :: Num a => [a]
+major13 :: (Num a) => [a]
 major13 = [0, 4, 7, 11, 14, 21]
 
-add13 :: Num a => [a]
+add13 :: (Num a) => [a]
 add13 = [0, 4, 7, 21]
 
 -- ** Dominant chords
 
-dom7 :: Num a => [a]
+dom7 :: (Num a) => [a]
 dom7 = [0, 4, 7, 10]
 
-dom9 :: Num a => [a]
+dom9 :: (Num a) => [a]
 dom9 = [0, 4, 7, 14]
 
-dom11 :: Num a => [a]
+dom11 :: (Num a) => [a]
 dom11 = [0, 4, 7, 17]
 
-dom13 :: Num a => [a]
+dom13 :: (Num a) => [a]
 dom13 = [0, 4, 7, 21]
 
-sevenFlat5 :: Num a => [a]
+sevenFlat5 :: (Num a) => [a]
 sevenFlat5 = [0, 4, 6, 10]
 
-sevenSharp5 :: Num a => [a]
+sevenSharp5 :: (Num a) => [a]
 sevenSharp5 = [0, 4, 8, 10]
 
-sevenFlat9 :: Num a => [a]
+sevenFlat9 :: (Num a) => [a]
 sevenFlat9 = [0, 4, 7, 10, 13]
 
-nine :: Num a => [a]
+nine :: (Num a) => [a]
 nine = [0, 4, 7, 10, 14]
 
-eleven :: Num a => [a]
+eleven :: (Num a) => [a]
 eleven = [0, 4, 7, 10, 14, 17]
 
-thirteen :: Num a => [a]
+thirteen :: (Num a) => [a]
 thirteen = [0, 4, 7, 10, 14, 17, 21]
 
 -- ** Minor chords
 
-minor :: Num a => [a]
+minor :: (Num a) => [a]
 minor = [0, 3, 7]
 
-diminished :: Num a => [a]
+diminished :: (Num a) => [a]
 diminished = [0, 3, 6]
 
-minorSharp5 :: Num a => [a]
+minorSharp5 :: (Num a) => [a]
 minorSharp5 = [0, 3, 8]
 
-minor6 :: Num a => [a]
+minor6 :: (Num a) => [a]
 minor6 = [0, 3, 7, 9]
 
-minorSixNine :: Num a => [a]
+minorSixNine :: (Num a) => [a]
 minorSixNine = [0, 3, 9, 7, 14]
 
-minor7flat5 :: Num a => [a]
+minor7flat5 :: (Num a) => [a]
 minor7flat5 = [0, 3, 6, 10]
 
-minor7 :: Num a => [a]
+minor7 :: (Num a) => [a]
 minor7 = [0, 3, 7, 10]
 
-minor7sharp5 :: Num a => [a]
+minor7sharp5 :: (Num a) => [a]
 minor7sharp5 = [0, 3, 8, 10]
 
-minor7flat9 :: Num a => [a]
+minor7flat9 :: (Num a) => [a]
 minor7flat9 = [0, 3, 7, 10, 13]
 
-minor7sharp9 :: Num a => [a]
+minor7sharp9 :: (Num a) => [a]
 minor7sharp9 = [0, 3, 7, 10, 15]
 
-diminished7 :: Num a => [a]
+diminished7 :: (Num a) => [a]
 diminished7 = [0, 3, 6, 9]
 
-minor9 :: Num a => [a]
+minor9 :: (Num a) => [a]
 minor9 = [0, 3, 7, 10, 14]
 
-minor11 :: Num a => [a]
+minor11 :: (Num a) => [a]
 minor11 = [0, 3, 7, 10, 14, 17]
 
-minor13 :: Num a => [a]
+minor13 :: (Num a) => [a]
 minor13 = [0, 3, 7, 10, 14, 17, 21]
 
-minorMajor7 :: Num a => [a]
+minorMajor7 :: (Num a) => [a]
 minorMajor7 = [0, 3, 7, 11]
 
 -- ** Other chords
 
-one :: Num a => [a]
+one :: (Num a) => [a]
 one = [0]
 
-five :: Num a => [a]
+five :: (Num a) => [a]
 five = [0, 7]
 
-sus2 :: Num a => [a]
+sus2 :: (Num a) => [a]
 sus2 = [0, 2, 7]
 
-sus4 :: Num a => [a]
+sus4 :: (Num a) => [a]
 sus4 = [0, 5, 7]
 
-sevenSus2 :: Num a => [a]
+sevenSus2 :: (Num a) => [a]
 sevenSus2 = [0, 2, 7, 10]
 
-sevenSus4 :: Num a => [a]
+sevenSus4 :: (Num a) => [a]
 sevenSus4 = [0, 5, 7, 10]
 
-nineSus4 :: Num a => [a]
+nineSus4 :: (Num a) => [a]
 nineSus4 = [0, 5, 7, 10, 14]
 
 -- ** Questionable chords
 
-sevenFlat10 :: Num a => [a]
+sevenFlat10 :: (Num a) => [a]
 sevenFlat10 = [0, 4, 7, 10, 15]
 
-nineSharp5 :: Num a => [a]
+nineSharp5 :: (Num a) => [a]
 nineSharp5 = [0, 1, 13]
 
-minor9sharp5 :: Num a => [a]
+minor9sharp5 :: (Num a) => [a]
 minor9sharp5 = [0, 1, 14]
 
-sevenSharp5flat9 :: Num a => [a]
+sevenSharp5flat9 :: (Num a) => [a]
 sevenSharp5flat9 = [0, 4, 8, 10, 13]
 
-minor7sharp5flat9 :: Num a => [a]
+minor7sharp5flat9 :: (Num a) => [a]
 minor7sharp5flat9 = [0, 3, 8, 10, 13]
 
-elevenSharp :: Num a => [a]
+elevenSharp :: (Num a) => [a]
 elevenSharp = [0, 4, 7, 10, 14, 18]
 
-minor11sharp :: Num a => [a]
+minor11sharp :: (Num a) => [a]
 minor11sharp = [0, 3, 7, 10, 14, 18]
 
 -- * Chord functions
@@ -212,7 +212,7 @@ minor11sharp = [0, 3, 7, 10, 14, 18]
 --  This will output @[("dom7",[0,4,7,10])]@
 --
 --  (You’ll need to run @import Sound.Tidal.Chords@ before using this function.)
-chordTable :: Num a => [(String, [a])]
+chordTable :: (Num a) => [(String, [a])]
 chordTable =
   [ ("major", major),
     ("maj", major),
@@ -351,7 +351,7 @@ chordTable =
   ]
 
 -- | Look up a specific chord: @chordL "minor7"@ returns @(0>1)|[0,3,7,10]@.
-chordL :: Num a => Pattern String -> Pattern [a]
+chordL :: (Num a) => Pattern String -> Pattern [a]
 chordL p = (\name -> fromMaybe [] $ lookup name chordTable) <$> p
 
 -- |

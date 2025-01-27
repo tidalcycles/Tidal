@@ -84,10 +84,10 @@ xorwise x =
    in xor (shiftL b 5) b
 
 -- stretch 300 cycles over the range of [0,2**29 == 536870912) then apply the xorshift algorithm
-timeToIntSeed :: RealFrac a => a -> Int
-timeToIntSeed = xorwise . truncate . (* 536870912) . snd . (properFraction :: (RealFrac a => a -> (Int, a))) . (/ 300)
+timeToIntSeed :: (RealFrac a) => a -> Int
+timeToIntSeed = xorwise . truncate . (* 536870912) . snd . (properFraction :: ((RealFrac a) => a -> (Int, a))) . (/ 300)
 
-intSeedToRand :: Fractional a => Int -> a
+intSeedToRand :: (Fractional a) => Int -> a
 intSeedToRand = (/ 536870912) . realToFrac . (`mod` 536870912)
 
 timeToRand :: (RealFrac a, Fractional b) => a -> b
@@ -96,7 +96,7 @@ timeToRand = intSeedToRand . timeToIntSeed
 timeToRands :: (RealFrac a, Fractional b) => a -> Int -> [b]
 timeToRands t n = timeToRands' (timeToIntSeed t) n
 
-timeToRands' :: Fractional a => Int -> Int -> [a]
+timeToRands' :: (Fractional a) => Int -> Int -> [a]
 timeToRands' seed n
   | n <= 0 = []
   | otherwise = (intSeedToRand seed) : (timeToRands' (xorwise seed) (n - 1))
@@ -131,7 +131,7 @@ timeToRands' seed n
 -- and with the juxed version shifted backwards for 1024 cycles:
 --
 -- > jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
-rand :: Fractional a => Pattern a
+rand :: (Fractional a) => Pattern a
 rand = pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ (timeToRand ((e + s) / 2) :: Double))])
 
 -- | Boolean rand - a continuous stream of true\/false values, with a 50\/50 chance.
@@ -151,10 +151,10 @@ _brandBy prob = fmap (< prob) rand
 -- @
 -- d1 $ segment 4 $ n (irand 5) # sound "drum"
 -- @
-irand :: Num a => Pattern Int -> Pattern a
+irand :: (Num a) => Pattern Int -> Pattern a
 irand = (>>= _irand)
 
-_irand :: Num a => Int -> Pattern a
+_irand :: (Num a) => Int -> Pattern a
 _irand i = fromIntegral . (floor :: Double -> Int) . (* fromIntegral i) <$> rand
 
 -- | 1D Perlin (smooth) noise, works like 'rand' but smoothly moves between random
@@ -167,7 +167,7 @@ _irand i = fromIntegral . (floor :: Double -> Int) . (* fromIntegral i) <$> rand
 -- repeat every cycle (because the saw does).
 --
 -- The `perlin` function uses the cycle count as input and can be used much like @rand@.
-perlinWith :: Fractional a => Pattern Double -> Pattern a
+perlinWith :: (Fractional a) => Pattern Double -> Pattern a
 perlinWith p = fmap realToFrac $ (interp) <$> (p - pa) <*> (timeToRand <$> pa) <*> (timeToRand <$> pb)
   where
     pa = (fromIntegral :: Int -> Double) . floor <$> p
@@ -183,7 +183,7 @@ perlinWith p = fmap realToFrac $ (interp) <$> (p - pa) <*> (timeToRand <$> pa) <
 --
 --  > d1 $ sound "bd*32" # speed (fast 4 $ perlin + 0.5)
 --  > d1 $ sound "bd*32" # speed (slow 4 $ perlin + 0.5)
-perlin :: Fractional a => Pattern a
+perlin :: (Fractional a) => Pattern a
 perlin = perlinWith (sig fromRational)
 
 -- | @perlin2With@ is Perlin noise with a 2-dimensional input. This can be
@@ -216,7 +216,8 @@ perlin2With x y = (/ 2) . (+ 1) $ interp2 <$> xfrac <*> yfrac <*> dota <*> dotb 
     dotc = pcos (fl x) (ce y) * xfrac + psin (fl x) (ce y) * (yfrac - 1)
     dotd = pcos (ce x) (ce y) * (xfrac - 1) + psin (ce x) (ce y) * (yfrac - 1)
     interp2 x' y' a b c d =
-      (1.0 - s x') * (1.0 - s y') * a + s x' * (1.0 - s y') * b
+      (1.0 - s x') * (1.0 - s y') * a
+        + s x' * (1.0 - s y') * b
         + (1.0 - s x') * s y' * c
         + s x' * s y' * d
     s x' = 6.0 * x' ** 5 - 15.0 * x' ** 4 + 10.0 * x' ** 3
@@ -646,7 +647,7 @@ fastspread f xs p = fastcat $ map (`f` p) xs
 -- using `spread'` though is that you can provide polyphonic parameters, e.g.:
 --
 -- > d1 $ spread' slow "[2 4%3, 3]" $ sound "ho ho:2 ho:3 hc"
-spread' :: Monad m => (a -> b -> m c) -> m a -> b -> m c
+spread' :: (Monad m) => (a -> b -> m c) -> m a -> b -> m c
 spread' f vpat pat = vpat >>= \v -> f v pat
 
 -- | @spreadChoose f xs p@ is similar to `slowspread` but picks values from
@@ -1007,7 +1008,7 @@ euclidInv = patternify2 _euclidInv
 _euclidInv :: Int -> Int -> Pattern a -> Pattern a
 _euclidInv n k a = _euclid (-n) k a
 
-index :: Real b => b -> Pattern b -> Pattern c -> Pattern c
+index :: (Real b) => b -> Pattern b -> Pattern c -> Pattern c
 index sz indexpat pat =
   spread' (zoom' $ toRational sz) (toRational . (* (1 - sz)) <$> indexpat) pat
   where
@@ -1035,8 +1036,8 @@ prr = prrw $ flip const
 {-|
 @preplace (blen, plen) beats values@ combines the timing of @beats@ with the values
 of @values@. Other ways of saying this are:
-* sequential convolution
-* @values@ quantized to @beats@.
+\* sequential convolution
+\* @values@ quantized to @beats@.
 
 Examples:
 
@@ -1135,11 +1136,11 @@ pequal cycles p1 p2 = (sort $ arc p1 (0, cycles)) == (sort $ arc p2 (0, cycles))
 -- Additional example:
 --
 -- > d1 $ every 4 (rot 2) $ slow 2 $ sound "bd hh hh hh"
-rot :: Ord a => Pattern Int -> Pattern a -> Pattern a
+rot :: (Ord a) => Pattern Int -> Pattern a -> Pattern a
 rot = patternify' _rot
 
 -- | Calculates a whole cycle, rotates it, then constrains events to the original query arc.
-_rot :: Ord a => Int -> Pattern a -> Pattern a
+_rot :: (Ord a) => Int -> Pattern a -> Pattern a
 _rot i pat = splitQueries $ pat {query = \st -> f st (query pat (st {arc = wholeCycle (arc st)}))}
   where
     -- TODO maybe events with the same arc (part+whole) should be
@@ -1147,15 +1148,15 @@ _rot i pat = splitQueries $ pat {query = \st -> f st (query pat (st {arc = whole
     f st es = constrainEvents (arc st) $ shiftValues $ sort $ defragParts es
     shiftValues es
       | i >= 0 =
-        zipWith
-          (\e s -> e {value = s})
-          es
-          (drop i $ cycle $ map value es)
+          zipWith
+            (\e s -> e {value = s})
+            es
+            (drop i $ cycle $ map value es)
       | otherwise =
-        zipWith
-          (\e s -> e {value = s})
-          es
-          (drop (length es - abs i) $ cycle $ map value es)
+          zipWith
+            (\e s -> e {value = s})
+            es
+            (drop (length es - abs i) $ cycle $ map value es)
     wholeCycle (Arc s _) = Arc (sam s) (nextSam s)
     constrainEvents :: Arc -> [Event a] -> [Event a]
     constrainEvents a es = mapMaybe (constrainEvent a) es
@@ -1238,7 +1239,7 @@ _fit perCycle xs p = (xs !!!) <$> (p {query = map (\e -> fmap (+ pos e) e) . que
   where
     pos e = perCycle * floor (start $ part e)
 
-permstep :: RealFrac b => Int -> [a] -> Pattern b -> Pattern a
+permstep :: (RealFrac b) => Int -> [a] -> Pattern b -> Pattern a
 permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! floor (n * fromIntegral (length ps - 1))) things) <$> _segment 1 p
   where
     ps = permsort (length things) nSteps
@@ -1318,10 +1319,10 @@ randStruct n = splitQueries $ Pattern f Nothing Nothing
                   i
                 )
             )
-            $ enumerate $
-              value $
-                head $
-                  queryArc (randArcs n) (Arc (sam s) (nextSam s))
+            $ enumerate
+            $ value
+            $ head
+            $ queryArc (randArcs n) (Arc (sam s) (nextSam s))
         (Arc s e) = arc st
 
 -- TODO - what does this do?
@@ -1406,7 +1407,7 @@ lindenmayer n r s = iterate (lindenmayer 1 r) s !! n
 -- | @lindenmayerI@ converts the resulting string into a a list of integers
 -- with @fromIntegral@ applied (so they can be used seamlessly where floats or
 -- rationals are required)
-lindenmayerI :: Num b => Int -> String -> String -> [b]
+lindenmayerI :: (Num b) => Int -> String -> String -> [b]
 lindenmayerI n r s = fmap (fromIntegral . digitToInt) $ lindenmayer n r s
 
 -- | @runMarkov n tmat xi seed@ generates a Markov chain (as a list) of length @n@
@@ -1553,7 +1554,7 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
   where
     mapMasks =
       [ stretch $ mask (const True <$> filterValues (== i) from') p'
-        | i <- [0 .. n - 1]
+      | i <- [0 .. n - 1]
       ]
     p' = density cyc p
     from' = density cyc from
@@ -1579,19 +1580,19 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
 chunk :: Pattern Int -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 chunk npat f p = innerJoin $ (\n -> _chunk n f p) <$> npat
 
-_chunk :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+_chunk :: (Integral a) => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 _chunk n f p
   | n >= 0 = cat [withinArc (Arc (i % fromIntegral n) ((i + 1) % fromIntegral n)) f p | i <- [0 .. fromIntegral n - 1]]
   | otherwise = do
-    i <- _slow (toRational (-n)) $ rev $ run (fromIntegral (-n))
-    withinArc (Arc (i % fromIntegral (-n)) ((i + 1) % fromIntegral (-n))) f p
+      i <- _slow (toRational (-n)) $ rev $ run (fromIntegral (-n))
+      withinArc (Arc (i % fromIntegral (-n)) ((i + 1) % fromIntegral (-n))) f p
 
 -- | DEPRECATED, use 'chunk' with negative numbers instead
-chunk' :: Integral a1 => Pattern a1 -> (Pattern a2 -> Pattern a2) -> Pattern a2 -> Pattern a2
+chunk' :: (Integral a1) => Pattern a1 -> (Pattern a2 -> Pattern a2) -> Pattern a2 -> Pattern a2
 chunk' npat f p = innerJoin $ (\n -> _chunk' n f p) <$> npat
 
 -- | DEPRECATED, use '_chunk' with negative numbers instead
-_chunk' :: Integral a => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
+_chunk' :: (Integral a) => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
 _chunk' n f p = _chunk (-n) f p
 
 -- |
@@ -1705,13 +1706,13 @@ seqPLoop ps = timeLoop (pure $ maxT - minT) $ minT `rotL` seqP ps
 -- use 'toScale''.
 --
 -- @toScale = toScale' 12@
-toScale :: Num a => [a] -> Pattern Int -> Pattern a
+toScale :: (Num a) => [a] -> Pattern Int -> Pattern a
 toScale = toScale' 12
 
 -- | As 'toScale', though allowing scales of arbitrary size.
 --
 -- An example: @toScale' 24 [0,4,7,10,14,17] (run 8)@ turns into @"0 4 7 10 14 17 24 28"@.
-toScale' :: Num a => Int -> [a] -> Pattern Int -> Pattern a
+toScale' :: (Num a) => Int -> [a] -> Pattern Int -> Pattern a
 toScale' _ [] = const silence
 toScale' o s = fmap noteInScale
   where
@@ -1893,8 +1894,7 @@ ur t outer_p ps fs = _slow t $ unwrap $ adjust <$> timedValues (getPat . split <
     timedValues =
       filterJust
         . withEvent
-          ( \(Event c ma a' v) -> Event c ma a' (ma >>= \a -> Just (a, v))
-          )
+          (\(Event c ma a' v) -> Event c ma a' (ma >>= \a -> Just (a, v)))
         . filterDigital
 
 -- | A simpler version of 'ur' that just provides name-value bindings that are
@@ -2254,7 +2254,7 @@ while b f pat = keepTactus pat $ sew b (f pat) pat
 -- is functionally equivalent to
 --
 -- > d1 $ stut 4 1 (1/16) $ s "bd cp"
-stutter :: Integral i => i -> Time -> Pattern a -> Pattern a
+stutter :: (Integral i) => i -> Time -> Pattern a -> Pattern a
 stutter n t p = stack $ map (\i -> (t * fromIntegral i) `rotR` p) [0 .. (n - 1)]
 
 -- | The @jux@ function creates strange stereo effects by applying a
@@ -2366,14 +2366,14 @@ pick name n = name ++ ":" ++ show n
 -- to be a function of type @Pattern String -> Pattern Int -> Pattern String@.
 --
 -- @samples = liftA2 pick@
-samples :: Applicative f => f String -> f Int -> f String
+samples :: (Applicative f) => f String -> f Int -> f String
 samples p p' = pick <$> p <*> p'
 
 -- |
 -- Equivalent to 'samples', though the sample specifier pattern
 -- (the @f Int@) will be evaluated first. Not a large difference
 -- in the majority of cases.
-samples' :: Applicative f => f String -> f Int -> f String
+samples' :: (Applicative f) => f String -> f Int -> f String
 samples' p p' = flip pick <$> p' <*> p
 
 {-
@@ -2396,7 +2396,7 @@ scrumple o p p' = p'' -- overlay p (o `rotR` p'')
 spreadf :: [a -> Pattern b] -> a -> Pattern b
 spreadf = spread ($)
 
-stackwith :: Unionable a => Pattern a -> [Pattern a] -> Pattern a
+stackwith :: (Unionable a) => Pattern a -> [Pattern a] -> Pattern a
 stackwith p ps
   | null ps = silence
   | otherwise = stack $ map (\(i, p') -> p' # ((fromIntegral i % l) `rotL` p)) (zip [0 :: Int ..] ps)
@@ -2419,7 +2419,7 @@ cross f p p' = pattern $ \t -> concat [filter flt $ arc p t,
 --
 -- > d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
 -- >   |+ speed (slow 4 $ sine1 * 0.5 + 1)
-range :: Num a => Pattern a -> Pattern a -> Pattern a -> Pattern a
+range :: (Num a) => Pattern a -> Pattern a -> Pattern a -> Pattern a
 range fromP toP p = (\from to v -> ((v * (to - from)) + from)) <$> fromP *> toP *> p
 
 _range :: (Functor f, Num b) => b -> b -> f b -> f b
@@ -2459,7 +2459,7 @@ off tp f p = innerJoin $ (\tv -> _off tv f p) <$> tp
 _off :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _off t f p = superimpose (f . (t `rotR`)) p
 
-offadd :: Num a => Pattern Time -> Pattern a -> Pattern a -> Pattern a
+offadd :: (Num a) => Pattern Time -> Pattern a -> Pattern a -> Pattern a
 offadd tp pn p = off tp (+ pn) p
 
 -- |
@@ -2725,22 +2725,22 @@ unfixRange = contrastRange id
 -- @quantise@ with fractional inputs does the consistent thing: @quantise 0.5@
 -- rounds values to the nearest @2@, @quantise 0.25@ rounds the nearest @4@, etc.
 quantise :: (Functor f, RealFrac b) => b -> f b -> f b
-quantise n = fmap ((/ n) . (fromIntegral :: RealFrac b => Int -> b) . round . (* n))
+quantise n = fmap ((/ n) . (fromIntegral :: (RealFrac b) => Int -> b) . round . (* n))
 
 -- | As 'quantise', but uses 'Prelude.floor' to calculate divisions.
 qfloor :: (Functor f, RealFrac b) => b -> f b -> f b
-qfloor n = fmap ((/ n) . (fromIntegral :: RealFrac b => Int -> b) . floor . (* n))
+qfloor n = fmap ((/ n) . (fromIntegral :: (RealFrac b) => Int -> b) . floor . (* n))
 
 -- | As 'quantise', but uses 'Prelude.ceiling' to calculate divisions.
 qceiling :: (Functor f, RealFrac b) => b -> f b -> f b
-qceiling n = fmap ((/ n) . (fromIntegral :: RealFrac b => Int -> b) . ceiling . (* n))
+qceiling n = fmap ((/ n) . (fromIntegral :: (RealFrac b) => Int -> b) . ceiling . (* n))
 
 -- | An alias for 'quantise'.
 qround :: (Functor f, RealFrac b) => b -> f b -> f b
 qround = quantise
 
 -- | Inverts all the values in a boolean pattern
-inv :: Functor f => f Bool -> f Bool
+inv :: (Functor f) => f Bool -> f Bool
 inv = (not <$>)
 
 -- | Serialises a pattern so there's only one event playing at any one
@@ -2778,7 +2778,7 @@ mono p = pattern $ \(State a cm) -> flatten $ query p (State a cm)
 -- smooth :: Pattern Double -> Pattern Double
 
 -- TODO - test this with analog events
-smooth :: Fractional a => Pattern a -> Pattern a
+smooth :: (Fractional a) => Pattern a -> Pattern a
 smooth p = pattern $ \st@(State a cm) -> tween st a $ query monoP (State (midArc a) cm)
   where
     midArc a = Arc (mid (start a, stop a)) (mid (start a, stop a))
@@ -2805,7 +2805,7 @@ smooth p = pattern $ \st@(State a cm) -> tween st a $ query monoP (State (midArc
     monoP = mono p
 
 -- | Looks up values from a list of tuples, in order to swap values in the given pattern
-swap :: Eq a => [(a, b)] -> Pattern a -> Pattern b
+swap :: (Eq a) => [(a, b)] -> Pattern a -> Pattern b
 swap things p = filterJust $ (`lookup` things) <$> p
 
 -- |
@@ -2917,10 +2917,10 @@ _chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromInt
 chew :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
 chew npat ipat pat = innerJoin $ (\n -> _chew n ipat pat) <$> npat
 
-__binary :: Data.Bits.Bits b => Int -> b -> [Bool]
+__binary :: (Data.Bits.Bits b) => Int -> b -> [Bool]
 __binary n num = map (testBit num) $ reverse [0 .. n - 1]
 
-_binary :: Data.Bits.Bits b => Int -> b -> Pattern Bool
+_binary :: (Data.Bits.Bits b) => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
 
 _binaryN :: Int -> Pattern Int -> Pattern Bool

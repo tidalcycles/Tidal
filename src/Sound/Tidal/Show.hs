@@ -46,7 +46,7 @@ showStateful p = intercalate "\n" evStrings
       )
     evStrings = map evString evs'
 
-showPattern :: Show a => Arc -> Pattern a -> String
+showPattern :: (Show a) => Arc -> Pattern a -> String
 showPattern _ (Pattern _ _ (Just v)) = "(pure " ++ show v ++ ")"
 showPattern a p = intercalate "\n" evStrings
   where
@@ -59,7 +59,7 @@ showPattern a p = intercalate "\n" evStrings
         ++ uncurry (++) ev
     evStrings = map evString evs
 
-showEvent :: Show a => Event a -> (String, String)
+showEvent :: (Show a) => Event a -> (String, String)
 showEvent (Event _ (Just (Arc ws we)) a@(Arc ps pe) e) =
   (h ++ "(" ++ show a ++ ")" ++ t ++ "|", show e)
   where
@@ -73,11 +73,11 @@ showEvent (Event _ Nothing a e) =
   ("~" ++ show a ++ "~|", show e)
 
 -- Show everything, including event context
-showAll :: Show a => Arc -> Pattern a -> String
+showAll :: (Show a) => Arc -> Pattern a -> String
 showAll a p = intercalate "\n" $ map showEventAll $ sortOn part $ queryArc p a
 
 -- Show context of an event
-showEventAll :: Show a => Event a -> String
+showEventAll :: (Show a) => Event a -> String
 showEventAll e = show (context e) ++ uncurry (++) (showEvent e)
 
 instance Show Context where
@@ -101,7 +101,7 @@ instance {-# OVERLAPPING #-} Show ValueMap where
 instance {-# OVERLAPPING #-} Show Arc where
   show (Arc s e) = prettyRat s ++ ">" ++ prettyRat e
 
-instance {-# OVERLAPPING #-} Show a => Show (Event a) where
+instance {-# OVERLAPPING #-} (Show a) => Show (Event a) where
   show e = uncurry (++) (showEvent e)
 
 prettyRat :: Rational -> String
@@ -250,6 +250,6 @@ addEvent e (level : ls)
 arrangeEvents :: [Event b] -> [[Event b]]
 arrangeEvents = foldr addEvent []
 
-levels :: Eq a => Pattern a -> [[Event a]]
+levels :: (Eq a) => Pattern a -> [[Event a]]
 -- levels pat = arrangeEvents $ sortOn' ((\Arc{..} -> stop - start) . part) (defragParts $ queryArc pat (Arc 0 1))
 levels pat = arrangeEvents $ reverse $ defragParts $ queryArc pat (Arc 0 1)

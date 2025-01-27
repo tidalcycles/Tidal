@@ -155,8 +155,8 @@ processCps cconf cref (ss, temposs) = mapM processEvent
       onPartOsc <- Clock.linkToOscTime cref onPart
       let cps = ((Clock.beatToCycles cconf) $ fromRational bpm) / 60
       let delta = off - on
-      return
-        $! ProcessedEvent
+      return $!
+        ProcessedEvent
           { peHasOnset = eventHasOnset e,
             peEvent = e,
             peCps = cps,
@@ -192,22 +192,22 @@ toOSC busses pe osc@(OSC _ _) =
     -- Only events that start within the current nowArc are included
     playmsg
       | peHasOnset pe = do
-        -- If there is already cps in the event, the union will preserve that.
-        let extra =
-              Map.fromList
-                [ ("cps", (VF (peCps pe))),
-                  ("delta", VF (Clock.addMicrosToOsc (peDelta pe) 0)),
-                  ("cycle", VF (fromRational (peCycle pe)))
-                ]
-            addExtra = Map.union playmap' extra
-            ts = (peOnWholeOrPartOsc pe) + nudge -- + latency
-        vs <- toData osc ((peEvent pe) {value = addExtra})
-        mungedPath <- substitutePath (path osc) playmap'
-        return
-          ( ts,
-            False, -- bus message ?
-            O.Message mungedPath vs
-          )
+          -- If there is already cps in the event, the union will preserve that.
+          let extra =
+                Map.fromList
+                  [ ("cps", (VF (peCps pe))),
+                    ("delta", VF (Clock.addMicrosToOsc (peDelta pe) 0)),
+                    ("cycle", VF (fromRational (peCycle pe)))
+                  ]
+              addExtra = Map.union playmap' extra
+              ts = (peOnWholeOrPartOsc pe) + nudge -- + latency
+          vs <- toData osc ((peEvent pe) {value = addExtra})
+          mungedPath <- substitutePath (path osc) playmap'
+          return
+            ( ts,
+              False, -- bus message ?
+              O.Message mungedPath vs
+            )
       | otherwise = Nothing
     toBus n
       | null busses = n
@@ -276,9 +276,9 @@ substitutePath str cm = parse str
     parseWord xs
       | b == [] = getString cm a
       | otherwise = do
-        v <- getString cm a
-        xs' <- parse (tail b)
-        return $ v ++ xs'
+          v <- getString cm a
+          xs' <- parse (tail b)
+          return $ v ++ xs'
       where
         (a, b) = break (== '}') xs
 

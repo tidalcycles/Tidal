@@ -47,14 +47,14 @@ mapFst f (x, y) = (f x, y)
 mapSnd :: (a -> b) -> (c, a) -> (c, b)
 mapSnd f (x, y) = (x, f y)
 
-delta :: Num a => (a, a) -> a
+delta :: (Num a) => (a, a) -> a
 delta (a, b) = b - a
 
 -- | The midpoint of two values
-mid :: Fractional a => (a, a) -> a
+mid :: (Fractional a) => (a, a) -> a
 mid (a, b) = a + ((b - a) / 2)
 
-removeCommon :: Eq a => [a] -> [a] -> ([a], [a])
+removeCommon :: (Eq a) => [a] -> [a] -> ([a], [a])
 removeCommon [] bs = ([], bs)
 removeCommon as [] = (as, [])
 removeCommon (a : as) bs
@@ -81,7 +81,7 @@ nth _ [] = Nothing
 nth 0 (x : _) = Just x
 nth n (_ : xs) = nth (n - 1) xs
 
-accumulate :: Num t => [t] -> [t]
+accumulate :: (Num t) => [t] -> [t]
 accumulate [] = []
 accumulate (x : xs) = scanl (+) x xs
 
@@ -125,15 +125,15 @@ pairs rs = zip rs (tail rs)
 -- Used under a BSD 3-clause license
 -- https://hackage.haskell.org/package/containers
 
-nubOrd :: Ord a => [a] -> [a]
+nubOrd :: (Ord a) => [a] -> [a]
 nubOrd = nubOrdOn id
 {-# INLINE nubOrd #-}
 
-nubOrdOn :: Ord b => (a -> b) -> [a] -> [a]
+nubOrdOn :: (Ord b) => (a -> b) -> [a] -> [a]
 nubOrdOn f = \xs -> nubOrdOnExcluding f Set.empty xs
 {-# INLINE nubOrdOn #-}
 
-nubOrdOnExcluding :: Ord b => (a -> b) -> Set b -> [a] -> [a]
+nubOrdOnExcluding :: (Ord b) => (a -> b) -> Set b -> [a] -> [a]
 nubOrdOnExcluding f = go
   where
     go _ [] = []

@@ -65,11 +65,11 @@ send listen cx latency extraLatency (time, isBusMsg, m)
   | oSchedule target == Pre BundleStamp = sendBndl isBusMsg listen cx $ O.Bundle timeWithLatency [m]
   | oSchedule target == Pre MessageStamp = sendO isBusMsg listen cx $ addtime m
   | otherwise = do
-    _ <- forkOS $ do
-      now <- O.time
-      threadDelay $ floor $ (timeWithLatency - now) * 1000000
-      sendO isBusMsg listen cx m
-    return ()
+      _ <- forkOS $ do
+        now <- O.time
+        threadDelay $ floor $ (timeWithLatency - now) * 1000000
+        sendO isBusMsg listen cx m
+      return ()
   where
     addtime (O.Message mpath params) = O.Message mpath ((O.int32 sec) : ((O.int32 usec) : params))
     ut = O.ntpr_to_posix timeWithLatency

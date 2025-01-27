@@ -2,11 +2,11 @@
 
 module Tidal.Inputs where
 
-import Sound.Tidal.Pattern
-import Sound.Tidal.Core
-import Sound.Tidal.ParseBP()
-import Sound.Tidal.Params
 import Sound.Tidal.Control
+import Sound.Tidal.Core
+import Sound.Tidal.Params
+import Sound.Tidal.ParseBP ()
+import Sound.Tidal.Pattern
 import Sound.Tidal.UI
 import Weigh
 
@@ -15,19 +15,19 @@ columns = setColumns [Case, Allocated, Max, Live, GCs]
 
 {- Pattern inputs -}
 xs3 :: [Time]
-xs3 = [1..10000]
+xs3 = [1 .. 10000]
 
 xs4 :: [Time]
-xs4 = [1..100000]
+xs4 = [1 .. 100000]
 
 xs5 :: [Time]
-xs5 = [1..1000000]
+xs5 = [1 .. 1000000]
 
 xs6 :: [Time]
-xs6 = [1..10000000]
+xs6 = [1 .. 10000000]
 
 xsA :: [Time]
-xsA = [500000..1500000]
+xsA = [500000 .. 1500000]
 
 catPattSmall :: [Pattern Time]
 catPattSmall = pure <$> xs3
@@ -72,18 +72,18 @@ fixArg1 = pF "cc64" 1
 
 fixArg2 :: ControlPattern
 fixArg2 =
-      fix ( # crush 4 ) (pF "cc65" 1)
-    $ fix ( stut' 4 (0.125/4) ( + up "1" )) (pF "cc66" 1)
-    $ fix ( |*| speed "-1" ) (pF "cc67" 1)
-    $ fix ( (# delaytime 0.125).(# delay 0.5)) (pF "cc68" 1)
-    $ fix ( # coarse 12) (pF "cc69" 1)
-    $ s "[808bd:1(3,8), dr(7,8)]"
-    #  pF "cc64" (cF 0 "64")
-    #  pF "cc65" (cF 0 "65")
-    #  pF "cc66" (cF 0 "66")
-    #  pF "cc67" (cF 0 "67")
-    #  pF "cc68" (cF 0 "68")
-    #  pF "cc69" (cF 0 "69")
+  fix (# crush 4) (pF "cc65" 1) $
+    fix (stut' 4 (0.125 / 4) (+ up "1")) (pF "cc66" 1) $
+      fix (|*| speed "-1") (pF "cc67" 1) $
+        fix ((# delaytime 0.125) . (# delay 0.5)) (pF "cc68" 1) $
+          fix (# coarse 12) (pF "cc69" 1) $
+            s "[808bd:1(3,8), dr(7,8)]"
+              # pF "cc64" (cF 0 "64")
+              # pF "cc65" (cF 0 "65")
+              # pF "cc66" (cF 0 "66")
+              # pF "cc67" (cF 0 "67")
+              # pF "cc68" (cF 0 "68")
+              # pF "cc69" (cF 0 "69")
 
 {- Euclid inputs -}
 ecA1 :: [Pattern Int]

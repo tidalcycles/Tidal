@@ -247,11 +247,14 @@ run =
 
     describe "rotR" $ do
       it "works over two cycles" $
-        property $ comparePD (Arc 0 2) (0.25 ~> pure "a") (0.25 `rotR` pure ("a" :: String))
+        property $
+          comparePD (Arc 0 2) (0.25 ~> pure "a") (0.25 `rotR` pure ("a" :: String))
       it "works over one cycle" $
-        property $ compareP (Arc 0 1) (0.25 ~> pure "a") (0.25 `rotR` pure ("a" :: String))
+        property $
+          compareP (Arc 0 1) (0.25 ~> pure "a") (0.25 `rotR` pure ("a" :: String))
       it "works with zero width queries" $
-        property $ compareP (Arc 0 0) (0.25 ~> pure "a") (0.25 `rotR` pure ("a" :: String))
+        property $
+          compareP (Arc 0 0) (0.25 ~> pure "a") (0.25 `rotR` pure ("a" :: String))
 
     describe "comparePD" $ do
       it "allows split events to be compared" $

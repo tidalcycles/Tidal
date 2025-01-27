@@ -37,12 +37,12 @@ import System.IO (hPutStrLn, stderr)
 openListener :: Config -> IO (Maybe O.Udp)
 openListener c
   | cCtrlListen c =
-    catchAny
-      run
-      ( \_ -> do
-          verbose c "That port isn't available, perhaps another Tidal instance is already listening on that port?"
-          return Nothing
-      )
+      catchAny
+        run
+        ( \_ -> do
+            verbose c "That port isn't available, perhaps another Tidal instance is already listening on that port?"
+            return Nothing
+        )
   | otherwise = return Nothing
   where
     run = do
