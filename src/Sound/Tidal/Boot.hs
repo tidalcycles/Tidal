@@ -1,92 +1,92 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Sound.Tidal.Boot
-  ( Tidally (..)
-  , OscMap
-  , mkOscMap
-  , mkTidal
-  , mkTidalWith
-  , only
-  , p
-  , _p
-  , p_
-  , hush
-  , panic
-  , list
-  , mute
-  , unmute
-  , unmuteAll
-  , unsoloAll
-  , solo
-  , unsolo
-  , once
-  , asap
-  , first
-  , nudgeAll
-  , all
-  , resetCycles
-  , setCycle
-  , setcps
-  , getcps
-  , setbpm
-  , getbpm
-  , getnow
-  , d1
-  , d2
-  , d3
-  , d4
-  , d5
-  , d6
-  , d7
-  , d8
-  , d9
-  , d10
-  , d11
-  , d12
-  , d13
-  , d14
-  , d15
-  , d16
-  , _d1
-  , _d2
-  , _d3
-  , _d4
-  , _d5
-  , _d6
-  , _d7
-  , _d8
-  , _d9
-  , _d10
-  , _d11
-  , _d12
-  , _d13
-  , _d14
-  , _d15
-  , _d16
-  , d1_
-  , d2_
-  , d3_
-  , d4_
-  , d5_
-  , d6_
-  , d7_
-  , d8_
-  , d9_
-  , d10_
-  , d11_
-  , d12_
-  , d13_
-  , d14_
-  , d15_
-  , d16_
-  , getState
-  , setI
-  , setF
-  , setS
-  , setR
-  , setB
-  , module Sound.Tidal.Context
+  ( Tidally (..),
+    OscMap,
+    mkOscMap,
+    mkTidal,
+    mkTidalWith,
+    only,
+    p,
+    _p,
+    p_,
+    hush,
+    panic,
+    list,
+    mute,
+    unmute,
+    unmuteAll,
+    unsoloAll,
+    solo,
+    unsolo,
+    once,
+    asap,
+    first,
+    nudgeAll,
+    all,
+    resetCycles,
+    setCycle,
+    setcps,
+    getcps,
+    setbpm,
+    getbpm,
+    getnow,
+    d1,
+    d2,
+    d3,
+    d4,
+    d5,
+    d6,
+    d7,
+    d8,
+    d9,
+    d10,
+    d11,
+    d12,
+    d13,
+    d14,
+    d15,
+    d16,
+    _d1,
+    _d2,
+    _d3,
+    _d4,
+    _d5,
+    _d6,
+    _d7,
+    _d8,
+    _d9,
+    _d10,
+    _d11,
+    _d12,
+    _d13,
+    _d14,
+    _d15,
+    _d16,
+    d1_,
+    d2_,
+    d3_,
+    d4_,
+    d5_,
+    d6_,
+    d7_,
+    d8_,
+    d9_,
+    d10_,
+    d11_,
+    d12_,
+    d13_,
+    d14_,
+    d15_,
+    d16_,
+    getState,
+    setI,
+    setF,
+    setS,
+    setR,
+    setB,
+    module Sound.Tidal.Context,
   )
 where
 
@@ -108,10 +108,10 @@ where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Prelude             hiding (all, (*>), (<*))
-import           Sound.Tidal.Context
-import           Sound.Tidal.ID      (ID)
-import           System.IO           (hSetEncoding, stdout, utf8)
+import Sound.Tidal.Context
+import Sound.Tidal.ID (ID)
+import System.IO (hSetEncoding, stdout, utf8)
+import Prelude hiding (all, (*>), (<*))
 
 -- | Functions using this constraint can access the in-scope Tidal instance.
 -- You must implement an instance of this in 'BootTidal.hs'. Note that GHC

@@ -3,8 +3,8 @@
 module Sound.Tidal.CoreTest where
 
 import Data.List (sort)
-import Data.Ratio
 import qualified Data.Map as Map
+import Data.Ratio
 import Sound.Tidal.Context
 import Test.Microspec
 import TestUtils
@@ -18,7 +18,8 @@ run =
           sampleOf pat t = (value . head) $ query pat (State (Arc t t) Map.empty)
       describe "are in range [0, 1]" $ do
         let inNormalRange pat t = (y >= 0) && (y <= 1)
-              where y = sampleOf pat t
+              where
+                y = sampleOf pat t
         it "sine" $ inNormalRange sine
         it "cosine" $ inNormalRange cosine
         it "saw" $ inNormalRange saw
@@ -27,15 +28,16 @@ run =
         it "square" $ inNormalRange square
       describe "have correctly-scaled bipolar variants" $ do
         let areCorrectlyScaled pat pat2 t = (y * 2 - 1) ~== y2
-              where y = sampleOf pat t
-                    y2 = sampleOf pat2 t
+              where
+                y = sampleOf pat t
+                y2 = sampleOf pat2 t
         it "sine" $ areCorrectlyScaled sine sine2
         it "cosine" $ areCorrectlyScaled cosine cosine2
         it "saw" $ areCorrectlyScaled saw saw2
         it "isaw" $ areCorrectlyScaled isaw isaw2
         it "tri" $ areCorrectlyScaled tri tri2
         it "square" $ areCorrectlyScaled square square2
-    
+
     describe "append" $
       it "can switch between the cycles from two pures" $ do
         queryArc (append (pure "a") (pure "b")) (Arc 0 5)

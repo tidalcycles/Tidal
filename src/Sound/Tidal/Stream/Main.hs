@@ -1,19 +1,17 @@
 module Sound.Tidal.Stream.Main where
 
+import Control.Concurrent
+import Control.Concurrent.MVar
 import qualified Data.Map as Map
 import qualified Sound.Tidal.Clock as Clock
-import           Control.Concurrent.MVar
-import           Control.Concurrent
-import           System.IO (hPutStrLn, stderr)
-
-
-import           Sound.Tidal.Version (tidal_status_string)
-import           Sound.Tidal.Stream.Config
-import           Sound.Tidal.Stream.Types
-import           Sound.Tidal.Stream.Listen
-import           Sound.Tidal.Stream.Target
-import           Sound.Tidal.Stream.Process
-import           Sound.Tidal.Stream.UI
+import Sound.Tidal.Stream.Config
+import Sound.Tidal.Stream.Listen
+import Sound.Tidal.Stream.Process
+import Sound.Tidal.Stream.Target
+import Sound.Tidal.Stream.Types
+import Sound.Tidal.Stream.UI
+import Sound.Tidal.Version (tidal_status_string)
+import System.IO (hPutStrLn, stderr)
 
 {-
     Main.hs - Start tidals stream, listen and act on incoming messages
@@ -33,7 +31,6 @@ import           Sound.Tidal.Stream.UI
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-
 -- Start an instance of Tidal with superdirt OSC
 startTidal :: Target -> Config -> IO Stream
 startTidal target config = startStream config [(target, [superdirtShape])]
@@ -43,36 +40,38 @@ startTidal target config = startStream config [(target, [superdirtShape])]
 -- Spawns a thread that listens to and acts on OSC control messages
 startStream :: Config -> [(Target, [OSC])] -> IO Stream
 startStream config oscmap = do
-       sMapMV <- newMVar Map.empty
-       pMapMV <- newMVar Map.empty
-       bussesMV <- newMVar []
-       globalFMV <- newMVar id
+  sMapMV <- newMVar Map.empty
+  pMapMV <- newMVar Map.empty
+  bussesMV <- newMVar []
+  globalFMV <- newMVar id
 
-       tidal_status_string >>= verbose config
-       verbose config $ "Listening for external controls on " ++ cCtrlAddr config ++ ":" ++ show (cCtrlPort config)
-       listen <- openListener config
+  tidal_status_string >>= verbose config
+  verbose config $ "Listening for external controls on " ++ cCtrlAddr config ++ ":" ++ show (cCtrlPort config)
+  listen <- openListener config
 
-       cxs <- getCXs config oscmap
+  cxs <- getCXs config oscmap
 
-       clockRef <- Clock.clocked (cClockConfig config) (doTick sMapMV bussesMV pMapMV globalFMV cxs listen)
+  clockRef <- Clock.clocked (cClockConfig config) (doTick sMapMV bussesMV pMapMV globalFMV cxs listen)
 
-       let stream = Stream {sConfig = config,
-                            sBusses = bussesMV,
-                            sStateMV  = sMapMV,
-                            sClockRef = clockRef,
-                            -- sLink = abletonLink,
-                            sListen = listen,
-                            sPMapMV = pMapMV,
-                            -- sActionsMV = actionsMV,
-                            sGlobalFMV = globalFMV,
-                            sCxs = cxs
-                           }
+  let stream =
+        Stream
+          { sConfig = config,
+            sBusses = bussesMV,
+            sStateMV = sMapMV,
+            sClockRef = clockRef,
+            -- sLink = abletonLink,
+            sListen = listen,
+            sPMapMV = pMapMV,
+            -- sActionsMV = actionsMV,
+            sGlobalFMV = globalFMV,
+            sCxs = cxs
+          }
 
-       sendHandshakes stream
+  sendHandshakes stream
 
-       -- Spawn a thread to handle OSC control messages
-       _ <- forkIO $ ctrlResponder 0 config stream
-       return stream
+  -- Spawn a thread to handle OSC control messages
+  _ <- forkIO $ ctrlResponder 0 config stream
+  return stream
 
 startMulti :: [Target] -> Config -> IO ()
 startMulti _ _ = hPutStrLn stderr $ "startMulti has been removed, please check the latest documentation on tidalcycles.org"
