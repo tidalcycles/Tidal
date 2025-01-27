@@ -24,9 +24,9 @@ instance Applicative ArcF where
   pure t = Arc t t
   (<*>) (Arc sf ef) (Arc sx ex) = Arc (sf sx) (ef ex)
 
-instance NFData a => NFData (ArcF a)
+instance (NFData a) => NFData (ArcF a)
 
-instance Num a => Num (ArcF a) where
+instance (Num a) => Num (ArcF a) where
   negate = fmap negate
   (+) = liftA2 (+)
   (*) = liftA2 (*)
@@ -46,11 +46,11 @@ sam :: Time -> Time
 sam = fromIntegral . (floor :: Time -> Int)
 
 -- | Turns a number into a (rational) time value. An alias for @toRational@.
-toTime :: Real a => a -> Rational
+toTime :: (Real a) => a -> Rational
 toTime = toRational
 
 -- | Turns a (rational) time value into another number. An alias for @fromRational@.
-fromTime :: Fractional a => Time -> a
+fromTime :: (Fractional a) => Time -> a
 fromTime = fromRational
 
 -- | The end point of the current cycle (and starting point of the next cycle)
@@ -122,7 +122,7 @@ cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e - s))
 -- are not necessarily completely contained in the input @Arc@,
 -- but they definitely overlap it,
 -- and they include every cycle that overlaps it.
-cyclesInArc :: Integral a => Arc -> [a]
+cyclesInArc :: (Integral a) => Arc -> [a]
 cyclesInArc (Arc s e)
   | s > e = []
   | s == e = [floor s]

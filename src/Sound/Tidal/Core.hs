@@ -43,14 +43,14 @@ sig f = pattern q
 
 -- | @sine@ - unipolar sinewave. A pattern of continuous values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
-sine :: Fractional a => Pattern a
+sine :: (Fractional a) => Pattern a
 sine = sig $ \t -> (sin_rat ((pi :: Double) * 2 * fromRational t) + 1) / 2
   where
     sin_rat = fromRational . toRational . sin
 
 -- | @sine2@ - bipolar sinewave. A pattern of continuous values following a
 -- sinewave with frequency of one cycle, and amplitude from -1 to 1.
-sine2 :: Fractional a => Pattern a
+sine2 :: (Fractional a) => Pattern a
 sine2 = sig $ \t -> sin_rat ((pi :: Double) * 2 * fromRational t)
   where
     sin_rat = fromRational . toRational . sin
@@ -58,13 +58,13 @@ sine2 = sig $ \t -> sin_rat ((pi :: Double) * 2 * fromRational t)
 -- | @cosine@ - unipolar cosine wave. A pattern of continuous values
 -- following a cosine with frequency of one cycle, and amplitude from
 -- 0 to 1. Equivalent to @0.25 ~> sine@.
-cosine :: Fractional a => Pattern a
+cosine :: (Fractional a) => Pattern a
 cosine = 0.25 `rotR` sine
 
 -- | @cosine2@ - bipolar cosine wave. A pattern of continuous values
 -- following a cosine with frequency of one cycle, and amplitude from
 -- -1 to 1. Equivalent to @0.25 ~> sine2@.
-cosine2 :: Fractional a => Pattern a
+cosine2 :: (Fractional a) => Pattern a
 cosine2 = 0.25 `rotR` sine2
 
 -- | @saw@ - unipolar ascending sawtooth wave. A pattern of continuous values
@@ -150,16 +150,16 @@ instance {-# OVERLAPPING #-} Unionable ValueMap where
 (|+|) :: (Applicative a, Num b) => a b -> a b -> a b
 a |+| b = (+) <$> a <*> b
 
-(|+) :: Num a => Pattern a -> Pattern a -> Pattern a
+(|+) :: (Num a) => Pattern a -> Pattern a -> Pattern a
 a |+ b = (+) <$> a <* b
 
-(+|) :: Num a => Pattern a -> Pattern a -> Pattern a
+(+|) :: (Num a) => Pattern a -> Pattern a -> Pattern a
 a +| b = (+) <$> a *> b
 
-(||+) :: Num a => Pattern a -> Pattern a -> Pattern a
+(||+) :: (Num a) => Pattern a -> Pattern a -> Pattern a
 a ||+ b = (+) <$> a <<* b
 
-(|++|) :: Applicative a => a String -> a String -> a String
+(|++|) :: (Applicative a) => a String -> a String -> a String
 a |++| b = (++) <$> a <*> b
 
 (|++) :: Pattern String -> Pattern String -> Pattern String
@@ -174,89 +174,89 @@ a ||++ b = (++) <$> a <<* b
 (|/|) :: (Applicative a, Fractional b) => a b -> a b -> a b
 a |/| b = (/) <$> a <*> b
 
-(|/) :: Fractional a => Pattern a -> Pattern a -> Pattern a
+(|/) :: (Fractional a) => Pattern a -> Pattern a -> Pattern a
 a |/ b = (/) <$> a <* b
 
-(/|) :: Fractional a => Pattern a -> Pattern a -> Pattern a
+(/|) :: (Fractional a) => Pattern a -> Pattern a -> Pattern a
 a /| b = (/) <$> a *> b
 
-(||/) :: Fractional a => Pattern a -> Pattern a -> Pattern a
+(||/) :: (Fractional a) => Pattern a -> Pattern a -> Pattern a
 a ||/ b = (/) <$> a <<* b
 
 (|*|) :: (Applicative a, Num b) => a b -> a b -> a b
 a |*| b = (*) <$> a <*> b
 
-(|*) :: Num a => Pattern a -> Pattern a -> Pattern a
+(|*) :: (Num a) => Pattern a -> Pattern a -> Pattern a
 a |* b = (*) <$> a <* b
 
-(*|) :: Num a => Pattern a -> Pattern a -> Pattern a
+(*|) :: (Num a) => Pattern a -> Pattern a -> Pattern a
 a *| b = (*) <$> a *> b
 
-(||*) :: Num a => Pattern a -> Pattern a -> Pattern a
+(||*) :: (Num a) => Pattern a -> Pattern a -> Pattern a
 a ||* b = (*) <$> a <<* b
 
 (|-|) :: (Applicative a, Num b) => a b -> a b -> a b
 a |-| b = (-) <$> a <*> b
 
-(|-) :: Num a => Pattern a -> Pattern a -> Pattern a
+(|-) :: (Num a) => Pattern a -> Pattern a -> Pattern a
 a |- b = (-) <$> a <* b
 
-(-|) :: Num a => Pattern a -> Pattern a -> Pattern a
+(-|) :: (Num a) => Pattern a -> Pattern a -> Pattern a
 a -| b = (-) <$> a *> b
 
-(||-) :: Num a => Pattern a -> Pattern a -> Pattern a
+(||-) :: (Num a) => Pattern a -> Pattern a -> Pattern a
 a ||- b = (-) <$> a <<* b
 
 (|%|) :: (Applicative a, Moddable b) => a b -> a b -> a b
 a |%| b = gmod <$> a <*> b
 
-(|%) :: Moddable a => Pattern a -> Pattern a -> Pattern a
+(|%) :: (Moddable a) => Pattern a -> Pattern a -> Pattern a
 a |% b = gmod <$> a <* b
 
-(%|) :: Moddable a => Pattern a -> Pattern a -> Pattern a
+(%|) :: (Moddable a) => Pattern a -> Pattern a -> Pattern a
 a %| b = gmod <$> a *> b
 
-(||%) :: Moddable a => Pattern a -> Pattern a -> Pattern a
+(||%) :: (Moddable a) => Pattern a -> Pattern a -> Pattern a
 a ||% b = gmod <$> a <<* b
 
 (|**|) :: (Applicative a, Floating b) => a b -> a b -> a b
 a |**| b = (**) <$> a <*> b
 
-(|**) :: Floating a => Pattern a -> Pattern a -> Pattern a
+(|**) :: (Floating a) => Pattern a -> Pattern a -> Pattern a
 a |** b = (**) <$> a <* b
 
-(**|) :: Floating a => Pattern a -> Pattern a -> Pattern a
+(**|) :: (Floating a) => Pattern a -> Pattern a -> Pattern a
 a **| b = (**) <$> a *> b
 
-(||**) :: Floating a => Pattern a -> Pattern a -> Pattern a
+(||**) :: (Floating a) => Pattern a -> Pattern a -> Pattern a
 a ||** b = (**) <$> a <<* b
 
 (|>|) :: (Applicative a, Unionable b) => a b -> a b -> a b
 a |>| b = flip union <$> a <*> b
 
-(|>) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+(|>) :: (Unionable a) => Pattern a -> Pattern a -> Pattern a
 a |> b = flip union <$> a <* b
 
-(>|) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+(>|) :: (Unionable a) => Pattern a -> Pattern a -> Pattern a
 a >| b = flip union <$> a *> b
 
-(||>) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+(||>) :: (Unionable a) => Pattern a -> Pattern a -> Pattern a
 a ||> b = flip union <$> a <<* b
 
 (|<|) :: (Applicative a, Unionable b) => a b -> a b -> a b
 a |<| b = union <$> a <*> b
 
-(|<) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+(|<) :: (Unionable a) => Pattern a -> Pattern a -> Pattern a
 a |< b = union <$> a <* b
 
-(<|) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+(<|) :: (Unionable a) => Pattern a -> Pattern a -> Pattern a
 a <| b = union <$> a *> b
 
-(||<) :: Unionable a => Pattern a -> Pattern a -> Pattern a
+(||<) :: (Unionable a) => Pattern a -> Pattern a -> Pattern a
 a ||< b = union <$> a <<* b
 
 -- Backward compatibility - structure from left, values from right.
-(#) :: Unionable b => Pattern b -> Pattern b -> Pattern b
+(#) :: (Unionable b) => Pattern b -> Pattern b -> Pattern b
 (#) = (|>)
 
 -- ** Constructing patterns
@@ -510,9 +510,10 @@ zoomArc :: Arc -> Pattern a -> Pattern a
 zoomArc (Arc s e) p
   | s >= e = nothing
   | otherwise =
-    withTactus (* d) $
-      splitQueries $
-        withResultArc (mapCycle ((/ d) . subtract s)) $ withQueryArc (mapCycle ((+ s) . (* d))) p
+      withTactus (* d) $
+        splitQueries $
+          withResultArc (mapCycle ((/ d) . subtract s)) $
+            withQueryArc (mapCycle ((+ s) . (* d))) p
   where
     d = e - s
 

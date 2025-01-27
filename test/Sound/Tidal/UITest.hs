@@ -29,7 +29,8 @@ run =
           (slow 2 $ _chop 2 $ s (pure "a"))
           (begin (pure 0) # end (pure 0.5) # (s (pure "a")))
       it "can chop a chop" $
-        property $ compareTol (Arc 0 1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")
+        property $
+          compareTol (Arc 0 1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")
 
     describe "segment" $ do
       it "can turn a single event into multiple events" $ do

@@ -22,36 +22,37 @@ module Sound.Tidal.Params where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
+import Data.Fixed (mod')
 import qualified Data.Map.Strict as Map
-
-import Sound.Tidal.Pattern
-import Sound.Tidal.Core ((#))
-import Sound.Tidal.Utils
 import Data.Maybe (fromMaybe)
 import Data.Word (Word8)
-import Data.Fixed (mod')
+import Sound.Tidal.Core ((#))
+import Sound.Tidal.Pattern
+import Sound.Tidal.Utils
 
 -- | group multiple params into one
 grp :: [String -> ValueMap] -> Pattern String -> ControlPattern
 grp [] _ = empty
 grp fs p = splitby <$> p
-  where splitby name = Map.unions $ map (\(v, f) -> f v) $ zip (split name) fs
-        split :: String -> [String]
-        split = wordsBy (==':')
+  where
+    splitby name = Map.unions $ map (\(v, f) -> f v) $ zip (split name) fs
+    split :: String -> [String]
+    split = wordsBy (== ':')
 
 mF :: String -> String -> ValueMap
-mF name v = fromMaybe Map.empty $ do f <- readMaybe v
-                                     return $ Map.singleton name (VF f)
+mF name v = fromMaybe Map.empty $ do
+  f <- readMaybe v
+  return $ Map.singleton name (VF f)
 
 mI :: String -> String -> ValueMap
-mI name v = fromMaybe Map.empty $ do i <- readMaybe v
-                                     return $ Map.singleton name (VI i)
+mI name v = fromMaybe Map.empty $ do
+  i <- readMaybe v
+  return $ Map.singleton name (VI i)
 
 mS :: String -> String -> ValueMap
 mS name v = Map.singleton name (VS v)
 
 -- | Param makers
-
 pF :: String -> Pattern Double -> ControlPattern
 pF name = fmap (Map.singleton name . VF)
 
@@ -60,7 +61,7 @@ pI name = fmap (Map.singleton name . VI)
 
 pB :: String -> Pattern Bool -> ControlPattern
 pB name = fmap (Map.singleton name . VB)
- 
+
 pR :: String -> Pattern Rational -> ControlPattern
 pR name = fmap (Map.singleton name . VR)
 
@@ -75,18 +76,23 @@ pX name = fmap (Map.singleton name . VX)
 
 pStateF :: String -> String -> (Maybe Double -> Double) -> ControlPattern
 pStateF name sName update = pure $ Map.singleton name $ VState statef
-  where statef :: ValueMap -> (ValueMap, Value)
-        statef sMap = (Map.insert sName v sMap, v) 
-          where v = VF $ update $ (Map.lookup sName sMap) >>= getF
+  where
+    statef :: ValueMap -> (ValueMap, Value)
+    statef sMap = (Map.insert sName v sMap, v)
+      where
+        v = VF $ update $ (Map.lookup sName sMap) >>= getF
 
 pStateList :: String -> String -> [Value] -> ControlPattern
 pStateList name sName xs = pure $ Map.singleton name $ VState statef
-  where statef :: ValueMap -> (ValueMap, Value)
-        statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped) 
-          where xs' = fromMaybe xs ((Map.lookup sName sMap) >>= getList)
-                -- do this instead of a cycle, so it can get updated with the a list
-                looped | null xs' = xs
-                       | otherwise = xs'
+  where
+    statef :: ValueMap -> (ValueMap, Value)
+    statef sMap = (Map.insert sName (VList $ tail looped) sMap, head looped)
+      where
+        xs' = fromMaybe xs ((Map.lookup sName sMap) >>= getList)
+        -- do this instead of a cycle, so it can get updated with the a list
+        looped
+          | null xs' = xs
+          | otherwise = xs'
 
 pStateListF :: String -> String -> [Double] -> ControlPattern
 pStateListF name sName = pStateList name sName . map VF
@@ -95,7 +101,6 @@ pStateListS :: String -> String -> [String] -> ControlPattern
 pStateListS name sName = pStateList name sName . map VS
 
 -- | Grouped params
-
 sound :: Pattern String -> ControlPattern
 sound = grp [mS "s", mF "n"]
 
@@ -123,7 +128,7 @@ midinote = note . (subtract 60 <$>)
 drum :: Pattern String -> ControlPattern
 drum = n . (subtract 60 . drumN <$>)
 
-drumN :: Num a => String -> a
+drumN :: (Num a) => String -> a
 drumN "hq" = 27
 drumN "sl" = 28
 drumN "ps" = 29
@@ -188,4 +193,3 @@ drumN "os" = 87
 drumN _ = 0
 
 -- Generated params
-

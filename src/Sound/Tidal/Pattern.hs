@@ -58,7 +58,7 @@ data State = State
 data Pattern a = Pattern {query :: State -> [Event a], tactus :: Maybe Rational, pureValue :: Maybe a}
   deriving (Generic, Functor)
 
-instance NFData a => NFData (Pattern a)
+instance (NFData a) => NFData (Pattern a)
 
 pattern :: (State -> [Event a]) -> Pattern a
 pattern f = Pattern f Nothing Nothing
@@ -247,8 +247,7 @@ innerJoin pp = pp {query = q, pureValue = Nothing}
   where
     q st =
       concatMap
-        ( \(Event oc _ op v) -> mapMaybe (munge oc) $ query v st {arc = op}
-        )
+        (\(Event oc _ op v) -> mapMaybe (munge oc) $ query v st {arc = op})
         (query pp st)
       where
         munge oc (Event ic iw ip v) =
@@ -335,13 +334,13 @@ noOv meth = error $ meth ++ ": not supported for patterns"
 instance Eq (Pattern a) where
   (==) = noOv "(==)"
 
-instance Ord a => Ord (Pattern a) where
+instance (Ord a) => Ord (Pattern a) where
   min = liftA2 min
   max = liftA2 max
   compare = noOv "compare"
   (<=) = noOv "(<=)"
 
-instance Num a => Num (Pattern a) where
+instance (Num a) => Num (Pattern a) where
   negate = fmap negate
   (+) = liftA2 (+)
   (*) = liftA2 (*)
@@ -349,7 +348,7 @@ instance Num a => Num (Pattern a) where
   abs = fmap abs
   signum = fmap signum
 
-instance Enum a => Enum (Pattern a) where
+instance (Enum a) => Enum (Pattern a) where
   succ = fmap succ
   pred = fmap pred
   toEnum = pure . toEnum
@@ -657,14 +656,14 @@ _slow r p = _fast (1 / r) p
 _fastGap :: Time -> Pattern a -> Pattern a
 _fastGap 0 _ = empty
 _fastGap r p =
-  splitQueries $
-    withResultArc
+  splitQueries
+    $ withResultArc
       ( \(Arc s e) ->
           Arc
             (sam s + ((s - sam s) / r'))
             (sam s + ((e - sam s) / r'))
       )
-      $ p {query = f}
+    $ p {query = f}
   where
     r' = max r 1
     -- zero width queries of the next sam should return zero in this case..
@@ -909,7 +908,7 @@ onsetIn :: Arc -> Event a -> Bool
 onsetIn a e = isIn a (wholeStart e)
 
 -- | Returns a list of events, with any adjacent parts of the same whole combined
-defragParts :: Eq a => [Event a] -> [Event a]
+defragParts :: (Eq a) => [Event a] -> [Event a]
 defragParts [] = []
 defragParts [e] = [e]
 defragParts (e : es)
@@ -922,7 +921,7 @@ defragParts (e : es)
     u = hull (part e) (part e')
 
 -- | Returns 'True' if the two given events are adjacent parts of the same whole
-isAdjacent :: Eq a => Event a -> Event a -> Bool
+isAdjacent :: (Eq a) => Event a -> Event a -> Bool
 isAdjacent e e' =
   (whole e == whole e')
     && (value e == value e')
@@ -1170,7 +1169,7 @@ valueToPattern v = pure v
 sameDur :: Event a -> Event a -> Bool
 sameDur e1 e2 = (whole e1 == whole e2) && (part e1 == part e2)
 
-groupEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [[Event a]]
+groupEventsBy :: (Eq a) => (Event a -> Event a -> Bool) -> [Event a] -> [[Event a]]
 groupEventsBy _ [] = []
 groupEventsBy f (e : es) = eqs : (groupEventsBy f (es \\ eqs))
   where
@@ -1188,7 +1187,7 @@ collectEvent l@(e : _) = Just $ e {context = con, value = vs}
       where
         Context iss = unionC cs
 
-collectEventsBy :: Eq a => (Event a -> Event a -> Bool) -> [Event a] -> [Event [a]]
+collectEventsBy :: (Eq a) => (Event a -> Event a -> Bool) -> [Event a] -> [Event [a]]
 collectEventsBy f es = remNo $ map collectEvent (groupEventsBy f es)
   where
     remNo [] = []
@@ -1196,11 +1195,11 @@ collectEventsBy f es = remNo $ map collectEvent (groupEventsBy f es)
     remNo ((Just c) : cs) = c : (remNo cs)
 
 -- | collects all events satisfying the same constraint into a list
-collectBy :: Eq a => (Event a -> Event a -> Bool) -> Pattern a -> Pattern [a]
+collectBy :: (Eq a) => (Event a -> Event a -> Bool) -> Pattern a -> Pattern [a]
 collectBy f = withEvents (collectEventsBy f)
 
 -- | collects all events occuring at the exact same time into a list
-collect :: Eq a => Pattern a -> Pattern [a]
+collect :: (Eq a) => Pattern a -> Pattern [a]
 collect = collectBy sameDur
 
 uncollectEvent :: Event [a] -> [Event a]

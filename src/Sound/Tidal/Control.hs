@@ -53,7 +53,8 @@ _spin copies p =
     map
       ( \i ->
           let offset = toInteger i % toInteger copies
-           in offset `rotL` p
+           in offset
+                `rotL` p
                 # P.pan (pure $ fromRational offset)
       )
       [0 .. (copies - 1)]
@@ -461,12 +462,12 @@ stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a ->
 stut' = stutWith
 
 -- | Turns a pattern of seconds into a pattern of (rational) cycle durations
-sec :: Fractional a => Pattern a -> Pattern a
+sec :: (Fractional a) => Pattern a -> Pattern a
 sec p = (realToFrac <$> cF 1 "_cps") *| p
 
 -- | Turns a pattern of milliseconds into a pattern of (rational)
 -- cycle durations, according to the current cps.
-msec :: Fractional a => Pattern a -> Pattern a
+msec :: (Fractional a) => Pattern a -> Pattern a
 msec p = (realToFrac . (/ 1000) <$> cF 1 "_cps") *| p
 
 -- | Align the start of a pattern with the time a pattern is evaluated,

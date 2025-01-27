@@ -172,7 +172,7 @@ midinote = note . (subtract 60 <$>)
 drum :: Pattern String -> ControlPattern
 drum = n . (subtract 60 . drumN <$>)
 
-drumN :: Num a => String -> a
+drumN :: (Num a) => String -> a
 drumN "hq" = 27
 drumN "sl" = 28
 drumN "ps" = 29
@@ -286,7 +286,6 @@ ampbus busid pat = (pF "amp" pat) # (pI "^amp" busid)
 amprecv :: Pattern Int -> ControlPattern
 amprecv busid = pI "^amp" busid
 
--- |
 array :: Pattern [Word8] -> ControlPattern
 array = pX "array"
 
@@ -396,7 +395,6 @@ binshiftbus busid pat = (pF "binshift" pat) # (pI "^binshift" busid)
 binshiftrecv :: Pattern Int -> ControlPattern
 binshiftrecv busid = pI "^binshift" busid
 
--- |
 button0 :: Pattern Double -> ControlPattern
 button0 = pF "button0"
 
@@ -415,7 +413,6 @@ button0bus busid pat = (pF "button0" pat) # (pI "^button0" busid)
 button0recv :: Pattern Int -> ControlPattern
 button0recv busid = pI "^button0" busid
 
--- |
 button1 :: Pattern Double -> ControlPattern
 button1 = pF "button1"
 
@@ -434,7 +431,6 @@ button1bus busid pat = (pF "button1" pat) # (pI "^button1" busid)
 button1recv :: Pattern Int -> ControlPattern
 button1recv busid = pI "^button1" busid
 
--- |
 button10 :: Pattern Double -> ControlPattern
 button10 = pF "button10"
 
@@ -453,7 +449,6 @@ button10bus busid pat = (pF "button10" pat) # (pI "^button10" busid)
 button10recv :: Pattern Int -> ControlPattern
 button10recv busid = pI "^button10" busid
 
--- |
 button11 :: Pattern Double -> ControlPattern
 button11 = pF "button11"
 
@@ -472,7 +467,6 @@ button11bus busid pat = (pF "button11" pat) # (pI "^button11" busid)
 button11recv :: Pattern Int -> ControlPattern
 button11recv busid = pI "^button11" busid
 
--- |
 button12 :: Pattern Double -> ControlPattern
 button12 = pF "button12"
 
@@ -491,7 +485,6 @@ button12bus busid pat = (pF "button12" pat) # (pI "^button12" busid)
 button12recv :: Pattern Int -> ControlPattern
 button12recv busid = pI "^button12" busid
 
--- |
 button13 :: Pattern Double -> ControlPattern
 button13 = pF "button13"
 
@@ -510,7 +503,6 @@ button13bus busid pat = (pF "button13" pat) # (pI "^button13" busid)
 button13recv :: Pattern Int -> ControlPattern
 button13recv busid = pI "^button13" busid
 
--- |
 button14 :: Pattern Double -> ControlPattern
 button14 = pF "button14"
 
@@ -529,7 +521,6 @@ button14bus busid pat = (pF "button14" pat) # (pI "^button14" busid)
 button14recv :: Pattern Int -> ControlPattern
 button14recv busid = pI "^button14" busid
 
--- |
 button15 :: Pattern Double -> ControlPattern
 button15 = pF "button15"
 
@@ -548,7 +539,6 @@ button15bus busid pat = (pF "button15" pat) # (pI "^button15" busid)
 button15recv :: Pattern Int -> ControlPattern
 button15recv busid = pI "^button15" busid
 
--- |
 button2 :: Pattern Double -> ControlPattern
 button2 = pF "button2"
 
@@ -567,7 +557,6 @@ button2bus busid pat = (pF "button2" pat) # (pI "^button2" busid)
 button2recv :: Pattern Int -> ControlPattern
 button2recv busid = pI "^button2" busid
 
--- |
 button3 :: Pattern Double -> ControlPattern
 button3 = pF "button3"
 
@@ -586,7 +575,6 @@ button3bus busid pat = (pF "button3" pat) # (pI "^button3" busid)
 button3recv :: Pattern Int -> ControlPattern
 button3recv busid = pI "^button3" busid
 
--- |
 button4 :: Pattern Double -> ControlPattern
 button4 = pF "button4"
 
@@ -605,7 +593,6 @@ button4bus busid pat = (pF "button4" pat) # (pI "^button4" busid)
 button4recv :: Pattern Int -> ControlPattern
 button4recv busid = pI "^button4" busid
 
--- |
 button5 :: Pattern Double -> ControlPattern
 button5 = pF "button5"
 
@@ -624,7 +611,6 @@ button5bus busid pat = (pF "button5" pat) # (pI "^button5" busid)
 button5recv :: Pattern Int -> ControlPattern
 button5recv busid = pI "^button5" busid
 
--- |
 button6 :: Pattern Double -> ControlPattern
 button6 = pF "button6"
 
@@ -643,7 +629,6 @@ button6bus busid pat = (pF "button6" pat) # (pI "^button6" busid)
 button6recv :: Pattern Int -> ControlPattern
 button6recv busid = pI "^button6" busid
 
--- |
 button7 :: Pattern Double -> ControlPattern
 button7 = pF "button7"
 
@@ -662,7 +647,6 @@ button7bus busid pat = (pF "button7" pat) # (pI "^button7" busid)
 button7recv :: Pattern Int -> ControlPattern
 button7recv busid = pI "^button7" busid
 
--- |
 button8 :: Pattern Double -> ControlPattern
 button8 = pF "button8"
 
@@ -681,7 +665,6 @@ button8bus busid pat = (pF "button8" pat) # (pI "^button8" busid)
 button8recv :: Pattern Int -> ControlPattern
 button8recv busid = pI "^button8" busid
 
--- |
 button9 :: Pattern Double -> ControlPattern
 button9 = pF "button9"
 
@@ -700,7 +683,6 @@ button9bus busid pat = (pF "button9" pat) # (pI "^button9" busid)
 button9recv :: Pattern Int -> ControlPattern
 button9recv busid = pI "^button9" busid
 
--- |
 ccn :: Pattern Double -> ControlPattern
 ccn = pF "ccn"
 
@@ -716,7 +698,6 @@ ccnCountTo name ipat = innerJoin $ (\i -> pStateF "ccn" name (maybe 0 ((`mod'` i
 ccnbus :: Pattern Int -> Pattern Double -> ControlPattern
 ccnbus _ _ = error $ "Control parameter 'ccn' can't be sent to a bus."
 
--- |
 ccv :: Pattern Double -> ControlPattern
 ccv = pF "ccv"
 
@@ -748,7 +729,6 @@ channelCountTo name ipat = innerJoin $ (\i -> pStateF "channel" name (maybe 0 ((
 channelbus :: Pattern Int -> Pattern Int -> ControlPattern
 channelbus _ _ = error $ "Control parameter 'channel' can't be sent to a bus."
 
--- |
 clhatdecay :: Pattern Double -> ControlPattern
 clhatdecay = pF "clhatdecay"
 
@@ -805,7 +785,6 @@ combbus busid pat = (pF "comb" pat) # (pI "^comb" busid)
 combrecv :: Pattern Int -> ControlPattern
 combrecv busid = pI "^comb" busid
 
--- |
 control :: Pattern Double -> ControlPattern
 control = pF "control"
 
@@ -864,7 +843,6 @@ crushbus busid pat = (pF "crush" pat) # (pI "^crush" busid)
 crushrecv :: Pattern Int -> ControlPattern
 crushrecv busid = pI "^crush" busid
 
--- |
 ctlNum :: Pattern Double -> ControlPattern
 ctlNum = pF "ctlNum"
 
@@ -880,7 +858,6 @@ ctlNumCountTo name ipat = innerJoin $ (\i -> pStateF "ctlNum" name (maybe 0 ((`m
 ctlNumbus :: Pattern Int -> Pattern Double -> ControlPattern
 ctlNumbus _ _ = error $ "Control parameter 'ctlNum' can't be sent to a bus."
 
--- |
 ctranspose :: Pattern Double -> ControlPattern
 ctranspose = pF "ctranspose"
 
@@ -937,7 +914,6 @@ cutoffbus busid pat = (pF "cutoff" pat) # (pI "^cutoff" busid)
 cutoffrecv :: Pattern Int -> ControlPattern
 cutoffrecv busid = pI "^cutoff" busid
 
--- |
 cutoffegint :: Pattern Double -> ControlPattern
 cutoffegint = pF "cutoffegint"
 
@@ -956,7 +932,6 @@ cutoffegintbus busid pat = (pF "cutoffegint" pat) # (pI "^cutoffegint" busid)
 cutoffegintrecv :: Pattern Int -> ControlPattern
 cutoffegintrecv busid = pI "^cutoffegint" busid
 
--- |
 decay :: Pattern Double -> ControlPattern
 decay = pF "decay"
 
@@ -975,7 +950,6 @@ decaybus busid pat = (pF "decay" pat) # (pI "^decay" busid)
 decayrecv :: Pattern Int -> ControlPattern
 decayrecv busid = pI "^decay" busid
 
--- |
 degree :: Pattern Double -> ControlPattern
 degree = pF "degree"
 
@@ -1051,7 +1025,6 @@ delaytimebus busid pat = (pF "delaytime" pat) # (pI "^delaytime" busid)
 delaytimerecv :: Pattern Int -> ControlPattern
 delaytimerecv busid = pI "^delaytime" busid
 
--- |
 detune :: Pattern Double -> ControlPattern
 detune = pF "detune"
 
@@ -1127,7 +1100,6 @@ drybus busid pat = (pF "dry" pat) # (pI "^dry" busid)
 dryrecv :: Pattern Int -> ControlPattern
 dryrecv busid = pI "^dry" busid
 
--- |
 dur :: Pattern Double -> ControlPattern
 dur = pF "dur"
 
@@ -1187,7 +1159,6 @@ enhancebus busid pat = (pF "enhance" pat) # (pI "^enhance" busid)
 enhancerecv :: Pattern Int -> ControlPattern
 enhancerecv busid = pI "^enhance" busid
 
--- |
 expression :: Pattern Double -> ControlPattern
 expression = pF "expression"
 
@@ -1238,7 +1209,6 @@ fadeTimeCountTo name ipat = innerJoin $ (\i -> pStateF "fadeTime" name (maybe 0 
 fadeTimebus :: Pattern Int -> Pattern Double -> ControlPattern
 fadeTimebus _ _ = error $ "Control parameter 'fadeTime' can't be sent to a bus."
 
--- |
 frameRate :: Pattern Double -> ControlPattern
 frameRate = pF "frameRate"
 
@@ -1254,7 +1224,6 @@ frameRateCountTo name ipat = innerJoin $ (\i -> pStateF "frameRate" name (maybe 
 frameRatebus :: Pattern Int -> Pattern Double -> ControlPattern
 frameRatebus _ _ = error $ "Control parameter 'frameRate' can't be sent to a bus."
 
--- |
 frames :: Pattern Double -> ControlPattern
 frames = pF "frames"
 
@@ -1289,7 +1258,6 @@ freezebus busid pat = (pF "freeze" pat) # (pI "^freeze" busid)
 freezerecv :: Pattern Int -> ControlPattern
 freezerecv busid = pI "^freeze" busid
 
--- |
 freq :: Pattern Double -> ControlPattern
 freq = pF "freq"
 
@@ -1416,7 +1384,6 @@ gainCountTo name ipat = innerJoin $ (\i -> pStateF "gain" name (maybe 0 ((`mod'`
 gainbus :: Pattern Int -> Pattern Double -> ControlPattern
 gainbus _ _ = error $ "Control parameter 'gain' can't be sent to a bus."
 
--- |
 gate :: Pattern Double -> ControlPattern
 gate = pF "gate"
 
@@ -1435,7 +1402,6 @@ gatebus busid pat = (pF "gate" pat) # (pI "^gate" busid)
 gaterecv :: Pattern Int -> ControlPattern
 gaterecv busid = pI "^gate" busid
 
--- |
 harmonic :: Pattern Double -> ControlPattern
 harmonic = pF "harmonic"
 
@@ -1454,7 +1420,6 @@ harmonicbus busid pat = (pF "harmonic" pat) # (pI "^harmonic" busid)
 harmonicrecv :: Pattern Int -> ControlPattern
 harmonicrecv busid = pI "^harmonic" busid
 
--- |
 hatgrain :: Pattern Double -> ControlPattern
 hatgrain = pF "hatgrain"
 
@@ -1530,7 +1495,6 @@ holdbus busid pat = (pF "hold" pat) # (pI "^hold" busid)
 holdrecv :: Pattern Int -> ControlPattern
 holdrecv busid = pI "^hold" busid
 
--- |
 hours :: Pattern Double -> ControlPattern
 hours = pF "hours"
 
@@ -1565,7 +1529,6 @@ hresonancebus busid pat = (pF "hresonance" pat) # (pI "^hresonance" busid)
 hresonancerecv :: Pattern Int -> ControlPattern
 hresonancerecv busid = pI "^hresonance" busid
 
--- |
 imag :: Pattern Double -> ControlPattern
 imag = pF "imag"
 
@@ -1584,7 +1547,6 @@ imagbus busid pat = (pF "imag" pat) # (pI "^imag" busid)
 imagrecv :: Pattern Int -> ControlPattern
 imagrecv busid = pI "^imag" busid
 
--- |
 kcutoff :: Pattern Double -> ControlPattern
 kcutoff = pF "kcutoff"
 
@@ -1622,7 +1584,6 @@ krushbus busid pat = (pF "krush" pat) # (pI "^krush" busid)
 krushrecv :: Pattern Int -> ControlPattern
 krushrecv busid = pI "^krush" busid
 
--- |
 lagogo :: Pattern Double -> ControlPattern
 lagogo = pF "lagogo"
 
@@ -1660,7 +1621,6 @@ lbrickbus busid pat = (pF "lbrick" pat) # (pI "^lbrick" busid)
 lbrickrecv :: Pattern Int -> ControlPattern
 lbrickrecv busid = pI "^lbrick" busid
 
--- |
 lclap :: Pattern Double -> ControlPattern
 lclap = pF "lclap"
 
@@ -1679,7 +1639,6 @@ lclapbus busid pat = (pF "lclap" pat) # (pI "^lclap" busid)
 lclaprecv :: Pattern Int -> ControlPattern
 lclaprecv busid = pI "^lclap" busid
 
--- |
 lclaves :: Pattern Double -> ControlPattern
 lclaves = pF "lclaves"
 
@@ -1698,7 +1657,6 @@ lclavesbus busid pat = (pF "lclaves" pat) # (pI "^lclaves" busid)
 lclavesrecv :: Pattern Int -> ControlPattern
 lclavesrecv busid = pI "^lclaves" busid
 
--- |
 lclhat :: Pattern Double -> ControlPattern
 lclhat = pF "lclhat"
 
@@ -1717,7 +1675,6 @@ lclhatbus busid pat = (pF "lclhat" pat) # (pI "^lclhat" busid)
 lclhatrecv :: Pattern Int -> ControlPattern
 lclhatrecv busid = pI "^lclhat" busid
 
--- |
 lcrash :: Pattern Double -> ControlPattern
 lcrash = pF "lcrash"
 
@@ -1752,7 +1709,6 @@ legatoCountTo name ipat = innerJoin $ (\i -> pStateF "legato" name (maybe 0 ((`m
 legatobus :: Pattern Int -> Pattern Double -> ControlPattern
 legatobus _ _ = error $ "Control parameter 'legato' can't be sent to a bus."
 
--- |
 leslie :: Pattern Double -> ControlPattern
 leslie = pF "leslie"
 
@@ -1771,7 +1727,6 @@ lesliebus busid pat = (pF "leslie" pat) # (pI "^leslie" busid)
 leslierecv :: Pattern Int -> ControlPattern
 leslierecv busid = pI "^leslie" busid
 
--- |
 lfo :: Pattern Double -> ControlPattern
 lfo = pF "lfo"
 
@@ -1790,7 +1745,6 @@ lfobus busid pat = (pF "lfo" pat) # (pI "^lfo" busid)
 lforecv :: Pattern Int -> ControlPattern
 lforecv busid = pI "^lfo" busid
 
--- |
 lfocutoffint :: Pattern Double -> ControlPattern
 lfocutoffint = pF "lfocutoffint"
 
@@ -1809,7 +1763,6 @@ lfocutoffintbus busid pat = (pF "lfocutoffint" pat) # (pI "^lfocutoffint" busid)
 lfocutoffintrecv :: Pattern Int -> ControlPattern
 lfocutoffintrecv busid = pI "^lfocutoffint" busid
 
--- |
 lfodelay :: Pattern Double -> ControlPattern
 lfodelay = pF "lfodelay"
 
@@ -1828,7 +1781,6 @@ lfodelaybus busid pat = (pF "lfodelay" pat) # (pI "^lfodelay" busid)
 lfodelayrecv :: Pattern Int -> ControlPattern
 lfodelayrecv busid = pI "^lfodelay" busid
 
--- |
 lfoint :: Pattern Double -> ControlPattern
 lfoint = pF "lfoint"
 
@@ -1847,7 +1799,6 @@ lfointbus busid pat = (pF "lfoint" pat) # (pI "^lfoint" busid)
 lfointrecv :: Pattern Int -> ControlPattern
 lfointrecv busid = pI "^lfoint" busid
 
--- |
 lfopitchint :: Pattern Double -> ControlPattern
 lfopitchint = pF "lfopitchint"
 
@@ -1866,7 +1817,6 @@ lfopitchintbus busid pat = (pF "lfopitchint" pat) # (pI "^lfopitchint" busid)
 lfopitchintrecv :: Pattern Int -> ControlPattern
 lfopitchintrecv busid = pI "^lfopitchint" busid
 
--- |
 lfoshape :: Pattern Double -> ControlPattern
 lfoshape = pF "lfoshape"
 
@@ -1885,7 +1835,6 @@ lfoshapebus busid pat = (pF "lfoshape" pat) # (pI "^lfoshape" busid)
 lfoshaperecv :: Pattern Int -> ControlPattern
 lfoshaperecv busid = pI "^lfoshape" busid
 
--- |
 lfosync :: Pattern Double -> ControlPattern
 lfosync = pF "lfosync"
 
@@ -1904,7 +1853,6 @@ lfosyncbus busid pat = (pF "lfosync" pat) # (pI "^lfosync" busid)
 lfosyncrecv :: Pattern Int -> ControlPattern
 lfosyncrecv busid = pI "^lfosync" busid
 
--- |
 lhitom :: Pattern Double -> ControlPattern
 lhitom = pF "lhitom"
 
@@ -1923,7 +1871,6 @@ lhitombus busid pat = (pF "lhitom" pat) # (pI "^lhitom" busid)
 lhitomrecv :: Pattern Int -> ControlPattern
 lhitomrecv busid = pI "^lhitom" busid
 
--- |
 lkick :: Pattern Double -> ControlPattern
 lkick = pF "lkick"
 
@@ -1942,7 +1889,6 @@ lkickbus busid pat = (pF "lkick" pat) # (pI "^lkick" busid)
 lkickrecv :: Pattern Int -> ControlPattern
 lkickrecv busid = pI "^lkick" busid
 
--- |
 llotom :: Pattern Double -> ControlPattern
 llotom = pF "llotom"
 
@@ -1996,7 +1942,6 @@ loopCountTo name ipat = innerJoin $ (\i -> pStateF "loop" name (maybe 0 ((`mod'`
 loopbus :: Pattern Int -> Pattern Double -> ControlPattern
 loopbus _ _ = error $ "Control parameter 'loop' can't be sent to a bus."
 
--- |
 lophat :: Pattern Double -> ControlPattern
 lophat = pF "lophat"
 
@@ -2015,7 +1960,6 @@ lophatbus busid pat = (pF "lophat" pat) # (pI "^lophat" busid)
 lophatrecv :: Pattern Int -> ControlPattern
 lophatrecv busid = pI "^lophat" busid
 
--- |
 lrate :: Pattern Double -> ControlPattern
 lrate = pF "lrate"
 
@@ -2034,7 +1978,6 @@ lratebus busid pat = (pF "lrate" pat) # (pI "^lrate" busid)
 lraterecv :: Pattern Int -> ControlPattern
 lraterecv busid = pI "^lrate" busid
 
--- |
 lsize :: Pattern Double -> ControlPattern
 lsize = pF "lsize"
 
@@ -2053,7 +1996,6 @@ lsizebus busid pat = (pF "lsize" pat) # (pI "^lsize" busid)
 lsizerecv :: Pattern Int -> ControlPattern
 lsizerecv busid = pI "^lsize" busid
 
--- |
 lsnare :: Pattern Double -> ControlPattern
 lsnare = pF "lsnare"
 
@@ -2091,7 +2033,6 @@ metatunebus busid pat = (pF "metatune" pat) # (pI "^metatune" busid)
 metatunerecv :: Pattern Int -> ControlPattern
 metatunerecv busid = pI "^metatune" busid
 
--- |
 midibend :: Pattern Double -> ControlPattern
 midibend = pF "midibend"
 
@@ -2107,7 +2048,6 @@ midibendCountTo name ipat = innerJoin $ (\i -> pStateF "midibend" name (maybe 0 
 midibendbus :: Pattern Int -> Pattern Double -> ControlPattern
 midibendbus _ _ = error $ "Control parameter 'midibend' can't be sent to a bus."
 
--- |
 midichan :: Pattern Double -> ControlPattern
 midichan = pF "midichan"
 
@@ -2123,7 +2063,6 @@ midichanCountTo name ipat = innerJoin $ (\i -> pStateF "midichan" name (maybe 0 
 midichanbus :: Pattern Int -> Pattern Double -> ControlPattern
 midichanbus _ _ = error $ "Control parameter 'midichan' can't be sent to a bus."
 
--- |
 midicmd :: Pattern String -> ControlPattern
 midicmd = pS "midicmd"
 
@@ -2133,7 +2072,6 @@ midicmdTake name xs = pStateListF "midicmd" name xs
 midicmdbus :: Pattern Int -> Pattern String -> ControlPattern
 midicmdbus _ _ = error $ "Control parameter 'midicmd' can't be sent to a bus."
 
--- |
 miditouch :: Pattern Double -> ControlPattern
 miditouch = pF "miditouch"
 
@@ -2149,7 +2087,6 @@ miditouchCountTo name ipat = innerJoin $ (\i -> pStateF "miditouch" name (maybe 
 miditouchbus :: Pattern Int -> Pattern Double -> ControlPattern
 miditouchbus _ _ = error $ "Control parameter 'miditouch' can't be sent to a bus."
 
--- |
 minutes :: Pattern Double -> ControlPattern
 minutes = pF "minutes"
 
@@ -2165,7 +2102,6 @@ minutesCountTo name ipat = innerJoin $ (\i -> pStateF "minutes" name (maybe 0 ((
 minutesbus :: Pattern Int -> Pattern Double -> ControlPattern
 minutesbus _ _ = error $ "Control parameter 'minutes' can't be sent to a bus."
 
--- |
 modwheel :: Pattern Double -> ControlPattern
 modwheel = pF "modwheel"
 
@@ -2184,7 +2120,6 @@ modwheelbus busid pat = (pF "modwheel" pat) # (pI "^modwheel" busid)
 modwheelrecv :: Pattern Int -> ControlPattern
 modwheelrecv busid = pI "^modwheel" busid
 
--- |
 mtranspose :: Pattern Double -> ControlPattern
 mtranspose = pF "mtranspose"
 
@@ -2254,7 +2189,6 @@ nudgebus busid pat = (pF "nudge" pat) # (pI "^nudge" busid)
 nudgerecv :: Pattern Int -> ControlPattern
 nudgerecv busid = pI "^nudge" busid
 
--- |
 octave :: Pattern Int -> ControlPattern
 octave = pI "octave"
 
@@ -2270,7 +2204,6 @@ octaveCountTo name ipat = innerJoin $ (\i -> pStateF "octave" name (maybe 0 ((`m
 octavebus :: Pattern Int -> Pattern Int -> ControlPattern
 octavebus _ _ = error $ "Control parameter 'octave' can't be sent to a bus."
 
--- |
 octaveR :: Pattern Double -> ControlPattern
 octaveR = pF "octaveR"
 
@@ -2346,7 +2279,6 @@ octersubsubbus busid pat = (pF "octersubsub" pat) # (pI "^octersubsub" busid)
 octersubsubrecv :: Pattern Int -> ControlPattern
 octersubsubrecv busid = pI "^octersubsub" busid
 
--- |
 offset :: Pattern Double -> ControlPattern
 offset = pF "offset"
 
@@ -2362,7 +2294,6 @@ offsetCountTo name ipat = innerJoin $ (\i -> pStateF "offset" name (maybe 0 ((`m
 offsetbus :: Pattern Int -> Pattern Double -> ControlPattern
 offsetbus _ _ = error $ "Control parameter 'offset' can't be sent to a bus."
 
--- |
 ophatdecay :: Pattern Double -> ControlPattern
 ophatdecay = pF "ophatdecay"
 
@@ -2400,7 +2331,6 @@ orbitbus busid pat = (pI "orbit" pat) # (pI "^orbit" busid)
 orbitrecv :: Pattern Int -> ControlPattern
 orbitrecv busid = pI "^orbit" busid
 
--- |
 overgain :: Pattern Double -> ControlPattern
 overgain = pF "overgain"
 
@@ -2416,7 +2346,6 @@ overgainCountTo name ipat = innerJoin $ (\i -> pStateF "overgain" name (maybe 0 
 overgainbus :: Pattern Int -> Pattern Double -> ControlPattern
 overgainbus _ _ = error $ "Control parameter 'overgain' can't be sent to a bus."
 
--- |
 overshape :: Pattern Double -> ControlPattern
 overshape = pF "overshape"
 
@@ -2530,7 +2459,6 @@ panwidthbus busid pat = (pF "panwidth" pat) # (pI "^panwidth" busid)
 panwidthrecv :: Pattern Int -> ControlPattern
 panwidthrecv busid = pI "^panwidth" busid
 
--- |
 partials :: Pattern Double -> ControlPattern
 partials = pF "partials"
 
@@ -2587,7 +2515,6 @@ phaserratebus busid pat = (pF "phaserrate" pat) # (pI "^phaserrate" busid)
 phaserraterecv :: Pattern Int -> ControlPattern
 phaserraterecv busid = pI "^phaserrate" busid
 
--- |
 pitch1 :: Pattern Double -> ControlPattern
 pitch1 = pF "pitch1"
 
@@ -2606,7 +2533,6 @@ pitch1bus busid pat = (pF "pitch1" pat) # (pI "^pitch1" busid)
 pitch1recv :: Pattern Int -> ControlPattern
 pitch1recv busid = pI "^pitch1" busid
 
--- |
 pitch2 :: Pattern Double -> ControlPattern
 pitch2 = pF "pitch2"
 
@@ -2625,7 +2551,6 @@ pitch2bus busid pat = (pF "pitch2" pat) # (pI "^pitch2" busid)
 pitch2recv :: Pattern Int -> ControlPattern
 pitch2recv busid = pI "^pitch2" busid
 
--- |
 pitch3 :: Pattern Double -> ControlPattern
 pitch3 = pF "pitch3"
 
@@ -2644,7 +2569,6 @@ pitch3bus busid pat = (pF "pitch3" pat) # (pI "^pitch3" busid)
 pitch3recv :: Pattern Int -> ControlPattern
 pitch3recv busid = pI "^pitch3" busid
 
--- |
 polyTouch :: Pattern Double -> ControlPattern
 polyTouch = pF "polyTouch"
 
@@ -2660,7 +2584,6 @@ polyTouchCountTo name ipat = innerJoin $ (\i -> pStateF "polyTouch" name (maybe 
 polyTouchbus :: Pattern Int -> Pattern Double -> ControlPattern
 polyTouchbus _ _ = error $ "Control parameter 'polyTouch' can't be sent to a bus."
 
--- |
 portamento :: Pattern Double -> ControlPattern
 portamento = pF "portamento"
 
@@ -2679,7 +2602,6 @@ portamentobus busid pat = (pF "portamento" pat) # (pI "^portamento" busid)
 portamentorecv :: Pattern Int -> ControlPattern
 portamentorecv busid = pI "^portamento" busid
 
--- |
 progNum :: Pattern Double -> ControlPattern
 progNum = pF "progNum"
 
@@ -2847,7 +2769,6 @@ roombus busid pat = (pF "room" pat) # (pI "^room" busid)
 roomrecv :: Pattern Int -> ControlPattern
 roomrecv busid = pI "^room" busid
 
--- |
 sagogo :: Pattern Double -> ControlPattern
 sagogo = pF "sagogo"
 
@@ -2866,7 +2787,6 @@ sagogobus busid pat = (pF "sagogo" pat) # (pI "^sagogo" busid)
 sagogorecv :: Pattern Int -> ControlPattern
 sagogorecv busid = pI "^sagogo" busid
 
--- |
 sclap :: Pattern Double -> ControlPattern
 sclap = pF "sclap"
 
@@ -2885,7 +2805,6 @@ sclapbus busid pat = (pF "sclap" pat) # (pI "^sclap" busid)
 sclaprecv :: Pattern Int -> ControlPattern
 sclaprecv busid = pI "^sclap" busid
 
--- |
 sclaves :: Pattern Double -> ControlPattern
 sclaves = pF "sclaves"
 
@@ -2923,7 +2842,6 @@ scrambus busid pat = (pF "scram" pat) # (pI "^scram" busid)
 scramrecv :: Pattern Int -> ControlPattern
 scramrecv busid = pI "^scram" busid
 
--- |
 scrash :: Pattern Double -> ControlPattern
 scrash = pF "scrash"
 
@@ -2942,7 +2860,6 @@ scrashbus busid pat = (pF "scrash" pat) # (pI "^scrash" busid)
 scrashrecv :: Pattern Int -> ControlPattern
 scrashrecv busid = pI "^scrash" busid
 
--- |
 seconds :: Pattern Double -> ControlPattern
 seconds = pF "seconds"
 
@@ -2958,7 +2875,6 @@ secondsCountTo name ipat = innerJoin $ (\i -> pStateF "seconds" name (maybe 0 ((
 secondsbus :: Pattern Int -> Pattern Double -> ControlPattern
 secondsbus _ _ = error $ "Control parameter 'seconds' can't be sent to a bus."
 
--- |
 semitone :: Pattern Double -> ControlPattern
 semitone = pF "semitone"
 
@@ -3015,7 +2931,6 @@ sizebus busid pat = (pF "size" pat) # (pI "^size" busid)
 sizerecv :: Pattern Int -> ControlPattern
 sizerecv busid = pI "^size" busid
 
--- |
 slide :: Pattern Double -> ControlPattern
 slide = pF "slide"
 
@@ -3034,7 +2949,6 @@ slidebus busid pat = (pF "slide" pat) # (pI "^slide" busid)
 sliderecv :: Pattern Int -> ControlPattern
 sliderecv busid = pI "^slide" busid
 
--- |
 slider0 :: Pattern Double -> ControlPattern
 slider0 = pF "slider0"
 
@@ -3053,7 +2967,6 @@ slider0bus busid pat = (pF "slider0" pat) # (pI "^slider0" busid)
 slider0recv :: Pattern Int -> ControlPattern
 slider0recv busid = pI "^slider0" busid
 
--- |
 slider1 :: Pattern Double -> ControlPattern
 slider1 = pF "slider1"
 
@@ -3072,7 +2985,6 @@ slider1bus busid pat = (pF "slider1" pat) # (pI "^slider1" busid)
 slider1recv :: Pattern Int -> ControlPattern
 slider1recv busid = pI "^slider1" busid
 
--- |
 slider10 :: Pattern Double -> ControlPattern
 slider10 = pF "slider10"
 
@@ -3091,7 +3003,6 @@ slider10bus busid pat = (pF "slider10" pat) # (pI "^slider10" busid)
 slider10recv :: Pattern Int -> ControlPattern
 slider10recv busid = pI "^slider10" busid
 
--- |
 slider11 :: Pattern Double -> ControlPattern
 slider11 = pF "slider11"
 
@@ -3110,7 +3021,6 @@ slider11bus busid pat = (pF "slider11" pat) # (pI "^slider11" busid)
 slider11recv :: Pattern Int -> ControlPattern
 slider11recv busid = pI "^slider11" busid
 
--- |
 slider12 :: Pattern Double -> ControlPattern
 slider12 = pF "slider12"
 
@@ -3129,7 +3039,6 @@ slider12bus busid pat = (pF "slider12" pat) # (pI "^slider12" busid)
 slider12recv :: Pattern Int -> ControlPattern
 slider12recv busid = pI "^slider12" busid
 
--- |
 slider13 :: Pattern Double -> ControlPattern
 slider13 = pF "slider13"
 
@@ -3148,7 +3057,6 @@ slider13bus busid pat = (pF "slider13" pat) # (pI "^slider13" busid)
 slider13recv :: Pattern Int -> ControlPattern
 slider13recv busid = pI "^slider13" busid
 
--- |
 slider14 :: Pattern Double -> ControlPattern
 slider14 = pF "slider14"
 
@@ -3167,7 +3075,6 @@ slider14bus busid pat = (pF "slider14" pat) # (pI "^slider14" busid)
 slider14recv :: Pattern Int -> ControlPattern
 slider14recv busid = pI "^slider14" busid
 
--- |
 slider15 :: Pattern Double -> ControlPattern
 slider15 = pF "slider15"
 
@@ -3186,7 +3093,6 @@ slider15bus busid pat = (pF "slider15" pat) # (pI "^slider15" busid)
 slider15recv :: Pattern Int -> ControlPattern
 slider15recv busid = pI "^slider15" busid
 
--- |
 slider2 :: Pattern Double -> ControlPattern
 slider2 = pF "slider2"
 
@@ -3205,7 +3111,6 @@ slider2bus busid pat = (pF "slider2" pat) # (pI "^slider2" busid)
 slider2recv :: Pattern Int -> ControlPattern
 slider2recv busid = pI "^slider2" busid
 
--- |
 slider3 :: Pattern Double -> ControlPattern
 slider3 = pF "slider3"
 
@@ -3224,7 +3129,6 @@ slider3bus busid pat = (pF "slider3" pat) # (pI "^slider3" busid)
 slider3recv :: Pattern Int -> ControlPattern
 slider3recv busid = pI "^slider3" busid
 
--- |
 slider4 :: Pattern Double -> ControlPattern
 slider4 = pF "slider4"
 
@@ -3243,7 +3147,6 @@ slider4bus busid pat = (pF "slider4" pat) # (pI "^slider4" busid)
 slider4recv :: Pattern Int -> ControlPattern
 slider4recv busid = pI "^slider4" busid
 
--- |
 slider5 :: Pattern Double -> ControlPattern
 slider5 = pF "slider5"
 
@@ -3262,7 +3165,6 @@ slider5bus busid pat = (pF "slider5" pat) # (pI "^slider5" busid)
 slider5recv :: Pattern Int -> ControlPattern
 slider5recv busid = pI "^slider5" busid
 
--- |
 slider6 :: Pattern Double -> ControlPattern
 slider6 = pF "slider6"
 
@@ -3281,7 +3183,6 @@ slider6bus busid pat = (pF "slider6" pat) # (pI "^slider6" busid)
 slider6recv :: Pattern Int -> ControlPattern
 slider6recv busid = pI "^slider6" busid
 
--- |
 slider7 :: Pattern Double -> ControlPattern
 slider7 = pF "slider7"
 
@@ -3300,7 +3201,6 @@ slider7bus busid pat = (pF "slider7" pat) # (pI "^slider7" busid)
 slider7recv :: Pattern Int -> ControlPattern
 slider7recv busid = pI "^slider7" busid
 
--- |
 slider8 :: Pattern Double -> ControlPattern
 slider8 = pF "slider8"
 
@@ -3319,7 +3219,6 @@ slider8bus busid pat = (pF "slider8" pat) # (pI "^slider8" busid)
 slider8recv :: Pattern Int -> ControlPattern
 slider8recv busid = pI "^slider8" busid
 
--- |
 slider9 :: Pattern Double -> ControlPattern
 slider9 = pF "slider9"
 
@@ -3357,7 +3256,6 @@ smearbus busid pat = (pF "smear" pat) # (pI "^smear" busid)
 smearrecv :: Pattern Int -> ControlPattern
 smearrecv busid = pI "^smear" busid
 
--- |
 songPtr :: Pattern Double -> ControlPattern
 songPtr = pF "songPtr"
 
@@ -3401,7 +3299,6 @@ speedCountTo name ipat = innerJoin $ (\i -> pStateF "speed" name (maybe 0 ((`mod
 speedbus :: Pattern Int -> Pattern Double -> ControlPattern
 speedbus _ _ = error $ "Control parameter 'speed' can't be sent to a bus."
 
--- |
 squiz :: Pattern Double -> ControlPattern
 squiz = pF "squiz"
 
@@ -3420,7 +3317,6 @@ squizbus busid pat = (pF "squiz" pat) # (pI "^squiz" busid)
 squizrecv :: Pattern Int -> ControlPattern
 squizrecv busid = pI "^squiz" busid
 
--- |
 stepsPerOctave :: Pattern Double -> ControlPattern
 stepsPerOctave = pF "stepsPerOctave"
 
@@ -3439,7 +3335,6 @@ stepsPerOctavebus busid pat = (pF "stepsPerOctave" pat) # (pI "^stepsPerOctave" 
 stepsPerOctaverecv :: Pattern Int -> ControlPattern
 stepsPerOctaverecv busid = pI "^stepsPerOctave" busid
 
--- |
 stutterdepth :: Pattern Double -> ControlPattern
 stutterdepth = pF "stutterdepth"
 
@@ -3458,7 +3353,6 @@ stutterdepthbus busid pat = (pF "stutterdepth" pat) # (pI "^stutterdepth" busid)
 stutterdepthrecv :: Pattern Int -> ControlPattern
 stutterdepthrecv busid = pI "^stutterdepth" busid
 
--- |
 stuttertime :: Pattern Double -> ControlPattern
 stuttertime = pF "stuttertime"
 
@@ -3507,7 +3401,6 @@ sustainCountTo name ipat = innerJoin $ (\i -> pStateF "sustain" name (maybe 0 ((
 sustainbus :: Pattern Int -> Pattern Double -> ControlPattern
 sustainbus _ _ = error $ "Control parameter 'sustain' can't be sent to a bus."
 
--- |
 sustainpedal :: Pattern Double -> ControlPattern
 sustainpedal = pF "sustainpedal"
 
@@ -3631,7 +3524,6 @@ toArgbus busid pat = (pS "toArg" pat) # (pI "^toArg" busid)
 toArgrecv :: Pattern Int -> ControlPattern
 toArgrecv busid = pI "^toArg" busid
 
--- |
 tomdecay :: Pattern Double -> ControlPattern
 tomdecay = pF "tomdecay"
 
@@ -3707,7 +3599,6 @@ triodebus busid pat = (pF "triode" pat) # (pI "^triode" busid)
 trioderecv :: Pattern Int -> ControlPattern
 trioderecv busid = pI "^triode" busid
 
--- |
 tsdelay :: Pattern Double -> ControlPattern
 tsdelay = pF "tsdelay"
 
@@ -3726,7 +3617,6 @@ tsdelaybus busid pat = (pF "tsdelay" pat) # (pI "^tsdelay" busid)
 tsdelayrecv :: Pattern Int -> ControlPattern
 tsdelayrecv busid = pI "^tsdelay" busid
 
--- |
 uid :: Pattern Double -> ControlPattern
 uid = pF "uid"
 
@@ -3765,7 +3655,6 @@ unitTake name xs = pStateListF "unit" name xs
 unitbus :: Pattern Int -> Pattern String -> ControlPattern
 unitbus _ _ = error $ "Control parameter 'unit' can't be sent to a bus."
 
--- |
 val :: Pattern Double -> ControlPattern
 val = pF "val"
 
@@ -3781,7 +3670,6 @@ valCountTo name ipat = innerJoin $ (\i -> pStateF "val" name (maybe 0 ((`mod'` i
 valbus :: Pattern Int -> Pattern Double -> ControlPattern
 valbus _ _ = error $ "Control parameter 'val' can't be sent to a bus."
 
--- |
 vcfegint :: Pattern Double -> ControlPattern
 vcfegint = pF "vcfegint"
 
@@ -3800,7 +3688,6 @@ vcfegintbus busid pat = (pF "vcfegint" pat) # (pI "^vcfegint" busid)
 vcfegintrecv :: Pattern Int -> ControlPattern
 vcfegintrecv busid = pI "^vcfegint" busid
 
--- |
 vcoegint :: Pattern Double -> ControlPattern
 vcoegint = pF "vcoegint"
 
@@ -3819,7 +3706,6 @@ vcoegintbus busid pat = (pF "vcoegint" pat) # (pI "^vcoegint" busid)
 vcoegintrecv :: Pattern Int -> ControlPattern
 vcoegintrecv busid = pI "^vcoegint" busid
 
--- |
 velocity :: Pattern Double -> ControlPattern
 velocity = pF "velocity"
 
@@ -3838,7 +3724,6 @@ velocitybus busid pat = (pF "velocity" pat) # (pI "^velocity" busid)
 velocityrecv :: Pattern Int -> ControlPattern
 velocityrecv busid = pI "^velocity" busid
 
--- |
 voice :: Pattern Double -> ControlPattern
 voice = pF "voice"
 
@@ -3870,7 +3755,6 @@ vowelbus busid pat = (pS "vowel" pat) # (pI "^vowel" busid)
 vowelrecv :: Pattern Int -> ControlPattern
 vowelrecv busid = pI "^vowel" busid
 
--- |
 waveloss :: Pattern Double -> ControlPattern
 waveloss = pF "waveloss"
 
@@ -3889,7 +3773,6 @@ wavelossbus busid pat = (pF "waveloss" pat) # (pI "^waveloss" busid)
 wavelossrecv :: Pattern Int -> ControlPattern
 wavelossrecv busid = pI "^waveloss" busid
 
--- |
 xsdelay :: Pattern Double -> ControlPattern
 xsdelay = pF "xsdelay"
 

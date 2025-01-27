@@ -127,7 +127,7 @@ streamAll s f = do
 streamGet :: Stream -> String -> IO (Maybe Value)
 streamGet s k = Map.lookup k <$> readMVar (sStateMV s)
 
-streamSet :: Valuable a => Stream -> String -> Pattern a -> IO ()
+streamSet :: (Valuable a) => Stream -> String -> Pattern a -> IO ()
 streamSet s k pat = do
   sMap <- takeMVar $ sStateMV s
   let pat' = toValue <$> pat

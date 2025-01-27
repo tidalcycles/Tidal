@@ -1,31 +1,29 @@
-{-# LANGUAGE OverloadedStrings, FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module TestUtils where
 
-import Test.Microspec
-
-import Prelude hiding ((<*), (*>))
-
 import Data.List (sort)
-
-import Sound.Tidal.Context
-
 import qualified Data.Map.Strict as Map
+import Sound.Tidal.Context
+import Test.Microspec
+import Prelude hiding ((*>), (<*))
 
 class TolerantEq a where
-   (~==) :: a -> a -> Bool
+  (~==) :: a -> a -> Bool
 
 instance TolerantEq Double where
   a ~== b = abs (a - b) < 0.000001
 
 instance TolerantEq Value where
-         (VS a) ~== (VS b) = a == b
-         (VI a) ~== (VI b) = a == b
-         (VR a) ~== (VR b) = a == b
-         (VF a) ~== (VF b) = abs (a - b) < 0.000001
-         _ ~== _ = False
+  (VS a) ~== (VS b) = a == b
+  (VI a) ~== (VI b) = a == b
+  (VR a) ~== (VR b) = a == b
+  (VF a) ~== (VF b) = abs (a - b) < 0.000001
+  _ ~== _ = False
 
-instance TolerantEq a => TolerantEq [a] where
+instance (TolerantEq a) => TolerantEq [a] where
   as ~== bs = (length as == length bs) && all (uncurry (~==)) (zip as bs)
 
 instance TolerantEq ValueMap where
@@ -38,15 +36,13 @@ instance TolerantEq (Event ValueMap) where
 compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
 compareP a p p' =
   (sort $ queryArc (stripContext p) a)
-  `shouldBe`
-  (sort $ queryArc (stripContext p') a)
+    `shouldBe` (sort $ queryArc (stripContext p') a)
 
 -- | Like @compareP@, but tries to 'defragment' the events
 comparePD :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
 comparePD a p p' =
   (sort $ defragParts $ queryArc (stripContext p) a)
-  `shouldBe`
-  (sort $ defragParts $ queryArc (stripContext p') a)
+    `shouldBe` (sort $ defragParts $ queryArc (stripContext p') a)
 
 -- | Like @compareP@, but for control patterns, with some tolerance for floating point error
 compareTol :: Arc -> ControlPattern -> ControlPattern -> Bool
