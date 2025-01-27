@@ -212,8 +212,8 @@ applyPatToPatSqueeze pf px = squeezeJoin $ (\f -> f <$> px) <$> pf
 -- as @innerJoin@, @innerJoin@ and @squeezeJoin@.
 
 instance Monad Pattern where
-    return = pure
-    p >>= f = unwrap (f <$> p)
+  return = pure
+  p >>= f = unwrap (f <$> p)
 
 -- | Turns a pattern of patterns into a single pattern.
 -- (this is actually 'join')
