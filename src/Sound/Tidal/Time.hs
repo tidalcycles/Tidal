@@ -3,19 +3,20 @@
 
 module Sound.Tidal.Time where
 
-import           Control.Applicative
-import           Control.DeepSeq     (NFData)
-import           Data.Ratio
-import           GHC.Generics
+import Control.Applicative
+import Control.DeepSeq (NFData)
+import Data.Ratio
+import GHC.Generics
 
 -- | Time is rational
 type Time = Rational
 
 -- | An arc of time, with a start time (or onset) and a stop time (or offset)
 data ArcF a = Arc
-  { start :: a
-  , stop  :: a
-  } deriving (Eq, Ord, Functor, Show, Generic)
+  { start :: a,
+    stop :: a
+  }
+  deriving (Eq, Ord, Functor, Show, Generic)
 
 type Arc = ArcF Time
 
@@ -23,18 +24,18 @@ instance Applicative ArcF where
   pure t = Arc t t
   (<*>) (Arc sf ef) (Arc sx ex) = Arc (sf sx) (ef ex)
 
-instance NFData a => NFData (ArcF a)
+instance (NFData a) => NFData (ArcF a)
 
-instance Num a => Num (ArcF a) where
-  negate      = fmap negate
-  (+)         = liftA2 (+)
-  (*)         = liftA2 (*)
+instance (Num a) => Num (ArcF a) where
+  negate = fmap negate
+  (+) = liftA2 (+)
+  (*) = liftA2 (*)
   fromInteger = pure . fromInteger
-  abs         = fmap abs
-  signum      = fmap signum
+  abs = fmap abs
+  signum = fmap signum
 
 instance (Fractional a) => Fractional (ArcF a) where
-  recip        = fmap recip
+  recip = fmap recip
   fromRational = pure . fromRational
 
 -- * Utility functions - Time
@@ -45,16 +46,16 @@ sam :: Time -> Time
 sam = fromIntegral . (floor :: Time -> Int)
 
 -- | Turns a number into a (rational) time value. An alias for @toRational@.
-toTime :: Real a => a -> Rational
+toTime :: (Real a) => a -> Rational
 toTime = toRational
 
 -- | Turns a (rational) time value into another number. An alias for @fromRational@.
-fromTime :: Fractional a => Time -> a
+fromTime :: (Fractional a) => Time -> a
 fromTime = fromRational
 
 -- | The end point of the current cycle (and starting point of the next cycle)
 nextSam :: Time -> Time
-nextSam = (1+) . sam
+nextSam = (1 +) . sam
 
 -- | The position of a time value relative to the start of its cycle.
 cyclePos :: Time -> Time
@@ -77,12 +78,15 @@ subArc a@(Arc s e) b@(Arc s' e')
   | and [s'' == e'', s'' == e', s' < e'] = Nothing
   | s'' <= e'' = Just (Arc s'' e'')
   | otherwise = Nothing
-  where (Arc s'' e'') = sect a b
+  where
+    (Arc s'' e'') = sect a b
 
 subMaybeArc :: Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)
-subMaybeArc (Just a) (Just b) = do sa <- subArc a b
-                                   return $ Just sa
+subMaybeArc (Just a) (Just b) = do
+  sa <- subArc a b
+  return $ Just sa
 subMaybeArc _ _ = Just Nothing
+
 -- subMaybeArc = liftA2 subArc -- this typechecks, but doesn't work the same way.. hmm
 
 -- | Simple intersection of two arcs
@@ -101,7 +105,7 @@ timeToCycleArc t = Arc (sam t) (sam t + 1)
 -- (Note that the output Arc probably does not start *at* Time 0 --
 -- that only happens when the input Arc starts at an integral Time.)
 cycleArc :: Arc -> Arc
-cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e-s))
+cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e - s))
 
 -- | Returns the numbers of the cycles that the input @Arc@ overlaps
 -- (excluding the input @Arc@'s endpoint, unless it has duration 0 --
@@ -118,11 +122,11 @@ cycleArc (Arc s e) = Arc (cyclePos s) (cyclePos s + (e-s))
 -- are not necessarily completely contained in the input @Arc@,
 -- but they definitely overlap it,
 -- and they include every cycle that overlaps it.
-cyclesInArc :: Integral a => Arc -> [a]
+cyclesInArc :: (Integral a) => Arc -> [a]
 cyclesInArc (Arc s e)
   | s > e = []
   | s == e = [floor s]
-  | otherwise = [floor s .. ceiling e-1]
+  | otherwise = [floor s .. ceiling e - 1]
 
 -- | This provides exactly the same information as @cyclesInArc@,
 -- except that this represents its output as @Arc@s,
@@ -134,20 +138,23 @@ cycleArcsInArc = map (timeToCycleArc . (toTime :: Int -> Time)) . cyclesInArc
 
 -- | Splits the given @Arc@ into a list of @Arc@s, at cycle boundaries.
 arcCycles :: Arc -> [Arc]
-arcCycles (Arc s e) | s >= e = []
-                | sam s == sam e = [Arc s e]
-                | otherwise = Arc s (nextSam s) : arcCycles (Arc (nextSam s) e)
+arcCycles (Arc s e)
+  | s >= e = []
+  | sam s == sam e = [Arc s e]
+  | otherwise = Arc s (nextSam s) : arcCycles (Arc (nextSam s) e)
 
 -- | Like arcCycles, but returns zero-width arcs
 arcCyclesZW :: Arc -> [Arc]
-arcCyclesZW (Arc s e) | s == e = [Arc s e]
-                  | otherwise = arcCycles (Arc s e)
+arcCyclesZW (Arc s e)
+  | s == e = [Arc s e]
+  | otherwise = arcCycles (Arc s e)
 
 -- | Similar to @fmap@ but time is relative to the cycle (i.e. the
 -- sam of the start of the arc)
 mapCycle :: (Time -> Time) -> Arc -> Arc
 mapCycle f (Arc s e) = Arc (sam' + f (s - sam')) (sam' + f (e - sam'))
-         where sam' = sam s
+  where
+    sam' = sam s
 
 -- | @isIn a t@ is @True@ if @t@ is inside
 -- the arc represented by @a@.

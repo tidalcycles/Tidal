@@ -70,7 +70,7 @@ library
     , clock < 0.9
     , deepseq >= 1.1.0.0
     , primitive < 0.10
-    , random < 1.3
+    , random < 1.4
     , exceptions < 0.11
     , mtl >= 2.2
     , tidal-link == 1.0.4
@@ -94,13 +94,13 @@ test-suite tests
                  Sound.Tidal.ExceptionsTest
                  TestUtils
   build-depends:
-                base ==4.*
-              , microspec >= 0.2.0.1
-              , hosc >= 0.21 && < 0.22
-              , containers
-              , parsec
-              , tidal
-              , deepseq
+                base >=4 && <5,
+                microspec >=0.2.0.1,
+                hosc >=0.21 && <0.22,
+                containers,
+                parsec,
+                tidal,
+                deepseq
 
   default-language: Haskell2010
 
@@ -109,7 +109,8 @@ test-suite dontcrash
   type: exitcode-stdio-1.0
   main-is: dontcrash.hs
   hs-source-dirs: test
-  build-depends: base, tidal
+  build-depends: base,
+                 tidal
   default-language:    Haskell2010
 
 benchmark bench-speed
@@ -121,9 +122,9 @@ benchmark bench-speed
                  Tidal.UIB
                  Tidal.Inputs
   build-depends:
-                base == 4.*
-              , criterion >= 1.6.3.0
-              , tidal
+                base >=4 && <5,
+                criterion >=1.6.3.0,
+                tidal
   ghc-options: -Wall
 
   default-language: Haskell2010
@@ -135,9 +136,9 @@ benchmark bench-memory
   other-modules: Tidal.UIB
                  Tidal.Inputs
   build-depends:
-               base == 4.*
-             , weigh
-             , tidal
+               base >=4 && <5,
+               weigh,
+               tidal
   ghc-options: -Wall
 
   default-language: Haskell2010

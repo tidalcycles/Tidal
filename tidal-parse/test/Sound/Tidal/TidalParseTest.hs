@@ -2,20 +2,21 @@
 
 module Sound.Tidal.TidalParseTest where
 
-import           Data.Either
-import qualified Data.Map.Strict     as Map
-import           Sound.Tidal.Chords  as Tidal
-import           Sound.Tidal.Context as Tidal
-import           Sound.Tidal.Parse
-import           Test.Microspec      hiding (run)
+import Data.Either
+import qualified Data.Map.Strict as Map
+import Sound.Tidal.Chords as Tidal
+import Sound.Tidal.Context as Tidal
+import Sound.Tidal.Parse
+import Test.Microspec hiding (run)
 
 stripContext :: Pattern a -> Pattern a
 stripContext = setContext $ Context []
 
 parsesTo :: String -> ControlPattern -> Property
 parsesTo str p = x `shouldBe` y
-  where x = query . stripContext <$> parseTidal str <*> Right (State (Arc 0 16) Map.empty)
-        y = Right $ queryArc (stripContext p) (Arc 0 16)
+  where
+    x = query . stripContext <$> parseTidal str <*> Right (State (Arc 0 16) Map.empty)
+    y = Right $ queryArc (stripContext p) (Arc 0 16)
 
 causesParseError :: String -> Property
 causesParseError str = isLeft (parseTidal str :: Either String ControlPattern) `shouldBe` True
@@ -23,7 +24,6 @@ causesParseError str = isLeft (parseTidal str :: Either String ControlPattern) `
 run :: Microspec ()
 run =
   describe "parseTidal" $ do
-
     it "parses the empty string as silence" $
       "" `parsesTo` silence
 
@@ -43,10 +43,10 @@ run =
       "s \"bd cp\"" `parsesTo` s "bd cp"
 
     it "parses a very simple single 's' pattern with a same line comment" $
-       "s \"bd cp\" -- comment " `parsesTo` s "bd cp"
+      "s \"bd cp\" -- comment " `parsesTo` s "bd cp"
 
     it "parses a very simple single 's' pattern with a multi line comment" $
-       "s \"bd cp\" {- \n comment -}" `parsesTo` s "bd cp"
+      "s \"bd cp\" {- \n comment -}" `parsesTo` s "bd cp"
 
     it "parses a very simple single 'sound' pattern" $
       "sound \"bd cp\"" `parsesTo` sound "bd cp"
@@ -75,24 +75,24 @@ run =
       "s \"bd cp\" # pan \"0 1\"" `parsesTo` (s "bd cp" # pan "0 1")
 
     it "parses three merged patterns" $
-      "s \"bd cp\" # pan \"0 1\" # gain \"0.5 0.7\"" `parsesTo`
-        (s "bd cp" # pan "0 1" # gain "0.5 0.7")
+      "s \"bd cp\" # pan \"0 1\" # gain \"0.5 0.7\""
+        `parsesTo` (s "bd cp" # pan "0 1" # gain "0.5 0.7")
 
     it "parses three merged patterns, everything in brackets" $
-      "(s \"bd cp\" # pan \"0 1\" # gain \"0.5 0.7\")" `parsesTo`
-        ((s "bd cp" # pan "0 1" # gain "0.5 0.7"))
+      "(s \"bd cp\" # pan \"0 1\" # gain \"0.5 0.7\")"
+        `parsesTo` ((s "bd cp" # pan "0 1" # gain "0.5 0.7"))
 
     it "parses three merged patterns, everything in muliple layers of brackets" $
-      "(((s \"bd cp\" # pan \"0 1\" # gain \"0.5 0.7\")))" `parsesTo`
-        ((((s "bd cp" # pan "0 1" # gain "0.5 0.7"))))
+      "(((s \"bd cp\" # pan \"0 1\" # gain \"0.5 0.7\")))"
+        `parsesTo` ((((s "bd cp" # pan "0 1" # gain "0.5 0.7"))))
 
     it "parses three merged patterns with right associative brackets" $
-      "s \"bd cp\" # (pan \"0 1\" # gain \"0.5 0.7\")" `parsesTo`
-        (s "bd cp" # (pan "0 1" # gain "0.5 0.7"))
+      "s \"bd cp\" # (pan \"0 1\" # gain \"0.5 0.7\")"
+        `parsesTo` (s "bd cp" # (pan "0 1" # gain "0.5 0.7"))
 
     it "parses three merged patterns with left associative brackets" $
-      "(s \"bd cp\" # pan \"0 1\") # gain \"0.5 0.7\"" `parsesTo`
-        ((s "bd cp" # pan "0 1") # gain "0.5 0.7")
+      "(s \"bd cp\" # pan \"0 1\") # gain \"0.5 0.7\""
+        `parsesTo` ((s "bd cp" # pan "0 1") # gain "0.5 0.7")
 
     it "parses simple patterns in brackets applied to ParamPattern functions" $
       "s (\"bd cp\")" `parsesTo` (s ("bd cp"))
@@ -137,12 +137,12 @@ run =
       "(rev) $ s \"bd cp\"" `parsesTo` ((rev) $ s "bd cp")
 
     it "parses jux transformations with transformations in brackets" $
-        "jux (rev) $ s \"arpy*8\" # up \"0 2 3 5 3 5 7 8\"" `parsesTo`
-         (jux (rev) $ s "arpy*8" # up "0 2 3 5 3 5 7 8")
+      "jux (rev) $ s \"arpy*8\" # up \"0 2 3 5 3 5 7 8\""
+        `parsesTo` (jux (rev) $ s "arpy*8" # up "0 2 3 5 3 5 7 8")
 
     it "parses jux transformations with transformations not in brackets" $
-        "jux rev $ s \"arpy*8\" # up \"0 2 3 5 3 5 7 8\"" `parsesTo`
-         (jux rev $ s "arpy*8" # up "0 2 3 5 3 5 7 8")
+      "jux rev $ s \"arpy*8\" # up \"0 2 3 5 3 5 7 8\""
+        `parsesTo` (jux rev $ s "arpy*8" # up "0 2 3 5 3 5 7 8")
 
     it "doesn't parse when a transformation requiring an argument is provided without parens or $ to jux" $
       causesParseError "jux fast 2 $ s \"bd*4 cp\""
@@ -157,141 +157,141 @@ run =
       "(every 2 (fast 2) $ s \"arpy*8\") # up (\"[0 4 7 2,16 12 12 16]\" - \"<0 3 5 7>\")" `parsesTo` ((every 2 (fast 2) $ s "arpy*8") # up ("[0 4 7 2,16 12 12 16]" - "<0 3 5 7>"))
 
     it "parses a fast transformation applied to a simple (ie. non-param) pattern" $
-      "up (fast 2 \"<0 2 3 5>\")" `parsesTo`
-        (up (fast 2 "<0 2 3 5>"))
+      "up (fast 2 \"<0 2 3 5>\")"
+        `parsesTo` (up (fast 2 "<0 2 3 5>"))
 
     it "parses a partially-applied pattern transformation spread over patterns" $
-      "spread (fast) [2,1,1.5] $ s \"bd sn cp sn\"" `parsesTo`
-        (spread (fast) [2,1,1.5] $ s "bd sn cp sn")
+      "spread (fast) [2,1,1.5] $ s \"bd sn cp sn\""
+        `parsesTo` (spread (fast) [2, 1, 1.5] $ s "bd sn cp sn")
 
     it "parses a binary Num function spread over a simple Num pattern" $
-      "n (spread (+) [2,3,4] \"1 2 3\")" `parsesTo`
-        (n (spread (+) [2,3,4] "1 2 3"))
+      "n (spread (+) [2,3,4] \"1 2 3\")"
+        `parsesTo` (n (spread (+) [2, 3, 4] "1 2 3"))
 
     it "parses an $ application spread over partially applied transformations of a non-Control Pattern" $
-      "n (spread ($) [density 2, rev, slow 2] $ \"1 2 3 4\")" `parsesTo`
-        (n (spread ($) [density 2, rev, slow 2] $ "1 2 3 4"))
+      "n (spread ($) [density 2, rev, slow 2] $ \"1 2 3 4\")"
+        `parsesTo` (n (spread ($) [density 2, rev, slow 2] $ "1 2 3 4"))
 
     it "parses an $ application spread over transformations of a control pattern" $
-      "spread ($) [fast 2,fast 4] $ s \"bd cp\"" `parsesTo`
-        (spread ($) [fast 2,fast 4] $ s "bd cp")
+      "spread ($) [fast 2,fast 4] $ s \"bd cp\""
+        `parsesTo` (spread ($) [fast 2, fast 4] $ s "bd cp")
 
     it "parses functions spread over transformations of a control pattern, via spreadf" $
-      "spreadf [fast 2,fast 4] $ s \"bd cp\"" `parsesTo`
-        (spreadf [fast 2,fast 4] $ s "bd cp")
+      "spreadf [fast 2,fast 4] $ s \"bd cp\""
+        `parsesTo` (spreadf [fast 2, fast 4] $ s "bd cp")
 
     it "parses an $ application spread over partially applied transformations of a Control Pattern" $
-      "spread ($) [density 2, rev, slow 2, striate 3] $ sound \"[bd*2 [~ bd]] [sn future]*2 cp jvbass*4\"" `parsesTo`
-        (spread ($) [density 2, rev, slow 2, striate 3] $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4")
+      "spread ($) [density 2, rev, slow 2, striate 3] $ sound \"[bd*2 [~ bd]] [sn future]*2 cp jvbass*4\""
+        `parsesTo` (spread ($) [density 2, rev, slow 2, striate 3] $ sound "[bd*2 [~ bd]] [sn future]*2 cp jvbass*4")
 
     it "parses an off transformation" $
-      "off 0.125 (fast 2) $ s \"bd sn cp glitch\"" `parsesTo`
-        (off 0.125 (fast 2) $ s "bd sn cp glitch")
+      "off 0.125 (fast 2) $ s \"bd sn cp glitch\""
+        `parsesTo` (off 0.125 (fast 2) $ s "bd sn cp glitch")
 
     it "parses a pattern rotation operator (1)" $
-      "0.25 <~ (s \"bd sn cp glitch\")" `parsesTo`
-        (0.25 <~ (s "bd sn cp glitch"))
+      "0.25 <~ (s \"bd sn cp glitch\")"
+        `parsesTo` (0.25 <~ (s "bd sn cp glitch"))
 
     it "parses a pattern rotation operator (2)" $
-      "0.25 <~ s \"bd sn cp glitch\"" `parsesTo`
-        (0.25 <~ s "bd sn cp glitch")
+      "0.25 <~ s \"bd sn cp glitch\""
+        `parsesTo` (0.25 <~ s "bd sn cp glitch")
 
     it "parses a pattern rotation operator (3)" $
-      "\"0.25 0.125 0 0.5\" <~ s \"bd sn cp glitch\"" `parsesTo`
-        ("0.25 0.125 0 0.5" <~ s "bd sn cp glitch")
+      "\"0.25 0.125 0 0.5\" <~ s \"bd sn cp glitch\""
+        `parsesTo` ("0.25 0.125 0 0.5" <~ s "bd sn cp glitch")
 
     it "parses a pattern rotation operator (3) applied to a transformation with $" $
-      "fast 4 $ \"<0 [0.125,0.25]>\" <~ s \"bd cp sn glitch:2\"" `parsesTo`
-        (fast 4 $ "<0 [0.125,0.25]>" <~ s "bd cp sn glitch:2")
+      "fast 4 $ \"<0 [0.125,0.25]>\" <~ s \"bd cp sn glitch:2\""
+        `parsesTo` (fast 4 $ "<0 [0.125,0.25]>" <~ s "bd cp sn glitch:2")
 
     it "parses a left section transformation of a controlpattern" $
-      "every 2 (s \"arpy*8\" #) $ s \"drum\"" `parsesTo`
-        (every 2 (s "arpy*8" #) $ s "drum")
+      "every 2 (s \"arpy*8\" #) $ s \"drum\""
+        `parsesTo` (every 2 (s "arpy*8" #) $ s "drum")
 
     it "parses a right section transformation of a controlpattern" $
-      "every 2 (# n \"3 4\") $ s \"drum\"" `parsesTo`
-        (every 2 (# n "3 4") $ s "drum")
+      "every 2 (# n \"3 4\") $ s \"drum\""
+        `parsesTo` (every 2 (# n "3 4") $ s "drum")
 
     it "parses right sections in a list with spread" $
-      "spread ($) [(# n \"4 5 6 7\"),(# n \"0 1 2 3\")] $ s \"drum*4\"" `parsesTo`
-            (spread ($) [(# n "4 5 6 7"),(# n "0 1 2 3")] $ s "drum*4")
+      "spread ($) [(# n \"4 5 6 7\"),(# n \"0 1 2 3\")] $ s \"drum*4\""
+        `parsesTo` (spread ($) [(# n "4 5 6 7"), (# n "0 1 2 3")] $ s "drum*4")
 
     it "parses pattern merges spread with #" $
-       "spread (#) [n \"4 5 6 7\",n \"0 1 2 3\"] $ s \"drum*4\"" `parsesTo`
-        (spread (#) [n "4 5 6 7",n "0 1 2 3"] $ s "drum*4")
+      "spread (#) [n \"4 5 6 7\",n \"0 1 2 3\"] $ s \"drum*4\""
+        `parsesTo` (spread (#) [n "4 5 6 7", n "0 1 2 3"] $ s "drum*4")
 
     it "parses a left section pattern rotation operator in an every expression" $
-       "every 2 (0.0625 ~>) $ (0.5 ~>) $ s \"snare\"" `parsesTo`
-        (every 2 (0.0625 ~>) $ (0.5 ~>) $ s "snare")
+      "every 2 (0.0625 ~>) $ (0.5 ~>) $ s \"snare\""
+        `parsesTo` (every 2 (0.0625 ~>) $ (0.5 ~>) $ s "snare")
 
     it "parses a right section |> operator in an every expression" $
-       "every 2 (|> speed \"2\") $ sound \"arpy*4\" |> speed \"1\"" `parsesTo`
-        (every 2 (|> speed "2") $ sound "arpy*4" |> speed "1")
+      "every 2 (|> speed \"2\") $ sound \"arpy*4\" |> speed \"1\""
+        `parsesTo` (every 2 (|> speed "2") $ sound "arpy*4" |> speed "1")
 
     it "parses a complex expression with multiple every, left sections and |>" $
-       "every 3 (|- note \"3\") $ every 2 (|+ up \"5\") $ sound \"arpy*4\" |> note \"0 2 4 5\"" `parsesTo`
-        (every 3 (|- note "3") $ every 2 (|+ up "5") $ sound "arpy*4" |> note "0 2 4 5")
+      "every 3 (|- note \"3\") $ every 2 (|+ up \"5\") $ sound \"arpy*4\" |> note \"0 2 4 5\""
+        `parsesTo` (every 3 (|- note "3") $ every 2 (|+ up "5") $ sound "arpy*4" |> note "0 2 4 5")
 
     it "parses an expression with run" $
-       "up (run 12) # sound \"arpy\"" `parsesTo`
-        (up (Tidal.run 12) # sound "arpy")
+      "up (run 12) # sound \"arpy\""
+        `parsesTo` (up (Tidal.run 12) # sound "arpy")
 
     it "parses an expression with range" $
-       "sound \"bd*8 sn*8\" # speed (range 1 3 $ tri)" `parsesTo`
-       (sound "bd*8 sn*8" # speed (range 1 3 $ tri))
+      "sound \"bd*8 sn*8\" # speed (range 1 3 $ tri)"
+        `parsesTo` (sound "bd*8 sn*8" # speed (range 1 3 $ tri))
 
     it "parses a rotation operator with BP pattern as left argument" $
-       "\"[0 0.25]/4\" <~ (sound \"bd*2 cp*2 hh sn\")" `parsesTo`
-       ("[0 0.25]/4" <~ (sound "bd*2 cp*2 hh sn"))
+      "\"[0 0.25]/4\" <~ (sound \"bd*2 cp*2 hh sn\")"
+        `parsesTo` ("[0 0.25]/4" <~ (sound "bd*2 cp*2 hh sn"))
 
     it "parses a sometimesBy application with a right section" $
-       "sometimesBy 0.75 (# crush 4) $ sound \"bd arpy sn ~\"" `parsesTo`
-       (sometimesBy 0.75 (# crush 4) $ sound "bd arpy sn ~")
+      "sometimesBy 0.75 (# crush 4) $ sound \"bd arpy sn ~\""
+        `parsesTo` (sometimesBy 0.75 (# crush 4) $ sound "bd arpy sn ~")
 
     it "parses a whenmod application" $
-       "whenmod 8 6 (rev) $ sound \"bd*2 arpy*2 cp hh*4\"" `parsesTo`
-       (whenmod 8 6 (rev) $ sound "bd*2 arpy*2 cp hh*4")
+      "whenmod 8 6 (rev) $ sound \"bd*2 arpy*2 cp hh*4\""
+        `parsesTo` (whenmod 8 6 (rev) $ sound "bd*2 arpy*2 cp hh*4")
 
     it "parses a complex example with const" $
-       "every 12 (const $ sound \"bd*4 sn*2\") $ sound \"bd sn bass2 sn\"" `parsesTo`
-       (every 12 (const $ sound "bd*4 sn*2") $ sound "bd sn bass2 sn")
+      "every 12 (const $ sound \"bd*4 sn*2\") $ sound \"bd sn bass2 sn\""
+        `parsesTo` (every 12 (const $ sound "bd*4 sn*2") $ sound "bd sn bass2 sn")
 
     it "parses an example with fastcat" $
-       "fastcat [sound \"bd sn:2\" # vowel \"[a o]/2\", sound \"casio casio:1 casio:2*2\"]" `parsesTo`
-       (fastcat [sound "bd sn:2" # vowel "[a o]/2",sound "casio casio:1 casio:2*2"])
+      "fastcat [sound \"bd sn:2\" # vowel \"[a o]/2\", sound \"casio casio:1 casio:2*2\"]"
+        `parsesTo` (fastcat [sound "bd sn:2" # vowel "[a o]/2", sound "casio casio:1 casio:2*2"])
 
     it "parses an example with stack" $
-       "stack [s \"bd cp\",s \"arpy*8\"]" `parsesTo`
-       (stack [s "bd cp",s "arpy*8"])
+      "stack [s \"bd cp\",s \"arpy*8\"]"
+        `parsesTo` (stack [s "bd cp", s "arpy*8"])
 
     it "parses an example with samples and cut" $
-       "sound (samples \"arpy*8\" (run 8)) # speed \"0.25\" # cut \"1\"" `parsesTo`
-       (sound (samples "arpy*8" (Tidal.run 8)) # speed "0.25" # cut "1")
+      "sound (samples \"arpy*8\" (run 8)) # speed \"0.25\" # cut \"1\""
+        `parsesTo` (sound (samples "arpy*8" (Tidal.run 8)) # speed "0.25" # cut "1")
 
     it "parses an example with sew" $
-       "sound \"cp*16\" |+| gain (sew \"t(3,8)\" \"1*8\" \"0.75*8\")" `parsesTo`
-       (sound "cp*16" |+| gain (sew "t(3,8)" "1*8" "0.75*8"))
+      "sound \"cp*16\" |+| gain (sew \"t(3,8)\" \"1*8\" \"0.75*8\")"
+        `parsesTo` (sound "cp*16" |+| gain (sew "t(3,8)" "1*8" "0.75*8"))
 
     it "parses an example with stutWith" $
-       "stutWith 16 0.125 (|* gain 0.9) $ s \"bass:2/2\"" `parsesTo`
-       (stutWith 16 0.125 (|* gain 0.9) $ s "bass:2/2")
+      "stutWith 16 0.125 (|* gain 0.9) $ s \"bass:2/2\""
+        `parsesTo` (stutWith 16 0.125 (|* gain 0.9) $ s "bass:2/2")
 
     it "parses an example with choose and a chords from Sound.Tidal.Chords" $
-       "s \"arpy*8\" # note (choose major)" `parsesTo`
-       (s "arpy*8" # note (Tidal.choose major))
+      "s \"arpy*8\" # note (choose major)"
+        `parsesTo` (s "arpy*8" # note (Tidal.choose major))
 
     it "parses an example with the SemiGroup operator" $
-       "s \"bd*4\" <> s \"cp*5\"" `parsesTo`
-       (s "bd*4" <> s "cp*5")
+      "s \"bd*4\" <> s \"cp*5\""
+        `parsesTo` (s "bd*4" <> s "cp*5")
 
     it "parses an example with sseq" $
-       "s (sseq \"tink\" \"xx x\")" `parsesTo`
-       (s (sseq "tink" "xx x"))
+      "s (sseq \"tink\" \"xx x\")"
+        `parsesTo` (s (sseq "tink" "xx x"))
 
     it "parses an example with sseq'" $
-       "s (sseq' [\"tink\",\"feel\"] \"01 0\")" `parsesTo`
-       (s (sseq' ["tink","feel"] "01 0"))
+      "s (sseq' [\"tink\",\"feel\"] \"01 0\")"
+        `parsesTo` (s (sseq' ["tink", "feel"] "01 0"))
 
     it "parses an example with sseqs" $
-       "s (sseqs [(\"tink\",\" x x\"),(\"feel\", \"x x \")])" `parsesTo`
-       (s (sseqs [("tink"," x x"),("feel", "x x ")]))
+      "s (sseqs [(\"tink\",\" x x\"),(\"feel\", \"x x \")])"
+        `parsesTo` (s (sseqs [("tink", " x x"), ("feel", "x x ")]))

@@ -346,7 +346,7 @@ Two functions will be created, `tidal-run-NAME' and `tidal-stop-NAME'"
   (local-set-key [?\C-v ?\C-7] 'tidal-stop-d7)
   (local-set-key [?\C-v ?\C-8] 'tidal-stop-d8)
   (local-set-key [?\C-v ?\C-9] 'tidal-stop-d9)
-  (local-set-key [?\C-v ?\C-0] 'tidal-stop-d10)))
+  (local-set-key [?\C-v ?\C-0] 'tidal-stop-d10))
 
 (defun tidal-mode-menu (map)
   "Haskell Tidal menu MAP."
