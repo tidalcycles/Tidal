@@ -224,7 +224,11 @@ unwrap pp = pp {query = q, pureValue = Nothing}
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the inner pattern.
 innerJoin :: Pattern (Pattern a) -> Pattern a
-innerJoin pp = pp {query = q, pureValue = Nothing}
+innerJoin pp = setTactus (Just $ innerJoin' $ filterJust $ tactus <$> pp) $ innerJoin' pp
+
+-- | innerJoin but without tactus manipulation (just to avoid recursion)
+innerJoin' :: Pattern (Pattern a) -> Pattern a
+innerJoin' pp = pp {query = q, pureValue = Nothing}
   where q st = concatMap
                (\(Event oc _ op v) -> mapMaybe (munge oc) $ query v st {arc = op}
           )

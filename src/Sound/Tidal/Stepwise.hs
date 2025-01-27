@@ -42,11 +42,11 @@ s_patternify2 f a b p = stepJoin $ (\x y -> f x y p) <$> a <*> b
 -- Breaks up pattern of patterns at event boundaries, then timecats them all together
 stepJoin :: Pattern (Pattern a) -> Pattern a
 stepJoin pp = Pattern q first_t Nothing
-  where q st@(State a c) = query (s_cat $ retime $ slices $
+  where q st@(State a c) = query (stepcat $ retime $ slices $
                                   -- query whole, single cycle of pp (should there be a splitCycles here???)
                                   query (rotL (sam $ start a) pp) (st {arc = Arc 0 1})) st
         first_t :: Maybe (Pattern Rational)
-        first_t = tactus $ s_cat $ retime $ slices $ queryArc pp (Arc 0 1)
+        first_t = tactus $ stepcat $ retime $ slices $ queryArc pp (Arc 0 1)
         -- retime each pattern slice
         retime :: [(Time, Pattern a)] -> [Pattern a]
         retime xs = map (\(dur, pat) -> adjust dur pat) xs
@@ -68,35 +68,30 @@ stepJoin pp = Pattern q first_t Nothing
         match (b,e) ev = do a <- subArc (Arc b e) $ part ev
                             return ev {part = a}
 
-s_cat :: [Pattern a] -> Pattern a
-s_cat pats = innerJoin $ (timecat . map snd . sortOn fst) <$> (tpat $ epats pats)
-    where epats :: [Pattern a] -> [(Int, Pattern a)]
+stepcat :: [Pattern a] -> Pattern a
+stepcat pats = innerJoin $ (timecat . map snd . sortOn fst) <$> (tpat $ epats pats)
+    where -- enumerated patterns, ignoring those without tactus
+          epats :: [Pattern a] -> [(Int, Pattern a)]
           epats pats = enumerate $ filter (isJust . tactus) pats
+          -- 
           tpat :: [(Int, Pattern a)] -> Pattern [(Int, (Time, Pattern a))]
           tpat pats = sequence $ map (\(i, pat) -> (\t -> (i, (t, pat))) <$> (fromJust $ tactus pat) ) pats
 
-{-
-_s_add :: Rational -> Pattern a -> Pattern a
+increase :: Pattern Time -> Pattern a -> Pattern a
 -- raise error?
-_s_add _ pat@(Pattern _ Nothing _) = pat
-_s_add r pat@(Pattern _ (Just t) _)
-  | r == 0 = nothing
-  | (abs r) >= t = pat
-  | r < 0 = zoom (1-((abs r)/t),1) pat
-  | otherwise = zoom (0, (r/t)) pat
+increase _ pat@(Pattern _ Nothing _) = pat
+increase npat pat@(Pattern _ (Just tpat) _) = setTactus (Just tpat') $ zoompat b e pat
+  where b = (\n t -> if n >= 0 then 0 else 1-((abs n)/t)) <$> npat <*> tpat
+        e = (\n t -> if n >= 0 then n/t else 1) <$> npat <*> tpat
+        tpat' = (\a b -> min (abs a) b) <$> npat <*> tpat
 
-s_add :: Pattern Rational -> Pattern a -> Pattern a
-s_add = s_patternify _s_add
+decrease :: Pattern Rational -> Pattern a -> Pattern a
+decrease npat pat@(Pattern _ Nothing _) = pat
+decrease npat pat@(Pattern _ (Just tpat) _) = increase (f <$> tpat <*> npat) pat
+   where f t n | n >= 0 = t - n
+               | otherwise = 0 - (t + n)
 
-_s_sub :: Rational -> Pattern a -> Pattern a
-_s_sub _ pat@(Pattern _ Nothing _)  = pat
-_s_sub r pat@(Pattern _ (Just t) _) | r >= t = nothing
-                                    | r < 0 = _s_add (0- (t+r)) pat
-                                    | otherwise = _s_add (t-r) pat
-
-s_sub :: Pattern Rational -> Pattern a -> Pattern a
-s_sub = s_patternify _s_sub
-
+{-
 s_while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 s_while patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
 -- TODO raise exception?

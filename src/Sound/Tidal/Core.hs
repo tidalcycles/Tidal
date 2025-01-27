@@ -502,6 +502,9 @@ sparsity = slow
 zoom :: (Time, Time) -> Pattern a -> Pattern a
 zoom (s,e) = zoomArc (Arc s e)
 
+zoompat :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
+zoompat = patternify2 $ curry zoom
+
 zoomArc :: Arc -> Pattern a -> Pattern a
 zoomArc (Arc s e) p | s >= e = nothing
                     | otherwise = withTactus (*d) $ splitQueries $
