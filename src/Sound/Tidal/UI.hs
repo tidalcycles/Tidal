@@ -1473,7 +1473,7 @@ beat = patternify2 $ __beat innerJoin
 __beat :: (Pattern (Pattern a) -> Pattern a) -> Time -> Time -> Pattern a -> Pattern a
 __beat join t d p = join $ (compress (s,e) . pure) <$> p
                       where s = t' / d
-                            e  = (t'+1) / d
+                            e  = min 1 $ (t'+1) / d
                             t' = t `mod'` d
 
 
