@@ -1464,46 +1464,44 @@ beat :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
 beat = patternify2 $ __beat innerJoin
 
 __beat :: (Pattern (Pattern a) -> Pattern a) -> Time -> Time -> Pattern a -> Pattern a
-__beat join t d p = join $ (compress (s,e) . pure) <$> p
-                      where s = t' / d
-                            e  = min 1 $ (t'+1) / d
-                            t' = t `mod'` d
+__beat join t d p = join $ (compress (s, e) . pure) <$> p
+  where
+    s = t' / d
+    e = min 1 $ (t' + 1) / d
+    t' = t `mod'` d
 
-
-{-|
-@mask@ takes a boolean pattern and ‘masks’ another pattern with it. That is,
-events are only carried over if they match within a ‘true’ event in the binary
-pattern, i.e., it removes events from the second pattern that don't start during
-an event from the first.
-
-For example, consider this kind of messy rhythm without any rests.
-
-> d1 $ sound (slowcat ["sn*8", "[cp*4 bd*4, hc*5]"]) # n (run 8)
-
-If we apply a mask to it
-
-@
-d1 $ s ( mask ("1 1 1 ~ 1 1 ~ 1" :: Pattern Bool)
-         ( slowcat ["sn*8", "[cp*4 bd*4, bass*5]"] )
-       )
-  # n (run 8)
-@
-
-Due to the use of `slowcat` here, the same mask is first applied to @"sn*8"@ and
-in the next cycle to @"[cp*4 bd*4, hc*5]"@.
-
-You could achieve the same effect by adding rests within the `slowcat` patterns,
-but mask allows you to do this more easily. It kind of keeps the rhythmic
-structure and you can change the used samples independently, e.g.,
-
-@
-d1 $ s ( mask ("1 ~ 1 ~ 1 1 ~ 1")
-         ( slowcat ["can*8", "[cp*4 sn*4, jvbass*16]"] )
-       )
-  # n (run 8)
-@
--}
-
+-- |
+-- @mask@ takes a boolean pattern and ‘masks’ another pattern with it. That is,
+-- events are only carried over if they match within a ‘true’ event in the binary
+-- pattern, i.e., it removes events from the second pattern that don't start during
+-- an event from the first.
+--
+-- For example, consider this kind of messy rhythm without any rests.
+--
+-- > d1 $ sound (slowcat ["sn*8", "[cp*4 bd*4, hc*5]"]) # n (run 8)
+--
+-- If we apply a mask to it
+--
+-- @
+-- d1 $ s ( mask ("1 1 1 ~ 1 1 ~ 1" :: Pattern Bool)
+--          ( slowcat ["sn*8", "[cp*4 bd*4, bass*5]"] )
+--        )
+--   # n (run 8)
+-- @
+--
+-- Due to the use of `slowcat` here, the same mask is first applied to @"sn*8"@ and
+-- in the next cycle to @"[cp*4 bd*4, hc*5]"@.
+--
+-- You could achieve the same effect by adding rests within the `slowcat` patterns,
+-- but mask allows you to do this more easily. It kind of keeps the rhythmic
+-- structure and you can change the used samples independently, e.g.,
+--
+-- @
+-- d1 $ s ( mask ("1 ~ 1 ~ 1 1 ~ 1")
+--          ( slowcat ["can*8", "[cp*4 sn*4, jvbass*16]"] )
+--        )
+--   # n (run 8)
+-- @
 mask :: Pattern Bool -> Pattern a -> Pattern a
 mask b p = const <$> p <* (filterValues id b)
 
