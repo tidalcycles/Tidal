@@ -82,7 +82,7 @@ jobs:
       - uses: haskell-actions/run-ormolu@v17
       	with:
 	  mode: inplace
-	  pattern:
+	  pattern: |
 	    src/**/*.hs
 	    tidal-link/src/**/*.hs
 	    tidal-parse/src/**/*.hs
