@@ -24,9 +24,9 @@ tidal_version :: String
 tidal_version = "1.10.0"
 
 tidal_status :: IO ()
-tidal_status = tidal_status_string >>= putStrLn 
+tidal_status = tidal_status_string >>= putStrLn
 
 tidal_status_string :: IO String
-tidal_status_string = do datadir <- getDataDir
-                         return $ "[TidalCycles version " ++ tidal_version ++ "]\nInstalled in " ++ datadir
-
+tidal_status_string = do
+  datadir <- getDataDir
+  return $ "[TidalCycles version " ++ tidal_version ++ "]\nInstalled in " ++ datadir

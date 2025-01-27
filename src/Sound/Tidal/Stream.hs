@@ -1,20 +1,21 @@
 module Sound.Tidal.Stream
-  (module Sound.Tidal.Stream.Config
-  ,module Sound.Tidal.Stream.Types
-  ,module Sound.Tidal.Stream.Process
-  ,module Sound.Tidal.Stream.Target
-  ,module Sound.Tidal.Stream.UI
-  ,module Sound.Tidal.Stream.Listen
-  ,module Sound.Tidal.Stream.Main
-  ) where
+  ( module Sound.Tidal.Stream.Config,
+    module Sound.Tidal.Stream.Types,
+    module Sound.Tidal.Stream.Process,
+    module Sound.Tidal.Stream.Target,
+    module Sound.Tidal.Stream.UI,
+    module Sound.Tidal.Stream.Listen,
+    module Sound.Tidal.Stream.Main,
+  )
+where
 
-import           Sound.Tidal.Stream.Config
-import           Sound.Tidal.Stream.Listen
-import           Sound.Tidal.Stream.Main
-import           Sound.Tidal.Stream.Process
-import           Sound.Tidal.Stream.Target
-import           Sound.Tidal.Stream.Types
-import           Sound.Tidal.Stream.UI
+import Sound.Tidal.Stream.Config
+import Sound.Tidal.Stream.Listen
+import Sound.Tidal.Stream.Main
+import Sound.Tidal.Stream.Process
+import Sound.Tidal.Stream.Target
+import Sound.Tidal.Stream.Types
+import Sound.Tidal.Stream.UI
 
 {-
     Stream.hs - re-exports of all stream modules
