@@ -80,13 +80,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: haskell-actions/run-ormolu@v17
-      	with:
-	  mode: inplace
-	  pattern: |
-	    src/**/*.hs
-	    tidal-link/src/**/*.hs
-	    tidal-parse/src/**/*.hs
-	    tidal-listener/src/**/*.hs
+        with:
+          mode: inplace
+          pattern: |
+            src/**/*.hs
+            tidal-link/src/**/*.hs
+            tidal-parse/src/**/*.hs
+            tidal-listener/src/**/*.hs
       - name: apply ormolu formatting
         uses: stefanzweifel/git-auto-commit-action@v4
         if: ${{ always() }}
