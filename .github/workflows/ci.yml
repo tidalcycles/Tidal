@@ -75,4 +75,9 @@ jobs:
 
       - name: test
         run: cabal v2-test ${{ matrix.versions.args }} --enable-tests --enable-benchmarks all
+  ormolu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: haskell-actions/run-ormolu@v17
 
