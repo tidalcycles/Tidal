@@ -2,11 +2,11 @@
 
 module Sound.Tidal.StreamTest where
 
-import Test.Microspec
-import Sound.Tidal.Stream
-import Sound.Tidal.Pattern
-import qualified Sound.Osc.Fd as O
 import qualified Data.Map.Strict as M
+import qualified Sound.Osc.Fd as O
+import Sound.Tidal.Pattern
+import Sound.Tidal.Stream
+import Test.Microspec
 
 run :: Microspec ()
 run =
@@ -14,7 +14,7 @@ run =
     describe "toDatum" $ do
       it "should convert VN to osc float" $ do
         toDatum (VN (Note 3.5)) `shouldBe` O.float (3.5 :: Double)
-    
+
     describe "substitutePath" $ do
       -- ValueMap
       let state = M.fromList [("sound", VS "sn"), ("n", VI 8)]
@@ -24,7 +24,7 @@ run =
         substitutePath "/{sound}/{n}/vol" state `shouldBe` Just "/sn/8/vol"
       it "should return Nothing if a param is not present" $ do
         substitutePath "/{sound}/{inst}" state `shouldBe` Nothing
-    
+
     describe "getString" $ do
       it "should return Nothing for missing params" $ do
         getString M.empty "s" `shouldBe` Nothing

@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP          #-}
+{-# LANGUAGE CPP #-}
 
 module Sound.Tidal.Utils where
 
@@ -21,128 +21,127 @@ module Sound.Tidal.Utils where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import           Data.List (delete)
-import           System.IO (hPutStrLn, stderr)
+import Data.List (delete)
+import Data.Set (Set)
+import qualified Data.Set as Set
+import System.IO (hPutStrLn, stderr)
 
-import           Data.Set  (Set)
-import qualified Data.Set  as Set
 -- import qualified Data.IntSet as IntSet
 -- import Data.IntSet (IntSet)
 #ifdef __GLASGOW_HASKELL__
 import           GHC.Exts  (build)
 #endif
 
-
 writeError :: String -> IO ()
 writeError = hPutStrLn stderr
 
-mapBoth :: (a -> a) -> (a,a) -> (a,a)
-mapBoth f (a,b) = (f a, f b)
+mapBoth :: (a -> a) -> (a, a) -> (a, a)
+mapBoth f (a, b) = (f a, f b)
 
-mapPartTimes :: (a -> a) -> ((a,a),(a,a)) -> ((a,a),(a,a))
+mapPartTimes :: (a -> a) -> ((a, a), (a, a)) -> ((a, a), (a, a))
 mapPartTimes f = mapBoth (mapBoth f)
 
 mapFst :: (a -> b) -> (a, c) -> (b, c)
-mapFst f (x,y) = (f x,y)
+mapFst f (x, y) = (f x, y)
 
 mapSnd :: (a -> b) -> (c, a) -> (c, b)
-mapSnd f (x,y) = (x,f y)
+mapSnd f (x, y) = (x, f y)
 
-delta :: Num a => (a, a) -> a
-delta (a,b) = b-a
+delta :: (Num a) => (a, a) -> a
+delta (a, b) = b - a
 
 -- | The midpoint of two values
-mid :: Fractional a => (a,a) -> a
-mid (a,b) = a + ((b - a) / 2)
+mid :: (Fractional a) => (a, a) -> a
+mid (a, b) = a + ((b - a) / 2)
 
-removeCommon :: Eq a => [a] -> [a] -> ([a],[a])
-removeCommon [] bs = ([],bs)
-removeCommon as [] = (as,[])
-removeCommon (a:as) bs | a `elem` bs = removeCommon as (delete a bs)
-                       | otherwise = (a:as',bs')
-                      where (as',bs') = removeCommon as bs
+removeCommon :: (Eq a) => [a] -> [a] -> ([a], [a])
+removeCommon [] bs = ([], bs)
+removeCommon as [] = (as, [])
+removeCommon (a : as) bs
+  | a `elem` bs = removeCommon as (delete a bs)
+  | otherwise = (a : as', bs')
+  where
+    (as', bs') = removeCommon as bs
 
 readMaybe :: (Read a) => String -> Maybe a
-readMaybe s = case [x | (x,t) <- reads s, ("","") <- lex t] of
-                   [x] -> Just x
-                   _   -> Nothing
+readMaybe s = case [x | (x, t) <- reads s, ("", "") <- lex t] of
+  [x] -> Just x
+  _ -> Nothing
 
-{- | like `!!` selects @n@th element from xs, but wraps over at the end of @xs@
-
->>> map ((!!!) [1,3,5]) [0,1,2,3,4,5]
-[1,3,5,1,3,5]
--}
+-- | like `!!` selects @n@th element from xs, but wraps over at the end of @xs@
+--
+-- >>> map ((!!!) [1,3,5]) [0,1,2,3,4,5]
+-- [1,3,5,1,3,5]
 (!!!) :: [a] -> Int -> a
 (!!!) xs n = xs !! (n `mod` length xs)
 
-
-{- | Safer version of !! --}
+-- | Safer version of !! -
 nth :: Int -> [a] -> Maybe a
-nth _ []       = Nothing
-nth 0 (x : _)  = Just x
+nth _ [] = Nothing
+nth 0 (x : _) = Just x
 nth n (_ : xs) = nth (n - 1) xs
 
-accumulate :: Num t => [t] -> [t]
-accumulate []     = []
-accumulate (x:xs) = scanl (+) x xs
+accumulate :: (Num t) => [t] -> [t]
+accumulate [] = []
+accumulate (x : xs) = scanl (+) x xs
 
-{- | enumerate a list of things
-
->>> enumerate ["foo","bar","baz"]
-[(1,"foo"), (2,"bar"), (3,"baz")]
--}
+-- | enumerate a list of things
+--
+-- >>> enumerate ["foo","bar","baz"]
+-- [(1,"foo"), (2,"bar"), (3,"baz")]
 enumerate :: [a] -> [(Int, a)]
-enumerate = zip [0..]
+enumerate = zip [0 ..]
 
-{- | split given list of @a@ by given single a, e.g.
-
->>> wordsBy (== ':') "bd:3"
-["bd", "3"]
--}
+-- | split given list of @a@ by given single a, e.g.
+--
+-- >>> wordsBy (== ':') "bd:3"
+-- ["bd", "3"]
 wordsBy :: (a -> Bool) -> [a] -> [[a]]
 wordsBy p s = case dropWhile p s of
-   []      -> []
-   s':rest -> (s':w) : wordsBy p (drop 1 s'')
-          where (w, s'') = break p rest
+  [] -> []
+  s' : rest -> (s' : w) : wordsBy p (drop 1 s'')
+    where
+      (w, s'') = break p rest
 
 matchMaybe :: Maybe a -> Maybe a -> Maybe a
 matchMaybe Nothing y = y
-matchMaybe x       _ = x
+matchMaybe x _ = x
 
 -- Available in Data.Either, but only since 4.10
 fromRight :: b -> Either a b -> b
 fromRight _ (Right b) = b
-fromRight b _         = b
+fromRight b _ = b
 
 -- Available in Data.Function, but only since 4.18
 applyWhen :: Bool -> (a -> a) -> a -> a
-applyWhen True  f x = f x
+applyWhen True f x = f x
 applyWhen False _ x = x
 
 -- pair up neighbours in list
-pairs :: [a] -> [(a,a)]
+pairs :: [a] -> [(a, a)]
 pairs rs = zip rs (tail rs)
 
 -- The following is from Data.Containers.ListUtils, (c) Gershom Bazerman 2018,
 -- Used under a BSD 3-clause license
 -- https://hackage.haskell.org/package/containers
 
-nubOrd :: Ord a => [a] -> [a]
+nubOrd :: (Ord a) => [a] -> [a]
 nubOrd = nubOrdOn id
-
 {-# INLINE nubOrd #-}
-nubOrdOn :: Ord b => (a -> b) -> [a] -> [a]
+
+nubOrdOn :: (Ord b) => (a -> b) -> [a] -> [a]
 nubOrdOn f = \xs -> nubOrdOnExcluding f Set.empty xs
 {-# INLINE nubOrdOn #-}
 
-nubOrdOnExcluding :: Ord b => (a -> b) -> Set b -> [a] -> [a]
+nubOrdOnExcluding :: (Ord b) => (a -> b) -> Set b -> [a] -> [a]
 nubOrdOnExcluding f = go
   where
     go _ [] = []
-    go s (x:xs)
+    go s (x : xs)
       | fx `Set.member` s = go s xs
       | otherwise = x : go (Set.insert fx s) xs
-      where !fx = f x
+      where
+        !fx = f x
 
 #ifdef __GLASGOW_HASKELL__
 {-# INLINABLE [1] nubOrdOnExcluding #-}
