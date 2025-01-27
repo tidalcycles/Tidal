@@ -91,6 +91,20 @@ decrease npat pat@(Pattern _ (Just tpat) _) = increase (f <$> tpat <*> npat) pat
    where f t n | n >= 0 = t - n
                | otherwise = 0 - (t + n)
 
+_expand :: Rational -> Pattern a -> Pattern a
+_expand factor pat = withTactus (* factor) pat
+
+_contract :: Rational -> Pattern a -> Pattern a
+_contract factor pat = withTactus (/ factor) pat
+
+expand :: Pattern Rational -> Pattern a -> Pattern a
+expand = s_patternify _expand
+
+contract :: Pattern Rational -> Pattern a -> Pattern a
+contract = s_patternify _contract
+
+
+
 {-
 s_while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 s_while patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
@@ -161,17 +175,5 @@ s_taperBy = s_patternify2 _s_taperBy
 s_alt :: [[Pattern a]] -> Pattern a
 s_alt groups = s_cat $ concat $ take (c * length groups) $ transpose $ map cycle groups
   where c = foldl1 lcm $ map length groups
-
-_s_expand :: Rational -> Pattern a -> Pattern a
-_s_expand factor pat = withTactus (* factor) pat
-
-_s_contract :: Rational -> Pattern a -> Pattern a
-_s_contract factor pat = withTactus (/ factor) pat
-
-s_expand :: Pattern Rational -> Pattern a -> Pattern a
-s_expand = s_patternify _s_expand
-
-s_contract :: Pattern Rational -> Pattern a -> Pattern a
-s_contract = s_patternify _s_contract
 
 -}

@@ -225,19 +225,19 @@ unwrap pp = pp {query = q, pureValue = Nothing}
 -- but structure only comes from the inner pattern.
 innerJoin :: Pattern (Pattern a) -> Pattern a
 innerJoin pp = setTactus (Just $ innerJoin' $ filterJust $ tactus <$> pp) $ innerJoin' pp
-
--- | innerJoin but without tactus manipulation (just to avoid recursion)
-innerJoin' :: Pattern (Pattern a) -> Pattern a
-innerJoin' pp = pp {query = q, pureValue = Nothing}
-  where q st = concatMap
-               (\(Event oc _ op v) -> mapMaybe (munge oc) $ query v st {arc = op}
-          )
-          (query pp st)
-          where munge oc (Event ic iw ip v) =
-                  do
-                    p <- subArc (arc st) ip
-                    p' <- subArc p (arc st)
-                    return (Event (combineContexts [ic, oc]) iw p' v)
+  where
+    -- | innerJoin but without tactus manipulation (to avoid recursion)
+    innerJoin' :: Pattern (Pattern b) -> Pattern b
+    innerJoin' pp = pp {query = q, pureValue = Nothing}
+      where q st = concatMap
+                  (\(Event oc _ op v) -> mapMaybe (munge oc) $ query v st {arc = op}
+              )
+              (query pp st)
+              where munge oc (Event ic iw ip v) =
+                      do
+                        p <- subArc (arc st) ip
+                        p' <- subArc p (arc st)
+                        return (Event (combineContexts [ic, oc]) iw p' v)
 
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the outer pattern.
@@ -256,6 +256,7 @@ outerJoin pp = pp {query = q, pureValue = Nothing}
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
 -- timespan of the outer whole (or the original query if it's a continuous pattern?)
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
+-- TODO - tactus
 squeezeJoin :: Pattern (Pattern a) -> Pattern a
 squeezeJoin pp = pp {query = q, pureValue = Nothing}
   where q st = concatMap
