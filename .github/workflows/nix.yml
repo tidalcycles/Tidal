@@ -40,4 +40,8 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
       - name: clone project
         uses: actions/checkout@v4
-      - run: nix build .?submodules=1 --print-build-logs --no-update-lock-file .#${{ matrix.package }}
+        with:
+          submodules: recursive
+      - name: build
+        # https://github.com/NixOS/nix/issues/9530#issuecomment-2457467802
+        run: nix build '.?submodules=1#default' --print-build-logs
