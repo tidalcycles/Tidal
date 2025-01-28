@@ -403,6 +403,13 @@ pSequence f = do
           try $ symbol ".."
           b <- pPart f
           return $ TPat_EnumFromTo a b
+          <|> try (do 
+                lookAhead ( 
+                  char '|'
+                  <|> do 
+                        pElongate a <|> pRepeat a
+                        char '|')
+                pChoice f a)
           <|> pElongate a
           <|> pRepeat a
           <|> return a
@@ -424,6 +431,18 @@ pSequence f = do
         takeFoot [] = ([], [])
         takeFoot (TPat_Foot : pats'') = ([], pats'')
         takeFoot (pat : pats'') = first (pat :) $ takeFoot pats''
+
+pChoice :: Parseable a => MyParser (TPat a) -> TPat a -> MyParser (TPat a)
+pChoice f a = do 
+  eor <- option (TPat_Seq []) (pElongate a <|> pRepeat a)
+  cs <- many1 $
+    do 
+      char '|'
+      b <- pPart f
+      pElongate b <|> pRepeat b <|> return b
+  seed <- newSeed
+  rest <- option (TPat_Seq []) (pSequence f)
+  return $ TPat_Seq [TPat_CycleChoose seed (eor:(a:cs)), rest]
 
 pRepeat :: TPat a -> MyParser (TPat a)
 pRepeat a = do
