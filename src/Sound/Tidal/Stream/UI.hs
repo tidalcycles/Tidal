@@ -159,4 +159,5 @@ sendHandshakes stream = mapM_ sendHandshake $ filter (oHandshake . cxTarget) (sC
           -- send it _from_ the udp socket we're listening to, so the
           -- replies go back there
           sendO False (sListen stream) cx $ O.Message "/dirt/handshake" []
-        else hPutStrLn stderr "Can't handshake with SuperCollider without control port."
+        else
+          hPutStrLn stderr "Can't handshake with SuperCollider without control port."

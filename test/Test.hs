@@ -8,6 +8,7 @@ import Sound.Tidal.ParamsTest
 import Sound.Tidal.ParseTest
 import Sound.Tidal.PatternTest
 import Sound.Tidal.ScalesTest
+import Sound.Tidal.StepwiseTest
 import Sound.Tidal.StreamTest
 import Sound.Tidal.UITest
 import Sound.Tidal.UtilsTest
@@ -22,6 +23,7 @@ main = microspec $ do
   Sound.Tidal.ControlTest.run
   Sound.Tidal.ScalesTest.run
   Sound.Tidal.ChordsTest.run
+  Sound.Tidal.StepwiseTest.run
   Sound.Tidal.StreamTest.run
   Sound.Tidal.UITest.run
   Sound.Tidal.UtilsTest.run

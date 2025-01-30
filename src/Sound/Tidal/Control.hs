@@ -26,14 +26,25 @@ module Sound.Tidal.Control where
 -}
 
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromJust, fromMaybe, isJust)
-import Data.Ratio
+import Data.Maybe (fromMaybe)
+import Data.Ratio ((%))
 import Sound.Tidal.Core
+  ( cF,
+    cat,
+    fastcat,
+    overlay,
+    sine,
+    slowcat,
+    stack,
+    (#),
+    (*|),
+    (|*),
+    (|>|),
+  )
 import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Pattern
 import Sound.Tidal.Stream.Types (patternTimeID)
-import Sound.Tidal.UI
-import Sound.Tidal.Utils
+import Sound.Tidal.UI (bite, _irand)
 import Prelude hiding ((*>), (<*))
 
 -- | `spin` will "spin" and layer up a pattern the given number of times,
@@ -95,7 +106,7 @@ chopArc :: Arc -> Int -> [Arc]
 chopArc (Arc s e) n = map (\i -> Arc (s + (e - s) * (fromIntegral i / fromIntegral n)) (s + (e - s) * (fromIntegral (i + 1) / fromIntegral n))) [0 .. n - 1]
 
 _chop :: Int -> ControlPattern -> ControlPattern
-_chop n pat = squeezeJoin $ f <$> pat
+_chop n pat = keepTactus (withTactus (* toRational n) pat) $ squeezeJoin $ f <$> pat
   where
     f v = fastcat $ map (pure . rangemap v) slices
     rangemap v (b, e) = Map.union (fromMaybe (makeMap (b, e)) $ merge v (b, e)) v

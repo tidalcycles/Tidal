@@ -56,7 +56,7 @@ data State = State
   }
 
 -- | A datatype representing events taking place over time
-data Pattern a = Pattern {query :: State -> [Event a], tactus :: Maybe Rational, pureValue :: Maybe a}
+data Pattern a = Pattern {query :: State -> [Event a], tactus :: Maybe (Pattern Rational), pureValue :: Maybe a}
   deriving (Generic, Functor)
 
 instance (NFData a) => NFData (Pattern a)
@@ -64,22 +64,22 @@ instance (NFData a) => NFData (Pattern a)
 pattern :: (State -> [Event a]) -> Pattern a
 pattern f = Pattern f Nothing Nothing
 
-setTactus :: Rational -> Pattern a -> Pattern a
-setTactus r p = p {tactus = Just r}
+setTactus :: Maybe (Pattern Rational) -> Pattern a -> Pattern a
+setTactus r p = p {tactus = r}
 
 setTactusFrom :: Pattern b -> Pattern a -> Pattern a
 setTactusFrom a b = b {tactus = tactus a}
 
 withTactus :: (Rational -> Rational) -> Pattern a -> Pattern a
-withTactus f p = p {tactus = f <$> tactus p}
-
-_steps :: Rational -> Pattern a -> Pattern a
-_steps target p@(Pattern _ (Just t) _) = setTactus target $ _fast (target / t) p
--- raise error?
-_steps _ p = p
+withTactus f p = p {tactus = fmap (fmap f) $ tactus p}
 
 steps :: Pattern Rational -> Pattern a -> Pattern a
-steps = patternify _steps
+steps target p@(Pattern _ (Just t) _) = setTactus (Just target) $ fast (target / t) p
+-- raise error?
+steps _ p = p
+
+-- _steps :: Pattern Rational -> Pattern a -> Pattern a
+-- _steps = patternify _steps
 
 keepMeta :: Pattern a -> Pattern a -> Pattern a
 keepMeta from to = to {tactus = tactus from, pureValue = pureValue from}
@@ -131,8 +131,7 @@ instance Applicative Pattern where
   -- > (⅓>½)-⅔|11
   -- > ⅓-(½>⅔)|12
   -- >   (⅔>1)|102
-  (<*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-  (<*>) a b = (applyPatToPatBoth a b) {tactus = lcmr <$> tactus a <*> tactus b}
+  (<*>) a b = (applyPatToPatBoth a b) {tactus = (\a' b' -> lcmr <$> a' <*> b') <$> tactus a <*> tactus b}
 
 -- | Like @<*>@, but the "wholes" come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
@@ -151,7 +150,7 @@ infixl 4 <*, *>, <<*
 applyPatToPat :: (Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)) -> Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPat combineWholes pf px = pattern q
   where
-    q st = concatMap (catMaybes . match) (query pf st)
+    q st = catMaybes $ concatMap match $ query pf st
       where
         match ef@(Event (Context c) _ fPart f) =
           map
@@ -166,7 +165,7 @@ applyPatToPat combineWholes pf px = pattern q
 applyPatToPatBoth :: Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPatBoth pf px = pattern q
   where
-    q st = catMaybes $ concatMap match (query pf st) ++ concatMap matchX (query (filterAnalog px) st)
+    q st = catMaybes $ (concatMap match $ query pf st) ++ (concatMap matchX $ query (filterAnalog px) st)
       where
         -- match analog events from pf with all events from px
         match ef@(Event _ Nothing fPart _) = map (withFX ef) (query px $ st {arc = fPart}) -- analog
@@ -183,7 +182,7 @@ applyPatToPatBoth pf px = pattern q
 applyPatToPatLeft :: Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPatLeft pf px = pattern q
   where
-    q st = concatMap (catMaybes . match) (query pf st)
+    q st = catMaybes $ concatMap match $ query pf st
       where
         match ef = map (withFX ef) (query px $ st {arc = wholeOrPart ef})
         withFX ef ex = do
@@ -194,7 +193,7 @@ applyPatToPatLeft pf px = pattern q
 applyPatToPatRight :: Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPatRight pf px = pattern q
   where
-    q st = concatMap (catMaybes . match) (query px st)
+    q st = catMaybes $ concatMap match $ query px st
       where
         match ex = map (`withFX` ex) (query pf $ st {arc = wholeOrPart ex})
         withFX ef ex = do
@@ -246,18 +245,22 @@ unwrap pp = pp {query = q, pureValue = Nothing}
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the inner pattern.
 innerJoin :: Pattern (Pattern a) -> Pattern a
-innerJoin pp = pp {query = q, pureValue = Nothing}
+innerJoin pp = setTactus (Just $ innerJoin' $ filterJust $ tactus <$> pp) $ innerJoin' pp
   where
-    q st =
-      concatMap
-        (\(Event oc _ op v) -> mapMaybe (munge oc) $ query v st {arc = op})
-        (query pp st)
+    -- \| innerJoin but without tactus manipulation (to avoid recursion)
+    innerJoin' :: Pattern (Pattern b) -> Pattern b
+    innerJoin' pp = pp {query = q, pureValue = Nothing}
       where
-        munge oc (Event ic iw ip v) =
-          do
-            p <- subArc (arc st) ip
-            p' <- subArc p (arc st)
-            return (Event (combineContexts [ic, oc]) iw p' v)
+        q st =
+          concatMap
+            (\(Event oc _ op v) -> mapMaybe (munge oc) $ query v st {arc = op})
+            (query pp st)
+          where
+            munge oc (Event ic iw ip v) =
+              do
+                p <- subArc (arc st) ip
+                p' <- subArc p (arc st)
+                return (Event (combineContexts [ic, oc]) iw p' v)
 
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the outer pattern.
@@ -279,6 +282,7 @@ outerJoin pp = pp {query = q, pureValue = Nothing}
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
 -- timespan of the outer whole (or the original query if it's a continuous pattern?)
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
+-- TODO - tactus
 squeezeJoin :: Pattern (Pattern a) -> Pattern a
 squeezeJoin pp = pp {query = q, pureValue = Nothing}
   where
