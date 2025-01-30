@@ -19,11 +19,10 @@
 module Sound.Tidal.Stepwise where
 
 import Data.List (sort, sortOn, transpose)
-import Data.Maybe (catMaybes, fromJust, fromMaybe, isJust)
+import Data.Maybe (catMaybes, fromJust, fromMaybe, isJust, mapMaybe)
 import Sound.Tidal.Core
 import Sound.Tidal.Pattern
-import Sound.Tidal.UI (while)
-import Sound.Tidal.Utils (applyWhen, enumerate, nubOrd, pairs)
+import Sound.Tidal.Utils (enumerate, nubOrd, pairs)
 
 -- _lcmtactus :: [Pattern a] -> Maybe Time
 -- _lcmtactus pats = foldl1 lcmr <$> (sequence $ map tactus pats)
@@ -37,25 +36,27 @@ s_patternify2 f a b p = stepJoin $ (\x y -> f x y p) <$> a <*> b
 
 -- Breaks up pattern of patterns at event boundaries, then timecats them all together
 stepJoin :: Pattern (Pattern a) -> Pattern a
-stepJoin pp = Pattern q first_t Nothing
+stepJoin pp = splitQueries $ Pattern q t Nothing
   where
     q st@(State a c) =
       query
         ( stepcat $
             retime $
               slices $
-                -- query whole, single cycle of pp (should there be a splitCycles here???)
                 query (rotL (sam $ start a) pp) (st {arc = Arc 0 1})
         )
         st
-    first_t :: Maybe (Pattern Rational)
-    first_t = tactus $ stepcat $ retime $ slices $ queryArc pp (Arc 0 1)
+    -- TODO what's the tactus of the tactus and does it matter?
+    t :: Maybe (Pattern Rational)
+    t = Just $ Pattern t_q Nothing Nothing
+    t_q :: State -> [Event Rational]
+    t_q st@(State a' _) = maybe [] (`query` st) (tactus (stepcat $ retime $ slices $ query (rotL (sam $ start a') pp) (st {arc = Arc 0 1})))
     -- retime each pattern slice
     retime :: [(Time, Pattern a)] -> [Pattern a]
-    retime xs = map (\(dur, pat) -> adjust dur pat) xs
+    retime xs = map (uncurry adjust) xs
       where
         occupied_perc = sum $ map fst $ filter (isJust . tactus . snd) xs
-        occupied_tactus = sum $ catMaybes $ map (tactus . snd) xs
+        occupied_tactus = sum $ mapMaybe (tactus . snd) xs
         total_tactus = (/ occupied_perc) <$> occupied_tactus
         adjust _ pat@(Pattern {tactus = Just _}) = pat
         adjust dur pat = setTactus (Just $ (* dur) <$> total_tactus) pat
@@ -63,10 +64,10 @@ stepJoin pp = Pattern q first_t Nothing
     -- stacked into single patterns, with duration. Some patterns
     -- will be have no events.
     slices :: [Event (Pattern a)] -> [(Time, Pattern a)]
-    slices evs = map (\s -> ((snd s - fst s), stack $ map (\x -> withContext (\c -> combineContexts [c, context x]) $ value x) $ fit s evs)) $ pairs $ sort $ nubOrd $ 0 : 1 : concatMap (\ev -> start (part ev) : stop (part ev) : []) evs
+    slices evs = map (\s -> (snd s - fst s, stack $ map (\x -> withContext (\c -> combineContexts [c, context x]) $ value x) $ fit s evs)) $ pairs $ sort $ nubOrd $ 0 : 1 : concatMap (\ev -> start (part ev) : stop (part ev) : []) evs
     -- list of slices of events within the given range
     fit :: (Rational, Rational) -> [Event (Pattern a)] -> [Event (Pattern a)]
-    fit (b, e) evs = catMaybes $ map (match (b, e)) evs
+    fit (b, e) evs = mapMaybe (match (b, e)) evs
     -- slice of event within the given range
     match :: (Rational, Rational) -> Event (Pattern a) -> Maybe (Event (Pattern a))
     match (b, e) ev = do
@@ -83,22 +84,28 @@ stepcat pats = innerJoin $ (timecat . map snd . sortOn fst) <$> (tpat $ epats pa
     tpat :: [(Int, Pattern a)] -> Pattern [(Int, (Time, Pattern a))]
     tpat pats = sequence $ map (\(i, pat) -> (\t -> (i, (t, pat))) <$> (fromJust $ tactus pat)) pats
 
-increase :: Pattern Time -> Pattern a -> Pattern a
+_steptake :: Time -> Pattern a -> Pattern a
 -- raise error?
-increase _ pat@(Pattern _ Nothing _) = pat
-increase npat pat@(Pattern _ (Just tpat) _) = setTactus (Just tpat') $ zoompat b e pat
+_steptake _ pat@(Pattern _ Nothing _) = pat
+_steptake n pat@(Pattern _ (Just tpat) _) = setTactus (Just tpat') $ zoompat b e pat
   where
-    b = (\n t -> if n >= 0 then 0 else 1 - ((abs n) / t)) <$> npat <*> tpat
-    e = (\n t -> if n >= 0 then n / t else 1) <$> npat <*> tpat
-    tpat' = (\a b -> min (abs a) b) <$> npat <*> tpat
+    b = (\t -> if n >= 0 then 0 else 1 - ((abs n) / t)) <$> tpat
+    e = (\t -> if n >= 0 then n / t else 1) <$> tpat
+    tpat' = (\t -> min (abs n) t) <$> tpat
 
-decrease :: Pattern Rational -> Pattern a -> Pattern a
-decrease npat pat@(Pattern _ Nothing _) = pat
-decrease npat pat@(Pattern _ (Just tpat) _) = increase (f <$> tpat <*> npat) pat
+steptake :: Pattern Time -> Pattern a -> Pattern a
+steptake = s_patternify _steptake
+
+_stepdrop :: Time -> Pattern a -> Pattern a
+_stepdrop n pat@(Pattern _ Nothing _) = pat
+_stepdrop n pat@(Pattern _ (Just tpat) _) = steptake (f <$> tpat) pat
   where
-    f t n
+    f t
       | n >= 0 = t - n
       | otherwise = 0 - (t + n)
+
+stepdrop :: Pattern Time -> Pattern a -> Pattern a
+stepdrop = s_patternify _stepdrop
 
 _expand :: Rational -> Pattern a -> Pattern a
 _expand factor pat = withTactus (* factor) pat
