@@ -2,7 +2,7 @@
 
 module Sound.Tidal.StepwiseTest where
 
-import Sound.Tidal.Control (chop, hurry)
+import Sound.Tidal.Control (chop, hurry, striate)
 import Sound.Tidal.Core ()
 import Sound.Tidal.Params (sound)
 import Sound.Tidal.ParseBP ()
