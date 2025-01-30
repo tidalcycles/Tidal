@@ -54,3 +54,6 @@ ps = parseBP_E
 
 stripContext :: Pattern a -> Pattern a
 stripContext = setContext $ Context []
+
+firstCycleValues :: Pattern a -> [a]
+firstCycleValues pat = map value $ queryArc pat (Arc 0 1)

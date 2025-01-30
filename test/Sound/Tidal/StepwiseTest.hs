@@ -2,13 +2,25 @@
 
 module Sound.Tidal.StepwiseTest where
 
-import qualified Data.Map.Strict as Map
-import Data.Ratio
-import Sound.Tidal.ParseBP
+import Sound.Tidal.Control (chop, hurry)
+import Sound.Tidal.Core ()
+import Sound.Tidal.Params (sound)
+import Sound.Tidal.ParseBP ()
 import Sound.Tidal.Pattern
-import Sound.Tidal.Stepwise
+  ( ArcF (Arc),
+    Pattern (tactus),
+    fast,
+    rev,
+  )
+import Sound.Tidal.Stepwise (expand, stepcat, stepdrop, steptake)
+import Sound.Tidal.UI (inv, iter, linger, segment)
 import Test.Microspec
-import TestUtils
+  ( MTestable (describe),
+    Microspec,
+    it,
+    shouldBe,
+  )
+import TestUtils (compareP, firstCycleValues)
 import Prelude hiding ((*>), (<*))
 
 run :: Microspec ()
@@ -30,17 +42,18 @@ run =
         compareP (Arc 0 8) (stepdrop "0 1 2 3" ("a b c d" :: Pattern Char)) "a b c d a b c a b a"
       it "can pattern reverse drops" $ do
         compareP (Arc 0 8) (stepdrop "0 -1 -2 -3" ("a b c d" :: Pattern Char)) "a b c d b c d c d d"
+    describe "tactus" $ do
+      it "is correctly preserved/calculated through transformations" $ do
+        it "linger" $ (firstCycleValues <$> tactus (linger 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
+        it "iter" $ (firstCycleValues <$> tactus (iter 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
+        it "fast" $ (firstCycleValues <$> tactus (fast 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
+        it "hurry" $ (firstCycleValues <$> tactus (hurry 4 $ sound "a b c")) `shouldBe` Just [3]
+        it "rev" $ (firstCycleValues <$> tactus (rev "a b c" :: Pattern Char)) `shouldBe` Just [3]
+        it "segment" $ (firstCycleValues <$> tactus (segment 10 "a" :: Pattern Char)) `shouldBe` Just [10]
+        it "invert" $ (firstCycleValues <$> tactus (inv "1 0 1" :: Pattern Bool)) `shouldBe` Just [3]
+        it "chop" $ (firstCycleValues <$> tactus (chop 3 $ sound "a b")) `shouldBe` Just [6]
+        it "chop" $ (firstCycleValues <$> tactus (striate 3 $ sound "a b")) `shouldBe` Just [6]
 
-
---     describe('tactus', () => {
---   it('Is correctly preserved/calculated through transformations', () => {
---     expect(sequence(0, 1, 2, 3).linger(4).tactus).toStrictEqual(Fraction(4));
---     expect(sequence(0, 1, 2, 3).iter(4).tactus).toStrictEqual(Fraction(4));
---     expect(sequence(0, 1, 2, 3).fast(4).tactus).toStrictEqual(Fraction(4));
---     expect(sequence(0, 1, 2, 3).hurry(4).tactus).toStrictEqual(Fraction(4));
---     expect(sequence(0, 1, 2, 3).rev().tactus).toStrictEqual(Fraction(4));
---     expect(sequence(1).segment(10).tactus).toStrictEqual(Fraction(10));
---     expect(sequence(1, 0, 1).invert().tactus).toStrictEqual(Fraction(3));
 --     expect(sequence({ s: 'bev' }, { s: 'amenbreak' }).chop(4).tactus).toStrictEqual(Fraction(8));
 --     expect(sequence({ s: 'bev' }, { s: 'amenbreak' }).striate(4).tactus).toStrictEqual(Fraction(8));
 --     expect(sequence({ s: 'bev' }, { s: 'amenbreak' }).slice(4, sequence(0, 1, 2, 3)).tactus).toStrictEqual(

@@ -302,19 +302,20 @@ _trigJoin :: Bool -> Pattern (Pattern a) -> Pattern a
 _trigJoin cycleZero pat_of_pats = pattern q
   where
     q st =
-      catMaybes $
-        concatMap
-          ( \(Event oc jow op ov) ->
-              map
-                ( \(Event ic (iw) ip iv) ->
-                    do
-                      w <- subMaybeArc jow iw
-                      p <- subArc op ip
-                      return $ Event (combineContexts [ic, oc]) w p iv
-                )
-                $ query (((if cycleZero then id else cyclePos) $ start (fromJust jow)) `rotR` ov) st
-          )
-          (query (filterDigital pat_of_pats) st)
+      concatMap
+        ( catMaybes
+            . ( \(Event oc jow op ov) ->
+                  map
+                    ( \(Event ic iw ip iv) ->
+                        do
+                          w <- subMaybeArc jow iw
+                          p <- subArc op ip
+                          return $ Event (combineContexts [ic, oc]) w p iv
+                    )
+                    $ query ((if cycleZero then id else cyclePos) (start (fromJust jow)) `rotR` ov) st
+              )
+        )
+        (query (filterDigital pat_of_pats) st)
 
 trigJoin :: Pattern (Pattern a) -> Pattern a
 trigJoin = _trigJoin False
