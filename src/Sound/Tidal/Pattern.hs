@@ -249,12 +249,12 @@ innerJoin pp = setTactus (Just $ innerJoin' $ filterJust $ tactus <$> pp) $ inne
   where
     -- \| innerJoin but without tactus manipulation (to avoid recursion)
     innerJoin' :: Pattern (Pattern b) -> Pattern b
-    innerJoin' pp = pp {query = q, pureValue = Nothing}
+    innerJoin' pp' = pp' {query = q, pureValue = Nothing}
       where
         q st =
           concatMap
             (\(Event oc _ op v) -> mapMaybe (munge oc) $ query v st {arc = op})
-            (query pp st)
+            (query pp' st)
           where
             munge oc (Event ic iw ip v) =
               do

@@ -18,10 +18,10 @@ module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale) where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import Data.Maybe
-import Sound.Tidal.Core
-import Sound.Tidal.Pattern
-import Sound.Tidal.Utils
+import Data.Maybe (fromMaybe)
+import Sound.Tidal.Core (slowcat)
+import Sound.Tidal.Pattern (Pattern, (<*))
+import Sound.Tidal.Utils ((!!!))
 import Prelude hiding ((*>), (<*))
 
 -- * Scale definitions
