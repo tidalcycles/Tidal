@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-
@@ -93,6 +94,7 @@ type ControlPattern = Pattern ValueMap
 
 instance Applicative Pattern where
   -- Repeat the given value once per cycle, forever
+  pure :: a -> Pattern a
   pure v = Pattern q (Just 1) (Just v)
     where
       q (State a _) =
@@ -129,6 +131,7 @@ instance Applicative Pattern where
   -- > (⅓>½)-⅔|11
   -- > ⅓-(½>⅔)|12
   -- >   (⅔>1)|102
+  (<*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
   (<*>) a b = (applyPatToPatBoth a b) {tactus = lcmr <$> tactus a <*> tactus b}
 
 -- | Like @<*>@, but the "wholes" come from the left
@@ -148,7 +151,7 @@ infixl 4 <*, *>, <<*
 applyPatToPat :: (Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)) -> Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPat combineWholes pf px = pattern q
   where
-    q st = catMaybes $ concatMap match $ query pf st
+    q st = concatMap (catMaybes . match) (query pf st)
       where
         match ef@(Event (Context c) _ fPart f) =
           map
@@ -163,7 +166,7 @@ applyPatToPat combineWholes pf px = pattern q
 applyPatToPatBoth :: Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPatBoth pf px = pattern q
   where
-    q st = catMaybes $ (concatMap match $ query pf st) ++ (concatMap matchX $ query (filterAnalog px) st)
+    q st = catMaybes $ concatMap match (query pf st) ++ concatMap matchX (query (filterAnalog px) st)
       where
         -- match analog events from pf with all events from px
         match ef@(Event _ Nothing fPart _) = map (withFX ef) (query px $ st {arc = fPart}) -- analog
@@ -180,7 +183,7 @@ applyPatToPatBoth pf px = pattern q
 applyPatToPatLeft :: Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPatLeft pf px = pattern q
   where
-    q st = catMaybes $ concatMap match $ query pf st
+    q st = concatMap (catMaybes . match) (query pf st)
       where
         match ef = map (withFX ef) (query px $ st {arc = wholeOrPart ef})
         withFX ef ex = do
@@ -191,7 +194,7 @@ applyPatToPatLeft pf px = pattern q
 applyPatToPatRight :: Pattern (a -> b) -> Pattern a -> Pattern b
 applyPatToPatRight pf px = pattern q
   where
-    q st = catMaybes $ concatMap match $ query px st
+    q st = concatMap (catMaybes . match) (query px st)
       where
         match ex = map (`withFX` ex) (query pf $ st {arc = wholeOrPart ex})
         withFX ef ex = do
@@ -200,7 +203,7 @@ applyPatToPatRight pf px = pattern q
           return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
 
 applyPatToPatSqueeze :: Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPatSqueeze pf px = squeezeJoin $ (\f -> f <$> px) <$> pf
+applyPatToPatSqueeze pf px = squeezeJoin $ (<$> px) <$> pf
 
 -- * Monad and friends
 
@@ -295,19 +298,20 @@ _trigJoin :: Bool -> Pattern (Pattern a) -> Pattern a
 _trigJoin cycleZero pat_of_pats = pattern q
   where
     q st =
-      catMaybes $
-        concatMap
-          ( \(Event oc jow op ov) ->
-              map
-                ( \(Event ic (iw) ip iv) ->
-                    do
-                      w <- subMaybeArc jow iw
-                      p <- subArc op ip
-                      return $ Event (combineContexts [ic, oc]) w p iv
-                )
-                $ query (((if cycleZero then id else cyclePos) $ start (fromJust jow)) `rotR` ov) st
-          )
-          (query (filterDigital pat_of_pats) st)
+      concatMap
+        ( catMaybes
+            . ( \(Event oc jow op ov) ->
+                  map
+                    ( \(Event ic iw ip iv) ->
+                        do
+                          w <- subMaybeArc jow iw
+                          p <- subArc op ip
+                          return $ Event (combineContexts [ic, oc]) w p iv
+                    )
+                    $ query ((if cycleZero then id else cyclePos) (start (fromJust jow)) `rotR` ov) st
+              )
+        )
+        (query (filterDigital pat_of_pats) st)
 
 trigJoin :: Pattern (Pattern a) -> Pattern a
 trigJoin = _trigJoin False
@@ -319,149 +323,239 @@ reset :: Pattern Bool -> Pattern a -> Pattern a
 reset bp pat = trigJoin $ (\v -> if v then pat else silence) <$> bp
 
 resetTo :: Pattern Rational -> Pattern a -> Pattern a
-resetTo bp pat = trigJoin $ (\v -> rotL v pat) <$> bp
+resetTo bp pat = trigJoin $ (`rotL` pat) <$> bp
 
 restart :: Pattern Bool -> Pattern a -> Pattern a
 restart bp pat = trigZeroJoin $ (\v -> if v then pat else silence) <$> bp
 
 restartTo :: Pattern Rational -> Pattern a -> Pattern a
-restartTo bp pat = trigZeroJoin $ (\v -> rotL v pat) <$> bp
+restartTo bp pat = trigZeroJoin $ (`rotL` pat) <$> bp
 
 -- | * Patterns as numbers
 noOv :: String -> a
 noOv meth = error $ meth ++ ": not supported for patterns"
 
 instance Eq (Pattern a) where
+  (==) :: Pattern a -> Pattern a -> Bool
   (==) = noOv "(==)"
 
 instance (Ord a) => Ord (Pattern a) where
+  min :: (Ord a) => Pattern a -> Pattern a -> Pattern a
   min = liftA2 min
+  max :: (Ord a) => Pattern a -> Pattern a -> Pattern a
   max = liftA2 max
+  compare :: (Ord a) => Pattern a -> Pattern a -> Ordering
   compare = noOv "compare"
+  (<=) :: (Ord a) => Pattern a -> Pattern a -> Bool
   (<=) = noOv "(<=)"
 
 instance (Num a) => Num (Pattern a) where
+  negate :: (Num a) => Pattern a -> Pattern a
   negate = fmap negate
+  (+) :: (Num a) => Pattern a -> Pattern a -> Pattern a
   (+) = liftA2 (+)
+  (*) :: (Num a) => Pattern a -> Pattern a -> Pattern a
   (*) = liftA2 (*)
+  fromInteger :: (Num a) => Integer -> Pattern a
   fromInteger = pure . fromInteger
+  abs :: (Num a) => Pattern a -> Pattern a
   abs = fmap abs
+  signum :: (Num a) => Pattern a -> Pattern a
   signum = fmap signum
 
 instance (Enum a) => Enum (Pattern a) where
+  succ :: (Enum a) => Pattern a -> Pattern a
   succ = fmap succ
+  pred :: (Enum a) => Pattern a -> Pattern a
   pred = fmap pred
+  toEnum :: (Enum a) => Int -> Pattern a
   toEnum = pure . toEnum
+  fromEnum :: (Enum a) => Pattern a -> Int
   fromEnum = noOv "fromEnum"
+  enumFrom :: (Enum a) => Pattern a -> [Pattern a]
   enumFrom = noOv "enumFrom"
+  enumFromThen :: (Enum a) => Pattern a -> Pattern a -> [Pattern a]
   enumFromThen = noOv "enumFromThen"
+  enumFromTo :: (Enum a) => Pattern a -> Pattern a -> [Pattern a]
   enumFromTo = noOv "enumFromTo"
+  enumFromThenTo :: (Enum a) => Pattern a -> Pattern a -> Pattern a -> [Pattern a]
   enumFromThenTo = noOv "enumFromThenTo"
 
 instance Monoid (Pattern a) where
+  mempty :: Pattern a
   mempty = empty
 
 instance Semigroup (Pattern a) where
+  (<>) :: Pattern a -> Pattern a -> Pattern a
   (<>) !p !p' = pattern $ \st -> query p st ++ query p' st
 
 instance (Num a, Ord a) => Real (Pattern a) where
+  toRational :: (Num a, Ord a) => Pattern a -> Rational
   toRational = noOv "toRational"
 
 instance (Integral a) => Integral (Pattern a) where
+  quot :: (Integral a) => Pattern a -> Pattern a -> Pattern a
   quot = liftA2 quot
+  rem :: (Integral a) => Pattern a -> Pattern a -> Pattern a
   rem = liftA2 rem
+  div :: (Integral a) => Pattern a -> Pattern a -> Pattern a
   div = liftA2 div
+  mod :: (Integral a) => Pattern a -> Pattern a -> Pattern a
   mod = liftA2 mod
+  toInteger :: (Integral a) => Pattern a -> Integer
   toInteger = noOv "toInteger"
+  quotRem :: (Integral a) => Pattern a -> Pattern a -> (Pattern a, Pattern a)
   x `quotRem` y = (x `quot` y, x `rem` y)
+  divMod :: (Integral a) => Pattern a -> Pattern a -> (Pattern a, Pattern a)
   x `divMod` y = (x `div` y, x `mod` y)
 
 instance (Fractional a) => Fractional (Pattern a) where
+  recip :: (Fractional a) => Pattern a -> Pattern a
   recip = fmap recip
+  fromRational :: (Fractional a) => Rational -> Pattern a
   fromRational = pure . fromRational
 
 instance (Floating a) => Floating (Pattern a) where
+  pi :: (Floating a) => Pattern a
   pi = pure pi
+  sqrt :: (Floating a) => Pattern a -> Pattern a
   sqrt = fmap sqrt
+  exp :: (Floating a) => Pattern a -> Pattern a
   exp = fmap exp
+  log :: (Floating a) => Pattern a -> Pattern a
   log = fmap log
+  sin :: (Floating a) => Pattern a -> Pattern a
   sin = fmap sin
+  cos :: (Floating a) => Pattern a -> Pattern a
   cos = fmap cos
+  asin :: (Floating a) => Pattern a -> Pattern a
   asin = fmap asin
+  atan :: (Floating a) => Pattern a -> Pattern a
   atan = fmap atan
+  acos :: (Floating a) => Pattern a -> Pattern a
   acos = fmap acos
+  sinh :: (Floating a) => Pattern a -> Pattern a
   sinh = fmap sinh
+  cosh :: (Floating a) => Pattern a -> Pattern a
   cosh = fmap cosh
+  asinh :: (Floating a) => Pattern a -> Pattern a
   asinh = fmap asinh
+  atanh :: (Floating a) => Pattern a -> Pattern a
   atanh = fmap atanh
+  acosh :: (Floating a) => Pattern a -> Pattern a
   acosh = fmap acosh
 
 instance (RealFrac a) => RealFrac (Pattern a) where
+  properFraction :: (RealFrac a, Integral b) => Pattern a -> (b, Pattern a)
   properFraction = noOv "properFraction"
+  truncate :: (RealFrac a, Integral b) => Pattern a -> b
   truncate = noOv "truncate"
+  round :: (RealFrac a, Integral b) => Pattern a -> b
   round = noOv "round"
+  ceiling :: (RealFrac a, Integral b) => Pattern a -> b
   ceiling = noOv "ceiling"
+  floor :: (RealFrac a, Integral b) => Pattern a -> b
   floor = noOv "floor"
 
 instance (RealFloat a) => RealFloat (Pattern a) where
+  floatRadix :: (RealFloat a) => Pattern a -> Integer
   floatRadix = noOv "floatRadix"
+  floatDigits :: (RealFloat a) => Pattern a -> Int
   floatDigits = noOv "floatDigits"
+  floatRange :: (RealFloat a) => Pattern a -> (Int, Int)
   floatRange = noOv "floatRange"
+  decodeFloat :: (RealFloat a) => Pattern a -> (Integer, Int)
   decodeFloat = noOv "decodeFloat"
+  encodeFloat :: (RealFloat a) => Integer -> Int -> Pattern a
   encodeFloat = ((.) . (.)) pure encodeFloat
+  exponent :: (RealFloat a) => Pattern a -> Int
   exponent = noOv "exponent"
+  significand :: (RealFloat a) => Pattern a -> Pattern a
   significand = noOv "significand"
+  scaleFloat :: (RealFloat a) => Int -> Pattern a -> Pattern a
   scaleFloat n = fmap (scaleFloat n)
+  isNaN :: (RealFloat a) => Pattern a -> Bool
   isNaN = noOv "isNaN"
+  isInfinite :: (RealFloat a) => Pattern a -> Bool
   isInfinite = noOv "isInfinite"
+  isDenormalized :: (RealFloat a) => Pattern a -> Bool
   isDenormalized = noOv "isDenormalized"
+  isNegativeZero :: (RealFloat a) => Pattern a -> Bool
   isNegativeZero = noOv "isNegativeZero"
+  isIEEE :: (RealFloat a) => Pattern a -> Bool
   isIEEE = noOv "isIEEE"
+  atan2 :: (RealFloat a) => Pattern a -> Pattern a -> Pattern a
   atan2 = liftA2 atan2
 
 instance Num ValueMap where
+  negate :: ValueMap -> ValueMap
   negate = (applyFIS negate negate id <$>)
+  (+) :: ValueMap -> ValueMap -> ValueMap
   (+) = Map.unionWith (fNum2 (+) (+))
+  (*) :: ValueMap -> ValueMap -> ValueMap
   (*) = Map.unionWith (fNum2 (*) (*))
+  fromInteger :: Integer -> ValueMap
   fromInteger i = Map.singleton "n" $ VI (fromInteger i)
+  signum :: ValueMap -> ValueMap
   signum = (applyFIS signum signum id <$>)
+  abs :: ValueMap -> ValueMap
   abs = (applyFIS abs abs id <$>)
 
 instance Fractional ValueMap where
+  recip :: ValueMap -> ValueMap
   recip = fmap (applyFIS recip id id)
+  fromRational :: Rational -> ValueMap
   fromRational r = Map.singleton "speed" $ VF (fromRational r)
 
 class Moddable a where
   gmod :: a -> a -> a
 
 instance Moddable Double where
+  gmod :: Double -> Double -> Double
   gmod = mod'
 
 instance Moddable Rational where
+  gmod :: Rational -> Rational -> Rational
   gmod = mod'
 
 instance Moddable Note where
+  gmod :: Note -> Note -> Note
   gmod (Note a) (Note b) = Note (mod' a b)
 
 instance Moddable Int where
+  gmod :: Int -> Int -> Int
   gmod = mod
 
 instance Moddable ValueMap where
+  gmod :: ValueMap -> ValueMap -> ValueMap
   gmod = Map.unionWith (fNum2 mod mod')
 
 instance Floating ValueMap where
+  pi :: ValueMap
   pi = noOv "pi"
+  exp :: ValueMap -> ValueMap
   exp _ = noOv "exp"
+  log :: ValueMap -> ValueMap
   log _ = noOv "log"
+  sin :: ValueMap -> ValueMap
   sin _ = noOv "sin"
+  cos :: ValueMap -> ValueMap
   cos _ = noOv "cos"
+  asin :: ValueMap -> ValueMap
   asin _ = noOv "asin"
+  acos :: ValueMap -> ValueMap
   acos _ = noOv "acos"
+  atan :: ValueMap -> ValueMap
   atan _ = noOv "atan"
+  sinh :: ValueMap -> ValueMap
   sinh _ = noOv "sinh"
+  cosh :: ValueMap -> ValueMap
   cosh _ = noOv "cosh"
+  asinh :: ValueMap -> ValueMap
   asinh _ = noOv "asinh"
+  acosh :: ValueMap -> ValueMap
   acosh _ = noOv "acosh"
+  atanh :: ValueMap -> ValueMap
   atanh _ = noOv "atanh"
 
 ------------------------------------------------------------------------
@@ -575,7 +669,7 @@ compressArcTo :: Arc -> Pattern a -> Pattern a
 compressArcTo (Arc s e) = compressArc (Arc (cyclePos s) (e - sam s))
 
 focusArc :: Arc -> Pattern a -> Pattern a
-focusArc (Arc s e) p = (cyclePos s) `rotR` (_fast (1 / (e - s)) p)
+focusArc (Arc s e) p = cyclePos s `rotR` _fast (1 / (e - s)) p
 
 -- | Speed up a pattern by the given time pattern.
 --
@@ -600,7 +694,7 @@ fast t pat = patternify' _fast t pat
 --
 --  To better understand how it works, compare it with 'fast':
 --
---  >>> print $ fast "1 2" $ s "bd sn"
+--  >>> fast "1 2" $ s "bd sn"
 --  (0>½)|s: "bd"
 --  (½>¾)|s: "bd"
 --  (¾>1)|s: "sn"
@@ -796,7 +890,7 @@ separateCycles :: Int -> Pattern a -> [Pattern a]
 separateCycles n pat = map (\i -> skip $ rotL (toRational i) pat) [0 .. n - 1]
   where
     n' = toRational n
-    skip pat' = splitQueries $ withResultStart (\t -> ((sam t) / n') + cyclePos t) $ withQueryStart (\t -> (sam t * n') + cyclePos t) $ pat'
+    skip pat' = splitQueries $ withResultStart (\t -> (sam t / n') + cyclePos t) $ withQueryStart (\t -> (sam t * n') + cyclePos t) $ pat'
 
 -- ** Temporal parameter helpers
 
@@ -863,6 +957,7 @@ class Stringy a where
   deltaContext :: Int -> Int -> a -> a
 
 instance Stringy (Pattern a) where
+  deltaContext :: Int -> Int -> Pattern a -> Pattern a
   deltaContext column line pat = withEvents (map (\e -> e {context = f $ context e})) pat
     where
       f :: Context -> Context
@@ -870,6 +965,7 @@ instance Stringy (Pattern a) where
 
 -- deltaContext on an actual (non overloaded) string is a no-op
 instance Stringy String where
+  deltaContext :: Int -> Int -> String -> String
   deltaContext _ _ = id
 
 -- ** Events
@@ -1010,6 +1106,7 @@ newtype Note = Note {unNote :: Double}
 instance NFData Note
 
 instance Show Note where
+  show :: Note -> String
   show n = (show . unNote $ n) ++ "n (" ++ pitchClass ++ octave ++ ")"
     where
       pitchClass = pcs !! mod noteInt 12
@@ -1018,30 +1115,39 @@ instance Show Note where
       pcs = ["c", "cs", "d", "ds", "e", "f", "fs", "g", "gs", "a", "as", "b"]
 
 instance Valuable String where
+  toValue :: String -> Value
   toValue a = VS a
 
 instance Valuable Double where
+  toValue :: Double -> Value
   toValue a = VF a
 
 instance Valuable Rational where
+  toValue :: Rational -> Value
   toValue a = VR a
 
 instance Valuable Int where
+  toValue :: Int -> Value
   toValue a = VI a
 
 instance Valuable Bool where
+  toValue :: Bool -> Value
   toValue a = VB a
 
 instance Valuable Note where
+  toValue :: Note -> Value
   toValue a = VN a
 
 instance Valuable [Word8] where
+  toValue :: [Word8] -> Value
   toValue a = VX a
 
 instance Valuable [Value] where
+  toValue :: [Value] -> Value
   toValue a = VList a
 
 instance Eq Value where
+  (==) :: Value -> Value -> Bool
   (VS x) == (VS y) = x == y
   (VB x) == (VB y) = x == y
   (VF x) == (VF y) = x == y
@@ -1058,6 +1164,7 @@ instance Eq Value where
   _ == _ = False
 
 instance Ord Value where
+  compare :: Value -> Value -> Ordering
   compare (VS x) (VS y) = compare x y
   compare (VB x) (VB y) = compare x y
   compare (VF x) (VF y) = compare x y
@@ -1102,7 +1209,7 @@ applyFIS f _ _ (VF f') = VF (f f')
 applyFIS f _ _ (VN (Note f')) = VN (Note $ f f')
 applyFIS _ f _ (VI i) = VI (f i)
 applyFIS _ _ f (VS s) = VS (f s)
-applyFIS f f' f'' (VState x) = VState $ \cmap -> (applyFIS f f' f'') <$> (x cmap)
+applyFIS f f' f'' (VState x) = VState (fmap (applyFIS f f' f'') . x)
 applyFIS _ _ _ v = v
 
 -- | Apply one of two functions to a pair of Values, depending on their types (int
@@ -1115,8 +1222,8 @@ fNum2 _ fFloat (VF a) (VN (Note b)) = VN (Note $ fFloat a b)
 fNum2 _ fFloat (VN (Note a)) (VF b) = VN (Note $ fFloat a b)
 fNum2 _ fFloat (VI a) (VF b) = VF (fFloat (fromIntegral a) b)
 fNum2 _ fFloat (VF a) (VI b) = VF (fFloat a (fromIntegral b))
-fNum2 fInt fFloat (VState a) b = VState $ \cmap -> ((\a' -> fNum2 fInt fFloat a' b) <$> (a cmap))
-fNum2 fInt fFloat a (VState b) = VState $ \cmap -> ((\b' -> fNum2 fInt fFloat a b') <$> (b cmap))
+fNum2 fInt fFloat (VState a) b = VState (fmap (\a' -> fNum2 fInt fFloat a' b) . a)
+fNum2 fInt fFloat a (VState b) = VState (fmap (fNum2 fInt fFloat a) . b)
 fNum2 _ _ x _ = x
 
 getI :: Value -> Maybe Int
@@ -1171,7 +1278,7 @@ sameDur e1 e2 = (whole e1 == whole e2) && (part e1 == part e2)
 
 groupEventsBy :: (Eq a) => (Event a -> Event a -> Bool) -> [Event a] -> [[Event a]]
 groupEventsBy _ [] = []
-groupEventsBy f (e : es) = eqs : (groupEventsBy f (es \\ eqs))
+groupEventsBy f (e : es) = eqs : groupEventsBy f (es \\ eqs)
   where
     eqs = e : [x | x <- es, f e x]
 
@@ -1192,7 +1299,7 @@ collectEventsBy f es = remNo $ map collectEvent (groupEventsBy f es)
   where
     remNo [] = []
     remNo (Nothing : cs) = remNo cs
-    remNo ((Just c) : cs) = c : (remNo cs)
+    remNo ((Just c) : cs) = c : remNo cs
 
 -- | collects all events satisfying the same constraint into a list
 collectBy :: (Eq a) => (Event a -> Event a -> Bool) -> Pattern a -> Pattern [a]
@@ -1203,11 +1310,9 @@ collect :: (Eq a) => Pattern a -> Pattern [a]
 collect = collectBy sameDur
 
 uncollectEvent :: Event [a] -> [Event a]
-uncollectEvent e = [e {value = (value e) !! i, context = resolveContext i (context e)} | i <- [0 .. length (value e) - 1]]
+uncollectEvent e = [e {value = value e !! i, context = resolveContext i (context e)} | i <- [0 .. length (value e) - 1]]
   where
-    resolveContext i (Context xs) = case length xs <= i of
-      True -> Context []
-      False -> Context [xs !! i]
+    resolveContext i (Context xs) = if length xs <= i then Context [] else Context [xs !! i]
 
 uncollectEvents :: [Event [a]] -> [Event a]
 uncollectEvents = concatMap uncollectEvent
