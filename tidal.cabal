@@ -88,6 +88,7 @@ test-suite tests
                  Sound.Tidal.PatternTest
                  Sound.Tidal.ScalesTest
                  Sound.Tidal.ChordsTest
+                 Sound.Tidal.StepwiseTest
                  Sound.Tidal.StreamTest
                  Sound.Tidal.UITest
                  Sound.Tidal.UtilsTest
