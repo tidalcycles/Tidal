@@ -1469,8 +1469,9 @@ _markovPat n xi tp =
 beat :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
 beat = patternify2 $ __beat innerJoin
 
+-- TODO it would probably be better to pass a bind here instead..
 __beat :: (Pattern (Pattern a) -> Pattern a) -> Time -> Time -> Pattern a -> Pattern a
-__beat join t d p = join $ (compress (s, e) . pure) <$> p
+__beat usejoin t d p = usejoin $ compress (s, e) . pure <$> p
   where
     s = t' / d
     e = (t' + 1) / d
@@ -1509,7 +1510,7 @@ __beat join t d p = join $ (compress (s, e) . pure) <$> p
 --   # n (run 8)
 -- @
 mask :: Pattern Bool -> Pattern a -> Pattern a
-mask b p = const <$> p <* (filterValues id b)
+mask b p = const <$> p <* filterValues id b
 
 -- TODO: refactor towards union
 enclosingArc :: [Arc] -> Arc
@@ -2062,17 +2063,17 @@ rolledBy pt = patternify rolledWith (segment 1 $ pt)
 rolledWith :: Ratio Integer -> Pattern a -> Pattern a
 rolledWith t = withEvents aux
   where
-    aux es = concatMap (steppityIn) (groupBy (\a b -> whole a == whole b) $ ((isRev t) es))
+    aux es = concatMap steppityIn (groupBy (\a b -> whole a == whole b) $ isRev t es)
     isRev b = (\x -> if x > 0 then id else reverse) b
-    steppityIn xs = mapMaybe (\(n, ev) -> (timeguard n xs ev t)) $ enumerate xs
+    steppityIn xs = mapMaybe (\(n, ev) -> timeguard n xs ev t) $ enumerate xs
     timeguard _ _ ev 0 = return ev
-    timeguard n xs ev _ = (shiftIt n (length xs) ev)
+    timeguard n xs ev _ = shiftIt n (length xs) ev
     shiftIt n d (Event c (Just (Arc s e)) a' v) = do
       a'' <- subArc (Arc newS e) a'
       return (Event c (Just $ Arc newS e) a'' v)
       where
         newS = s + (dur * fromIntegral n)
-        dur = ((e - s)) / ((1 / (abs t)) * fromIntegral d)
+        dur = (e - s) / ((1 / abs t) * fromIntegral d)
     shiftIt _ _ ev = return ev
 
 {- TODO !
@@ -2122,7 +2123,7 @@ ply :: Pattern Rational -> Pattern a -> Pattern a
 ply = patternify' _ply
 
 _ply :: Rational -> Pattern a -> Pattern a
-_ply n pat = squeezeJoin $ (_fast n . pure) <$> pat
+_ply n pat = squeezeJoin $ _fast n . pure <$> pat
 
 -- | As 'ply', but applies a function each time. The applications are compounded.
 plyWith :: (Ord t, Num t) => Pattern t -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
@@ -2190,7 +2191,7 @@ pressBy :: Pattern Time -> Pattern a -> Pattern a
 pressBy = patternify' _pressBy
 
 _pressBy :: Time -> Pattern a -> Pattern a
-_pressBy r pat = squeezeJoin $ (compressTo (r, 1) . pure) <$> pat
+_pressBy r pat = squeezeJoin $ compressTo (r, 1) . pure <$> pat
 
 {-
   Uses the first (binary) pattern to switch between the following
@@ -2405,7 +2406,7 @@ spreadf = spread ($)
 stackwith :: (Unionable a) => Pattern a -> [Pattern a] -> Pattern a
 stackwith p ps
   | null ps = silence
-  | otherwise = stack $ map (\(i, p') -> p' # ((fromIntegral i % l) `rotL` p)) (zip [0 :: Int ..] ps)
+  | otherwise = stack $ zipWith (\i p' -> p' # ((fromIntegral i % l) `rotL` p)) [0 :: Int ..] ps
   where
     l = fromIntegral $ length ps
 
@@ -2825,7 +2826,7 @@ soak depth f pat = cat $ take depth $ iterate f pat
 -- | @construct n p@ breaks @p@ into pieces and then reassembles them
 -- so that it fits into @n@ steps.
 deconstruct :: Int -> Pattern String -> String
-deconstruct n p = intercalate " " $ map showStep $ toList p
+deconstruct n p = unwords $ map showStep $ toList p
   where
     showStep :: [String] -> String
     showStep [] = "~"
@@ -2862,7 +2863,7 @@ bite npat ipat pat = innerJoin $ (\n -> _bite n ipat pat) <$> npat
 _bite :: Int -> Pattern Int -> Pattern a -> Pattern a
 _bite n ipat pat = squeezeJoin $ zoomslice <$> ipat
   where
-    zoomslice i = zoom (i' / (fromIntegral n), (i' + 1) / (fromIntegral n)) pat
+    zoomslice i = zoom (i' / fromIntegral n, (i' + 1) / fromIntegral n) pat
       where
         i' = fromIntegral $ i `mod` n
 
@@ -2871,7 +2872,7 @@ squeeze :: Pattern Int -> [Pattern a] -> Pattern a
 squeeze _ [] = silence
 squeeze ipat pats = squeezeJoin $ (pats !!!) <$> ipat
 
-squeezeJoinUp :: Pattern (ControlPattern) -> ControlPattern
+squeezeJoinUp :: Pattern ControlPattern -> ControlPattern
 squeezeJoinUp pp = pp {query = q, pureValue = Nothing}
   where
     q st = concatMap (f st) (query (filterDigital pp) st)
@@ -2887,7 +2888,7 @@ squeezeJoinUp pp = pp {query = q, pureValue = Nothing}
     munge _ _ _ _ = Nothing
 
 _chew :: Int -> Pattern Int -> ControlPattern -> ControlPattern
-_chew n ipat pat = (squeezeJoinUp $ zoomslice <$> ipat) |/ P.speed (pure $ fromIntegral n)
+_chew n ipat pat = squeezeJoinUp (zoomslice <$> ipat) |/ P.speed (pure $ fromIntegral n)
   where
     zoomslice i = zoom (i' / (fromIntegral n), (i' + 1) / (fromIntegral n)) (pat)
       where
@@ -2920,7 +2921,7 @@ binary :: Pattern Int -> Pattern Bool
 binary = binaryN 8
 
 ascii :: Pattern String -> Pattern Bool
-ascii p = squeezeJoin $ (listToPat . concatMap (__binary 8 . ord)) <$> p
+ascii p = squeezeJoin $ listToPat . concatMap (__binary 8 . ord) <$> p
 
 -- | Given a start point and a duration (both specified in cycles), this
 --  generates a control pattern that makes a sound begin at the start
@@ -2972,7 +2973,7 @@ _chromaticiseBy n pat =
             pure
             ( if n >= 0
                 then [val .. (val + n)]
-                else (reverse $ [(val + n) .. val])
+                else reverse [(val + n) .. val]
             )
     )
       <$> pat
