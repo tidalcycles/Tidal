@@ -1,22 +1,22 @@
 module Main where
 
-import Criterion.Main 
-import Tidal.PatternB
+import Criterion.Main
 import Tidal.CoreB
+import Tidal.PatternB
 import Tidal.UIB
 
-patternBs :: [IO ()] 
+patternBs :: [IO ()]
 patternBs = defaultMain <$> [withQueryTimeB, withQueryArcB, withResultArcB, withQueryTimeB, subArcB]
 
-coreBs :: [IO ()] 
+coreBs :: [IO ()]
 coreBs = defaultMain <$> [fromListB, stackB, appendB, concatB, _fastB]
 
 uiBs :: [IO ()]
 uiBs = defaultMain <$> [euclidB, fixB]
 
 main :: IO ()
-main = do 
-  _ <- sequence coreBs 
+main = do
+  _ <- sequence coreBs
   _ <- sequence patternBs
   _ <- sequence uiBs
   return ()

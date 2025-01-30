@@ -1,10 +1,10 @@
-module Main where 
+module Main where
 
-import Weigh 
 import Tidal.UIB
+import Weigh
 
-main :: IO () 
-main = 
-  mainWith $ do 
+main :: IO ()
+main =
+  mainWith $ do
     euclidB
     fixB

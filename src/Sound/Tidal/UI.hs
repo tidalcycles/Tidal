@@ -61,6 +61,12 @@ import Sound.Tidal.Core
 import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils
+  ( accumulate,
+    enumerate,
+    mid,
+    wordsBy,
+    (!!!),
+  )
 import Prelude hiding ((*>), (<*))
 
 ------------------------------------------------------------------------
@@ -99,7 +105,7 @@ timeToRands t n = timeToRands' (timeToIntSeed t) n
 timeToRands' :: (Fractional a) => Int -> Int -> [a]
 timeToRands' seed n
   | n <= 0 = []
-  | otherwise = (intSeedToRand seed) : (timeToRands' (xorwise seed) (n - 1))
+  | otherwise = intSeedToRand seed : timeToRands' (xorwise seed) (n - 1)
 
 -- |
 --
@@ -140,7 +146,7 @@ brand = _brandBy 0.5
 
 -- | Boolean rand with probability as input, e.g. @brandBy 0.25@ produces trues 25% of the time.
 brandBy :: Pattern Double -> Pattern Bool
-brandBy probpat = innerJoin $ (\prob -> _brandBy prob) <$> probpat
+brandBy probpat = innerJoin $ _brandBy <$> probpat
 
 _brandBy :: Double -> Pattern Bool
 _brandBy prob = fmap (< prob) rand
@@ -1554,7 +1560,7 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
   where
     mapMasks =
       [ stretch $ mask (const True <$> filterValues (== i) from') p'
-      | i <- [0 .. n - 1]
+        | i <- [0 .. n - 1]
       ]
     p' = density cyc p
     from' = density cyc from

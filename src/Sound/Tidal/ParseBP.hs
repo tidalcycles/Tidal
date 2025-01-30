@@ -528,10 +528,11 @@ pDouble =
       <|> pDoubleWithoutChord
 
 pDoubleWithoutChord :: MyParser (TPat Double)
-pDoubleWithoutChord = pPart $ wrapPos $ do
-  s <- sign
-  f <- choice [fromRational <$> pRatio, parseNote] <?> "float"
-  return $ TPat_Atom Nothing (applySign s f)
+pDoubleWithoutChord = pPart $
+  wrapPos $ do
+    s <- sign
+    f <- choice [fromRational <$> pRatio, parseNote] <?> "float"
+    return $ TPat_Atom Nothing (applySign s f)
 
 pNote :: MyParser (TPat Note)
 pNote =
@@ -544,10 +545,11 @@ pNote =
       <|> do TPat_Atom Nothing . fromRational <$> pRatio
 
 pNoteWithoutChord :: MyParser (TPat Note)
-pNoteWithoutChord = pPart $ wrapPos $ do
-  s <- sign
-  f <- choice [intOrFloat, parseNote] <?> "float"
-  return $ TPat_Atom Nothing (Note $ applySign s f)
+pNoteWithoutChord = pPart $
+  wrapPos $ do
+    s <- sign
+    f <- choice [intOrFloat, parseNote] <?> "float"
+    return $ TPat_Atom Nothing (Note $ applySign s f)
 
 pBool :: MyParser (TPat Bool)
 pBool =
@@ -595,8 +597,7 @@ parseChord = do
     -- open voiced chords
     let chordo' =
           if o > 0 && n > 2
-            then
-              [(chord' !! 0 - 12), (chord' !! 2 - 12), (chord' !! 1)] ++ reverse (take (length chord' - 3) (reverse chord'))
+            then [(chord' !! 0 - 12), (chord' !! 2 - 12), (chord' !! 1)] ++ reverse (take (length chord' - 3) (reverse chord'))
             else chord'
     return chordo'
     <|> return foundChord

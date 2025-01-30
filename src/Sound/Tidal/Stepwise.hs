@@ -116,14 +116,15 @@ contract = s_patternify _contract
 s_while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 s_while patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
 -- TODO raise exception?
-s_while _ _ pat                           = pat
+s_while _ _ pat = pat
 
 _s_nth :: Bool -> Bool -> Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _s_nth lastone stepwise n f pat
   | n <= 1 = pat
-  | otherwise = applyWhen stepwise (_fast t) $ s_cat $ applyWhen lastone reverse $ (f $ head cycles):tail cycles
-  where cycles = applyWhen lastone reverse $ separateCycles n $ applyWhen stepwise (_slow t) pat
-        t = fromMaybe 1 $ tactus pat
+  | otherwise = applyWhen stepwise (_fast t) $ s_cat $ applyWhen lastone reverse $ (f $ head cycles) : tail cycles
+  where
+    cycles = applyWhen lastone reverse $ separateCycles n $ applyWhen stepwise (_slow t) pat
+    t = fromMaybe 1 $ tactus pat
 
 s_nthcycle :: Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 s_nthcycle (Pattern _ _ (Just i)) f pat = _s_nth True False i f pat
@@ -151,7 +152,7 @@ s_everycycle = s_nthcycle'
 s_taperlist :: Pattern a -> [Pattern a]
 s_taperlist pat@(Pattern _ (Just t) _) = pat : map (\r -> _s_sub r pat) [1 .. t]
 -- TODO exception?
-s_taperlist pat                        = [pat]
+s_taperlist pat = [pat]
 
 s_taperlistBy :: Int -> Int -> Pattern a -> [Pattern a]
 s_taperlistBy amount times pat@(Pattern _ (Just t) _)
@@ -160,10 +161,12 @@ s_taperlistBy amount times pat@(Pattern _ (Just t) _)
   | amount == 0 = [pat]
   | backwards = reverse l
   | otherwise = l
-  where backwards = amount > 0
-        n = toRational $ abs amount
-        start = t - (toRational $ max 0 $ n * (toRational $ times - 1))
-        l = (map (\i -> zoom (0, (start + (n * (toRational i))) / t) pat) [0 .. times-2]) ++ [pat]
+  where
+    backwards = amount > 0
+    n = toRational $ abs amount
+    start = t - toRational (max 0 $ n * toRational (times - 1))
+    l = map (\i -> zoom (0, (start + (n * toRational i)) / t) pat) [0 .. times - 2] ++ [pat]
+s_taperlistBy _ _ _ = []
 
 -- | Plays one fewer step from the pattern each repetition, down to nothing
 s_taper :: Pattern a -> Pattern a
@@ -180,6 +183,7 @@ s_taperBy = s_patternify2 _s_taperBy
 -- | Successively plays a pattern from each group in turn
 s_alt :: [[Pattern a]] -> Pattern a
 s_alt groups = s_cat $ concat $ take (c * length groups) $ transpose $ map cycle groups
-  where c = foldl1 lcm $ map length groups
+  where
+    c = foldl1 lcm $ map length groups
 
 -}

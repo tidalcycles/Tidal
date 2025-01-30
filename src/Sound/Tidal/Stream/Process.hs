@@ -49,8 +49,7 @@ import Sound.Tidal.Stream.Types
 import Sound.Tidal.Utils ((!!!))
 import System.IO (hPutStrLn, stderr)
 
-data ProcessedEvent
-  = ProcessedEvent
+data ProcessedEvent = ProcessedEvent
   { peHasOnset :: Bool,
     peEvent :: Event ValueMap,
     peCps :: Double,
