@@ -18,9 +18,9 @@
 
 module Sound.Tidal.Stepwise where
 
-import Data.List (sort, sortOn, transpose)
-import Data.Maybe (catMaybes, fromJust, fromMaybe, isJust, mapMaybe)
-import Sound.Tidal.Core
+import Data.List (sort, sortOn)
+import Data.Maybe (fromJust, isJust, mapMaybe)
+import Sound.Tidal.Core (stack, timecat, zoompat)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils (enumerate, nubOrd, pairs)
 
@@ -38,7 +38,7 @@ s_patternify2 f a b p = stepJoin $ (\x y -> f x y p) <$> a <*> b
 stepJoin :: Pattern (Pattern a) -> Pattern a
 stepJoin pp = splitQueries $ Pattern q t Nothing
   where
-    q st@(State a c) =
+    q st@(State a _) =
       query
         ( stepcat $
             retime $
@@ -79,10 +79,10 @@ stepcat pats = innerJoin $ (timecat . map snd . sortOn fst) <$> (tpat $ epats pa
   where
     -- enumerated patterns, ignoring those without tactus
     epats :: [Pattern a] -> [(Int, Pattern a)]
-    epats pats = enumerate $ filter (isJust . tactus) pats
+    epats = enumerate . filter (isJust . tactus)
     --
     tpat :: [(Int, Pattern a)] -> Pattern [(Int, (Time, Pattern a))]
-    tpat pats = sequence $ map (\(i, pat) -> (\t -> (i, (t, pat))) <$> (fromJust $ tactus pat)) pats
+    tpat = mapM (\(i, pat) -> (\t -> (i, (t, pat))) <$> fromJust (tactus pat))
 
 _steptake :: Time -> Pattern a -> Pattern a
 -- raise error?
@@ -97,7 +97,7 @@ steptake :: Pattern Time -> Pattern a -> Pattern a
 steptake = s_patternify _steptake
 
 _stepdrop :: Time -> Pattern a -> Pattern a
-_stepdrop n pat@(Pattern _ Nothing _) = pat
+_stepdrop _ pat@(Pattern _ Nothing _) = pat
 _stepdrop n pat@(Pattern _ (Just tpat) _) = steptake (f <$> tpat) pat
   where
     f t
