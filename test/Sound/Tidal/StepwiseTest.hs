@@ -20,6 +20,16 @@ run =
     describe "expand" $ do
       it "can pattern expands" $ do
         compareP (Arc 0 8) (expand "2 1" ("a b c" :: Pattern Char)) "a@2 b@2 c@2 a b c"
+    describe "steptake" $ do
+      it "can pattern takes" $ do
+        compareP (Arc 0 8) (steptake "1 2 3 4" ("a b c d" :: Pattern Char)) "a a b a b c a b c d"
+      it "can pattern reverse takes" $ do
+        compareP (Arc 0 8) (steptake "-1 -2 -3 -4" ("a b c d" :: Pattern Char)) "d c d b c d a b c d"
+    describe "stepdrop" $ do
+      it "can pattern drops" $ do
+        compareP (Arc 0 8) (stepdrop "0 1 2 3" ("a b c d" :: Pattern Char)) "a b c d a b c a b a"
+      it "can pattern reverse drops" $ do
+        compareP (Arc 0 8) (stepdrop "0 -1 -2 -3" ("a b c d" :: Pattern Char)) "a b c d b c d c d d"
 
 
 --     describe('tactus', () => {
