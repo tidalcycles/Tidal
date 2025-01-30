@@ -1,4 +1,4 @@
-module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale) where
+module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale, scaleWith, scaleWithList, raiseDegree, lowerDegree, raiseDegrees, lowerDegrees) where
 
 {-
     Scale.hs - Scales for TidalCycles
@@ -18,10 +18,10 @@ module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale) where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import Data.Maybe
-import Sound.Tidal.Core
-import Sound.Tidal.Pattern
-import Sound.Tidal.Utils
+import Data.Maybe (fromMaybe)
+import Sound.Tidal.Core (slowcat)
+import Sound.Tidal.Pattern (Pattern, (<*))
+import Sound.Tidal.Utils ((!!!))
 import Prelude hiding ((*>), (<*))
 
 -- * Scale definitions
@@ -352,7 +352,7 @@ uniq l = l
 Meant to be passed as an argument to @scaleWith@
 -}
 raiseDegree :: (Fractional a) => Int -> [a] -> [a]
-raiseDegree n (hd : []) = (hd + 1) : []
+raiseDegree _ (hd : []) = (hd + 1) : []
 raiseDegree 0 (hd : tl) = (hd + 1) : tl
 raiseDegree n (hd : tl) = hd : (raiseDegree (n - 1) tl)
 raiseDegree _ [] = error "Degree is not present in the scale"
@@ -361,7 +361,7 @@ raiseDegree _ [] = error "Degree is not present in the scale"
 Meant to be passed as an argument to @scaleWith@
 -}
 lowerDegree :: (Fractional a) => Int -> [a] -> [a]
-lowerDegree n (hd : []) = (hd - 1) : []
+lowerDegree _ (hd : []) = (hd - 1) : []
 lowerDegree 0 (hd : tl) = (hd - 1) : tl
 lowerDegree n (hd : tl) = hd : (lowerDegree (n - 1) tl)
 lowerDegree _ [] = error "Degree is not present in the scale"
@@ -369,7 +369,7 @@ lowerDegree _ [] = error "Degree is not present in the scale"
 {- Like @raiseDegree@, but raises a range of degrees instead of a single one
 -}
 raiseDegrees :: (Fractional a) => Int -> Int -> [a] -> [a]
-raiseDegrees n m (hd : []) = (hd + 1) : []
+raiseDegrees _ _ (hd : []) = (hd + 1) : []
 raiseDegrees 0 0 (hd : tl) = (hd + 1) : tl
 raiseDegrees 0 m (hd : tl) = (hd + 1) : (raiseDegrees 0 (m - 1) tl)
 raiseDegrees n m (hd : tl) = hd : (raiseDegrees (n - 1) (m - 1) tl)
@@ -378,7 +378,7 @@ raiseDegrees _ _ [] = error "Degrees are out of the scale"
 {- Like @lowerDegree@, but lowers a range of degrees instead of a single one
 -}
 lowerDegrees :: (Fractional a) => Int -> Int -> [a] -> [a]
-lowerDegrees n m (hd : []) = (hd - 1) : []
+lowerDegrees _ _ (hd : []) = (hd - 1) : []
 lowerDegrees 0 0 (hd : tl) = (hd - 1) : tl
 lowerDegrees 0 m (hd : tl) = (hd - 1) : (lowerDegrees 0 (m - 1) tl)
 lowerDegrees n m (hd : tl) = hd : (lowerDegrees (n - 1) (m - 1) tl)

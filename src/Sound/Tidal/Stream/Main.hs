@@ -1,15 +1,20 @@
 module Sound.Tidal.Stream.Main where
 
-import Control.Concurrent
-import Control.Concurrent.MVar
+import Control.Concurrent (forkIO, newMVar)
 import qualified Data.Map as Map
 import qualified Sound.Tidal.Clock as Clock
 import Sound.Tidal.Stream.Config
+  ( Config (cClockConfig, cCtrlAddr, cCtrlPort),
+  )
 import Sound.Tidal.Stream.Listen
-import Sound.Tidal.Stream.Process
-import Sound.Tidal.Stream.Target
-import Sound.Tidal.Stream.Types
-import Sound.Tidal.Stream.UI
+  ( ctrlResponder,
+    openListener,
+    verbose,
+  )
+import Sound.Tidal.Stream.Process (doTick)
+import Sound.Tidal.Stream.Target (getCXs, superdirtShape)
+import Sound.Tidal.Stream.Types (OSC, Stream (..), Target)
+import Sound.Tidal.Stream.UI (sendHandshakes)
 import Sound.Tidal.Version (tidal_status_string)
 import System.IO (hPutStrLn, stderr)
 
@@ -74,4 +79,4 @@ startStream config oscmap = do
   return stream
 
 startMulti :: [Target] -> Config -> IO ()
-startMulti _ _ = hPutStrLn stderr $ "startMulti has been removed, please check the latest documentation on tidalcycles.org"
+startMulti _ _ = hPutStrLn stderr "startMulti has been removed, please check the latest documentation on tidalcycles.org"
