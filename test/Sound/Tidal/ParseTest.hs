@@ -336,6 +336,11 @@ run =
           (Arc 0 1)
           ("<-- 2 -- - 8>" :: Pattern String)
           ("<~~ 2 ~~ ~ 8>" :: Pattern String)
+      it "toplevel '|' is the same as in list" $ do
+        compareP
+          (Arc 0 1)
+          ("[a a|b b b|c c c c]" :: Pattern String)
+          ("a a |b b b|c c c c" :: Pattern String)
       it "'|' in list first" $ do
         evaluate ("1 2@3|4|-|5!6|[7!8 9] 10 . 11 12*2 13!2 . 1@1" :: Pattern String)
           `shouldNotThrow` anyException
