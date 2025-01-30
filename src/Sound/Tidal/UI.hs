@@ -5,7 +5,7 @@
 {-
     UI.hs - Tidal's main 'user interface' functions, for transforming
     patterns, building on the Core ones.
-    Copyright (C) 2020, Alex McLean and contributors
+    Copyright (C) 2025, Alex McLean and contributors
 
     This library is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -1560,7 +1560,7 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
   where
     mapMasks =
       [ stretch $ mask (const True <$> filterValues (== i) from') p'
-      | i <- [0 .. n - 1]
+        | i <- [0 .. n - 1]
       ]
     p' = density cyc p
     from' = density cyc from
@@ -2860,9 +2860,9 @@ bite :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 bite npat ipat pat = innerJoin $ (\n -> _bite n ipat pat) <$> npat
 
 _bite :: Int -> Pattern Int -> Pattern a -> Pattern a
-_bite n ipat pat = squeezeJoin $ zoompat <$> ipat
+_bite n ipat pat = squeezeJoin $ zoomslice <$> ipat
   where
-    zoompat i = zoom (i' / (fromIntegral n), (i' + 1) / (fromIntegral n)) pat
+    zoomslice i = zoom (i' / (fromIntegral n), (i' + 1) / (fromIntegral n)) pat
       where
         i' = fromIntegral $ i `mod` n
 
@@ -2887,9 +2887,9 @@ squeezeJoinUp pp = pp {query = q, pureValue = Nothing}
     munge _ _ _ _ = Nothing
 
 _chew :: Int -> Pattern Int -> ControlPattern -> ControlPattern
-_chew n ipat pat = (squeezeJoinUp $ zoompat <$> ipat) |/ P.speed (pure $ fromIntegral n)
+_chew n ipat pat = (squeezeJoinUp $ zoomslice <$> ipat) |/ P.speed (pure $ fromIntegral n)
   where
-    zoompat i = zoom (i' / (fromIntegral n), (i' + 1) / (fromIntegral n)) (pat)
+    zoomslice i = zoom (i' / (fromIntegral n), (i' + 1) / (fromIntegral n)) (pat)
       where
         i' = fromIntegral $ i `mod` n
 
@@ -2966,13 +2966,13 @@ chromaticiseBy n pat = innerJoin $ (\np -> _chromaticiseBy np pat) <$> n
 _chromaticiseBy :: (Num a, Enum a, Ord a) => a -> Pattern a -> Pattern a
 _chromaticiseBy n pat =
   squeezeJoin $
-    ( \value ->
+    ( \val ->
         fastcat $
           map
             pure
             ( if n >= 0
-                then [value .. (value + n)]
-                else (reverse $ [(value + n) .. value])
+                then [val .. (val + n)]
+                else (reverse $ [(val + n) .. val])
             )
     )
       <$> pat
