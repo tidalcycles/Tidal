@@ -31,7 +31,14 @@ action `shouldThrow` p = prop "shouldThrow" $
       Left e ->
         -- "threw exception that did not meet expectation")
         Test.Microspec.assert $ p e
-  where
+
+shouldNotThrow :: (Exception e) => IO a -> Selector e -> Microspec ()
+action `shouldNotThrow` p = prop "shouldNotThrow" $
+  monadicIO $ do
+    r <- Test.Microspec.run $ try action
+    case r of
+      Right _ -> Test.Microspec.assert True
+      Left e -> Test.Microspec.assert $ p e
 
 -- a string repsentation of the expected exception's type
 {-

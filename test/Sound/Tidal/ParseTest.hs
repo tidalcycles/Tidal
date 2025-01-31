@@ -4,7 +4,7 @@ module Sound.Tidal.ParseTest where
 
 import Control.Exception
 import Sound.Tidal.Core
-import Sound.Tidal.ExceptionsTest (anyException, shouldThrow)
+import Sound.Tidal.ExceptionsTest (anyException, shouldThrow, shouldNotThrow)
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI (_degradeBy)
 import Test.Microspec
@@ -336,5 +336,19 @@ run =
           (Arc 0 1)
           ("<-- 2 -- - 8>" :: Pattern String)
           ("<~~ 2 ~~ ~ 8>" :: Pattern String)
+      it "toplevel '|' is the same as in list" $ do
+        compareP
+          (Arc 0 1)
+          ("[a a|b b b|c c c c]" :: Pattern String)
+          ("a a |b b b|c c c c" :: Pattern String)
+      it "'|' in list first" $ do
+        evaluate ("1 2@3|4|-|5!6|[7!8 9] 10 . 11 12*2 13!2 . 1@1" :: Pattern String)
+          `shouldNotThrow` anyException
+      it "'|' in list last" $ do
+        evaluate ("12@1|23@1|12|[1 3!21]" :: Pattern String)
+          `shouldNotThrow` anyException
+      it "toplevel '|'" $ do
+        evaluate ("121|23@1|12|[1 321]" :: Pattern String)
+          `shouldNotThrow` anyException
   where
     degradeByDefault = _degradeBy 0.5
