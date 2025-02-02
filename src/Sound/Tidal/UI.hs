@@ -222,6 +222,27 @@ perlin2With x y = (/2) . (+1) $ interp2 <$> xfrac <*> yfrac <*> dota <*> dotb <*
 perlin2 :: Pattern Double -> Pattern Double
 perlin2 = perlin2With (sig fromRational)
 
+{- | Generates values in [0,1] that follows a normal (bell-curve) distribution.
+One possible application is to "humanize" drums with a slight random delay:
+@
+d1 $ 
+  s "bd sn bd sn" 
+  # nudge (segment 4 (0.01 * normal))
+@
+Implemented with the Box-Muller transform.
+  * the max ensures we don't calculate log 0
+  * the rot in u2 ensures we don't just get the same value as u1
+  * clamp the Box-Muller generated values in a [-3,3] range
+-}
+normal :: (Floating a, Ord a) => Pattern a
+normal = do
+  u1 <- max 0.001 <$> rand
+  u2 <- rotL 1000 rand
+  let r1 = sqrt $ - (2 * log u1)
+      r2 = cos (2 * pi * u2)
+      clamp n = max (-3) (min 3 n)
+  pure $ clamp (r1 * r2 + 3) / 6
+
 {- | Randomly picks an element from the given list.
 
 @
@@ -1180,7 +1201,7 @@ segment :: Pattern Time -> Pattern a -> Pattern a
 segment = patternify _segment
 
 _segment :: Time -> Pattern a -> Pattern a
-_segment n p = setTactus n $ _fast n (pure id) <* p
+_segment n p = setTactus (Just $ pure n) $ _fast n (pure id) <* p
 
 -- | @discretise@: the old (deprecated) name for 'segment'
 discretise :: Pattern Time -> Pattern a -> Pattern a
@@ -1436,8 +1457,25 @@ markovPat :: Pattern Int -> Pattern Int -> [[Double]] -> Pattern Int
 markovPat = patternify2 _markovPat
 
 _markovPat :: Int -> Int -> [[Double]] -> Pattern Int
-_markovPat n xi tp = setTactus (toRational n) $ splitQueries $ pattern (\(State a@(Arc s _) _) ->
+_markovPat n xi tp = setTactus (Just $ pure $ toRational n) $ splitQueries $ pattern (\(State a@(Arc s _) _) ->
   queryArc (listToPat $ runMarkov n tp xi (sam s)) a)
+
+{-|
+@beat@ structures a pattern by picking subdivisions of a cycle.
+Takes in a pattern that tells it which parts to play (polyphony is recommeded here),
+and the number of parts by which to subdivide the cycle (also pattern-able).
+For example:
+> d1 $ beat "[3,4.2,9,11,14]" 16 $ s "sd"
+-}
+beat :: Pattern Time -> Pattern Time -> Pattern a -> Pattern a
+beat = patternify2 $ __beat innerJoin
+
+__beat :: (Pattern (Pattern a) -> Pattern a) -> Time -> Time -> Pattern a -> Pattern a
+__beat join t d p = join $ (compress (s,e) . pure) <$> p
+                      where s = t' / d
+                            e  = (t'+1) / d
+                            t' = t `mod'` d
+
 
 {-|
 @mask@ takes a boolean pattern and ‘masks’ another pattern with it. That is,
@@ -2706,22 +2744,6 @@ qround = quantise
 inv :: Functor f => f Bool -> f Bool
 inv = (not <$>)
 
--- | Serialises a pattern so there's only one event playing at any one
--- time, making it /monophonic/. Events which start/end earlier are given priority.
-mono :: Pattern a -> Pattern a
-mono p = pattern $ \(State a cm) -> flatten $ query p (State a cm) where
-  flatten :: [Event a] -> [Event a]
-  flatten = mapMaybe constrainPart . truncateOverlaps . sortOn whole
-  truncateOverlaps []     = []
-  truncateOverlaps (e:es) = e : truncateOverlaps (mapMaybe (snip e) es)
-  -- TODO - decide what to do about analog events..
-  snip a b | start (wholeOrPart b) >= stop (wholeOrPart a) = Just b
-           | stop (wholeOrPart b) <= stop (wholeOrPart a) = Nothing
-           | otherwise = Just b {whole = Just $ Arc (stop $ wholeOrPart a) (stop $ wholeOrPart b)}
-  constrainPart :: Event a -> Maybe (Event a)
-  constrainPart e = do a <- subArc (wholeOrPart e) (part e)
-                       return $ e {part = a}
-
 {-|
 @smooth@ receives a pattern of numbers and linearly goes from one to the next, passing through all of them. As time is cycle-based, after reaching the last number in the pattern, it will smoothly go to the first one again.
 
@@ -2878,7 +2900,7 @@ _binary :: Data.Bits.Bits b => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
 
 _binaryN :: Int -> Pattern Int -> Pattern Bool
-_binaryN n p = setTactus (toRational n) $ squeezeJoin $ _binary n <$> p
+_binaryN n p = setTactus (Just $ pure $ toRational n) $ squeezeJoin $ _binary n <$> p
 
 binaryN :: Pattern Int -> Pattern Int -> Pattern Bool
 binaryN n p = patternify _binaryN n p
@@ -2916,3 +2938,25 @@ necklace perCycle xs = _slow ((toRational $ sum xs) / perCycle) $ listToPat $ li
   where list :: [Int] -> [Bool]
         list []      = []
         list (x:xs') = (True:(replicate (x-1) False)) ++ list xs'
+
+{- | Inserts chromatic notes into a pattern.
+
+The first argument indicates the (patternable) number of notes to insert,
+and the second argument is the base pattern of "anchor notes" that gets transformed.
+
+The following are equivalent:
+
+> d1 $ up (chromaticiseBy "0 1 2 -1" "[0 2] [3 6] [5 6 8] [3 1 0]") # s "superpiano"
+> d1 $ up "[0 2] [[3 4] [6 7]] [[5 6 7] [6 7 8] [8 9 10] [[3 2] [1 0] [0 -1]]" # s "superpiano"
+-}
+chromaticiseBy :: (Num a, Enum a, Ord a) => Pattern a -> Pattern a -> Pattern a
+chromaticiseBy n pat = innerJoin $ (\np -> _chromaticiseBy np pat) <$> n
+
+_chromaticiseBy :: (Num a, Enum a, Ord a) => a -> Pattern a -> Pattern a
+_chromaticiseBy n pat = squeezeJoin $ (\value -> fastcat
+                                   $ map pure (if n >=0 then [value .. (value+n)]
+                                               else (reverse $ [(value + n) .. value]))) <$> pat
+
+-- | Alias for chromaticiseBy
+chromaticizeBy :: (Num a, Enum a, Ord a) => Pattern a -> Pattern a -> Pattern a
+chromaticizeBy = chromaticiseBy

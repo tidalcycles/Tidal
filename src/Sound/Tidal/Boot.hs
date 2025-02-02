@@ -9,6 +9,8 @@ module Sound.Tidal.Boot
   , mkTidalWith
   , only
   , p
+  , _p
+  , p_
   , hush
   , panic
   , list
@@ -27,6 +29,8 @@ module Sound.Tidal.Boot
   , setCycle
   , setcps
   , getcps
+  , setbpm
+  , getbpm
   , getnow
   , d1
   , d2
@@ -44,6 +48,38 @@ module Sound.Tidal.Boot
   , d14
   , d15
   , d16
+  , _d1
+  , _d2
+  , _d3
+  , _d4
+  , _d5
+  , _d6
+  , _d7
+  , _d8
+  , _d9
+  , _d10
+  , _d11
+  , _d12
+  , _d13
+  , _d14
+  , _d15
+  , _d16
+  , d1_
+  , d2_
+  , d3_
+  , d4_
+  , d5_
+  , d6_
+  , d7_
+  , d8_
+  , d9_
+  , d10_
+  , d11_
+  , d12_
+  , d13_
+  , d14_
+  , d15_
+  , d16_
   , getState
   , setI
   , setF
@@ -106,6 +142,14 @@ only = (hush >>)
 -- | See 'Sound.Tidal.Stream.streamReplace'.
 p :: Tidally => ID -> ControlPattern -> IO ()
 p = streamReplace tidal
+
+-- | Silences a specific stream, regardless of ControlPattern input. Useful for rapid muting of streams
+_p :: Tidally => ID -> ControlPattern -> IO ()
+_p k _ = streamReplace tidal k silence
+
+-- | Silences a specific stream, regardless of ControlPattern input. Useful for rapid muting of streams
+p_ :: Tidally => ID -> ControlPattern -> IO ()
+p_ = _p
 
 -- | See 'Sound.Tidal.Stream.streamHush'.
 hush :: Tidally => IO ()
@@ -174,9 +218,17 @@ setCycle = streamSetCycle tidal
 setcps :: Tidally => Pattern Double -> IO ()
 setcps = once . cps
 
--- | See 'Sound.Tidal.Stream.streamGetcps'.
+-- | See 'Sound.Tidal.Stream.streamGetCPS'.
 getcps :: Tidally => IO Time
 getcps = streamGetCPS tidal
+
+-- | See 'Sound.Tidal.Stream.streamGetBPM'.
+setbpm :: Tidally => Time -> IO ()
+setbpm = streamSetBPM tidal
+
+-- | See 'Sound.Tidal.Stream.streamGetBPM'.
+getbpm :: Tidally => IO Time
+getbpm = streamGetBPM tidal
 
 -- | See 'Sound.Tidal.Stream.streamGetnow'.
 getnow :: Tidally => IO Time
@@ -200,6 +252,44 @@ d13 = p 13
 d14 = p 14
 d15 = p 15
 d16 = p 16
+
+-- | Rapidly silence what's playing on the given orbit
+_d1, _d2, _d3, _d4, _d5, _d6, _d7, _d8, _d9, _d10, _d11, _d12, _d13, _d14, _d15, _d16 :: Tidally => ControlPattern -> IO ()
+_d1 = _p 1
+_d2 = _p 2
+_d3 = _p 3
+_d4 = _p 4
+_d5 = _p 5
+_d6 = _p 6
+_d7 = _p 7
+_d8 = _p 8
+_d9 = _p 9
+_d10 = _p 10
+_d11 = _p 11
+_d12 = _p 12
+_d13 = _p 13
+_d14 = _p 14
+_d15 = _p 15
+_d16 = _p 16
+
+-- | Rapidly silence what's playing on the given orbit
+d1_, d2_, d3_, d4_, d5_, d6_, d7_, d8_, d9_, d10_, d11_, d12_, d13_, d14_, d15_, d16_ :: Tidally => ControlPattern -> IO ()
+d1_ = _d1
+d2_ = _d2
+d3_ = _d3
+d4_ = _d4
+d5_ = _d5
+d6_ = _d6
+d7_ = _d7
+d8_ = _d8
+d9_ = _d9
+d10_ = _d10
+d11_ = _d11
+d12_ = _d12
+d13_ = _d13
+d14_ = _d14
+d15_ = _d15
+d16_ = _d16
 
 -- | See 'Sound.Tidal.Stream.streamGet'.
 getState :: Tidally => String -> IO (Maybe Value)

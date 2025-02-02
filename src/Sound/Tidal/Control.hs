@@ -96,42 +96,17 @@ chopArc :: Arc -> Int -> [Arc]
 chopArc (Arc s e) n = map (\i -> Arc (s + (e-s)*(fromIntegral i/fromIntegral n)) (s + (e-s)*(fromIntegral (i+1) / fromIntegral n))) [0 .. n-1]
 
 _chop :: Int -> ControlPattern -> ControlPattern
-_chop n pat = withTactus (* toRational n) $ withEvents (concatMap chopEvent) pat
-  where -- for each part,
-        chopEvent :: Event ValueMap -> [Event ValueMap]
-        chopEvent (Event c (Just w) p' v) = map (chomp c v (length $ chopArc w n)) $ arcs w p'
-        -- ignoring 'analog' events (those without wholes),
-        chopEvent _ = []
-        -- cut whole into n bits, and number them
-        arcs w' p' = numberedArcs p' $ chopArc w' n
-        -- each bit is a new whole, with part that's the intersection of old part and new whole
-        -- (discard new parts that don't intersect with the old part)
-        numberedArcs :: Arc -> [Arc] -> [(Int, (Arc, Arc))]
-        numberedArcs p' as = map ((fromJust <$>) <$>) $ filter (isJust . snd . snd) $ enumerate $ map (\a -> (a, subArc p' a)) as
-        -- begin set to i/n, end set to i+1/n
-        -- if the old event had a begin and end, then multiply the new
-        -- begin and end values by the old difference (end-begin), and
-        -- add the old begin
-        chomp :: Context -> ValueMap -> Int -> (Int, (Arc, Arc)) -> Event ValueMap
-        chomp c v n' (i, (w,p')) = Event c (Just w) p' (Map.insert "begin" (VF b') $ Map.insert "end" (VF e') v)
-          where b = fromMaybe 0 $ do v' <- Map.lookup "begin" v
-                                     getF v'
-                e = fromMaybe 1 $ do v' <- Map.lookup "end" v
-                                     getF v'
-                d = e-b
-                b' = ((fromIntegral i/fromIntegral n') * d) + b
-                e' = ((fromIntegral (i+1) / fromIntegral n') * d) + b
-
-{-
--- A simpler definition than the above, but this version doesn't chop
--- with multiple chops, and only works with a single 'pure' event..
-_chop' :: Int -> ControlPattern -> ControlPattern
-_chop' n p = begin (fromList begins) # end (fromList ends) # p
-  where step = 1/(fromIntegral n)
-        begins = [0,step .. (1-step)]
-        ends = (tail begins) ++ [1]
--}
-
+_chop n pat = squeezeJoin $ f <$> pat
+  where f v = fastcat $ map (pure . rangemap v) slices
+        rangemap v (b, e) = Map.union (fromMaybe (makeMap (b,e)) $ merge v (b,e)) v
+        merge :: ValueMap -> (Double, Double) -> Maybe ValueMap
+        merge v (b, e) = do b' <- Map.lookup "begin" v >>= getF
+                            e' <- Map.lookup "end" v >>= getF
+                            let d = e' - b'
+                            return $ makeMap (b' + b*d, b' + e*d)
+        makeMap (b,e) = Map.fromList [("begin", VF b), ("end", VF $ e)]
+        slices = map (\i -> (frac i, frac $ i + 1)) [0 .. n-1]
+        frac i = fromIntegral i / fromIntegral n
 
 {-| Striate is a kind of granulator, cutting samples into bits in a similar to
 chop, but the resulting bits are organised differently. For example:
@@ -190,9 +165,9 @@ striate' :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
 striate' = striateBy
 
 _striateBy :: Int -> Double -> ControlPattern -> ControlPattern
-_striateBy n f p = fastcat $ map (offset . fromIntegral) [0 .. n-1]
-  where offset i = p # P.begin (pure (slot * i) :: Pattern Double) # P.end (pure ((slot * i) + f) :: Pattern Double)
-        slot = (1 - f) / fromIntegral n
+_striateBy n f p = keepTactus (withTactus (* toRational n) p) $ fastcat $ map (offset . fromIntegral) [0 .. n-1]
+  where offset i = mergePlayRange (slot*i, (slot*i)+f) <$> p
+        slot = (1 - f) / fromIntegral (n-1)
 
 
 {- | `gap` is similar to `chop` in that it granualizes every sample in place as it is played,
@@ -318,9 +293,13 @@ en ns p = stack $ map (\(i, (k, n)) -> _e k n (samples p (pure i))) $ enumerate 
 -}
 slice :: Pattern Int -> Pattern Int -> ControlPattern -> ControlPattern
 slice pN pI p = P.begin b # P.end e # p
-  where b = div' <$> pI <* pN
-        e = (\i n -> div' i n + div' 1 n) <$> pI <* pN
-        div' num den = fromIntegral (num `mod` den) / fromIntegral den
+  where
+    b = div' <$> pI <* pN
+    e = b + pWidth
+    pWidth = (\x -> 1.0 / fromIntegral x) <$> pN
+    div' :: Int -> Int -> Double
+    div' num den = fromIntegral (num `mod` den) / fromIntegral den
+
 
 _slice :: Int -> Int -> ControlPattern -> ControlPattern
 _slice n i p =
@@ -356,7 +335,7 @@ _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure 
   > d1 $ splice 8 "[<0*8 0*2> 3*4 2 4] [4 .. 7]" $ sound "breaks165"
 -}
 splice :: Pattern Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
-splice bitpat ipat pat = innerJoin $ (\bits -> _splice bits ipat pat) <$> bitpat
+splice bitpat ipat pat = setTactusFrom bitpat $ innerJoin $ (\bits -> _splice bits ipat pat) <$> bitpat
 
 {-|
   @loopAt@ makes a sample fit the given number of cycles. Internally, it

@@ -25,11 +25,11 @@ streamResetCycles s = streamSetCycle s 0
 streamSetCycle :: Stream -> Time -> IO ()
 streamSetCycle s = Clock.setClock (sClockRef s)
 
-streamSetBPM :: Stream -> Time -> IO ()
-streamSetBPM s = Clock.setBPM (sClockRef s)
-
 streamSetCPS :: Stream -> Time -> IO ()
 streamSetCPS s = Clock.setCPS (cClockConfig $ sConfig s) (sClockRef s)
+
+streamSetBPM :: Stream -> Time -> IO ()
+streamSetBPM s = Clock.setBPM (sClockRef s)
 
 streamGetCPS :: Stream -> IO Time
 streamGetCPS s = Clock.getCPS (cClockConfig $ sConfig s)(sClockRef s)
@@ -64,15 +64,13 @@ streamReplace stream k !pat = do
                     hPutStrLn stderr $ "Return to previous pattern."
                     setPreviousPatternOrSilence (sPMapMV stream)) (updatePattern stream k t pat)
 
-  -- = modifyMVar_ (sActionsMV s) (\actions -> return $ (T.StreamReplace k pat) : actions)
-
 -- streamFirst but with random cycle instead of always first cicle
 streamOnce :: Stream -> ControlPattern -> IO ()
 streamOnce st p = do i <- getStdRandom $ randomR (0, 8192)
                      streamFirst st $ rotL (toRational (i :: Int)) p
 
 streamFirst :: Stream -> ControlPattern -> IO ()
-streamFirst stream pat = onSingleTick (sConfig stream) (sClockRef stream) (sStateMV stream) (sPMapMV stream) (sGlobalFMV stream) (sCxs stream) pat
+streamFirst stream pat = onSingleTick (cClockConfig $ sConfig stream) (sClockRef stream) (sStateMV stream) (sPMapMV stream) (sGlobalFMV stream) (sCxs stream) pat
 
 streamMute :: Stream -> ID -> IO ()
 streamMute s k = withPatIds s [k] (\x -> x {psMute = True})

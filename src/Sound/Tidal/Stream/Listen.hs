@@ -1,13 +1,14 @@
 module Sound.Tidal.Stream.Listen where
 
 import           Control.Concurrent.MVar
-import qualified Control.Exception         as E
-import           Control.Monad             (when)
-import qualified Data.Map                  as Map
+import           Control.Monad (when)
+import           System.IO (hPutStrLn, stderr)
+import qualified Data.Map as Map
 import           Data.Maybe                (fromJust)
-import qualified Network.Socket            as N
-import qualified Sound.Osc.Fd              as O
-import           System.IO                 (hPutStrLn, stderr)
+import qualified Sound.Osc.Fd as O
+import qualified Sound.Osc.Transport.Fd.Udp as O
+import qualified Network.Socket         as N
+import qualified Control.Exception as E
 
 import           Sound.Tidal.ID
 import           Sound.Tidal.Pattern
@@ -84,6 +85,18 @@ ctrlResponder _ (stream@(Stream {sListen = Just sock})) = loop
           = streamHush stream
         act (O.Message "/silence" (k:[]))
           = withID k $ streamSilence stream
+        -- Cycle properties commands
+        act (O.Message "/setcps" [O.Float k])
+          = streamSetCPS stream $ toTime k
+        act (O.Message "/setbpm" [O.Float k])
+          = streamSetBPM stream $ toTime k
+        act (O.Message "/setCycle" [O.Float k])
+          = streamSetCycle stream $ toTime k
+        act (O.Message "/resetCycles" _)
+          = streamResetCycles stream
+        -- Nudge all command
+        act (O.Message "/nudgeAll" [O.Double k])
+          = streamNudgeAll stream k
         act m = hPutStrLn stderr $ "Unhandled OSC: " ++ show m
         add :: String -> Value -> IO ()
         add k v = do sMap <- takeMVar (sStateMV stream)

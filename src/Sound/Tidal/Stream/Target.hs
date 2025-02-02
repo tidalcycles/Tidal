@@ -8,6 +8,7 @@ import           Foreign                   (Word8)
 import qualified Network.Socket            as N
 import qualified Sound.Osc.Fd              as O
 import qualified Sound.Osc.Time.Timeout    as O
+import qualified Sound.Osc.Transport.Fd.Udp as O
 
 import           Sound.Tidal.Pattern
 import           Sound.Tidal.Stream.Config

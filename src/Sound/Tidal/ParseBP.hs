@@ -221,10 +221,21 @@ parseBP_E s = toE parsed
     toE (Right tp) = toPat tp
 
 parseTPat :: Parseable a => String -> Either ParseError (TPat a)
-parseTPat = runParser (pSequence f' Prelude.<* eof) (0 :: Int) ""
-  where f' = do tPatParser
-             <|> do symbol "~" <?> "rest"
-                    return TPat_Silence
+parseTPat = runParser (pSequence parseRest Prelude.<* eof) (0 :: Int) ""
+
+-- | a '-' is a negative sign if followed anything but another dash
+-- otherwise, it's treated as rest
+parseRest :: Parseable a => MyParser (TPat a)
+parseRest = 
+  try (do 
+        lookAhead $ do
+          char '-'
+          spaces
+          noneOf "-"
+        tPatParser)
+  <|> char '-' Prelude.*> pure TPat_Silence
+  <|> tPatParser
+  <|> char '~' Prelude.*> pure TPat_Silence
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
 cP s = innerJoin $ parseBP_E <$> _cX_ getS s
@@ -335,10 +346,10 @@ lexer :: P.GenTokenParser String u Data.Functor.Identity.Identity
 lexer   = P.makeTokenParser haskellDef
 
 braces, brackets, parens, angles:: MyParser a -> MyParser a
-braces  = P.braces lexer
-brackets = P.brackets lexer
-parens = P.parens lexer
-angles = P.angles lexer
+braces p = char '{' Prelude.*> p Prelude.<* char '}'
+brackets p = char '[' Prelude.*> p Prelude.<* char ']'
+parens p = char '(' Prelude.*> p Prelude.<* char ')'
+angles p = char '<' Prelude.*> p Prelude.<* char '>'
 
 symbol :: String -> MyParser String
 symbol  = P.symbol lexer
