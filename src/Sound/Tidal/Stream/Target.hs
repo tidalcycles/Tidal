@@ -48,8 +48,7 @@ getCXs config oscmap =
         let broadcast = if cCtrlBroadcast config then 1 else 0
         u <-
           O.udp_socket
-            ( \sock _ -> do N.setSocketOption sock N.Broadcast broadcast
-            )
+            (\sock _ -> do N.setSocketOption sock N.Broadcast broadcast)
             (oAddress target)
             (oPort target)
         let cx = Cx {cxUDP = u, cxAddr = remote_addr, cxBusAddr = remote_bus_addr, cxBusses = remote_busses, cxTarget = target, cxOSCs = os}
