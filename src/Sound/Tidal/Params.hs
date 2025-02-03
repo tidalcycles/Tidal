@@ -895,7 +895,7 @@ cutbus busid pat = (pI "cut" pat) # (pI "^cut" busid)
 cutrecv :: Pattern Int -> ControlPattern
 cutrecv busid = pI "^cut" busid
 
--- | a pattern of numbers from 0 to 1. Applies the cutoff frequency of the low-pass filter.
+-- | a pattern of numbers in Hz. Applies the cutoff frequency of the low-pass filter.
 cutoff :: Pattern Double -> ControlPattern
 cutoff = pF "cutoff"
 
