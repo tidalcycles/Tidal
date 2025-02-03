@@ -42,6 +42,10 @@ development workflow, you are very welcome to join the
 `#tidal-innards` channel on http://talk.lurk.org/ and ask questions
 there.
 
+## Submodules
+
+The tidal-link module depends on submodules `link` and its `asio-standalone` dependency. Within the tidal repository, those submodules can be loaded using `git submodule update --init --recursive` .
+
 # Recommendations to handle forks and branches
 
 In your forked repository: before doing anything,

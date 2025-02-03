@@ -51,6 +51,8 @@ jobs:
     name: cabal ${{ matrix.versions.cabal }} - ghc ${{ matrix.versions.ghc }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: cache ~/.cabal/packages, ~/.cabal/store and dist-newstyle
         uses: actions/cache@v4
@@ -75,4 +77,20 @@ jobs:
 
       - name: test
         run: cabal v2-test ${{ matrix.versions.args }} --enable-tests --enable-benchmarks all
-
+  ormolu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: haskell-actions/run-ormolu@v17
+        with:
+          mode: inplace
+          pattern: |
+            src/**/*.hs
+            tidal-link/src/**/*.hs
+            tidal-parse/src/**/*.hs
+            tidal-listener/src/**/*.hs
+      - name: apply ormolu formatting
+        uses: stefanzweifel/git-auto-commit-action@v4
+        if: ${{ always() }}
+        with:
+          commit_message: automated ormolu reformatting

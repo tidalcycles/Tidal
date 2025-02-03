@@ -1,18 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import Test.Microspec
-
+import Sound.Tidal.ChordsTest
+import Sound.Tidal.ControlTest
 import Sound.Tidal.CoreTest
+import Sound.Tidal.ExceptionsTest
 import Sound.Tidal.ParamsTest
 import Sound.Tidal.ParseTest
 import Sound.Tidal.PatternTest
-import Sound.Tidal.ControlTest
 import Sound.Tidal.ScalesTest
-import Sound.Tidal.ChordsTest
+import Sound.Tidal.StepwiseTest
 import Sound.Tidal.StreamTest
 import Sound.Tidal.UITest
 import Sound.Tidal.UtilsTest
-import Sound.Tidal.ExceptionsTest
+import Test.Microspec
 
 main :: IO ()
 main = microspec $ do
@@ -23,6 +23,7 @@ main = microspec $ do
   Sound.Tidal.ControlTest.run
   Sound.Tidal.ScalesTest.run
   Sound.Tidal.ChordsTest.run
+  Sound.Tidal.StepwiseTest.run
   Sound.Tidal.StreamTest.run
   Sound.Tidal.UITest.run
   Sound.Tidal.UtilsTest.run

@@ -1,6 +1,6 @@
+import Options.Applicative (execParser)
 import Sound.Tidal.Listener
 import Sound.Tidal.Listener.Command
-import Options.Applicative (execParser)
 
 main :: IO ()
 main = do
