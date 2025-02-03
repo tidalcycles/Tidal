@@ -4,11 +4,12 @@ import Control.Concurrent (forkIO, newMVar)
 import qualified Data.Map as Map
 import qualified Sound.Tidal.Clock as Clock
 import Sound.Tidal.Stream.Config
-  ( Config (cClockConfig, cCtrlAddr, cCtrlPort),verbose
+  ( Config (cClockConfig, cCtrlAddr, cCtrlPort),
+    verbose,
   )
 import Sound.Tidal.Stream.Listen
   ( ctrlResponder,
-    openListener
+    openListener,
   )
 import Sound.Tidal.Stream.Process (doTick)
 import Sound.Tidal.Stream.Target (getCXs, superdirtShape)
