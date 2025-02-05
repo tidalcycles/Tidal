@@ -11,7 +11,6 @@ import Sound.Tidal.Stream.Config
 
 data Stream = Stream
   { sConfig :: Config,
-    sBusses :: MVar [Int],
     sStateMV :: MVar ValueMap,
     -- sOutput :: MVar ControlPattern,
     sClockRef :: Clock.ClockRef,
@@ -26,7 +25,8 @@ data Cx = Cx
     cxUDP :: O.Udp,
     cxOSCs :: [OSC],
     cxAddr :: N.AddrInfo,
-    cxBusAddr :: Maybe N.AddrInfo
+    cxBusAddr :: Maybe N.AddrInfo,
+    cxBusses :: Maybe (MVar [Int])
   }
 
 data StampStyle
