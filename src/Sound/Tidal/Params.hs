@@ -114,7 +114,7 @@ pStateList name sName xs =
     statef sMap =
       ( Map.insert
           sName
-          (VList $ tail looped)
+          (VList $ drop 1 looped)
           sMap,
         head looped
       )

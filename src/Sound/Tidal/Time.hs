@@ -3,7 +3,6 @@
 
 module Sound.Tidal.Time where
 
-import Control.Applicative
 import Control.DeepSeq (NFData)
 import Data.Ratio
 import GHC.Generics
