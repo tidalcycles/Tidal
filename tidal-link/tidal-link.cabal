@@ -1,6 +1,6 @@
 cabal-version:       2.4
 name:                tidal-link
-version:             1.0.4
+version:             1.1.0
 synopsis:            Ableton Link integration for Tidal
 -- description:
 homepage:            http://tidalcycles.org/
@@ -12,7 +12,7 @@ Stability:           Experimental
 Copyright:           (c) Pierre Krafft and contributors, 2021
 category:            Sound
 build-type:          Simple
-tested-with:         GHC == 9.2.4
+tested-with:         GHC == 9.8.2
 
 extra-source-files:
   README.md
@@ -32,10 +32,10 @@ library
                        Sound.Tidal.Clock
 
   build-depends:
-      base >=4.8 && <5,
-      hosc >= 0.21 && <0.22,
-      mtl,
-      stm
+      base >=4.8 && < 5,
+      hosc >= 0.21 && < 0.22,
+      mtl >= 2.2 && < 2.4,
+      stm >= 2.5.2 && < 2.5.3
 
   if os(windows)
     extra-libraries:
