@@ -35,7 +35,7 @@ library
       base >=4.8 && < 5,
       hosc >= 0.21 && < 0.22,
       mtl >= 2.2 && < 2.4,
-      stm >= 2.5.2 && < 2.5.3
+      stm >= 2.5 && < 2.6
 
   if os(windows)
     extra-libraries:
