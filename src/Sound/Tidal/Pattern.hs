@@ -31,6 +31,7 @@ module Sound.Tidal.Pattern
   )
 where
 
+import Control.Applicative (liftA2)
 import Control.DeepSeq (NFData)
 import Control.Monad ((>=>))
 import Data.Data (Data)
