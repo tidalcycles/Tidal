@@ -25,8 +25,8 @@ library
 
   default-language:    Haskell2010
 
-  Exposed-modules:     Sound.Tidal.Parse
-  other-modules: Sound.Tidal.Parse.TH
+  Exposed-modules:     Sound.Tidal.Parse Sound.Tidal.Parse.FFI
+  other-modules:       Sound.Tidal.Parse.TH
 
   Build-depends:
       base >=4.8 && <5
@@ -37,6 +37,8 @@ library
     , containers < 0.8
     , mtl >= 2.2.2 && <2.4
     , text < 2.2
+    , aeson
+    , bytestring
 
   if !impl(ghc >= 8.4.1)
     build-depends: semigroups >= 0.18 && < 0.20
