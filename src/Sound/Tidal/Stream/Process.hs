@@ -185,7 +185,7 @@ toOSC maybeBusses pe osc@(OSC _ _) =
     -- (but perhaps we should explicitly crash with an error message if it contains something else?).
     -- Map.mapKeys tail is used to remove ^ from the keys.
     -- In case (value e) has the key "", we will get a crash here.
-    playmap' = Map.union (Map.mapKeys tail $ Map.map (\v -> VS ('c' : (show $ toBus $ fromMaybe 0 $ getI v))) busmap) playmap
+    playmap' = Map.union (Map.mapKeys (drop 1) $ Map.map (\v -> VS ('c' : (show $ toBus $ fromMaybe 0 $ getI v))) busmap) playmap
     val = value . peEvent
     -- Only events that start within the current nowArc are included
     playmsg
@@ -213,7 +213,7 @@ toOSC maybeBusses pe osc@(OSC _ _) =
     busmsgs =
       map
         ( \(k, b) -> do
-            k' <- if (not $ null k) && head k == '^' then Just (tail k) else Nothing
+            k' <- if (not $ null k) && head k == '^' then Just (drop 1 k) else Nothing
             v <- Map.lookup k' playmap
             bi <- getI b
             return $
@@ -275,7 +275,7 @@ substitutePath str cm = parse str
       | b == [] = getString cm a
       | otherwise = do
           v <- getString cm a
-          xs' <- parse (tail b)
+          xs' <- parse (drop 1 b)
           return $ v ++ xs'
       where
         (a, b) = break (== '}') xs
