@@ -100,6 +100,7 @@ timeToRand :: (RealFrac a, Fractional b) => a -> b
 timeToRand = intSeedToRand . timeToIntSeed
 
 timeToRands :: (RealFrac a, Fractional b) => a -> Int -> [b]
+timeToRands 0 n = timeToRands' (timeToIntSeed (9999999 :: Double)) n
 timeToRands t n = timeToRands' (timeToIntSeed t) n
 
 timeToRands' :: (Fractional a) => Int -> Int -> [a]
