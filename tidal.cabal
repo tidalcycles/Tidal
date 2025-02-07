@@ -72,8 +72,8 @@ library
     , primitive < 0.10
     , random < 1.4
     , exceptions < 0.11
-    , mtl >= 2.2
-    , tidal-link == 1.0.4
+    , mtl >= 2.2 && < 2.4
+    , tidal-link >= 1.1 && < 1.2
 
 test-suite tests
   type: exitcode-stdio-1.0
