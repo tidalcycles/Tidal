@@ -111,7 +111,7 @@ where
 import Sound.Tidal.Context
 import Sound.Tidal.ID (ID)
 import System.IO (hSetEncoding, stdout, utf8)
-import Prelude hiding (all, (*>), (<*))
+import Prelude hiding (all, (*>), (<*), take, drop)
 
 -- | Functions using this constraint can access the in-scope Tidal instance.
 -- You must implement an instance of this in 'BootTidal.hs'. Note that GHC

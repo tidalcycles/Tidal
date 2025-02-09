@@ -24,6 +24,8 @@ import Sound.Tidal.Core (stack, timecat, zoompat)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils (enumerate, nubOrd, pairs)
 
+import Prelude hiding (take, drop)
+
 -- _lcmsteps :: [Pattern a] -> Maybe Time
 -- _lcmsteps pats = foldl1 lcmr <$> (sequence $ map steps pats)
 
@@ -84,28 +86,28 @@ stepcat pats = innerJoin $ (timecat . map snd . sortOn fst) <$> (tpat $ epats pa
     tpat :: [(Int, Pattern a)] -> Pattern [(Int, (Time, Pattern a))]
     tpat = mapM (\(i, pat) -> (\t -> (i, (t, pat))) <$> fromJust (steps pat))
 
-_steptake :: Time -> Pattern a -> Pattern a
+_take :: Time -> Pattern a -> Pattern a
 -- raise error?
-_steptake _ pat@(Pattern _ Nothing _) = pat
-_steptake n pat@(Pattern _ (Just tpat) _) = setSteps (Just tpat') $ zoompat b e pat
+_take _ pat@(Pattern _ Nothing _) = pat
+_take n pat@(Pattern _ (Just tpat) _) = setSteps (Just tpat') $ zoompat b e pat
   where
     b = (\t -> if n >= 0 then 0 else 1 - ((abs n) / t)) <$> tpat
     e = (\t -> if n >= 0 then n / t else 1) <$> tpat
     tpat' = (\t -> min (abs n) t) <$> tpat
 
-steptake :: Pattern Time -> Pattern a -> Pattern a
-steptake = s_patternify _steptake
+take :: Pattern Time -> Pattern a -> Pattern a
+take = s_patternify _take
 
-_stepdrop :: Time -> Pattern a -> Pattern a
-_stepdrop _ pat@(Pattern _ Nothing _) = pat
-_stepdrop n pat@(Pattern _ (Just tpat) _) = steptake (f <$> tpat) pat
+_drop :: Time -> Pattern a -> Pattern a
+_drop _ pat@(Pattern _ Nothing _) = pat
+_drop n pat@(Pattern _ (Just tpat) _) = take (f <$> tpat) pat
   where
     f t
       | n >= 0 = t - n
       | otherwise = 0 - (t + n)
 
-stepdrop :: Pattern Time -> Pattern a -> Pattern a
-stepdrop = s_patternify _stepdrop
+drop :: Pattern Time -> Pattern a -> Pattern a
+drop = s_patternify _drop
 
 _expand :: Rational -> Pattern a -> Pattern a
 _expand factor pat = withSteps (* factor) pat
@@ -118,6 +120,13 @@ expand = s_patternify _expand
 
 contract :: Pattern Rational -> Pattern a -> Pattern a
 contract = s_patternify _contract
+
+_extend :: Rational -> Pattern a -> Pattern a
+_extend factor pat = _expand factor $ _fast factor pat
+
+extend :: Pattern Rational -> Pattern a -> Pattern a
+extend = s_patternify _extend
+
 
 {-
 s_while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
