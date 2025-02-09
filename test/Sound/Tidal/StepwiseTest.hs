@@ -8,7 +8,7 @@ import Sound.Tidal.Params (sound)
 import Sound.Tidal.ParseBP ()
 import Sound.Tidal.Pattern
   ( ArcF (Arc),
-    Pattern (tactus),
+    Pattern (steps),
     fast,
     rev,
   )
@@ -42,52 +42,52 @@ run =
         compareP (Arc 0 8) (stepdrop "0 1 2 3" ("a b c d" :: Pattern Char)) "a b c d a b c a b a"
       it "can pattern reverse drops" $ do
         compareP (Arc 0 8) (stepdrop "0 -1 -2 -3" ("a b c d" :: Pattern Char)) "a b c d b c d c d d"
-    describe "tactus" $ do
+    describe "steps" $ do
       it "is correctly preserved/calculated through transformations" $ do
-        it "linger" $ (firstCycleValues <$> tactus (linger 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
-        it "iter" $ (firstCycleValues <$> tactus (iter 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
-        it "fast" $ (firstCycleValues <$> tactus (fast 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
-        it "hurry" $ (firstCycleValues <$> tactus (hurry 4 $ sound "a b c")) `shouldBe` Just [3]
-        it "rev" $ (firstCycleValues <$> tactus (rev "a b c" :: Pattern Char)) `shouldBe` Just [3]
-        it "segment" $ (firstCycleValues <$> tactus (segment 10 "a" :: Pattern Char)) `shouldBe` Just [10]
-        it "invert" $ (firstCycleValues <$> tactus (inv "1 0 1" :: Pattern Bool)) `shouldBe` Just [3]
-        it "chop" $ (firstCycleValues <$> tactus (chop 3 $ sound "a b")) `shouldBe` Just [6]
-        it "chop" $ (firstCycleValues <$> tactus (striate 3 $ sound "a b")) `shouldBe` Just [6]
+        it "linger" $ (firstCycleValues <$> steps (linger 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
+        it "iter" $ (firstCycleValues <$> steps (iter 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
+        it "fast" $ (firstCycleValues <$> steps (fast 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
+        it "hurry" $ (firstCycleValues <$> steps (hurry 4 $ sound "a b c")) `shouldBe` Just [3]
+        it "rev" $ (firstCycleValues <$> steps (rev "a b c" :: Pattern Char)) `shouldBe` Just [3]
+        it "segment" $ (firstCycleValues <$> steps (segment 10 "a" :: Pattern Char)) `shouldBe` Just [10]
+        it "invert" $ (firstCycleValues <$> steps (inv "1 0 1" :: Pattern Bool)) `shouldBe` Just [3]
+        it "chop" $ (firstCycleValues <$> steps (chop 3 $ sound "a b")) `shouldBe` Just [6]
+        it "chop" $ (firstCycleValues <$> steps (striate 3 $ sound "a b")) `shouldBe` Just [6]
 
---     expect(sequence({ s: 'bev' }, { s: 'amenbreak' }).chop(4).tactus).toStrictEqual(Fraction(8));
---     expect(sequence({ s: 'bev' }, { s: 'amenbreak' }).striate(4).tactus).toStrictEqual(Fraction(8));
---     expect(sequence({ s: 'bev' }, { s: 'amenbreak' }).slice(4, sequence(0, 1, 2, 3)).tactus).toStrictEqual(
+--     expect(sequence({ s: 'bev' }, { s: 'amenbreak' }).chop(4).steps).toStrictEqual(Fraction(8));
+--     expect(sequence({ s: 'bev' }, { s: 'amenbreak' }).striate(4).steps).toStrictEqual(Fraction(8));
+--     expect(sequence({ s: 'bev' }, { s: 'amenbreak' }).slice(4, sequence(0, 1, 2, 3)).steps).toStrictEqual(
 --       Fraction(4),
 --     );
---     expect(sequence({ s: 'bev' }, { s: 'amenbreak' }).splice(4, sequence(0, 1, 2, 3)).tactus).toStrictEqual(
+--     expect(sequence({ s: 'bev' }, { s: 'amenbreak' }).splice(4, sequence(0, 1, 2, 3)).steps).toStrictEqual(
 --       Fraction(4),
 --     );
---     expect(sequence({ n: 0 }, { n: 1 }, { n: 2 }).chop(4).tactus).toStrictEqual(Fraction(12));
+--     expect(sequence({ n: 0 }, { n: 1 }, { n: 2 }).chop(4).steps).toStrictEqual(Fraction(12));
 --     expect(
 --       pure((x) => x + 1)
---         .setTactus(3)
---         .appBoth(pure(1).setTactus(2)).tactus,
+--         .setSteps(3)
+--         .appBoth(pure(1).setSteps(2)).steps,
 --     ).toStrictEqual(Fraction(6));
 --     expect(
 --       pure((x) => x + 1)
---         .setTactus(undefined)
---         .appBoth(pure(1).setTactus(2)).tactus,
+--         .setSteps(undefined)
+--         .appBoth(pure(1).setSteps(2)).steps,
 --     ).toStrictEqual(Fraction(2));
 --     expect(
 --       pure((x) => x + 1)
---         .setTactus(3)
---         .appBoth(pure(1).setTactus(undefined)).tactus,
+--         .setSteps(3)
+--         .appBoth(pure(1).setSteps(undefined)).steps,
 --     ).toStrictEqual(Fraction(3));
---     expect(stack(fastcat(0, 1, 2), fastcat(3, 4)).tactus).toStrictEqual(Fraction(6));
---     expect(stack(fastcat(0, 1, 2), fastcat(3, 4).setTactus(undefined)).tactus).toStrictEqual(Fraction(3));
---     expect(stackLeft(fastcat(0, 1, 2, 3), fastcat(3, 4)).tactus).toStrictEqual(Fraction(4));
---     expect(stackRight(fastcat(0, 1, 2), fastcat(3, 4)).tactus).toStrictEqual(Fraction(3));
+--     expect(stack(fastcat(0, 1, 2), fastcat(3, 4)).steps).toStrictEqual(Fraction(6));
+--     expect(stack(fastcat(0, 1, 2), fastcat(3, 4).setSteps(undefined)).steps).toStrictEqual(Fraction(3));
+--     expect(stackLeft(fastcat(0, 1, 2, 3), fastcat(3, 4)).steps).toStrictEqual(Fraction(4));
+--     expect(stackRight(fastcat(0, 1, 2), fastcat(3, 4)).steps).toStrictEqual(Fraction(3));
 --     // maybe this should double when they are either all even or all odd
---     expect(stackCentre(fastcat(0, 1, 2), fastcat(3, 4)).tactus).toStrictEqual(Fraction(3));
---     expect(fastcat(0, 1).ply(3).tactus).toStrictEqual(Fraction(6));
---     expect(fastcat(0, 1).setTactus(undefined).ply(3).tactus).toStrictEqual(undefined);
---     expect(fastcat(0, 1).fast(3).tactus).toStrictEqual(Fraction(2));
---     expect(fastcat(0, 1).setTactus(undefined).fast(3).tactus).toStrictEqual(undefined);
+--     expect(stackCentre(fastcat(0, 1, 2), fastcat(3, 4)).steps).toStrictEqual(Fraction(3));
+--     expect(fastcat(0, 1).ply(3).steps).toStrictEqual(Fraction(6));
+--     expect(fastcat(0, 1).setSteps(undefined).ply(3).steps).toStrictEqual(undefined);
+--     expect(fastcat(0, 1).fast(3).steps).toStrictEqual(Fraction(2));
+--     expect(fastcat(0, 1).setSteps(undefined).fast(3).steps).toStrictEqual(undefined);
 --   });
 -- });
 -- describe('stepcat', () => {
@@ -95,8 +95,8 @@ run =
 --     expect(sameFirst(stepcat(fastcat(0, 1, 2, 3), fastcat(4, 5)), fastcat(0, 1, 2, 3, 4, 5)));
 --     expect(sameFirst(stepcat(pure(1), pure(2), pure(3)), fastcat(1, 2, 3)));
 --   });
---   it('calculates undefined tactuses as the average', () => {
---     expect(sameFirst(stepcat(pure(1), pure(2), pure(3).setTactus(undefined)), fastcat(1, 2, 3)));
+--   it('calculates undefined step count as the average', () => {
+--     expect(sameFirst(stepcat(pure(1), pure(2), pure(3).setSteps(undefined)), fastcat(1, 2, 3)));
 --   });
 -- });
 -- describe('taper', () => {
@@ -146,19 +146,19 @@ run =
 --   });
 -- });
 -- describe('stepJoin', () => {
---   it('can join a pattern with a tactus of 2', () => {
+--   it('can join a pattern with a steps of 2', () => {
 --     expect(
 --       sameFirst(
---         sequence(pure(pure('a')), pure(pure('b').setTactus(2))).stepJoin(),
---         stepcat(pure('a'), pure('b').setTactus(2)),
+--         sequence(pure(pure('a')), pure(pure('b').setSteps(2))).stepJoin(),
+--         stepcat(pure('a'), pure('b').setSteps(2)),
 --       ),
 --     );
 --   });
---   it('can join a pattern with a tactus of 0.5', () => {
+--   it('can join a pattern with a steps of 0.5', () => {
 --     expect(
 --       sameFirst(
---         sequence(pure(pure('a')), pure(pure('b').setTactus(0.5))).stepJoin(),
---         stepcat(pure('a'), pure('b').setTactus(0.5)),
+--         sequence(pure(pure('a')), pure(pure('b').setSteps(0.5))).stepJoin(),
+--         stepcat(pure('a'), pure('b').setSteps(0.5)),
 --       ),
 --     );
 --   });

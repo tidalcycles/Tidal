@@ -56,7 +56,7 @@ data State = State
   }
 
 -- | A datatype representing events taking place over time
-data Pattern a = Pattern {query :: State -> [Event a], tactus :: Maybe (Pattern Rational), pureValue :: Maybe a}
+data Pattern a = Pattern {query :: State -> [Event a], steps :: Maybe (Pattern Rational), pureValue :: Maybe a}
   deriving (Generic, Functor)
 
 instance (NFData a) => NFData (Pattern a)
@@ -64,28 +64,25 @@ instance (NFData a) => NFData (Pattern a)
 pattern :: (State -> [Event a]) -> Pattern a
 pattern f = Pattern f Nothing Nothing
 
-setTactus :: Maybe (Pattern Rational) -> Pattern a -> Pattern a
-setTactus r p = p {tactus = r}
+setSteps :: Maybe (Pattern Rational) -> Pattern a -> Pattern a
+setSteps r p = p {steps = r}
 
-setTactusFrom :: Pattern b -> Pattern a -> Pattern a
-setTactusFrom a b = b {tactus = tactus a}
+setStepsFrom :: Pattern b -> Pattern a -> Pattern a
+setStepsFrom a b = b {steps = steps a}
 
-withTactus :: (Rational -> Rational) -> Pattern a -> Pattern a
-withTactus f p = p {tactus = fmap (fmap f) $ tactus p}
+withSteps :: (Rational -> Rational) -> Pattern a -> Pattern a
+withSteps f p = p {steps = fmap (fmap f) $ steps p}
 
-steps :: Pattern Rational -> Pattern a -> Pattern a
-steps target p@(Pattern _ (Just t) _) = setTactus (Just target) $ fast (target / t) p
+pace :: Pattern Rational -> Pattern a -> Pattern a
+pace target p@(Pattern _ (Just t) _) = setSteps (Just target) $ fast (target / t) p
 -- raise error?
-steps _ p = p
-
--- _steps :: Pattern Rational -> Pattern a -> Pattern a
--- _steps = patternify _steps
+pace _ p = p
 
 keepMeta :: Pattern a -> Pattern a -> Pattern a
-keepMeta from to = to {tactus = tactus from, pureValue = pureValue from}
+keepMeta from to = to {steps = steps from, pureValue = pureValue from}
 
-keepTactus :: Pattern a -> Pattern b -> Pattern b
-keepTactus from to = to {tactus = tactus from}
+keepSteps :: Pattern a -> Pattern b -> Pattern b
+keepSteps from to = to {steps = steps from}
 
 -- type StateMap = Map.Map String (Pattern Value)
 type ControlPattern = Pattern ValueMap
@@ -131,19 +128,19 @@ instance Applicative Pattern where
   -- > (⅓>½)-⅔|11
   -- > ⅓-(½>⅔)|12
   -- >   (⅔>1)|102
-  (<*>) a b = (applyPatToPatBoth a b) {tactus = (\a' b' -> lcmr <$> a' <*> b') <$> tactus a <*> tactus b}
+  (<*>) a b = (applyPatToPatBoth a b) {steps = (\a' b' -> lcmr <$> a' <*> b') <$> steps a <*> steps b}
 
 -- | Like @<*>@, but the "wholes" come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<*) a b = keepTactus a $ applyPatToPatLeft a b
+(<*) a b = keepSteps a $ applyPatToPatLeft a b
 
 -- | Like @<*>@, but the "wholes" come from the right
 (*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(*>) a b = keepTactus b $ applyPatToPatRight a b
+(*>) a b = keepSteps b $ applyPatToPatRight a b
 
 -- | Like @<*>@, but the "wholes" come from the left
 (<<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
-(<<*) a b = (applyPatToPatSqueeze a b) {tactus = (*) <$> tactus a <*> tactus b}
+(<<*) a b = (applyPatToPatSqueeze a b) {steps = (*) <$> steps a <*> steps b}
 
 infixl 4 <*, *>, <<*
 
@@ -245,9 +242,9 @@ unwrap pp = pp {query = q, pureValue = Nothing}
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the inner pattern.
 innerJoin :: Pattern (Pattern a) -> Pattern a
-innerJoin pp = setTactus (Just $ innerJoin' $ filterJust $ tactus <$> pp) $ innerJoin' pp
+innerJoin pp = setSteps (Just $ innerJoin' $ filterJust $ steps <$> pp) $ innerJoin' pp
   where
-    -- \| innerJoin but without tactus manipulation (to avoid recursion)
+    -- \| innerJoin but without steps manipulation (to avoid recursion)
     innerJoin' :: Pattern (Pattern b) -> Pattern b
     innerJoin' pp' = pp' {query = q, pureValue = Nothing}
       where
@@ -282,7 +279,7 @@ outerJoin pp = pp {query = q, pureValue = Nothing}
 -- | Like @unwrap@, but cycles of the inner patterns are compressed to fit the
 -- timespan of the outer whole (or the original query if it's a continuous pattern?)
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
--- TODO - tactus
+-- TODO - steps
 squeezeJoin :: Pattern (Pattern a) -> Pattern a
 squeezeJoin pp = pp {query = q, pureValue = Nothing}
   where
@@ -567,13 +564,13 @@ instance Floating ValueMap where
 -- * Internal/fundamental functions
 
 empty :: Pattern a
-empty = Pattern {query = const [], tactus = Just 1, pureValue = Nothing}
+empty = Pattern {query = const [], steps = Just 1, pureValue = Nothing}
 
 silence :: Pattern a
 silence = empty
 
 nothing :: Pattern a
-nothing = empty {tactus = Just 0}
+nothing = empty {steps = Just 0}
 
 queryArc :: Pattern a -> Arc -> [Event a]
 queryArc p a = query p $ State a Map.empty
@@ -734,7 +731,7 @@ _fast :: Time -> Pattern a -> Pattern a
 _fast rate pat
   | rate == 0 = silence
   | rate < 0 = rev $ _fast (negate rate) pat
-  | otherwise = keepTactus pat $ withResultTime (/ rate) $ withQueryTime (* rate) pat
+  | otherwise = keepSteps pat $ withResultTime (/ rate) $ withQueryTime (* rate) pat
 
 -- | Slow down a pattern by the given time pattern.
 --
@@ -902,9 +899,9 @@ patternify :: (t1 -> t2 -> Pattern a) -> Pattern t1 -> t2 -> Pattern a
 patternify f (Pattern _ _ (Just a)) b = f a b
 patternify f pa p = innerJoin $ (`f` p) <$> pa
 
--- versions that preserve the tactus
+-- versions that preserve the steps
 patternify' :: (b -> Pattern c -> Pattern a) -> Pattern b -> Pattern c -> Pattern a
-patternify' f pa p = (patternify f pa p) {tactus = tactus p}
+patternify' f pa p = (patternify f pa p) {steps = steps p}
 
 patternify2 :: (a -> b -> c -> Pattern d) -> Pattern a -> Pattern b -> c -> Pattern d
 patternify2 f (Pattern _ _ (Just a)) (Pattern _ _ (Just b)) c = f a b c
@@ -918,7 +915,7 @@ patternify3 f (Pattern _ _ (Just a)) (Pattern _ _ (Just b)) (Pattern _ _ (Just c
 patternify3 f a b c p = innerJoin $ (\x y z -> f x y z p) <$> a <*> b <*> c
 
 patternify3' :: (a -> b -> c -> Pattern d -> Pattern e) -> (Pattern a -> Pattern b -> Pattern c -> Pattern d -> Pattern e)
-patternify3' f a b c p = keepTactus p $ patternify3 f a b c p
+patternify3' f a b c p = keepSteps p $ patternify3 f a b c p
 
 patternifySqueeze :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 patternifySqueeze f tv p = squeezeJoin $ (`f` p) <$> tv

@@ -536,7 +536,7 @@ brak = when ((== 1) . (`mod` 2)) (((1 % 4) `rotR`) . (\x -> fastcat [x, silence]
 --
 -- There is also `iter'`, which shifts the pattern in the opposite direction.
 iter :: Pattern Int -> Pattern c -> Pattern c
-iter a pat = keepTactus pat $ patternify' _iter a pat
+iter a pat = keepSteps pat $ patternify' _iter a pat
 
 _iter :: Int -> Pattern a -> Pattern a
 _iter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n - 1)]
@@ -1185,7 +1185,7 @@ segment :: Pattern Time -> Pattern a -> Pattern a
 segment = patternify _segment
 
 _segment :: Time -> Pattern a -> Pattern a
-_segment n p = setTactus (Just $ pure n) $ _fast n (pure id) <* p
+_segment n p = setSteps (Just $ pure n) $ _fast n (pure id) <* p
 
 -- | @discretise@: the old (deprecated) name for 'segment'
 discretise :: Pattern Time -> Pattern a -> Pattern a
@@ -1454,7 +1454,7 @@ markovPat = patternify2 _markovPat
 
 _markovPat :: Int -> Int -> [[Double]] -> Pattern Int
 _markovPat n xi tp =
-  setTactus (Just $ pure $ toRational n) $
+  setSteps (Just $ pure $ toRational n) $
     splitQueries $
       pattern
         ( \(State a@(Arc s _) _) ->
@@ -2251,7 +2251,7 @@ stitch pb a b = overlay (struct pb a) (struct (inv pb) b)
 -- value is active. No events are let through where no binary values
 -- are active.
 while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-while b f pat = keepTactus pat $ sew b (f pat) pat
+while b f pat = keepSteps pat $ sew b (f pat) pat
 
 -- |
 -- @stutter n t pat@ repeats each event in @pat@ @n@ times, separated by @t@ time (in fractions of a cycle).
@@ -2348,8 +2348,8 @@ juxBy ::
   (Pattern ValueMap -> Pattern ValueMap) ->
   Pattern ValueMap ->
   Pattern ValueMap
--- TODO: lcm tactus of p and f p?
-juxBy n f p = keepTactus p $ stack [p |+ P.pan 0.5 |- P.pan (n / 2), f $ p |+ P.pan 0.5 |+ P.pan (n / 2)]
+-- TODO: lcm steps of p and f p?
+juxBy n f p = keepSteps p $ stack [p |+ P.pan 0.5 |- P.pan (n / 2), f $ p |+ P.pan 0.5 |+ P.pan (n / 2)]
 
 -- |
 -- Given a sample's directory name and number, this generates a string
@@ -2913,7 +2913,7 @@ _binary :: (Data.Bits.Bits b) => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
 
 _binaryN :: Int -> Pattern Int -> Pattern Bool
-_binaryN n p = setTactus (Just $ pure $ toRational n) $ squeezeJoin $ _binary n <$> p
+_binaryN n p = setSteps (Just $ pure $ toRational n) $ squeezeJoin $ _binary n <$> p
 
 binaryN :: Pattern Int -> Pattern Int -> Pattern Bool
 binaryN n p = patternify _binaryN n p
