@@ -23,8 +23,7 @@ import Data.Maybe (fromJust, isJust, mapMaybe)
 import Sound.Tidal.Core (stack, timecat, zoompat)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils (enumerate, nubOrd, pairs)
-
-import Prelude hiding (take, drop)
+import Prelude hiding (drop, take)
 
 -- _lcmsteps :: [Pattern a] -> Maybe Time
 -- _lcmsteps pats = foldl1 lcmr <$> (sequence $ map steps pats)
@@ -126,7 +125,6 @@ _extend factor pat = _expand factor $ _fast factor pat
 
 extend :: Pattern Rational -> Pattern a -> Pattern a
 extend = s_patternify _extend
-
 
 {-
 s_while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
