@@ -1,0 +1,46 @@
+name:               tidal-parse-ffi
+
+license:            GPL-3
+license-file:       LICENSE
+Extra-source-files: README.md
+
+version:            0.1.0
+build-type:         Simple
+cabal-version:      >=1.10
+
+library
+  exposed-modules:  Sound.Tidal.Parse.FFI
+  default-language: Haskell2010
+
+  ghc-options:      -Wall
+  hs-source-dirs:   src
+
+  Build-depends:
+      base
+    , containers
+    , tidal-parse 
+    , tidal 
+    , aeson 
+    , bytestring 
+    , vector
+
+test-suite tests
+  type:             exitcode-stdio-1.0
+  main-is:          Test.hs
+  hs-source-dirs:   test
+  ghc-options:      -Wall
+  other-modules:    Sound.Tidal.TidalParseFFITest
+  build-depends:
+      base
+    , containers
+    , tidal-parse-ffi
+    , tidal-parse
+    , tidal
+    , aeson
+    , bytestring
+    , HUnit
+    , vector
+
+source-repository head
+  type:             git
+  location:         https://github.com/tidalcycles/tidal-parse-ffi

@@ -39,8 +39,7 @@ instance (Real a) => ToJSON (ArcF a) where
 -- JSON serialization for EventF
 instance (ToJSON a, ToJSON b) => ToJSON (EventF a b) where
     toJSON (Event ctx whole part value) =
-        object [ "context" .= show ctx
-               , "whole"   .= whole
+        object [ "whole"   .= whole
                , "part"    .= part
                , "value"   .= value
                ]
