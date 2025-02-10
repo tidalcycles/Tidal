@@ -447,7 +447,7 @@ pChoice f a =
     return $ TPat_Seq [TPat_CycleChoose seed (elongOrRep : (a : choices)), rest]
 
 -- so far, the first pattern in stack has to be single
--- '1 2, 3 4' results in '1 [2, 3 4]' 
+-- '1 2, 3 4' results in '1 [2, 3 4]'
 -- also: no elongate or repeat working in first to be stacked (single) pattern
 pStack :: (Parseable a) => MyParser (TPat a) -> TPat a -> MyParser (TPat a)
 pStack f a = do
