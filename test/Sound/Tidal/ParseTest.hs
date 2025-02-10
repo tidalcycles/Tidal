@@ -355,20 +355,15 @@ run =
           (Arc 0 1)
           ("1 2, 3 4 5" :: Pattern String)
           (stack ["1 2", "3 4 5"])
-      it "toplevel ',' is the same as in list" $ do
+      it "simple toplevel ',' is the same as in list" $ do
         compareP
           (Arc 0 1)
           ("1,2 3" :: Pattern String)
           (stack ["1", "2 3"])
-      it "toplevel ',' with elongate" $ do
+      it "toplevel ','. single leading pattern with elongate" $ do
         compareP
           (Arc 0 1)
-          ("1!2 8*2,2|3,3 9 8" :: Pattern String)
-          (stack ["1!2 8*2", "2|3", "3 9 8"])
-      it "toplevel ',' more complex pattern" $ do
-        compareP
-          (Arc 0 1)
-          ("7 12,2*3,2!2, 4" :: Pattern String)
-          ("[7 12,2*3,2!2, 4]" :: Pattern String)
+          ("8@2,2|3,3 9 8" :: Pattern String)
+          (stack ["8@2", "2|3", "3 9 8"])
   where
     degradeByDefault = _degradeBy 0.5

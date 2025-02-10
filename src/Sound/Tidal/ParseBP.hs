@@ -403,9 +403,9 @@ pSequence f = do
         spaces
         pEnumeration f a
           <|> pChoice f a
+          <|> pStack f a
           <|> pElongate a
           <|> pRepeat a
-          <|> pStack f a
           <|> return a
         <|> pFoot
   pRand $ resolve_feet s
@@ -435,23 +435,16 @@ pEnumeration f a = do
 
 pChoice :: (Parseable a) => MyParser (TPat a) -> TPat a -> MyParser (TPat a)
 pChoice f a =
-  try $
-    lookAhead isChoice >> _pChoice
-  where
-    isChoice =
-      char '|' <|> do
-        pElongate a <|> pRepeat a
+  try $ do
+    elongOrRep <- option (TPat_Seq []) (pElongate a <|> pRepeat a)
+    choices <- many1 $
+      do
         char '|'
-    _pChoice = do
-      elongOrRep <- option (TPat_Seq []) (pElongate a <|> pRepeat a)
-      choices <- many1 $
-        do
-          char '|'
-          b <- pPart f
-          pElongate b <|> pRepeat b <|> return b
-      seed <- newSeed
-      rest <- pSequence f
-      return $ TPat_Seq [TPat_CycleChoose seed (elongOrRep : (a : choices)), rest]
+        b <- pPart f
+        pElongate b <|> pRepeat b <|> return b
+    seed <- newSeed
+    rest <- pSequence f
+    return $ TPat_Seq [TPat_CycleChoose seed (elongOrRep : (a : choices)), rest]
 
 -- so far, the first pattern in stack has to be single
 -- '1 2, 3 4' results in '1 [2, 3 4]' 
@@ -459,6 +452,7 @@ pChoice f a =
 pStack :: (Parseable a) => MyParser (TPat a) -> TPat a -> MyParser (TPat a)
 pStack f a = do
   try $ do
+    elongOrRep <- option (TPat_Seq []) (pElongate a <|> pRepeat a <|> return a)
     stacks <- try $
       many1 $
         do
@@ -466,7 +460,7 @@ pStack f a = do
           spaces
           pSequence f
     notFollowedBy $ char ')' <|> char ']' <|> char '}'
-    return $ TPat_Stack (a : stacks)
+    return $ TPat_Stack (TPat_Seq [elongOrRep] : stacks)
 
 pRepeat :: TPat a -> MyParser (TPat a)
 pRepeat a = do
