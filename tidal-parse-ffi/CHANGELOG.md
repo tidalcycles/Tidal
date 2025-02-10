@@ -1,5 +1,17 @@
-# Revision history for tidal-listener
+# Changelog for tidal-parse-ffi
 
-## 0.1.0.0 -- YYYY-mm-dd
+## Unreleased
 
-* First version. Released on an unsuspecting world.
+### Added
+
+- FFI bindings for `tidal-parse`.
+- `cabal.project` integration.
+
+### Changed
+
+- Updated dependencies and metadata.
+- Performance improvements.
+
+### Fixed
+
+- Stability and bug fixes.
