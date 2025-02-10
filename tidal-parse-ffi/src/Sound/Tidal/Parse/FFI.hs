@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Sound.Tidal.Parse.FFI where
 
@@ -10,39 +12,47 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
 import Text.Read (readMaybe)
-import Data.Ratio ((%))
+import GHC.Generics (Generic)
 
 import Sound.Tidal.Parse (parseTidal)
-import Sound.Tidal.Context
-import Sound.Tidal.Pattern (Value) 
-import Sound.Tidal.Show (show)
+import Sound.Tidal.Pattern
+import Sound.Tidal.Params ()
+import Sound.Tidal.Show ()
 
--- Ensure Tidal's `Value` is converted to JSON properly
-instance ToJSON Value where
-    toJSON (VS s) = toJSON s
-    toJSON (VI i) = toJSON i
-    toJSON (VF f) = toJSON f
-    toJSON (VN n) = toJSON $ show n
-    toJSON (VR r) = toJSON $ show r
-    toJSON (VB b) = toJSON b
-    toJSON (VX xs) = toJSON xs
-    toJSON (VPattern pat) = toJSON $ show pat
-    toJSON (VState f) = toJSON $ show $ f Map.empty
-    toJSON (VList vs) = toJSON vs
+-- Newtype wrappers to avoid orphan instances
+newtype JSONValue = JSONValue { unJSONValue :: Value }
+  deriving (Generic)
 
--- JSON serialization for ArcF
-instance (Real a) => ToJSON (ArcF a) where
-    toJSON (Arc start stop) =
-        object ["start" .= (realToFrac start :: Double), 
-                "stop"  .= (realToFrac stop :: Double)]
+instance ToJSON JSONValue where
+    toJSON (JSONValue (VS str)) = toJSON str
+    toJSON (JSONValue (VI i)) = toJSON i
+    toJSON (JSONValue (VF f)) = toJSON f
+    toJSON (JSONValue (VN num)) = toJSON $ show num
+    toJSON (JSONValue (VR r)) = toJSON $ show r
+    toJSON (JSONValue (VB b)) = toJSON b
+    toJSON (JSONValue (VX xs)) = toJSON xs
+    toJSON (JSONValue (VPattern pat)) = toJSON $ show pat
+    toJSON (JSONValue (VState f)) = toJSON $ show $ f Map.empty
+    toJSON (JSONValue (VList vs)) = toJSON $ map JSONValue vs
 
--- JSON serialization for EventF
-instance (ToJSON a, ToJSON b) => ToJSON (EventF a b) where
-    toJSON (Event ctx whole part value) =
-        object [ "whole"   .= whole
-               , "part"    .= part
-               , "value"   .= value
-               ]
+newtype JSONArcF = JSONArcF (ArcF Rational)
+  deriving (Generic)
+
+instance ToJSON JSONArcF where
+    toJSON (JSONArcF (Arc arcStart arcStop)) =
+        object ["start" .= (realToFrac arcStart :: Double), 
+                "stop"  .= (realToFrac arcStop :: Double)]
+
+newtype JSONEventF = JSONEventF (Event (Map.Map String Value))
+  deriving (Generic)
+
+instance ToJSON JSONEventF where
+    toJSON (JSONEventF (Event _ctx evWhole evPart evValue)) =
+        object [ "whole"   .= fmap JSONArcF evWhole  -- Handle Maybe
+               , "part"    .= JSONArcF evPart
+               , "value"   .= fmap JSONValue evValue ]
+
+
 
 -- Foreign export wrapper function
 foreign export ccall eval_pattern_c :: CString -> CString -> IO CString
@@ -65,7 +75,7 @@ encodeError err = Aeson.object ["error" Aeson..= err]
 
 encodeSuccess :: Double -> [Event (Map.Map String Value)] -> Aeson.Value
 encodeSuccess arcLen events = 
-    Aeson.object ["arcLen" .= arcLen, "events" .= events]
+    Aeson.object ["arcLen" .= arcLen, "events" .= map JSONEventF events]
 
 -- Helper functions to handle parsing and querying
 parseAndQuery :: String -> Double -> Either String [Event (Map.Map String Value)]

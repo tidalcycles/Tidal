@@ -5,7 +5,7 @@ module Sound.Tidal.TidalParseFFITest where
 
 import Foreign.C.String (CString, peekCString, newCString)
 import Test.HUnit
-import Data.Aeson (Value, decode, encode, object, (.=))
+import Data.Aeson (Value, encode, object, (.=))
 import qualified Data.ByteString.Lazy.Char8 as B
 
 -- Foreign function import

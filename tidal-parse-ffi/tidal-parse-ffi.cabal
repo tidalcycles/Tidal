@@ -2,7 +2,7 @@ name:               tidal-parse-ffi
 
 license:            GPL-3
 license-file:       LICENSE
-Extra-source-files: README.md
+extra-doc-files:    CHANGELOG.md, README.md
 
 version:            0.1.0
 build-type:         Simple
