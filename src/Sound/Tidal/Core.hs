@@ -40,7 +40,7 @@ sig f = pattern q
   where
     q (State (Arc s e) _)
       | s > e = []
-      | otherwise = [Event (Context []) Nothing (Arc s e) (f (s + ((e - s) / 2)))]
+      | otherwise = [Event (Context []) Nothing (Arc s e) (f s)]
 
 -- | @sine@ - unipolar sinewave. A pattern of continuous values following a
 -- sinewave with frequency of one cycle, and amplitude from 0 to 1.
