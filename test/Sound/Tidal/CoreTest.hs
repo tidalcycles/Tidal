@@ -296,21 +296,21 @@ run =
         map value (queryArc ((+ 1) <$> saw) (Arc 0.5 0.5)) `shouldBe` [1.5 :: Float]
       it "works on the left of <*>" $
         queryArc ((+) <$> saw <*> pure 3) (Arc 0 1)
-          `shouldBe` [Event (Context []) Nothing (Arc 0 1) 3.5 :: Event Double]
+          `shouldBe` [Event (Context []) Nothing (Arc 0 1) 3 :: Event Double]
       it "works on the right of <*>" $
         queryArc (fast 4 (pure (+ 3)) <*> saw) (Arc 0 1)
-          `shouldBe` [ Event (Context []) Nothing (Arc 0 0.25) 3.5 :: Event Double,
-                       Event (Context []) Nothing (Arc 0.25 0.5) 3.5,
-                       Event (Context []) Nothing (Arc 0.5 0.75) 3.5,
-                       Event (Context []) Nothing (Arc 0.75 1) 3.5
+          `shouldBe` [ Event (Context []) Nothing (Arc 0 0.25) 3 :: Event Double,
+                       Event (Context []) Nothing (Arc 0.25 0.5) 3,
+                       Event (Context []) Nothing (Arc 0.5 0.75) 3,
+                       Event (Context []) Nothing (Arc 0.75 1) 3
                      ]
       it "can be reversed" $ do
         it "works with whole cycles" $
           queryArc (rev saw) (Arc 0 1)
-            `shouldBe` [Event (Context []) Nothing (Arc 0 1) 0.5 :: Event Double]
+            `shouldBe` [Event (Context []) Nothing (Arc 0 1) 0 :: Event Double]
         it "works with half cycles" $
-          queryArc (rev saw) (Arc 0 0.5)
-            `shouldBe` [Event (Context []) Nothing (Arc 0 0.5) 0.75 :: Event Double]
+          queryArc (rev saw) (Arc 0.5 1)
+            `shouldBe` [Event (Context []) Nothing (Arc 0.5 1) 0 :: Event Double]
         it "works with inset points" $
           queryArc (rev saw) (Arc 0.25 0.25)
             `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) 0.75 :: Event Double]
@@ -320,12 +320,12 @@ run =
         comparePD
           (Arc 0 1)
           (struct "t*8" (tri :: Pattern Double))
-          "0.125 0.375 0.625 0.875 0.875 0.625 0.375 0.125"
+          "0 0.25 0.5 0.75 1 0.75 0.5 0.25"
       it "can be added to" $
         comparePD
           (Arc 0 1)
           (struct "t*8" $ (tri :: Pattern Double) + 1)
-          "1.125 1.375 1.625 1.875 1.875 1.625 1.375 1.125"
+          "1 1.25 1.5 1.75 2 1.75 1.5 1.25"
     describe "every" $
       it "`every n id` doesn't change the pattern's structure" $ do
         comparePD
