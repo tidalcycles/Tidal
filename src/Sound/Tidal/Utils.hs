@@ -119,7 +119,7 @@ applyWhen False _ x = x
 
 -- pair up neighbours in list
 pairs :: [a] -> [(a, a)]
-pairs rs = zip rs (tail rs)
+pairs rs = zip rs (drop 1 rs)
 
 -- The following is from Data.Containers.ListUtils, (c) Gershom Bazerman 2018,
 -- Used under a BSD 3-clause license

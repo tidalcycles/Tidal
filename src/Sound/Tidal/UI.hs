@@ -100,6 +100,7 @@ timeToRand :: (RealFrac a, Fractional b) => a -> b
 timeToRand = intSeedToRand . timeToIntSeed
 
 timeToRands :: (RealFrac a, Fractional b) => a -> Int -> [b]
+timeToRands 0 n = timeToRands' (timeToIntSeed (9999999 :: Double)) n
 timeToRands t n = timeToRands' (timeToIntSeed t) n
 
 timeToRands' :: (Fractional a) => Int -> Int -> [a]
@@ -986,7 +987,7 @@ _distrib xs p = boolsToPat (foldr distrib' (replicate (last xs) True) (reverse $
     distrib' (_ : a) [] = False : distrib' a []
     distrib' (True : a) (x : b) = x : distrib' a b
     distrib' (False : a) b = False : distrib' a b
-    layers = map bjorklund . (zip <*> tail)
+    layers = map bjorklund . (zip <*> drop 1)
     boolsToPat a b' = flip const <$> filterValues (== True) (fastFromList a) <* b'
 
 -- | @euclidInv@ fills in the blanks left by `euclid`, i.e., it inverts the
@@ -1799,7 +1800,7 @@ randrun n' =
       where
         shuffled = map snd $ sortOn fst $ zip rs [0 .. (n' - 1)]
         rs = timeToRands seed n' :: [Double]
-        arcs = zipWith Arc fractions (tail fractions)
+        arcs = zipWith Arc fractions (drop 1 fractions)
         fractions = map (+ (sam $ start a)) [0, 1 / fromIntegral n' .. 1]
         toEv (a', v) = do
           a'' <- subArc a a'
@@ -2017,7 +2018,7 @@ _arp name p = arpWith f p
         ("down&up", \x -> reverse x ++ x),
         ("converge", converge),
         ("diverge", reverse . converge),
-        ("disconverge", \x -> converge x ++ tail (reverse $ converge x)),
+        ("disconverge", \x -> converge x ++ drop 1 (reverse $ converge x)),
         ("pinkyup", pinkyup),
         ("pinkyupdown", \x -> init (pinkyup x) ++ init (reverse $ pinkyup x)),
         ("thumbup", thumbup),
@@ -2030,7 +2031,7 @@ _arp name p = arpWith f p
     pinkyup xs = concatMap (: [pinky]) $ init xs
       where
         pinky = last xs
-    thumbup xs = concatMap (\x -> [thumb, x]) $ tail xs
+    thumbup xs = concatMap (\x -> [thumb, x]) $ drop 1 xs
       where
         thumb = head xs
 
