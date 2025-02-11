@@ -16,6 +16,9 @@ tidalInst <- mkTidal
 -- It has to go after you define 'tidalInst'.
 instance Tidally where tidal = tidalInst
 
+-- Uncomment to enable Ableton Link on startup:
+-- streamEnableLink tidal
+
 -- You can add your own aliases in this file. Here are some examples:
 -- :{
 -- let xfade i = transition tidal True (Sound.Tidal.Transition.xfadeIn 4) i
