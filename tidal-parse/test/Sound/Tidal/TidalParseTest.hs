@@ -4,9 +4,19 @@ module Sound.Tidal.TidalParseTest where
 
 import Data.Either
 import qualified Data.Map.Strict as Map
+
 import Sound.Tidal.Chords as Tidal
-import Sound.Tidal.Context as Tidal
+import Sound.Tidal.Control as Tidal
+import Sound.Tidal.Core as Tidal
+import Sound.Tidal.Params as Tidal
+import Sound.Tidal.Pattern as Tidal
+import Sound.Tidal.UI as Tidal
+
 import Sound.Tidal.Parse
+import Sound.Tidal.Scales ()
+import Sound.Tidal.Show ()
+import Sound.Tidal.Simple ()
+
 import Test.Microspec hiding (run)
 
 stripContext :: Pattern a -> Pattern a

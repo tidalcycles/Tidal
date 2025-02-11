@@ -27,22 +27,12 @@ library
 
   autogen-modules:     Paths_tidal
 
-  Exposed-modules:     Sound.Tidal.Bjorklund
+  Exposed-modules:    
                        Sound.Tidal.Boot
-                       Sound.Tidal.Chords
-                       Sound.Tidal.Control
                        Sound.Tidal.Context
-                       Sound.Tidal.Core
                        Sound.Tidal.ID
-                       Sound.Tidal.Params
-                       Sound.Tidal.ParseBP
-                       Sound.Tidal.Pattern
-                       Sound.Tidal.Scales
                        Sound.Tidal.Safe.Context
                        Sound.Tidal.Safe.Boot
-                       Sound.Tidal.Show
-                       Sound.Tidal.Simple
-                       Sound.Tidal.Stepwise
                        Sound.Tidal.Stream
                        Sound.Tidal.Stream.Config
                        Sound.Tidal.Stream.Listen
@@ -51,10 +41,7 @@ library
                        Sound.Tidal.Stream.Target
                        Sound.Tidal.Stream.Types
                        Sound.Tidal.Stream.UI
-                       Sound.Tidal.Time
                        Sound.Tidal.Transition
-                       Sound.Tidal.UI
-                       Sound.Tidal.Utils
                        Sound.Tidal.Version
                        Paths_tidal
   Build-depends:
@@ -74,6 +61,7 @@ library
     , exceptions < 0.11
     , mtl >= 2.2 && < 2.4
     , tidal-link >= 1.1 && < 1.2
+    , tidal-core
 
 test-suite tests
   type: exitcode-stdio-1.0
@@ -81,18 +69,8 @@ test-suite tests
   hs-source-dirs:
       test
   ghc-options: -Wall
-  other-modules: Sound.Tidal.ControlTest
-                 Sound.Tidal.CoreTest
-                 Sound.Tidal.ParamsTest
-                 Sound.Tidal.ParseTest
-                 Sound.Tidal.PatternTest
-                 Sound.Tidal.ScalesTest
-                 Sound.Tidal.ChordsTest
-                 Sound.Tidal.StepwiseTest
+  other-modules:
                  Sound.Tidal.StreamTest
-                 Sound.Tidal.UITest
-                 Sound.Tidal.UtilsTest
-                 Sound.Tidal.ExceptionsTest
                  TestUtils
   build-depends:
                 base >=4 && <5,
@@ -101,6 +79,7 @@ test-suite tests
                 containers,
                 parsec,
                 tidal,
+                tidal-core,
                 deepseq
 
   default-language: Haskell2010

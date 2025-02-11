@@ -81,6 +81,3 @@ type PlayMap = Map.Map PatId PlayState
 --                     tickNudge :: Double
 --                    }
 --   deriving Show
-
-patternTimeID :: String
-patternTimeID = "_t_pattern"

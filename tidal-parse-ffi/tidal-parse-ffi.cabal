@@ -19,7 +19,7 @@ library
       base
     , containers
     , tidal-parse 
-    , tidal 
+    , tidal-core 
     , aeson 
     , bytestring 
     , vector
@@ -35,7 +35,7 @@ test-suite tests
     , containers
     , tidal-parse-ffi
     , tidal-parse
-    , tidal
+    , tidal-core
     , aeson
     , bytestring
     , HUnit
