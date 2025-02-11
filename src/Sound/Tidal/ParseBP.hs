@@ -222,7 +222,7 @@ parseBP_E s = toE parsed
     toE (Right tp) = toPat tp
 
 parseTPat :: (Parseable a) => String -> Either ParseError (TPat a)
-parseTPat = runParser (pSequence parseRest <* eof) (0 :: Int) ""
+parseTPat = runParser (pEnter parseRest <* eof) (0 :: Int) ""
 
 -- | a '-' is a negative sign if followed anything but another dash
 -- otherwise, it's treated as rest
@@ -236,11 +236,9 @@ parseRest =
           noneOf "-"
         tPatParser
     )
-    <|> char '-'
-    *> pure TPat_Silence
+    <|> char '-' *> pure TPat_Silence
       <|> tPatParser
-      <|> char '~'
-    *> pure TPat_Silence
+      <|> char '~' *> pure TPat_Silence
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
 cP s = innerJoin $ parseBP_E <$> _cX_ getS s
@@ -402,8 +400,6 @@ pSequence f = do
         a <- pPart f
         spaces
         pEnumeration f a
-          <|> pChoice f a
-          <|> pStack f a
           <|> pElongate a
           <|> pRepeat a
           <|> return a
@@ -432,34 +428,6 @@ pEnumeration f a = do
   try $ symbol ".."
   b <- pPart f
   return $ TPat_EnumFromTo a b
-
-pChoice :: (Parseable a) => MyParser (TPat a) -> TPat a -> MyParser (TPat a)
-pChoice f a =
-  try $ do
-    elongOrRep <- option (TPat_Seq []) (pElongate a <|> pRepeat a)
-    choices <- many1 $
-      do
-        char '|'
-        b <- pPart f
-        pElongate b <|> pRepeat b <|> return b
-    seed <- newSeed
-    rest <- pSequence f
-    return $ TPat_Seq [TPat_CycleChoose seed (elongOrRep : (a : choices)), rest]
-
--- so far, the first pattern in stack has to be single
--- '1 2, 3 4' results in '1 [2, 3 4]'
-pStack :: (Parseable a) => MyParser (TPat a) -> TPat a -> MyParser (TPat a)
-pStack f a = do
-  try $ do
-    elongOrRep <- option (TPat_Seq []) (pElongate a <|> pRepeat a <|> return a)
-    stacks <- try $
-      many1 $
-        do
-          char ','
-          spaces
-          pSequence f
-    notFollowedBy $ char ')' <|> char ']' <|> char '}'
-    return $ TPat_Stack (TPat_Seq [elongOrRep] : stacks)
 
 pRepeat :: TPat a -> MyParser (TPat a)
 pRepeat a = do
@@ -497,9 +465,9 @@ newSeed = do
   Text.Parsec.Prim.modifyState (+ 1)
   return seed
 
-pPolyIn :: (Parseable a) => MyParser (TPat a) -> MyParser (TPat a)
-pPolyIn f = do
-  x <- brackets $ do
+pEnter :: (Parseable a) => MyParser (TPat a) -> MyParser (TPat a)
+pEnter f = do
+  x <- do
     s <- pSequence f <?> "sequence"
     stackTail s <|> chooseTail s <|> return s
   pMult x
@@ -513,6 +481,9 @@ pPolyIn f = do
       ss <- pSequence f `sepBy` symbol "|"
       seed <- newSeed
       return $ TPat_CycleChoose seed (s : ss)
+
+pPolyIn :: (Parseable a) => MyParser (TPat a) -> MyParser (TPat a)
+pPolyIn f = brackets $ pEnter f
 
 pPolyOut :: (Parseable a) => MyParser (TPat a) -> MyParser (TPat a)
 pPolyOut f =
