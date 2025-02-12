@@ -339,8 +339,8 @@ run =
       it "toplevel '|' is the same as in list" $ do
         compareP
           (Arc 0 1)
-          ("[a a|b b b|c c c c]" :: Pattern String)
           ("a a |b b b|c c c c" :: Pattern String)
+          ("[a a|b b b|c c c c]" :: Pattern String)
       it "'|' in list first" $ do
         evaluate ("1 2@3|4|-|5!6|[7!8 9] 10 . 11 12*2 13!2 . 1@1" :: Pattern String)
           `shouldNotThrow` anyException
@@ -350,5 +350,20 @@ run =
       it "toplevel '|'" $ do
         evaluate ("121|23@1|12|[1 321]" :: Pattern String)
           `shouldNotThrow` anyException
+      it "list is same as stack" $ do
+        compareP
+          (Arc 0 1)
+          ("1 2, 3 4 5" :: Pattern String)
+          (stack ["1 2", "3 4 5"])
+      it "simple toplevel ',' is the same as in list" $ do
+        compareP
+          (Arc 0 1)
+          ("9!2 1,2 3" :: Pattern String)
+          (stack ["9!2 1", "2 3"])
+      it "toplevel ','. single leading pattern with elongate" $ do
+        compareP
+          (Arc 0 1)
+          ("8@2 4, [23 | 4] , 3 9 8" :: Pattern String)
+          (stack ["8@2 4", "23|4", "3 9 8"])
   where
     degradeByDefault = _degradeBy 0.5
