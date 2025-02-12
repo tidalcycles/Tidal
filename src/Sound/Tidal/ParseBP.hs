@@ -236,9 +236,11 @@ parseRest =
           noneOf "-"
         tPatParser
     )
-    <|> char '-' *> pure TPat_Silence
+    <|> char '-'
+    *> pure TPat_Silence
       <|> tPatParser
-      <|> char '~' *> pure TPat_Silence
+      <|> char '~'
+    *> pure TPat_Silence
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
 cP s = innerJoin $ parseBP_E <$> _cX_ getS s
