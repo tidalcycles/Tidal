@@ -38,6 +38,7 @@ import Data.List (intercalate)
 import Data.Maybe
 import Data.Ratio
 import Data.Typeable (Typeable)
+import Data.Functor (($>))
 import GHC.Exts (IsString (..))
 import Sound.Tidal.Chords
 import Sound.Tidal.Core
@@ -236,11 +237,9 @@ parseRest =
           noneOf "-"
         tPatParser
     )
-    <|> char '-'
-    *> pure TPat_Silence
+    <|> char '-' $> TPat_Silence
       <|> tPatParser
-      <|> char '~'
-    *> pure TPat_Silence
+      <|> char '~' $> TPat_Silence
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
 cP s = innerJoin $ parseBP_E <$> _cX_ getS s
