@@ -33,12 +33,12 @@ import qualified Control.Exception as E
 import Data.Bifunctor (first)
 import Data.Colour
 import Data.Colour.Names
+import Data.Functor (($>))
 import Data.Functor.Identity (Identity)
 import Data.List (intercalate)
 import Data.Maybe
 import Data.Ratio
 import Data.Typeable (Typeable)
-import Data.Functor (($>))
 import GHC.Exts (IsString (..))
 import Sound.Tidal.Chords
 import Sound.Tidal.Core
@@ -237,9 +237,11 @@ parseRest =
           noneOf "-"
         tPatParser
     )
-    <|> char '-' $> TPat_Silence
+    <|> char '-'
+    $> TPat_Silence
       <|> tPatParser
-      <|> char '~' $> TPat_Silence
+      <|> char '~'
+    $> TPat_Silence
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
 cP s = innerJoin $ parseBP_E <$> _cX_ getS s
@@ -485,7 +487,7 @@ newSeed = do
   return seed
 
 pPolyIn :: (Parseable a) => MyParser (TPat a) -> MyParser (TPat a)
-pPolyIn f = do 
+pPolyIn f = do
   x <- brackets $ pTidal f
   pMult x
 
