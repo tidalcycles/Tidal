@@ -485,7 +485,9 @@ newSeed = do
   return seed
 
 pPolyIn :: (Parseable a) => MyParser (TPat a) -> MyParser (TPat a)
-pPolyIn f = brackets $ pTidal f
+pPolyIn f = do 
+  x <- brackets $ pTidal f
+  pMult x
 
 pPolyOut :: (Parseable a) => MyParser (TPat a) -> MyParser (TPat a)
 pPolyOut f =
