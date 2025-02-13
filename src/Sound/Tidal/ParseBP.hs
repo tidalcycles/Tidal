@@ -33,6 +33,7 @@ import qualified Control.Exception as E
 import Data.Bifunctor (first)
 import Data.Colour
 import Data.Colour.Names
+import Data.Functor (($>))
 import Data.Functor.Identity (Identity)
 import Data.List (intercalate)
 import Data.Maybe
@@ -41,7 +42,7 @@ import Data.Typeable (Typeable)
 import GHC.Exts (IsString (..))
 import Sound.Tidal.Chords
 import Sound.Tidal.Core
-import Sound.Tidal.Pattern
+import Sound.Tidal.Pattern hiding ((*>), (<*))
 import Sound.Tidal.UI
 import Sound.Tidal.Utils (fromRight)
 import Text.Parsec.Error
@@ -222,7 +223,7 @@ parseBP_E s = toE parsed
     toE (Right tp) = toPat tp
 
 parseTPat :: (Parseable a) => String -> Either ParseError (TPat a)
-parseTPat = runParser (pSequence parseRest Prelude.<* eof) (0 :: Int) ""
+parseTPat = runParser (pTidal parseRest <* eof) (0 :: Int) ""
 
 -- | a '-' is a negative sign if followed anything but another dash
 -- otherwise, it's treated as rest
@@ -237,10 +238,10 @@ parseRest =
         tPatParser
     )
     <|> char '-'
-    Prelude.*> pure TPat_Silence
+    $> TPat_Silence
       <|> tPatParser
       <|> char '~'
-    Prelude.*> pure TPat_Silence
+    $> TPat_Silence
 
 cP :: (Enumerable a, Parseable a) => String -> Pattern a
 cP s = innerJoin $ parseBP_E <$> _cX_ getS s
@@ -353,10 +354,10 @@ lexer :: P.GenTokenParser String u Data.Functor.Identity.Identity
 lexer = P.makeTokenParser haskellDef
 
 braces, brackets, parens, angles :: MyParser a -> MyParser a
-braces p = char '{' Prelude.*> p Prelude.<* char '}'
-brackets p = char '[' Prelude.*> p Prelude.<* char ']'
-parens p = char '(' Prelude.*> p Prelude.<* char ')'
-angles p = char '<' Prelude.*> p Prelude.<* char '>'
+braces p = char '{' *> p <* char '}'
+brackets p = char '[' *> p <* char ']'
+parens p = char '(' *> p <* char ')'
+angles p = char '<' *> p <* char '>'
 
 symbol :: String -> MyParser String
 symbol = P.symbol lexer
@@ -391,6 +392,26 @@ sign =
 intOrFloat :: MyParser Double
 intOrFloat = try pFloat <|> pInteger
 
+-- | parser starting point
+pTidal :: (Parseable a) => MyParser (TPat a) -> MyParser (TPat a)
+pTidal f = do
+  x <- do
+    s <- pSequence f <?> "sequence"
+    stackTail s <|> chooseTail s <|> return s
+  pMult x
+  where
+    stackTail s = do
+      symbol ","
+      ss <- pSequence f `sepBy` symbol ","
+      return $ TPat_Stack (s : ss)
+    chooseTail s = do
+      symbol "|"
+      ss <- pSequence f `sepBy` symbol "|"
+      seed <- newSeed
+      return $ TPat_CycleChoose seed (s : ss)
+
+-- | Try different parsers on a sequence of Tidal patterns
+-- 'f' is the sequence so far, 'a' the next upcoming token/non-terminal
 pSequence :: (Parseable a) => MyParser (TPat a) -> MyParser (TPat a)
 pSequence f = do
   spaces
@@ -399,26 +420,11 @@ pSequence f = do
       do
         a <- pPart f
         spaces
-        do
-          try $ symbol ".."
-          b <- pPart f
-          return $ TPat_EnumFromTo a b
-          <|> try
-            ( do
-                lookAhead
-                  ( char '|'
-                      <|> do
-                        pElongate a <|> pRepeat a
-                        char '|'
-                  )
-                pChoice f a
-            )
+        pEnumeration f a
           <|> pElongate a
           <|> pRepeat a
           <|> return a
-        <|> do
-          symbol "."
-          return TPat_Foot
+        <|> pFoot
   pRand $ resolve_feet s
   where
     resolve_feet ps
@@ -435,17 +441,14 @@ pSequence f = do
         takeFoot (TPat_Foot : pats'') = ([], pats'')
         takeFoot (pat : pats'') = first (pat :) $ takeFoot pats''
 
-pChoice :: (Parseable a) => MyParser (TPat a) -> TPat a -> MyParser (TPat a)
-pChoice f a = do
-  eor <- option (TPat_Seq []) (pElongate a <|> pRepeat a)
-  cs <- many1 $
-    do
-      char '|'
-      b <- pPart f
-      pElongate b <|> pRepeat b <|> return b
-  seed <- newSeed
-  rest <- option (TPat_Seq []) (pSequence f)
-  return $ TPat_Seq [TPat_CycleChoose seed (eor : (a : cs)), rest]
+pFoot :: MyParser (TPat a)
+pFoot = symbol "." >> return TPat_Foot
+
+pEnumeration :: (Parseable a) => MyParser (TPat a) -> TPat a -> MyParser (TPat a)
+pEnumeration f a = do
+  try $ symbol ".."
+  b <- pPart f
+  return $ TPat_EnumFromTo a b
 
 pRepeat :: TPat a -> MyParser (TPat a)
 pRepeat a = do
@@ -485,20 +488,8 @@ newSeed = do
 
 pPolyIn :: (Parseable a) => MyParser (TPat a) -> MyParser (TPat a)
 pPolyIn f = do
-  x <- brackets $ do
-    s <- pSequence f <?> "sequence"
-    stackTail s <|> chooseTail s <|> return s
+  x <- brackets $ pTidal f
   pMult x
-  where
-    stackTail s = do
-      symbol ","
-      ss <- pSequence f `sepBy` symbol ","
-      return $ TPat_Stack (s : ss)
-    chooseTail s = do
-      symbol "|"
-      ss <- pSequence f `sepBy` symbol "|"
-      seed <- newSeed
-      return $ TPat_CycleChoose seed (s : ss)
 
 pPolyOut :: (Parseable a) => MyParser (TPat a) -> MyParser (TPat a)
 pPolyOut f =
@@ -684,6 +675,7 @@ pRand thing =
     return $ TPat_DegradeBy seed r thing
     <|> return thing
 
+-- | parse Euclidean notation like 'bd(3,8)'
 pE :: TPat a -> MyParser (TPat a)
 pE thing =
   do

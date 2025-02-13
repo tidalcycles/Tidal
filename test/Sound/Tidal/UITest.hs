@@ -42,7 +42,7 @@ run =
         compareP
           (Arc 0 3)
           (segment 4 saw)
-          ("0.125 0.375 0.625 0.875" :: Pattern Double)
+          ("0 0.25 0.5 0.75" :: Pattern Double)
       it "can hold a value over multiple cycles" $ do
         comparePD
           (Arc 0 8)
@@ -377,7 +377,7 @@ run =
         compareP
           (Arc 0 4)
           ("0" |+ chooseBy (sig fromRational) [0, 1, 2, 3])
-          ("2" :: Pattern Int)
+          ("0" :: Pattern Int)
 
     describe "arpeggiate" $ do
       it "can arpeggiate" $ do
@@ -479,4 +479,4 @@ run =
         compareP
           (Arc 0 1)
           (segment 2 $ quantise 1 $ sine :: Pattern Note)
-          ("1 0" :: Pattern Note)
+          ("0 1" :: Pattern Note)
