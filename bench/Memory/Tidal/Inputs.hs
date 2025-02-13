@@ -2,9 +2,9 @@
 
 module Tidal.Inputs where
 
-import Sound.Tidal.Control
 import Sound.Tidal.Core
 import Sound.Tidal.Params
+import Sound.Tidal.Control
 import Sound.Tidal.ParseBP ()
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
@@ -73,7 +73,7 @@ fixArg1 = pF "cc64" 1
 fixArg2 :: ControlPattern
 fixArg2 =
   fix (# crush 4) (pF "cc65" 1) $
-    fix (stut' 4 (0.125 / 4) (+ up "1")) (pF "cc66" 1) $
+    fix (echoWith 4 (0.125 / 4) (+ up "1")) (pF "cc66" 1) $
       fix (|*| speed "-1") (pF "cc67" 1) $
         fix ((# delaytime 0.125) . (# delay 0.5)) (pF "cc68" 1) $
           fix (# coarse 12) (pF "cc69" 1) $
