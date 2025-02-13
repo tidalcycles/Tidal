@@ -2222,10 +2222,12 @@ sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 -- sew pb a b = overlay (mask pb a) (mask (inv pb) b)
 sew pb a b = Pattern pf psteps Nothing
   where
-    psteps = do sa <- steps a
-                sb <- steps b
-                return $ do b <- pb
-                            if b then sa else sb
+    psteps = do
+      sa <- steps a
+      sb <- steps b
+      return $ do
+        b <- pb
+        if b then sa else sb
     pf st = concatMap match evs
       where
         evs = query pb st
