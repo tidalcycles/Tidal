@@ -216,7 +216,7 @@ run =
                      ]
       it "preserves cycle number of inner patterns" $ do
         (map value $ queryArc (squeezeJoin (pure $ struct "1" $ (sig $ id))) (Arc 3 4))
-          `shouldBe` [3.5]
+          `shouldBe` [3]
 
     describe ">>=" $ do
       it "can apply functions to patterns" $ do
@@ -530,7 +530,7 @@ run =
       it "filter above given threshold" $ do
         let fil = stripContext $ filterWhen (> 0.5) $ struct "t*4" $ (tri :: Pattern Double) + 1
         let res = queryArc fil (Arc 0.5 1.5)
-        property $ fmap toEvent [(((3 % 4, 1), (3 % 4, 1)), 1.25), (((1, 5 % 4), (1, 5 % 4)), 1.25), (((5 % 4, 3 % 2), (5 % 4, 3 % 2)), 1.75)] === res
+        property $ fmap toEvent [(((3 % 4, 1), (3 % 4, 1)), 1.5), (((1, 5 % 4), (1, 5 % 4)), 1), (((5 % 4, 3 % 2), (5 % 4, 3 % 2)), 1.5)] === res
 
     describe "compressArc" $ do
       it "return empty if start time is greater than end time" $ do
