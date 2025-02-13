@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 
 {-
     UI.hs - Tidal's main 'user interface' functions, for transforming
@@ -139,7 +138,7 @@ timeToRands' seed n
 --
 -- > jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 rand :: (Fractional a) => Pattern a
-rand = pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ (timeToRand ((e + s) / 2) :: Double))])
+rand = pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac (timeToRand ((e + s) / 2) :: Double))])
 
 -- | Boolean rand - a continuous stream of true\/false values, with a 50\/50 chance.
 brand :: Pattern Bool
@@ -175,7 +174,7 @@ _irand i = fromIntegral . (floor :: Double -> Int) . (* fromIntegral i) <$> rand
 --
 -- The `perlin` function uses the cycle count as input and can be used much like @rand@.
 perlinWith :: (Fractional a) => Pattern Double -> Pattern a
-perlinWith p = fmap realToFrac $ (interp) <$> (p - pa) <*> (timeToRand <$> pa) <*> (timeToRand <$> pb)
+perlinWith p = fmap realToFrac $ interp <$> (p - pa) <*> (timeToRand <$> pa) <*> (timeToRand <$> pb)
   where
     pa = (fromIntegral :: Int -> Double) . floor <$> p
     pb = (fromIntegral :: Int -> Double) . (+ 1) . floor <$> p
@@ -455,10 +454,8 @@ almostAlways' = sometimesBy' 0.9
 
 -- |
 -- Never apply a transformation, returning the pattern unmodified.
---
--- @never = flip const@
 never :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-never = flip const
+never _ x = x
 
 -- |
 -- Apply the transformation to the pattern unconditionally.
@@ -720,7 +717,7 @@ whenmod :: Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a
 whenmod a b f pat = innerJoin $ (\a' b' -> _whenmod a' b' f pat) <$> a <*> b
 
 _whenmod :: Time -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_whenmod a b = whenT (\t -> ((t `mod'` a) >= b))
+_whenmod a b = whenT (\t -> (t `mod'` a) >= b)
 
 -- |
 -- > superimpose f p = stack [p, f p]
@@ -947,7 +944,7 @@ euclidFull n k pa pb = stack [euclid n k pa, euclidInv n k pb]
 _euclidBool :: Int -> Int -> Pattern Bool -- TODO: add 'euclidBool'?
 _euclidBool n k
   | n >= 0 = fastFromList $ bjorklund (n, k)
-  | otherwise = fastFromList $ fmap (not) $ bjorklund (-n, k)
+  | otherwise = fastFromList $ fmap not $ bjorklund (-n, k)
 
 _euclid' :: Int -> Int -> Pattern a -> Pattern a
 _euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n, k))
@@ -972,7 +969,7 @@ euclidOffBool = patternify3 _euclidOffBool
 
 _euclidOffBool :: Int -> Int -> Int -> Pattern Bool -> Pattern Bool
 _euclidOffBool _ 0 _ _ = silence
-_euclidOffBool n k s p = ((fromIntegral s % fromIntegral k) `rotL`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
+_euclidOffBool n k s p = rotL (fromIntegral s % fromIntegral k) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
 
 distrib :: [Pattern Int] -> Pattern a -> Pattern a
 distrib ps p = do
@@ -1237,7 +1234,7 @@ toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
 -- @"arpy:1"@, @"casio"@ and @"bd"@, giving the pattern
 -- @"arpy:1 [~ casio] bd casio"@ (note that the list wraps round here).
 fit :: Pattern Int -> [a] -> Pattern Int -> Pattern a
-fit pint xs p = (patternify func) pint (xs, p)
+fit pint xs p = patternify func pint (xs, p)
   where
     func i (xs', p') = _fit i xs' p'
 
@@ -1247,7 +1244,7 @@ _fit perCycle xs p = (xs !!!) <$> (p {query = map (\e -> fmap (+ pos e) e) . que
     pos e = perCycle * floor (start $ part e)
 
 permstep :: (RealFrac b) => Int -> [a] -> Pattern b -> Pattern a
-permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! floor (n * fromIntegral (length ps - 1))) things) <$> _segment 1 p
+permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (uncurry replicate) $ zip (ps !! floor (n * fromIntegral (length ps - 1))) things) <$> _segment 1 p
   where
     ps = permsort (length things) nSteps
     deviance avg xs = sum $ map (abs . (avg -) . fromIntegral) xs
@@ -1562,7 +1559,7 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
   where
     mapMasks =
       [ stretch $ mask (const True <$> filterValues (== i) from') p'
-      | i <- [0 .. n - 1]
+        | i <- [0 .. n - 1]
       ]
     p' = density cyc p
     from' = density cyc from
@@ -2222,10 +2219,10 @@ sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 -- sew pb a b = overlay (mask pb a) (mask (inv pb) b)
 sew pb a b = Pattern pf psteps Nothing
   where
-    psteps = do sa <- steps a
-                sb <- steps b
-                return $ do b <- pb
-                            if b then sa else sb
+    psteps = do
+      sa <- steps a
+      sb <- steps b
+      return $ pb >>= \v -> if v then sa else sb
     pf st = concatMap match evs
       where
         evs = query pb st
@@ -2234,7 +2231,7 @@ sew pb a b = Pattern pf psteps Nothing
         match ev
           | value ev = find (query a st {arc = subarc}) ev
           | otherwise = find (query b st {arc = subarc}) ev
-        find evs' ev = catMaybes $ map (check ev) evs'
+        find evs' ev = mapMaybe (check ev) evs'
         check bev xev = do
           newarc <- subArc (part bev) (part xev)
           return $ xev {part = newarc}
