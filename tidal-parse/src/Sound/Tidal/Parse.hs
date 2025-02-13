@@ -718,7 +718,6 @@ pTime_p_p =
     <|> $(fromTidal "sparsity")
     <|> $(fromTidal "linger")
     <|> $(fromTidal "segment")
-    <|> $(fromTidal "discretise")
     <|> $(fromTidal "timeLoop")
     <|> $(fromTidal "swing")
     <|> $(fromTidal "<~")
@@ -807,7 +806,6 @@ instance Parse (Pattern Time -> ControlPattern -> ControlPattern) where
   parser =
     $(fromTidal "hurry")
       <|> $(fromTidal "loopAt")
-      <|> (parser :: H (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*!> parser
 
 instance Parse ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern) where
   parser =
@@ -975,10 +973,7 @@ pBool_p_p_p :: H (Pattern Bool -> Pattern a -> Pattern a -> Pattern a)
 pBool_p_p_p = $(fromTidal "stitch")
 
 instance Parse (Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern) where
-  parser = $(fromTidal "striate'") <|> $(fromTidal "striateBy")
-
-instance Parse (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern) where
-  parser = (parser :: H (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*!> parser
+  parser = $(fromTidal "striateBy")
 
 instance Parse (Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser =
@@ -997,8 +992,7 @@ instance Parse (Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern 
     $(fromTidal "every")
       <|> $(fromTidal "plyWith")
       <|> $(fromTidal "chunk")
-      <|> $(fromTidal "chunk'")
-      <|> (parser :: H (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*!> parser -- note: chunk' is actually generalized to Integral, but not clear what non-Int cases would be
+      <|> (parser :: H (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a)) <*!> parser
 
 instance Parse (Pattern Double -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser =
@@ -1062,9 +1056,6 @@ instance Parse (Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern 
 instance Parse (Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a) where
   parser = (parser :: H (Pattern Time -> Int -> Pattern Int -> Pattern Int -> Pattern a -> Pattern a)) <*!> parser
 
-instance Parse (Pattern Integer -> Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern) where
-  parser = $(fromTidal "stut")
-
 instance Parse (Pattern Integer -> Pattern Rational -> Pattern Double -> ControlPattern -> ControlPattern) where
   parser = $(fromTidal "echo")
 
@@ -1072,9 +1063,7 @@ instance Parse (Pattern Int -> Pattern Int -> (Pattern a -> Pattern a) -> Patter
   parser = $(fromTidal "every'")
 
 instance Parse (Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
-  parser =
-    $(fromTidal "stutWith")
-      <|> $(fromTidal "echoWith")
+  parser = $(fromTidal "echoWith")
 
 instance Parse (Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a) where
   parser = $(fromTidal "whenmod")

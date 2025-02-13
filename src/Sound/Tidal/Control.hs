@@ -170,10 +170,6 @@ mergePlayRange (b, e) cm = Map.insert "begin" (VF ((b * d') + b')) $ Map.insert 
 striateBy :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
 striateBy = patternify2 _striateBy
 
--- | DEPRECATED, use 'striateBy' instead.
-striate' :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
-striate' = striateBy
-
 _striateBy :: Int -> Double -> ControlPattern -> ControlPattern
 _striateBy n f p = keepTactus (withTactus (* toRational n) p) $ fastcat $ map (offset . fromIntegral) [0 .. n - 1]
   where
@@ -223,7 +219,7 @@ _gap n p = _fast (toRational n) (cat [pure 1, silence]) |>| _chop n p
 --  >      , speed "1 2 3"
 --  >      ]
 weave :: Time -> ControlPattern -> [ControlPattern] -> ControlPattern
-weave t p ps = weave' t p (map (#) ps)
+weave t p ps = weaveWith t p (map (#) ps)
 
 -- |
 --  @weaveWith@ is similar to the above, but weaves with a list of functions, rather
@@ -240,10 +236,6 @@ weaveWith t p fs
   | otherwise = _slow t $ stack $ zipWith (\i f -> (fromIntegral i % l) `rotL` _fast t (f (_slow t p))) [0 :: Int ..] fs
   where
     l = fromIntegral $ length fs
-
--- | An old alias for 'weaveWith'.
-weave' :: Time -> Pattern a -> [Pattern a -> Pattern a] -> Pattern a
-weave' = weaveWith
 
 -- |
 -- (A function that takes two ControlPatterns, and blends them together into
@@ -449,28 +441,16 @@ _echoWith count time f p
   | count <= 1 = p
   | otherwise = overlay (f (time `rotR` _echoWith (count - 1) time f p)) p
 
--- | DEPRECATED, use 'echo' instead
-stut :: Pattern Integer -> Pattern Double -> Pattern Rational -> ControlPattern -> ControlPattern
-stut = patternify3' _stut
-
 _stut :: Integer -> Double -> Rational -> ControlPattern -> ControlPattern
 _stut count feedback steptime p = stack (p : map (\x -> ((x % 1) * steptime) `rotR` (p |* P.gain (pure $ scalegain (fromIntegral x)))) [1 .. (count - 1)])
   where
     scalegain =
       (+ feedback) . (* (1 - feedback)) . (/ fromIntegral count) . (fromIntegral count -)
 
--- | DEPRECATED, use 'echoWith' instead
-stutWith :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stutWith n t f p = innerJoin $ (\a b -> _stutWith a b f p) <$> n <* t
-
 _stutWith :: (Num n, Ord n) => n -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _stutWith count steptime f p
   | count <= 1 = p
   | otherwise = overlay (f (steptime `rotR` _stutWith (count - 1) steptime f p)) p
-
--- | DEPRECATED, use 'echoWith' instead
-stut' :: Pattern Int -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-stut' = stutWith
 
 -- | Turns a pattern of seconds into a pattern of (rational) cycle durations
 sec :: (Fractional a) => Pattern a -> Pattern a

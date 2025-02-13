@@ -37,12 +37,12 @@ run =
               ]
           )
 
-    describe "stutWith" $ do
-      it "can mimic stut" $ do
+    describe "echoWith" $ do
+      it "can mimic echo" $ do
         comparePD
           (Arc 0 1)
-          (filterOnsets $ stutWith 4 0.25 (# gain 1) $ sound "bd")
-          (filterOnsets $ stut 4 1 0.25 $ sound "bd")
+          (filterOnsets $ echoWith 1 0.25 (# gain 1) $ sound "bd")
+          (filterOnsets $ echo 1 0.25 4 $ sound "bd")
 
     describe "splice" $ do
       it "can beatslice" $ do
