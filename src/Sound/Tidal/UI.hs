@@ -923,8 +923,8 @@ euclid = patternify2 _euclid
 
 _euclid :: Int -> Int -> Pattern a -> Pattern a
 _euclid n k a
-  | n >= 0 = setSteps (Just $ pure $ toRational $ k) $ fastcat $ fmap (bool silence a) $ bjorklund (n, k)
-  | otherwise = setSteps Nothing $ fastcat $ fmap (bool a silence) $ bjorklund (-n, k)
+  | n >= 0 = setSteps (Just $ pure $ toRational k) $ fastcat $ fmap (bool silence a) $ bjorklund (n, k)
+  | otherwise = setSteps (Just $ pure $ toRational k) $ fastcat $ fmap (bool a silence) $ bjorklund (-n, k)
 
 -- |
 --
@@ -937,16 +937,16 @@ _euclid n k a
 --
 -- > d1 $ euclidFull 3 7 "realclaps" ("realclaps" # gain 0.8)
 euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
-euclidFull n k pa pb = stack [euclid n k pa, euclidInv n k pb]
+euclidFull n k pa pb = setSteps (Just $ toRational <$> k) $ stack [euclid n k pa, euclidInv n k pb]
 
 -- | Less expressive than 'euclid' due to its constrained types, but may be more efficient.
 _euclidBool :: Int -> Int -> Pattern Bool -- TODO: add 'euclidBool'?
 _euclidBool n k
-  | n >= 0 = fastFromList $ bjorklund (n, k)
-  | otherwise = fastFromList $ fmap not $ bjorklund (-n, k)
+  | n >= 0 = setSteps (Just $ pure $ toRational k) $ fastFromList $ bjorklund (n, k)
+  | otherwise = setSteps (Just $ pure $ toRational k) $ fastFromList $ fmap not $ bjorklund (-n, k)
 
 _euclid' :: Int -> Int -> Pattern a -> Pattern a
-_euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n, k))
+_euclid' n k p = setSteps (Just $ pure $ toRational k) $ fastcat $ map (\x -> if x then p else silence) (bjorklund (n, k))
 
 -- |
 -- As 'euclid', but taking a third rotational parameter corresponding to the onset
@@ -960,7 +960,7 @@ eoff = euclidOff
 
 _euclidOff :: Int -> Int -> Int -> Pattern a -> Pattern a
 _euclidOff _ 0 _ _ = silence
-_euclidOff n k s p = (rotL $ fromIntegral s % fromIntegral k) (_euclid n k p)
+_euclidOff n k s p = setSteps (Just $ pure $ toRational k) $ (rotL $ fromIntegral s % fromIntegral k) (_euclid n k p)
 
 -- | As 'euclidOff', but specialized to 'Bool'. May be more efficient than 'euclidOff'.
 euclidOffBool :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern Bool -> Pattern Bool
@@ -968,7 +968,7 @@ euclidOffBool = patternify3 _euclidOffBool
 
 _euclidOffBool :: Int -> Int -> Int -> Pattern Bool -> Pattern Bool
 _euclidOffBool _ 0 _ _ = silence
-_euclidOffBool n k s p = rotL (fromIntegral s % fromIntegral k) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
+_euclidOffBool n k s p = setSteps (Just $ pure $ toRational k) $ rotL (fromIntegral s % fromIntegral k) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
 
 distrib :: [Pattern Int] -> Pattern a -> Pattern a
 distrib ps p = do
