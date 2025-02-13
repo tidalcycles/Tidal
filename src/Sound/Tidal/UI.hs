@@ -2220,8 +2220,12 @@ _pressBy r pat = squeezeJoin $ compressTo (r, 1) . pure <$> pat
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 -- Replaced with more efficient version below
 -- sew pb a b = overlay (mask pb a) (mask (inv pb) b)
-sew pb a b = Pattern pf Nothing Nothing
+sew pb a b = Pattern pf psteps Nothing
   where
+    psteps = do sa <- steps a
+                sb <- steps b
+                return $ do b <- pb
+                            if b then sa else sb
     pf st = concatMap match evs
       where
         evs = query pb st
@@ -2251,7 +2255,7 @@ stitch pb a b = overlay (struct pb a) (struct (inv pb) b)
 -- value is active. No events are let through where no binary values
 -- are active.
 while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-while b f pat = keepSteps pat $ sew b (f pat) pat
+while b f pat = sew b (f pat) pat
 
 -- |
 -- @stutter n t pat@ repeats each event in @pat@ @n@ times, separated by @t@ time (in fractions of a cycle).

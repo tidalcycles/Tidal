@@ -65,7 +65,7 @@ stepJoin pp = splitQueries $ Pattern q t Nothing
     -- stacked into single patterns, with duration. Some patterns
     -- will be have no events.
     slices :: [Event (Pattern a)] -> [(Time, Pattern a)]
-    slices evs = map (\s -> (snd s - fst s, stack $ map (\x -> withContext (\c -> combineContexts [c, context x]) $ value x) $ fit s evs)) $ pairs $ sort $ nubOrd $ 0 : 1 : concatMap (\ev -> start (part ev) : stop (part ev) : []) evs
+    slices evs = map (\s -> (snd s - fst s, stack $ map (\x -> withContext (\c -> combineContexts [c, context x]) $ value x) $ fit s evs)) $ pairs $ sort $ nubOrd $ 0 : 1 : concatMap (\ev -> [start (part ev), stop (part ev)]) evs
     -- list of slices of events within the given range
     fit :: (Rational, Rational) -> [Event (Pattern a)] -> [Event (Pattern a)]
     fit (b, e) evs = mapMaybe (match (b, e)) evs
@@ -76,7 +76,7 @@ stepJoin pp = splitQueries $ Pattern q t Nothing
       return ev {part = a}
 
 stepcat :: [Pattern a] -> Pattern a
-stepcat pats = innerJoin $ (timecat . map snd . sortOn fst) <$> (tpat $ epats pats)
+stepcat pats = innerJoin $ timecat . map snd . sortOn fst <$> tpat (epats pats)
   where
     -- enumerated patterns, ignoring those without steps
     epats :: [Pattern a] -> [(Int, Pattern a)]
@@ -90,9 +90,9 @@ _take :: Time -> Pattern a -> Pattern a
 _take _ pat@(Pattern _ Nothing _) = pat
 _take n pat@(Pattern _ (Just tpat) _) = setSteps (Just tpat') $ zoompat b e pat
   where
-    b = (\t -> if n >= 0 then 0 else 1 - ((abs n) / t)) <$> tpat
+    b = (\t -> if n >= 0 then 0 else 1 - (abs n / t)) <$> tpat
     e = (\t -> if n >= 0 then n / t else 1) <$> tpat
-    tpat' = (\t -> min (abs n) t) <$> tpat
+    tpat' = min (abs n) <$> tpat
 
 take :: Pattern Time -> Pattern a -> Pattern a
 take = s_patternify _take
@@ -103,7 +103,7 @@ _drop n pat@(Pattern _ (Just tpat) _) = take (f <$> tpat) pat
   where
     f t
       | n >= 0 = t - n
-      | otherwise = 0 - (t + n)
+      | otherwise = negate (t + n)
 
 drop :: Pattern Time -> Pattern a -> Pattern a
 drop = s_patternify _drop
