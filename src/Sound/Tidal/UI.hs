@@ -47,8 +47,7 @@ import Data.List
   )
 import qualified Data.Map.Strict as Map
 import Data.Maybe
-  ( catMaybes,
-    fromJust,
+  ( fromJust,
     fromMaybe,
     isJust,
     mapMaybe,
@@ -924,8 +923,8 @@ euclid = patternify2 _euclid
 
 _euclid :: Int -> Int -> Pattern a -> Pattern a
 _euclid n k a
-  | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n, k)
-  | otherwise = fastcat $ fmap (bool a silence) $ bjorklund (-n, k)
+  | n >= 0 = setSteps (Just $ pure $ toRational $ k) $ fastcat $ fmap (bool silence a) $ bjorklund (n, k)
+  | otherwise = setSteps Nothing $ fastcat $ fmap (bool a silence) $ bjorklund (-n, k)
 
 -- |
 --
