@@ -2,31 +2,37 @@ The main website is here: http://tidalcycles.org/
 
 # Community
 
-The below might help, but to find people to ask questions about
-getting started, visit the "innards" category in the tidalclub forum:
-  https://club.tidalcycles.org/c/innards/11
+You can join in with Tidal development and discussion around it, via the repository currently hosted on github:
+  https://github.com/tidalcycles/tidal
 
-and/or the tidal-innards channel on the TOPLAP slack:
-  http://chat.toplap.org/
+The two other active Tidal forums are the Tidal and Strudel discord:
+  https://discord.gg/CqWhZEfNbq
+
+and the Tidal club discourse forum:
+  https://club.tidalcycles.org/
+
+Both have general areas for discussion, and 'innards' sections for discussing the technalities of developing tidal.
+
 
 # Tidal
 
 Tidal is written in the Haskell language, in particular using the ghc
 compiler/interpreter. Some resources for learning Haskell can be found here: 
-  https://tidalcycles.org/index.php/Haskell_resources
+  https://tidalcycles.org/docs/advanced/understanding-innards/Haskell_resources/
 
 # Quick guide to contributing a change to Tidal
 
-The main repository is maintained on github:
+As mentioned, the main repository is maintained on github:
   https://github.com/tidalcycles/tidal
 
-**At the time of writing, current work should target the 'dev' branch.**
+The main Tidal development branch is called 'dev'.
 
 The SuperDirt repository is here:
   https://github.com/musikinformatik/SuperDirt
 
-In both cases development takes place on the main branch. To make a
-contribution, you could:
+The main development branch there is called 'develop'.
+
+To make a contribution, you could:
 
 * Fork the repository
 * Make and test a change locally
@@ -37,19 +43,20 @@ Others may then review and comment on your pull request. Please do say
 when you think it's ready to be accepted to make sure it's not being
 overlooked.
 
-If any of this is unclear, or if you'd like more information about
-development workflow, you are very welcome to join the
-`#tidal-innards` channel on http://talk.lurk.org/ and ask questions
-there.
+If any of this is unclear, or if you'd like more information about development workflow, you are very welcome to ask on one of the forums linked below. All questions are very welcome.
 
 ## Submodules
 
-The tidal-link module depends on submodules `link` and its `asio-standalone` dependency. Within the tidal repository, those submodules can be loaded using `git submodule update --init --recursive` .
+Tidal depends on git submodules. In particular, the tidal-link module depends on submodules `link` and its `asio-standalone` dependency. 
+
+If cloning the respository for the first time, add `--recursive` to your `git` command, to download these dependencies.
+
+If you already have cloned the tidal repository, those submodules can be loaded using `git submodule update --init --recursive` .
 
 # Recommendations to handle forks and branches
 
-In your forked repository: before doing anything,
-make sure that local files are up to date:
+In your forked repository: before doing anything, make sure that local files are up to date:
+
 ```
 git checkout main
 git fetch upstream
@@ -57,7 +64,7 @@ git pull upstream main
 git push
 ```
 
-For this to work, you will have had to have some point registered the upstream repository:
+For this to work, you will have had to have registered the upstream repository:
 ```
 git remote add upstream git@github.com:tidalcycles/tidal.git
 ```
@@ -71,6 +78,10 @@ edit files, test, etc. Finally:
 git commit -a
 git push --set-upstream origin fix-some-issue
 ```
+
+# Formatting
+
+We use the [ormolu](https://hackage.haskell.org/package/ormolu) formatter to standardise source files. This is run automatically by a github action, but you can also run it yourself, or get your editor to run it for you.
 
 # Testing
 
@@ -97,8 +108,8 @@ First, you'll need to figure out the new version number. Tidal follows the [Hask
 First, you need to do the following:
 
 * Make sure that you have been given Owner permissions on the tidalcycles GitHub organization or the Tidal repository
-* If you don't have one, [create a user account on Hackage](https://hackage.haskell.org/users/register-request). You'll also need to send an email to the Hackage Trustees mailing list to get upload permissions (the email you receive when you create your account will have details about this process).
-* Make sure that you've been added to the maintainers group for the tidal package on Hackage
+* If you don't have one, [create a user account on Hackage](https://hackage.haskell.org/users/register-request). You'll then need to get upload permissions - the email you receive when you create your account will have details about this process, but at the time of writing you can do this by asking existing Tidal maintainers to approve you, by sharing a link with them. 
+* Make sure that you've been added to the maintainers group for the tidal package on Hackage.
 
 ## Create a Draft Release in GitHub
 
