@@ -5,12 +5,6 @@ version: 1.10.0
 
 homepage: http://tidalcycles.org/
 license: GPL-3
-license-file: LICENSE
-
-extra-source-files:
-  README.md
-  CHANGELOG.md
-  tidal.el
 
 category: Sound
 build-type: Simple

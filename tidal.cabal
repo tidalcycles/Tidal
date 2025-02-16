@@ -90,7 +90,9 @@ test-suite dontcrash
   main-is: dontcrash.hs
   hs-source-dirs: test
   build-depends: base,
-                 tidal
+                 tidal,
+                 tidal-core
+
   default-language:    Haskell2010
 
 benchmark bench-speed
@@ -104,7 +106,9 @@ benchmark bench-speed
   build-depends:
                 base >=4 && <5,
                 criterion >=1.6.3.0,
-                tidal
+                tidal,
+                tidal-core
+
   ghc-options: -Wall
 
   default-language: Haskell2010
@@ -118,7 +122,9 @@ benchmark bench-memory
   build-depends:
                base >=4 && <5,
                weigh,
-               tidal
+               tidal,
+               tidal-core
+
   ghc-options: -Wall
 
   default-language: Haskell2010
