@@ -1187,10 +1187,6 @@ segment = patternify _segment
 _segment :: Time -> Pattern a -> Pattern a
 _segment n p = setTactus (Just $ pure n) $ _fast n (pure id) <* p
 
--- | @discretise@: the old (deprecated) name for 'segment'
-discretise :: Pattern Time -> Pattern a -> Pattern a
-discretise = segment
-
 -- @fromNote p@: converts a pattern of human-readable pitch names
 -- into pitch numbers. For example, @"cs2"@ will be parsed as C Sharp
 -- in the 2nd octave with the result of @11@, and @"b-3"@ as
@@ -1594,14 +1590,6 @@ _chunk n f p
   | otherwise = do
       i <- _slow (toRational (-n)) $ rev $ run (fromIntegral (-n))
       withinArc (Arc (i % fromIntegral (-n)) ((i + 1) % fromIntegral (-n))) f p
-
--- | DEPRECATED, use 'chunk' with negative numbers instead
-chunk' :: (Integral a1) => Pattern a1 -> (Pattern a2 -> Pattern a2) -> Pattern a2 -> Pattern a2
-chunk' npat f p = innerJoin $ (\n -> _chunk' n f p) <$> npat
-
--- | DEPRECATED, use '_chunk' with negative numbers instead
-_chunk' :: (Integral a) => a -> (Pattern b -> Pattern b) -> Pattern b -> Pattern b
-_chunk' n f p = _chunk (-n) f p
 
 -- |
 -- @inside@ carries out an operation /inside/ a cycle.
@@ -2512,10 +2500,6 @@ sseq' ss cs = fastcat $ map f cs
       | c == 'x' = pure $ head ss
       | isDigit c = pure $ ss !! digitToInt c
       | otherwise = silence
-
--- | Deprecated backwards-compatible alias for 'ghostWith'.
-ghost'' :: Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-ghost'' = ghostWith
 
 -- | Like 'ghost'', but a user-supplied function describes how to alter the pattern.
 --
