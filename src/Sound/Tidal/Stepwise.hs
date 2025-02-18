@@ -121,7 +121,7 @@ contract :: Pattern Rational -> Pattern a -> Pattern a
 contract = s_patternify _contract
 
 _extend :: Rational -> Pattern a -> Pattern a
-_extend factor pat = _expand factor $ _fast factor pat
+_extend factor pat = withStepsPat (_fast factor) $ _expand factor $ _fast factor pat
 
 extend :: Pattern Rational -> Pattern a -> Pattern a
 extend = s_patternify _extend

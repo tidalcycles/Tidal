@@ -302,8 +302,8 @@ fromMaybes = fastcat . map f
 --  The first parameter to run can be given as a pattern:
 --
 --  > d1 $ n (run "<4 8 4 6>") # sound "amencutup"
-run :: (Enum a, Num a) => Pattern a -> Pattern a
-run = (>>= _run)
+run :: (Enum a, Num a, Real a) => Pattern a -> Pattern a
+run npat = setSteps (Just $ toRational <$> npat) $ npat >>= _run
 
 _run :: (Enum a, Num a) => a -> Pattern a
 _run n = fastFromList [0 .. n - 1]

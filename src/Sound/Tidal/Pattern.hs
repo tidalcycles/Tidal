@@ -70,6 +70,9 @@ setSteps r p = p {steps = r}
 setStepsFrom :: Pattern b -> Pattern a -> Pattern a
 setStepsFrom a b = b {steps = steps a}
 
+withStepsPat :: (Pattern Rational -> Pattern Rational) -> Pattern a -> Pattern a
+withStepsPat f p = p {steps = f <$> steps p}
+
 withSteps :: (Rational -> Rational) -> Pattern a -> Pattern a
 withSteps f p = p {steps = fmap (fmap f) $ steps p}
 
