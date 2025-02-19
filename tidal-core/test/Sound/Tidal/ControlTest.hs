@@ -6,11 +6,11 @@ import Sound.Tidal.Control
 import Sound.Tidal.Core
 import Sound.Tidal.Params
 import Sound.Tidal.Pattern
-import Test.Microspec
+import Test.Hspec
 import TestUtils
 import Prelude hiding ((*>), (<*))
 
-run :: Microspec ()
+run :: Spec
 run =
   describe "Sound.Tidal.Control" $ do
     describe "echo" $ do

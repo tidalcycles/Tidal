@@ -19,7 +19,7 @@ import Sound.Tidal.Stepwise as C
 import Sound.Tidal.UI as C
 import Prelude hiding ((*>), (<*))
 
-import Test.Microspec
+import Test.Hspec
 import Prelude hiding ((*>), (<*))
 
 class TolerantEq a where
@@ -45,13 +45,13 @@ instance TolerantEq (Event ValueMap) where
   (Event _ w p x) ~== (Event _ w' p' x') = w == w' && p == p' && x ~== x'
 
 -- | Compare the events of two patterns using the given arc
-compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
+compareP :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Expectation
 compareP a p p' =
   sort (queryArc (stripContext p) a)
     `shouldBe` sort (queryArc (stripContext p') a)
 
 -- | Like @compareP@, but tries to 'defragment' the events
-comparePD :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Property
+comparePD :: (Ord a, Show a) => Arc -> Pattern a -> Pattern a -> Expectation
 comparePD a p p' =
   sort (defragParts $ queryArc (stripContext p) a)
     `shouldBe` sort (defragParts $ queryArc (stripContext p') a)

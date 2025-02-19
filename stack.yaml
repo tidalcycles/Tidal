@@ -10,3 +10,6 @@ packages:
 extra-deps:
   - hosc-0.21
   - haskellish-0.3.2.2
+  - hspec-2.11.9
+  - hspec-core-2.11.9
+  - hspec-discover-2.11.9

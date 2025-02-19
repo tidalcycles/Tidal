@@ -3,52 +3,51 @@
 module Sound.Tidal.UtilsTest where
 
 import Sound.Tidal.Utils
-import Test.Microspec
+import Test.Hspec
 import Prelude hiding ((*>), (<*))
 
-run :: Microspec ()
+run :: Spec
 run =
   describe "Sound.Tidal.Utils" $ do
-    describe "delta" $ do
-      it "subtracts the second element of a tuple from the first" $ do
-        property $ delta (3, 10) === (7 :: Int)
+    it "subtracts the second element of a tuple from the first" $ do
+        delta (3, 10) `shouldBe` (7 :: Int)
 
-    describe "applies function to both elements of tuple" $ do
-      let res = mapBoth (+ 1) (2, 5)
-      property $ ((3, 6) :: (Int, Int)) === res
+    it "applies function to both elements of tuple" $ do
+        let res = mapBoth (+ 1) (2, 5)
+        res `shouldBe` ((3, 6) :: (Int, Int))
 
-    describe "apply function to first element of tuple" $ do
-      let res = mapFst (+ 1) (2, 5)
-      property $ ((3, 5) :: (Int, Int)) === res
+    it "apply function to first element of tuple" $ do
+        let res = mapFst (+ 1) (2, 5)
+        res `shouldBe` ((3, 5) :: (Int, Int))
 
-    describe "apply function to second element of tuple" $ do
-      let res = mapSnd (+ 1) (2, 5)
-      property $ ((2, 6) :: (Int, Int)) === res
+    it "apply function to second element of tuple" $ do
+        let res = mapSnd (+ 1) (2, 5)
+        res `shouldBe` ((2, 6) :: (Int, Int))
 
-    describe "return midpoint between first and second tuple value" $ do
-      let res = mid (2, 5)
-      property $ (3.5 :: Double) === res
+    it "return midpoint between first and second tuple value" $ do
+        let res = mid (2, 5)
+        res `shouldBe` (3.5 :: Double)
 
-    describe "return of two lists, with unique values to each list" $ do
-      let res = removeCommon [1, 2, 5, 7, 12, 16] [2, 3, 4, 5, 15, 16]
-      property $ (([1, 7, 12], [3, 4, 15]) :: ([Int], [Int])) === res
+    it "return of two lists, with unique values to each list" $ do
+        let res = removeCommon [1, 2, 5, 7, 12, 16] [2, 3, 4, 5, 15, 16]
+        res `shouldBe` (([1, 7, 12], [3, 4, 15]) :: ([Int], [Int]))
 
-    describe "wrap around indexing" $ do
-      let res = (!!!) [1 .. 5] 7
-      property $ (3 :: Int) === res
+    it "wrap around indexing" $ do
+        let res = (!!!) [1 .. 5] 7
+        res `shouldBe` (3 :: Int)
 
-    describe "safe list indexing" $ do
-      let res = nth 2 ([] :: [Int])
-      property $ Nothing === res
+    it "safe list indexing" $ do
+        let res = nth 2 ([] :: [Int])
+        res `shouldBe` Nothing 
 
-    describe "list accumulation with given list elements" $ do
-      let res = accumulate ([1 .. 5] :: [Int])
-      property $ [1, 3, 6, 10, 15] === res
+    it "list accumulation with given list elements" $ do
+        let res = accumulate ([1 .. 5] :: [Int])
+        res `shouldBe` [1, 3, 6, 10, 15]
 
-    describe "index elements in list" $ do
-      let res = enumerate ['a', 'b', 'c']
-      property $ [(0, 'a'), (1, 'b'), (2, 'c')] === res
+    it "index elements in list" $ do
+        let res = enumerate ['a', 'b', 'c']
+        res `shouldBe` [(0, 'a'), (1, 'b'), (2, 'c')]
 
-    describe "split list by given pred" $ do
-      let res = wordsBy (== ':') "bd:3"
-      property $ ["bd", "3"] === res
+    it "split list by given pred" $ do
+        let res = wordsBy (== ':') "bd:3"
+        res `shouldBe` ["bd", "3"]
