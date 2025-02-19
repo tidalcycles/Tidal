@@ -50,7 +50,7 @@ test-suite tests
   other-modules: Sound.Tidal.TidalParseTest
   build-depends:
                 base ==4.*
-              , hspec >=2.11.11
+              , hspec >=2.11.9
               , containers < 0.8
               , tidal-parse
               , tidal-core
