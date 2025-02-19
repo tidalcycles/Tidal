@@ -4,11 +4,11 @@ module Sound.Tidal.ScalesTest where
 
 import Sound.Tidal.Pattern
 import Sound.Tidal.Scales
-import Test.Microspec
+import Test.Hspec
 import TestUtils
 import Prelude hiding ((*>), (<*))
 
-run :: Microspec ()
+run :: Spec
 run =
   describe "Sound.Tidal.Scales" $ do
     describe "scale" $ do

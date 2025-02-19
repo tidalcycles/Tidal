@@ -3,11 +3,11 @@
 module Sound.Tidal.ChordsTest where
 
 import Sound.Tidal.Pattern
-import Test.Microspec
+import Test.Hspec
 import TestUtils
 import Prelude hiding ((*>), (<*))
 
-run :: Microspec ()
+run :: Spec
 run =
   describe "Sound.Tidal.Chords" $ do
     describe "chord" $ do

@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Sound.Tidal.TidalParseTest
-import Test.Microspec
+import Test.Hspec
 
 main :: IO ()
-main = microspec $ do
+main = hspec $ do
   Sound.Tidal.TidalParseTest.run

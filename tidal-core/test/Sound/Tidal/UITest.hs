@@ -10,11 +10,11 @@ import Sound.Tidal.Params
 import Sound.Tidal.ParseBP
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
-import Test.Microspec
+import Test.Hspec
 import TestUtils
 import Prelude hiding ((*>), (<*))
 
-run :: Microspec ()
+run :: Spec
 run =
   describe "Sound.Tidal.UI" $ do
     describe "_chop" $ do
@@ -29,8 +29,7 @@ run =
           (slow 2 $ _chop 2 $ s (pure "a"))
           (begin (pure 0) # end (pure 0.5) # (s (pure "a")))
       it "can chop a chop" $
-        property $
-          compareTol (Arc 0 1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")
+        compareTol (Arc 0 1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")
 
     describe "segment" $ do
       it "can turn a single event into multiple events" $ do
@@ -104,39 +103,35 @@ run =
          in compareP overTimeSpan testMe expectedResult
 
     describe "rand" $ do
-      it "generates a (pseudo-)random number between zero & one" $ do
-        it "at the start of a cycle" $
-          (queryArc rand (Arc 0 0)) `shouldBe` [Event (Context []) Nothing (Arc 0 0) (0 :: Float)]
-        it "at 1/4 of a cycle" $
-          (queryArc rand (Arc 0.25 0.25))
-            `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (0.6295689214020967 :: Float)]
-        it "at 3/4 of a cycle" $
-          (queryArc rand (Arc 0.75 0.75))
+      it "it generates a (pseudo-)random number between 0 and 1 at the start of a cycle" $
+        (queryArc rand (Arc 0 0)) `shouldBe` [Event (Context []) Nothing (Arc 0 0) (0 :: Float)]
+      it "it generates a (pseudo-)random number between 0 and 1 at 1/4 of a cycle" $
+        (queryArc rand (Arc 0.25 0.25))
+          `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (0.6295689214020967 :: Float)]
+      it "it generates a (pseudo-)random number between 0 and 1 at 3/4 of a cycle" $
+        (queryArc rand (Arc 0.75 0.75))
             `shouldBe` [Event (Context []) Nothing (Arc 0.75 0.75) (0.20052618719637394 :: Float)]
 
     describe "irand" $ do
-      it "generates a (pseudo-random) integer between zero & i" $ do
-        it "at the start of a cycle" $
-          (queryArc (irand 10) (Arc 0 0)) `shouldBe` [Event (Context []) Nothing (Arc 0 0) (0 :: Int)]
-        it "at 1/4 of a cycle" $
-          (queryArc (irand 10) (Arc 0.25 0.25)) `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (6 :: Int)]
-        it "is patternable" $
-          (queryArc (irand "10 2") (Arc 0 1))
-            `shouldBe` [ Event (Context [((1, 1), (3, 1))]) Nothing (Arc 0 0.5) (6 :: Int),
-                         Event (Context [((4, 1), (5, 1))]) Nothing (Arc 0.5 1) (0 :: Int)
-                       ]
+      -- it "generates a (pseudo-random) integer between zero & i" $ do
+      it "at the start of a cycle" $
+        (queryArc (irand 10) (Arc 0 0)) `shouldBe` [Event (Context []) Nothing (Arc 0 0) (0 :: Int)]
+      it "at 1/4 of a cycle" $
+        (queryArc (irand 10) (Arc 0.25 0.25)) `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (6 :: Int)]
+      it "is patternable" $
+        (queryArc (irand "10 2") (Arc 0 1))
+          `shouldBe` [ Event (Context [((1, 1), (3, 1))]) Nothing (Arc 0 0.5) (6 :: Int),
+                       Event (Context [((4, 1), (5, 1))]) Nothing (Arc 0.5 1) (0 :: Int)
+                     ]
 
     describe "normal" $ do
-      it "produces values within [0,1] in a bell curve" $ do
-        it "at the start of a cycle" $
-          queryArc normal (Arc 0 0.1)
-            `shouldBe` [Event (Context []) Nothing (Arc 0 0.1) (0.4614205864457064 :: Double)]
-        it "at 1/4 of a cycle" $
-          queryArc normal (Arc 0.25 0.25)
-            `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (0.5 :: Double)]
-        it "at 3/4 of a cycle" $
-          queryArc normal (Arc 0.75 0.75)
-            `shouldBe` [Event (Context []) Nothing (Arc 0.75 0.75) (0.5 :: Double)]
+      it "produces values within [0,1] in a bell curve at different parts of a cycle" $ do
+        queryArc normal (Arc 0 0.1)
+          `shouldBe` [Event (Context []) Nothing (Arc 0 0.1) (0.4614205864457064 :: Double)]
+        queryArc normal (Arc 0.25 0.25)
+          `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (0.5 :: Double)]
+        queryArc normal (Arc 0.75 0.75)
+          `shouldBe` [Event (Context []) Nothing (Arc 0.75 0.75) (0.5 :: Double)]
 
     describe "range" $ do
       describe "scales a pattern to the supplied range" $ do
@@ -174,19 +169,16 @@ run =
 
     describe "rot" $ do
       it "rotates values in a pattern irrespective of structure" $
-        property $
           comparePD
             (Arc 0 2)
             (rot 1 "a ~ b c" :: Pattern String)
             ("b ~ c a" :: Pattern String)
       it "works with negative values" $
-        property $
           comparePD
             (Arc 0 2)
             (rot (-1) "a ~ b c" :: Pattern String)
             ("c ~ a b" :: Pattern String)
       it "works with complex patterns" $
-        property $
           comparePD
             (Arc 0 2)
             (rot (1) "a ~ [b [c ~ d]] [e <f g>]" :: Pattern String)
@@ -296,42 +288,40 @@ run =
           (cat ["1 1" :: Pattern Int, "2 [3 3] 4" :: Pattern Int, "3 [5 5] 7" :: Pattern Int])
 
     describe "euclid" $ do
-      it "matches examples in Toussaint's paper" $ do
-        sequence_ $
-          map
-            (\(a, b) -> it b $ compareP (Arc 0 1) a (parseBP_E b))
-            ( [ (euclid 1 2 "x", "x ~"),
-                (euclid 1 3 "x", "x ~ ~"),
-                (euclid 1 4 "x", "x ~ ~ ~"),
-                (euclid 4 12 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~"),
-                (euclid 2 5 "x", "x ~ x ~ ~"),
-                -- (euclid 3 4 "x", "x ~ x x"), -- Toussaint is wrong..
-                (euclid 3 4 "x", "x x x ~"), -- correction
-                (euclid 3 5 "x", "x ~ x ~ x"),
-                (euclid 3 7 "x", "x ~ x ~ x ~ ~"),
-                (euclid 3 8 "x", "x ~ ~ x ~ ~ x ~"),
-                (euclid 4 7 "x", "x ~ x ~ x ~ x"),
-                (euclid 4 9 "x", "x ~ x ~ x ~ x ~ ~"),
-                (euclid 4 11 "x", "x ~ ~ x ~ ~ x ~ ~ x ~"),
-                -- (euclid 5 6 "x", "x ~ x x x x"), -- Toussaint is wrong..
-                (euclid 5 6 "x", "x x x x x ~"), -- correction
-                (euclid 5 7 "x", "x ~ x x ~ x x"),
-                (euclid 5 8 "x", "x ~ x x ~ x x ~"),
-                (euclid 5 9 "x", "x ~ x ~ x ~ x ~ x"),
-                (euclid 5 11 "x", "x ~ x ~ x ~ x ~ x ~ ~"),
-                (euclid 5 12 "x", "x ~ ~ x ~ x ~ ~ x ~ x ~"),
-                -- (euclid 5 16 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~ x ~ ~ ~ ~"),  -- Toussaint is wrong..
-                (euclid 5 16 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~ x ~ ~ ~"), -- correction
-                -- (euclid 7 8 "x", "x ~ x x x x x x"), -- Toussaint is wrong..
-                (euclid 7 8 "x", "x x x x x x x ~"), -- Correction
-                (euclid 7 12 "x", "x ~ x x ~ x ~ x x ~ x ~"),
-                (euclid 7 16 "x", "x ~ ~ x ~ x ~ x ~ ~ x ~ x ~ x ~"),
-                (euclid 9 16 "x", "x ~ x x ~ x ~ x ~ x x ~ x ~ x ~"),
-                (euclid 11 24 "x", "x ~ ~ x ~ x ~ x ~ x ~ x ~ ~ x ~ x ~ x ~ x ~ x ~"),
-                (euclid 13 24 "x", "x ~ x x ~ x ~ x ~ x ~ x ~ x x ~ x ~ x ~ x ~ x ~")
-              ] ::
-                [(Pattern String, String)]
-            )
+      describe "matches examples in Toussaint's paper" $ do
+        mapM_ (\(a, b) -> it b $ compareP (Arc 0 1) a (parseBP_E b))
+          ( [ (euclid 1 2 "x", "x ~"),
+              (euclid 1 3 "x", "x ~ ~"),
+              (euclid 1 4 "x", "x ~ ~ ~"),
+              (euclid 4 12 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~"),
+              (euclid 2 5 "x", "x ~ x ~ ~"),
+              -- (euclid 3 4 "x", "x ~ x x"), -- Toussaint is wrong..
+              (euclid 3 4 "x", "x x x ~"), -- correction
+              (euclid 3 5 "x", "x ~ x ~ x"),
+              (euclid 3 7 "x", "x ~ x ~ x ~ ~"),
+              (euclid 3 8 "x", "x ~ ~ x ~ ~ x ~"),
+              (euclid 4 7 "x", "x ~ x ~ x ~ x"),
+              (euclid 4 9 "x", "x ~ x ~ x ~ x ~ ~"),
+              (euclid 4 11 "x", "x ~ ~ x ~ ~ x ~ ~ x ~"),
+              -- (euclid 5 6 "x", "x ~ x x x x"), -- Toussaint is wrong..
+              (euclid 5 6 "x", "x x x x x ~"), -- correction
+              (euclid 5 7 "x", "x ~ x x ~ x x"),
+              (euclid 5 8 "x", "x ~ x x ~ x x ~"),
+              (euclid 5 9 "x", "x ~ x ~ x ~ x ~ x"),
+              (euclid 5 11 "x", "x ~ x ~ x ~ x ~ x ~ ~"),
+              (euclid 5 12 "x", "x ~ ~ x ~ x ~ ~ x ~ x ~"),
+              -- (euclid 5 16 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~ x ~ ~ ~ ~"),  -- Toussaint is wrong..
+              (euclid 5 16 "x", "x ~ ~ x ~ ~ x ~ ~ x ~ ~ x ~ ~ ~"), -- correction
+              -- (euclid 7 8 "x", "x ~ x x x x x x"), -- Toussaint is wrong..
+              (euclid 7 8 "x", "x x x x x x x ~"), -- Correction
+              (euclid 7 12 "x", "x ~ x x ~ x ~ x x ~ x ~"),
+              (euclid 7 16 "x", "x ~ ~ x ~ x ~ x ~ ~ x ~ x ~ x ~"),
+              (euclid 9 16 "x", "x ~ x x ~ x ~ x ~ x x ~ x ~ x ~"),
+              (euclid 11 24 "x", "x ~ ~ x ~ x ~ x ~ x ~ x ~ ~ x ~ x ~ x ~ x ~ x ~"),
+              (euclid 13 24 "x", "x ~ x x ~ x ~ x ~ x ~ x ~ x x ~ x ~ x ~ x ~ x ~")
+            ] ::
+              [(Pattern String, String)]
+          )
       it "can be called with a negative first value to give the inverse" $ do
         compareP
           (Arc 0 1)

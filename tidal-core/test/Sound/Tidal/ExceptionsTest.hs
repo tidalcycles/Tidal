@@ -7,10 +7,10 @@ import Control.DeepSeq
 import Control.Exception
 import Data.Typeable ()
 import Sound.Tidal.Pattern
-import Test.Microspec
+import Test.Hspec
 import Prelude hiding ((*>), (<*))
 
-run :: Microspec ()
+run :: Spec
 run =
   describe "NFData, forcing and catching exceptions" $ do
     describe "instance NFData (Pattern a)" $ do
@@ -18,43 +18,6 @@ run =
         evaluate (rnf (Pattern undefined Nothing Nothing :: Pattern ()))
           `shouldThrow` anyException
 
--- copied from http://hackage.haskell.org/package/hspec-expectations-0.8.2/docs/src/Test-Hspec-Expectations.html#shouldThrow
-
-shouldThrow :: (Exception e) => IO a -> Selector e -> Microspec ()
-action `shouldThrow` p = prop "shouldThrow" $
-  monadicIO $ do
-    r <- Test.Microspec.run $ try action
-    case r of
-      Right _ ->
-        -- "finished normally, but should throw exception: " ++ exceptionType
-        Test.Microspec.assert False
-      Left e ->
-        -- "threw exception that did not meet expectation")
-        Test.Microspec.assert $ p e
-
-shouldNotThrow :: (Exception e) => IO a -> Selector e -> Microspec ()
-action `shouldNotThrow` p = prop "shouldNotThrow" $
-  monadicIO $ do
-    r <- Test.Microspec.run $ try action
-    case r of
-      Right _ -> Test.Microspec.assert True
-      Left e -> Test.Microspec.assert $ p e
-
--- a string repsentation of the expected exception's type
-{-
-exceptionType = (show . typeOf . instanceOf) p
-  where
-    instanceOf :: Selector a -> a
-    instanceOf _ = error "Test.Hspec.Expectations.shouldThrow: broken Typeable instance"
--}
-
--- |
--- A @Selector@ is a predicate; it can simultaneously constrain the type and
--- value of an exception.
-type Selector a = (a -> Bool)
-
-anyException :: Selector SomeException
-anyException = const True
 
 anyErrorCall :: Selector ErrorCall
 anyErrorCall = const True

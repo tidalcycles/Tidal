@@ -5,21 +5,15 @@ module Sound.Tidal.CoreTest where
 import Data.List (sort)
 import qualified Data.Map as Map
 import Data.Ratio
-import Sound.Tidal.Control as C
 import Sound.Tidal.Core as C
-import Sound.Tidal.Params as C
-import Sound.Tidal.ParseBP as C
 import Sound.Tidal.Pattern as C
-import Sound.Tidal.Scales as C
-import Sound.Tidal.Show as C
-import Sound.Tidal.Simple as C
-import Sound.Tidal.Stepwise as C
 import Sound.Tidal.UI as C
-import Test.Microspec
+import Test.Hspec
+import Test.Hspec.QuickCheck
 import TestUtils
 import Prelude hiding ((*>), (<*))
 
-run :: Microspec ()
+run :: Spec
 run =
   describe "Sound.Tidal.Core" $ do
     describe "Elemental patterns" $ do
@@ -29,23 +23,23 @@ run =
         let inNormalRange pat t = (y >= 0) && (y <= 1)
               where
                 y = sampleOf pat t
-        it "sine" $ inNormalRange sine
-        it "cosine" $ inNormalRange cosine
-        it "saw" $ inNormalRange saw
-        it "isaw" $ inNormalRange isaw
-        it "tri" $ inNormalRange tri
-        it "square" $ inNormalRange square
+        prop "sine" $ inNormalRange sine
+        prop "cosine" $ inNormalRange cosine
+        prop "saw" $ inNormalRange saw
+        prop "isaw" $ inNormalRange isaw
+        prop "tri" $ inNormalRange tri
+        prop "square" $ inNormalRange square
       describe "have correctly-scaled bipolar variants" $ do
         let areCorrectlyScaled pat pat2 t = (y * 2 - 1) ~== y2
               where
                 y = sampleOf pat t
                 y2 = sampleOf pat2 t
-        it "sine" $ areCorrectlyScaled sine sine2
-        it "cosine" $ areCorrectlyScaled cosine cosine2
-        it "saw" $ areCorrectlyScaled saw saw2
-        it "isaw" $ areCorrectlyScaled isaw isaw2
-        it "tri" $ areCorrectlyScaled tri tri2
-        it "square" $ areCorrectlyScaled square square2
+        prop "sine" $ areCorrectlyScaled sine sine2
+        prop "cosine" $ areCorrectlyScaled cosine cosine2
+        prop "saw" $ areCorrectlyScaled saw saw2
+        prop "isaw" $ areCorrectlyScaled isaw isaw2
+        prop "tri" $ areCorrectlyScaled tri tri2
+        prop "square" $ areCorrectlyScaled square square2
 
     describe "append" $
       it "can switch between the cycles from two pures" $ do
@@ -80,30 +74,28 @@ run =
               (cat [rev a, rev b, rev c])
 
     describe "fastCat" $ do
-      it "can switch between the cycles from three pures inside one cycle" $ do
-        it "1" $
-          queryArc (fastCat [pure "a", pure "b", pure "c"]) (Arc 0 1)
-            `shouldBe` fmap
-              toEvent
-              [ (((0, 1 / 3), (0, 1 / 3)), "a" :: String),
-                (((1 / 3, 2 / 3), (1 / 3, 2 / 3)), "b"),
-                (((2 / 3, 1), (2 / 3, 1)), "c")
-              ]
-        it "5/3" $
-          queryArc (fastCat [pure "a", pure "b", pure "c"]) (Arc 0 (5 / 3))
-            `shouldBe` fmap
-              toEvent
-              [ (((0, 1 / 3), (0, 1 / 3)), "a" :: String),
-                (((1 / 3, 2 / 3), (1 / 3, 2 / 3)), "b"),
-                (((2 / 3, 1), (2 / 3, 1)), "c"),
-                (((1, 4 / 3), (1, 4 / 3)), "a"),
-                (((4 / 3, 5 / 3), (4 / 3, 5 / 3)), "b")
-              ]
-      it "works with zero-length queries" $ do
-        it "0" $
+      it "can switch between the cycles from three pures inside one cycle (1)" $ do
+        queryArc (fastCat [pure "a", pure "b", pure "c"]) (Arc 0 1)
+          `shouldBe` fmap
+            toEvent
+            [ (((0, 1 / 3), (0, 1 / 3)), "a" :: String),
+              (((1 / 3, 2 / 3), (1 / 3, 2 / 3)), "b"),
+              (((2 / 3, 1), (2 / 3, 1)), "c")
+            ]
+      it "can switch between the cycles from three pures inside one cycle (5/3)" $ do
+        queryArc (fastCat [pure "a", pure "b", pure "c"]) (Arc 0 (5 / 3))
+          `shouldBe` fmap
+            toEvent
+            [ (((0, 1 / 3), (0, 1 / 3)), "a" :: String),
+              (((1 / 3, 2 / 3), (1 / 3, 2 / 3)), "b"),
+              (((2 / 3, 1), (2 / 3, 1)), "c"),
+              (((1, 4 / 3), (1, 4 / 3)), "a"),
+              (((4 / 3, 5 / 3), (4 / 3, 5 / 3)), "b")
+            ]
+      it "works with zero-length queries (0)" $ do
           queryArc (fastCat [pure "a", pure "b"]) (Arc 0 0)
             `shouldBe` fmap toEvent [(((0, 0.5), (0, 0)), "a" :: String)]
-        it "1/3" $
+      it "works with zero-length queries (1/3)" $ do
           queryArc (fastCat [pure "a", pure "b"]) (Arc (1 % 3) (1 % 3))
             `shouldBe` fmap toEvent [(((0, 0.5), (1 % 3, 1 % 3)), "a" :: String)]
 
@@ -123,17 +115,16 @@ run =
           b = "4 [5, 5] 6 7" :: Pattern Int
           c = "7 8 9 10" :: Pattern Int
           d = "7 [8, 9] 10 11" :: Pattern Int
-      it "creates silence when" $ do
-        it "first argument silent" $
-          comparePD
-            (Arc 0 1)
-            (silence |>| a)
-            silence
-        it "second argument silent" $
-          comparePD
-            (Arc 0 1)
-            (a |>| silence)
-            silence
+      it "creates silence when first argument silent" $
+        comparePD
+          (Arc 0 1)
+          (silence |>| a)
+          silence
+      it "creates silence when second argument silent" $
+        comparePD
+          (Arc 0 1)
+          (a |>| silence)
+          silence
       it "creates the same pattern when left argument has the same structure" $
         comparePD
           (Arc 0 1)
@@ -193,22 +184,21 @@ run =
           (Arc 0 1)
           (fast 1 x)
           x
-      it "mutes, when there is" $ do
-        it "silence in first argument" $
-          comparePD
-            (Arc 0 1)
-            (fast silence x)
-            silence
-        it "silence in second argument" $
-          comparePD
-            (Arc 0 1)
-            (fast x silence :: Pattern Time)
-            silence
-        it "speedup by 0" $
-          comparePD
-            (Arc 0 1)
-            (fast 0 x)
-            silence
+      it "it mutes, when there is silence in first argument" $
+        comparePD
+          (Arc 0 1)
+          (fast silence x)
+          silence
+      it "it mute, when there is silence in second argument" $
+        comparePD
+          (Arc 0 1)
+          (fast x silence :: Pattern Time)
+          silence
+      it "it mute, when there is speedup by 0" $
+        comparePD
+          (Arc 0 1)
+          (fast 0 x)
+          silence
       it "is reciprocal to slow" $
         comparePD
           (Arc 0 1)
@@ -233,22 +223,21 @@ run =
           (Arc 0 10)
           (slow 1 x)
           x
-      it "mutes, when there is" $ do
-        it "silence in first argument" $
-          comparePD
-            (Arc 0 10)
-            (slow silence x)
-            silence
-        it "silence in second argument" $
-          comparePD
-            (Arc 0 10)
-            (slow x silence :: Pattern Time)
-            silence
-        it "speedup by 0" $
-          comparePD
-            (Arc 0 10)
-            (slow 0 x)
-            silence
+      it "mutes, when there is silence in first argument" $
+        comparePD
+          (Arc 0 10)
+          (slow silence x)
+          silence
+      it "mutes, when there is silence in second argument" $
+        comparePD
+          (Arc 0 10)
+          (slow x silence :: Pattern Time)
+          silence
+      it "mutes, when it is speedup by 0" $
+        comparePD
+          (Arc 0 10)
+          (slow 0 x)
+          silence
       it "is reciprocal to fast" $
         comparePD
           (Arc 0 10)
@@ -291,16 +280,17 @@ run =
               (((0.5, 0.75), (0.5, 0.75)), 8)
             ]
 
+    describe "saw goes from 0 up to 1 every cycle" $ do
+      it "0" $
+        queryArc saw (Arc 0 0) `shouldBe` [Event (Context []) Nothing (Arc 0 0) 0 :: Event Double]
+      it "0.25" $
+        queryArc saw (Arc 0.25 0.25) `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) 0.25 :: Event Double]
+      it "0.5" $
+        queryArc saw (Arc 0.5 0.5) `shouldBe` [Event (Context []) Nothing (Arc 0.5 0.5) 0.5 :: Event Double]
+      it "0.75" $
+        queryArc saw (Arc 0.75 0.75) `shouldBe` [Event (Context []) Nothing (Arc 0.75 0.75) 0.75 :: Event Double]
+
     describe "saw" $ do
-      it "goes from 0 up to 1 every cycle" $ do
-        it "0" $
-          queryArc saw (Arc 0 0) `shouldBe` [Event (Context []) Nothing (Arc 0 0) 0 :: Event Double]
-        it "0.25" $
-          queryArc saw (Arc 0.25 0.25) `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) 0.25 :: Event Double]
-        it "0.5" $
-          queryArc saw (Arc 0.5 0.5) `shouldBe` [Event (Context []) Nothing (Arc 0.5 0.5) 0.5 :: Event Double]
-        it "0.75" $
-          queryArc saw (Arc 0.75 0.75) `shouldBe` [Event (Context []) Nothing (Arc 0.75 0.75) 0.75 :: Event Double]
       it "can be added to" $
         map value (queryArc ((+ 1) <$> saw) (Arc 0.5 0.5)) `shouldBe` [1.5 :: Float]
       it "works on the left of <*>" $
@@ -313,16 +303,15 @@ run =
                        Event (Context []) Nothing (Arc 0.5 0.75) 3,
                        Event (Context []) Nothing (Arc 0.75 1) 3
                      ]
-      it "can be reversed" $ do
-        it "works with whole cycles" $
-          queryArc (rev saw) (Arc 0 1)
-            `shouldBe` [Event (Context []) Nothing (Arc 0 1) 0 :: Event Double]
-        it "works with half cycles" $
-          queryArc (rev saw) (Arc 0.5 1)
-            `shouldBe` [Event (Context []) Nothing (Arc 0.5 1) 0 :: Event Double]
-        it "works with inset points" $
-          queryArc (rev saw) (Arc 0.25 0.25)
-            `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) 0.75 :: Event Double]
+      it "works with whole cycles" $
+        queryArc (rev saw) (Arc 0 1)
+          `shouldBe` [Event (Context []) Nothing (Arc 0 1) 0 :: Event Double]
+      it "works with half cycles" $
+        queryArc (rev saw) (Arc 0.5 1)
+          `shouldBe` [Event (Context []) Nothing (Arc 0.5 1) 0 :: Event Double]
+      it "works with inset points" $
+        queryArc (rev saw) (Arc 0.25 0.25)
+          `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) 0.75 :: Event Double]
 
     describe "tri" $ do
       it "goes from 0 up to 1 and back every cycle" $

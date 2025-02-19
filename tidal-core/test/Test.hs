@@ -11,10 +11,10 @@ import Sound.Tidal.ScalesTest
 import Sound.Tidal.StepwiseTest
 import Sound.Tidal.UITest
 import Sound.Tidal.UtilsTest
-import Test.Microspec
+import Test.Hspec
 
 main :: IO ()
-main = microspec $ do
+main = hspec $ do
   Sound.Tidal.CoreTest.run
   Sound.Tidal.ParseTest.run
   Sound.Tidal.ParamsTest.run
