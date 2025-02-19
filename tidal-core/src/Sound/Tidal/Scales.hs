@@ -308,7 +308,7 @@ getScale table sp p =
       noteInScale (fromMaybe [0] $ lookup scaleName table) n
   )
     <$> p
-    <* sp
+      <* sp
   where
     octave s x = x `div` length s
     noteInScale s x = (s !!! x) + fromIntegral (12 * octave s x)
@@ -337,7 +337,7 @@ getScaleMod table sp f p =
       noteInScale (uniq $ f $ fromMaybe [0] $ lookup scaleName table) n
   )
     <$> p
-    <* sp
+      <* sp
   where
     octave s x = x `div` length s
     noteInScale s x = (s !!! x) + fromIntegral (12 * octave s x)
