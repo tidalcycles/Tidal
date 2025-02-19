@@ -13,22 +13,25 @@ import Data.Char
 import Data.List (dropWhileEnd)
 import qualified Data.Text
 import Language.Haskellish as Haskellish
-import qualified Sound.Tidal.Chords as T
-import Sound.Tidal.Context
-  ( ControlPattern,
-    Enumerable,
-    Pattern,
-    Time,
-    ValueMap,
-  )
-import qualified Sound.Tidal.Context as T
+
+import Sound.Tidal.ParseBP (Enumerable, Parseable, parseBP)
+
+import Sound.Tidal.UI as T
+import Sound.Tidal.Chords as T
+import Sound.Tidal.Control as T
+import Sound.Tidal.Core as T
+import Sound.Tidal.Params as T
+import Sound.Tidal.Pattern as T
+import Sound.Tidal.Scales as T
+import Sound.Tidal.Simple as T
+
 import Sound.Tidal.Parse.TH
 
 type H = Haskellish ()
 
 -- This is depended upon by Estuary, and changes to its type will cause problems downstream for Estuary.
 parseTidal :: String -> Either String ControlPattern
-parseTidal x = if x' == [] then (return T.silence) else r
+parseTidal x = if x' == [] then (return silence) else r
   where
     x' = dropWhileEnd isSpace $ dropWhile isSpace $ Haskellish.removeComments x
     r = bimap showSyntaxError fst $ Haskellish.parseAndRun parser () x
@@ -59,8 +62,8 @@ instance Parse Time where
 instance Parse Double where
   parser = (fromIntegral <$> integer) <|> (realToFrac <$> rational) <?> "expected literal Double"
 
-instance Parse T.Note where
-  parser = (T.Note . fromIntegral <$> integer) <|> (T.Note . realToFrac <$> rational) <?> "expected literal Note"
+instance Parse Note where
+  parser = (Note . fromIntegral <$> integer) <|> (Note . realToFrac <$> rational) <?> "expected literal Note"
 
 instance Parse String where
   parser =
@@ -84,7 +87,7 @@ instance Parse [Time] where parser = numList
 
 instance Parse [Double] where parser = numList
 
-instance Parse [T.Note] where parser = numList
+instance Parse [Note] where parser = numList
 
 instance {-# OVERLAPPABLE #-} (Parse a) => Parse [a] where parser = list parser
 
@@ -147,13 +150,13 @@ chords =
    )
 
 instance Parse ValueMap where
-  parser = empty
+  parser = Control.Applicative.empty
 
 instance Parse ControlPattern where
   parser =
     (parser :: H (Pattern String -> ControlPattern)) <*!> parser
       <|> (parser :: H (Pattern Double -> ControlPattern)) <*!> parser
-      <|> (parser :: H (Pattern T.Note -> ControlPattern)) <*!> parser
+      <|> (parser :: H (Pattern Note -> ControlPattern)) <*!> parser
       <|> (parser :: H (Pattern Int -> ControlPattern)) <*!> parser
       <|> listCp_cp <*!> parser
       <|> genericPatternExpressions
@@ -171,7 +174,7 @@ genericPatternExpressions =
     <|> list_p <*!> parser
     <|> tupleADouble_p <*!> parser
     <|> listTupleStringTransformation_p <*!> parser
-    <|> silence
+    <|> parseSilence
 
 listTupleStringTransformation_p :: forall a. (Parse (Pattern a), Parse (Pattern a -> Pattern a)) => H ([(String, Pattern a -> Pattern a)] -> Pattern a)
 listTupleStringTransformation_p = listTupleStringPattern_listTupleStringTransformation_p <*!> parser
@@ -197,12 +200,12 @@ fractionalPatternExpressions =
     <|> pInt_pFractionalA <*!> parser
     <|> pDouble_pFractionalA <*!> parser
 
-silence :: H (Pattern a)
-silence = $(fromTidal "silence") -- ie. T.silence <$ reserved "silence", see Sound.Tidal.Parse.TH
+parseSilence :: H (Pattern a)
+parseSilence = $(fromTidal "silence") -- ie. silence <$ reserved "silence", see Sound.Tidal.Parse.TH
 
 instance Parse (Pattern Bool) where
   parser =
-    parseBP
+    haskellishParseBP
       <|> (parser :: H (Pattern String -> Pattern Bool)) <*!> parser
       <|> (parser :: H (Pattern Int -> Pattern Bool)) <*!> parser
       <|> genericPatternExpressions
@@ -210,7 +213,7 @@ instance Parse (Pattern Bool) where
 
 instance Parse (Pattern String) where
   parser =
-    parseBP
+    haskellishParseBP
       <|> genericPatternExpressions
       <|> (parser :: H (Pattern Int -> Pattern String)) <*!> parser
       <|> (parser :: H (String -> Pattern String)) <*!> parser
@@ -218,22 +221,22 @@ instance Parse (Pattern String) where
         <*!> parser
         <?> "expected Pattern String"
 
-parseBP :: (Enumerable a, T.Parseable a) => H (Pattern a)
-parseBP = do
+haskellishParseBP :: (Enumerable a, Parseable a) => H (Pattern a)
+haskellishParseBP = do
   (b, _) <- Haskellish.span
-  p <- T.parseBP <$> string
+  p <- parseBP <$> string
   case p of
     Left e -> throwError $ Data.Text.pack $ show e
     Right p' -> do
-      return $ T.withContext (updateContext b) p'
+      return $ withContext (updateContext b) p'
       where
-        updateContext (dx, dy) c@T.Context {T.contextPosition = poss} =
-          c {T.contextPosition = map (\((bx, by), (ex, ey)) -> ((bx + dx, by + dy), (ex + dx, ey + dy))) poss}
+        updateContext (dx, dy) c@Context {contextPosition = poss} =
+          c {contextPosition = map (\((bx, by), (ex, ey)) -> ((bx + dx, by + dy), (ex + dx, ey + dy))) poss}
 
 instance Parse (Pattern Int) where
   parser =
     pure . fromIntegral <$> integer
-      <|> parseBP
+      <|> haskellishParseBP
       <|> genericPatternExpressions
       <|> numPatternExpressions
         <?> "expected Pattern Int"
@@ -241,7 +244,7 @@ instance Parse (Pattern Int) where
 instance Parse (Pattern Integer) where
   parser =
     pure <$> integer
-      <|> parseBP
+      <|> haskellishParseBP
       <|> genericPatternExpressions
       <|> numPatternExpressions
         <?> "expected Pattern Integer"
@@ -250,7 +253,7 @@ instance Parse (Pattern Double) where
   parser =
     pure . fromIntegral <$> integer
       <|> pure . realToFrac <$> rational
-      <|> parseBP
+      <|> haskellishParseBP
       <|> genericPatternExpressions
       <|> numPatternExpressions
       <|> fractionalPatternExpressions
@@ -268,11 +271,11 @@ instance Parse (Pattern Double) where
       <|> $(fromTidalList (fmap (\x -> "in" ++ show x) ([0 .. 127] :: [Int])))
         <?> "expected Pattern Double"
 
-instance Parse (Pattern T.Note) where
+instance Parse (Pattern Note) where
   parser =
     pure . fromIntegral <$> integer
       <|> pure . realToFrac <$> rational
-      <|> parseBP
+      <|> haskellishParseBP
       <|> genericPatternExpressions
       <|> numPatternExpressions
       <|> fractionalPatternExpressions
@@ -282,7 +285,7 @@ instance Parse (Pattern Time) where
   parser =
     pure . fromIntegral <$> integer
       <|> pure <$> rational
-      <|> parseBP
+      <|> haskellishParseBP
       <|> genericPatternExpressions
       <|> numPatternExpressions
       <|> fractionalPatternExpressions
@@ -343,7 +346,7 @@ instance Parse (Pattern Double -> Pattern Double) where
       <|> $(fromTidal "perlin2")
         <?> "expected Pattern Double -> Pattern Double"
 
-instance Parse (Pattern T.Note -> Pattern T.Note) where
+instance Parse (Pattern Note -> Pattern Note) where
   parser = genericTransformations <|> numTransformations <|> floatingTransformations <|> ordTransformations <?> "expected Pattern Note -> Pattern Note"
 
 genericTransformations :: forall a. (Parse (Pattern a), Parse (Pattern a -> Pattern a), Parse (Pattern a -> Pattern a -> Pattern a), Parse ((Pattern a -> Pattern a) -> Pattern a -> Pattern a), Parse ([Pattern a -> Pattern a] -> Pattern a -> Pattern a)) => H (Pattern a -> Pattern a)
@@ -464,12 +467,12 @@ instance Parse (Pattern Int -> Pattern Bool) where
       <|> pA_pB
       <|> a_patternB
 
-instance Parse (Pattern T.Note -> ControlPattern) where
+instance Parse (Pattern Note -> ControlPattern) where
   parser =
     $(fromTidal "up")
       <|> $(fromTidal "n")
       <|> $(fromTidal "note")
-      <|> (parser :: H (String -> Pattern T.Note -> ControlPattern)) <*!> parser
+      <|> (parser :: H (String -> Pattern Note -> ControlPattern)) <*!> parser
       <|> pA_pB
       <|> a_patternB
 
@@ -606,7 +609,7 @@ instance Parse (Pattern Double -> Pattern Double -> Pattern Double) where
       <|> pDouble_p_p
         <?> "expected Pattern Double -> Pattern Double -> Pattern Double"
 
-instance Parse (Pattern T.Note -> Pattern T.Note -> Pattern T.Note) where
+instance Parse (Pattern Note -> Pattern Note -> Pattern Note) where
   parser =
     genericBinaryPatternFunctions
       <|> numMergeOperator
@@ -624,7 +627,7 @@ instance Parse (ControlPattern -> ControlPattern -> ControlPattern) where
         <*!> parser
         <?> "expected ControlPattern -> ControlPattern -> ControlPattern"
 
-genericBinaryPatternFunctions :: (T.Unionable a) => H (Pattern a -> Pattern a -> Pattern a)
+genericBinaryPatternFunctions :: (Unionable a) => H (Pattern a -> Pattern a -> Pattern a)
 genericBinaryPatternFunctions =
   $(fromTidal "overlay")
     <|> $(fromTidal "append")
@@ -639,7 +642,7 @@ genericBinaryPatternFunctions =
     <|> (parser :: H (Pattern Bool -> Pattern a -> Pattern a -> Pattern a)) <*!> parser
     <|> constParser
 
-unionableMergeOperator :: (T.Unionable a) => H (Pattern a -> Pattern a -> Pattern a)
+unionableMergeOperator :: (Unionable a) => H (Pattern a -> Pattern a -> Pattern a)
 unionableMergeOperator =
   $(fromTidal "#")
     <|> $(fromTidal "|>|")
@@ -666,7 +669,7 @@ numMergeOperator =
     <|> $(fromHaskell "*")
     <|> $(fromHaskell "-")
 
-realMergeOperator :: (T.Moddable a) => H (Pattern a -> Pattern a -> Pattern a)
+realMergeOperator :: (Moddable a) => H (Pattern a -> Pattern a -> Pattern a)
 realMergeOperator =
   $(fromTidal "|%|")
     <|> $(fromTidal "|%")
@@ -835,7 +838,7 @@ instance Parse ((Pattern Time -> Pattern Time) -> Pattern Time -> Pattern Time) 
 instance Parse ((Pattern Double -> Pattern Double) -> Pattern Double -> Pattern Double) where
   parser = genericAppliedTransformations
 
-instance Parse ((Pattern T.Note -> Pattern T.Note) -> Pattern T.Note -> Pattern T.Note) where
+instance Parse ((Pattern Note -> Pattern Note) -> Pattern Note -> Pattern Note) where
   parser = genericAppliedTransformations
 
 genericAppliedTransformations :: H ((Pattern a -> Pattern a) -> Pattern a -> Pattern a)
@@ -865,7 +868,7 @@ instance Parse ([a] -> Pattern Int -> Pattern a) where
 instance Parse (String -> Pattern Double -> ControlPattern) where
   parser = $(fromTidal "pF")
 
-instance Parse (String -> Pattern T.Note -> ControlPattern) where
+instance Parse (String -> Pattern Note -> ControlPattern) where
   parser = $(fromTidal "pN")
 
 instance Parse (String -> Pattern Int -> ControlPattern) where

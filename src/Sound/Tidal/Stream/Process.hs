@@ -43,6 +43,7 @@ import Sound.Tidal.ID
 import qualified Sound.Tidal.Link as Link
 import Sound.Tidal.Params (pS)
 import Sound.Tidal.Pattern
+import Sound.Tidal.Pattern.Types
 import Sound.Tidal.Show ()
 import Sound.Tidal.Stream.Target
 import Sound.Tidal.Stream.Types

@@ -77,20 +77,29 @@ jobs:
 
       - name: test
         run: cabal v2-test ${{ matrix.versions.args }} --enable-tests --enable-benchmarks all
-  ormolu:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: haskell-actions/run-ormolu@v17
-        with:
-          mode: inplace
-          pattern: |
-            src/**/*.hs
-            tidal-link/src/**/*.hs
-            tidal-parse/src/**/*.hs
-            tidal-listener/src/**/*.hs
-      - name: apply ormolu formatting
-        uses: stefanzweifel/git-auto-commit-action@v4
-        if: ${{ always() }}
-        with:
-          commit_message: automated ormolu reformatting
+ormolu:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Detect and switch to current branch
+      run: |
+        BRANCH_NAME=$(git branch --show-current || echo "${{ github.ref_name }}")
+        git checkout "$BRANCH_NAME"
+
+    - uses: haskell-actions/run-ormolu@v17
+      with:
+        mode: inplace
+        pattern: |
+          src/**/*.hs
+          tidal-core/src/**/*.hs
+          tidal-link/src/**/*.hs
+          tidal-parse/src/**/*.hs
+          tidal-listener/src/**/*.hs
+
+    - name: apply ormolu formatting
+      uses: stefanzweifel/git-auto-commit-action@v4
+      if: ${{ always() }}
+      with:
+        commit_message: automated ormolu reformatting
+        branch: ${{ github.head_ref || github.ref_name }}

@@ -5,7 +5,16 @@ module Sound.Tidal.CoreTest where
 import Data.List (sort)
 import qualified Data.Map as Map
 import Data.Ratio
-import Sound.Tidal.Context
+import Sound.Tidal.Control as C
+import Sound.Tidal.Core as C
+import Sound.Tidal.Params as C
+import Sound.Tidal.ParseBP as C
+import Sound.Tidal.Pattern as C
+import Sound.Tidal.Scales as C
+import Sound.Tidal.Show as C
+import Sound.Tidal.Simple as C
+import Sound.Tidal.Stepwise as C
+import Sound.Tidal.UI as C
 import Test.Microspec
 import TestUtils
 import Prelude hiding ((*>), (<*))

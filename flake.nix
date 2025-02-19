@@ -4,6 +4,7 @@
 
     Packages are included for:
     - tidal
+    - tidal-core
     - tidal-link
     - tidal-listener
     - tidal-parse
@@ -45,6 +46,7 @@
       project = pkgs.haskellPackages.extend (pkgs.haskell.lib.compose.packageSourceOverrides {
         hosc = inputs.hosc; # Manually added as `hosc` 0.21 is not yet in nixpkgs.
         tidal = ./.;
+        tidal-core = ./tidal-core;
         tidal-link = ./tidal-link;
         tidal-listener = ./tidal-listener;
         tidal-parse = ./tidal-parse;
@@ -53,6 +55,7 @@
       tidal-ghc = pkgs.haskellPackages.ghcWithPackages (hpkgs: [project.tidal]);
     in {
       tidal = project.tidal;
+      tidal-core = project.tidal-core;
       tidal-link = project.tidal-link;
       tidal-listener = project.tidal-listener;
       tidal-parse = project.tidal-parse;
