@@ -1,11 +1,15 @@
 cabal-version: 2.0
 
 name: tidal-core
-version: 1.10.0
+version: 1.9.6
 
-homepage: http://tidalcycles.org/
 license: GPL-3
-
+copyright:           (c) Alex McLean and other contributors, 2025
+synopsis:            Core pattern library for TidalCycles, a pattern language for improvised music
+description:         Tidal is a domain specific language for live coding patterns. This is a pre-release ahead of version 1.10, which will become a dependency of the main tidal package, with the same version number.
+homepage:            http://tidalcycles.org/
+maintainer:          Alex McLean <alex@slab.org>, Matthew Kaney, Martin Gius
+license-file:        LICENSE
 category: Sound
 build-type: Simple
 
@@ -45,7 +49,7 @@ library
     colour <2.4,
     text <2.2,
     parsec >=3.1.12 && <3.2,
-    deepseq >=1.1.0.0
+    deepseq >=1.1.0.0 && < 1.7
 
 test-suite tests
   type: exitcode-stdio-1.0
