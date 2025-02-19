@@ -8,7 +8,7 @@ homepage:            http://tidalcycles.org/
 license:             GPL-3
 license-file:        LICENSE
 author:              Alex McLean
-maintainer:          Alex McLean <alex@slab.org>, Mike Hodnick <mike.hodnick@gmail.com>
+maintainer:          Alex McLean <alex@slab.org>, Matthew Kaney, Martin Gius
 Stability:           Experimental
 Copyright:           (c) Alex McLean and other contributors, 2025
 category:            Sound
