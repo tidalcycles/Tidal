@@ -82,12 +82,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Detect and switch to current branch
-        run: |
-          BRANCH_NAME=$(git branch --show-current || echo "${{ github.ref_name }}")
-          git checkout "$BRANCH_NAME"
-
       - uses: haskell-actions/run-ormolu@v17
         with:
           mode: inplace
@@ -97,7 +91,6 @@ jobs:
             tidal-link/src/**/*.hs
             tidal-parse/src/**/*.hs
             tidal-listener/src/**/*.hs
-
       - name: apply ormolu formatting
         uses: stefanzweifel/git-auto-commit-action@v4
         if: ${{ always() }}
