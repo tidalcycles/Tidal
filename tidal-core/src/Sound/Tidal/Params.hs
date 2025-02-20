@@ -1709,6 +1709,9 @@ legatoCountTo name ipat = innerJoin $ (\i -> pStateF "legato" name (maybe 0 ((`m
 legatobus :: Pattern Int -> Pattern Double -> ControlPattern
 legatobus _ _ = error $ "Control parameter 'legato' can't be sent to a bus."
 
+clip :: Pattern Double -> ControlPattern
+clip = legato
+
 leslie :: Pattern Double -> ControlPattern
 leslie = pF "leslie"
 
