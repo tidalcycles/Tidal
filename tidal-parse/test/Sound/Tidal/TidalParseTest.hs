@@ -4,24 +4,34 @@ module Sound.Tidal.TidalParseTest where
 
 import Data.Either
 import qualified Data.Map.Strict as Map
+
 import Sound.Tidal.Chords as Tidal
-import Sound.Tidal.Context as Tidal
+import Sound.Tidal.Control as Tidal
+import Sound.Tidal.Core as Tidal
+import Sound.Tidal.Params as Tidal
+import Sound.Tidal.Pattern as Tidal
+import Sound.Tidal.UI as Tidal
+
 import Sound.Tidal.Parse
-import Test.Microspec hiding (run)
+import Sound.Tidal.Scales ()
+import Sound.Tidal.Show ()
+import Sound.Tidal.Simple ()
+
+import Test.Hspec
 
 stripContext :: Pattern a -> Pattern a
 stripContext = setContext $ Context []
 
-parsesTo :: String -> ControlPattern -> Property
+parsesTo :: String -> ControlPattern -> Expectation
 parsesTo str p = x `shouldBe` y
   where
     x = query . stripContext <$> parseTidal str <*> Right (State (Arc 0 16) Map.empty)
     y = Right $ queryArc (stripContext p) (Arc 0 16)
 
-causesParseError :: String -> Property
+causesParseError :: String -> Expectation
 causesParseError str = isLeft (parseTidal str :: Either String ControlPattern) `shouldBe` True
 
-run :: Microspec ()
+run :: Spec
 run =
   describe "parseTidal" $ do
     it "parses the empty string as silence" $

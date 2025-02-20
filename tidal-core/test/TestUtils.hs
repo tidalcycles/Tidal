@@ -6,7 +6,19 @@ module TestUtils where
 
 import Data.List (sort)
 import qualified Data.Map.Strict as Map
-import Sound.Tidal.Context
+import Data.Ratio as C
+import Sound.Tidal.Control as C
+import Sound.Tidal.Core as C
+import Sound.Tidal.Params as C
+import Sound.Tidal.ParseBP as C
+import Sound.Tidal.Pattern as C
+import Sound.Tidal.Scales as C
+import Sound.Tidal.Show as C
+import Sound.Tidal.Simple as C
+import Sound.Tidal.Stepwise as C
+import Sound.Tidal.UI as C
+import Prelude hiding ((*>), (<*))
+
 import Test.Hspec
 import Prelude hiding ((*>), (<*))
 

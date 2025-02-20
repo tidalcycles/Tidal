@@ -6,9 +6,9 @@ import qualified Data.Map.Strict as M
 import qualified Sound.Osc.Fd as O
 import Sound.Tidal.Pattern
 import Sound.Tidal.Stream
-import Test.Microspec
+import Test.Hspec
 
-run :: Microspec ()
+run :: Spec
 run =
   describe "Sound.Tidal.Stream" $ do
     describe "toDatum" $ do

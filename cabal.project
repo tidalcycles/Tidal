@@ -1,2 +1,2 @@
 tests: True
-packages: ./ tidal-parse tidal-parse-ffi tidal-listener tidal-link
+packages: ./ tidal-core tidal-parse tidal-parse-ffi tidal-listener tidal-link

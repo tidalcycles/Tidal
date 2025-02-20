@@ -4,14 +4,13 @@ module Sound.Tidal.ParseTest where
 
 import Control.Exception
 import Sound.Tidal.Core
-import Sound.Tidal.ExceptionsTest (anyException, shouldThrow, shouldNotThrow)
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI (_degradeBy)
-import Test.Microspec
+import Test.Hspec
 import TestUtils
 import Prelude hiding ((*>), (<*))
 
-run :: Microspec ()
+run :: Spec
 run =
   describe "Sound.Tidal.Parse" $ do
     describe "parseBP_E" $ do
@@ -342,14 +341,15 @@ run =
           ("a a |b b b|c c c c" :: Pattern String)
           ("[a a|b b b|c c c c]" :: Pattern String)
       it "'|' in list first" $ do
-        evaluate ("1 2@3|4|-|5!6|[7!8 9] 10 . 11 12*2 13!2 . 1@1" :: Pattern String)
-          `shouldNotThrow` anyException
+        compareP
+          (Arc 0 1)
+          ("a|b b" :: Pattern String)
+          ("[a|b b]" :: Pattern String)
       it "'|' in list last" $ do
-        evaluate ("12@1|23@1|12|[1 3!21]" :: Pattern String)
-          `shouldNotThrow` anyException
-      it "toplevel '|'" $ do
-        evaluate ("121|23@1|12|[1 321]" :: Pattern String)
-          `shouldNotThrow` anyException
+        compareP
+          (Arc 0 1)
+          ("a b|c" :: Pattern String)
+          ("[a b|c]" :: Pattern String)
       it "list is same as stack" $ do
         compareP
           (Arc 0 1)

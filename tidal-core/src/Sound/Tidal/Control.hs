@@ -43,7 +43,7 @@ import Sound.Tidal.Core
   )
 import qualified Sound.Tidal.Params as P
 import Sound.Tidal.Pattern
-import Sound.Tidal.Stream.Types (patternTimeID)
+import Sound.Tidal.Pattern.Types (patternTimeID)
 import Sound.Tidal.UI (bite, _irand)
 import Prelude hiding ((*>), (<*))
 

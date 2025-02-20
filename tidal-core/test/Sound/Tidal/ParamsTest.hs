@@ -5,10 +5,10 @@ module Sound.Tidal.ParamsTest where
 import Sound.Tidal.Core
 import Sound.Tidal.Params
 import Sound.Tidal.Pattern
-import Test.Microspec
+import Test.Hspec
 import TestUtils
 
-run :: Microspec ()
+run :: Spec
 run =
   describe "Sound.Tidal.Params" $ do
     describe "VF params" $ do
