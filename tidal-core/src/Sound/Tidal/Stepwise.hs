@@ -23,7 +23,6 @@ import Data.Maybe (fromJust, isJust, mapMaybe)
 import Sound.Tidal.Core (stack, timecat, zoompat)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils (enumerate, nubOrd, pairs)
-import Prelude hiding (drop, take)
 
 -- _lcmsteps :: [Pattern a] -> Maybe Time
 -- _lcmsteps pats = foldl1 lcmr <$> (sequence $ map steps pats)
@@ -94,19 +93,19 @@ _take n pat@(Pattern _ (Just tpat) _) = setSteps (Just tpat') $ zoompat b e pat
     e = (\t -> if n >= 0 then n / t else 1) <$> tpat
     tpat' = min (abs n) <$> tpat
 
-take :: Pattern Time -> Pattern a -> Pattern a
-take = s_patternify _take
+steptake :: Pattern Time -> Pattern a -> Pattern a
+steptake = s_patternify _take
 
-_drop :: Time -> Pattern a -> Pattern a
-_drop _ pat@(Pattern _ Nothing _) = pat
-_drop n pat@(Pattern _ (Just tpat) _) = take (f <$> tpat) pat
+_stepdrop :: Time -> Pattern a -> Pattern a
+_stepdrop _ pat@(Pattern _ Nothing _) = pat
+_stepdrop n pat@(Pattern _ (Just tpat) _) = steptake (f <$> tpat) pat
   where
     f t
       | n >= 0 = t - n
       | otherwise = negate (t + n)
 
-drop :: Pattern Time -> Pattern a -> Pattern a
-drop = s_patternify _drop
+stepdrop :: Pattern Time -> Pattern a -> Pattern a
+stepdrop = s_patternify _stepdrop
 
 _expand :: Rational -> Pattern a -> Pattern a
 _expand factor pat = withSteps (* factor) pat
@@ -196,7 +195,7 @@ s_taperBy = s_patternify2 _s_taperBy
 
 -- | Successively plays a pattern from each group in turn
 s_alt :: [[Pattern a]] -> Pattern a
-s_alt groups = s_cat $ concat $ take (c * length groups) $ transpose $ map cycle groups
+s_alt groups = s_cat $ concat $ steptake (c * length groups) $ transpose $ map cycle groups
   where
     c = foldl1 lcm $ map length groups
 
