@@ -1,22 +1,37 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module TestUtils where
 
 import Data.List (sort)
 import qualified Data.Map.Strict as Map
 import Sound.Tidal.Context
-import Test.Hspec
+  ( Arc,
+    ArcF (Arc),
+    Context (Context),
+    ControlPattern,
+    Event,
+    EventF (Event, value),
+    Pattern,
+    Value (VF, VI, VR, VS),
+    ValueMap,
+    defragParts,
+    parseBP_E,
+    queryArc,
+    setContext,
+  )
+import Test.Hspec (Expectation, shouldBe)
 import Prelude hiding ((*>), (<*))
 
 class TolerantEq a where
   (~==) :: a -> a -> Bool
 
 instance TolerantEq Double where
+  (~==) :: Double -> Double -> Bool
   a ~== b = abs (a - b) < 0.000001
 
 instance TolerantEq Value where
+  (~==) :: Value -> Value -> Bool
   (VS a) ~== (VS b) = a == b
   (VI a) ~== (VI b) = a == b
   (VR a) ~== (VR b) = a == b
@@ -24,12 +39,15 @@ instance TolerantEq Value where
   _ ~== _ = False
 
 instance (TolerantEq a) => TolerantEq [a] where
+  (~==) :: (TolerantEq a) => [a] -> [a] -> Bool
   as ~== bs = (length as == length bs) && all (uncurry (~==)) (zip as bs)
 
 instance TolerantEq ValueMap where
+  (~==) :: ValueMap -> ValueMap -> Bool
   a ~== b = Map.differenceWith (\a' b' -> if a' ~== b' then Nothing else Just a') a b == Map.empty
 
 instance TolerantEq (Event ValueMap) where
+  (~==) :: Event ValueMap -> Event ValueMap -> Bool
   (Event _ w p x) ~== (Event _ w' p' x') = w == w' && p == p' && x ~== x'
 
 -- | Compare the events of two patterns using the given arc
