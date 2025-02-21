@@ -63,7 +63,7 @@ streamReplace stream k !pat = do
   E.handle
     ( \(e :: E.SomeException) -> do
         hPutStrLn stderr $ "Failed to Stream.streamReplace: " ++ show e
-        hPutStrLn stderr $ "Return to previous pattern."
+        hPutStrLn stderr "Return to previous pattern."
         setPreviousPatternOrSilence (sPMapMV stream)
     )
     (updatePattern stream k t pat)

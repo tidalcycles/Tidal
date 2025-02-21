@@ -16,8 +16,9 @@ tidalInst <- mkTidal
 -- It has to go after you define 'tidalInst'.
 instance Tidally where tidal = tidalInst
 
--- Uncomment to enable Ableton Link on startup:
--- streamEnableLink tidal
+-- `enableLink` and `disableLink` can be used to toggle Ableton Link.
+-- Uncomment the next line to enable Ableton Link on startup.
+-- enableLink
 
 -- You can add your own aliases in this file. Here are some examples:
 -- :{

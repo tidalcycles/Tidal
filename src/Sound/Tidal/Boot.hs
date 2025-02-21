@@ -32,6 +32,8 @@ module Sound.Tidal.Boot
     setbpm,
     getbpm,
     getnow,
+    enableLink,
+    disableLink,
     d1,
     d2,
     d3,
@@ -127,11 +129,11 @@ mkOscMap = [(superdirtTarget {oLatency = 0.05, oAddress = "127.0.0.1", oPort = 5
 
 -- | Creates a Tidal instance using default config. Use 'mkTidalWith' to customize.
 mkTidal :: IO Stream
-mkTidal = mkTidalWith defaultConfig mkOscMap
+mkTidal = mkTidalWith mkOscMap defaultConfig
 
 -- | See 'Sound.Tidal.Stream.startStream'.
-mkTidalWith :: Config -> OscMap -> IO Stream
-mkTidalWith config oscmap = do
+mkTidalWith :: OscMap -> Config -> IO Stream
+mkTidalWith oscmap config = do
   hSetEncoding stdout utf8
   startStream config oscmap
 
@@ -233,6 +235,12 @@ getbpm = streamGetBPM tidal
 -- | See 'Sound.Tidal.Stream.streamGetnow'.
 getnow :: (Tidally) => IO Time
 getnow = streamGetNow tidal
+
+enableLink :: (Tidally) => IO ()
+enableLink = streamEnableLink tidal
+
+disableLink :: (Tidally) => IO ()
+disableLink = streamDisableLink tidal
 
 -- | Replace what's playing on the given orbit.
 d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16 :: (Tidally) => ControlPattern -> IO ()
