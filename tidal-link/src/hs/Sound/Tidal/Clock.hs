@@ -87,7 +87,7 @@ runClock :: ClockConfig -> TickAction -> Clock () -> IO ClockRef
 runClock config ac clock = do
   (mem, st) <- initClock config ac
   _ <- forkIO $ evalStateT (runReaderT clock mem) st
-  return (clockRef mem)
+  pure (clockRef mem)
 
 -- | creates a ableton link instance and an MVar for interacting
 -- | with the clock from outside and computes the initial clock state
@@ -108,7 +108,7 @@ initClock config ac = do
             nowArc = (0, 0),
             nudged = 0
           }
-  return (ClockMemory config (ClockRef clockMV abletonLink) ac, st)
+  pure (ClockMemory config (ClockRef clockMV abletonLink) ac, st)
   where
     processAhead = round $ (cProcessAhead config) * 1000000
     bpm = (coerce defaultCps) * 60 * (cBeatsPerCycle config)
@@ -189,7 +189,7 @@ clockProcess = do
   tick
 
 processAction :: ClockAction -> Clock ()
-processAction NoAction = return ()
+processAction NoAction = pure ()
 processAction (SetNudge n) = modify (\st -> st {nudged = n})
 processAction (SetTempo bpm) = do
   (ClockMemory _ (ClockRef _ abletonLink) _) <- ask
@@ -237,7 +237,7 @@ getZeroedSessionState config (ClockRef _ abletonLink) = do
   ss <- Link.createAndCaptureAppSessionState abletonLink
   nowLink <- liftIO $ Link.clock abletonLink
   Link.forceBeatAtTime ss 0 (nowLink + processAhead) (cQuantum config)
-  return ss
+  pure ss
   where
     processAhead = round $ (cProcessAhead config) * 1000000
 
@@ -253,7 +253,7 @@ timeAtBeat config ss beat = Link.timeAtBeat ss (coerce beat) (cQuantum config)
 timeToCycles :: ClockConfig -> Link.SessionState -> Link.Micros -> IO Time
 timeToCycles config ss time = do
   beat <- Link.beatAtTime ss time (cQuantum config)
-  return $! (toRational beat) / (toRational (cBeatsPerCycle config))
+  pure $! (toRational beat) / (toRational (cBeatsPerCycle config))
 
 -- At what time does the cycle occur according to Link?
 cyclesToTime :: ClockConfig -> Link.SessionState -> Time -> IO Link.Micros
@@ -265,7 +265,7 @@ linkToOscTime :: ClockRef -> Link.Micros -> IO O.Time
 linkToOscTime (ClockRef _ abletonLink) lt = do
   nowOsc <- O.time
   nowLink <- liftIO $ Link.clock abletonLink
-  return $ addMicrosToOsc (lt - nowLink) nowOsc
+  pure $ addMicrosToOsc (lt - nowLink) nowOsc
 
 addMicrosToOsc :: Link.Micros -> O.Time -> O.Time
 addMicrosToOsc m t = ((fromIntegral m) / 1000000) + t
@@ -287,7 +287,7 @@ getBPM (ClockRef _ abletonLink) = do
   ss <- Link.createAndCaptureAppSessionState abletonLink
   bpm <- Link.getTempo ss
   Link.destroySessionState ss
-  return $! toRational bpm
+  pure $! toRational bpm
 
 getCPS :: ClockConfig -> ClockRef -> IO Time
 getCPS config ref = fmap (\bpm -> bpm / (toRational $ cBeatsPerCycle config) / 60) (getBPM ref)
@@ -298,7 +298,7 @@ getCycleTime config (ClockRef _ abletonLink) = do
   ss <- Link.createAndCaptureAppSessionState abletonLink
   c <- timeToCycles config ss now
   Link.destroySessionState ss
-  return $! c
+  pure $! c
 
 resetClock :: ClockRef -> IO ()
 resetClock clock = setClock clock 0

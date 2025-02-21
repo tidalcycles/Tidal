@@ -49,3 +49,15 @@ defaultConfig =
 
 verbose :: Config -> String -> IO ()
 verbose c s = when (cVerbose c) $ putStrLn s
+
+setFrameTimespan :: Double -> Config -> Config
+setFrameTimespan n c =
+  c
+    { cClockConfig = (cClockConfig c) {Clock.cFrameTimespan = n}
+    }
+
+setProcessAhead :: Double -> Config -> Config
+setProcessAhead n c =
+  c
+    { cClockConfig = (cClockConfig c) {Clock.cProcessAhead = n}
+    }
