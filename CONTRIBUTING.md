@@ -25,7 +25,7 @@ compiler/interpreter. Some resources for learning Haskell can be found here:
 As mentioned, the main repository is maintained on github:
   https://github.com/tidalcycles/tidal
 
-The main Tidal development branch is called 'dev'.
+The main Tidal development branch is called 'main'.
 
 The SuperDirt repository is here:
   https://github.com/musikinformatik/SuperDirt

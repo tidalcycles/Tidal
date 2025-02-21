@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -31,28 +32,68 @@ module Sound.Tidal.ParseBP where
 import Control.Applicative ()
 import qualified Control.Exception as E
 import Data.Bifunctor (first)
-import Data.Colour
-import Data.Colour.Names
+import Data.Colour (Colour)
+import Data.Colour.Names (readColourName)
 import Data.Functor (($>))
 import Data.Functor.Identity (Identity)
 import Data.List (intercalate)
-import Data.Maybe
-import Data.Ratio
+import Data.Maybe (fromMaybe)
+import Data.Ratio ((%))
 import Data.Typeable (Typeable)
 import GHC.Exts (IsString (..))
 import Sound.Tidal.Chords
+  ( Modifier (..),
+    chordTable,
+    chordToPatSeq,
+  )
 import Sound.Tidal.Core
-import Sound.Tidal.Pattern hiding ((*>), (<*))
+  ( cB_,
+    cF_,
+    cI_,
+    cN_,
+    cR_,
+    cS_,
+    fastFromList,
+    stack,
+    timeCat,
+    _cX_,
+  )
+import Sound.Tidal.Pattern
+  ( Context (Context),
+    Note (Note),
+    Pattern,
+    Time,
+    fast,
+    getS,
+    innerJoin,
+    rotL,
+    setContext,
+    silence,
+    slow,
+    unwrap,
+  )
 import Sound.Tidal.UI
+  ( chooseBy,
+    euclidOff,
+    euclidOffBool,
+    rand,
+    segment,
+    _degradeByUsing,
+  )
 import Sound.Tidal.Utils (fromRight)
 import Text.Parsec.Error
+  ( ParseError,
+    errorMessages,
+    errorPos,
+    showErrorMessages,
+  )
 import qualified Text.Parsec.Prim
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language (haskellDef)
 import qualified Text.ParserCombinators.Parsec.Token as P
 
 data TidalParseError = TidalParseError
-  { parsecError :: ParseError,
+  { parsecError :: Text.Parsec.Error.ParseError,
     code :: String
   }
   deriving (Eq, Typeable)
@@ -60,10 +101,11 @@ data TidalParseError = TidalParseError
 instance E.Exception TidalParseError
 
 instance Show TidalParseError where
+  show :: TidalParseError -> String
   show err = "Syntax error in sequence:\n  \"" ++ code err ++ "\"\n  " ++ pointer ++ "  " ++ message
     where
-      pointer = replicate (sourceColumn $ errorPos perr) ' ' ++ "^"
-      message = showErrorMessages "or" "unknown parse error" "expecting" "unexpected" "end of input" $ errorMessages perr
+      pointer = replicate (sourceColumn $ Text.Parsec.Error.errorPos perr) ' ' ++ "^"
+      message = Text.Parsec.Error.showErrorMessages "or" "unknown parse error" "expecting" "unexpected" "end of input" $ Text.Parsec.Error.errorMessages perr
       perr = parsecError err
 
 type MyParser = Text.Parsec.Prim.Parsec String Int
@@ -103,7 +145,7 @@ instance (Show a) => Show (TPat a) where
   show (TPat_Repeat r v) = "TPat_Repeat (" ++ show r ++ ") (" ++ show v ++ ")"
   show (TPat_EnumFromTo a b) = "TPat_EnumFromTo (" ++ show a ++ ") (" ++ show b ++ ")"
   show (TPat_Var s) = "TPat_Var " ++ show s
-  show (TPat_Chord g iP nP msP) = "TPat_Chord (" ++ (show $ fmap g iP) ++ ") (" ++ show nP ++ ") (" ++ show msP ++ ")"
+  show (TPat_Chord g iP nP msP) = "TPat_Chord (" ++ show (fmap g iP) ++ ") (" ++ show nP ++ ") (" ++ show msP ++ ")"
 
 instance Functor TPat where
   fmap f (TPat_Atom c v) = TPat_Atom c (f v)
@@ -149,7 +191,7 @@ tShow (TPat_Seq vs) = snd $ steps_seq vs
 tShow TPat_Silence = "silence"
 tShow (TPat_EnumFromTo a b) = "unwrap $ fromTo <$> (" ++ tShow a ++ ") <*> (" ++ tShow b ++ ")"
 tShow (TPat_Var s) = "getControl " ++ s
-tShow (TPat_Chord f n name mods) = "chord (" ++ (tShow $ fmap f n) ++ ") (" ++ tShow name ++ ")" ++ tShowList mods
+tShow (TPat_Chord f n name mods) = "chord (" ++ tShow (fmap f n) ++ ") (" ++ tShow name ++ ")" ++ tShowList mods
 tShow a = "can't happen? " ++ show a
 
 toPat :: (Parseable a, Enumerable a) => TPat a -> Pattern a
@@ -211,7 +253,7 @@ steps_size ((TPat_Elongate r p) : ps) = (r, tShow p) : steps_size ps
 steps_size ((TPat_Repeat n p) : ps) = replicate n (1, tShow p) ++ steps_size ps
 steps_size (p : ps) = (1, tShow p) : steps_size ps
 
-parseBP :: (Enumerable a, Parseable a) => String -> Either ParseError (Pattern a)
+parseBP :: (Enumerable a, Parseable a) => String -> Either Text.Parsec.Error.ParseError (Pattern a)
 parseBP s = toPat <$> parseTPat s
 
 parseBP_E :: (Enumerable a, Parseable a) => String -> Pattern a
@@ -222,7 +264,7 @@ parseBP_E s = toE parsed
     toE (Left e) = E.throw $ TidalParseError {parsecError = e, code = s}
     toE (Right tp) = toPat tp
 
-parseTPat :: (Parseable a) => String -> Either ParseError (TPat a)
+parseTPat :: (Parseable a) => String -> Either Text.Parsec.Error.ParseError (TPat a)
 parseTPat = runParser (pTidal parseRest <* eof) (0 :: Int) ""
 
 -- | a '-' is a negative sign if followed anything but another dash

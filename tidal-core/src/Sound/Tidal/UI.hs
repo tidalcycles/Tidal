@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 
 {-
     UI.hs - Tidal's main 'user interface' functions, for transforming
@@ -48,8 +47,7 @@ import Data.List
   )
 import qualified Data.Map.Strict as Map
 import Data.Maybe
-  ( catMaybes,
-    fromJust,
+  ( fromJust,
     fromMaybe,
     isJust,
     mapMaybe,
@@ -139,7 +137,7 @@ timeToRands' seed n
 --
 -- > jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 rand :: (Fractional a) => Pattern a
-rand = pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac $ (timeToRand ((e + s) / 2) :: Double))])
+rand = pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac (timeToRand ((e + s) / 2) :: Double))])
 
 -- | Boolean rand - a continuous stream of true\/false values, with a 50\/50 chance.
 brand :: Pattern Bool
@@ -175,7 +173,7 @@ _irand i = fromIntegral . (floor :: Double -> Int) . (* fromIntegral i) <$> rand
 --
 -- The `perlin` function uses the cycle count as input and can be used much like @rand@.
 perlinWith :: (Fractional a) => Pattern Double -> Pattern a
-perlinWith p = fmap realToFrac $ (interp) <$> (p - pa) <*> (timeToRand <$> pa) <*> (timeToRand <$> pb)
+perlinWith p = fmap realToFrac $ interp <$> (p - pa) <*> (timeToRand <$> pa) <*> (timeToRand <$> pb)
   where
     pa = (fromIntegral :: Int -> Double) . floor <$> p
     pb = (fromIntegral :: Int -> Double) . (+ 1) . floor <$> p
@@ -455,10 +453,8 @@ almostAlways' = sometimesBy' 0.9
 
 -- |
 -- Never apply a transformation, returning the pattern unmodified.
---
--- @never = flip const@
 never :: (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-never = flip const
+never _ x = x
 
 -- |
 -- Apply the transformation to the pattern unconditionally.
@@ -536,7 +532,7 @@ brak = when ((== 1) . (`mod` 2)) (((1 % 4) `rotR`) . (\x -> fastcat [x, silence]
 --
 -- There is also `iter'`, which shifts the pattern in the opposite direction.
 iter :: Pattern Int -> Pattern c -> Pattern c
-iter a pat = keepTactus pat $ patternify' _iter a pat
+iter a pat = keepSteps pat $ patternify' _iter a pat
 
 _iter :: Int -> Pattern a -> Pattern a
 _iter n p = slowcat $ map (\i -> (fromIntegral i % fromIntegral n) `rotL` p) [0 .. (n - 1)]
@@ -720,7 +716,7 @@ whenmod :: Pattern Time -> Pattern Time -> (Pattern a -> Pattern a) -> Pattern a
 whenmod a b f pat = innerJoin $ (\a' b' -> _whenmod a' b' f pat) <$> a <*> b
 
 _whenmod :: Time -> Time -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-_whenmod a b = whenT (\t -> ((t `mod'` a) >= b))
+_whenmod a b = whenT (\t -> (t `mod'` a) >= b)
 
 -- |
 -- > superimpose f p = stack [p, f p]
@@ -927,8 +923,8 @@ euclid = patternify2 _euclid
 
 _euclid :: Int -> Int -> Pattern a -> Pattern a
 _euclid n k a
-  | n >= 0 = fastcat $ fmap (bool silence a) $ bjorklund (n, k)
-  | otherwise = fastcat $ fmap (bool a silence) $ bjorklund (-n, k)
+  | n >= 0 = setSteps (Just $ pure $ toRational k) $ fastcat $ fmap (bool silence a) $ bjorklund (n, k)
+  | otherwise = setSteps (Just $ pure $ toRational k) $ fastcat $ fmap (bool a silence) $ bjorklund (-n, k)
 
 -- |
 --
@@ -941,16 +937,16 @@ _euclid n k a
 --
 -- > d1 $ euclidFull 3 7 "realclaps" ("realclaps" # gain 0.8)
 euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
-euclidFull n k pa pb = stack [euclid n k pa, euclidInv n k pb]
+euclidFull n k pa pb = setSteps (Just $ toRational <$> k) $ stack [euclid n k pa, euclidInv n k pb]
 
 -- | Less expressive than 'euclid' due to its constrained types, but may be more efficient.
 _euclidBool :: Int -> Int -> Pattern Bool -- TODO: add 'euclidBool'?
 _euclidBool n k
-  | n >= 0 = fastFromList $ bjorklund (n, k)
-  | otherwise = fastFromList $ fmap (not) $ bjorklund (-n, k)
+  | n >= 0 = setSteps (Just $ pure $ toRational k) $ fastFromList $ bjorklund (n, k)
+  | otherwise = setSteps (Just $ pure $ toRational k) $ fastFromList $ fmap not $ bjorklund (-n, k)
 
 _euclid' :: Int -> Int -> Pattern a -> Pattern a
-_euclid' n k p = fastcat $ map (\x -> if x then p else silence) (bjorklund (n, k))
+_euclid' n k p = setSteps (Just $ pure $ toRational k) $ fastcat $ map (\x -> if x then p else silence) (bjorklund (n, k))
 
 -- |
 -- As 'euclid', but taking a third rotational parameter corresponding to the onset
@@ -964,7 +960,7 @@ eoff = euclidOff
 
 _euclidOff :: Int -> Int -> Int -> Pattern a -> Pattern a
 _euclidOff _ 0 _ _ = silence
-_euclidOff n k s p = (rotL $ fromIntegral s % fromIntegral k) (_euclid n k p)
+_euclidOff n k s p = setSteps (Just $ pure $ toRational k) $ (rotL $ fromIntegral s % fromIntegral k) (_euclid n k p)
 
 -- | As 'euclidOff', but specialized to 'Bool'. May be more efficient than 'euclidOff'.
 euclidOffBool :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern Bool -> Pattern Bool
@@ -972,7 +968,7 @@ euclidOffBool = patternify3 _euclidOffBool
 
 _euclidOffBool :: Int -> Int -> Int -> Pattern Bool -> Pattern Bool
 _euclidOffBool _ 0 _ _ = silence
-_euclidOffBool n k s p = ((fromIntegral s % fromIntegral k) `rotL`) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
+_euclidOffBool n k s p = setSteps (Just $ pure $ toRational k) $ rotL (fromIntegral s % fromIntegral k) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
 
 distrib :: [Pattern Int] -> Pattern a -> Pattern a
 distrib ps p = do
@@ -1185,7 +1181,7 @@ segment :: Pattern Time -> Pattern a -> Pattern a
 segment = patternify _segment
 
 _segment :: Time -> Pattern a -> Pattern a
-_segment n p = setTactus (Just $ pure n) $ _fast n (pure id) <* p
+_segment n p = setSteps (Just $ pure n) $ _fast n (pure id) <* p
 
 -- | @discretise@: the old (deprecated) name for 'segment'
 discretise :: Pattern Time -> Pattern a -> Pattern a
@@ -1237,7 +1233,7 @@ toMIDI p = fromJust <$> (filterValues (isJust) (noteLookup <$> p))
 -- @"arpy:1"@, @"casio"@ and @"bd"@, giving the pattern
 -- @"arpy:1 [~ casio] bd casio"@ (note that the list wraps round here).
 fit :: Pattern Int -> [a] -> Pattern Int -> Pattern a
-fit pint xs p = (patternify func) pint (xs, p)
+fit pint xs p = patternify func pint (xs, p)
   where
     func i (xs', p') = _fit i xs' p'
 
@@ -1247,7 +1243,7 @@ _fit perCycle xs p = (xs !!!) <$> (p {query = map (\e -> fmap (+ pos e) e) . que
     pos e = perCycle * floor (start $ part e)
 
 permstep :: (RealFrac b) => Int -> [a] -> Pattern b -> Pattern a
-permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (\x -> replicate (fst x) (snd x)) $ zip (ps !! floor (n * fromIntegral (length ps - 1))) things) <$> _segment 1 p
+permstep nSteps things p = unwrap $ (\n -> fastFromList $ concatMap (uncurry replicate) $ zip (ps !! floor (n * fromIntegral (length ps - 1))) things) <$> _segment 1 p
   where
     ps = permsort (length things) nSteps
     deviance avg xs = sum $ map (abs . (avg -) . fromIntegral) xs
@@ -1454,7 +1450,7 @@ markovPat = patternify2 _markovPat
 
 _markovPat :: Int -> Int -> [[Double]] -> Pattern Int
 _markovPat n xi tp =
-  setTactus (Just $ pure $ toRational n) $
+  setSteps (Just $ pure $ toRational n) $
     splitQueries $
       pattern
         ( \(State a@(Arc s _) _) ->
@@ -2220,8 +2216,12 @@ _pressBy r pat = squeezeJoin $ compressTo (r, 1) . pure <$> pat
 sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 -- Replaced with more efficient version below
 -- sew pb a b = overlay (mask pb a) (mask (inv pb) b)
-sew pb a b = Pattern pf Nothing Nothing
+sew pb a b = Pattern pf psteps Nothing
   where
+    psteps = do
+      sa <- steps a
+      sb <- steps b
+      return $ pb >>= \v -> if v then sa else sb
     pf st = concatMap match evs
       where
         evs = query pb st
@@ -2230,7 +2230,7 @@ sew pb a b = Pattern pf Nothing Nothing
         match ev
           | value ev = find (query a st {arc = subarc}) ev
           | otherwise = find (query b st {arc = subarc}) ev
-        find evs' ev = catMaybes $ map (check ev) evs'
+        find evs' ev = mapMaybe (check ev) evs'
         check bev xev = do
           newarc <- subArc (part bev) (part xev)
           return $ xev {part = newarc}
@@ -2251,7 +2251,7 @@ stitch pb a b = overlay (struct pb a) (struct (inv pb) b)
 -- value is active. No events are let through where no binary values
 -- are active.
 while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
-while b f pat = keepTactus pat $ sew b (f pat) pat
+while b f pat = sew b (f pat) pat
 
 -- |
 -- @stutter n t pat@ repeats each event in @pat@ @n@ times, separated by @t@ time (in fractions of a cycle).
@@ -2348,8 +2348,8 @@ juxBy ::
   (Pattern ValueMap -> Pattern ValueMap) ->
   Pattern ValueMap ->
   Pattern ValueMap
--- TODO: lcm tactus of p and f p?
-juxBy n f p = keepTactus p $ stack [p |+ P.pan 0.5 |- P.pan (n / 2), f $ p |+ P.pan 0.5 |+ P.pan (n / 2)]
+-- TODO: lcm steps of p and f p?
+juxBy n f p = keepSteps p $ stack [p |+ P.pan 0.5 |- P.pan (n / 2), f $ p |+ P.pan 0.5 |+ P.pan (n / 2)]
 
 -- |
 -- Given a sample's directory name and number, this generates a string
@@ -2913,7 +2913,7 @@ _binary :: (Data.Bits.Bits b) => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
 
 _binaryN :: Int -> Pattern Int -> Pattern Bool
-_binaryN n p = setTactus (Just $ pure $ toRational n) $ squeezeJoin $ _binary n <$> p
+_binaryN n p = setSteps (Just $ pure $ toRational n) $ squeezeJoin $ _binary n <$> p
 
 binaryN :: Pattern Int -> Pattern Int -> Pattern Bool
 binaryN n p = patternify _binaryN n p
