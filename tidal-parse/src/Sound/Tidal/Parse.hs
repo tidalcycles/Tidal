@@ -387,7 +387,7 @@ genericTransformations =
 simpleComposition :: forall a. (Parse (a -> a)) => H (a -> a)
 simpleComposition = $(fromHaskell ".") <*!> (parser :: H (a -> a)) <*!> (parser :: H (a -> a))
 
-numTransformations :: (Num a, Enum a) => H (Pattern a -> Pattern a)
+numTransformations :: (Num a, Enum a, Real a) => H (Pattern a -> Pattern a)
 numTransformations =
   $(fromTidal "run")
 

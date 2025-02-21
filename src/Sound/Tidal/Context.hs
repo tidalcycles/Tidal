@@ -32,4 +32,4 @@ import Sound.Tidal.Stream as C
 import Sound.Tidal.Transition as C
 import Sound.Tidal.UI as C
 import Sound.Tidal.Version as C
-import Prelude hiding ((*>), (<*))
+import Prelude hiding (all, drop, take, (*>), (<*))

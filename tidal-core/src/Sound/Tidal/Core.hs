@@ -302,8 +302,8 @@ fromMaybes = fastcat . map f
 --  The first parameter to run can be given as a pattern:
 --
 --  > d1 $ n (run "<4 8 4 6>") # sound "amencutup"
-run :: (Enum a, Num a) => Pattern a -> Pattern a
-run = (>>= _run)
+run :: (Enum a, Num a, Real a) => Pattern a -> Pattern a
+run npat = setSteps (Just $ toRational <$> npat) $ npat >>= _run
 
 _run :: (Enum a, Num a) => a -> Pattern a
 _run n = fastFromList [0 .. n - 1]
@@ -378,11 +378,11 @@ fastappend = fastAppend
 --  > d1 $ fastcat [sound "bd*2 sn", sound "jvbass*3", sound "drum*2", sound "ht mt"]
 fastCat :: [Pattern a] -> Pattern a
 fastCat (p : []) = p
-fastCat ps = setTactus t $ _fast (toTime $ length ps) $ cat ps
+fastCat ps = setSteps t $ _fast (toTime $ length ps) $ cat ps
   where
-    t = fastCat <$> (sequence $ map tactus ps)
+    t = fastCat <$> (sequence $ map steps ps)
 
---  where t = fromMaybe (toRational $ length ps) $ ((* (toRational $ length ps)) . foldl1 lcmr) <$> (sequence $ map tactus ps)
+--  where t = fromMaybe (toRational $ length ps) $ ((* (toRational $ length ps)) . foldl1 lcmr) <$> (sequence $ map steps ps)
 
 -- | Alias for @fastCat@
 fastcat :: [Pattern a] -> Pattern a
@@ -403,7 +403,7 @@ fastcat = fastCat
 --  >              ]
 timeCat :: [(Time, Pattern a)] -> Pattern a
 timeCat ((_, p) : []) = p
-timeCat tps = setTactus (Just $ pure total) $ stack $ map (\(s, e, p) -> compressArc (Arc (s / total) (e / total)) p) $ arrange 0 $ filter (\(t, _) -> t > 0) $ tps
+timeCat tps = setSteps (Just $ pure total) $ stack $ map (\(s, e, p) -> compressArc (Arc (s / total) (e / total)) p) $ arrange 0 $ filter (\(t, _) -> t > 0) $ tps
   where
     total = sum $ map fst tps
     arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
@@ -468,14 +468,14 @@ mono p = pattern $ \(State a cm) -> flatten $ query p (State a cm)
 -- >  sound "arpy" +| n "0 .. 15"
 -- > ] # speed "[[1 0.8], [1.5 2]*2]/3"
 stack :: [Pattern a] -> Pattern a
-stack pats = (foldr overlay silence pats) {tactus = t}
+stack pats = (foldr overlay silence pats) {steps = t}
   where
     t
       | length pats == 0 = Nothing
       -- TODO - something cleverer..
-      | otherwise = (mono . stack) <$> (sequence $ map tactus pats)
+      | otherwise = (mono . stack) <$> (sequence $ map steps pats)
 
---          | otherwise = foldl1 lcmr <$> (sequence $ map tactus pats)
+--          | otherwise = foldl1 lcmr <$> (sequence $ map steps pats)
 
 -- ** Manipulating time
 
@@ -538,7 +538,7 @@ zoomArc :: Arc -> Pattern a -> Pattern a
 zoomArc (Arc s e) p
   | s >= e = nothing
   | otherwise =
-      withTactus (* d) $
+      withSteps (* d) $
         splitQueries $
           withResultArc (mapCycle ((/ d) . subtract s)) $
             withQueryArc (mapCycle ((+ s) . (* d))) p
