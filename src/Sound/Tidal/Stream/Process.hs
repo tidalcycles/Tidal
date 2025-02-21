@@ -40,16 +40,15 @@ import Data.List (sortOn)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (catMaybes, fromJust, fromMaybe)
 import qualified Sound.Osc.Fd as O
-import qualified Sound.Osc.Transport.Fd.Udp as O
 import qualified Sound.Tidal.Clock as Clock
 import Sound.Tidal.Core (stack, (#))
-import Sound.Tidal.ID
+import Sound.Tidal.ID (ID (fromID))
 import qualified Sound.Tidal.Link as Link
 import Sound.Tidal.Params (pS)
 import Sound.Tidal.Pattern
-import Sound.Tidal.Pattern.Types
+import Sound.Tidal.Pattern.Types (patternTimeID)
 import Sound.Tidal.Show ()
-import Sound.Tidal.Stream.Target
+import Sound.Tidal.Stream.Target (send)
 import Sound.Tidal.Stream.Types
 import Sound.Tidal.Utils ((!!!))
 import System.IO (hPutStrLn, stderr)
