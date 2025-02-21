@@ -106,7 +106,7 @@ chopArc :: Arc -> Int -> [Arc]
 chopArc (Arc s e) n = map (\i -> Arc (s + (e - s) * (fromIntegral i / fromIntegral n)) (s + (e - s) * (fromIntegral (i + 1) / fromIntegral n))) [0 .. n - 1]
 
 _chop :: Int -> ControlPattern -> ControlPattern
-_chop n pat = keepTactus (withTactus (* toRational n) pat) $ squeezeJoin $ f <$> pat
+_chop n pat = keepSteps (withSteps (* toRational n) pat) $ squeezeJoin $ f <$> pat
   where
     f v = fastcat $ map (pure . rangemap v) slices
     rangemap v (b, e) = Map.union (fromMaybe (makeMap (b, e)) $ merge v (b, e)) v
@@ -143,7 +143,7 @@ striate :: Pattern Int -> ControlPattern -> ControlPattern
 striate = patternify _striate
 
 _striate :: Int -> ControlPattern -> ControlPattern
-_striate n p = keepTactus (withTactus (* toRational n) p) $ fastcat $ map offset [0 .. n - 1]
+_striate n p = keepSteps (withSteps (* toRational n) p) $ fastcat $ map offset [0 .. n - 1]
   where
     offset i = mergePlayRange (fromIntegral i / fromIntegral n, fromIntegral (i + 1) / fromIntegral n) <$> p
 
@@ -175,7 +175,7 @@ striate' :: Pattern Int -> Pattern Double -> ControlPattern -> ControlPattern
 striate' = striateBy
 
 _striateBy :: Int -> Double -> ControlPattern -> ControlPattern
-_striateBy n f p = keepTactus (withTactus (* toRational n) p) $ fastcat $ map (offset . fromIntegral) [0 .. n - 1]
+_striateBy n f p = keepSteps (withSteps (* toRational n) p) $ fastcat $ map (offset . fromIntegral) [0 .. n - 1]
   where
     offset i = mergePlayRange (slot * i, (slot * i) + f) <$> p
     slot = (1 - f) / fromIntegral (n - 1)
@@ -320,7 +320,7 @@ _slice n i p =
 --
 --  > d1 $ fast 4 $ randslice 32 $ sound "bev"
 randslice :: Pattern Int -> ControlPattern -> ControlPattern
-randslice = patternify $ \n p -> keepTactus (withTactus (* (toRational n)) $ p) $ innerJoin $ (\i -> _slice n i p) <$> _irand n
+randslice = patternify $ \n p -> keepSteps (withSteps (* (toRational n)) $ p) $ innerJoin $ (\i -> _slice n i p) <$> _irand n
 
 _splice :: Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
 _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure "c")
@@ -338,7 +338,7 @@ _splice bits ipat pat = withEvent f (slice (pure bits) ipat pat) # P.unit (pure 
 --
 --  > d1 $ splice 8 "[<0*8 0*2> 3*4 2 4] [4 .. 7]" $ sound "breaks165"
 splice :: Pattern Int -> Pattern Int -> ControlPattern -> Pattern (Map.Map String Value)
-splice bitpat ipat pat = setTactusFrom bitpat $ innerJoin $ (\bits -> _splice bits ipat pat) <$> bitpat
+splice bitpat ipat pat = setStepsFrom bitpat $ innerJoin $ (\bits -> _splice bits ipat pat) <$> bitpat
 
 -- |
 --  @loopAt@ makes a sample fit the given number of cycles. Internally, it
