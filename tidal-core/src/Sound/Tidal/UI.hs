@@ -363,7 +363,7 @@ _degradeBy = _degradeByUsing rand
 
 -- Useful for manipulating random stream, e.g. to change 'seed'
 _degradeByUsing :: Pattern Double -> Double -> Pattern a -> Pattern a
-_degradeByUsing prand x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* prand
+_degradeByUsing prand x p = fmap fst $ filterValues ((>= x) . snd) $ (,) <$> p <* prand
 
 -- |
 -- As 'degradeBy', but the pattern of probabilities represents the chances to retain rather
@@ -372,7 +372,7 @@ unDegradeBy :: Pattern Double -> Pattern a -> Pattern a
 unDegradeBy = patternify' _unDegradeBy
 
 _unDegradeBy :: Double -> Pattern a -> Pattern a
-_unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <* rand
+_unDegradeBy x p = fmap fst $ filterValues ((< x) . snd) $ (,) <$> p <* rand
 
 degradeOverBy :: Int -> Pattern Double -> Pattern a -> Pattern a
 degradeOverBy i tx p = unwrap $ (\x -> fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* fastRepeatCycles i rand) <$> slow (fromIntegral i) tx
