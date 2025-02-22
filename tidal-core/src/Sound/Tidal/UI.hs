@@ -95,7 +95,9 @@ intSeedToRand :: (Fractional a) => Int -> a
 intSeedToRand = (/ 536870912) . realToFrac . (`mod` 536870912)
 
 timeToRand :: (RealFrac a, Fractional b) => a -> b
-timeToRand = intSeedToRand . timeToIntSeed
+-- Otherwise the value would be 0 at time 0.. Let's start in the middle.
+timeToRand 0 = 0.5
+timeToRand t = intSeedToRand $ timeToIntSeed t
 
 timeToRands :: (RealFrac a, Fractional b) => a -> Int -> [b]
 timeToRands 0 n = timeToRands' (timeToIntSeed (9999999 :: Double)) n
