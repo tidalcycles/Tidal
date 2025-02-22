@@ -291,19 +291,19 @@ chooseBy f xs = (xs !!!) . floor <$> range 0 (fromIntegral $ length xs) f
 -- play as the "e" note, and half as likely to play as the "g" note.
 --
 -- > wchoose = 'wchooseBy' 'rand'
-wchoose :: [(a, Double)] -> Pattern a
+wchoose :: [(a, Pattern Double)] -> Pattern a
 wchoose = wchooseBy rand
 
 -- | Given a pattern of probabilities and a list of @(value, weight)@ pairs,
 -- @wchooseBy@ creates a @'Pattern' value@ by choosing values based on those
 -- probabilities and weighted appropriately by the weights in the list of pairs.
-wchooseBy :: Pattern Double -> [(a, Double)] -> Pattern a
-wchooseBy pat pairs = match <$> pat
+wchooseBy :: Pattern Double -> [(a, Pattern Double)] -> Pattern a
+wchooseBy pat pairs = match <$> pat <* cweightpat <* totalpat
   where
-    match r = values !! head (findIndices (> (r * total)) cweights)
-    cweights = scanl1 (+) (map snd pairs)
+    match r cweights total = values !! head (findIndices (> (r * total)) cweights)
+    cweightpat = sequence $ scanl1 (+) (map snd pairs)
     values = map fst pairs
-    total = sum $ map snd pairs
+    totalpat = sum $ map snd pairs
 
 -- | @randcat ps@: does a @slowcat@ on the list of patterns @ps@ but
 --  randomises the order in which they are played.
@@ -319,7 +319,7 @@ randcat ps = spread' rotL (_segment 1 $ (% 1) . fromIntegral <$> (_irand (length
 --  > d1 $ sound
 --  >    $ wrandcat
 --  >        [ ("bd*2 sn", 5), ("jvbass*3", 2), ("drum*2", 2), ("ht mt", 1) ]
-wrandcat :: [(Pattern a, Double)] -> Pattern a
+wrandcat :: [(Pattern a, Pattern Double)] -> Pattern a
 wrandcat ps = unwrap $ wchooseBy (segment 1 rand) ps
 
 -- | @degrade@ randomly removes events from a pattern 50% of the time:
