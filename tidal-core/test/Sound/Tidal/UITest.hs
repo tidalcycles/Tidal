@@ -4,14 +4,15 @@ module Sound.Tidal.UITest where
 
 import qualified Data.Map.Strict as Map
 -- import Sound.Tidal.Pattern
-import Sound.Tidal.Control
+import Sound.Tidal.Control ( _chop )
 import Sound.Tidal.Core
-import Sound.Tidal.Params
-import Sound.Tidal.ParseBP
+    ( sig, sine, saw, (|+), (>|), (#), run, cat, fastcat, (<~) )
+import Sound.Tidal.Params ( sound, begin, crush, end, n, speed, s )
+import Sound.Tidal.ParseBP ( parseBP_E )
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
-import Test.Hspec
-import TestUtils
+import Test.Hspec ( describe, it, shouldBe, Spec )
+import TestUtils ( compareP, comparePD, compareTol, ps )
 import Prelude hiding ((*>), (<*))
 
 run :: Spec
@@ -27,7 +28,7 @@ run =
         compareP
           (Arc 0 1)
           (slow 2 $ _chop 2 $ s (pure "a"))
-          (begin (pure 0) # end (pure 0.5) # (s (pure "a")))
+          (begin (pure 0) # end (pure 0.5) # s (pure "a"))
       it "can chop a chop" $
         compareTol (Arc 0 1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")
 
@@ -104,7 +105,7 @@ run =
 
     describe "rand" $ do
       it "it generates a (pseudo-)random number between 0 and 1 at the start of a cycle" $
-        (queryArc rand (Arc 0 0)) `shouldBe` [Event (Context []) Nothing (Arc 0 0) (0 :: Float)]
+        (queryArc rand (Arc 0 0)) `shouldBe` [Event (Context []) Nothing (Arc 0 0) (0.5 :: Float)]
       it "it generates a (pseudo-)random number between 0 and 1 at 1/4 of a cycle" $
         (queryArc rand (Arc 0.25 0.25))
           `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (0.6295689214020967 :: Float)]
@@ -115,19 +116,19 @@ run =
     describe "irand" $ do
       -- it "generates a (pseudo-random) integer between zero & i" $ do
       it "at the start of a cycle" $
-        (queryArc (irand 10) (Arc 0 0)) `shouldBe` [Event (Context []) Nothing (Arc 0 0) (0 :: Int)]
+        (queryArc (irand 10) (Arc 0 0)) `shouldBe` [Event (Context []) Nothing (Arc 0 0) (5 :: Int)]
       it "at 1/4 of a cycle" $
         (queryArc (irand 10) (Arc 0.25 0.25)) `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (6 :: Int)]
       it "is patternable" $
         (queryArc (irand "10 2") (Arc 0 1))
-          `shouldBe` [ Event (Context [((1, 1), (3, 1))]) Nothing (Arc 0 0.5) (6 :: Int),
+          `shouldBe` [ Event (Context [((1, 1), (3, 1))]) Nothing (Arc 0 0.5) (5 :: Int),
                        Event (Context [((4, 1), (5, 1))]) Nothing (Arc 0.5 1) (0 :: Int)
                      ]
 
     describe "normal" $ do
       it "produces values within [0,1] in a bell curve at different parts of a cycle" $ do
         queryArc normal (Arc 0 0.1)
-          `shouldBe` [Event (Context []) Nothing (Arc 0 0.1) (0.4614205864457064 :: Double)]
+          `shouldBe` [Event (Context []) Nothing (Arc 0 0.1) (0.42461738824387246 :: Double)]
         queryArc normal (Arc 0.25 0.25)
           `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (0.5 :: Double)]
         queryArc normal (Arc 0.75 0.75)

@@ -95,7 +95,9 @@ intSeedToRand :: (Fractional a) => Int -> a
 intSeedToRand = (/ 536870912) . realToFrac . (`mod` 536870912)
 
 timeToRand :: (RealFrac a, Fractional b) => a -> b
-timeToRand = intSeedToRand . timeToIntSeed
+-- Otherwise the value would be 0 at time 0.. Let's start in the middle.
+timeToRand 0 = 0.5
+timeToRand t = intSeedToRand $ timeToIntSeed t
 
 timeToRands :: (RealFrac a, Fractional b) => a -> Int -> [b]
 timeToRands 0 n = timeToRands' (timeToIntSeed (9999999 :: Double)) n
@@ -137,7 +139,7 @@ timeToRands' seed n
 --
 -- > jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 rand :: (Fractional a) => Pattern a
-rand = pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac (timeToRand ((e + s) / 2) :: Double))])
+rand = pattern (\(State a@(Arc s _) _) -> [Event (Context []) Nothing a (realToFrac (timeToRand s :: Double))])
 
 -- | Boolean rand - a continuous stream of true\/false values, with a 50\/50 chance.
 brand :: Pattern Bool
@@ -363,7 +365,7 @@ _degradeBy = _degradeByUsing rand
 
 -- Useful for manipulating random stream, e.g. to change 'seed'
 _degradeByUsing :: Pattern Double -> Double -> Pattern a -> Pattern a
-_degradeByUsing prand x p = fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* prand
+_degradeByUsing prand x p = fmap fst $ filterValues ((>= x) . snd) $ (,) <$> p <* prand
 
 -- |
 -- As 'degradeBy', but the pattern of probabilities represents the chances to retain rather
@@ -372,7 +374,7 @@ unDegradeBy :: Pattern Double -> Pattern a -> Pattern a
 unDegradeBy = patternify' _unDegradeBy
 
 _unDegradeBy :: Double -> Pattern a -> Pattern a
-_unDegradeBy x p = fmap fst $ filterValues ((<= x) . snd) $ (,) <$> p <* rand
+_unDegradeBy x p = fmap fst $ filterValues ((< x) . snd) $ (,) <$> p <* rand
 
 degradeOverBy :: Int -> Pattern Double -> Pattern a -> Pattern a
 degradeOverBy i tx p = unwrap $ (\x -> fmap fst $ filterValues ((> x) . snd) $ (,) <$> p <* fastRepeatCycles i rand) <$> slow (fromIntegral i) tx
