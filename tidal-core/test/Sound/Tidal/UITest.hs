@@ -4,14 +4,15 @@ module Sound.Tidal.UITest where
 
 import qualified Data.Map.Strict as Map
 -- import Sound.Tidal.Pattern
-import Sound.Tidal.Control
+import Sound.Tidal.Control ( _chop )
 import Sound.Tidal.Core
-import Sound.Tidal.Params
-import Sound.Tidal.ParseBP
+    ( sig, sine, saw, (|+), (>|), (#), run, cat, fastcat, (<~) )
+import Sound.Tidal.Params ( sound, begin, crush, end, n, speed, s )
+import Sound.Tidal.ParseBP ( parseBP_E )
 import Sound.Tidal.Pattern
 import Sound.Tidal.UI
-import Test.Hspec
-import TestUtils
+import Test.Hspec ( describe, it, shouldBe, Spec )
+import TestUtils ( compareP, comparePD, compareTol, ps )
 import Prelude hiding ((*>), (<*))
 
 run :: Spec
@@ -27,7 +28,7 @@ run =
         compareP
           (Arc 0 1)
           (slow 2 $ _chop 2 $ s (pure "a"))
-          (begin (pure 0) # end (pure 0.5) # (s (pure "a")))
+          (begin (pure 0) # end (pure 0.5) # s (pure "a"))
       it "can chop a chop" $
         compareTol (Arc 0 1) (_chop 6 $ s $ pure "a") (_chop 2 $ _chop 3 $ s $ pure "a")
 
