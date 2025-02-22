@@ -1,10 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -fno-warn-missing-fields #-}
 
 module Sound.Tidal.Stream.Process where
@@ -29,6 +26,13 @@ module Sound.Tidal.Stream.Process where
 
 import Control.Applicative ((<|>))
 import Control.Concurrent.MVar
+  ( MVar,
+    modifyMVar_,
+    newMVar,
+    putMVar,
+    readMVar,
+    takeMVar,
+  )
 import qualified Control.Exception as E
 import Control.Monad (forM_, when)
 import Data.Coerce (coerce)
@@ -36,16 +40,15 @@ import Data.List (sortOn)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (catMaybes, fromJust, fromMaybe)
 import qualified Sound.Osc.Fd as O
-import qualified Sound.Osc.Transport.Fd.Udp as O
 import qualified Sound.Tidal.Clock as Clock
 import Sound.Tidal.Core (stack, (#))
-import Sound.Tidal.ID
+import Sound.Tidal.ID (ID (fromID))
 import qualified Sound.Tidal.Link as Link
 import Sound.Tidal.Params (pS)
 import Sound.Tidal.Pattern
-import Sound.Tidal.Pattern.Types
+import Sound.Tidal.Pattern.Types (patternTimeID)
 import Sound.Tidal.Show ()
-import Sound.Tidal.Stream.Target
+import Sound.Tidal.Stream.Target (send)
 import Sound.Tidal.Stream.Types
 import Sound.Tidal.Utils ((!!!))
 import System.IO (hPutStrLn, stderr)
@@ -93,7 +96,7 @@ doTick stateMV playMV globalFMV cxs (st, end) nudge cconf cref (ss, temposs) =
       sGlobalF <- readMVar globalFMV
       bpm <- Clock.getTempo ss
       let patstack = sGlobalF $ playStack pMap
-          cps = ((Clock.beatToCycles cconf) $ fromRational bpm) / 60
+          cps = Clock.beatToCycles cconf (fromRational bpm) / 60
           sMap' = Map.insert "_cps" (VF $ coerce cps) sMap
           extraLatency = nudge
           -- First the state is used to query the pattern
@@ -118,14 +121,14 @@ doTick stateMV playMV globalFMV cxs (st, end) nudge cconf cref (ss, temposs) =
             ms = concatMap (\e -> concatMap (toOSC busses e) oscs) tes
         -- send the events to the OSC target
         forM_ ms $ \m ->
-          (send cx latency extraLatency m) `E.catch` \(e :: E.SomeException) ->
+          send cx latency extraLatency m `E.catch` \(e :: E.SomeException) ->
             hPutStrLn stderr $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
       return sMap''
   where
     handleException :: E.SomeException -> IO ()
     handleException e = do
       hPutStrLn stderr $ "Failed to Stream.doTick: " ++ show e
-      hPutStrLn stderr $ "Return to previous pattern."
+      hPutStrLn stderr "Return to previous pattern."
       setPreviousPatternOrSilence playMV
 
 processCps :: Clock.ClockConfig -> Clock.ClockRef -> (Link.SessionState, Link.SessionState) -> [Event ValueMap] -> IO [ProcessedEvent]
@@ -135,24 +138,24 @@ processCps cconf cref (ss, temposs) = mapM processEvent
     processEvent e = do
       let wope = wholeOrPart e
           partStartCycle = start $ part e
-          partStartBeat = (Clock.cyclesToBeat cconf) (realToFrac partStartCycle)
+          partStartBeat = Clock.cyclesToBeat cconf (realToFrac partStartCycle)
           onCycle = start wope
-          onBeat = (Clock.cyclesToBeat cconf) (realToFrac onCycle)
+          onBeat = Clock.cyclesToBeat cconf (realToFrac onCycle)
           offCycle = stop wope
-          offBeat = (Clock.cyclesToBeat cconf) (realToFrac offCycle)
+          offBeat = Clock.cyclesToBeat cconf (realToFrac offCycle)
       on <- Clock.timeAtBeat cconf ss onBeat
       onPart <- Clock.timeAtBeat cconf ss partStartBeat
       when
         (eventHasOnset e)
         ( do
             let cps' = Map.lookup "cps" (value e) >>= getF
-            maybe (return ()) (\newCps -> Clock.setTempoCPS newCps on cconf temposs) (fmap toRational cps')
+            maybe (return ()) ((\newCps -> Clock.setTempoCPS newCps on cconf temposs) . toRational) cps'
         )
       off <- Clock.timeAtBeat cconf ss offBeat
       bpm <- Clock.getTempo ss
       wholeOrPartOsc <- Clock.linkToOscTime cref on
       onPartOsc <- Clock.linkToOscTime cref onPart
-      let cps = ((Clock.beatToCycles cconf) $ fromRational bpm) / 60
+      let cps = Clock.beatToCycles cconf (fromRational bpm) / 60
       let delta = off - on
       return $!
         ProcessedEvent
@@ -186,7 +189,7 @@ toOSC maybeBusses pe osc@(OSC _ _) =
     -- (but perhaps we should explicitly crash with an error message if it contains something else?).
     -- Map.mapKeys tail is used to remove ^ from the keys.
     -- In case (value e) has the key "", we will get a crash here.
-    playmap' = Map.union (Map.mapKeys (drop 1) $ Map.map (\v -> VS ('c' : (show $ toBus $ fromMaybe 0 $ getI v))) busmap) playmap
+    playmap' = Map.union (Map.mapKeys (drop 1) $ Map.map (\v -> VS ('c' : show (toBus $ fromMaybe 0 $ getI v))) busmap) playmap
     val = value . peEvent
     -- Only events that start within the current nowArc are included
     playmsg
@@ -194,12 +197,12 @@ toOSC maybeBusses pe osc@(OSC _ _) =
           -- If there is already cps in the event, the union will preserve that.
           let extra =
                 Map.fromList
-                  [ ("cps", (VF (peCps pe))),
+                  [ ("cps", VF (peCps pe)),
                     ("delta", VF (Clock.addMicrosToOsc (peDelta pe) 0)),
                     ("cycle", VF (fromRational (peCycle pe)))
                   ]
               addExtra = Map.union playmap' extra
-              ts = (peOnWholeOrPartOsc pe) + nudge -- + latency
+              ts = peOnWholeOrPartOsc pe + nudge -- + latency
           vs <- toData osc ((peEvent pe) {value = addExtra})
           mungedPath <- substitutePath (path osc) playmap'
           return
@@ -214,10 +217,10 @@ toOSC maybeBusses pe osc@(OSC _ _) =
     busmsgs =
       map
         ( \(k, b) -> do
-            k' <- if (not $ null k) && head k == '^' then Just (drop 1 k) else Nothing
+            k' <- if not (null k) && head k == '^' then Just (drop 1 k) else Nothing
             v <- Map.lookup k' playmap
             bi <- getI b
-            return $
+            return
               ( tsPart,
                 True, -- bus message ?
                 O.Message "/c_set" [O.int32 (toBus bi), toDatum v]
@@ -225,8 +228,8 @@ toOSC maybeBusses pe osc@(OSC _ _) =
         )
         (Map.toList busmap)
       where
-        tsPart = (peOnPartOsc pe) + nudge -- + latency
-    nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" $ playmap
+        tsPart = peOnPartOsc pe + nudge -- + latency
+    nudge = fromJust $ getF $ fromMaybe (VF 0) $ Map.lookup "nudge" playmap
 toOSC _ pe (OSCContext oscpath) =
   map cToM $ contextPosition $ context $ peEvent pe
   where
@@ -234,22 +237,22 @@ toOSC _ pe (OSCContext oscpath) =
     cToM ((x, y), (x', y')) =
       ( ts,
         False, -- bus message ?
-        O.Message oscpath $ (O.string ident) : (O.float (peDelta pe)) : (O.float cyc) : (map O.int32 [x, y, x', y'])
+        O.Message oscpath $ O.string ident : O.float (peDelta pe) : O.float cyc : map O.int32 [x, y, x', y']
       )
     cyc :: Double
     cyc = fromRational $ peCycle pe
     nudge = fromMaybe 0 $ Map.lookup "nudge" (value $ peEvent pe) >>= getF
     ident = fromMaybe "unknown" $ Map.lookup "_id_" (value $ peEvent pe) >>= getS
-    ts = (peOnWholeOrPartOsc pe) + nudge -- + latency
+    ts = peOnWholeOrPartOsc pe + nudge -- + latency
 
 toData :: OSC -> Event ValueMap -> Maybe [O.Datum]
-toData (OSC {args = ArgList as}) e = fmap (fmap (toDatum)) $ sequence $ map (\(n, v) -> Map.lookup n (value e) <|> v) as
+toData (OSC {args = ArgList as}) e = fmap (fmap toDatum) $ mapM (\(n, v) -> Map.lookup n (value e) <|> v) as
 toData (OSC {args = Named rqrd}) e
   | hasRequired rqrd = Just $ concatMap (\(n, v) -> [O.string n, toDatum v]) $ Map.toList $ value e
   | otherwise = Nothing
   where
     hasRequired [] = True
-    hasRequired xs = null $ filter (not . (`elem` ks)) xs
+    hasRequired xs = all (`elem` ks) xs
     ks = Map.keys (value e)
 toData _ _ = Nothing
 
@@ -258,7 +261,7 @@ toDatum (VF x) = O.float x
 toDatum (VN x) = O.float x
 toDatum (VI x) = O.int32 x
 toDatum (VS x) = O.string x
-toDatum (VR x) = O.float $ ((fromRational x) :: Double)
+toDatum (VR x) = O.float (fromRational x :: Double)
 toDatum (VB True) = O.int32 (1 :: Int)
 toDatum (VB False) = O.int32 (0 :: Int)
 toDatum (VX xs) = O.Blob $ O.blob_pack xs
@@ -273,7 +276,7 @@ substitutePath str cm = parse str
       xs' <- parse xs
       return (x : xs')
     parseWord xs
-      | b == [] = getString cm a
+      | null b = getString cm a
       | otherwise = do
           v <- getString cm a
           xs' <- parse (drop 1 b)
@@ -301,7 +304,7 @@ getString cm s = (simpleShow <$> Map.lookup param cm) <|> defaultValue dflt
     defaultValue _ = Nothing
 
 playStack :: PlayMap -> ControlPattern
-playStack pMap = stack . (map psPattern) . (filter active) . Map.elems $ pMap
+playStack pMap = stack . map psPattern . filter active . Map.elems $ pMap
   where
     active pState =
       if hasSolo pMap
@@ -309,7 +312,7 @@ playStack pMap = stack . (map psPattern) . (filter active) . Map.elems $ pMap
         else not (psMute pState)
 
 hasSolo :: Map.Map k PlayState -> Bool
-hasSolo = (>= 1) . length . filter psSolo . Map.elems
+hasSolo = any psSolo . Map.elems
 
 onSingleTick :: Clock.ClockConfig -> Clock.ClockRef -> MVar ValueMap -> MVar PlayMap -> MVar (ControlPattern -> ControlPattern) -> [Cx] -> ControlPattern -> IO ()
 onSingleTick clockConfig clockRef stateMV _ globalFMV cxs pat = do
@@ -334,7 +337,7 @@ updatePattern stream k !t pat = do
   let playState = updatePS $ Map.lookup (fromID k) pMap
   putMVar (sPMapMV stream) $ Map.insert (fromID k) playState pMap
   where
-    updatePS (Just playState) = do playState {psPattern = pat', psHistory = pat : (psHistory playState)}
+    updatePS (Just playState) = do playState {psPattern = pat', psHistory = pat : psHistory playState}
     updatePS Nothing = PlayState pat' False False [pat']
     patControls = Map.singleton patternTimeID (VR t)
     pat' =
