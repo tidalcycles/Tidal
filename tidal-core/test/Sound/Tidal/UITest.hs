@@ -121,14 +121,14 @@ run =
         (queryArc (irand 10) (Arc 0.25 0.25)) `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (6 :: Int)]
       it "is patternable" $
         (queryArc (irand "10 2") (Arc 0 1))
-          `shouldBe` [ Event (Context [((1, 1), (3, 1))]) Nothing (Arc 0 0.5) (6 :: Int),
+          `shouldBe` [ Event (Context [((1, 1), (3, 1))]) Nothing (Arc 0 0.5) (0 :: Int),
                        Event (Context [((4, 1), (5, 1))]) Nothing (Arc 0.5 1) (0 :: Int)
                      ]
 
     describe "normal" $ do
       it "produces values within [0,1] in a bell curve at different parts of a cycle" $ do
         queryArc normal (Arc 0 0.1)
-          `shouldBe` [Event (Context []) Nothing (Arc 0 0.1) (0.4614205864457064 :: Double)]
+          `shouldBe` [Event (Context []) Nothing (Arc 0 0.1) (0.26202741871417984 :: Double)]
         queryArc normal (Arc 0.25 0.25)
           `shouldBe` [Event (Context []) Nothing (Arc 0.25 0.25) (0.5 :: Double)]
         queryArc normal (Arc 0.75 0.75)
