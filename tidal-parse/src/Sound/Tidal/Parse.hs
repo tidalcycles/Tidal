@@ -6,10 +6,10 @@
 
 module Sound.Tidal.Parse (parseTidal) where
 
-import Control.Applicative ( Alternative((<|>), empty) )
-import Control.Monad.Except ( MonadError(throwError) )
-import Data.Bifunctor ( Bifunctor(bimap) )
-import Data.Char ( isSpace )
+import Control.Applicative (Alternative (empty, (<|>)))
+import Control.Monad.Except (MonadError (throwError))
+import Data.Bifunctor (Bifunctor (bimap))
+import Data.Char (isSpace)
 import Data.List (dropWhileEnd)
 import qualified Data.Text
 import Language.Haskellish as Haskellish
@@ -18,11 +18,14 @@ import Sound.Tidal.Control as T
 import Sound.Tidal.Core as T
 import Sound.Tidal.Params as T
 import Sound.Tidal.Parse.TH
-    ( fromTidal, fromTidalList, fromHaskell )
+  ( fromHaskell,
+    fromTidal,
+    fromTidalList,
+  )
 import Sound.Tidal.ParseBP (Enumerable, Parseable, parseBP)
 import Sound.Tidal.Pattern as T
-import Sound.Tidal.Scales as T ( scale )
-import Sound.Tidal.Simple as T ( silent )
+import Sound.Tidal.Scales as T (scale)
+import Sound.Tidal.Simple as T (silent)
 import Sound.Tidal.UI as T
 
 type H = Haskellish ()
