@@ -20,6 +20,7 @@ import Sound.Tidal.Pattern
     queryArc,
     setContext,
   )
+import Sound.Tidal.Show ()
 import Test.Hspec (Expectation, shouldBe)
 import Prelude hiding ((*>), (<*))
 
