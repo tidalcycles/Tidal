@@ -137,7 +137,7 @@ timeToRands' seed n
 --
 -- > jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 rand :: (Fractional a) => Pattern a
-rand = pattern (\(State a@(Arc s e) _) -> [Event (Context []) Nothing a (realToFrac (timeToRand ((e + s) / 2) :: Double))])
+rand = pattern (\(State a@(Arc s _) _) -> [Event (Context []) Nothing a (realToFrac (timeToRand s :: Double))])
 
 -- | Boolean rand - a continuous stream of true\/false values, with a 50\/50 chance.
 brand :: Pattern Bool
