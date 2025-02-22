@@ -5,7 +5,8 @@ module TestUtils where
 
 import Data.List (sort)
 import qualified Data.Map.Strict as Map
-import Sound.Tidal.Context
+import Sound.Tidal.ParseBP (parseBP_E)
+import Sound.Tidal.Pattern
   ( Arc,
     ArcF (Arc),
     Context (Context),
@@ -16,7 +17,6 @@ import Sound.Tidal.Context
     Value (VF, VI, VR, VS),
     ValueMap,
     defragParts,
-    parseBP_E,
     queryArc,
     setContext,
   )
