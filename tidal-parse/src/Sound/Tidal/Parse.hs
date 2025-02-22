@@ -6,10 +6,10 @@
 
 module Sound.Tidal.Parse (parseTidal) where
 
-import Control.Applicative
-import Control.Monad.Except
-import Data.Bifunctor
-import Data.Char
+import Control.Applicative (Alternative (empty, (<|>)))
+import Control.Monad.Except (MonadError (throwError))
+import Data.Bifunctor (Bifunctor (bimap))
+import Data.Char (isSpace)
 import Data.List (dropWhileEnd)
 import qualified Data.Text
 import Language.Haskellish as Haskellish
@@ -18,17 +18,21 @@ import Sound.Tidal.Control as T
 import Sound.Tidal.Core as T
 import Sound.Tidal.Params as T
 import Sound.Tidal.Parse.TH
+  ( fromHaskell,
+    fromTidal,
+    fromTidalList,
+  )
 import Sound.Tidal.ParseBP (Enumerable, Parseable, parseBP)
 import Sound.Tidal.Pattern as T
-import Sound.Tidal.Scales as T
-import Sound.Tidal.Simple as T
+import Sound.Tidal.Scales as T (scale)
+import Sound.Tidal.Simple as T (silent)
 import Sound.Tidal.UI as T
 
 type H = Haskellish ()
 
 -- This is depended upon by Estuary, and changes to its type will cause problems downstream for Estuary.
 parseTidal :: String -> Either String ControlPattern
-parseTidal x = if x' == [] then (return silence) else r
+parseTidal x = if null x' then return silence else r
   where
     x' = dropWhileEnd isSpace $ dropWhile isSpace $ Haskellish.removeComments x
     r = bimap showSyntaxError fst $ Haskellish.parseAndRun parser () x
@@ -164,12 +168,12 @@ genericPatternExpressions =
   (parser :: H (Pattern a -> Pattern a)) <*!> parser
     <|> (parser :: H ([a] -> Pattern a)) <*!> parser
     <|> (parser :: H ([Pattern a] -> Pattern a)) <*!> parser
-    <|> (parser :: H ([(Pattern a, Double)] -> Pattern a)) <*!> parser
+    <|> (parser :: H ([(Pattern a, Pattern Double)] -> Pattern a)) <*!> parser
     <|> (parser :: H ([Pattern a -> Pattern a] -> Pattern a)) <*!> parser
     <|> (parser :: H ([(Time, Pattern a)] -> Pattern a)) <*!> parser
     <|> pInt_p <*!> parser
     <|> list_p <*!> parser
-    <|> tupleADouble_p <*!> parser
+    <|> tupleApDouble_p <*!> parser
     <|> listTupleStringTransformation_p <*!> parser
     <|> parseSilence
 
@@ -423,7 +427,7 @@ instance Parse ([Pattern a] -> Pattern a) where
       <|> (parser :: H (Pattern Int -> [Pattern a] -> Pattern a)) <*!> parser
       <|> a_patternB
 
-instance Parse ([(Pattern a, Double)] -> Pattern a) where
+instance Parse ([(Pattern a, Pattern Double)] -> Pattern a) where
   parser =
     $(fromTidal "wrandcat")
       <|> a_patternB
@@ -551,10 +555,10 @@ list_p :: (Parse a) => H ([a] -> Pattern a)
 list_p = pDouble_list_p <*!> parser
 
 -- note: mising a_patternB pathway
-tupleADouble_p :: (Parse a) => H ([(a, Double)] -> Pattern a)
-tupleADouble_p =
+tupleApDouble_p :: (Parse a) => H ([(a, Pattern Double)] -> Pattern a)
+tupleApDouble_p =
   $(fromTidal "wchoose")
-    <|> pDouble_tupleADouble_p <*!> parser
+    <|> pDouble_tupleApDouble_p <*!> parser
 
 instance Parse ([(Time, Pattern a)] -> Pattern a) where
   parser = $(fromTidal "timeCat") <|> $(fromTidal "timecat")
@@ -903,8 +907,8 @@ pAB_pA_pB = pTime_pAB_pA_pB <*!> parser
 pDouble_list_p :: (Parse a) => H (Pattern Double -> [a] -> Pattern a)
 pDouble_list_p = $(fromTidal "chooseBy")
 
-pDouble_tupleADouble_p :: (Parse a) => H (Pattern Double -> [(a, Double)] -> Pattern a)
-pDouble_tupleADouble_p = $(fromTidal "wchooseBy")
+pDouble_tupleApDouble_p :: (Parse a) => H (Pattern Double -> [(a, Pattern Double)] -> Pattern a)
+pDouble_tupleApDouble_p = $(fromTidal "wchooseBy")
 
 instance Parse (String -> String -> Pattern String) where
   parser = $(fromTidal "sseq")

@@ -61,7 +61,7 @@ library
     , exceptions < 0.11
     , mtl >= 2.2 && < 2.4
     , tidal-link >= 1.1 && < 1.2
-    , tidal-core == 1.9.6
+    , tidal-core == 1.10
 
 test-suite tests
   type: exitcode-stdio-1.0
