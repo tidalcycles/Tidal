@@ -33,7 +33,7 @@ _fastB =
   [ bgroup
       "_fast"
       [ bench "_fast < 0" $ whnf (_fast (-2)) pattApp2,
-        bench "_fast > 0" $ whnf (_fast (toTime $ 10 ^ 6)) (cat catPattBig)
+        bench "_fast > 0" $ whnf (_fast (toTime $ (10 :: Int) ^ (6 :: Int))) (cat catPattBig)
       ]
   ]
 
