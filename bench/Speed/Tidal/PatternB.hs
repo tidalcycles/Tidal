@@ -1,15 +1,28 @@
 module Tidal.PatternB where
 
-import Criterion.Main
+import Criterion.Main (Benchmark, bench, bgroup, nf, whnf)
 import Sound.Tidal.Pattern
-import Tidal.Inputs
+  ( ArcF (Arc),
+    Time,
+    hull,
+    sect,
+    subArc,
+    withQueryArc,
+    withQueryTime,
+    withResultArc,
+  )
+import Tidal.Inputs (arcFunc, wqaBig, wqaMed)
 
+arc1 :: ArcF Time
 arc1 = Arc 3 5
 
+arc2 :: ArcF Time
 arc2 = Arc 4 6
 
+arc3 :: ArcF Time
 arc3 = Arc 0 1
 
+arc4 :: ArcF Time
 arc4 = Arc 1 2
 
 withQueryTimeB :: [Benchmark]

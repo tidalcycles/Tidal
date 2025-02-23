@@ -2,11 +2,25 @@
 
 module Tidal.Inputs where
 
-import Sound.Tidal.Core
+import Sound.Tidal.Core (cF, fromList, (#), (|*|))
 import Sound.Tidal.Params
+  ( coarse,
+    crush,
+    delay,
+    delaytime,
+    pF,
+    s,
+    speed,
+  )
 import Sound.Tidal.ParseBP ()
 import Sound.Tidal.Pattern
-import Sound.Tidal.UI
+  ( Arc,
+    ArcF (Arc),
+    ControlPattern,
+    Pattern,
+    Time,
+  )
+import Sound.Tidal.UI (fix)
 
 {- Pattern inputs -}
 xs3 :: [Time]

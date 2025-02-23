@@ -2,13 +2,32 @@
 
 module Tidal.Inputs where
 
-import Sound.Tidal.Control
-import Sound.Tidal.Core
+import Sound.Tidal.Control (stut')
+import Sound.Tidal.Core (cF, fromList, (#), (|*|))
 import Sound.Tidal.Params
+  ( coarse,
+    crush,
+    delay,
+    delaytime,
+    pF,
+    s,
+    speed,
+    up,
+  )
 import Sound.Tidal.ParseBP ()
 import Sound.Tidal.Pattern
-import Sound.Tidal.UI
+  ( Arc,
+    ArcF (Arc),
+    ControlPattern,
+    Pattern,
+    Time,
+  )
+import Sound.Tidal.UI (fix)
 import Weigh
+  ( Column (Allocated, Case, GCs, Live, Max),
+    Weigh,
+    setColumns,
+  )
 
 columns :: Weigh ()
 columns = setColumns [Case, Allocated, Max, Live, GCs]
