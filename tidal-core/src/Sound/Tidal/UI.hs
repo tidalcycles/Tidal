@@ -1,6 +1,6 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE BangPatterns #-}
 
 {-
     UI.hs - Tidal's main 'user interface' functions, for transforming
@@ -46,6 +46,7 @@ import Data.List
     sortOn,
     transpose,
   )
+import qualified Data.List as L
 import qualified Data.Map.Strict as Map
 import Data.Maybe
   ( fromJust,
@@ -55,7 +56,6 @@ import Data.Maybe
   )
 import Data.Ratio (Ratio, (%))
 import qualified Data.Text as T
-import qualified Data.List as L
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
 import Sound.Tidal.Bjorklund (bjorklund)
@@ -1431,20 +1431,26 @@ lindenmayerI n r s = fmap (fromIntegral . digitToInt) $ lindenmayer n r s
 -- transition probability from state 0->0 is 2/5, 0->1 is 3/5, 1->0 is 1/4, and
 -- 1->1 is 3/4.
 runMarkov :: Int -> [[Double]] -> Int -> Time -> [Int]
-runMarkov n tp xi seed = take n $ map fst $ L.iterate' (markovStep $ renorm) (xi, seed + delta) where
-  markovStep tp' (x,seed) = (let v = tp' V.! x in binarySearch 0 (r * U.last v) v , seed + delta)
+runMarkov n tp xi seed = take n $ map fst $ L.iterate' (markovStep $ renorm) (xi, seed + delta)
+  where
+    markovStep tp' (x, seed) = (let v = tp' V.! x in binarySearch 0 (r * U.last v) v, seed + delta)
       where
         r = timeToRand $ seed
-  renorm :: V.Vector (U.Vector Double)
-  renorm = V.fromList [ U.fromList $ tail $ scanl (+) 0 x | x <- tp ]
-  binarySearch :: Int -> Double -> U.Vector Double -> Int
-  binarySearch !off x v =
-    if U.length v == 0 then off
-    else if U.length v == 1 then off + 1
-    else let i = div (U.length v) 2
-         in  if x < v U.! i then binarySearch off x $ U.slice 0 i v
-             else binarySearch (off + i) x (U.slice i (U.length v - i) v)
-  delta = 1 / fromIntegral n
+    renorm :: V.Vector (U.Vector Double)
+    renorm = V.fromList [U.fromList $ tail $ scanl (+) 0 x | x <- tp]
+    binarySearch :: Int -> Double -> U.Vector Double -> Int
+    binarySearch !off x v =
+      if U.length v == 0
+        then off
+        else
+          if U.length v == 1
+            then off + 1
+            else
+              let i = div (U.length v) 2
+               in if x < v U.! i
+                    then binarySearch off x $ U.slice 0 i v
+                    else binarySearch (off + i) x (U.slice i (U.length v - i) v)
+    delta = 1 / fromIntegral n
 
 -- | @markovPat n xi tp@ generates a one-cycle pattern of @n@ steps in a Markov
 -- chain starting from state @xi@ with transition matrix @tp@. Each row of the
