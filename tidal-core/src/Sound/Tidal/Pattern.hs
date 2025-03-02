@@ -76,6 +76,9 @@ withStepsPat f p = p {steps = f <$> steps p}
 withSteps :: (Rational -> Rational) -> Pattern a -> Pattern a
 withSteps f p = p {steps = fmap (fmap f) $ steps p}
 
+hasSteps :: Pattern a -> Bool
+hasSteps = isJust . steps
+
 pace :: Pattern Rational -> Pattern a -> Pattern a
 pace target p@(Pattern _ (Just t) _) = setSteps (Just target) $ fast (target / t) p
 -- raise error?
