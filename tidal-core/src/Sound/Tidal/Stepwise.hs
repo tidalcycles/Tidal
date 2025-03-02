@@ -132,6 +132,9 @@ polymeter pats = stack $ map (pace targetSteps) pats'
     targetSteps = _lcmsteps pats'
     pats' = filter hasSteps pats
 
+pm :: [Pattern a] -> Pattern a
+pm = polymeter
+
 {-
 s_while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 s_while patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
