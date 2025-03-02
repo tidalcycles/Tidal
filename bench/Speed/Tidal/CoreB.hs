@@ -1,16 +1,39 @@
 module Tidal.CoreB where
 
-import Criterion.Main
+import Criterion.Main (Benchmark, bench, bgroup, nf, whnf)
 import Sound.Tidal.Core
-import Sound.Tidal.Pattern
+  ( append,
+    cat,
+    fastAppend,
+    fastCat,
+    fastFromList,
+    fromList,
+    overlay,
+    stack,
+    timeCat,
+  )
+import Sound.Tidal.Pattern (toTime, _fast)
 import Tidal.Inputs
+  ( catPattBig,
+    catPattMed,
+    catPattMedB,
+    catPattSmall,
+    pattApp1,
+    pattApp2,
+    timeCatBig,
+    timeCatMed,
+    xs3,
+    xs4,
+    xs5,
+    xs6,
+  )
 
 _fastB :: [Benchmark]
 _fastB =
   [ bgroup
       "_fast"
       [ bench "_fast < 0" $ whnf (_fast (-2)) pattApp2,
-        bench "_fast > 0" $ whnf (_fast (toTime $ 10 ^ 6)) (cat catPattBig)
+        bench "_fast > 0" $ whnf (_fast (toTime $ (10 :: Int) ^ (6 :: Int))) (cat catPattBig)
       ]
   ]
 
