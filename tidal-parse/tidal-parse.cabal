@@ -34,7 +34,7 @@ library
     , transformers >= 0.5 && < 0.7
     , template-haskell
     , haskellish >= 0.3.2 && < 0.4
-    , containers < 0.8
+    , containers < 0.9
     , mtl >= 2.2.2 && <2.4
     , text < 2.2
 
@@ -51,7 +51,7 @@ test-suite tests
   build-depends:
                 base ==4.*
               , hspec >=2.11.9
-              , containers < 0.8
+              , containers < 0.9
               , tidal-parse
               , tidal-core
 
