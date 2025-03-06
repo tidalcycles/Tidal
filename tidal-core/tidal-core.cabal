@@ -45,7 +45,7 @@ library
 
   build-depends:
     base >=4.8 && <5,
-    containers <0.8,
+    containers <0.9,
     colour <2.4,
     text <2.2,
     parsec >=3.1.12 && <3.2,
