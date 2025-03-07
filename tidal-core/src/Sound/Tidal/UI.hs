@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -35,6 +36,7 @@ import Data.Bits (Bits, shiftL, shiftR, testBit, xor)
 import Data.Bool (bool)
 import Data.Char (digitToInt, isDigit, ord)
 import Data.Fixed (mod')
+import qualified Data.IntMap.Strict as IM
 import Data.List
   ( elemIndex,
     findIndex,
@@ -45,6 +47,7 @@ import Data.List
     sortOn,
     transpose,
   )
+import qualified Data.List as L
 import qualified Data.Map.Strict as Map
 import Data.Maybe
   ( fromJust,
@@ -1427,12 +1430,16 @@ lindenmayerI n r s = fmap (fromIntegral . digitToInt) $ lindenmayer n r s
 -- transition probability from state 0->0 is 2/5, 0->1 is 3/5, 1->0 is 1/4, and
 -- 1->1 is 3/4.
 runMarkov :: Int -> [[Double]] -> Int -> Time -> [Int]
-runMarkov n tp xi seed = reverse $ (iterate (markovStep $ renorm) [xi]) !! (n - 1)
+runMarkov n tp xi seed = take n $ map fst $ L.iterate' (markovStep $ renorm) (xi, seed + delta)
   where
-    markovStep tp' xs = (fromJust $ findIndex (r <=) $ scanl1 (+) (tp' !! (head xs))) : xs
+    markovStep tp' (x, seed) = (let v = tp' IM.! x in findIndex (r * fst (Map.findMax v)) v, seed + delta)
       where
-        r = timeToRand $ seed + (fromIntegral . length) xs / fromIntegral n
-    renorm = [map (/ sum x) x | x <- tp]
+        r = timeToRand $ seed
+    renorm :: IM.IntMap (Map.Map Double Int)
+    renorm = IM.fromList $ zip [0 ..] [Map.fromList $ zip (tail $ scanl (+) 0 x) [0 ..] | x <- tp]
+    findIndex :: Double -> Map.Map Double Int -> Int
+    findIndex x v = fromMaybe 0 $ fmap snd $ Map.lookupGE x v
+    delta = 1 / fromIntegral n
 
 -- | @markovPat n xi tp@ generates a one-cycle pattern of @n@ steps in a Markov
 -- chain starting from state @xi@ with transition matrix @tp@. Each row of the
