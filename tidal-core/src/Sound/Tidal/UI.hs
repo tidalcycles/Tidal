@@ -54,10 +54,9 @@ import Data.Maybe
     isJust,
     mapMaybe,
   )
+import qualified Data.IntMap.Strict as IM
 import Data.Ratio (Ratio, (%))
 import qualified Data.Text as T
-import qualified Data.Vector as V
-import qualified Data.Vector.Unboxed as U
 import Sound.Tidal.Bjorklund (bjorklund)
 import Sound.Tidal.Core
 import qualified Sound.Tidal.Params as P
@@ -1433,23 +1432,13 @@ lindenmayerI n r s = fmap (fromIntegral . digitToInt) $ lindenmayer n r s
 runMarkov :: Int -> [[Double]] -> Int -> Time -> [Int]
 runMarkov n tp xi seed = take n $ map fst $ L.iterate' (markovStep $ renorm) (xi, seed + delta)
   where
-    markovStep tp' (x, seed) = (let v = tp' V.! x in binarySearch 0 (r * U.last v) v, seed + delta)
+    markovStep tp' (x, seed) = (let v = tp' IM.! x in findIndex (r * fst (Map.findMax v)) v, seed + delta)
       where
         r = timeToRand $ seed
-    renorm :: V.Vector (U.Vector Double)
-    renorm = V.fromList [U.fromList $ tail $ scanl (+) 0 x | x <- tp]
-    binarySearch :: Int -> Double -> U.Vector Double -> Int
-    binarySearch !off x v =
-      if U.length v == 0
-        then off
-        else
-          if U.length v == 1
-            then off + 1
-            else
-              let i = div (U.length v) 2
-               in if x < v U.! i
-                    then binarySearch off x $ U.slice 0 i v
-                    else binarySearch (off + i) x (U.slice i (U.length v - i) v)
+    renorm :: IM.IntMap (Map.Map Double Int)
+    renorm = IM.fromList $ zip [0 ..] [Map.fromList $ zip (tail $ scanl (+) 0 x) [0 .. ] | x <- tp]
+    findIndex :: Double -> Map.Map Double Int -> Int
+    findIndex x v = fromMaybe 0 $ fmap snd $ Map.lookupGE x v
     delta = 1 / fromIntegral n
 
 -- | @markovPat n xi tp@ generates a one-cycle pattern of @n@ steps in a Markov
