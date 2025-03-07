@@ -36,6 +36,7 @@ import Data.Bits (Bits, shiftL, shiftR, testBit, xor)
 import Data.Bool (bool)
 import Data.Char (digitToInt, isDigit, ord)
 import Data.Fixed (mod')
+import qualified Data.IntMap.Strict as IM
 import Data.List
   ( elemIndex,
     findIndex,
@@ -54,7 +55,6 @@ import Data.Maybe
     isJust,
     mapMaybe,
   )
-import qualified Data.IntMap.Strict as IM
 import Data.Ratio (Ratio, (%))
 import qualified Data.Text as T
 import Sound.Tidal.Bjorklund (bjorklund)
@@ -1436,7 +1436,7 @@ runMarkov n tp xi seed = take n $ map fst $ L.iterate' (markovStep $ renorm) (xi
       where
         r = timeToRand $ seed
     renorm :: IM.IntMap (Map.Map Double Int)
-    renorm = IM.fromList $ zip [0 ..] [Map.fromList $ zip (tail $ scanl (+) 0 x) [0 .. ] | x <- tp]
+    renorm = IM.fromList $ zip [0 ..] [Map.fromList $ zip (tail $ scanl (+) 0 x) [0 ..] | x <- tp]
     findIndex :: Double -> Map.Map Double Int -> Int
     findIndex x v = fromMaybe 0 $ fmap snd $ Map.lookupGE x v
     delta = 1 / fromIntegral n
