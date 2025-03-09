@@ -94,39 +94,39 @@ setcps = asap . cps
 
 -- * Transitions
 
-xfade i = transition True (Sound.Tidal.Transition.xfadeIn 4) i
+xfade i = transition True (Sound.Tidal.Transition._xfadeIn 4) i
 
-xfadeIn i t = transition True (Sound.Tidal.Transition.xfadeIn t) i
+xfadeIn i t = transition True (Sound.Tidal.Transition._xfadeIn t) i
 
-histpan i t = transition True (Sound.Tidal.Transition.histpan t) i
+histpan i t = transition True (Sound.Tidal.Transition._histpan t) i
 
-wait i t = transition True (Sound.Tidal.Transition.wait t) i
+wait i t = transition True (Sound.Tidal.Transition._wait t) i
 
-waitT i f t = transition True (Sound.Tidal.Transition.waitT f t) i
+waitT i f t = transition True (Sound.Tidal.Transition._waitT f t) i
 
-jump i = transition True (Sound.Tidal.Transition.jump) i
+jump i = transition True (Sound.Tidal.Transition._jump) i
 
-jumpIn i t = transition True (Sound.Tidal.Transition.jumpIn t) i
+jumpIn i t = transition True (Sound.Tidal.Transition._jumpIn t) i
 
-jumpIn' i t = transition True (Sound.Tidal.Transition.jumpIn' t) i
+jumpIn' i t = transition True (Sound.Tidal.Transition._jumpIn' t) i
 
-jumpMod i t = transition True (Sound.Tidal.Transition.jumpMod t) i
+jumpMod i t = transition True (Sound.Tidal.Transition._jumpMod t) i
 
-mortal i lifespan releaseTime = transition True (Sound.Tidal.Transition.mortal lifespan releaseTime) i
+mortal i lifespan releaseTime = transition True (Sound.Tidal.Transition._mortal lifespan releaseTime) i
 
-interpolate i = transition True (Sound.Tidal.Transition.interpolate) i
+interpolate i = transition True (Sound.Tidal.Transition._interpolate) i
 
-interpolateIn i t = transition True (Sound.Tidal.Transition.interpolateIn t) i
+interpolateIn i t = transition True (Sound.Tidal.Transition._interpolateIn t) i
 
-clutch i = transition True (Sound.Tidal.Transition.clutch) i
+clutch i = transition True (Sound.Tidal.Transition._clutch) i
 
-clutchIn i t = transition True (Sound.Tidal.Transition.clutchIn t) i
+clutchIn i t = transition True (Sound.Tidal.Transition._clutchIn t) i
 
-anticipate i = transition True (Sound.Tidal.Transition.anticipate) i
+anticipate i = transition True (Sound.Tidal.Transition._anticipate) i
 
-anticipateIn i t = transition True (Sound.Tidal.Transition.anticipateIn t) i
+anticipateIn i t = transition True (Sound.Tidal.Transition._anticipateIn t) i
 
-forId i t = transition False (Sound.Tidal.Transition.mortalOverlay t) i
+forId i t = transition False (Sound.Tidal.Transition._mortalOverlay t) i
 
 d1 = p 1 . (|< orbit 0)
 
