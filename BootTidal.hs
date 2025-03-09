@@ -16,31 +16,12 @@ tidalInst <- mkTidal
 -- It has to go after you define 'tidalInst'.
 instance Tidally where tidal = tidalInst
 
--- `enableLink` and `disableLink` can be used to toggle Ableton Link.
--- Uncomment the next line to enable Ableton Link on startup.
+-- `enableLink` and `disableLink` can be used to toggle synchronisation using the Link protocol.
+-- Uncomment the next line to enable Link on startup.
 -- enableLink
 
--- You can add your own aliases in this file. Here are some examples:
--- :{
--- let xfade i = transition tidal True (Sound.Tidal.Transition.xfadeIn 4) i
---     xfadeIn i t = transition tidal True (Sound.Tidal.Transition.xfadeIn t) i
---     histpan i t = transition tidal True (Sound.Tidal.Transition.histpan t) i
---     wait i t = transition tidal True (Sound.Tidal.Transition.wait t) i
---     waitT i f t = transition tidal True (Sound.Tidal.Transition.waitT f t) i
---     jump i = transition tidal True (Sound.Tidal.Transition.jump) i
---     jumpIn i t = transition tidal True (Sound.Tidal.Transition.jumpIn t) i
---     jumpIn' i t = transition tidal True (Sound.Tidal.Transition.jumpIn' t) i
---     jumpMod i t = transition tidal True (Sound.Tidal.Transition.jumpMod t) i
---     jumpMod' i t p = transition tidal True (Sound.Tidal.Transition.jumpMod' t p) i
---     mortal i lifespan release = transition tidal True (Sound.Tidal.Transition.mortal lifespan release) i
---     interpolate i = transition tidal True (Sound.Tidal.Transition.interpolate) i
---     interpolateIn i t = transition tidal True (Sound.Tidal.Transition.interpolateIn t) i
---     clutch i = transition tidal True (Sound.Tidal.Transition.clutch) i
---     clutchIn i t = transition tidal True (Sound.Tidal.Transition.clutchIn t) i
---     anticipate i = transition tidal True (Sound.Tidal.Transition.anticipate) i
---     anticipateIn i t = transition tidal True (Sound.Tidal.Transition.anticipateIn t) i
---     forId i t = transition tidal False (Sound.Tidal.Transition.mortalOverlay t) i
--- :}
+-- You can also add your own aliases in this file. For example:
+-- fastsquizzed pat = fast 2 $ pat # squiz 1.5
 
 :set -fwarn-orphans
 :set prompt "tidal> "

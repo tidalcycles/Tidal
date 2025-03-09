@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -39,7 +38,6 @@ import Data.Fixed (mod')
 import qualified Data.IntMap.Strict as IM
 import Data.List
   ( elemIndex,
-    findIndex,
     findIndices,
     groupBy,
     intercalate,
@@ -1432,13 +1430,13 @@ lindenmayerI n r s = fmap (fromIntegral . digitToInt) $ lindenmayer n r s
 runMarkov :: Int -> [[Double]] -> Int -> Time -> [Int]
 runMarkov n tp xi seed = take n $ map fst $ L.iterate' (markovStep $ renorm) (xi, seed + delta)
   where
-    markovStep tp' (x, seed) = (let v = tp' IM.! x in findIndex (r * fst (Map.findMax v)) v, seed + delta)
+    markovStep tp' (x, seed') = (let v = tp' IM.! x in findIndex (r * fst (Map.findMax v)) v, seed' + delta)
       where
-        r = timeToRand $ seed
+        r = timeToRand seed'
     renorm :: IM.IntMap (Map.Map Double Int)
     renorm = IM.fromList $ zip [0 ..] [Map.fromList $ zip (tail $ scanl (+) 0 x) [0 ..] | x <- tp]
     findIndex :: Double -> Map.Map Double Int -> Int
-    findIndex x v = fromMaybe 0 $ fmap snd $ Map.lookupGE x v
+    findIndex x v = maybe 0 snd (Map.lookupGE x v)
     delta = 1 / fromIntegral n
 
 -- | @markovPat n xi tp@ generates a one-cycle pattern of @n@ steps in a Markov
@@ -2437,7 +2435,7 @@ cross f p p' = pattern $ \t -> concat [filter flt $ arc p t,
 -- > d1 $ jux (iter 4) $ sound "arpy arpy:2*2"
 -- >   |+ speed (slow 4 $ sine1 * 0.5 + 1)
 range :: (Num a) => Pattern a -> Pattern a -> Pattern a -> Pattern a
-range fromP toP p = (\from to v -> ((v * (to - from)) + from)) <$> fromP *> toP *> p
+range fromP toP p = (\from to v -> (v * (to - from)) + from) <$> fromP *> toP *> p
 
 _range :: (Functor f, Num b) => b -> b -> f b -> f b
 _range from to p = (+ from) . (* (to - from)) <$> p
@@ -2900,7 +2898,7 @@ squeezeJoinUp pp = pp {query = q, pureValue = Nothing}
 _chew :: Int -> Pattern Int -> ControlPattern -> ControlPattern
 _chew n ipat pat = squeezeJoinUp (zoomslice <$> ipat) |/ P.speed (pure $ fromIntegral n)
   where
-    zoomslice i = zoom (i' / (fromIntegral n), (i' + 1) / (fromIntegral n)) (pat)
+    zoomslice i = zoom (i' / fromIntegral n, (i' + 1) / fromIntegral n) pat
       where
         i' = fromIntegral $ i `mod` n
 

@@ -88,7 +88,25 @@ module Sound.Tidal.Boot
     setS,
     setR,
     setB,
+    xfade,
+    xfadeIn,
     module Sound.Tidal.Context,
+    histpan,
+    wait,
+    waitT,
+    jump,
+    jumpIn,
+    jumpIn',
+    jumpMod,
+    jumpMod',
+    mortal,
+    interpolate,
+    interpolateIn,
+    clutch,
+    clutchIn,
+    anticipate,
+    anticipateIn,
+    forId,
   )
 where
 
@@ -322,3 +340,57 @@ setR = streamSetR tidal
 -- | See 'Sound.Tidal.Stream.streamSetB'.
 setB :: (Tidally) => String -> Pattern Bool -> IO ()
 setB = streamSetB tidal
+
+xfade :: (Tidally) => ID -> ControlPattern -> IO ()
+xfade i = transition tidal True (_xfadeIn 4) i
+
+xfadeIn :: (Tidally) => ID -> Time -> ControlPattern -> IO ()
+xfadeIn i t = transition tidal True (_xfadeIn t) i
+
+histpan :: (Tidally) => ID -> Int -> ControlPattern -> IO ()
+histpan i t = transition tidal True (_histpan t) i
+
+wait :: (Tidally) => ID -> Time -> ControlPattern -> IO ()
+wait i t = transition tidal True (_wait t) i
+
+waitT :: (Tidally) => ID -> (Time -> [ControlPattern] -> ControlPattern) -> Time -> ControlPattern -> IO ()
+waitT i f t = transition tidal True (_waitT f t) i
+
+jump :: (Tidally) => ID -> ControlPattern -> IO ()
+jump i = transition tidal True _jump i
+
+jumpIn :: (Tidally) => ID -> Int -> ControlPattern -> IO ()
+jumpIn i t = transition tidal True (_jumpIn t) i
+
+jumpIn' :: (Tidally) => ID -> Int -> ControlPattern -> IO ()
+jumpIn' i t = transition tidal True (_jumpIn' t) i
+
+jumpMod :: (Tidally) => ID -> Int -> ControlPattern -> IO ()
+jumpMod i t = transition tidal True (_jumpMod t) i
+
+jumpMod' :: (Tidally) => ID -> Int -> Int -> ControlPattern -> IO ()
+jumpMod' i t pat = transition tidal True (_jumpMod' t pat) i
+
+mortal :: (Tidally) => ID -> Time -> Time -> ControlPattern -> IO ()
+mortal i lifespan releasetime = transition tidal True (_mortal lifespan releasetime) i
+
+interpolate :: (Tidally) => ID -> ControlPattern -> IO ()
+interpolate i = transition tidal True _interpolate i
+
+interpolateIn :: (Tidally) => ID -> Time -> ControlPattern -> IO ()
+interpolateIn i t = transition tidal True (_interpolateIn t) i
+
+clutch :: (Tidally) => ID -> ControlPattern -> IO ()
+clutch i = transition tidal True _clutch i
+
+clutchIn :: (Tidally) => ID -> Time -> ControlPattern -> IO ()
+clutchIn i t = transition tidal True (_clutchIn t) i
+
+anticipate :: (Tidally) => ID -> ControlPattern -> IO ()
+anticipate i = transition tidal True _anticipate i
+
+anticipateIn :: (Tidally) => ID -> Time -> ControlPattern -> IO ()
+anticipateIn i t = transition tidal True (_anticipateIn t) i
+
+forId :: (Tidally) => ID -> Time -> ControlPattern -> IO ()
+forId i t = transition tidal False (_mortalOverlay t) i
