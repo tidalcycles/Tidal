@@ -18,14 +18,15 @@
 
 module Sound.Tidal.Stepwise where
 
+import Control.Applicative (liftA2)
 import Data.List (sort, sortOn)
 import Data.Maybe (fromJust, isJust, mapMaybe)
 import Sound.Tidal.Core (stack, timecat, zoompat)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils (enumerate, nubOrd, pairs)
 
--- _lcmsteps :: [Pattern a] -> Maybe Time
--- _lcmsteps pats = foldl1 lcmr <$> (sequence $ map steps pats)
+_lcmsteps :: [Pattern a] -> Pattern Time
+_lcmsteps pats = foldl1 (liftA2 lcmr) $ mapMaybe steps pats
 
 s_patternify :: (a -> Pattern b -> Pattern c) -> (Pattern a -> Pattern b -> Pattern c)
 s_patternify f (Pattern _ _ (Just a)) b = f a b
@@ -124,6 +125,15 @@ _extend factor pat = withStepsPat (_fast factor) $ _expand factor $ _fast factor
 
 extend :: Pattern Rational -> Pattern a -> Pattern a
 extend = s_patternify _extend
+
+polymeter :: [Pattern a] -> Pattern a
+polymeter pats = stack $ map (pace targetSteps) pats'
+  where
+    targetSteps = _lcmsteps pats'
+    pats' = filter hasSteps pats
+
+pm :: [Pattern a] -> Pattern a
+pm = polymeter
 
 {-
 s_while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a

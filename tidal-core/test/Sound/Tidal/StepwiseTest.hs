@@ -12,9 +12,9 @@ import Sound.Tidal.Pattern
     fast,
     rev,
   )
-import Sound.Tidal.Stepwise (expand, stepcat, stepdrop, steptake)
+import Sound.Tidal.Stepwise (expand, polymeter, stepcat, stepdrop, steptake)
 import Sound.Tidal.UI (inv, iter, linger, segment)
-import Test.Hspec ( describe, it, shouldBe, Spec )
+import Test.Hspec (Spec, describe, it, shouldBe)
 import TestUtils (compareP, firstCycleValues)
 import Prelude hiding ((*>), (<*))
 
@@ -47,4 +47,8 @@ run =
       it "invert" $ (firstCycleValues <$> steps (inv "1 0 1" :: Pattern Bool)) `shouldBe` Just [3]
       it "chop" $ (firstCycleValues <$> steps (chop 3 $ sound "a b")) `shouldBe` Just [6]
       it "chop" $ (firstCycleValues <$> steps (striate 3 $ sound "a b")) `shouldBe` Just [6]
-
+    describe "polymeter" $ do
+      it "can repeat patterns to step count lcm" $
+        compareP (Arc 0 8) (polymeter ["a b c" :: Pattern Char, "d e"]) "{a b c, d e}%6"
+      it "can work with 3 patterns" $
+        compareP (Arc 0 8) (polymeter ["a b c" :: Pattern Char, "d e", "f g h i"]) "{a b c, d e, f g h i}%12"
