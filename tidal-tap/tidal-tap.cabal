@@ -1,0 +1,32 @@
+cabal-version:      3.0
+name:               tidal-tap
+version:            0.1.0.0
+-- synopsis:
+-- description:
+homepage:           https://tidalcycles.org/
+license:            AGPL-3.0-or-later
+license-file:       LICENSE
+author:             Alex McLean
+maintainer:         alex@slab.org
+-- copyright:
+category:           Sound
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+-- extra-source-files:
+
+common warnings
+    ghc-options: -Wall -threaded
+
+executable tidal-tap
+    import:           warnings
+    main-is:          Main.hs
+    -- other-modules:
+    -- other-extensions:
+    build-depends:    base ^>=4.17.2.1,
+                      hosc >= 0.21 && < 0.22,
+                      network,
+                      vty,
+                      vty-unix,
+                      time
+    hs-source-dirs:   app
+    default-language: Haskell2010
