@@ -22,11 +22,12 @@ executable tidal-tap
     main-is:          Main.hs
     -- other-modules:
     -- other-extensions:
+    ghc-options: -Wall -threaded
     build-depends:    base >=4.8 && <5,
                       hosc >= 0.21 && < 0.22,
                       network,
                       vty,
-                      vty-unix,
+                      vty-crossplatform,
                       time
     hs-source-dirs:   app
     default-language: Haskell2010

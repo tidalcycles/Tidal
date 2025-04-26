@@ -7,7 +7,7 @@ import Control.Monad (when)
 import Data.Time (NominalDiffTime)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Graphics.Vty
-import Graphics.Vty.Platform.Unix (mkVty)
+import Graphics.Vty.CrossPlatform (mkVty)
 import qualified Network.Socket as N
 import qualified Sound.Osc.Fd as O
 import qualified Sound.Osc.Time.Timeout as O
@@ -18,11 +18,12 @@ data State = State
     taps :: [NominalDiffTime],
     vty :: Vty,
     running :: Bool,
-    sender :: O.Message -> IO ()
+    sender :: O.Message -> IO (),
+    cps :: Maybe Float
   }
 
 newState :: Vty -> (O.Message -> IO ()) -> State
-newState v send = State {lastEv = "", taps = [], vty = v, running = True, sender = send}
+newState v send = State {lastEv = "", taps = [], vty = v, running = True, sender = send, cps = Nothing}
 
 resolve :: String -> Int -> IO N.AddrInfo
 resolve host port = do
@@ -51,15 +52,15 @@ diffs :: (Num a) => [a] -> [a]
 diffs (a : b : xs) = (a - b) : diffs (b : xs)
 diffs _ = []
 
-sendTempo :: State -> [NominalDiffTime] -> IO ()
+sendTempo :: State -> [NominalDiffTime] -> IO State
 sendTempo s ts
-  | length ts >= 4 = do
+  | length ts >= 2 = do
       let xs = diffs ts
           avg = sum xs / fromIntegral (length xs)
-          tempo = 1 / (avg * 4)
-      sender s $ O.Message "/setcps" [O.Float $ realToFrac tempo]
-      return ()
-  | otherwise = return ()
+          tempo = realToFrac $ 1 / (avg * 4)
+      sender s $ O.Message "/setcps" [O.Float $ tempo]
+      return $ s {cps = Just tempo, taps = ts}
+  | otherwise = return $ s {taps = ts}
   where
     ds = diffs ts
 
@@ -68,7 +69,6 @@ updateTempo s = do
   t <- getPOSIXTime
   let ts = discardGaps $ timeOut t $ taps s
   sendTempo s ts
-  return $ s {taps = ts}
 
 event :: State -> Event -> IO State
 event s (EvKey (KChar 'r') []) = do
@@ -90,11 +90,15 @@ tapsToString ([]) = "[]"
 tapsToString ([_]) = "[]"
 tapsToString (a : b : ts) = show (a - b) ++ " : " ++ tapsToString (b : ts)
 
+showcps :: State -> String
+showcps (State {cps = Nothing}) = "unset"
+showcps (State {cps = Just t}) = show t
+
 loop :: State -> IO ()
 loop s = do
   let line1 = string (defAttr `withBackColor` blue) "Tap tap"
-      line2 = string (defAttr `withForeColor` green) "r = reset"
-      line3 = string (defAttr `withForeColor` blue) $ tapsToString $ taps s
+      line2 = string (defAttr `withForeColor` green) "r = retrigger (+unmute), t = tap"
+      line3 = string (defAttr `withForeColor` blue) $ showcps s
       img = line1 <-> line2 <-> line3
       pic = picForImage img
   update (vty s) pic
