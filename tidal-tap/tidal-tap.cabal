@@ -1,4 +1,4 @@
-cabal-version:      3.0
+cabal-version:      2.0
 name:               tidal-tap
 version:            0.1.0.0
 -- synopsis:
@@ -22,7 +22,7 @@ executable tidal-tap
     main-is:          Main.hs
     -- other-modules:
     -- other-extensions:
-    build-depends:    base ^>=4.17.2.1,
+    build-depends:    base >=4.8 && <5,
                       hosc >= 0.21 && < 0.22,
                       network,
                       vty,
