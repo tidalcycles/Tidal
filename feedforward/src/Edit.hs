@@ -140,8 +140,9 @@ feedforward params = do
   installHandler sigSTOP Ignore Nothing
   installHandler sigTSTP Ignore Nothing
   do
+    C.start
     mvS <- initEState params
-    liftIO $ forkIO $ listenRMS mvS
+    forkIO $ listenRMS mvS
     drawEditor mvS
     -- render
     C.refresh
@@ -306,7 +307,7 @@ drawEditor mvS =
               C.wAddStr win $ take (fromIntegral w) $ repeat ' '
           )
           [1 .. fromIntegral $ h - (((fromIntegral $ length ls) + topMargin)) - 1]
-    -- drawFooter s''
+    drawFooter s'
     goCursor s'
     putMVar mvS (s' {sRefresh = False})
     return ()
@@ -457,64 +458,62 @@ initEState parameters =
     let w = C.stdScr
     C.wclear w
     C.echo False
-    C.keypad w True
+    -- C.keypad w True
     let fg = C.Style C.WhiteF C.DarkBlueB
         black = C.Style C.WhiteF C.DefaultB
         bg = C.Style C.BlackF C.WhiteB
         shade = C.Style C.BlackF C.DarkBlueB
         warn = C.Style C.WhiteF C.DarkRedB
-    mIn <- liftIO newEmptyMVar
-    mOut <- liftIO newEmptyMVar
-    liftIO $ forkIO $ hintJob (mIn, mOut) parameters
+    mIn <- newEmptyMVar
+    mOut <- newEmptyMVar
+    forkIO $ hintJob (mIn, mOut) parameters
     tempoIp <- liftIO $ fromMaybe "127.0.0.1" <$> lookupEnv "TEMPO_IP"
     tidal <-
-      liftIO $
-        startTidal
-          (superdirtTarget {oLatency = 0, oAddress = "127.0.0.1", oPort = 57120})
-          --          (defaultConfig {cCtrlAddr = "0.0.0.0", cTempoAddr = tempoIp, cFrameTimespan = 1 / 20, cVerbose = False})
-          (defaultConfig {cCtrlAddr = "0.0.0.0", cVerbose = False})
+      startTidal
+        (superdirtTarget {oLatency = 0, oAddress = "127.0.0.1", oPort = 57120})
+        --          (defaultConfig {cCtrlAddr = "0.0.0.0", cTempoAddr = tempoIp, cFrameTimespan = 1 / 20, cVerbose = False})
+        (defaultConfig {cCtrlAddr = "0.0.0.0", cVerbose = False})
     -- liftIO $ streamOnce tidal $ cps 1.05
     -- sock <- liftIO $ carabiner tidal 4 0
-    logFH <- liftIO openLog
-    name <- liftIO $ lookupEnv "CIRCLE_NAME"
-    number <- liftIO $ lookupEnv "CIRCLE_NUMBER"
-    mvS <- liftIO $ newEmptyMVar
-    circle <- liftIO $ connectCircle mvS name
-    liftIO $
-      putMVar mvS $
-        EState
-          { sCode = [Line Nothing ""],
-            sPos = (0, 0),
-            sEditWindow = w,
-            sXWarp = 0,
-            sColour = fg,
-            sColourBlack = black,
-            sColourHilite = bg,
-            sColourShaded = shade,
-            sColourWarn = warn,
-            -- sHilite = (False, []),
-            sHintIn = mIn,
-            sHintOut = mOut,
-            sTidal = tidal,
-            sChangeSet = [],
-            sLogFH = logFH,
-            sRMS = replicate (10 * channels) 0,
-            sScroll = (0, 0),
-            sMode = EditMode,
-            sFileChoice =
-              FileChoice
-                { fcPath = [],
-                  fcIndex = 0,
-                  fcDirs = [],
-                  fcFiles = []
-                },
-            sCircle = circle,
-            sPlayback = Nothing,
-            sName = name,
-            sNumber = join $ fmap readMaybe number,
-            sRefresh = False,
-            sLastAlt = 0
-          }
+    logFH <- openLog
+    name <- lookupEnv "CIRCLE_NAME"
+    number <- lookupEnv "CIRCLE_NUMBER"
+    mvS <- newEmptyMVar
+    circle <- connectCircle mvS name
+    putMVar mvS $
+      EState
+        { sCode = [Line Nothing ""],
+          sPos = (0, 0),
+          sEditWindow = w,
+          sXWarp = 0,
+          sColour = fg,
+          sColourBlack = black,
+          sColourHilite = bg,
+          sColourShaded = shade,
+          sColourWarn = warn,
+          -- sHilite = (False, []),
+          sHintIn = mIn,
+          sHintOut = mOut,
+          sTidal = tidal,
+          sChangeSet = [],
+          sLogFH = logFH,
+          sRMS = replicate (10 * channels) 0,
+          sScroll = (0, 0),
+          sMode = EditMode,
+          sFileChoice =
+            FileChoice
+              { fcPath = [],
+                fcIndex = 0,
+                fcDirs = [],
+                fcFiles = []
+              },
+          sCircle = circle,
+          sPlayback = Nothing,
+          sName = name,
+          sNumber = join $ fmap readMaybe number,
+          sRefresh = False,
+          sLastAlt = 0
+        }
     -- hack to load a json file from a session folder
     when (isJust $ historyFile parameters) $
       do
@@ -687,28 +686,30 @@ handleEv mvS (PlaybackMode _) ev =
       _ -> ok
 handleEv mvS EditMode ev =
   do
+    hPrint stderr $ "ev: " ++ show ev
     -- if (isJust ev) then liftIO $ hPutStrLn stderr $ "pressed: " ++ show ev else return ()
     case ev of
       C.KeyChar '\ESC' ->
         do
-          liftIO $ do
-            s <- takeMVar mvS
-            now <- (realToFrac <$> getPOSIXTime)
-            putMVar mvS $ s {sLastAlt = now}
+          s <- takeMVar mvS
+          now <- realToFrac <$> getPOSIXTime
+          putMVar mvS $ s {sLastAlt = now}
           ok
-      C.KeyChar uArrow -> move mvS (-1, 0) >> ok
-      C.KeyChar dArrow -> move mvS (1, 0) >> ok
-      C.KeyChar lArrow -> move mvS (0, -1) >> ok
-      C.KeyChar rArrow -> move mvS (0, 1) >> ok
+      C.KeyUp -> move mvS (-1, 0) >> ok
+      C.KeyDown -> move mvS (1, 0) >> ok
+      C.KeyLeft -> move mvS (0, -1) >> ok
+      C.KeyRight -> move mvS (0, 1) >> ok
       C.KeyHome -> moveHome mvS >> ok
       C.KeyEnd -> moveEnd mvS >> ok
       C.KeyEnter -> insertBreak mvS >> ok
+      C.KeyChar '\r' -> insertBreak mvS >> ok
       C.KeyDL -> del mvS >> ok
       C.KeyBackspace -> backspace mvS >> ok
       -- Just (C.KeyChar (KeyFunction 10)) -> unlessKiosk quit
       -- Just (EventMouse _ ms) -> mouse mvS ms >> ok
       C.KeyChar x -> do
-        isAlt <- liftIO checkAlt
+        isAlt <- checkAlt
+        hPrint stderr $ "key: " ++ show x ++ " alt: " ++ show isAlt
         keypress mvS isAlt x >> ok
         where
           checkAlt = do
@@ -758,7 +759,9 @@ mainLoop mvS = loop
       done <-
         do
           -- ev <- getEvent (sEditWindow s) (Just (1000 `div` 20))
+          C.timeout 0
           ev <- C.getCh
+          hPrint stderr $ "bing " ++ show ev
           handleEv mvS (sMode s) ev
       updateScreen mvS (sMode s)
       unless done loop
@@ -766,9 +769,9 @@ mainLoop mvS = loop
 updateScreen :: MVar EState -> Mode -> IO ()
 updateScreen mvS (PlaybackMode loopPlayback) =
   do
-    s <- liftIO $ takeMVar mvS
+    s <- takeMVar mvS
     let (Playback offset cs {-hushTime-}) = fromJust $ sPlayback s
-    now <- liftIO $ (realToFrac <$> getPOSIXTime)
+    now <- (realToFrac <$> getPOSIXTime)
     -- let cs' = filterPre cs offset
     -- liftIO $ hPutStrLn stderr $ "offset: " ++ show (offset)
     -- liftIO $ hPutStrLn stderr $ "pre: " ++ show (length cs)
@@ -777,7 +780,7 @@ updateScreen mvS (PlaybackMode loopPlayback) =
 
     -- liftIO $ hPutStrLn stderr $ "t: " ++ (show $ now - offset)
     let (ready, waiting) = takeReady cs (now - offset)
-    s' <- liftIO $ foldM applyChange s ready
+    s' <- foldM applyChange s ready
     {-liftIO $ if now >= hushTime
              then do hPutStrLn stderr ("hush! " ++ show hushTime)
                      (sendTidal s) silence
@@ -790,15 +793,15 @@ updateScreen mvS (PlaybackMode loopPlayback) =
                                      }
                                  )
              else -}
-    liftIO $ putMVar mvS (s' {sPlayback = Just $ Playback offset waiting {-hushTime-}})
-    liftIO $
-      when (null waiting && isJust loopPlayback) $
-        do
-          delAll mvS
-          s <- takeMVar mvS
-          let (session_file, loopOffset) = fromJust loopPlayback
-          s' <- startPlayback s loopPlayback loopOffset session_file
-          putMVar mvS s'
+    putMVar mvS (s' {sPlayback = Just $ Playback offset waiting {-hushTime-}})
+
+    when (null waiting && isJust loopPlayback) $
+      do
+        delAll mvS
+        s <- takeMVar mvS
+        let (session_file, loopOffset) = fromJust loopPlayback
+        s' <- startPlayback s loopPlayback loopOffset session_file
+        putMVar mvS s'
     return ()
   where
     takeReady cs t = span (\c -> cWhen c < t) cs
@@ -877,6 +880,7 @@ keyCtrl mvS c = do s <- (liftIO $ readMVar mvS)
 -- mouse mvS (MouseState {mouseCoordinates = (x, y, _), mouseButtons = [(1, ButtonClicked)]}) = moveTo mvS (fromIntegral (max (y - topMargin) 0), fromIntegral (max (x - leftMargin) 0))
 -- mouse _ _ = return ()
 
+keypress :: MVar EState -> Bool -> Char -> IO ()
 keypress mvS isAlt c
   | isAlt = keyAlt mvS c
   | isCtrl = keyCtrl mvS (chr $ (ord c) + 96)
@@ -901,12 +905,12 @@ cursorContext' s (y, x) =
 eval :: MVar EState -> IO ()
 eval mvS =
   do
-    liftIO $ do
-      s <- takeMVar mvS
-      now <- realToFrac <$> getPOSIXTime
-      let change = evalChange {cWhen = now}
-      s' <- applyChange s change
-      putMVar mvS s'
+    hPutStr stderr "eval"
+    s <- takeMVar mvS
+    now <- realToFrac <$> getPOSIXTime
+    let change = evalChange {cWhen = now}
+    s' <- applyChange s change
+    putMVar mvS s'
     return ()
 
 stopAll :: MVar EState -> IO ()
