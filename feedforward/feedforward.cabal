@@ -1,0 +1,43 @@
+name:           feedforward
+version:        0.0.1
+copyright:      2018 Alex McLean and contributors
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+
+library
+executable feedforward
+  main-is: Main.hs
+  hs-source-dirs:
+      src
+  ghc-options: -threaded
+  build-depends:
+      aeson
+    , base
+    , directory
+    , exceptions
+    , filepath
+    , hint
+    , hosc
+    , mtl
+    , hscurses >= 1.5.0.0
+    , network
+    , optparse-applicative
+    , text
+    , tidal
+    , tidal-core
+    , time
+    , unix
+    , websockets
+    , transformers
+  other-modules:
+      Change
+      Parameters
+      -- Client
+      Edit
+      Code
+      -- Server
+      TidalHint
+      Paths_feedforward
+  default-language: Haskell2010
+  -- ld-options: -Wl,-rpath -Wl,$ORIGIN/libs
