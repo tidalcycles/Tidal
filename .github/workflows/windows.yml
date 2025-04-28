@@ -45,8 +45,8 @@ jobs:
         run: cabal v2-update
 
       - name: build
-        run: cabal v2-build ${{ matrix.versions.args }} --enable-tests --enable-benchmarks all
+        run: cabal v2-build ${{ matrix.versions.args }} --enable-tests --enable-benchmarks ./ tidal-core tidal-parse tidal-parse-ffi tidal-listener tidal-link tidal-tap
 
       - name: test
-        run: cabal v2-test ${{ matrix.versions.args }} --enable-tests --enable-benchmarks all
+        run: cabal v2-test ${{ matrix.versions.args }} --enable-tests --enable-benchmarks ./ tidal-core tidal-parse tidal-parse-ffi tidal-listener tidal-link tidal-tap
 
