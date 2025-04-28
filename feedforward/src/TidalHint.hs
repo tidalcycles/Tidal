@@ -1,69 +1,77 @@
 module TidalHint where
 
-import           Control.Concurrent.MVar
-import           Control.Exception (IOException, SomeException)
-import           Control.Monad
-import           Control.Monad.Catch
-import           Data.List (intercalate,isPrefixOf)
-import           Language.Haskell.Interpreter as Hint
-import           Sound.Tidal.Context
-import           System.IO
-import           System.Posix.Signals
-import           Sound.Tidal.Utils
+import Control.Concurrent.MVar
+import Control.Exception (IOException, SomeException)
+import Control.Monad
+import Control.Monad.Catch
+import Data.List (intercalate, isPrefixOf)
+import Data.Map
+import Language.Haskell.Interpreter as Hint
+import Parameters
+import Sound.Tidal.Context
+import Sound.Tidal.Utils
+import System.IO
+import System.Posix.Signals
 
-import           Parameters
-
-data Response = HintOK {parsed :: ControlPattern}
-              | HintError {errorMessage :: String}
+data Response
+  = HintOK {parsed :: ControlPattern}
+  | HintError {errorMessage :: String}
 
 instance Show Response where
-  show (HintOK p)    = "Ok: " ++ show p
+  show (HintOK p) = "Ok: " ++ show p
   show (HintError s) = "Error: " ++ s
 
-imports = [
-  ModuleImport "Data.Map" NotQualified (ImportList ["Map"]),
-  ModuleImport "Prelude" NotQualified NoImportList,
-  ModuleImport "Sound.Tidal.Context" NotQualified NoImportList,
-  ModuleImport "Sound.Tidal.Simple" NotQualified NoImportList
+imports =
+  [ ModuleImport "Data.Map" NotQualified (ImportList ["Map"]),
+    ModuleImport "Prelude" NotQualified NoImportList,
+    ModuleImport "Sound.Tidal.Context" NotQualified NoImportList
   ]
 
 hintJob :: (MVar String, MVar Response) -> Parameters -> IO ()
 hintJob (mIn, mOut) parameters =
-  do result <- catch (do Hint.runInterpreter $ do
-                           Hint.set [languageExtensions := [OverloadedStrings]]
-                           Hint.setImportsF imports
-                           execScripts (scripts parameters)
-                           hintLoop
-                     )
-               (\e -> return (Left $ UnknownError $ "exception" ++ show (e :: SomeException)))
+  do
+    result <-
+      catch
+        ( do
+            Hint.runInterpreter $ do
+              Hint.set [languageExtensions := [OverloadedStrings]]
+              Hint.setImportsF imports
+              execScripts (scripts parameters)
+              hintLoop
+        )
+        (\e -> return (Left $ UnknownError $ "exception" ++ show (e :: SomeException)))
 
-     takeMVar mIn
-     putMVar mOut (toResponse result)
-     hintJob (mIn, mOut) parameters
-     where hintLoop = do s <- liftIO (readMVar mIn)
-                         let munged = deltaMini s
-                         t <- Hint.typeChecksWithDetails munged
-                         -- liftIO $ hPutStrLn stderr $ "munged: " ++ munged
-                         --interp check s
-                         interp t munged
-                         hintLoop
-           interp (Left errors) _ = do liftIO $ do putMVar mOut $ HintError $ "Didn't typecheck" ++ (concatMap show errors)
-                                                   hPutStrLn stderr $ "error: " ++ (concatMap show errors)
-                                                   takeMVar mIn
-                                       return ()
-           interp (Right t) s =
-             do
-                p <- try (Hint.interpret s (Hint.as :: ControlPattern)) :: Interpreter (Either InterpreterError ControlPattern)
-                case p of
-                  Left exc -> liftIO $ do
-                    hPutStrLn stderr $ parseError exc
-                    putMVar mOut $ HintError (parseError exc)
-                  Right pat -> liftIO $ do
-                    hPutStrLn stderr "Eval"
-                    putMVar mOut $ HintOK pat
+    takeMVar mIn
+    putMVar mOut (toResponse result)
+    hintJob (mIn, mOut) parameters
+  where
+    hintLoop = do
+      s <- liftIO (readMVar mIn)
+      let munged = deltaMini s
+      t <- Hint.typeChecksWithDetails munged
+      liftIO $ hPutStrLn stderr $ "munged: " ++ munged
+      -- interp check s
+      interp t munged
+      hintLoop
+    interp (Left errors) _ = do
+      liftIO $ do
+        putMVar mOut $ HintError $ "Didn't typecheck" ++ (concatMap show errors)
+        hPutStrLn stderr $ "error: " ++ (concatMap show errors)
+        takeMVar mIn
+      return ()
+    interp (Right t) s =
+      do
+        p <- try (Hint.interpret s (Hint.as :: ControlPattern)) :: Interpreter (Either InterpreterError ControlPattern)
+        case p of
+          Left exc -> liftIO $ do
+            hPutStrLn stderr $ parseError exc
+            putMVar mOut $ HintError (parseError exc)
+          Right pat -> liftIO $ do
+            hPutStrLn stderr "Eval"
+            putMVar mOut $ HintOK pat
 
-                liftIO $ takeMVar mIn
-                return ()
+        liftIO $ takeMVar mIn
+        return ()
 
 execScripts :: [String] -> Interpreter ()
 execScripts paths = do
