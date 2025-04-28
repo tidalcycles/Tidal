@@ -146,6 +146,7 @@ feedforward params = do
     -- render
     C.refresh
     mainLoop mvS
+    C.endWin
 
 sendTidal :: EState -> ControlPattern -> IO ()
 sendTidal s pat = do
@@ -687,7 +688,7 @@ handleEv mvS (PlaybackMode _) ev =
       _ -> ok
 handleEv mvS EditMode ev =
   do
-    hPrint stderr $ "ev: " ++ show ev
+    -- hPrint stderr $ "ev: " ++ show ev
     -- if (isJust ev) then liftIO $ hPutStrLn stderr $ "pressed: " ++ show ev else return ()
     case ev of
       C.KeyChar '\ESC' ->
@@ -710,7 +711,7 @@ handleEv mvS EditMode ev =
       -- Just (EventMouse _ ms) -> mouse mvS ms >> ok
       C.KeyChar x -> do
         isAlt <- checkAlt
-        hPrint stderr $ "key: " ++ show x ++ " alt: " ++ show isAlt
+        -- hPrint stderr $ "key: " ++ show x ++ " alt: " ++ show isAlt
         keypress mvS isAlt x >> ok
         where
           checkAlt = do
@@ -722,7 +723,7 @@ handleEv mvS EditMode ev =
             return $ (now - sLastAlt s) < altTimeout
           altTimeout = 0.2
       e -> do
-        liftIO $ hPrint stderr e
+        -- liftIO $ hPrint stderr e
         ok
 
 fcMove mvS d = do
@@ -839,7 +840,7 @@ keyAlt mvS '7' = toggleMute mvS 7
 keyAlt mvS '8' = toggleMute mvS 8
 keyAlt mvS '9' = toggleMute mvS 9
 keyAlt mvS c = do
-  liftIO $ hPutStrLn stderr $ "got Alt-" ++ [c]
+  -- liftIO $ hPutStrLn stderr $ "got Alt-" ++ [c]
   return ()
 
 toggleMute :: (MonadIO m) => MVar EState -> Int -> m ()
@@ -908,7 +909,7 @@ cursorContext' s (y, x) =
 eval :: MVar EState -> IO ()
 eval mvS =
   do
-    hPutStrLn stderr "eval"
+    -- hPutStrLn stderr "eval"
     s <- takeMVar mvS
     now <- realToFrac <$> getPOSIXTime
     let change = evalChange {cWhen = now}
@@ -1051,14 +1052,14 @@ fileTime fp = h ++ (':' : m) ++ (':' : s)
 
 evalBlock :: (EState, [ControlPattern]) -> (Int, Code) -> IO (EState, [ControlPattern])
 evalBlock (s, ps) (n, ls) = do
-  hPutStrLn stderr "evalBlock"
+  -- hPutStrLn stderr "evalBlock"
   let code = intercalate "\n" (map lText ls)
       id = fromJust $ lTag $ head ls
   putMVar (sHintIn s) code
   response <- takeMVar (sHintOut s)
-  hPutStrLn stderr $ "Response: " ++ show response
+  -- hPutStrLn stderr $ "Response: " ++ show response
   mungeOrbit <- mungeOrbitIO
-  hPutStrLn stderr $ "Id: " ++ show id
+  -- hPutStrLn stderr $ "Id: " ++ show id
   let block = fromJust $ lBlock $ sCode s !! n
       (block', ps') = act id (mungeOrbit id) response block
       s' = setBlock n block'
@@ -1120,7 +1121,7 @@ startPlayback :: EState -> Maybe (String, Double) -> Double -> FilePath -> IO ES
 startPlayback s loopPlayback offset path =
   do
     now <- realToFrac <$> getPOSIXTime
-    hPutStrLn stderr $ "startplayback: " ++ show loopPlayback
+    -- hPutStrLn stderr $ "startplayback: " ++ show loopPlayback
     fh <- openFile (path) ReadMode
     c <- hGetContents fh
     let ls = lines c
@@ -1137,11 +1138,11 @@ startPlayback s loopPlayback offset path =
               pbOffset = (now - ffwdTo) + offset
               {- pbHushTime = hushTime -}
             }
-    hPutStrLn stderr $ "offset: " ++ show offset
+    -- hPutStrLn stderr $ "offset: " ++ show offset
     -- hPutStrLn stderr $ "ffwdTo: " ++ show ffwdTo
     -- hPutStrLn stderr $ "hushTime: " ++ show hushTime ++ " (" ++ (show (hushTime - now)) ++ ")"
-    hPutStrLn stderr $ "now: " ++ show now
-    hPutStrLn stderr $ "changes: " ++ show (length changes)
+    -- hPutStrLn stderr $ "now: " ++ show now
+    -- hPutStrLn stderr $ "changes: " ++ show (length changes)
     -- hPutStrLn stderr $ "changes': " ++ show (length changes')
     return $
       s

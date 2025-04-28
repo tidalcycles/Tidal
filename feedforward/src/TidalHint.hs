@@ -5,7 +5,6 @@ import Control.Exception (IOException, SomeException)
 import Control.Monad
 import Control.Monad.Catch
 import Data.List (intercalate, isPrefixOf)
-import Data.Map
 import Language.Haskell.Interpreter as Hint
 import Parameters
 import Sound.Tidal.Context
@@ -49,14 +48,14 @@ hintJob (mIn, mOut) parameters =
       s <- liftIO (readMVar mIn)
       let munged = deltaMini s
       t <- Hint.typeChecksWithDetails munged
-      liftIO $ hPutStrLn stderr $ "munged: " ++ munged
+      -- liftIO $ hPutStrLn stderr $ "munged: " ++ munged
       -- interp check s
       interp t munged
       hintLoop
     interp (Left errors) _ = do
       liftIO $ do
         putMVar mOut $ HintError $ "Didn't typecheck" ++ (concatMap show errors)
-        hPutStrLn stderr $ "error: " ++ (concatMap show errors)
+        -- hPutStrLn stderr $ "error: " ++ (concatMap show errors)
         takeMVar mIn
       return ()
     interp (Right t) s =
@@ -64,10 +63,10 @@ hintJob (mIn, mOut) parameters =
         p <- try (Hint.interpret s (Hint.as :: ControlPattern)) :: Interpreter (Either InterpreterError ControlPattern)
         case p of
           Left exc -> liftIO $ do
-            hPutStrLn stderr $ parseError exc
+            -- hPutStrLn stderr $ parseError exc
             putMVar mOut $ HintError (parseError exc)
           Right pat -> liftIO $ do
-            hPutStrLn stderr "Eval"
+            -- hPutStrLn stderr "Eval"
             putMVar mOut $ HintOK pat
 
         liftIO $ takeMVar mIn
@@ -76,7 +75,7 @@ hintJob (mIn, mOut) parameters =
 execScripts :: [String] -> Interpreter ()
 execScripts paths = do
   forM_ paths $ \path -> do
-    liftIO $ hPutStrLn stderr ("Loading script... " ++ path)
+    -- liftIO $ hPutStrLn stderr ("Loading script... " ++ path)
     readResult <- liftIO $ try (readFile path) :: Interpreter (Either IOException String)
     case readResult of
       Left exc -> liftIO $ hPutStrLn stderr ("Error loading script " ++ show exc)
