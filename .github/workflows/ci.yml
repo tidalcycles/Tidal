@@ -69,6 +69,9 @@ jobs:
           ghc-version: ${{ matrix.versions.ghc }}
           cabal-version: ${{ matrix.versions.cabal }}
 
+      - name: Install ncurses
+        run: sudo apt install -y libncurses-dev
+
       - name: update
         run: cabal v2-update
 
