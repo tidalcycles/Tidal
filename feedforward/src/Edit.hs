@@ -60,7 +60,6 @@ import Text.Printf
 import Text.Read (readMaybe)
 import TidalHint
 import qualified UI.HSCurses.Curses as C
-import qualified UI.HSCurses.Curses as Curses
 import UI.HSCurses.CursesHelper (BackgroundColor (DarkBlueB))
 import qualified UI.HSCurses.CursesHelper as C
 
@@ -96,11 +95,11 @@ data EState = EState
     sPos :: Pos,
     sXWarp :: Int,
     sEditWindow :: C.Window,
-    sColour :: C.Style,
-    sColourBlack :: C.Style,
-    sColourHilite :: C.Style,
-    sColourWarn :: C.Style,
-    sColourShaded :: C.Style,
+    sColour :: C.CursesStyle,
+    sColourBlack :: C.CursesStyle,
+    sColourHilite :: C.CursesStyle,
+    sColourWarn :: C.CursesStyle,
+    sColourShaded :: C.CursesStyle,
     sHintIn :: MVar String,
     sHintOut :: MVar Response,
     sTidal :: Stream,
@@ -265,7 +264,7 @@ drawFooter s =
     -- (h, w) <- windowSize
     (h, w) <- C.scrSize
     C.wMove win (h - 2) 0
-    -- setColor $ sColourHilite s
+    C.setStyle $ sColourHilite s
     let str = " " ++ name ++ show (sPos s)
     C.wAddStr win $ str ++ replicate ((fromIntegral w) - (length str)) ' '
 
@@ -294,11 +293,11 @@ drawEditor mvS =
     when (sRefresh s) C.refresh
     (h, w) <- C.scrSize
     let s' = doScroll s (h, w)
-    -- setColor (sColour s')
+    C.setStyle (sColour s')
     let ls = zip (sCode s) [0 ..]
     mapM_ (drawLine win s w c events) $ zip [topMargin ..] $ take (fromIntegral $ h - (topMargin + bottomMargin)) $ drop (fst $ sScroll s') $ ls
     -- HACK: clear trailing lines in case one (or more) has been deleted
-    -- setColor (sColourBlack s')
+    C.setStyle (sColourBlack s')
     when (length ls < (fromIntegral $ h - (bottomMargin + topMargin))) $
       do
         mapM_
@@ -320,11 +319,11 @@ drawEditor mvS =
             skipLeft = drop scrollX $ lText l
             skipBoth = take (fromIntegral textWidth) $ skipLeft
         C.move y leftMargin
-        -- C.setColor (sColour s)
+        C.setStyle (sColour s)
         C.wAddStr win (take (fromIntegral $ w - leftMargin) skipBoth)
-        -- setColor (sColourBlack s)
+        C.setStyle (sColourBlack s)
         C.wAddStr win (replicate (fromIntegral $ w - leftMargin - fromIntegral (length skipBoth)) ' ')
-        -- setColor $ sColourHilite s
+        C.setStyle $ sColourHilite s
         let drawEvent (x, x') = when (a >= 0 && a < textWidth) $ do
               C.move y (a + leftMargin)
               C.wAddStr win $ take (fromIntegral $ b - a) $ drop (fromIntegral a) skipBoth
@@ -342,25 +341,25 @@ drawEditor mvS =
             C.move y (w - 1)
             C.wAddStr win ">"
         C.move y 0
-        -- setColor $ sColour s
+        C.setStyle $ sColour s
         lineHead
         drawRMS s w (y - 1) l
       where
         lineHead
           | isJust (lTag l) = do
               let c
-                    | lMuted l = return () -- setColor $ sColourShaded s
-                    | lStatus l == (Just Error) = return () -- setColor $ sColourWarn s
-                    | lStatus l == (Just Success) = return () -- C.setAttribute AttributeBold True
-                    | otherwise = return () -- setColor $ sColour s
+                    | lMuted l = C.setStyle $ sColourShaded s
+                    | lStatus l == (Just Error) = C.setStyle $ sColourWarn s
+                    | lStatus l == (Just Success) = C.attrBoldOn
+                    | otherwise = C.setStyle $ sColour s
               C.move y 0
               c
               C.wAddStr win $ (show $ fromJust (lTag l))
-              -- setAttribute AttributeBold False
-              -- setColor $ sColour s
+              C.attrBoldOff
+              C.setStyle $ sColour s
               C.wAddStr win "│"
           | hasChar l = do
-              -- setColor $ sColour s
+              C.setStyle $ sColour s
               C.move y 0
               C.wAddStr win " │"
           | otherwise = do
@@ -373,7 +372,7 @@ drawEditor mvS =
               str = map (\n -> rmsBlocks !! (rmsn n)) [0 .. channels - 1]
               rmsn n = min rmsMax $ floor $ 50 * ((sRMS s) !! (id * channels + n))
               win = sEditWindow s
-          -- setColor (sColour s)
+          C.setStyle (sColour s)
           C.move (fromIntegral y + topMargin - 1) 0
           C.wAddStr win str
       | otherwise = return ()
@@ -459,11 +458,14 @@ initEState parameters =
     C.wclear w
     C.echo False
     -- C.keypad w True
-    let fg = C.Style C.WhiteF C.DarkBlueB
-        black = C.Style C.WhiteF C.DefaultB
-        bg = C.Style C.BlackF C.WhiteB
-        shade = C.Style C.BlackF C.DarkBlueB
-        warn = C.Style C.WhiteF C.DarkRedB
+    [fg, black, bg, shade, warn] <-
+      C.convertStyles
+        [ C.Style C.WhiteF C.DarkBlueB,
+          C.Style C.WhiteF C.DefaultB,
+          C.Style C.BlackF C.WhiteB,
+          C.Style C.BlackF C.DarkBlueB,
+          C.Style C.WhiteF C.DarkRedB
+        ]
     mIn <- newEmptyMVar
     mOut <- newEmptyMVar
     forkIO $ hintJob (mIn, mOut) parameters
