@@ -16,7 +16,7 @@ jobs:
           # latest
           - ghc: latest
             cabal: latest
-            args: --allow-newer=base,template-haskell
+            args: --allow-newer=base,template-haskell,time
             experimental: true
           # a bit newer
           - ghc: 9.8.2
