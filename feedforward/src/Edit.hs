@@ -763,7 +763,7 @@ mainLoop mvS = loop
           -- ev <- getEvent (sEditWindow s) (Just (1000 `div` 20))
           C.timeout 50
           ch <- C.getch
-          if (ch /= -1)
+          if ch /= -1
             then handleEv mvS (sMode s) $ C.decodeKey ch
             else return False
       updateScreen mvS (sMode s)
@@ -1095,7 +1095,7 @@ evalBlock (s, ps) (n, ls) = do
 mungeOrbitIO :: IO (Int -> Int)
 mungeOrbitIO = do
   orbitOffset <- read . fromMaybe "0" <$> lookupEnv "ORBIT_OFFSET"
-  orbitMax <- (read . fromMaybe "10") <$> lookupEnv "ORBIT_MAX"
+  orbitMax <- read . fromMaybe "10" <$> lookupEnv "ORBIT_MAX"
   return $ \o -> orbitOffset + (o `mod` orbitMax)
 
 -- -- TODO - it seems this isn't actually called but is duplicated above..
@@ -1122,7 +1122,7 @@ startPlayback s loopPlayback offset path =
   do
     now <- realToFrac <$> getPOSIXTime
     -- hPutStrLn stderr $ "startplayback: " ++ show loopPlayback
-    fh <- openFile (path) ReadMode
+    fh <- openFile path ReadMode
     c <- hGetContents fh
     let ls = lines c
         -- ffwdTo = (read (fromJust $ stripPrefix "// " (ls !! 0))) :: Double
@@ -1153,9 +1153,9 @@ startPlayback s loopPlayback offset path =
   where
     filterPre :: Double -> Double -> [Change] -> [Change]
     filterPre _ _ [] = []
-    filterPre start end (c@(Change {}) : cs) = c : (filterPre start end cs)
-    filterPre start end (c@(Move {}) : cs) = c : (filterPre start end cs)
+    filterPre start end (c@(Change {}) : cs) = c : filterPre start end cs
+    filterPre start end (c@(Move {}) : cs) = c : filterPre start end cs
     filterPre start end (c : cs)
       | (cWhen c) > end = []
-      | (cWhen c) >= start = (c : (filterPre start end cs))
+      | (cWhen c) >= start = c : filterPre start end cs
       | otherwise = filterPre start end cs

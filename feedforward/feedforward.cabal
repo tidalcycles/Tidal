@@ -1,6 +1,6 @@
 name:           feedforward
-version:        0.0.1
-copyright:      2018 Alex McLean and contributors
+version:        0.0.2
+copyright:      2025 Alex McLean and contributors
 license-file:   LICENSE
 build-type:     Simple
 cabal-version:  >= 1.10
