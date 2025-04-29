@@ -20,10 +20,11 @@ Then from the tidal folder, run
 cabal run feedforward
 ```
 
-If that doesn't, work try:
+If that doesn't work, at the time of writing the latest releases of ghc 
+require a tweak of the 'time' dependency:
 
 ```
-cabal run --allow-newer=time --write-ghc-environment-files=always feedforward
+cabal run --allow-newer=time feedforward
 ```
 
 ## VU meters
