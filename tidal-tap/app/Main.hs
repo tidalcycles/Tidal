@@ -9,9 +9,27 @@ import Data.Time.Clock.POSIX (getPOSIXTime)
 import Graphics.Vty
 import Graphics.Vty.CrossPlatform (mkVty)
 import qualified Network.Socket as N
+import Options.Applicative
 import qualified Sound.Osc.Fd as O
 import qualified Sound.Osc.Time.Timeout as O
 import qualified Sound.Osc.Transport.Fd.Udp as O
+import qualified Sound.PortMidi as PM
+
+data Parameters = Parameters {mididevice :: Maybe PM.DeviceID}
+
+parameters :: Parser Parameters
+parameters =
+  Parameters
+    <$> optional
+      ( option
+          auto
+          ( long "mididevice"
+              <> help "Midi input device number"
+              --   <> showDefault
+              --   <> value 1
+              <> metavar "INT"
+          )
+      )
 
 data State = State
   { lastEv :: String,
@@ -110,14 +128,37 @@ loop s = do
 sendO :: O.Udp -> N.AddrInfo -> O.Message -> IO ()
 sendO u addr msg = O.sendTo u (O.Packet_Message {O.packetMessage = msg}) (N.addrAddress addr)
 
+printDevices :: IO ()
+printDevices = do
+  deviceCount <- PM.countDevices
+  putStrLn "\nAvailable input devices:"
+  mapM_
+    ( \i -> do
+        info <- PM.getDeviceInfo i
+        when (PM.input info) $ putStrLn $ show i ++ ": " ++ show info
+    )
+    [0 .. deviceCount - 1]
+
+start :: Parameters -> IO ()
+start (Parameters {mididevice = Nothing}) = do
+  putStrLn "Please specify midi device with --mididevice <id>"
+  printDevices
+start (Parameters {mididevice = Just mididev}) = do
+  PM.initialize
+  midiin <- PM.openInput mididev
+  either (const $ putStrLn $ "Couldn't open midi device " ++ show mididev) (const $ return ()) midiin
+
+--   addr <- resolve "127.0.0.1" 6010
+--   u <-
+--     O.udp_socket
+--       (\sock _ -> do N.setSocketOption sock N.Broadcast broadcast)
+--       "127.0.0.1"
+--       6010
+--   v <- mkVty defaultConfig
+--   loop (newState v (sendO u addr))
+--   shutdown v
+
 main :: IO ()
 main = do
-  addr <- resolve "127.0.0.1" 6010
-  u <-
-    O.udp_socket
-      (\sock _ -> do N.setSocketOption sock N.Broadcast broadcast)
-      "127.0.0.1"
-      6010
-  v <- mkVty defaultConfig
-  loop (newState v (sendO u addr))
-  shutdown v
+  ps <- execParser $ info (parameters <**> helper) fullDesc
+  start ps
