@@ -37,11 +37,21 @@ data State = State
     vty :: Vty,
     running :: Bool,
     sender :: O.Message -> IO (),
-    cps :: Maybe Float
+    cps :: Maybe Float,
+    midiIn :: Maybe PM.PMStream
   }
 
-newState :: Vty -> (O.Message -> IO ()) -> State
-newState v send = State {lastEv = "", taps = [], vty = v, running = True, sender = send, cps = Nothing}
+newState :: Vty -> (O.Message -> IO ()) -> Maybe PM.PMStream -> State
+newState v send mi =
+  State
+    { lastEv = "",
+      taps = [],
+      vty = v,
+      running = True,
+      sender = send,
+      cps = Nothing,
+      midiIn = mi
+    }
 
 resolve :: String -> Int -> IO N.AddrInfo
 resolve host port = do
@@ -145,18 +155,26 @@ start (Parameters {mididevice = Nothing}) = do
   printDevices
 start (Parameters {mididevice = Just mididev}) = do
   PM.initialize
-  midiin <- PM.openInput mididev
-  either (const $ putStrLn $ "Couldn't open midi device " ++ show mididev) (const $ return ()) midiin
+  md <- PM.openInput mididev
+  mi <-
+    either
+      ( \err -> do
+          putStrLn $ "Couldn't open midi device " ++ show mididev ++ ": " ++ show err
+          return Nothing
+      )
+      ( \i -> return $ Just i
+      )
+      md
 
---   addr <- resolve "127.0.0.1" 6010
---   u <-
---     O.udp_socket
---       (\sock _ -> do N.setSocketOption sock N.Broadcast broadcast)
---       "127.0.0.1"
---       6010
---   v <- mkVty defaultConfig
---   loop (newState v (sendO u addr))
---   shutdown v
+  addr <- resolve "127.0.0.1" 6010
+  u <-
+    O.udp_socket
+      (\sock _ -> do N.setSocketOption sock N.Broadcast broadcast)
+      "127.0.0.1"
+      6010
+  v <- mkVty defaultConfig
+  loop (newState v (sendO u addr) mi)
+  shutdown v
 
 main :: IO ()
 main = do
