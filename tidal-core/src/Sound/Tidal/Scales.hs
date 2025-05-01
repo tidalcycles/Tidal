@@ -332,8 +332,9 @@ scaleWithList sp (f : []) p = scaleMod sp f p
 scaleWithList sp fs p = Pattern q
   where
     n = length fs
-    q st = concatMap (ff st)
-      $ arcCyclesZW (arc st)
+    q st =
+      concatMap (ff st) $
+        arcCyclesZW (arc st)
     ff st a = query pp $ st {arc = a}
       where
         f = fs !! i
