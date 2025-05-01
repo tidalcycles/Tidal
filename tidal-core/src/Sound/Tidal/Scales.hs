@@ -327,7 +327,19 @@ scaleWith = getScaleMod scaleTable
 {- Variant of @scaleWith@ providing a list of modifier functions instead of a single function
 -}
 scaleWithList :: (Eq a, Fractional a) => Pattern String -> ([[a] -> [a]]) -> Pattern Int -> Pattern a
-scaleWithList sp fs p = slowcat $ map (\f -> scaleWith sp f p) fs
+scaleWithList _ [] _ = silence
+scaleWithList sp (f : []) p = scaleMod sp f p
+scaleWithList sp fs p = Pattern q
+  where
+    n = length fs
+    q st = concatMap (ff st)
+      $ arcCyclesZW (arc st)
+    ff st a = query pp $ st {arc = a}
+      where
+        f = fs !! i
+        cyc = (floor $ start a) :: Int
+        i = cyc `mod` n
+        pp = (scaleMod sp f p)
 
 {- Variant of @getScale@ used to build the @scaleWith@ function
 -}
