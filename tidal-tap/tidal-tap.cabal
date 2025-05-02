@@ -30,6 +30,7 @@ executable tidal-tap
                       vty-crossplatform,
                       time,
                       PortMidi,
-                      optparse-applicative
+                      optparse-applicative,
+                      mtl
     hs-source-dirs:   app
     default-language: Haskell2010
