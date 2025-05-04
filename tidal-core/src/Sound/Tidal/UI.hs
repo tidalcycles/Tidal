@@ -1565,7 +1565,7 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
   where
     mapMasks =
       [ stretch $ mask (const True <$> filterValues (== i) from') p'
-      | i <- [0 .. n - 1]
+        | i <- [0 .. n - 1]
       ]
     p' = density cyc p
     from' = density cyc from
@@ -2130,10 +2130,10 @@ _ply :: Rational -> Pattern a -> Pattern a
 _ply n pat = squeezeJoin $ _fast n . pure <$> pat
 
 -- | As 'ply', but applies a function each time. The applications are compounded.
-plyWith :: (Ord t, Num t) => Pattern t -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+plyWith :: Pattern Rational -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 plyWith np f p = innerJoin $ (\n -> _plyWith n f p) <$> np
 
-_plyWith :: (Ord t, Num t) => t -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
+_plyWith :: Rational -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 _plyWith numPat f p = arpeggiate $ compound numPat
   where
     compound n
