@@ -4,6 +4,9 @@
 module Main where
 
 import Control.Monad (when)
+-- import qualified Sound.Osc.Time.Timeout as O
+
+import Control.Monad.State
 import Data.Time (NominalDiffTime)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Graphics.Vty
@@ -11,10 +14,8 @@ import Graphics.Vty.CrossPlatform (mkVty)
 import qualified Network.Socket as N
 import Options.Applicative
 import qualified Sound.Osc.Fd as O
--- import qualified Sound.Osc.Time.Timeout as O
 import qualified Sound.Osc.Transport.Fd.Udp as O
 import qualified Sound.PortMidi as PM
-import Control.Monad.State
 
 data Parameters = Parameters {mididevice :: Maybe PM.DeviceID, showdevices :: Bool}
 
@@ -29,11 +30,12 @@ parameters =
               <> metavar "INT"
           )
       )
-    <*> flag False True
-          ( long "showdevices"
-              <> help "Show available midi input devices"
-          )
-    
+    <*> flag
+      False
+      True
+      ( long "showdevices"
+          <> help "Show available midi input devices"
+      )
 
 data TapState = TapState
   { lastEv :: String,
@@ -42,8 +44,10 @@ data TapState = TapState
     running :: Bool,
     sender :: O.Message -> IO (),
     cps :: Maybe Float,
-    midiIn :: Maybe PM.PMStream
+    midiIn :: Maybe PM.PMStream,
+    muted :: Bool
   }
+
 type TapM = StateT TapState IO
 
 newState :: Vty -> (O.Message -> IO ()) -> Maybe PM.PMStream -> TapState
@@ -55,7 +59,8 @@ newState v send mi =
       running = True,
       sender = send,
       cps = Nothing,
-      midiIn = mi
+      midiIn = mi,
+      muted = False
     }
 
 resolve :: String -> Int -> IO N.AddrInfo
@@ -91,8 +96,7 @@ sendTempo ts
       let xs = diffs ts
           avg = sum xs / fromIntegral (length xs)
           tempo = realToFrac $ 1 / (avg * 4)
-      senderv <- gets sender
-      liftIO $ senderv $ O.Message "/setcps" [O.Float tempo]
+      send $ O.Message "/setcps" [O.Float tempo]
       modify $ \s -> s {cps = Just tempo, taps = ts}
   | otherwise = modify $ \s -> s {taps = ts}
   where
@@ -105,15 +109,34 @@ updateTempo = do
   let ts = discardGaps $ timeOut t tapsv
   sendTempo ts
 
+mute :: TapM ()
+mute = do
+  send $ O.Message "/muteAll" []
+  modify $ \s -> s {muted = True}
+
+unmute :: TapM ()
+unmute = do
+  send $ O.Message "/unmuteAll" []
+  modify $ \s -> s {muted = False}
+
+muteToggle :: TapM ()
+muteToggle = do
+  mutedv <- gets muted
+  if mutedv then unmute else mute
+
+send :: O.Message -> TapM ()
+send message = do
+  senderv <- gets sender
+  liftIO $ senderv message
+
 event :: Event -> TapM ()
 event (EvKey (KChar 'r') []) = do
-  senderv <- gets sender
-  liftIO $ do senderv $ O.Message "/unmuteAll" []
-              senderv $ O.Message "/resetCycles" []
+  unmute
+  send $ O.Message "/resetCycles" []
   return ()
-event (EvKey (KChar 's') []) = do
+event (EvKey (KChar 'm') []) = do
   senderv <- gets sender
-  liftIO $ senderv $ O.Message "/muteAll" []
+  muteToggle
 event (EvKey (KChar 't') []) = do
   t <- liftIO getPOSIXTime
   modify $ \s -> s {taps = t : taps s}
@@ -133,10 +156,18 @@ showcps (TapState {cps = Just t}) = show t
 taploop :: TapM ()
 taploop = do
   showcpsv <- gets showcps
-  let line1 = string (defAttr `withBackColor` blue) "Tap tap"
-      line2 = string (defAttr `withForeColor` green) "r = retrigger (+unmute), t = tap"
-      line3 = string (defAttr `withForeColor` blue) showcpsv
-      img = line1 <-> line2 <-> line3
+  mutedv <- gets muted
+  let img =
+        string (defAttr `withBackColor` blue) "Tap tap"
+          <-> string
+            (defAttr `withBackColor` blue)
+            ( if mutedv
+                then "[-muted-]"
+                else
+                  "[unmuted]"
+            )
+          <-> string (defAttr `withForeColor` green) "r = restart (+unmute), t = tap m = toggle mute"
+          <-> string (defAttr `withForeColor` blue) showcpsv
       pic = picForImage img
   vtyv <- gets vty
   liftIO $ update vtyv pic
@@ -160,29 +191,34 @@ printDevices = do
     )
     [0 .. deviceCount - 1]
 
-
 runTap :: Parameters -> IO ()
 runTap (Parameters {showdevices = True}) = printDevices
-runTap ps = 
-  do PM.initialize
-     mi <- maybe (return Nothing) (\i -> do md <- liftIO $ PM.openInput i
-                                            either
-                                              ( \err -> do
-                                                 putStrLn $ "Couldn't open midi device " ++ show err
-                                                 return Nothing
-                                              )
-                                              ( return . Just )
-                                              md 
-                                  ) (mididevice ps) 
-     addr <- resolve "127.0.0.1" 6010
-     u <-
-       O.udp_socket
-         (\sock _ -> do N.setSocketOption sock N.Broadcast broadcast)
-         "127.0.0.1"
-         6010
-     v <- mkVty defaultConfig
-     evalStateT taploop $ newState v (sendO u addr) mi
-     shutdown v
+runTap ps =
+  do
+    PM.initialize
+    mi <-
+      maybe
+        (return Nothing)
+        ( \i -> do
+            md <- liftIO $ PM.openInput i
+            either
+              ( \err -> do
+                  putStrLn $ "Couldn't open midi device " ++ show err
+                  return Nothing
+              )
+              (return . Just)
+              md
+        )
+        (mididevice ps)
+    addr <- resolve "127.0.0.1" 6010
+    u <-
+      O.udp_socket
+        (\sock _ -> do N.setSocketOption sock N.Broadcast broadcast)
+        "127.0.0.1"
+        6010
+    v <- mkVty defaultConfig
+    evalStateT taploop $ newState v (sendO u addr) mi
+    shutdown v
 
 main :: IO ()
 main = do
