@@ -396,13 +396,14 @@ connectCircle mvS name =
         let msg = T.pack $ "/name " ++ name
         WS.sendTextData conn msg
 
-        forkIO $ forever $ do
+        _ <- forkIO $ forever $ do
           msg <- WS.receiveData conn
           circleAct conn $ T.unpack msg
         -- hPutStrLn stderr $ T.unpack msg
         let loop = do
               change <- takeMVar mChange
               WS.sendTextData conn (T.append (T.pack "/change ") $ decodeUtf8 $ A.encode change) >> loop
+              return ()
         loop
         WS.sendClose conn (T.pack "/quit")
     circleAct conn msg

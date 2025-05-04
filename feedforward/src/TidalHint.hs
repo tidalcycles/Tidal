@@ -55,15 +55,16 @@ hintJob (mIn, mOut) parameters =
     interp (Left errors) _ = do
       liftIO $ do
         putMVar mOut $ HintError $ "Didn't typecheck" ++ (concatMap show errors)
-        -- hPutStrLn stderr $ "error: " ++ (concatMap show errors)
-        takeMVar mIn
+        hPutStrLn stderr $ "error: " ++ (concatMap show errors)
+        _ <- takeMVar mIn
+        return ()
       return ()
     interp (Right t) s =
       do
         p <- try (Hint.interpret s (Hint.as :: ControlPattern)) :: Interpreter (Either InterpreterError ControlPattern)
         case p of
           Left exc -> liftIO $ do
-            -- hPutStrLn stderr $ parseError exc
+            hPutStrLn stderr $ parseError exc
             putMVar mOut $ HintError (parseError exc)
           Right pat -> liftIO $ do
             -- hPutStrLn stderr "Eval"
