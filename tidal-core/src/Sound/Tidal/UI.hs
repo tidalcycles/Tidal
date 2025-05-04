@@ -1565,7 +1565,7 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
   where
     mapMasks =
       [ stretch $ mask (const True <$> filterValues (== i) from') p'
-        | i <- [0 .. n - 1]
+      | i <- [0 .. n - 1]
       ]
     p' = density cyc p
     from' = density cyc from
