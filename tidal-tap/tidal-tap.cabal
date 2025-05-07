@@ -30,6 +30,7 @@ executable tidal-tap
                       vty-crossplatform,
                       time,
                       PortMidi,
+                      PortMidi-simple,
                       optparse-applicative,
                       mtl
     hs-source-dirs:   app
