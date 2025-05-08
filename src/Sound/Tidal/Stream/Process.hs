@@ -96,7 +96,7 @@ doTick stateMV playMV globalFMV cxs (st, end) nudge cconf cref (ss, temposs) =
       sGlobalF <- readMVar globalFMV
       bpm <- Clock.getTempo ss
       let cps = Clock.beatToCycles cconf (fromRational bpm) / 60
-          cycleLatency = toRational $ negate $ nudge / cps
+          cycleLatency = toRational $ nudge / cps
           patstack = rotR cycleLatency $ sGlobalF $ playStack pMap
           sMap' = Map.insert "_cps" (VF $ coerce cps) sMap
           -- First the state is used to query the pattern
