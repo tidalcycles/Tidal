@@ -97,6 +97,7 @@ diffs _ = []
 sendTempo :: [NominalDiffTime] -> TapM ()
 sendTempo ts
   | length ts >= 2 = do
+      -- liftIO $ hPutStrLn stderr $ show ts
       let xs = diffs ts
           avg = sum xs / fromIntegral (length xs)
           tempo = realToFrac $ 1 / (avg * 4)
@@ -108,12 +109,14 @@ sendTempo ts
 
 updateTempo :: TapM ()
 updateTempo = do
+  -- liftIO $ hPutStrLn stderr "aha"
   t <- liftIO getPOSIXTime
   tapsmv <- gets taps
   tapsv <- liftIO $ takeMVar tapsmv
   let ts = discardGaps $ timeOut t tapsv
   sendTempo ts
   liftIO $ putMVar tapsmv ts
+  -- liftIO $ hPutStrLn stderr "aho"
   return ()
 
 mute :: TapM ()
@@ -199,14 +202,24 @@ printDevices = do
     )
     [0 .. deviceCount - 1]
 
+doMessage :: MVar [NominalDiffTime] -> (PM.Timestamp, PM.Message) -> IO ()
+doMessage tapsmv (ts, msg@(PM.Channel _ (PM.NoteOn {}))) =
+   do t <- getPOSIXTime
+      hPutStrLn stderr $ show ts ++ "  :  " ++ show msg
+      modifyMVar_ tapsmv $ \ts -> return $ prepend t ts
+      return ()
+  where prepend a [] = [a]
+        prepend a (b:xs) | a == b = b:xs
+                         | otherwise = a:b:xs
+doMessage _ _ = return ()
+
+
 runMidi :: Maybe PM.DeviceID -> MVar [NominalDiffTime] -> IO ()
 runMidi Nothing _ = return ()
 runMidi (Just input) tapsmv = 
   PM.withInput input $ \stream -> PM.withReadMessages stream 256 $ \readMessages ->
                                    forever $ do
-                                     t <- liftIO getPOSIXTime
-                                     modifyMVar_ tapsmv $ \ts -> return $ t : ts
-                                     readMessages >>= mapM_ (hPutStrLn stderr . show)
+                                     readMessages >>= mapM_ (doMessage tapsmv)
                                      threadDelay 1000
 
 
