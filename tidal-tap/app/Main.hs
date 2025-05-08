@@ -19,8 +19,9 @@ import qualified Sound.PortMidi as PM
 import qualified Sound.PortMidi.Simple as PM
 import Control.Concurrent.MVar
     ( modifyMVar_, newMVar, putMVar, takeMVar, MVar )
-import Control.Concurrent (threadDelay, forkIO)
-import System.IO (stderr, hPutStrLn)
+import Control.Concurrent (threadDelay, forkIO, killThread)
+import System.IO (stderr, hPutStrLn, hPrint)
+import Sound.PortMidi.Simple (ChannelMessage(controllerNumber))
 
 data Parameters = Parameters {mididevice :: Maybe PM.DeviceID, showdevices :: Bool}
 
@@ -42,9 +43,14 @@ parameters =
           <> help "Show available midi input devices"
       )
 
+data MState = MState {
+  taps :: [NominalDiffTime],
+  nudged :: Int
+}
+
 data TapState = TapState
   { lastEv :: String,
-    taps :: MVar [NominalDiffTime],
+    mstate :: MVar MState,
     vty :: Vty,
     running :: Bool,
     sender :: O.Message -> IO (),
@@ -55,14 +61,14 @@ data TapState = TapState
 type TapM = StateT TapState IO
 
 newState :: Vty -> (O.Message -> IO ()) -> IO TapState
-newState v send =
-  do tapsmv <- newMVar []
+newState v senderv =
+  do mv <- newMVar $ MState {taps = [], nudged = 0}
      return $ TapState
       { lastEv = "",
-        taps = tapsmv,
+        mstate = mv,
         vty = v,
         running = True,
-        sender = send,
+        sender = senderv,
         cps = Nothing,
         muted = False
       }
@@ -111,11 +117,11 @@ updateTempo :: TapM ()
 updateTempo = do
   -- liftIO $ hPutStrLn stderr "aha"
   t <- liftIO getPOSIXTime
-  tapsmv <- gets taps
-  tapsv <- liftIO $ takeMVar tapsmv
-  let ts = discardGaps $ timeOut t tapsv
+  mv <- gets mstate
+  v <- liftIO $ takeMVar mv
+  let ts = discardGaps $ timeOut t (taps v)
   sendTempo ts
-  liftIO $ putMVar tapsmv ts
+  liftIO $ putMVar mv (v {taps = ts})
   -- liftIO $ hPutStrLn stderr "aho"
   return ()
 
@@ -149,8 +155,8 @@ event (Just (EvKey (KChar 'm') [])) = do
   muteToggle
 event (Just (EvKey (KChar 't') [])) = do
   t <- liftIO getPOSIXTime
-  tapsmv <- gets taps
-  liftIO $ modifyMVar_ tapsmv $ \ts -> return $ t : ts
+  mv <- gets mstate
+  liftIO $ modifyMVar_ mv $ \v -> return v {taps = t : taps v}
   updateTempo
 event (Just (EvKey (KChar 'q') [])) = modify $ \s -> s {running = False}
 event _ = return ()
@@ -202,24 +208,28 @@ printDevices = do
     )
     [0 .. deviceCount - 1]
 
-doMessage :: MVar [NominalDiffTime] -> (PM.Timestamp, PM.Message) -> IO ()
-doMessage tapsmv (ts, msg@(PM.Channel _ (PM.NoteOn {}))) =
+doMessage :: MVar MState -> (PM.Timestamp, PM.Message) -> IO ()
+doMessage mv (ts, msg@(PM.Channel _ (PM.NoteOn {}))) =
    do t <- getPOSIXTime
-      hPutStrLn stderr $ show ts ++ "  :  " ++ show msg
-      modifyMVar_ tapsmv $ \ts -> return $ prepend t ts
+      modifyMVar_ mv $ \v -> return v {taps = prepend t $ taps v}
       return ()
   where prepend a [] = [a]
         prepend a (b:xs) | a == b = b:xs
                          | otherwise = a:b:xs
-doMessage _ _ = return ()
+doMessage mv (_, PM.Channel _ (PM.ControlChange {PM.controllerNumber = 37, PM.controllerValue = val})) = 
+  do modifyMVar_ mv $ \v -> do let newnudge = nudged v + (if val < 64 then val else val - 128)
+                               hPrint stderr newnudge
+                               return v {nudged = newnudge}
+doMessage _ (_, PM.Channel _ (PM.NoteOff {})) = return ()
+doMessage _ msg = hPutStrLn stderr $ "Unhandled: " ++ show msg
 
 
-runMidi :: Maybe PM.DeviceID -> MVar [NominalDiffTime] -> IO ()
+runMidi :: Maybe PM.DeviceID -> MVar MState -> IO ()
 runMidi Nothing _ = return ()
-runMidi (Just input) tapsmv = 
+runMidi (Just input) mv = 
   PM.withInput input $ \stream -> PM.withReadMessages stream 256 $ \readMessages ->
                                    forever $ do
-                                     readMessages >>= mapM_ (doMessage tapsmv)
+                                     readMessages >>= mapM_ (doMessage mv)
                                      threadDelay 1000
 
 
@@ -236,9 +246,10 @@ runTap ps =
         6010
     v <- mkVty defaultConfig
     s <- newState v (sendO u addr)
-    threadid <- forkIO $ runMidi (mididevice ps) (taps s)
+    midiThread <- forkIO $ runMidi (mididevice ps) (mstate s)
     evalStateT taploop s
     shutdown v
+    killThread midiThread
 
 main :: IO ()
 main = do
