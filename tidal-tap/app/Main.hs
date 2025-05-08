@@ -3,7 +3,7 @@
 {-# HLINT ignore "Use newtype instead of data" #-}
 module Main where
 
-import Control.Monad (when)
+import Control.Monad (when, forever)
 -- import qualified Sound.Osc.Time.Timeout as O
 
 import Control.Monad.State
