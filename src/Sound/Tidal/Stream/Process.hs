@@ -95,10 +95,10 @@ doTick stateMV playMV globalFMV cxs (st, end) nudge cconf cref (ss, temposs) =
       pMap <- readMVar playMV
       sGlobalF <- readMVar globalFMV
       bpm <- Clock.getTempo ss
-      let patstack = sGlobalF $ playStack pMap
-          cps = Clock.beatToCycles cconf (fromRational bpm) / 60
+      let cps = Clock.beatToCycles cconf (fromRational bpm) / 60
+          cycleLatency = toRational $ negate $ nudge / cps
+          patstack = rotR cycleLatency $ sGlobalF $ playStack pMap
           sMap' = Map.insert "_cps" (VF $ coerce cps) sMap
-          extraLatency = nudge
           -- First the state is used to query the pattern
           es =
             sortOn (start . part) $
@@ -121,7 +121,7 @@ doTick stateMV playMV globalFMV cxs (st, end) nudge cconf cref (ss, temposs) =
             ms = concatMap (\e -> concatMap (toOSC busses e) oscs) tes
         -- send the events to the OSC target
         forM_ ms $ \m ->
-          send cx latency extraLatency m `E.catch` \(e :: E.SomeException) ->
+          send cx latency 0 m `E.catch` \(e :: E.SomeException) ->
             hPutStrLn stderr $ "Failed to send. Is the '" ++ oName target ++ "' target running? " ++ show e
       return sMap''
   where
