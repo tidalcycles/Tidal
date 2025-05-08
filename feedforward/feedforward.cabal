@@ -10,7 +10,7 @@ executable feedforward
   main-is: Main.hs
   hs-source-dirs:
       src
-  ghc-options: -Wall -threaded -DDEBUG
+  ghc-options: -Wall -threaded
   build-depends:
       aeson
     , base
@@ -31,6 +31,7 @@ executable feedforward
     , websockets
     , transformers
     , containers
+    , PortMidi
   other-modules:
       Change
       Parameters

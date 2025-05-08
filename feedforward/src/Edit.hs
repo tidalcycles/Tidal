@@ -473,9 +473,8 @@ initEState parameters =
     tempoIp <- liftIO $ fromMaybe "127.0.0.1" <$> lookupEnv "TEMPO_IP"
     tidal <-
       startTidal
-        (superdirtTarget {oLatency = 0, oAddress = "127.0.0.1", oPort = 57120})
-        --          (defaultConfig {cCtrlAddr = "0.0.0.0", cTempoAddr = tempoIp, cFrameTimespan = 1 / 20, cVerbose = False})
-        (defaultConfig {cCtrlAddr = "0.0.0.0", cVerbose = False})
+        (superdirtTarget {oLatency = 0.01, oAddress = "127.0.0.1", oPort = 57120})
+        (setFrameTimespan (1/50) $ setProcessAhead (1/20) $ defaultConfig {cCtrlAddr = "0.0.0.0", cVerbose = False})
     -- liftIO $ streamOnce tidal $ cps 1.05
     -- sock <- liftIO $ carabiner tidal 4 0
     logFH <- openLog
