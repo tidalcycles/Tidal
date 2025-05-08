@@ -1,0 +1,1 @@
+Change {cFrom = (0,13), cTo = (0,13), cText = ["",""], cRemoved = [""], cOrigin = "+input", cWhen = 1.5233527684674633e9, cNewPos = (1,0)}

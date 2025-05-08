@@ -1,2 +1,3 @@
 tests: True
-packages: ./ tidal-core tidal-parse tidal-parse-ffi tidal-listener tidal-link
+write-ghc-environment-files: always
+packages: ./ tidal-core tidal-parse tidal-parse-ffi tidal-listener tidal-link tidal-tap feedforward

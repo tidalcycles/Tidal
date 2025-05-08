@@ -16,7 +16,7 @@ jobs:
           # latest
           - ghc: latest
             cabal: latest
-            args: --allow-newer=base,template-haskell
+            args: --allow-newer=base,template-haskell,time
             experimental: true
           # a bit newer
           - ghc: 9.8.2
@@ -68,6 +68,9 @@ jobs:
         with:
           ghc-version: ${{ matrix.versions.ghc }}
           cabal-version: ${{ matrix.versions.cabal }}
+
+      - name: Install ncurses, libasound
+        run: sudo apt install -y libncurses-dev libasound2-dev
 
       - name: update
         run: cabal v2-update
