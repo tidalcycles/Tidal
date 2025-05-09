@@ -3,9 +3,18 @@
 {-# HLINT ignore "Use newtype instead of data" #-}
 module Main where
 
-import Control.Monad (when, forever)
 -- import qualified Sound.Osc.Time.Timeout as O
 
+import Control.Concurrent (forkIO, killThread, threadDelay)
+import Control.Concurrent.MVar
+  ( MVar,
+    modifyMVar_,
+    newMVar,
+    putMVar,
+    readMVar,
+    takeMVar,
+  )
+import Control.Monad (forever, when)
 import Control.Monad.State
 import Data.Time (NominalDiffTime)
 import Data.Time.Clock.POSIX (getPOSIXTime)
@@ -16,12 +25,9 @@ import Options.Applicative
 import qualified Sound.Osc.Fd as O
 import qualified Sound.Osc.Transport.Fd.Udp as O
 import qualified Sound.PortMidi as PM
+import Sound.PortMidi.Simple (ChannelMessage (controllerNumber))
 import qualified Sound.PortMidi.Simple as PM
-import Control.Concurrent.MVar
-    ( modifyMVar_, newMVar, putMVar, takeMVar, MVar )
-import Control.Concurrent (threadDelay, forkIO, killThread)
-import System.IO (stderr, hPutStrLn, hPrint)
-import Sound.PortMidi.Simple (ChannelMessage(controllerNumber))
+import System.IO (hPrint, hPutStrLn, stderr)
 
 data Parameters = Parameters {mididevice :: Maybe PM.DeviceID, showdevices :: Bool}
 
@@ -43,10 +49,10 @@ parameters =
           <> help "Show available midi input devices"
       )
 
-data MState = MState {
-  taps :: [NominalDiffTime],
-  nudged :: Int
-}
+data MState = MState
+  { taps :: [NominalDiffTime],
+    nudged :: Int
+  }
 
 data TapState = TapState
   { lastEv :: String,
@@ -55,6 +61,7 @@ data TapState = TapState
     running :: Bool,
     sender :: O.Message -> IO (),
     cps :: Maybe Float,
+    nudgeAll :: Double,
     muted :: Bool
   }
 
@@ -62,16 +69,19 @@ type TapM = StateT TapState IO
 
 newState :: Vty -> (O.Message -> IO ()) -> IO TapState
 newState v senderv =
-  do mv <- newMVar $ MState {taps = [], nudged = 0}
-     return $ TapState
-      { lastEv = "",
-        mstate = mv,
-        vty = v,
-        running = True,
-        sender = senderv,
-        cps = Nothing,
-        muted = False
-      }
+  do
+    mv <- newMVar $ MState {taps = [], nudged = 0}
+    return $
+      TapState
+        { lastEv = "",
+          mstate = mv,
+          vty = v,
+          running = True,
+          sender = senderv,
+          cps = Nothing,
+          muted = False,
+          nudgeAll = 0
+        }
 
 resolve :: String -> Int -> IO N.AddrInfo
 resolve host port = do
@@ -107,8 +117,10 @@ sendTempo ts
       let xs = diffs ts
           avg = sum xs / fromIntegral (length xs)
           tempo = realToFrac $ 1 / (avg * 4)
-      send $ O.Message "/setcps" [O.Float tempo]
-      modify $ \s -> s {cps = Just tempo}
+      prev <- gets cps
+      when (Just tempo /= prev) $ do
+        send $ O.Message "/setcps" [O.Float tempo]
+        modify $ \s -> s {cps = Just tempo}
   | otherwise = return ()
   where
     ds = diffs ts
@@ -124,6 +136,20 @@ updateTempo = do
   liftIO $ putMVar mv (v {taps = ts})
   -- liftIO $ hPutStrLn stderr "aho"
   return ()
+
+sendNudge :: Double -> TapM ()
+sendNudge new = do
+  send $ O.Message "/nudgeAll" [O.Double new]
+  modify $ \s -> s {nudgeAll = new}
+
+updateNudge :: TapM ()
+updateNudge = do
+  prev <- gets nudgeAll
+  mv <- gets mstate
+  v <- liftIO $ readMVar mv
+  let new = fromIntegral (nudged v) / 1000
+  when (new /= prev) $ do
+    sendNudge new
 
 mute :: TapM ()
 mute = do
@@ -148,6 +174,7 @@ send message = do
 event :: Maybe Event -> TapM ()
 event (Just (EvKey (KChar 'r') [])) = do
   unmute
+  sendNudge 0
   send $ O.Message "/resetCycles" []
   return ()
 event (Just (EvKey (KChar 'm') [])) = do
@@ -191,6 +218,7 @@ taploop = do
   e <- liftIO $ nextEventNonblocking vtyv
   event e
   updateTempo
+  updateNudge
   runningv <- gets running
   when runningv taploop
 
@@ -210,28 +238,31 @@ printDevices = do
 
 doMessage :: MVar MState -> (PM.Timestamp, PM.Message) -> IO ()
 doMessage mv (ts, msg@(PM.Channel _ (PM.NoteOn {}))) =
-   do t <- getPOSIXTime
-      modifyMVar_ mv $ \v -> return v {taps = prepend t $ taps v}
-      return ()
-  where prepend a [] = [a]
-        prepend a (b:xs) | a == b = b:xs
-                         | otherwise = a:b:xs
-doMessage mv (_, PM.Channel _ (PM.ControlChange {PM.controllerNumber = 37, PM.controllerValue = val})) = 
-  do modifyMVar_ mv $ \v -> do let newnudge = nudged v + (if val < 64 then val else val - 128)
-                               hPrint stderr newnudge
-                               return v {nudged = newnudge}
+  do
+    t <- getPOSIXTime
+    modifyMVar_ mv $ \v -> return v {taps = prepend t $ taps v}
+    return ()
+  where
+    prepend a [] = [a]
+    prepend a (b : xs)
+      | a == b = b : xs
+      | otherwise = a : b : xs
+doMessage mv (_, PM.Channel _ (PM.ControlChange {PM.controllerNumber = 37, PM.controllerValue = val})) =
+  do
+    modifyMVar_ mv $ \v -> do
+      let newnudge = nudged v - (if val < 64 then val else val - 128)
+      hPrint stderr newnudge
+      return v {nudged = newnudge}
 doMessage _ (_, PM.Channel _ (PM.NoteOff {})) = return ()
 doMessage _ msg = hPutStrLn stderr $ "Unhandled: " ++ show msg
 
-
 runMidi :: Maybe PM.DeviceID -> MVar MState -> IO ()
 runMidi Nothing _ = return ()
-runMidi (Just input) mv = 
+runMidi (Just input) mv =
   PM.withInput input $ \stream -> PM.withReadMessages stream 256 $ \readMessages ->
-                                   forever $ do
-                                     readMessages >>= mapM_ (doMessage mv)
-                                     threadDelay 1000
-
+    forever $ do
+      readMessages >>= mapM_ (doMessage mv)
+      threadDelay 1000
 
 runTap :: Parameters -> IO ()
 runTap (Parameters {showdevices = True}) = printDevices
