@@ -1,7 +1,7 @@
 module Sound.Tidal.Clock where
 
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.STM (TVar, atomically, modifyTVar', newTVar, readTVar, retry, swapTVar)
+import Control.Concurrent.STM (atomically, registerDelay, TQueue, newTQueue, tryReadTQueue, writeTQueue)
 import Control.Monad (when)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.State (StateT, evalStateT, get, liftIO, modify, put)
@@ -36,7 +36,7 @@ data ClockState = ClockState
 
 -- | reference to interact with the clock, while it is running
 data ClockRef = ClockRef
-  { rAction :: TVar ClockAction,
+  { rAction :: TQueue ClockAction,
     rAbletonLink :: Link.AbletonLink
   }
 
@@ -57,8 +57,7 @@ type TickAction =
 
 -- | possible actions for interacting with the clock
 data ClockAction
-  = NoAction
-  | SetCycle Time
+  = SetCycle Time
   | SetTempo Time
   | SetNudge Double
 
@@ -71,7 +70,7 @@ defaultConfig =
     { cFrameTimespan = 1 / 20,
       cEnableLink = False,
       cProcessAhead = 3 / 10,
-      cSkipTicks = 10,
+      cSkipTicks = 50,
       cQuantum = 4,
       cBeatsPerCycle = 4
     }
@@ -100,7 +99,8 @@ initClock config ac = do
   let startAt = now + processAhead
   Link.requestBeatAtTime sessionState 0 startAt (cQuantum config)
   Link.commitAndDestroyAppSessionState abletonLink sessionState
-  clockMV <- atomically $ newTVar NoAction
+  -- tOut <- registerDelay 100
+  clockMV <- atomically newTQueue
   let st =
         ClockState
           { ticks = 0,
@@ -125,7 +125,7 @@ clockCheck :: Clock ()
 clockCheck = do
   (ClockMemory config (ClockRef clockMV abletonLink) _) <- ask
 
-  action <- liftIO $ atomically $ swapTVar clockMV NoAction
+  action <- liftIO $ atomically $ tryReadTQueue clockMV
   processAction action
 
   st <- get
@@ -188,16 +188,16 @@ clockProcess = do
   put (st {nowArc = (startCycle, endCycle)})
   tick
 
-processAction :: ClockAction -> Clock ()
-processAction NoAction = pure ()
-processAction (SetNudge n) = modify (\st -> st {nudged = n})
-processAction (SetTempo bpm) = do
+processAction :: Maybe ClockAction -> Clock ()
+processAction Nothing = pure ()
+processAction (Just (SetNudge n)) = modify (\st -> st {nudged = n})
+processAction (Just (SetTempo bpm)) = do
   (ClockMemory _ (ClockRef _ abletonLink) _) <- ask
   sessionState <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
   now <- liftIO $ Link.clock abletonLink
   liftIO $ Link.setTempo sessionState (fromRational bpm) now
   liftIO $ Link.commitAndDestroyAppSessionState abletonLink sessionState
-processAction (SetCycle cyc) = do
+processAction (Just (SetCycle cyc)) = do
   (ClockMemory config (ClockRef _ abletonLink) _) <- ask
   sessionState <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
 
@@ -304,30 +304,18 @@ resetClock :: ClockRef -> IO ()
 resetClock clock = setClock clock 0
 
 setClock :: ClockRef -> Time -> IO ()
-setClock (ClockRef clock _) t = atomically $ do
-  action <- readTVar clock
-  case action of
-    NoAction -> modifyTVar' clock (const $ SetCycle t)
-    _ -> retry
+setClock (ClockRef clock _) t = atomically $ writeTQueue clock $ SetCycle t
 
 setBPM :: ClockRef -> Time -> IO ()
-setBPM (ClockRef clock _) t = atomically $ do
-  action <- readTVar clock
-  case action of
-    NoAction -> modifyTVar' clock (const $ SetTempo t)
-    _ -> retry
+setBPM (ClockRef clock _) t = atomically $ writeTQueue clock $ SetTempo t
 
 setCPS :: ClockConfig -> ClockRef -> Time -> IO ()
 setCPS config ref cps = setBPM ref bpm
   where
-    bpm = cps * 60 * (toRational $ cBeatsPerCycle config)
+    bpm = cps * 60 * toRational (cBeatsPerCycle config)
 
 setNudge :: ClockRef -> Double -> IO ()
-setNudge (ClockRef clock _) n = atomically $ do
-  action <- readTVar clock
-  case action of
-    NoAction -> modifyTVar' clock (const $ SetNudge n)
-    _ -> retry
+setNudge (ClockRef clock _) n = atomically $ writeTQueue clock $ SetNudge n
 
 -- Used for Tempo callback
 -- Tempo changes will be applied.
