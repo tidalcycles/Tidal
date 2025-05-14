@@ -1,7 +1,7 @@
 module Sound.Tidal.Clock where
 
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.STM (atomically, registerDelay, TQueue, newTQueue, tryReadTQueue, writeTQueue)
+import Control.Concurrent.STM (TQueue, atomically, newTQueue, registerDelay, tryReadTQueue, writeTQueue)
 import Control.Monad (when)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.State (StateT, evalStateT, get, liftIO, modify, put)
