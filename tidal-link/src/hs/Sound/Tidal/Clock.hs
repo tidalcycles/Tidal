@@ -1,7 +1,7 @@
 module Sound.Tidal.Clock where
 
 import Control.Concurrent (forkIO)
-import Control.Concurrent.STM (TQueue, atomically, newTQueue, registerDelay, writeTQueue, readTQueue, readTVar, orElse, check)
+import Control.Concurrent.STM (TQueue, atomically, check, newTQueue, orElse, readTQueue, readTVar, registerDelay, writeTQueue)
 import Control.Monad (when)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.State (StateT, evalStateT, get, liftIO, modify, put)
@@ -115,13 +115,13 @@ initClock config ac = do
 
 readTQueueWithTimeout :: TQueue a -> Int -> IO (Maybe a)
 readTQueueWithTimeout queue timeoutMicros = do
-    timeoutVar <- registerDelay timeoutMicros
-    atomically $
-        -- Wait for either an item in the queue or the timeout
-        (Just <$> readTQueue queue) `orElse` do
-            timedOut <- readTVar timeoutVar
-            check timedOut -- Proceed only if the timeout has occurred
-            return Nothing
+  timeoutVar <- registerDelay timeoutMicros
+  atomically $
+    -- Wait for either an item in the queue or the timeout
+    (Just <$> readTQueue queue) `orElse` do
+      timedOut <- readTVar timeoutVar
+      check timedOut -- Proceed only if the timeout has occurred
+      return Nothing
 
 -- The reference time Link uses,
 -- is the time the audio for a certain beat hits the speaker.
