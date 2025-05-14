@@ -1,7 +1,7 @@
 module Sound.Tidal.Clock where
 
-import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.STM (TQueue, atomically, newTQueue, registerDelay, tryReadTQueue, writeTQueue)
+import Control.Concurrent (forkIO)
+import Control.Concurrent.STM (TQueue, atomically, newTQueue, registerDelay, writeTQueue, readTQueue, readTVar, orElse, check)
 import Control.Monad (when)
 import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.State (StateT, evalStateT, get, liftIO, modify, put)
@@ -78,7 +78,7 @@ defaultConfig =
 -- | creates a clock according to the config and runs it
 -- | in a seperate thread
 clocked :: ClockConfig -> TickAction -> IO ClockRef
-clocked config ac = runClock config ac clockCheck
+clocked config ac = runClock config ac (clockCheck 0)
 
 -- | runs the clock on the initial state and memory as given
 -- | by initClock, hands the ClockRef for interaction from outside
@@ -113,6 +113,16 @@ initClock config ac = do
     processAhead = round $ (cProcessAhead config) * 1000000
     bpm = (coerce defaultCps) * 60 * (cBeatsPerCycle config)
 
+readTQueueWithTimeout :: TQueue a -> Int -> IO (Maybe a)
+readTQueueWithTimeout queue timeoutMicros = do
+    timeoutVar <- registerDelay timeoutMicros
+    atomically $
+        -- Wait for either an item in the queue or the timeout
+        (Just <$> readTQueue queue) `orElse` do
+            timedOut <- readTVar timeoutVar
+            check timedOut -- Proceed only if the timeout has occurred
+            return Nothing
+
 -- The reference time Link uses,
 -- is the time the audio for a certain beat hits the speaker.
 -- Processing of the nowArc should happen early enough for
@@ -121,11 +131,11 @@ initClock config ac = do
 -- of nowArc. How far ahead is controlled by cProcessAhead.
 
 -- previously called checkArc
-clockCheck :: Clock ()
-clockCheck = do
+clockCheck :: Int -> Clock ()
+clockCheck timeout = do
   (ClockMemory config (ClockRef clockMV abletonLink) _) <- ask
 
-  action <- liftIO $ atomically $ tryReadTQueue clockMV
+  action <- liftIO $ readTQueueWithTimeout clockMV timeout
   processAction action
 
   st <- get
@@ -163,11 +173,9 @@ tick = do
 
   put $ st {ticks = newTick}
 
-  if drifted
-    then liftIO $ hPutStrLn stderr $ "skip: " ++ (show (actualTick - ticks st))
-    else when (delta > 0) $ liftIO $ threadDelay $ fromIntegral delta
+  liftIO $ when drifted $ hPutStrLn stderr $ "skip: " ++ show (actualTick - ticks st)
 
-  clockCheck
+  clockCheck $ fromIntegral delta
 
 -- previously called processArc
 -- hands the current link operations to the TickAction
