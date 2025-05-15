@@ -78,7 +78,7 @@ defaultConfig =
 -- | creates a clock according to the config and runs it
 -- | in a seperate thread
 clocked :: ClockConfig -> TickAction -> IO ClockRef
-clocked config ac = runClock config ac (clockCheck 0)
+clocked config ac = runClock config ac (clockCheck $ return 0)
 
 -- | runs the clock on the initial state and memory as given
 -- | by initClock, hands the ClockRef for interaction from outside
@@ -99,7 +99,6 @@ initClock config ac = do
   let startAt = now + processAhead
   Link.requestBeatAtTime sessionState 0 startAt (cQuantum config)
   Link.commitAndDestroyAppSessionState abletonLink sessionState
-  -- tOut <- registerDelay 100
   clockMV <- atomically newTQueue
   let st =
         ClockState
@@ -110,17 +109,16 @@ initClock config ac = do
           }
   pure (ClockMemory config (ClockRef clockMV abletonLink) ac, st)
   where
-    processAhead = round $ (cProcessAhead config) * 1000000
-    bpm = (coerce defaultCps) * 60 * (cBeatsPerCycle config)
+    processAhead = round $ cProcessAhead config * 1000000
+    bpm = coerce defaultCps * 60 * cBeatsPerCycle config
 
 readTQueueWithTimeout :: TQueue a -> Int -> IO (Maybe a)
 readTQueueWithTimeout queue timeoutMicros = do
   timeoutVar <- registerDelay timeoutMicros
   atomically $
-    -- Wait for either an item in the queue or the timeout
     (Just <$> readTQueue queue) `orElse` do
       timedOut <- readTVar timeoutVar
-      check timedOut -- Proceed only if the timeout has occurred
+      check timedOut
       return Nothing
 
 -- The reference time Link uses,
@@ -131,25 +129,27 @@ readTQueueWithTimeout queue timeoutMicros = do
 -- of nowArc. How far ahead is controlled by cProcessAhead.
 
 -- previously called checkArc
-clockCheck :: Int -> Clock ()
-clockCheck timeout = do
+clockCheck :: IO Int -> Clock ()
+clockCheck getTimeout = do
+  timeout <- liftIO getTimeout
   (ClockMemory config (ClockRef clockMV abletonLink) _) <- ask
 
   action <- liftIO $ readTQueueWithTimeout clockMV timeout
-  processAction action
 
-  st <- get
-
-  let logicalEnd = logicalTime config (start st) $ ticks st + 1
-      nextArcStartCycle = arcEnd $ nowArc st
-
-  ss <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
-  arcStartTime <- liftIO $ cyclesToTime config ss nextArcStartCycle
-  liftIO $ Link.destroySessionState ss
-
-  if (arcStartTime < logicalEnd)
-    then clockProcess
-    else tick
+  case action of
+    Just a -> do
+      processAction a
+      clockCheck getTimeout
+    Nothing -> do
+      st <- get
+      let logicalEnd = logicalTime config (start st) $ ticks st + 1
+          nextArcStartCycle = arcEnd $ nowArc st
+      ss <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
+      arcStartTime <- liftIO $ cyclesToTime config ss nextArcStartCycle
+      liftIO $ Link.destroySessionState ss
+      if arcStartTime < logicalEnd
+        then clockProcess
+        else tick
 
 -- tick moves the logical time forward or recalculates the ticks in case
 -- the logical time is out of sync with Link time.
@@ -159,23 +159,26 @@ tick = do
   (ClockMemory config (ClockRef _ abletonLink) _) <- ask
   st <- get
   now <- liftIO $ Link.clock abletonLink
-  let processAhead = round $ (cProcessAhead config) * 1000000
-      frameTimespan = round $ (cFrameTimespan config) * 1000000
+  let processAhead = round $ cProcessAhead config * 1000000
+      frameTimespan = round $ cFrameTimespan config * 1000000
       preferredNewTick = ticks st + 1
       logicalNow = logicalTime config (start st) preferredNewTick
       aheadOfNow = now + processAhead
       actualTick = (aheadOfNow - start st) `div` frameTimespan
-      drifted = abs (actualTick - preferredNewTick) > (cSkipTicks config)
+      drifted = abs (actualTick - preferredNewTick) > cSkipTicks config
       newTick
         | drifted = actualTick
         | otherwise = preferredNewTick
-      delta = min frameTimespan (logicalNow - aheadOfNow)
+      -- delta = min frameTimespan (logicalNow - aheadOfNow)
+      getDelta = do
+        now <- Link.clock abletonLink
+        return $ fromIntegral $ min frameTimespan (logicalNow - (now + processAhead))
 
   put $ st {ticks = newTick}
 
   liftIO $ when drifted $ hPutStrLn stderr $ "skip: " ++ show (actualTick - ticks st)
 
-  clockCheck $ fromIntegral delta
+  clockCheck getDelta
 
 -- previously called processArc
 -- hands the current link operations to the TickAction
@@ -196,16 +199,15 @@ clockProcess = do
   put (st {nowArc = (startCycle, endCycle)})
   tick
 
-processAction :: Maybe ClockAction -> Clock ()
-processAction Nothing = pure ()
-processAction (Just (SetNudge n)) = modify (\st -> st {nudged = n})
-processAction (Just (SetTempo bpm)) = do
+processAction :: ClockAction -> Clock ()
+processAction (SetNudge n) = modify (\st -> st {nudged = n})
+processAction (SetTempo bpm) = do
   (ClockMemory _ (ClockRef _ abletonLink) _) <- ask
   sessionState <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
   now <- liftIO $ Link.clock abletonLink
   liftIO $ Link.setTempo sessionState (fromRational bpm) now
   liftIO $ Link.commitAndDestroyAppSessionState abletonLink sessionState
-processAction (Just (SetCycle cyc)) = do
+processAction (SetCycle cyc) = do
   (ClockMemory config (ClockRef _ abletonLink) _) <- ask
   sessionState <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
 
