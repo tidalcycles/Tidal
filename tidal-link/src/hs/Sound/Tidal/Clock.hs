@@ -137,17 +137,19 @@ clockCheck getTimeout = do
   action <- liftIO $ readTQueueWithTimeout clockMV timeout
 
   case action of
-    Just a -> do processAction a
-                 clockCheck getTimeout
-    Nothing -> do st <- get
-                  let logicalEnd = logicalTime config (start st) $ ticks st + 1
-                      nextArcStartCycle = arcEnd $ nowArc st
-                  ss <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
-                  arcStartTime <- liftIO $ cyclesToTime config ss nextArcStartCycle
-                  liftIO $ Link.destroySessionState ss
-                  if arcStartTime < logicalEnd
-                    then clockProcess
-                    else tick
+    Just a -> do
+      processAction a
+      clockCheck getTimeout
+    Nothing -> do
+      st <- get
+      let logicalEnd = logicalTime config (start st) $ ticks st + 1
+          nextArcStartCycle = arcEnd $ nowArc st
+      ss <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
+      arcStartTime <- liftIO $ cyclesToTime config ss nextArcStartCycle
+      liftIO $ Link.destroySessionState ss
+      if arcStartTime < logicalEnd
+        then clockProcess
+        else tick
 
 -- tick moves the logical time forward or recalculates the ticks in case
 -- the logical time is out of sync with Link time.
@@ -168,9 +170,9 @@ tick = do
         | drifted = actualTick
         | otherwise = preferredNewTick
       -- delta = min frameTimespan (logicalNow - aheadOfNow)
-      getDelta = do now <- Link.clock abletonLink
-                    return $ fromIntegral $ min frameTimespan (logicalNow - (now + processAhead))
-
+      getDelta = do
+        now <- Link.clock abletonLink
+        return $ fromIntegral $ min frameTimespan (logicalNow - (now + processAhead))
 
   put $ st {ticks = newTick}
 
