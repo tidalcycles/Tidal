@@ -3,10 +3,26 @@
 {-# HLINT ignore "Use newtype instead of data" #-}
 module Main where
 
-import Control.Monad (when, forever)
+-- import Control.Monad (when, forever)
 -- import qualified Sound.Osc.Time.Timeout as O
 
+import Control.Concurrent (forkIO, threadDelay)
+import Control.Concurrent.MVar
+  ( MVar,
+    modifyMVar_,
+    newMVar,
+    putMVar,
+    takeMVar,
+  )
 import Control.Monad.State
+  ( MonadIO (liftIO),
+    StateT,
+    evalStateT,
+    forever,
+    gets,
+    modify,
+    when,
+  )
 import Data.Time (NominalDiffTime)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Graphics.Vty
@@ -17,10 +33,7 @@ import qualified Sound.Osc.Fd as O
 import qualified Sound.Osc.Transport.Fd.Udp as O
 import qualified Sound.PortMidi as PM
 import qualified Sound.PortMidi.Simple as PM
-import Control.Concurrent.MVar
-    ( modifyMVar_, newMVar, putMVar, takeMVar, MVar )
-import Control.Concurrent (threadDelay, forkIO)
-import System.IO (stderr, hPutStrLn)
+import System.IO (hPutStrLn, stderr)
 
 data Parameters = Parameters {mididevice :: Maybe PM.DeviceID, showdevices :: Bool}
 
@@ -56,16 +69,18 @@ type TapM = StateT TapState IO
 
 newState :: Vty -> (O.Message -> IO ()) -> IO TapState
 newState v send =
-  do tapsmv <- newMVar []
-     return $ TapState
-      { lastEv = "",
-        taps = tapsmv,
-        vty = v,
-        running = True,
-        sender = send,
-        cps = Nothing,
-        muted = False
-      }
+  do
+    tapsmv <- newMVar []
+    return $
+      TapState
+        { lastEv = "",
+          taps = tapsmv,
+          vty = v,
+          running = True,
+          sender = send,
+          cps = Nothing,
+          muted = False
+        }
 
 resolve :: String -> Int -> IO N.AddrInfo
 resolve host port = do
@@ -204,24 +219,25 @@ printDevices = do
 
 doMessage :: MVar [NominalDiffTime] -> (PM.Timestamp, PM.Message) -> IO ()
 doMessage tapsmv (ts, msg@(PM.Channel _ (PM.NoteOn {}))) =
-   do t <- getPOSIXTime
-      hPutStrLn stderr $ show ts ++ "  :  " ++ show msg
-      modifyMVar_ tapsmv $ \ts -> return $ prepend t ts
-      return ()
-  where prepend a [] = [a]
-        prepend a (b:xs) | a == b = b:xs
-                         | otherwise = a:b:xs
+  do
+    t <- getPOSIXTime
+    hPutStrLn stderr $ show ts ++ "  :  " ++ show msg
+    modifyMVar_ tapsmv $ \ts -> return $ prepend t ts
+    return ()
+  where
+    prepend a [] = [a]
+    prepend a (b : xs)
+      | a == b = b : xs
+      | otherwise = a : b : xs
 doMessage _ _ = return ()
-
 
 runMidi :: Maybe PM.DeviceID -> MVar [NominalDiffTime] -> IO ()
 runMidi Nothing _ = return ()
-runMidi (Just input) tapsmv = 
+runMidi (Just input) tapsmv =
   PM.withInput input $ \stream -> PM.withReadMessages stream 256 $ \readMessages ->
-                                   forever $ do
-                                     readMessages >>= mapM_ (doMessage tapsmv)
-                                     threadDelay 1000
-
+    forever $ do
+      readMessages >>= mapM_ (doMessage tapsmv)
+      threadDelay 1000
 
 runTap :: Parameters -> IO ()
 runTap (Parameters {showdevices = True}) = printDevices
