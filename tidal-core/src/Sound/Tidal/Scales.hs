@@ -322,13 +322,13 @@ These are equivalent:
 
 -}
 scaleWith :: (Eq a, Fractional a) => Pattern String -> ([a] -> [a]) -> Pattern Int -> Pattern a
-scaleWith = getScaleMod scaleTable
+scaleWith = getScaleWith scaleTable
 
 {- Variant of @scaleWith@ providing a list of modifier functions instead of a single function
 -}
 scaleWithList :: (Eq a, Fractional a) => Pattern String -> ([[a] -> [a]]) -> Pattern Int -> Pattern a
 scaleWithList _ [] _ = silence
-scaleWithList sp (f : []) p = scaleMod sp f p
+scaleWithList sp (f : []) p = scaleWith sp f p
 scaleWithList sp fs p = Pattern q
   where
     n = length fs
@@ -340,12 +340,12 @@ scaleWithList sp fs p = Pattern q
         f = fs !! i
         cyc = (floor $ start a) :: Int
         i = cyc `mod` n
-        pp = (scaleMod sp f p)
+        pp = (scaleWith sp f p)
 
 {- Variant of @getScale@ used to build the @scaleWith@ function
 -}
-getScaleMod :: (Eq a, Fractional a) => [(String, [a])] -> Pattern String -> ([a] -> [a]) -> Pattern Int -> Pattern a
-getScaleMod table sp f p =
+getScaleWith :: (Eq a, Fractional a) => [(String, [a])] -> Pattern String -> ([a] -> [a]) -> Pattern Int -> Pattern a
+getScaleWith table sp f p =
   ( \n scaleName ->
       noteInScale (uniq $ f $ fromMaybe [0] $ lookup scaleName table) n
   )
