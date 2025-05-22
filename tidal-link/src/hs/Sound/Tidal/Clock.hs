@@ -138,18 +138,19 @@ clockCheck getTimeout = do
 
   case action of
     Just a -> do
-      processAction a
-      clockCheck getTimeout
-    Nothing -> do
-      st <- get
-      let logicalEnd = logicalTime config (start st) $ ticks st + 1
-          nextArcStartCycle = arcEnd $ nowArc st
-      ss <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
-      arcStartTime <- liftIO $ cyclesToTime config ss nextArcStartCycle
-      liftIO $ Link.destroySessionState ss
-      if arcStartTime < logicalEnd
-        then clockProcess
-        else tick
+      retry <- processAction a
+      when retry $ clockCheck getTimeout
+    Nothing -> return ()
+
+  st <- get
+  let logicalEnd = logicalTime config (start st) $ ticks st + 1
+      nextArcStartCycle = arcEnd $ nowArc st
+  ss <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
+  arcStartTime <- liftIO $ cyclesToTime config ss nextArcStartCycle
+  liftIO $ Link.destroySessionState ss
+  if arcStartTime < logicalEnd
+    then clockProcess
+    else tick
 
 -- tick moves the logical time forward or recalculates the ticks in case
 -- the logical time is out of sync with Link time.
@@ -199,14 +200,15 @@ clockProcess = do
   put (st {nowArc = (startCycle, endCycle)})
   tick
 
-processAction :: ClockAction -> Clock ()
-processAction (SetNudge n) = modify (\st -> st {nudged = n})
+processAction :: ClockAction -> Clock (Bool)
+processAction (SetNudge n) = modify (\st -> st {nudged = n}) >> return True
 processAction (SetTempo bpm) = do
   (ClockMemory _ (ClockRef _ abletonLink) _) <- ask
   sessionState <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
   now <- liftIO $ Link.clock abletonLink
   liftIO $ Link.setTempo sessionState (fromRational bpm) now
   liftIO $ Link.commitAndDestroyAppSessionState abletonLink sessionState
+  return True
 processAction (SetCycle cyc) = do
   (ClockMemory config (ClockRef _ abletonLink) _) <- ask
   sessionState <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
@@ -219,6 +221,7 @@ processAction (SetCycle cyc) = do
   liftIO $ Link.commitAndDestroyAppSessionState abletonLink sessionState
 
   modify (\st -> st {ticks = 0, start = now, nowArc = (cyc, cyc)})
+  return $ cyc /= 0
 
 ---------------------------------------------------------------
 ----------- functions representing link operations ------------
