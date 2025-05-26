@@ -56,7 +56,7 @@ data State = State
   }
 
 -- | A datatype representing events taking place over time
-data Pattern a = Pattern {query :: State -> [Event a], steps :: Maybe (Pattern Rational), pureValue :: Maybe a}
+data Pattern a = Pattern {query :: State -> [Event a], steps :: Maybe (Rational), pureValue :: Maybe a}
   deriving (Generic, Functor)
 
 instance (NFData a) => NFData (Pattern a)
@@ -64,20 +64,20 @@ instance (NFData a) => NFData (Pattern a)
 pattern :: (State -> [Event a]) -> Pattern a
 pattern f = Pattern f Nothing Nothing
 
-setSteps :: Maybe (Pattern Rational) -> Pattern a -> Pattern a
+setSteps :: Maybe Rational -> Pattern a -> Pattern a
 setSteps r p = p {steps = r}
 
 setStepsFrom :: Pattern b -> Pattern a -> Pattern a
 setStepsFrom a b = b {steps = steps a}
 
-withStepsPat :: (Pattern Rational -> Pattern Rational) -> Pattern a -> Pattern a
+withStepsPat :: (Rational -> Rational) -> Pattern a -> Pattern a
 withStepsPat f p = p {steps = f <$> steps p}
 
 withSteps :: (Rational -> Rational) -> Pattern a -> Pattern a
-withSteps f p = p {steps = fmap (fmap f) $ steps p}
+withSteps f p = p {steps = fmap f $ steps p}
 
-pace :: Pattern Rational -> Pattern a -> Pattern a
-pace target p@(Pattern _ (Just t) _) = setSteps (Just target) $ fast (target / t) p
+pace :: Rational -> Pattern a -> Pattern a
+pace target p@(Pattern _ (Just t) _) = setSteps (Just target) $ _fast (target / t) p
 -- raise error?
 pace _ p = p
 
@@ -131,7 +131,7 @@ instance Applicative Pattern where
   -- > (⅓>½)-⅔|11
   -- > ⅓-(½>⅔)|12
   -- >   (⅔>1)|102
-  (<*>) a b = (applyPatToPatBoth a b) {steps = (\a' b' -> lcmr <$> a' <*> b') <$> steps a <*> steps b}
+  (<*>) a b = (applyPatToPatBoth a b) {steps = (\a' b' -> lcmr a' b') <$> steps a <*> steps b}
 
 -- | Like @<*>@, but the "wholes" come from the left
 (<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
@@ -244,23 +244,19 @@ unwrap pp = pp {query = q, pureValue = Nothing}
 
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the inner pattern.
-innerJoin :: Pattern (Pattern a) -> Pattern a
-innerJoin pp = setSteps (Just $ innerJoin' $ filterJust $ steps <$> pp) $ innerJoin' pp
+innerJoin :: Pattern (Pattern b) -> Pattern b
+innerJoin pp' = pp' {query = q, pureValue = Nothing}
   where
-    -- \| innerJoin but without steps manipulation (to avoid recursion)
-    innerJoin' :: Pattern (Pattern b) -> Pattern b
-    innerJoin' pp' = pp' {query = q, pureValue = Nothing}
+    q st =
+      concatMap
+        (\(Event oc _ op v) -> mapMaybe (munge oc) $ query v st {arc = op})
+        (query pp' st)
       where
-        q st =
-          concatMap
-            (\(Event oc _ op v) -> mapMaybe (munge oc) $ query v st {arc = op})
-            (query pp' st)
-          where
-            munge oc (Event ic iw ip v) =
-              do
-                p <- subArc (arc st) ip
-                p' <- subArc p (arc st)
-                return (Event (combineContexts [ic, oc]) iw p' v)
+        munge oc (Event ic iw ip v) =
+          do
+            p <- subArc (arc st) ip
+            p' <- subArc p (arc st)
+            return (Event (combineContexts [ic, oc]) iw p' v)
 
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the outer pattern.
