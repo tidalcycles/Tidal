@@ -18,7 +18,7 @@
 
 module Sound.Tidal.Stepwise where
 
-import Data.List (sort, sortOn)
+import Data.List (sort, sortOn, transpose)
 import Data.Maybe (catMaybes, fromJust, fromMaybe, isJust, mapMaybe)
 import Sound.Tidal.Core (stack, timecat, zoom, zoompat)
 import Sound.Tidal.Pattern
@@ -114,6 +114,12 @@ _extend factor pat = _expand factor $ _fast factor pat
 extend :: Pattern Rational -> Pattern a -> Pattern a
 extend = s_patternify _extend
 
+-- | Successively plays a pattern from each group in turn
+stepalt :: [[Pattern a]] -> Pattern a
+stepalt groups = stepcat $ concat $ take (fromIntegral $ c * length groups) $ transpose $ map cycle groups
+  where
+    c = foldl1 lcm $ map length groups
+
 {-
 s_while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
 s_while patb f pat@(Pattern _ (Just t) _) = while (_steps t patb) f pat
@@ -181,11 +187,4 @@ _s_taperBy amount times pat = s_cat $ s_taperlistBy amount times pat
 -- | Plays one fewer step from the pattern each repetition, down to nothing
 s_taperBy :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a
 s_taperBy = s_patternify2 _s_taperBy
-
--- | Successively plays a pattern from each group in turn
-s_alt :: [[Pattern a]] -> Pattern a
-s_alt groups = s_cat $ concat $ steptake (c * length groups) $ transpose $ map cycle groups
-  where
-    c = foldl1 lcm $ map length groups
-
 -}
