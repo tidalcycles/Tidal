@@ -926,8 +926,8 @@ euclid = patternify2 _euclid
 
 _euclid :: Int -> Int -> Pattern a -> Pattern a
 _euclid n k a
-  | n >= 0 = setSteps (Just $ pure $ toRational k) $ fastcat $ fmap (bool silence a) $ bjorklund (n, k)
-  | otherwise = setSteps (Just $ pure $ toRational k) $ fastcat $ fmap (bool a silence) $ bjorklund (-n, k)
+  | n >= 0 = setSteps (Just $ toRational k) $ fastcat $ fmap (bool silence a) $ bjorklund (n, k)
+  | otherwise = setSteps (Just $ toRational k) $ fastcat $ fmap (bool a silence) $ bjorklund (-n, k)
 
 -- |
 --
@@ -940,16 +940,16 @@ _euclid n k a
 --
 -- > d1 $ euclidFull 3 7 "realclaps" ("realclaps" # gain 0.8)
 euclidFull :: Pattern Int -> Pattern Int -> Pattern a -> Pattern a -> Pattern a
-euclidFull n k pa pb = setSteps (Just $ toRational <$> k) $ stack [euclid n k pa, euclidInv n k pb]
+euclidFull n k pa pb = setSteps (toRational <$> pureValue k) $ stack [euclid n k pa, euclidInv n k pb]
 
 -- | Less expressive than 'euclid' due to its constrained types, but may be more efficient.
 _euclidBool :: Int -> Int -> Pattern Bool -- TODO: add 'euclidBool'?
 _euclidBool n k
-  | n >= 0 = setSteps (Just $ pure $ toRational k) $ fastFromList $ bjorklund (n, k)
-  | otherwise = setSteps (Just $ pure $ toRational k) $ fastFromList $ fmap not $ bjorklund (-n, k)
+  | n >= 0 = setSteps (Just $ toRational k) $ fastFromList $ bjorklund (n, k)
+  | otherwise = setSteps (Just $ toRational k) $ fastFromList $ fmap not $ bjorklund (-n, k)
 
 _euclid' :: Int -> Int -> Pattern a -> Pattern a
-_euclid' n k p = setSteps (Just $ pure $ toRational k) $ fastcat $ map (\x -> if x then p else silence) (bjorklund (n, k))
+_euclid' n k p = setSteps (Just $ toRational k) $ fastcat $ map (\x -> if x then p else silence) (bjorklund (n, k))
 
 -- |
 -- As 'euclid', but taking a third rotational parameter corresponding to the onset
@@ -963,7 +963,7 @@ eoff = euclidOff
 
 _euclidOff :: Int -> Int -> Int -> Pattern a -> Pattern a
 _euclidOff _ 0 _ _ = silence
-_euclidOff n k s p = setSteps (Just $ pure $ toRational k) $ (rotL $ fromIntegral s % fromIntegral k) (_euclid n k p)
+_euclidOff n k s p = setSteps (Just $ toRational k) $ (rotL $ fromIntegral s % fromIntegral k) (_euclid n k p)
 
 -- | As 'euclidOff', but specialized to 'Bool'. May be more efficient than 'euclidOff'.
 euclidOffBool :: Pattern Int -> Pattern Int -> Pattern Int -> Pattern Bool -> Pattern Bool
@@ -971,7 +971,7 @@ euclidOffBool = patternify3 _euclidOffBool
 
 _euclidOffBool :: Int -> Int -> Int -> Pattern Bool -> Pattern Bool
 _euclidOffBool _ 0 _ _ = silence
-_euclidOffBool n k s p = setSteps (Just $ pure $ toRational k) $ rotL (fromIntegral s % fromIntegral k) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
+_euclidOffBool n k s p = setSteps (Just $ toRational k) $ rotL (fromIntegral s % fromIntegral k) ((\a b -> if b then a else not a) <$> _euclidBool n k <*> p)
 
 distrib :: [Pattern Int] -> Pattern a -> Pattern a
 distrib ps p = do
@@ -1184,7 +1184,7 @@ segment :: Pattern Time -> Pattern a -> Pattern a
 segment = patternify _segment
 
 _segment :: Time -> Pattern a -> Pattern a
-_segment n p = setSteps (Just $ pure n) $ _fast n (pure id) <* p
+_segment n p = setSteps (Just $ n) $ _fast n (pure id) <* p
 
 -- | @discretise@: the old (deprecated) name for 'segment'
 discretise :: Pattern Time -> Pattern a -> Pattern a
@@ -1457,7 +1457,7 @@ markovPat = patternify2 _markovPat
 
 _markovPat :: Int -> Int -> [[Double]] -> Pattern Int
 _markovPat n xi tp =
-  setSteps (Just $ pure $ toRational n) $
+  setSteps (Just $ toRational n) $
     splitQueries $
       pattern
         ( \(State a@(Arc s _) _) ->
@@ -1565,7 +1565,7 @@ fit' cyc n from to p = squeezeJoin $ _fit n mapMasks to
   where
     mapMasks =
       [ stretch $ mask (const True <$> filterValues (== i) from') p'
-      | i <- [0 .. n - 1]
+        | i <- [0 .. n - 1]
       ]
     p' = density cyc p
     from' = density cyc from
@@ -2225,10 +2225,7 @@ sew :: Pattern Bool -> Pattern a -> Pattern a -> Pattern a
 -- sew pb a b = overlay (mask pb a) (mask (inv pb) b)
 sew pb a b = Pattern pf psteps Nothing
   where
-    psteps = do
-      sa <- steps a
-      sb <- steps b
-      return $ pb >>= \v -> if v then sa else sb
+    psteps = pureValue pb >>= \v -> if v then steps a else steps b
     pf st = concatMap match evs
       where
         evs = query pb st
@@ -2920,7 +2917,7 @@ _binary :: (Data.Bits.Bits b) => Int -> b -> Pattern Bool
 _binary n num = listToPat $ __binary n num
 
 _binaryN :: Int -> Pattern Int -> Pattern Bool
-_binaryN n p = setSteps (Just $ pure $ toRational n) $ squeezeJoin $ _binary n <$> p
+_binaryN n p = setSteps (Just $ toRational n) $ squeezeJoin $ _binary n <$> p
 
 binaryN :: Pattern Int -> Pattern Int -> Pattern Bool
 binaryN n p = patternify _binaryN n p
