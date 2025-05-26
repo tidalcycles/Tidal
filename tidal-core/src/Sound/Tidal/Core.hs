@@ -303,7 +303,7 @@ fromMaybes = fastcat . map f
 --
 --  > d1 $ n (run "<4 8 4 6>") # sound "amencutup"
 run :: (Enum a, Num a, Real a) => Pattern a -> Pattern a
-run npat = setSteps (Just $ toRational <$> npat) $ npat >>= _run
+run npat = setSteps (toRational <$> pureValue npat) $ npat >>= _run
 
 _run :: (Enum a, Num a) => a -> Pattern a
 _run n = fastFromList [0 .. n - 1]
@@ -377,10 +377,10 @@ fastappend = fastAppend
 --  > d1 $ fastcat [sound "bd*2 sn", sound "arpy jvbass*2", sound "drum*2"]
 --  > d1 $ fastcat [sound "bd*2 sn", sound "jvbass*3", sound "drum*2", sound "ht mt"]
 fastCat :: [Pattern a] -> Pattern a
-fastCat (p : []) = p
+fastCat [p] = p
 fastCat ps = setSteps t $ _fast (toTime $ length ps) $ cat ps
   where
-    t = fastCat <$> (sequence $ map steps ps)
+    t = sum <$> mapM steps ps
 
 --  where t = fromMaybe (toRational $ length ps) $ ((* (toRational $ length ps)) . foldl1 lcmr) <$> (sequence $ map steps ps)
 
@@ -402,8 +402,8 @@ fastcat = fastCat
 --  >              , (1, s "superpiano" # n 0)
 --  >              ]
 timeCat :: [(Time, Pattern a)] -> Pattern a
-timeCat ((_, p) : []) = p
-timeCat tps = setSteps (Just $ pure total) $ stack $ map (\(s, e, p) -> compressArc (Arc (s / total) (e / total)) p) $ arrange 0 $ filter (\(t, _) -> t > 0) $ tps
+timeCat [(_, p)] = p
+timeCat tps = setSteps (Just total) $ stack $ map (\(s, e, p) -> compressArc (Arc (s / total) (e / total)) p) $ arrange 0 $ filter (\(t, _) -> t > 0) $ tps
   where
     total = sum $ map fst tps
     arrange :: Time -> [(Time, Pattern a)] -> [(Time, Time, Pattern a)]
@@ -471,11 +471,8 @@ stack :: [Pattern a] -> Pattern a
 stack pats = (foldr overlay silence pats) {steps = t}
   where
     t
-      | length pats == 0 = Nothing
-      -- TODO - something cleverer..
-      | otherwise = (mono . stack) <$> (sequence $ map steps pats)
-
---          | otherwise = foldl1 lcmr <$> (sequence $ map steps pats)
+      | null pats = Nothing
+      | otherwise = foldl1 lcmr <$> mapM steps pats
 
 -- ** Manipulating time
 
