@@ -3,19 +3,25 @@
 {-# HLINT ignore "Use newtype instead of data" #-}
 module Main where
 
+-- import Control.Monad (when, forever)
 -- import qualified Sound.Osc.Time.Timeout as O
 
-import Control.Concurrent (forkIO, killThread, newEmptyMVar, threadDelay)
+import Control.Concurrent (forkIO, killThread, threadDelay)
 import Control.Concurrent.MVar
   ( MVar,
-    modifyMVar_,
-    newMVar,
+    newEmptyMVar,
     putMVar,
-    readMVar,
     takeMVar,
   )
-import Control.Monad (forever, when)
 import Control.Monad.State
+  ( MonadIO (liftIO),
+    StateT,
+    evalStateT,
+    forever,
+    gets,
+    modify,
+    when,
+  )
 import Data.Time (NominalDiffTime)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Graphics.Vty
@@ -25,7 +31,6 @@ import Options.Applicative
 import qualified Sound.Osc.Fd as O
 import qualified Sound.Osc.Transport.Fd.Udp as O
 import qualified Sound.PortMidi as PM
-import Sound.PortMidi.Simple (ChannelMessage (controllerNumber))
 import qualified Sound.PortMidi.Simple as PM
 import System.IO (hPrint, hPutStrLn, stderr)
 
@@ -300,7 +305,7 @@ runTap :: Parameters -> IO ()
 runTap (Parameters {showdevices = True}) = printDevices
 runTap ps =
   do
-    PM.initialize
+    _ <- PM.initialize
     addr <- resolve "127.0.0.1" 6010
     u <-
       O.udp_socket
