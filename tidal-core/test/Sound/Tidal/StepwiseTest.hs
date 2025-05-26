@@ -14,8 +14,8 @@ import Sound.Tidal.Pattern
   )
 import Sound.Tidal.Stepwise (expand, stepcat, stepdrop, steptake)
 import Sound.Tidal.UI (inv, iter, linger, segment)
-import Test.Hspec ( describe, it, shouldBe, Spec )
-import TestUtils (compareP, firstCycleValues)
+import Test.Hspec (Spec, describe, it, shouldBe)
+import TestUtils (compareP)
 import Prelude hiding ((*>), (<*))
 
 run :: Spec
@@ -38,13 +38,12 @@ run =
       it "can pattern reverse stepdrops" $ do
         compareP (Arc 0 8) (stepdrop "0 -1 -2 -3" ("a b c d" :: Pattern Char)) "a b c d b c d c d d"
     describe "step count is correctly preserved/calculated through transformations" $ do
-      it "linger" $ (firstCycleValues <$> steps (linger 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
-      it "iter" $ (firstCycleValues <$> steps (iter 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
-      it "fast" $ (firstCycleValues <$> steps (fast 4 "a b c" :: Pattern Char)) `shouldBe` Just [3]
-      it "hurry" $ (firstCycleValues <$> steps (hurry 4 $ sound "a b c")) `shouldBe` Just [3]
-      it "rev" $ (firstCycleValues <$> steps (rev "a b c" :: Pattern Char)) `shouldBe` Just [3]
-      it "segment" $ (firstCycleValues <$> steps (segment 10 "a" :: Pattern Char)) `shouldBe` Just [10]
-      it "invert" $ (firstCycleValues <$> steps (inv "1 0 1" :: Pattern Bool)) `shouldBe` Just [3]
-      it "chop" $ (firstCycleValues <$> steps (chop 3 $ sound "a b")) `shouldBe` Just [6]
-      it "chop" $ (firstCycleValues <$> steps (striate 3 $ sound "a b")) `shouldBe` Just [6]
-
+      it "linger" $ steps (linger 4 "a b c" :: Pattern Char) `shouldBe` Just 3
+      it "iter" $ steps (iter 4 "a b c" :: Pattern Char) `shouldBe` Just 3
+      it "fast" $ steps (fast 4 "a b c" :: Pattern Char) `shouldBe` Just 3
+      it "hurry" $ steps (hurry 4 $ sound "a b c") `shouldBe` Just 3
+      it "rev" $ steps (rev "a b c" :: Pattern Char) `shouldBe` Just 3
+      it "segment" $ steps (segment 10 "a" :: Pattern Char) `shouldBe` Just 10
+      it "invert" $ steps (inv "1 0 1" :: Pattern Bool) `shouldBe` Just 3
+      it "chop" $ steps (chop 3 $ sound "a b") `shouldBe` Just 6
+      it "chop" $ steps (striate 3 $ sound "a b") `shouldBe` Just 6

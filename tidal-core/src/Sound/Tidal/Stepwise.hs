@@ -19,8 +19,8 @@
 module Sound.Tidal.Stepwise where
 
 import Data.List (sort, sortOn)
-import Data.Maybe (fromJust, isJust, mapMaybe)
-import Sound.Tidal.Core (stack, timecat, zoompat)
+import Data.Maybe (catMaybes, fromJust, fromMaybe, isJust, mapMaybe)
+import Sound.Tidal.Core (stack, timecat, zoom, zoompat)
 import Sound.Tidal.Pattern
 import Sound.Tidal.Utils (enumerate, nubOrd, pairs)
 
@@ -34,37 +34,23 @@ s_patternify f pa p = stepJoin $ (`f` p) <$> pa
 s_patternify2 :: (a -> b -> c -> Pattern d) -> Pattern a -> Pattern b -> c -> Pattern d
 s_patternify2 f a b p = stepJoin $ (\x y -> f x y p) <$> a <*> b
 
--- Breaks up pattern of patterns at event boundaries, then timecats them all together
 stepJoin :: Pattern (Pattern a) -> Pattern a
-stepJoin pp = splitQueries $ Pattern q t Nothing
+stepJoin pp = Pattern q first_t Nothing
   where
-    q st@(State a _) =
-      query
-        ( stepcat $
-            retime $
-              slices $
-                query (rotL (sam $ start a) pp) (st {arc = Arc 0 1})
-        )
-        st
-    -- TODO what's the step count of the step count pattern and does it matter?
-    t :: Maybe (Pattern Rational)
-    t = Just $ Pattern t_q Nothing Nothing
-    t_q :: State -> [Event Rational]
-    t_q st@(State a' _) = maybe [] (`query` st) (steps (stepcat $ retime $ slices $ query (rotL (sam $ start a') pp) (st {arc = Arc 0 1})))
-    -- retime each pattern slice
-    retime :: [(Time, Pattern a)] -> [Pattern a]
+    q st@(State a c) = query (timecat $ retime $ slices $ query (rotL (sam $ start a) pp) (st {arc = Arc 0 1})) st
+    first_t :: Maybe Rational
+    first_t = steps $ timecat $ retime $ slices $ queryArc pp (Arc 0 1)
+    retime :: [(Time, Pattern a)] -> [(Time, Pattern a)]
     retime xs = map (uncurry adjust) xs
       where
         occupied_perc = sum $ map fst $ filter (isJust . steps . snd) xs
-        occupied_steps = sum $ mapMaybe (steps . snd) xs
-        total_steps = (/ occupied_perc) <$> occupied_steps
-        adjust _ pat@(Pattern {steps = Just _}) = pat
-        adjust dur pat = setSteps (Just $ (* dur) <$> total_steps) pat
-    -- break up events at all start/end points, into groups
-    -- stacked into single patterns, with duration. Some patterns
-    -- will be have no events.
+        occupied_tactus = sum $ mapMaybe (steps . snd) xs
+        total_tactus = occupied_tactus / occupied_perc
+        adjust _ pat@(Pattern {steps = Just t}) = (t, pat)
+        adjust dur pat = (dur * total_tactus, pat)
+    -- break up events at all start/end points, into groups, including empty ones.
     slices :: [Event (Pattern a)] -> [(Time, Pattern a)]
-    slices evs = map (\s -> (snd s - fst s, stack $ map (\x -> withContext (\c -> combineContexts [c, context x]) $ value x) $ fit s evs)) $ pairs $ sort $ nubOrd $ 0 : 1 : concatMap (\ev -> [start (part ev), stop (part ev)]) evs
+    slices evs = map (\s -> (snd s - fst s, stack $ map (\x -> withContext (\c -> combineContexts [c, context x]) $ value x) $ fit s evs)) $ pairs $ sort $ nubOrd $ 0 : 1 : concatMap (\ev -> start (part ev) : stop (part ev) : []) evs
     -- list of slices of events within the given range
     fit :: (Rational, Rational) -> [Event (Pattern a)] -> [Event (Pattern a)]
     fit (b, e) evs = mapMaybe (match (b, e)) evs
@@ -74,31 +60,34 @@ stepJoin pp = splitQueries $ Pattern q t Nothing
       a <- subArc (Arc b e) $ part ev
       return ev {part = a}
 
+-- stepcat :: [Pattern a] -> Pattern a
+-- stepcat pats = innerJoin $ timecat . map snd . sortOn fst <$> tpat (epats pats)
+--   where
+--     -- enumerated patterns, ignoring those without steps
+--     epats :: [Pattern a] -> [(Int, Pattern a)]
+--     epats = enumerate . filter (isJust . steps)
+--     --
+--     tpat :: [(Int, Pattern a)] -> Pattern [(Int, (Time, Pattern a))]
+--     tpat = mapM (\(i, pat) -> (\t -> (i, (t, pat))) <$> fromJust (steps pat))
+
 stepcat :: [Pattern a] -> Pattern a
-stepcat pats = innerJoin $ timecat . map snd . sortOn fst <$> tpat (epats pats)
-  where
-    -- enumerated patterns, ignoring those without steps
-    epats :: [Pattern a] -> [(Int, Pattern a)]
-    epats = enumerate . filter (isJust . steps)
-    --
-    tpat :: [(Int, Pattern a)] -> Pattern [(Int, (Time, Pattern a))]
-    tpat = mapM (\(i, pat) -> (\t -> (i, (t, pat))) <$> fromJust (steps pat))
+stepcat pats = timecat $ map (\pat -> (fromMaybe 1 $ steps pat, pat)) pats
 
 _take :: Time -> Pattern a -> Pattern a
 -- raise error?
 _take _ pat@(Pattern _ Nothing _) = pat
-_take n pat@(Pattern _ (Just tpat) _) = setSteps (Just tpat') $ zoompat b e pat
+_take n pat@(Pattern _ (Just t) _) = setSteps (Just t') $ zoom (b, e) pat
   where
-    b = (\t -> if n >= 0 then 0 else 1 - (abs n / t)) <$> tpat
-    e = (\t -> if n >= 0 then n / t else 1) <$> tpat
-    tpat' = min (abs n) <$> tpat
+    b = if n >= 0 then 0 else 1 - (abs n / t)
+    e = if n >= 0 then n / t else 1
+    t' = min (abs n) t
 
 steptake :: Pattern Time -> Pattern a -> Pattern a
 steptake = s_patternify _take
 
 _stepdrop :: Time -> Pattern a -> Pattern a
 _stepdrop _ pat@(Pattern _ Nothing _) = pat
-_stepdrop n pat@(Pattern _ (Just tpat) _) = steptake (f <$> tpat) pat
+_stepdrop n pat@(Pattern _ (Just t) _) = steptake (pure $ f t) pat
   where
     f t
       | n >= 0 = t - n
@@ -120,7 +109,7 @@ contract :: Pattern Rational -> Pattern a -> Pattern a
 contract = s_patternify _contract
 
 _extend :: Rational -> Pattern a -> Pattern a
-_extend factor pat = withStepsPat (_fast factor) $ _expand factor $ _fast factor pat
+_extend factor pat = _expand factor $ _fast factor pat
 
 extend :: Pattern Rational -> Pattern a -> Pattern a
 extend = s_patternify _extend
