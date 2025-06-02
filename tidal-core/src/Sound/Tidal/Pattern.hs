@@ -69,6 +69,12 @@ instance Functor Pattern where
 
 instance (NFData a) => NFData (Pattern a)
 
+polymorphic :: Pattern a -> Pattern b
+polymorphic = fmap (const undefined)
+
+polymorphicEvent :: Event a -> Event b
+polymorphicEvent = fmap (const undefined)
+
 pattern_ :: (State -> [Event a]) -> Pattern a
 pattern_ f = Pattern f Nothing Nothing
 
@@ -233,7 +239,7 @@ instance Monad Pattern where
 --
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 unwrap :: Pattern (Pattern a) -> Pattern a
-unwrap pp = pp {query = q, pureValue = Nothing}
+unwrap pp = (polymorphic pp) {query = q, pureValue = Nothing}
   where
     q st =
       concatMap
@@ -250,7 +256,7 @@ unwrap pp = pp {query = q, pureValue = Nothing}
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the inner pattern.
 innerJoin :: Pattern (Pattern b) -> Pattern b
-innerJoin pp' = pp' {query = q, pureValue = Nothing}
+innerJoin pp' = (polymorphic pp') {query = q, pureValue = Nothing}
   where
     q st =
       concatMap
@@ -266,7 +272,7 @@ innerJoin pp' = pp' {query = q, pureValue = Nothing}
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the outer pattern.
 outerJoin :: Pattern (Pattern a) -> Pattern a
-outerJoin pp = pp {query = q, pureValue = Nothing}
+outerJoin pp = (polymorphic pp) {query = q, pureValue = Nothing}
   where
     q st =
       concatMap
@@ -285,7 +291,7 @@ outerJoin pp = pp {query = q, pureValue = Nothing}
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 -- TODO - steps
 squeezeJoin :: Pattern (Pattern a) -> Pattern a
-squeezeJoin pp = pp {query = q, pureValue = Nothing}
+squeezeJoin pp = (polymorphic pp) {query = q, pureValue = Nothing}
   where
     q st =
       concatMap
@@ -619,7 +625,7 @@ withQueryControls f pat = pat {query = query pat . (\(State a m) -> State a (f m
 -- | @withEvent f p@ returns a new @Pattern@ with each event mapped over
 -- function @f@.
 withEvent :: (Event a -> Event b) -> Pattern a -> Pattern b
-withEvent f p = p {query = map f . query p, pureValue = Nothing}
+withEvent f p = (polymorphic p) {query = map f . query p, pureValue = Nothing}
 
 -- | @withEvent f p@ returns a new @Pattern@ with each value mapped over
 -- function @f@.
@@ -629,7 +635,7 @@ withValue f pat = withEvent (fmap f) pat
 -- | @withEvent f p@ returns a new @Pattern@ with f applied to the resulting list of events for each query
 -- function @f@.
 withEvents :: ([Event a] -> [Event b]) -> Pattern a -> Pattern b
-withEvents f p = p {query = f . query p, pureValue = Nothing}
+withEvents f p = (polymorphic p) {query = f . query p, pureValue = Nothing}
 
 -- | @withPart f p@ returns a new @Pattern@ with function @f@ applied
 -- to the part.
@@ -848,7 +854,7 @@ rev p =
 -- | Mark values in the first pattern which match with at least one
 -- value in the second pattern.
 matchManyToOne :: (b -> a -> Bool) -> Pattern a -> Pattern b -> Pattern (Bool, b)
-matchManyToOne f pa pb = pa {query = q, pureValue = Nothing}
+matchManyToOne f pa pb = (polymorphic pa) {query = q, pureValue = Nothing}
   where
     q st = map match $ query pb st
       where
@@ -1299,7 +1305,7 @@ groupEventsBy f (e : es) = eqs : groupEventsBy f (es \\ eqs)
 -- assumes that all events in the list have same whole/part
 collectEvent :: [Event a] -> Maybe (Event [a])
 collectEvent [] = Nothing
-collectEvent l@(e : _) = Just $ e {context = con, value = vs}
+collectEvent l@(e : _) = Just $ (polymorphicEvent e) {context = con, value = vs}
   where
     con = unionC $ map context l
     vs = map value l
@@ -1324,7 +1330,7 @@ collect :: (Eq a) => Pattern a -> Pattern [a]
 collect = collectBy sameDur
 
 uncollectEvent :: Event [a] -> [Event a]
-uncollectEvent e = [e {value = value e !! i, context = resolveContext i (context e)} | i <- [0 .. length (value e) - 1]]
+uncollectEvent e = [(polymorphicEvent e) {value = value e !! i, context = resolveContext i (context e)} | i <- [0 .. length (value e) - 1]]
   where
     resolveContext i (Context xs) = if length xs <= i then Context [] else Context [xs !! i]
 

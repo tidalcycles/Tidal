@@ -1949,7 +1949,7 @@ spaceOut xs p = _slow (toRational $ sum xs) $ stack $ map (`compressArc` p) spac
 --
 --  > d1 $ n ("[0,4,7] [-12,-8,-5]") # s "superpiano" # sustain 2
 flatpat :: Pattern [a] -> Pattern a
-flatpat p = p {query = concatMap (\(Event c b b' xs) -> map (Event c b b') xs) . query p, pureValue = Nothing}
+flatpat p = (polymorphic p) {query = concatMap (\(Event c b b' xs) -> map (Event c b b') xs) . query p, pureValue = Nothing}
 
 -- | @layer@ takes a list of 'Pattern'-returning functions and a seed element,
 -- stacking the result of applying the seed element to each function in the list.
@@ -2878,7 +2878,7 @@ squeeze _ [] = silence
 squeeze ipat pats = squeezeJoin $ (pats !!!) <$> ipat
 
 squeezeJoinUp :: Pattern ControlPattern -> ControlPattern
-squeezeJoinUp pp = pp {query = q, pureValue = Nothing}
+squeezeJoinUp pp = (polymorphic pp) {query = q, pureValue = Nothing}
   where
     q st = concatMap (f st) (query (filterDigital pp) st)
     f st (Event c (Just w) p v) =
