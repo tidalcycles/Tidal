@@ -61,8 +61,8 @@ data Pattern a = Pattern {query :: State -> [Event a], steps :: Maybe (Rational)
 
 instance (NFData a) => NFData (Pattern a)
 
-pattern :: (State -> [Event a]) -> Pattern a
-pattern f = Pattern f Nothing Nothing
+pattern_ :: (State -> [Event a]) -> Pattern a
+pattern_ f = Pattern f Nothing Nothing
 
 setSteps :: Maybe Rational -> Pattern a -> Pattern a
 setSteps r p = p {steps = r}
@@ -145,7 +145,7 @@ instance Applicative Pattern where
 infixl 4 <*, *>, <<*
 
 applyPatToPat :: (Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)) -> Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPat combineWholes pf px = pattern q
+applyPatToPat combineWholes pf px = pattern_ q
   where
     q st = catMaybes $ concatMap match $ query pf st
       where
@@ -160,7 +160,7 @@ applyPatToPat combineWholes pf px = pattern q
             (query px $ st {arc = wholeOrPart ef})
 
 applyPatToPatBoth :: Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPatBoth pf px = pattern q
+applyPatToPatBoth pf px = pattern_ q
   where
     q st = catMaybes $ (concatMap match $ query pf st) ++ (concatMap matchX $ query (filterAnalog px) st)
       where
@@ -177,7 +177,7 @@ applyPatToPatBoth pf px = pattern q
           return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
 
 applyPatToPatLeft :: Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPatLeft pf px = pattern q
+applyPatToPatLeft pf px = pattern_ q
   where
     q st = catMaybes $ concatMap match $ query pf st
       where
@@ -188,7 +188,7 @@ applyPatToPatLeft pf px = pattern q
           return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
 
 applyPatToPatRight :: Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPatRight pf px = pattern q
+applyPatToPatRight pf px = pattern_ q
   where
     q st = catMaybes $ concatMap match $ query px st
       where
@@ -292,7 +292,7 @@ squeezeJoin pp = pp {query = q, pureValue = Nothing}
         return (Event (combineContexts [iContext, oContext]) w' p' v)
 
 _trigJoin :: Bool -> Pattern (Pattern a) -> Pattern a
-_trigJoin cycleZero pat_of_pats = pattern q
+_trigJoin cycleZero pat_of_pats = pattern_ q
   where
     q st =
       concatMap
@@ -384,7 +384,7 @@ instance Monoid (Pattern a) where
 
 instance Semigroup (Pattern a) where
   (<>) :: Pattern a -> Pattern a -> Pattern a
-  (<>) !p !p' = pattern $ \st -> query p st ++ query p' st
+  (<>) !p !p' = pattern_ $ \st -> query p st ++ query p' st
 
 instance (Num a, Ord a) => Real (Pattern a) where
   toRational :: (Num a, Ord a) => Pattern a -> Rational
@@ -878,7 +878,7 @@ filterAnalog :: Pattern a -> Pattern a
 filterAnalog = filterEvents isAnalog
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
-playFor s e pat = pattern $ \st -> maybe [] (\a -> query pat (st {arc = a})) $ subArc (Arc s e) (arc st)
+playFor s e pat = pattern_ $ \st -> maybe [] (\a -> query pat (st {arc = a})) $ subArc (Arc s e) (arc st)
 
 -- | Splits a pattern into a list containing the given 'n' number of
 -- patterns. Each one plays every 'n'th cycle, successfully offset by

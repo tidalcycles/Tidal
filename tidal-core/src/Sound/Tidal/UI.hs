@@ -140,7 +140,7 @@ timeToRands' seed n
 --
 -- > jux (# ((1024 <~) $ gain rand)) $ sound "sn sn ~ sn" # gain rand
 rand :: (Fractional a) => Pattern a
-rand = pattern (\(State a@(Arc s _) _) -> [Event (Context []) Nothing a (realToFrac (timeToRand s :: Double))])
+rand = pattern_ (\(State a@(Arc s _) _) -> [Event (Context []) Nothing a (realToFrac (timeToRand s :: Double))])
 
 -- | Boolean rand - a continuous stream of true\/false values, with a 50\/50 chance.
 brand :: Pattern Bool
@@ -1459,7 +1459,7 @@ _markovPat :: Int -> Int -> [[Double]] -> Pattern Int
 _markovPat n xi tp =
   setSteps (Just $ toRational n) $
     splitQueries $
-      pattern
+      pattern_
         ( \(State a@(Arc s _) _) ->
             queryArc (listToPat $ runMarkov n tp xi (sam s)) a
         )
@@ -1797,7 +1797,7 @@ _scramble n = _rearrangeWith (_segment (fromIntegral n) $ _irand n) n
 randrun :: Int -> Pattern Int
 randrun 0 = silence
 randrun n' =
-  splitQueries $ pattern (\(State a@(Arc s _) _) -> events a $ sam s)
+  splitQueries $ pattern_ (\(State a@(Arc s _) _) -> events a $ sam s)
   where
     events a seed = mapMaybe toEv $ zip arcs shuffled
       where
@@ -2391,7 +2391,7 @@ samples' p p' = flip pick <$> p' <*> p
 {-
 scrumple :: Time -> Pattern a -> Pattern a -> Pattern a
 scrumple o p p' = p'' -- overlay p (o `rotR` p'')
-  where p'' = pattern $ \a -> concatMap
+  where p'' = pattern_ $ \a -> concatMap
                               (\((s,d), vs) -> map (\x -> ((s,d),
                                                            snd x
                                                           )
@@ -2416,7 +2416,7 @@ stackwith p ps
     l = fromIntegral $ length ps
 
 {-
-cross f p p' = pattern $ \t -> concat [filter flt $ arc p t,
+cross f p p' = pattern_ $ \t -> concat [filter flt $ arc p t,
                                        filter (not . flt) $ arc p' t
                                       ]
 ]  where flt = f . cyclePos . fst . fst
@@ -2772,7 +2772,7 @@ inv = (not <$>)
 
 -- TODO - test this with analog events
 smooth :: (Fractional a) => Pattern a -> Pattern a
-smooth p = pattern $ \st@(State a cm) -> tween st a $ query monoP (State (midArc a) cm)
+smooth p = pattern_ $ \st@(State a cm) -> tween st a $ query monoP (State (midArc a) cm)
   where
     midArc a = Arc (mid (start a, stop a)) (mid (start a, stop a))
     tween _ _ [] = []
