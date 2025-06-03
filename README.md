@@ -8,9 +8,11 @@
 
 [![DOI](https://zenodo.org/badge/898407.svg)](https://doi.org/10.5281/zenodo.592191)
  
-Language for live coding algorithmic patterns
+[Uzu language](https://uzu.lurk.org/) for live coding algorithmic patterns
 
 For documentation, mailing list and more info see [here](https://tidalcycles.org/).  
 You can help speed up Tidal development by [contributing to the collective fund](https://opencollective.com/tidalcycles)!
 
 (c) Alex McLean and contributors, 2025
+
+Licensed under the GNU Public License v3.0. Ports and other projects making use of Tidal source code as a reference for e.g. algorithms and/or types are derivative works and bound by the same license.
