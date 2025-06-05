@@ -116,9 +116,9 @@ extend = s_patternify _extend
 
 -- | Successively plays a pattern from each group in turn
 stepalt :: [[Pattern a]] -> Pattern a
-stepalt groups = stepcat $ concat $ take (fromIntegral $ c * length groups) $ transpose $ map cycle groups
+stepalt groups = stepcat $ concat $ take (fromIntegral cycs) $ transpose $ map cycle groups
   where
-    c = foldl1 lcm $ map length groups
+    cycs = foldl1 lcm $ map length groups
 
 {-
 s_while :: Pattern Bool -> (Pattern a -> Pattern a) -> Pattern a -> Pattern a
