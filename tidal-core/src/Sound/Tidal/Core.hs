@@ -402,7 +402,7 @@ fastcat = fastCat
 --  >              , (1, s "superpiano" # n 0)
 --  >              ]
 timeCat :: [(Time, Pattern a)] -> Pattern a
-timeCat [(_, p)] = p
+timeCat [(t, p)] = setSteps (Just t) p
 timeCat tps = setSteps (Just total) $ stack $ map (\(s, e, p) -> compressArc (Arc (s / total) (e / total)) p) $ arrange 0 $ filter (\(t, _) -> t > 0) $ tps
   where
     total = sum $ map fst tps
