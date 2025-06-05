@@ -12,7 +12,7 @@ import Sound.Tidal.Core
 import Sound.Tidal.ID (ID (fromID))
 import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
-import Sound.Tidal.Stream.Config (Config (cClockConfig))
+import Sound.Tidal.Config (toClockConfig)
 import Sound.Tidal.Stream.Types
   ( PlayState (PlayState, psHistory, psMute, psPattern, psSolo),
     Stream (sClockRef, sConfig, sPMapMV),
@@ -56,7 +56,7 @@ transition stream historyFlag mapper patId !pat = do
             psHistory = appendPat historyFlag [silence]
           }
       transition' pat' = do
-        t <- Clock.getCycleTime (cClockConfig $ sConfig stream) (sClockRef stream)
+        t <- Clock.getCycleTime (toClockConfig $ sConfig stream) (sClockRef stream)
         return $! mapper t pat'
   pMap <- readMVar (sPMapMV stream)
   let playState = updatePS $ Map.lookup (fromID patId) pMap

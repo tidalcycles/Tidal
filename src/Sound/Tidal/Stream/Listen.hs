@@ -10,14 +10,14 @@ import qualified Sound.Osc.Fd as O
 import qualified Sound.Osc.Transport.Fd.Udp as O
 import Sound.Tidal.ID
 import Sound.Tidal.Pattern
-import Sound.Tidal.Stream.Config
+import Sound.Tidal.Config
 import Sound.Tidal.Stream.Types
 import Sound.Tidal.Stream.UI
 import System.IO (hPutStrLn, stderr)
 
 {-
     Listen.hs - logic for listening and acting on incoming OSC messages
-    Copyright (C) 2020, Alex McLean and contributors
+    Copyright (C) 2025, Alex McLean and contributors
 
     This library is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

@@ -7,7 +7,7 @@ import qualified Sound.Osc.Transport.Fd.Udp as O
 import qualified Sound.Tidal.Clock as Clock
 import Sound.Tidal.Pattern
 import Sound.Tidal.Show ()
-import Sound.Tidal.Stream.Config
+import Sound.Tidal.Config
 
 data Stream = Stream
   { sConfig :: Config,

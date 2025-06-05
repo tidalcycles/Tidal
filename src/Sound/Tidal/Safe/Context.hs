@@ -65,7 +65,7 @@ import Sound.Tidal.ParseBP as C
 import Sound.Tidal.Pattern as C
 import Sound.Tidal.Scales as C
 import Sound.Tidal.Simple as C
-import Sound.Tidal.Stream.Config as C
+import Sound.Tidal.Config as C
 import Sound.Tidal.Stream.Main (startTidal)
 import Sound.Tidal.Stream.Target (superdirtTarget)
 import Sound.Tidal.Stream.Types (Target (..))

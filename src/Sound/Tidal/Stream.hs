@@ -1,5 +1,5 @@
 module Sound.Tidal.Stream
-  ( module Sound.Tidal.Stream.Config,
+  ( module Sound.Tidal.Config,
     module Sound.Tidal.Stream.Types,
     module Sound.Tidal.Stream.Process,
     module Sound.Tidal.Stream.Target,
@@ -9,7 +9,7 @@ module Sound.Tidal.Stream
   )
 where
 
-import Sound.Tidal.Stream.Config
+import Sound.Tidal.Config
 import Sound.Tidal.Stream.Listen
 import Sound.Tidal.Stream.Main
 import Sound.Tidal.Stream.Process

@@ -16,7 +16,7 @@ import qualified Sound.Osc.Fd as O
 import qualified Sound.Osc.Time.Timeout as O
 import qualified Sound.Osc.Transport.Fd.Udp as O
 import Sound.Tidal.Pattern
-import Sound.Tidal.Stream.Config
+import Sound.Tidal.Config
 import Sound.Tidal.Stream.Types
 
 {-

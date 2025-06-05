@@ -29,12 +29,12 @@ library
 
   Exposed-modules:    
                        Sound.Tidal.Boot
+                       Sound.Tidal.Config
                        Sound.Tidal.Context
                        Sound.Tidal.ID
                        Sound.Tidal.Safe.Context
                        Sound.Tidal.Safe.Boot
                        Sound.Tidal.Stream
-                       Sound.Tidal.Stream.Config
                        Sound.Tidal.Stream.Listen
                        Sound.Tidal.Stream.Main
                        Sound.Tidal.Stream.Process
