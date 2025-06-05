@@ -8,9 +8,9 @@ import Data.Maybe (fromJust)
 import qualified Network.Socket as N
 import qualified Sound.Osc.Fd as O
 import qualified Sound.Osc.Transport.Fd.Udp as O
+import Sound.Tidal.Config
 import Sound.Tidal.ID
 import Sound.Tidal.Pattern
-import Sound.Tidal.Config
 import Sound.Tidal.Stream.Types
 import Sound.Tidal.Stream.UI
 import System.IO (hPutStrLn, stderr)

@@ -7,12 +7,12 @@ import qualified Data.Map.Strict as Map
 -- import Data.Maybe (fromJust)
 
 import qualified Sound.Tidal.Clock as Clock
+import Sound.Tidal.Config (toClockConfig)
 import Sound.Tidal.Control (_stut)
 import Sound.Tidal.Core
 import Sound.Tidal.ID (ID (fromID))
 import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
-import Sound.Tidal.Config (toClockConfig)
 import Sound.Tidal.Stream.Types
   ( PlayState (PlayState, psHistory, psMute, psPattern, psSolo),
     Stream (sClockRef, sConfig, sPMapMV),

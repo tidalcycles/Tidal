@@ -7,9 +7,9 @@ import Control.Concurrent.MVar
 import qualified Control.Exception as E
 import qualified Data.Map as Map
 import qualified Sound.Tidal.Clock as Clock
+import Sound.Tidal.Config
 import Sound.Tidal.ID
 import Sound.Tidal.Pattern
-import Sound.Tidal.Config
 import Sound.Tidal.Stream.Process
 import Sound.Tidal.Stream.Types
 import System.IO (hPutStrLn, stderr)
