@@ -1,9 +1,9 @@
 module Sound.Tidal.Config where
 
 import Control.Monad (when)
-import qualified Sound.Tidal.Clock as Clock
-import Foreign.C (CDouble)
 import Data.Int (Int64)
+import Foreign.C (CDouble)
+import qualified Sound.Tidal.Clock as Clock
 
 {-
     Config.hs - For default Tidal configuration values.
@@ -54,23 +54,25 @@ defaultConfig =
     }
 
 toClockConfig :: Config -> Clock.ClockConfig
-toClockConfig conf = Clock.ClockConfig {
-  Clock.clockFrameTimespan = cFrameTimespan conf,
-  Clock.clockEnableLink = cEnableLink conf,
-  Clock.clockProcessAhead = cProcessAhead conf,
-  Clock.clockSkipTicks = cSkipTicks conf,
-  Clock.clockQuantum = cQuantum conf,
-  Clock.clockBeatsPerCycle = cBeatsPerCycle conf
-}
+toClockConfig conf =
+  Clock.ClockConfig
+    { Clock.clockFrameTimespan = cFrameTimespan conf,
+      Clock.clockEnableLink = cEnableLink conf,
+      Clock.clockProcessAhead = cProcessAhead conf,
+      Clock.clockSkipTicks = cSkipTicks conf,
+      Clock.clockQuantum = cQuantum conf,
+      Clock.clockBeatsPerCycle = cBeatsPerCycle conf
+    }
 
 verbose :: Config -> String -> IO ()
 verbose c s = when (cVerbose c) $ putStrLn s
 
 setFrameTimespan :: Double -> Config -> Config
 setFrameTimespan n c =
-  c { cFrameTimespan = n}
+  c {cFrameTimespan = n}
 
 setProcessAhead :: Double -> Config -> Config
 setProcessAhead n c =
   c
-    { cProcessAhead = n}
+    { cProcessAhead = n
+    }
