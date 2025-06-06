@@ -3,8 +3,9 @@ module Sound.Tidal.Stream.Main where
 import Control.Concurrent (forkIO, newMVar)
 import qualified Data.Map as Map
 import qualified Sound.Tidal.Clock as Clock
-import Sound.Tidal.Stream.Config
-  ( Config (cClockConfig, cCtrlAddr, cCtrlPort),
+import Sound.Tidal.Config
+  ( Config (cCtrlAddr, cCtrlPort),
+    toClockConfig,
     verbose,
   )
 import Sound.Tidal.Stream.Listen
@@ -54,7 +55,7 @@ startStream config oscmap = do
 
   cxs <- getCXs config oscmap
 
-  clockRef <- Clock.clocked (cClockConfig config) (doTick sMapMV pMapMV globalFMV cxs)
+  clockRef <- Clock.clocked (toClockConfig config) (doTick sMapMV pMapMV globalFMV cxs)
 
   let stream =
         Stream
