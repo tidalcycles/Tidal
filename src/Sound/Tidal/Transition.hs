@@ -7,12 +7,12 @@ import qualified Data.Map.Strict as Map
 -- import Data.Maybe (fromJust)
 
 import qualified Sound.Tidal.Clock as Clock
+import Sound.Tidal.Config (toClockConfig)
 import Sound.Tidal.Control (_stut)
 import Sound.Tidal.Core
 import Sound.Tidal.ID (ID (fromID))
 import Sound.Tidal.Params (gain, pan)
 import Sound.Tidal.Pattern
-import Sound.Tidal.Stream.Config (Config (cClockConfig))
 import Sound.Tidal.Stream.Types
   ( PlayState (PlayState, psHistory, psMute, psPattern, psSolo),
     Stream (sClockRef, sConfig, sPMapMV),
@@ -56,7 +56,7 @@ transition stream historyFlag mapper patId !pat = do
             psHistory = appendPat historyFlag [silence]
           }
       transition' pat' = do
-        t <- Clock.getCycleTime (cClockConfig $ sConfig stream) (sClockRef stream)
+        t <- Clock.getCycleTime (toClockConfig $ sConfig stream) (sClockRef stream)
         return $! mapper t pat'
   pMap <- readMVar (sPMapMV stream)
   let playState = updatePS $ Map.lookup (fromID patId) pMap
@@ -220,3 +220,81 @@ _anticipateIn t now pats = _washIn (innerJoin . (\pat -> (\v -> _stut 8 0.2 v pa
 -- Build up some tension, culminating in a _drop_ to the new pattern after 8 cycles.
 _anticipate :: Time -> [ControlPattern] -> ControlPattern
 _anticipate = _anticipateIn 8
+
+-- Deprecated aliases
+mortalOverlay :: Time -> Time -> [Pattern a] -> Pattern a
+mortalOverlay = _mortalOverlay
+
+wash ::
+  (Pattern a -> Pattern a) ->
+  (Pattern a -> Pattern a) ->
+  Time ->
+  Time ->
+  Time ->
+  Time ->
+  [Pattern a] ->
+  Pattern a
+wash = _wash
+
+washIn ::
+  (Pattern a -> Pattern a) ->
+  Time ->
+  Time ->
+  [Pattern a] ->
+  Pattern a
+washIn = _washIn
+
+xfadeIn :: Time -> Time -> [ControlPattern] -> ControlPattern
+xfadeIn = _xfadeIn
+
+histpan :: Int -> Time -> [ControlPattern] -> ControlPattern
+histpan = _histpan
+
+wait :: Time -> Time -> [ControlPattern] -> ControlPattern
+wait = _wait
+
+waitT ::
+  (Time -> [ControlPattern] -> ControlPattern) ->
+  Time ->
+  Time ->
+  [ControlPattern] ->
+  ControlPattern
+waitT = _waitT
+
+jump :: Time -> [ControlPattern] -> ControlPattern
+jump = _jump
+
+jumpIn :: Int -> Time -> [ControlPattern] -> ControlPattern
+jumpIn = _jumpIn
+
+jumpIn' :: Int -> Time -> [ControlPattern] -> ControlPattern
+jumpIn' = _jumpIn'
+
+jumpMod :: Int -> Time -> [ControlPattern] -> ControlPattern
+jumpMod = _jumpMod
+
+jumpMod' :: Int -> Int -> Time -> [ControlPattern] -> ControlPattern
+jumpMod' = _jumpMod'
+
+mortal ::
+  Time -> Time -> Time -> [ControlPattern] -> ControlPattern
+mortal = _mortal
+
+interpolate :: Time -> [ControlPattern] -> ControlPattern
+interpolate = _interpolate
+
+interpolateIn ::
+  Time -> Time -> [ControlPattern] -> ControlPattern
+interpolateIn = _interpolateIn
+
+clutch :: Time -> [Pattern a] -> Pattern a
+clutch = _clutch
+
+clutchIn :: Time -> Time -> [Pattern a] -> Pattern a
+clutchIn = _clutchIn
+
+anticipateIn :: Time -> Time -> [ControlPattern] -> ControlPattern
+anticipateIn = _anticipateIn
+
+anticipate :: Time -> [ControlPattern] -> ControlPattern
+anticipate = _anticipate

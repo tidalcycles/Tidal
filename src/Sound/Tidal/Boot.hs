@@ -129,7 +129,7 @@ where
     along with this library.  If not, see <http://www.gnu.org/licenses/>.
 -}
 
-import Sound.Tidal.Context
+import Sound.Tidal.Context hiding (anticipate, anticipateIn, clutch, clutchIn, histpan, interpolate, interpolateIn, jump, jumpIn, jumpIn', jumpMod, jumpMod', mortal, mortalOverlay, wait, waitT, wash, washIn, xfadeIn)
 import Sound.Tidal.ID (ID)
 import System.IO (hSetEncoding, stdout, utf8)
 import Prelude hiding (all, (*>), (<*))

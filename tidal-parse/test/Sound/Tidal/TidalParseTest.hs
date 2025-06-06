@@ -305,3 +305,7 @@ run =
     it "parses an example with sseqs" $
       "s (sseqs [(\"tink\",\" x x\"),(\"feel\", \"x x \")])"
         `parsesTo` (s (sseqs [("tink", " x x"), ("feel", "x x ")]))
+
+    it "parses an example with times" $
+      "rolledBy 0.45 $ n \"<a'm9'8 e'7sus4'8>\""
+        `parsesTo` (rolledBy 0.45 $ n "<a'm9'8 e'7sus4'8>")

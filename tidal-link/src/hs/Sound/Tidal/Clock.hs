@@ -42,12 +42,12 @@ data ClockRef = ClockRef
 
 -- | configuration of the clock
 data ClockConfig = ClockConfig
-  { cQuantum :: CDouble,
-    cBeatsPerCycle :: CDouble,
-    cFrameTimespan :: Double,
-    cEnableLink :: Bool,
-    cSkipTicks :: Int64,
-    cProcessAhead :: Double
+  { clockQuantum :: CDouble,
+    clockBeatsPerCycle :: CDouble,
+    clockFrameTimespan :: Double,
+    clockEnableLink :: Bool,
+    clockSkipTicks :: Int64,
+    clockProcessAhead :: Double
   }
 
 -- | action to be executed on a tick,
@@ -67,12 +67,12 @@ defaultCps = 0.575
 defaultConfig :: ClockConfig
 defaultConfig =
   ClockConfig
-    { cFrameTimespan = 1 / 20,
-      cEnableLink = False,
-      cProcessAhead = 3 / 10,
-      cSkipTicks = 50,
-      cQuantum = 4,
-      cBeatsPerCycle = 4
+    { clockFrameTimespan = 1 / 20,
+      clockEnableLink = False,
+      clockProcessAhead = 3 / 10,
+      clockSkipTicks = 10,
+      clockQuantum = 4,
+      clockBeatsPerCycle = 4
     }
 
 -- | creates a clock according to the config and runs it
@@ -93,11 +93,11 @@ runClock config ac clock = do
 initClock :: ClockConfig -> TickAction -> IO (ClockMemory, ClockState)
 initClock config ac = do
   abletonLink <- Link.create bpm
-  when (cEnableLink config) $ Link.enable abletonLink
+  when (clockEnableLink config) $ Link.enable abletonLink
   sessionState <- Link.createAndCaptureAppSessionState abletonLink
   now <- Link.clock abletonLink
   let startAt = now + processAhead
-  Link.requestBeatAtTime sessionState 0 startAt (cQuantum config)
+  Link.requestBeatAtTime sessionState 0 startAt (clockQuantum config)
   Link.commitAndDestroyAppSessionState abletonLink sessionState
   clockMV <- atomically newTQueue
   let st =
@@ -109,8 +109,8 @@ initClock config ac = do
           }
   pure (ClockMemory config (ClockRef clockMV abletonLink) ac, st)
   where
-    processAhead = round $ cProcessAhead config * 1000000
-    bpm = coerce defaultCps * 60 * cBeatsPerCycle config
+    processAhead = round $ clockProcessAhead config * 1000000
+    bpm = coerce defaultCps * 60 * clockBeatsPerCycle config
 
 readTQueueWithTimeout :: TQueue a -> Int -> IO (Maybe a)
 readTQueueWithTimeout queue timeoutMicros = do
@@ -160,13 +160,13 @@ tick = do
   (ClockMemory config (ClockRef _ abletonLink) _) <- ask
   st <- get
   now <- liftIO $ Link.clock abletonLink
-  let processAhead = round $ cProcessAhead config * 1000000
-      frameTimespan = round $ cFrameTimespan config * 1000000
+  let processAhead = round $ (clockProcessAhead config) * 1000000
+      frameTimespan = round $ (clockFrameTimespan config) * 1000000
       preferredNewTick = ticks st + 1
       logicalNow = logicalTime config (start st) preferredNewTick
       aheadOfNow = now + processAhead
       actualTick = (aheadOfNow - start st) `div` frameTimespan
-      drifted = abs (actualTick - preferredNewTick) > cSkipTicks config
+      drifted = abs (actualTick - preferredNewTick) > (clockSkipTicks config)
       newTick
         | drifted = actualTick
         | otherwise = preferredNewTick
@@ -214,10 +214,10 @@ processAction (SetCycle cyc) = do
   sessionState <- liftIO $ Link.createAndCaptureAppSessionState abletonLink
 
   now <- liftIO $ Link.clock abletonLink
-  let processAhead = round $ (cProcessAhead config) * 1000000
+  let processAhead = round $ (clockProcessAhead config) * 1000000
       startAt = now + processAhead
-      beat = (fromRational cyc) * (cBeatsPerCycle config)
-  liftIO $ Link.requestBeatAtTime sessionState beat startAt (cQuantum config)
+      beat = (fromRational cyc) * (clockBeatsPerCycle config)
+  liftIO $ Link.requestBeatAtTime sessionState beat startAt (clockQuantum config)
   liftIO $ Link.commitAndDestroyAppSessionState abletonLink sessionState
 
   modify (\st -> st {ticks = 0, start = now, nowArc = (cyc, cyc)})
@@ -234,10 +234,10 @@ arcEnd :: (Time, Time) -> Time
 arcEnd = snd
 
 beatToCycles :: ClockConfig -> Double -> Double
-beatToCycles config beat = beat / (coerce $ cBeatsPerCycle config)
+beatToCycles config beat = beat / (coerce $ clockBeatsPerCycle config)
 
 cyclesToBeat :: ClockConfig -> Double -> Double
-cyclesToBeat config cyc = cyc * (coerce $ cBeatsPerCycle config)
+cyclesToBeat config cyc = cyc * (coerce $ clockBeatsPerCycle config)
 
 getSessionState :: ClockRef -> IO Link.SessionState
 getSessionState (ClockRef _ abletonLink) = Link.createAndCaptureAppSessionState abletonLink
@@ -249,10 +249,10 @@ getZeroedSessionState :: ClockConfig -> ClockRef -> IO Link.SessionState
 getZeroedSessionState config (ClockRef _ abletonLink) = do
   ss <- Link.createAndCaptureAppSessionState abletonLink
   nowLink <- liftIO $ Link.clock abletonLink
-  Link.forceBeatAtTime ss 0 (nowLink + processAhead) (cQuantum config)
+  Link.forceBeatAtTime ss 0 (nowLink + processAhead) (clockQuantum config)
   pure ss
   where
-    processAhead = round $ (cProcessAhead config) * 1000000
+    processAhead = round $ (clockProcessAhead config) * 1000000
 
 getTempo :: Link.SessionState -> IO Time
 getTempo ss = fmap toRational $ Link.getTempo ss
@@ -261,18 +261,18 @@ setTempoCPS :: Time -> Link.Micros -> ClockConfig -> Link.SessionState -> IO ()
 setTempoCPS cps now conf ss = Link.setTempo ss (coerce $ cyclesToBeat conf ((fromRational cps) * 60)) now
 
 timeAtBeat :: ClockConfig -> Link.SessionState -> Double -> IO Link.Micros
-timeAtBeat config ss beat = Link.timeAtBeat ss (coerce beat) (cQuantum config)
+timeAtBeat config ss beat = Link.timeAtBeat ss (coerce beat) (clockQuantum config)
 
 timeToCycles :: ClockConfig -> Link.SessionState -> Link.Micros -> IO Time
 timeToCycles config ss time = do
-  beat <- Link.beatAtTime ss time (cQuantum config)
-  pure $! (toRational beat) / (toRational (cBeatsPerCycle config))
+  beat <- Link.beatAtTime ss time (clockQuantum config)
+  pure $! (toRational beat) / (toRational (clockBeatsPerCycle config))
 
 -- At what time does the cycle occur according to Link?
 cyclesToTime :: ClockConfig -> Link.SessionState -> Time -> IO Link.Micros
 cyclesToTime config ss cyc = do
-  let beat = (fromRational cyc) * (cBeatsPerCycle config)
-  Link.timeAtBeat ss beat (cQuantum config)
+  let beat = (fromRational cyc) * (clockBeatsPerCycle config)
+  Link.timeAtBeat ss beat (clockQuantum config)
 
 linkToOscTime :: ClockRef -> Link.Micros -> IO O.Time
 linkToOscTime (ClockRef _ abletonLink) lt = do
@@ -289,7 +289,7 @@ addMicrosToOsc m t = ((fromIntegral m) / 1000000) + t
 logicalTime :: ClockConfig -> Link.Micros -> Int64 -> Link.Micros
 logicalTime config startTime ticks' = startTime + ticks' * frameTimespan
   where
-    frameTimespan = round $ (cFrameTimespan config) * 1000000
+    frameTimespan = round $ (clockFrameTimespan config) * 1000000
 
 ---------------------------------------------------------------
 ----------- functions for interacting with the clock ----------
@@ -303,7 +303,7 @@ getBPM (ClockRef _ abletonLink) = do
   pure $! toRational bpm
 
 getCPS :: ClockConfig -> ClockRef -> IO Time
-getCPS config ref = fmap (\bpm -> bpm / (toRational $ cBeatsPerCycle config) / 60) (getBPM ref)
+getCPS config ref = fmap (\bpm -> bpm / (toRational $ clockBeatsPerCycle config) / 60) (getBPM ref)
 
 getCycleTime :: ClockConfig -> ClockRef -> IO Time
 getCycleTime config (ClockRef _ abletonLink) = do
@@ -325,7 +325,7 @@ setBPM (ClockRef clock _) t = atomically $ writeTQueue clock $ SetTempo t
 setCPS :: ClockConfig -> ClockRef -> Time -> IO ()
 setCPS config ref cps = setBPM ref bpm
   where
-    bpm = cps * 60 * toRational (cBeatsPerCycle config)
+    bpm = cps * 60 * (toRational $ clockBeatsPerCycle config)
 
 setNudge :: ClockRef -> Double -> IO ()
 setNudge (ClockRef clock _) n = atomically $ writeTQueue clock $ SetNudge n

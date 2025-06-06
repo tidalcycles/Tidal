@@ -1,6 +1,8 @@
-module Sound.Tidal.Stream.Config where
+module Sound.Tidal.Config where
 
 import Control.Monad (when)
+import Data.Int (Int64)
+import Foreign.C (CDouble)
 import qualified Sound.Tidal.Clock as Clock
 
 {-
@@ -26,11 +28,13 @@ data Config = Config
     cCtrlAddr :: String,
     cCtrlPort :: Int,
     cCtrlBroadcast :: Bool,
-    -- cTempoAddr :: String,
-    -- cTempoPort :: Int,
-    -- cTempoClientPort :: Int,
     cVerbose :: Bool,
-    cClockConfig :: Clock.ClockConfig
+    cQuantum :: CDouble,
+    cBeatsPerCycle :: CDouble,
+    cFrameTimespan :: Double,
+    cEnableLink :: Bool,
+    cSkipTicks :: Int64,
+    cProcessAhead :: Double
   }
 
 defaultConfig :: Config
@@ -40,11 +44,24 @@ defaultConfig =
       cCtrlAddr = "127.0.0.1",
       cCtrlPort = 6010,
       cCtrlBroadcast = False,
-      -- cTempoAddr = "127.0.0.1",
-      -- cTempoPort = 9160,
-      -- cTempoClientPort = 0, -- choose at random
       cVerbose = True,
-      cClockConfig = Clock.defaultConfig
+      cFrameTimespan = Clock.clockFrameTimespan Clock.defaultConfig,
+      cEnableLink = Clock.clockEnableLink Clock.defaultConfig,
+      cProcessAhead = Clock.clockProcessAhead Clock.defaultConfig,
+      cSkipTicks = Clock.clockSkipTicks Clock.defaultConfig,
+      cQuantum = Clock.clockQuantum Clock.defaultConfig,
+      cBeatsPerCycle = Clock.clockBeatsPerCycle Clock.defaultConfig
+    }
+
+toClockConfig :: Config -> Clock.ClockConfig
+toClockConfig conf =
+  Clock.ClockConfig
+    { Clock.clockFrameTimespan = cFrameTimespan conf,
+      Clock.clockEnableLink = cEnableLink conf,
+      Clock.clockProcessAhead = cProcessAhead conf,
+      Clock.clockSkipTicks = cSkipTicks conf,
+      Clock.clockQuantum = cQuantum conf,
+      Clock.clockBeatsPerCycle = cBeatsPerCycle conf
     }
 
 verbose :: Config -> String -> IO ()
@@ -52,12 +69,10 @@ verbose c s = when (cVerbose c) $ putStrLn s
 
 setFrameTimespan :: Double -> Config -> Config
 setFrameTimespan n c =
-  c
-    { cClockConfig = (cClockConfig c) {Clock.cFrameTimespan = n}
-    }
+  c {cFrameTimespan = n}
 
 setProcessAhead :: Double -> Config -> Config
 setProcessAhead n c =
   c
-    { cClockConfig = (cClockConfig c) {Clock.cProcessAhead = n}
+    { cProcessAhead = n
     }

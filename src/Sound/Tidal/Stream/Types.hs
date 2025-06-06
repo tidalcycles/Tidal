@@ -5,9 +5,9 @@ import qualified Data.Map.Strict as Map
 import qualified Network.Socket as N
 import qualified Sound.Osc.Transport.Fd.Udp as O
 import qualified Sound.Tidal.Clock as Clock
+import Sound.Tidal.Config
 import Sound.Tidal.Pattern
 import Sound.Tidal.Show ()
-import Sound.Tidal.Stream.Config
 
 data Stream = Stream
   { sConfig :: Config,
