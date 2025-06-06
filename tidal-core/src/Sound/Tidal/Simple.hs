@@ -21,7 +21,7 @@
 
 module Sound.Tidal.Simple where
 
-import GHC.Exts (IsString (..))
+import Data.String (IsString (..))
 import Sound.Tidal.Control (chop, hurry)
 import Sound.Tidal.Core ((#), (<~), (|*))
 import Sound.Tidal.Params (crush, gain, pan, s, speed)
