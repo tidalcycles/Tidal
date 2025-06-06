@@ -56,6 +56,7 @@ where
 import Control.Monad.Catch
 import Control.Monad.Reader
 import Data.Ratio as C
+import Sound.Tidal.Config as C
 import Sound.Tidal.Context (Stream)
 import qualified Sound.Tidal.Context as C
 import Sound.Tidal.Control as C
@@ -65,7 +66,6 @@ import Sound.Tidal.ParseBP as C
 import Sound.Tidal.Pattern as C
 import Sound.Tidal.Scales as C
 import Sound.Tidal.Simple as C
-import Sound.Tidal.Config as C
 import Sound.Tidal.Stream.Main (startTidal)
 import Sound.Tidal.Stream.Target (superdirtTarget)
 import Sound.Tidal.Stream.Types (Target (..))

@@ -5,8 +5,8 @@ import qualified Data.Map as Map
 import qualified Sound.Tidal.Clock as Clock
 import Sound.Tidal.Config
   ( Config (cCtrlAddr, cCtrlPort),
+    toClockConfig,
     verbose,
-    toClockConfig
   )
 import Sound.Tidal.Stream.Listen
   ( ctrlResponder,
