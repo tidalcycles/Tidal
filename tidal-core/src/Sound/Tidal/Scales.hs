@@ -20,7 +20,7 @@ module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale, scaleWith, sc
 
 import Data.Maybe (fromMaybe)
 import Sound.Tidal.Core (slowcat)
-import Sound.Tidal.Pattern (Pattern, (<*))
+import Sound.Tidal.Pattern (Pattern, (<*), arc)
 import Sound.Tidal.Utils ((!!!))
 import Prelude hiding ((*>), (<*))
 
