@@ -365,6 +365,7 @@ genericTransformations =
     <|> $(fromTidal "degrade")
     <|> $(fromTidal "arpeggiate")
     <|> $(fromTidal "trigger")
+    <|> $(fromTidal "rolled")
     <|> constParser <*!> parser
     <|>
     -- more complex possibilities that would involve overlapped Parse instances if they were instances
@@ -811,6 +812,7 @@ instance Parse (Pattern Time -> ControlPattern -> ControlPattern) where
   parser =
     $(fromTidal "hurry")
       <|> $(fromTidal "loopAt")
+      <|> $(fromTidal "rolledBy")
       <|> (parser :: H (Pattern Double -> Pattern Time -> ControlPattern -> ControlPattern)) <*!> parser
 
 instance Parse ((ControlPattern -> ControlPattern) -> ControlPattern -> ControlPattern) where
