@@ -39,8 +39,8 @@ import Data.Functor.Identity (Identity)
 import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
 import Data.Ratio ((%))
+import Data.String (IsString (..))
 import Data.Typeable (Typeable)
-import GHC.Exts (IsString (..))
 import Sound.Tidal.Chords
   ( Modifier (..),
     chordTable,
