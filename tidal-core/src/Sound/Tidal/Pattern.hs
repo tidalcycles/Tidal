@@ -57,7 +57,15 @@ data State = State
 
 -- | A datatype representing events taking place over time
 data Pattern a = Pattern {query :: State -> [Event a], steps :: Maybe (Rational), pureValue :: Maybe a}
-  deriving (Generic, Functor)
+  deriving (Generic)
+
+instance Functor Pattern where
+  fmap f p =
+    Pattern
+      { query = map (fmap f) . query p,
+        steps = steps p,
+        pureValue = fmap f (pureValue p)
+      }
 
 instance (NFData a) => NFData (Pattern a)
 
@@ -981,7 +989,16 @@ data EventF a b = Event
     part :: a,
     value :: b
   }
-  deriving (Eq, Ord, Functor, Generic)
+  deriving (Eq, Ord, Generic)
+
+instance Functor (EventF a) where
+  fmap f e =
+    Event
+      { context = context e,
+        whole = whole e,
+        part = part e,
+        value = f (value e)
+      }
 
 instance (NFData a, NFData b) => NFData (EventF a b)
 
