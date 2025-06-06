@@ -7,9 +7,9 @@ import Control.Concurrent.MVar
 import qualified Control.Exception as E
 import qualified Data.Map as Map
 import qualified Sound.Tidal.Clock as Clock
+import Sound.Tidal.Config
 import Sound.Tidal.ID
 import Sound.Tidal.Pattern
-import Sound.Tidal.Config
 import Sound.Tidal.Stream.Process
 import Sound.Tidal.Stream.Types
 import System.IO (hPutStrLn, stderr)
@@ -33,11 +33,19 @@ streamSetBPM s = Clock.setBPM (sClockRef s)
 streamGetCPS :: Stream -> IO Time
 streamGetCPS s = Clock.getCPS (toClockConfig $ sConfig s) (sClockRef s)
 
+-- Deprecated - compat with old style BootTidal.hs
+streamGetcps :: Stream -> IO Time
+streamGetcps = streamGetCPS
+
 streamGetBPM :: Stream -> IO Time
 streamGetBPM s = Clock.getBPM (sClockRef s)
 
 streamGetNow :: Stream -> IO Time
 streamGetNow s = Clock.getCycleTime (toClockConfig $ sConfig s) (sClockRef s)
+
+-- Deprecated - compat with old style BootTidal.hs
+streamGetnow :: Stream -> IO Time
+streamGetnow = streamGetNow
 
 streamEnableLink :: Stream -> IO ()
 streamEnableLink s = Clock.enableLink (sClockRef s)
