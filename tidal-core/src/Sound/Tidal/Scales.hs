@@ -20,7 +20,7 @@ module Sound.Tidal.Scales (scale, scaleList, scaleTable, getScale, scaleWith, sc
 
 import Data.Maybe (fromMaybe)
 import Sound.Tidal.Core (slowcat)
-import Sound.Tidal.Pattern (Pattern, arc, (<*))
+import Sound.Tidal.Pattern (Pattern, (<*))
 import Sound.Tidal.Utils ((!!!))
 import Prelude hiding ((*>), (<*))
 
@@ -322,30 +322,17 @@ These are equivalent:
 
 -}
 scaleWith :: (Eq a, Fractional a) => Pattern String -> ([a] -> [a]) -> Pattern Int -> Pattern a
-scaleWith = getScaleWith scaleTable
+scaleWith = getScaleMod scaleTable
 
 {- Variant of @scaleWith@ providing a list of modifier functions instead of a single function
 -}
 scaleWithList :: (Eq a, Fractional a) => Pattern String -> ([[a] -> [a]]) -> Pattern Int -> Pattern a
-scaleWithList _ [] _ = silence
-scaleWithList sp (f : []) p = scaleWith sp f p
-scaleWithList sp fs p = Pattern q
-  where
-    n = length fs
-    q st =
-      concatMap (ff st) $
-        arcCyclesZW (arc st)
-    ff st a = query pp $ st {arc = a}
-      where
-        f = fs !! i
-        cyc = (floor $ start a) :: Int
-        i = cyc `mod` n
-        pp = (scaleWith sp f p)
+scaleWithList sp fs p = slowcat $ map (\f -> scaleWith sp f p) fs
 
 {- Variant of @getScale@ used to build the @scaleWith@ function
 -}
-getScaleWith :: (Eq a, Fractional a) => [(String, [a])] -> Pattern String -> ([a] -> [a]) -> Pattern Int -> Pattern a
-getScaleWith table sp f p =
+getScaleMod :: (Eq a, Fractional a) => [(String, [a])] -> Pattern String -> ([a] -> [a]) -> Pattern Int -> Pattern a
+getScaleMod table sp f p =
   ( \n scaleName ->
       noteInScale (uniq $ f $ fromMaybe [0] $ lookup scaleName table) n
   )
