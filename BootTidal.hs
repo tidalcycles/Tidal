@@ -12,7 +12,7 @@ default (Rational, Integer, Double, Pattern String)
 -- Use 'mkTidalWith' to customize these settings.
 tidalInst <- mkTidal
 
--- tidalInst <- mkTidalWith [(superdirtTarget { oLatency = 0.01 }, [superdirtShape])] (setFrameTimespan (1/50) $ setProcessAhead (1/20) defaultConfig)
+-- tidalInst <- mkTidalWith [(superdirtTarget { oLatency = 0.01 }, [superdirtShape])] (defaultConfig {cFrameTimespan = 1/50, cProcessAhead = 1/20})
 
 -- This orphan instance makes the boot aliases work!
 -- It has to go after you define 'tidalInst'.
