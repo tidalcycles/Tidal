@@ -1,9 +1,9 @@
 
 # Tidal <a href="https://github.com/tidalcycles/Tidal/LICENSE"><img alt="License" src="https://img.shields.io/github/license/tidalcycles/Tidal"></a> (moved to codeberg)
 
-[Uzu language](https://uzu.lurk.org/) for live coding algorithmic patterns
-
+**
 Tidal development has now moved to codeberg here: https://codeberg.org/uzu/tidal
+**
 
 (c) Alex McLean and other [contributors](https://github.com/tidalcycles/Tidal/graphs/contributors), 2025
 
