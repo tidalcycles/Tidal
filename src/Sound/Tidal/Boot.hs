@@ -15,6 +15,7 @@ module Sound.Tidal.Boot
     panic,
     list,
     mute,
+    muteAll,
     unmute,
     unmuteAll,
     unsoloAll,
@@ -185,6 +186,10 @@ list = streamList tidal
 -- | See 'Sound.Tidal.Stream.streamMute'.
 mute :: (Tidally) => ID -> IO ()
 mute = streamMute tidal
+
+-- | See 'Sound.Tidal.Stream.streamMuteAll'.
+muteAll :: (Tidally) => IO ()
+muteAll = streamMuteAll tidal
 
 -- | See 'Sound.Tidal.Stream.streamUnmute'.
 unmute :: (Tidally) => ID -> IO ()
