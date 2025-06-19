@@ -16,7 +16,9 @@ data ArcF a = Arc
   { start :: a,
     stop :: a
   }
-  deriving (Eq, Ord, Functor, Show, Generic)
+  deriving (Eq, Ord, Show, Generic)
+
+instance Functor ArcF where fmap f (Arc s e) = Arc (f s) (f e)
 
 type Arc = ArcF Time
 

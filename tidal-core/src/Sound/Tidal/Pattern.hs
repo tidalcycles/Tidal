@@ -57,12 +57,26 @@ data State = State
 
 -- | A datatype representing events taking place over time
 data Pattern a = Pattern {query :: State -> [Event a], steps :: Maybe (Rational), pureValue :: Maybe a}
-  deriving (Generic, Functor)
+  deriving (Generic)
+
+instance Functor Pattern where
+  fmap f p =
+    Pattern
+      { query = map (fmap f) . query p,
+        steps = steps p,
+        pureValue = fmap f (pureValue p)
+      }
 
 instance (NFData a) => NFData (Pattern a)
 
-pattern :: (State -> [Event a]) -> Pattern a
-pattern f = Pattern f Nothing Nothing
+polymorphic :: Pattern a -> Pattern b
+polymorphic = fmap (const undefined)
+
+polymorphicEvent :: Event a -> Event b
+polymorphicEvent = fmap (const undefined)
+
+pattern_ :: (State -> [Event a]) -> Pattern a
+pattern_ f = Pattern f Nothing Nothing
 
 setSteps :: Maybe Rational -> Pattern a -> Pattern a
 setSteps r p = p {steps = r}
@@ -145,7 +159,7 @@ instance Applicative Pattern where
 infixl 4 <*, *>, <<*
 
 applyPatToPat :: (Maybe Arc -> Maybe Arc -> Maybe (Maybe Arc)) -> Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPat combineWholes pf px = pattern q
+applyPatToPat combineWholes pf px = pattern_ q
   where
     q st = catMaybes $ concatMap match $ query pf st
       where
@@ -160,7 +174,7 @@ applyPatToPat combineWholes pf px = pattern q
             (query px $ st {arc = wholeOrPart ef})
 
 applyPatToPatBoth :: Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPatBoth pf px = pattern q
+applyPatToPatBoth pf px = pattern_ q
   where
     q st = catMaybes $ (concatMap match $ query pf st) ++ (concatMap matchX $ query (filterAnalog px) st)
       where
@@ -177,7 +191,7 @@ applyPatToPatBoth pf px = pattern q
           return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
 
 applyPatToPatLeft :: Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPatLeft pf px = pattern q
+applyPatToPatLeft pf px = pattern_ q
   where
     q st = catMaybes $ concatMap match $ query pf st
       where
@@ -188,7 +202,7 @@ applyPatToPatLeft pf px = pattern q
           return (Event (combineContexts [context ef, context ex]) whole' part' (value ef $ value ex))
 
 applyPatToPatRight :: Pattern (a -> b) -> Pattern a -> Pattern b
-applyPatToPatRight pf px = pattern q
+applyPatToPatRight pf px = pattern_ q
   where
     q st = catMaybes $ concatMap match $ query px st
       where
@@ -225,7 +239,7 @@ instance Monad Pattern where
 --
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 unwrap :: Pattern (Pattern a) -> Pattern a
-unwrap pp = pp {query = q, pureValue = Nothing}
+unwrap pp = (polymorphic pp) {query = q, pureValue = Nothing}
   where
     q st =
       concatMap
@@ -242,7 +256,7 @@ unwrap pp = pp {query = q, pureValue = Nothing}
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the inner pattern.
 innerJoin :: Pattern (Pattern b) -> Pattern b
-innerJoin pp' = pp' {query = q, pureValue = Nothing}
+innerJoin pp' = (polymorphic pp') {query = q, pureValue = Nothing}
   where
     q st =
       concatMap
@@ -258,7 +272,7 @@ innerJoin pp' = pp' {query = q, pureValue = Nothing}
 -- | Turns a pattern of patterns into a single pattern. Like @unwrap@,
 -- but structure only comes from the outer pattern.
 outerJoin :: Pattern (Pattern a) -> Pattern a
-outerJoin pp = pp {query = q, pureValue = Nothing}
+outerJoin pp = (polymorphic pp) {query = q, pureValue = Nothing}
   where
     q st =
       concatMap
@@ -277,7 +291,7 @@ outerJoin pp = pp {query = q, pureValue = Nothing}
 -- TODO - what if a continuous pattern contains a discrete one, or vice-versa?
 -- TODO - steps
 squeezeJoin :: Pattern (Pattern a) -> Pattern a
-squeezeJoin pp = pp {query = q, pureValue = Nothing}
+squeezeJoin pp = (polymorphic pp) {query = q, pureValue = Nothing}
   where
     q st =
       concatMap
@@ -292,7 +306,7 @@ squeezeJoin pp = pp {query = q, pureValue = Nothing}
         return (Event (combineContexts [iContext, oContext]) w' p' v)
 
 _trigJoin :: Bool -> Pattern (Pattern a) -> Pattern a
-_trigJoin cycleZero pat_of_pats = pattern q
+_trigJoin cycleZero pat_of_pats = pattern_ q
   where
     q st =
       concatMap
@@ -384,7 +398,7 @@ instance Monoid (Pattern a) where
 
 instance Semigroup (Pattern a) where
   (<>) :: Pattern a -> Pattern a -> Pattern a
-  (<>) !p !p' = pattern $ \st -> query p st ++ query p' st
+  (<>) !p !p' = pattern_ $ \st -> query p st ++ query p' st
 
 instance (Num a, Ord a) => Real (Pattern a) where
   toRational :: (Num a, Ord a) => Pattern a -> Rational
@@ -611,7 +625,7 @@ withQueryControls f pat = pat {query = query pat . (\(State a m) -> State a (f m
 -- | @withEvent f p@ returns a new @Pattern@ with each event mapped over
 -- function @f@.
 withEvent :: (Event a -> Event b) -> Pattern a -> Pattern b
-withEvent f p = p {query = map f . query p, pureValue = Nothing}
+withEvent f p = (polymorphic p) {query = map f . query p, pureValue = Nothing}
 
 -- | @withEvent f p@ returns a new @Pattern@ with each value mapped over
 -- function @f@.
@@ -621,7 +635,7 @@ withValue f pat = withEvent (fmap f) pat
 -- | @withEvent f p@ returns a new @Pattern@ with f applied to the resulting list of events for each query
 -- function @f@.
 withEvents :: ([Event a] -> [Event b]) -> Pattern a -> Pattern b
-withEvents f p = p {query = f . query p, pureValue = Nothing}
+withEvents f p = (polymorphic p) {query = f . query p, pureValue = Nothing}
 
 -- | @withPart f p@ returns a new @Pattern@ with function @f@ applied
 -- to the part.
@@ -840,7 +854,7 @@ rev p =
 -- | Mark values in the first pattern which match with at least one
 -- value in the second pattern.
 matchManyToOne :: (b -> a -> Bool) -> Pattern a -> Pattern b -> Pattern (Bool, b)
-matchManyToOne f pa pb = pa {query = q, pureValue = Nothing}
+matchManyToOne f pa pb = (polymorphic pa) {query = q, pureValue = Nothing}
   where
     q st = map match $ query pb st
       where
@@ -878,7 +892,7 @@ filterAnalog :: Pattern a -> Pattern a
 filterAnalog = filterEvents isAnalog
 
 playFor :: Time -> Time -> Pattern a -> Pattern a
-playFor s e pat = pattern $ \st -> maybe [] (\a -> query pat (st {arc = a})) $ subArc (Arc s e) (arc st)
+playFor s e pat = pattern_ $ \st -> maybe [] (\a -> query pat (st {arc = a})) $ subArc (Arc s e) (arc st)
 
 -- | Splits a pattern into a list containing the given 'n' number of
 -- patterns. Each one plays every 'n'th cycle, successfully offset by
@@ -981,7 +995,16 @@ data EventF a b = Event
     part :: a,
     value :: b
   }
-  deriving (Eq, Ord, Functor, Generic)
+  deriving (Eq, Ord, Generic)
+
+instance Functor (EventF a) where
+  fmap f e =
+    Event
+      { context = context e,
+        whole = whole e,
+        part = part e,
+        value = f (value e)
+      }
 
 instance (NFData a, NFData b) => NFData (EventF a b)
 
@@ -1282,7 +1305,7 @@ groupEventsBy f (e : es) = eqs : groupEventsBy f (es \\ eqs)
 -- assumes that all events in the list have same whole/part
 collectEvent :: [Event a] -> Maybe (Event [a])
 collectEvent [] = Nothing
-collectEvent l@(e : _) = Just $ e {context = con, value = vs}
+collectEvent l@(e : _) = Just $ (polymorphicEvent e) {context = con, value = vs}
   where
     con = unionC $ map context l
     vs = map value l
@@ -1307,7 +1330,7 @@ collect :: (Eq a) => Pattern a -> Pattern [a]
 collect = collectBy sameDur
 
 uncollectEvent :: Event [a] -> [Event a]
-uncollectEvent e = [e {value = value e !! i, context = resolveContext i (context e)} | i <- [0 .. length (value e) - 1]]
+uncollectEvent e = [(polymorphicEvent e) {value = value e !! i, context = resolveContext i (context e)} | i <- [0 .. length (value e) - 1]]
   where
     resolveContext i (Context xs) = if length xs <= i then Context [] else Context [xs !! i]
 
